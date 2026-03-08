@@ -4,6 +4,7 @@ This module consolidates all magic numbers and configuration constants
 that were previously scattered throughout the codebase.
 """
 
+import os
 from pathlib import Path
 from typing import Tuple
 
@@ -403,3 +404,19 @@ class ProjectPaths:
     def get_claude_dir(cls) -> Path:
         """Get the Claude directory."""
         return Path.cwd() / cls.CLAUDE_DIR
+
+
+def skip_permissions_disabled() -> bool:
+    """Return True if --dangerously-skip-permissions should be suppressed.
+
+    Checks the CLAUDE_MPM_NO_SKIP_PERMISSIONS environment variable.
+    Set to any non-empty value (e.g. "1", "true", "yes") to disable the flag.
+
+    This allows DevOps/SRE teams to opt out of bypass mode in CI/CD pipelines,
+    Kubernetes environments, and other security-conscious contexts where the
+    flag would expose production credentials to unguarded Claude execution.
+
+    Returns:
+        True if skip-permissions should be disabled, False otherwise (default).
+    """
+    return bool(os.environ.get("CLAUDE_MPM_NO_SKIP_PERMISSIONS", ""))

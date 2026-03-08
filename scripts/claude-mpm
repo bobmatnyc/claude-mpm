@@ -152,5 +152,10 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
     exec python -m claude_mpm "${ARGS[@]}"
 else
     # Pass through to claude CLI
-    exec claude --dangerously-skip-permissions "$@"
+    # Respect CLAUDE_MPM_NO_SKIP_PERMISSIONS env var for security-sensitive environments
+    if [[ -n "${CLAUDE_MPM_NO_SKIP_PERMISSIONS:-}" ]]; then
+        exec claude "$@"
+    else
+        exec claude --dangerously-skip-permissions "$@"
+    fi
 fi

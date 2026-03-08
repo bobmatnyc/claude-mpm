@@ -13,6 +13,7 @@ DESIGN DECISIONS:
 - Support multiple output formats (json, yaml, table, text)
 """
 
+import os
 import subprocess  # nosec B404 - required for process management
 import sys
 from datetime import datetime, timezone
@@ -75,6 +76,7 @@ def filter_claude_mpm_args(claude_args):
         "--force-check-dependencies",
         "--no-prompt",
         "--force-prompt",
+        "--no-dangerously-skip-permissions",  # Security opt-out flag (MPM-specific)
         # Input/output flags (these are MPM-specific, not Claude CLI flags)
         "--input",
         "--non-interactive",
@@ -778,6 +780,12 @@ def run_session_legacy(args):
     Args:
         args: Parsed command line arguments
     """
+    # Bridge --no-dangerously-skip-permissions CLI flag to environment variable.
+    # This ensures the flag takes effect for all downstream session types
+    # (interactive, oneshot, headless) without requiring each to check args.
+    if getattr(args, "no_dangerously_skip_permissions", False):
+        os.environ["CLAUDE_MPM_NO_SKIP_PERMISSIONS"] = "1"
+
     # Handle headless mode early - bypass all Rich console output
     if getattr(args, "headless", False):
         exit_code = _run_headless_session(args)

@@ -402,7 +402,11 @@ class InteractiveSession:
         # Check if --resume flag is present
         has_resume = self.runner.claude_args and "--resume" in self.runner.claude_args
 
-        cmd = ["claude", "--dangerously-skip-permissions"]
+        from .constants import skip_permissions_disabled
+
+        cmd = ["claude"]
+        if not skip_permissions_disabled():
+            cmd.append("--dangerously-skip-permissions")
 
         if has_resume:
             # When resuming, use minimal command to avoid interfering with conversation selection
