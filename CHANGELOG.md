@@ -1,3 +1,13 @@
+## v5.9.55 (2026-03-09)
+
+### Fix
+
+- **release**: auto-switch gh CLI account in release-publish target
+
+### Refactor
+
+- **setup**: replace bespoke _setup_mcp_ticketer with declarative registry
+
 ## v5.9.54 (2026-03-09)
 
 ### Refactor
