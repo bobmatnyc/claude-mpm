@@ -1,0 +1,10 @@
+
+AgentType enum hardcodes values. Not Good.
+
+#### Agent model improvements
+
+- `AgentType` enum extended from 5 to 15 members: original values preserved, 10 role-based categories added (`ENGINEER`, `QA`, `OPS`, `RESEARCH`, `SECURITY`, `DOCUMENTATION`, `VERSION_CONTROL`, `DATA`, `CONTENT`, `MANAGEMENT`).
+- New `AgentType.from_frontmatter()` classmethod: normalizes input, tries direct enum match, falls through ~20 aliases (e.g., `"code_analysis"` -> `RESEARCH`, `"claude_mpm"` -> `SYSTEM`), defaults to `CUSTOM`.
+- `unified_agent_registry.py`'s `AgentType` renamed to `AgentSourceType` to resolve the collision (classifies by source/tier, not by role). Backward-compat alias `AgentType = AgentSourceType` provided.
+- All frontmatter readers now prefer `agent_type:` over `type:` with backward-compatible fallback.
+

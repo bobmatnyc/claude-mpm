@@ -1,0 +1,32 @@
+
+This is an issue, CANONICAL_NAMES hardcodes agent names.
+Not good -> will cause divergance over time as more agents are introduced.
+Investigate to figure out a dynamic solution.
+
+Masa's comment for reference:
+> ### 2. Consolidate: generate `CANONICAL_NAMES` from `AGENT_NAME_MAP`
+> The PR introduces two name maps:
+> * `AGENT_NAME_MAP` in `core/agent_name_registry.py` (hyphen keys, e.g. `"code-analyzer"`)
+> * `CANONICAL_NAMES` in `core/agent_name_normalizer.py` (underscore keys, e.g. `"code_analyzer"`)
+
+Fix: claude-mpm-agents  provided ticketing agent has a frontmatter name which is not consistent with the naming convention.
+ - fix it in claude-mpm-agents
+ - find all places in code and PM instructions which refer to it and adjust.
+
+# Agent name normalizer corrections
+
+20+ `CANONICAL_NAMES` values in `agent_name_normalizer.py` corrected to match actual upstream `name:` frontmatter:
+
+| Key | Before | After |
+|-----|--------|-------|
+| `documentation` | `"Documentation"` | `"Documentation Agent"` |
+| `ticketing` | `"Ticketing"` | `"ticketing_agent"` |
+| `content` | `"Content"` | `"Content Optimization"` |
+| `code_analyzer` | `"Code Analyzer"` | `"Code Analysis"` |
+| `gcp_ops` | `"GCP Ops"` | `"Google Cloud Ops"` |
+| `clerk_ops` | `"Clerk Ops"` | `"Clerk Operations"` |
+| `javascript_engineer` | `"JavaScript Engineer"` | `"Javascript Engineer"` |
+| `typescript_engineer` | `"TypeScript Engineer"` | `"Typescript Engineer"` |
+| `tmux` | `"Tmux"` | `"Tmux Agent"` |
+
+`to_key()` now does a reverse lookup in `CANONICAL_NAMES` instead of deriving from display name (fixes `"Documentation Agent"` -> `"documentation_agent"` producing wrong key; now correctly returns `"documentation"`). `to_task_format()` delegates to `to_key()` then replaces underscores with dashes.

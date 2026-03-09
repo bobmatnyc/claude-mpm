@@ -1,0 +1,30 @@
+PM_INSTRUCTIONS delegates to agents using agent frontmatter "name" field.
+
+Investigate if we need to emphasise things like:
+ - If something is true, delegate to QA
+ - If something is true, delegate to **QA**
+
+Purpose:
+ - **QA** is a better eyecatcher for LLM
+ - **QA** is also a better eyecatcher when developing within the codebase.
+
+# PM template corrections
+
+224 line-for-line replacements across 7 template files, all following the same pattern -- replacing kebab-case/suffixed internal IDs with canonical `name:` frontmatter values:
+
+| Old (wrong) | New (correct) | ~Count |
+|-------------|---------------|--------|
+| `local-ops-agent` / `local-ops` | `Local Ops` | 40+ |
+| `web-qa-agent` / `web-qa` | `Web QA` | 15 |
+| `version-control` | `Version Control` | 12 |
+| `research` (lowercase in Task) | `Research` | 12 |
+| `api-qa-agent` / `api-qa` | `API QA` | 8 |
+| `vercel-ops-agent` / `vercel-ops` | `Vercel Ops` | 10 |
+| `documentation` | `Documentation Agent` | 6 |
+| `Code Analyzer` | `Code Analysis` | 4 |
+| `gcp-ops` | `Google Cloud Ops` | 4 |
+| `clerk-ops` | `Clerk Operations` | 3 |
+| `ticketing` | `ticketing_agent` | 3 |
+| `railway-ops-agent` (phantom) | Removed | 2 |
+
+Also fixed `system_context.py` PM guidance to state that `subagent_type` is case-sensitive and must match exact `name:` frontmatter values.
