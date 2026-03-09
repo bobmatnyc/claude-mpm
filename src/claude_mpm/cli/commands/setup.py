@@ -26,6 +26,27 @@ from ..shared import BaseCommand, CommandResult
 
 console = Console()
 
+# ---------------------------------------------------------------------------
+# Declarative registry for tools that support autonomous `<binary> setup`.
+# These services do NOT need a custom _setup_* method; the generic
+# _run_autonomous_setup() handles install + subprocess delegation.
+#
+# Keys  : service names as passed to `claude-mpm setup <service>`.
+# Values:
+#   binary       - the CLI binary to invoke for `<binary> setup`
+#   install_spec - SetupService enum member to pass to PackageInstallerService
+#                  (None means no auto-install attempt)
+#   mcp_server_name - if set, _ensure_mcp_configured is called after setup
+#                     (optional; leave None to skip)
+# ---------------------------------------------------------------------------
+AUTONOMOUS_SETUP_SERVICES: dict[str, dict] = {
+    "mcp-ticketer": {
+        "binary": "mcp-ticketer",
+        "install_spec": SetupService.MCP_TICKETER,
+        "mcp_server_name": None,
+    },
+}
+
 
 def parse_service_args(service_args: list[str]) -> dict[str, Any]:
     """
@@ -195,7 +216,12 @@ class SetupCommand(BaseCommand):
 
             service_args = Namespace(**service_options)
 
-            if service_name == "gworkspace-mcp":
+            # Declarative-first dispatch: check autonomous registry before custom handlers.
+            if service_name in AUTONOMOUS_SETUP_SERVICES:
+                result = self._run_autonomous_setup(
+                    service_name, AUTONOMOUS_SETUP_SERVICES[service_name], service_args
+                )
+            elif service_name == "gworkspace-mcp":
                 result = self._setup_google_workspace(service_args)
             elif service_name == "slack-mpm":
                 result = self._setup_slack_mpm(service_args)
@@ -209,8 +235,6 @@ class SetupCommand(BaseCommand):
                 result = self._setup_mcp_vector_search(service_args)
             elif service_name == "mcp-skillset":
                 result = self._setup_mcp_skillset(service_args)
-            elif service_name == "mcp-ticketer":
-                result = self._setup_mcp_ticketer(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
             elif service_name == "brave-search":
@@ -220,7 +244,9 @@ class SetupCommand(BaseCommand):
             elif service_name == "firecrawl":
                 result = self._setup_firecrawl(service_args)
             else:
-                result = CommandResult.error_result(f"Unknown service: {service_name}")
+                # Open-world fallback: if the binary exists and supports `setup`,
+                # delegate automatically without requiring a custom _setup_* method.
+                result = self._try_autonomous_setup_fallback(service_name, service_args)
 
             results.append((service_name, result))
 
@@ -390,6 +416,146 @@ class SetupCommand(BaseCommand):
 [dim]Note: Flags apply to the service that precedes them.[/dim]
 """
         console.print(help_text)
+
+    # ------------------------------------------------------------------
+    # Declarative autonomous setup helpers
+    # ------------------------------------------------------------------
+
+    def _run_autonomous_setup(
+        self, service_name: str, config: dict, args
+    ) -> CommandResult:
+        """Run setup for a service registered in AUTONOMOUS_SETUP_SERVICES.
+
+        Steps:
+        1. Optionally install the package via PackageInstallerService if
+           config["install_spec"] is set.
+        2. Exec `<binary> setup`, inheriting stdio so the tool can prompt
+           the user interactively.
+        3. Return success/error based on exit code.
+
+        Args:
+            service_name: Human-readable service identifier (for messages).
+            config: Entry from AUTONOMOUS_SETUP_SERVICES with keys:
+                    binary, install_spec, mcp_server_name.
+            args: Namespace with optional force/upgrade attributes.
+
+        Returns:
+            CommandResult indicating success or failure.
+        """
+        binary: str = config["binary"]
+        install_spec = config.get("install_spec")
+        mcp_server_name = config.get("mcp_server_name")
+
+        try:
+            # Step 1: optional package installation.
+            if install_spec is not None:
+                from ...services.package_installer import (
+                    InstallAction,
+                    PackageInstallerService,
+                    get_spec,
+                )
+
+                installer = PackageInstallerService()
+                spec = get_spec(install_spec)
+                force = getattr(args, "force", False)
+                upgrade = getattr(args, "upgrade", False)
+
+                console.print(f"[cyan]Checking {service_name} installation...[/cyan]")
+                if installer.is_installed(spec) and not force and not upgrade:
+                    console.print(f"[green]✓ {service_name} already installed[/green]")
+                else:
+                    console.print("[cyan]Detecting installation method...[/cyan]")
+                    success, message = installer.install(
+                        spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                    )
+                    if success:
+                        console.print(f"[green]✓ {message}[/green]")
+                    else:
+                        return CommandResult.error_result(message)
+
+            # Step 2: delegate to the tool's own setup command.
+            console.print(f"\n[cyan]Running {binary} setup...[/cyan]")
+            result = subprocess.run(
+                [binary, "setup"],
+                check=False,
+            )  # nosec B603 B607 — inherit stdio for interactive prompts
+
+            if result.returncode == 0:
+                console.print(
+                    f"[green]✓ {service_name} configured successfully[/green]"
+                )
+
+                # Step 3: optionally register in .mcp.json.
+                if mcp_server_name:
+                    try:
+                        from ...services.oauth import _ensure_mcp_configured
+
+                        _ensure_mcp_configured(mcp_server_name)
+                    except Exception as exc:
+                        console.print(
+                            f"[yellow]Warning: could not update .mcp.json: {exc}[/yellow]"
+                        )
+
+                return CommandResult.success_result(f"{service_name} setup completed")
+
+            console.print(
+                f"[yellow]{service_name} setup completed with non-zero exit ({result.returncode})[/yellow]"
+            )
+            return CommandResult.success_result(
+                f"{service_name} setup completed with warnings"
+            )
+
+        except FileNotFoundError:
+            console.print(
+                f"[red]{binary} not found. Install {service_name} first.[/red]"
+            )
+            return CommandResult.error_result(f"{binary} not installed")
+        except Exception as exc:
+            console.print(f"[red]Failed to setup {service_name}: {exc}[/red]")
+            return CommandResult.error_result(f"Failed to setup {service_name}: {exc}")
+
+    def _try_autonomous_setup_fallback(self, service_name: str, args) -> CommandResult:
+        """Open-world fallback: try `<service_name> setup` if the binary exists.
+
+        If the binary is found in PATH and responds to `setup --help` without
+        crashing (exit code 0 or 1), we delegate automatically.  This allows
+        new tools to work without any code changes to SetupCommand.
+
+        Args:
+            service_name: Name of the service (also used as the binary name).
+            args: Namespace (unused but kept for consistent signature).
+
+        Returns:
+            CommandResult — error if the binary is absent or not setup-capable.
+        """
+        binary = service_name  # Convention: binary name == service name.
+
+        if not shutil.which(binary):
+            return CommandResult.error_result(f"Unknown service: {service_name}")
+
+        # Probe whether the binary accepts a `setup` subcommand.
+        probe = subprocess.run(
+            [binary, "setup", "--help"],
+            capture_output=True,
+            check=False,
+        )  # nosec B603 B607
+        if probe.returncode not in (0, 1):
+            # Binary exists but has no `setup` subcommand or crashed.
+            return CommandResult.error_result(f"Unknown service: {service_name}")
+
+        console.print(f"[cyan]Auto-detected '{binary} setup' — delegating...[/cyan]")
+        result = subprocess.run(
+            [binary, "setup"],
+            check=False,
+        )  # nosec B603 B607 — inherit stdio for interactive prompts
+
+        if result.returncode == 0:
+            console.print(f"[green]✓ {service_name} setup completed[/green]")
+            return CommandResult.success_result(f"{service_name} setup completed")
+
+        return CommandResult.error_result(
+            f"{service_name} setup exited with code {result.returncode}"
+        )
 
     def _remove_kuzu_memory_hooks(self) -> bool:
         """Remove kuzu-memory's independent hooks from Claude Code settings.
@@ -1805,77 +1971,6 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             )
         # Linux and others
         return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
-
-    def _setup_mcp_ticketer(self, args) -> CommandResult:
-        """Setup mcp-ticketer with MPM hook integration.
-
-        Args:
-            args: Setup options (force, upgrade flags supported)
-
-        Returns:
-            CommandResult indicating success or failure
-        """
-        console.print("\n[bold cyan]Setting up mcp-ticketer...[/bold cyan]")
-
-        try:
-            # Use centralized package installer
-            console.print("[cyan]Checking mcp-ticketer installation...[/cyan]")
-
-            from ...services.package_installer import (
-                InstallAction,
-                PackageInstallerService,
-                get_spec,
-            )
-
-            installer = PackageInstallerService()
-            spec = get_spec(SetupService.MCP_TICKETER)
-
-            force = getattr(args, "force", False)
-            upgrade = getattr(args, "upgrade", False)
-
-            # Check if already installed and no flags set
-            if installer.is_installed(spec) and not force and not upgrade:
-                console.print("[green]✓ mcp-ticketer already installed[/green]")
-            else:
-                console.print("[cyan]Detecting installation method...[/cyan]")
-                success, message = installer.install(
-                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
-                )
-                if success:
-                    console.print(f"[green]✓ {message}[/green]")
-                else:
-                    return CommandResult.error_result(message)
-
-            # Run mcp-ticketer setup with auto mode
-            # This integrates with MPM's hook system automatically
-            console.print("\n[cyan]Running mcp-ticketer setup...[/cyan]")
-            result = subprocess.run(
-                ["mcp-ticketer", "setup"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )  # nosec B603 B607
-
-            if result.returncode == 0:
-                console.print("[green]✓ mcp-ticketer configured successfully[/green]")
-                console.print("  [dim]Hooks integrated with MPM hook system[/dim]")
-                return CommandResult.success_result("mcp-ticketer setup completed")
-
-            console.print(
-                "[yellow]mcp-ticketer setup completed with warnings:[/yellow]"
-            )
-            console.print(f"  {result.stderr.strip()}")
-            return CommandResult.success_result(
-                "mcp-ticketer setup completed with warnings"
-            )
-
-        except FileNotFoundError:
-            console.print("[red]mcp-ticketer not found. Install with:[/red]")
-            console.print("  pip install mcp-ticketer")
-            return CommandResult.error_result("mcp-ticketer not installed")
-        except Exception as e:
-            console.print(f"[red]Failed to setup mcp-ticketer: {e}[/red]")
-            return CommandResult.error_result(f"Failed to setup mcp-ticketer: {e}")
 
     def _setup_google_workspace(self, args) -> CommandResult:
         """Set up Google Workspace MCP (delegates to OAuth setup)."""
