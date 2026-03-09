@@ -92,6 +92,11 @@ class TestMessageBus:
 
         task = bus.enqueue_message(message_data)
         assert task is not None
+        # enqueue_message returns a Huey Result (the callable task wrapper)
+        from huey.api import Result
+
+        assert isinstance(task, Result)
+        assert hasattr(task, "id")
 
 
 class TestMessageServiceWithBus:

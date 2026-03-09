@@ -194,3 +194,5 @@ class TestMonitorCommand:
         # First validate will fail
         error = self.command.validate_args(args)
         assert error is not None
+        assert isinstance(error, str)
+        assert "unknown" in error.lower() or "Unknown" in error

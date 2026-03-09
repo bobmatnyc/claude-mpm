@@ -69,10 +69,15 @@ results = TestResults()
 def test_module_imports():
     """Test that all required imports resolve correctly."""
     try:
-        # Test that classes can be imported
+        # Test that classes can be imported and are proper types
         assert AgentConfig is not None, "AgentConfig not imported"
+        assert isinstance(AgentConfig, type), "AgentConfig should be a class"
         assert SimpleAgentManager is not None, "SimpleAgentManager not imported"
+        assert isinstance(SimpleAgentManager, type), (
+            "SimpleAgentManager should be a class"
+        )
         assert ConfigureCommand is not None, "ConfigureCommand not imported"
+        assert isinstance(ConfigureCommand, type), "ConfigureCommand should be a class"
         results.record_pass("Module imports")
     except Exception as e:
         results.record_fail("Module imports", str(e))

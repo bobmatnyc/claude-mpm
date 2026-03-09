@@ -710,5 +710,95 @@ class TestIntegrationScenarios:
         mock_runner.run_interactive.assert_called_once()
 
 
+class TestRunCommandRouting:
+    """Additional routing and integration tests (migrated from test_run_command.py)."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.command = RunCommand()
+
+    def test_validate_args_with_input_file(self):
+        """Test validation with input file specified."""
+        args = Namespace(
+            claude_args=[], input="/path/to/input.txt", non_interactive=False
+        )
+        error = self.command.validate_args(args)
+        assert error is None
+
+    def test_validate_args_non_interactive_without_input(self):
+        """Test validation for non-interactive mode without input."""
+        args = Namespace(claude_args=[], input=None, non_interactive=True)
+        error = self.command.validate_args(args)
+        assert error is None
+
+    def test_filter_websocket_port_with_value(self):
+        """Test filtering --websocket-port with its value."""
+        claude_args = ["--websocket-port", "9090", "--model", "claude-3"]
+        filtered = filter_claude_mpm_args(claude_args)
+        assert filtered == ["--model", "claude-3"]
+
+    def test_filter_logging_with_value(self):
+        """Test filtering --logging with its value."""
+        claude_args = ["--logging", "DEBUG", "--model", "claude-3"]
+        filtered = filter_claude_mpm_args(claude_args)
+        assert filtered == ["--model", "claude-3"]
+
+    def test_filter_headless_flag(self):
+        """Test filtering --headless flag."""
+        claude_args = ["--headless", "--model", "claude-3"]
+        filtered = filter_claude_mpm_args(claude_args)
+        assert filtered == ["--model", "claude-3"]
+
+    def test_filter_multiple_mpm_flags(self):
+        """Test filtering multiple MPM flags at once."""
+        claude_args = [
+            "--monitor",
+            "--no-tickets",
+            "--debug",
+            "--model",
+            "claude-3",
+            "--intercept-commands",
+        ]
+        filtered = filter_claude_mpm_args(claude_args)
+        assert filtered == ["--model", "claude-3"]
+
+    @patch("claude_mpm.cli.commands.run.run_session_legacy")
+    def test_execute_calls_run(self, mock_run_session_legacy):
+        """Test that execute properly calls run method."""
+        mock_run_session_legacy.return_value = None
+
+        args = Namespace(
+            claude_args=[],
+            monitor=False,
+            no_tickets=False,
+            logging="OFF",
+            debug=False,
+            config=None,
+        )
+
+        result = self.command.execute(args)
+
+        assert isinstance(result, CommandResult)
+        mock_run_session_legacy.assert_called_once()
+
+    @patch("claude_mpm.cli.commands.run.run_session_legacy")
+    def test_run_with_claude_args_passthrough(self, mock_run_session_legacy):
+        """Test that Claude args are passed through correctly."""
+        mock_run_session_legacy.return_value = None
+
+        args = Namespace(
+            claude_args=["--model", "claude-3", "--temperature", "0.7"],
+            monitor=False,
+            no_tickets=False,
+            logging="OFF",
+        )
+
+        result = self.command.run(args)
+
+        assert result.success is True
+        call_args = mock_run_session_legacy.call_args[0][0]
+        assert call_args.claude_args == ["--model", "claude-3", "--temperature", "0.7"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

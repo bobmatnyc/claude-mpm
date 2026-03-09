@@ -382,6 +382,9 @@ class TestSocketIOServerCoreLifecycle:
                 try:
                     # Heartbeat task should be created
                     assert server.heartbeat_task is not None
+                    # heartbeat_task is an AsyncMock; verify it has the expected interface
+                    assert hasattr(server.heartbeat_task, "cancelled")
+                    assert hasattr(server.heartbeat_task, "done")
 
                 finally:
                     server.stop_sync()

@@ -409,10 +409,14 @@ Line 4: After error
         # Error in stdout
         error_info1 = error_memory.detect_error("Error: command not found: test", "", 1)
         assert error_info1 is not None
+        assert isinstance(error_info1, dict)
+        assert "type" in error_info1
 
         # Error in stderr
         error_info2 = error_memory.detect_error("", "Error: command not found: test", 1)
         assert error_info2 is not None
+        assert isinstance(error_info2, dict)
+        assert "type" in error_info2
 
 
 class TestErrorMemoryIntegration:

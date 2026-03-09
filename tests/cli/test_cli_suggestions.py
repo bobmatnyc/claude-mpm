@@ -263,6 +263,8 @@ class TestEdgeCases:
         """Test that whitespace doesn't break matching."""
         result = suggest_similar_commands("tickets", ["tickets", "run"])
         assert result is not None  # Exact match should work
+        assert isinstance(result, str)
+        assert "tickets" in result
 
     def test_multiple_exact_matches(self):
         """Test behavior with duplicate commands in list."""

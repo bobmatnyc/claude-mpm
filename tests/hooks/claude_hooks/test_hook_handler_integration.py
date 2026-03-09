@@ -33,6 +33,7 @@ class TestMainEntryPoint:
                     hook_handler.main()
 
         assert hook_handler._global_handler is not None
+        assert isinstance(hook_handler._global_handler, hook_handler.ClaudeHookHandler)
         mock_handle.assert_called_once()
         mock_exit.assert_called_with(0)
 

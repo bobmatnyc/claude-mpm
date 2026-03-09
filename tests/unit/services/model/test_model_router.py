@@ -205,6 +205,11 @@ class TestInitialization:
         # Assert
         assert router.ollama_provider is not None
         assert router.claude_provider is not None
+        from claude_mpm.services.model.claude_provider import ClaudeProvider
+        from claude_mpm.services.model.ollama_provider import OllamaProvider
+
+        assert isinstance(router.ollama_provider, OllamaProvider)
+        assert isinstance(router.claude_provider, ClaudeProvider)
 
 
 # ============================================================================

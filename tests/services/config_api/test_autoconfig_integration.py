@@ -17,12 +17,16 @@ class TestAutoConfigManagerInitialization:
         handler_module._toolchain_analyzer = None
 
     def test_get_auto_config_manager_creates_functional_service(self):
+        from claude_mpm.services.agents.auto_config_manager import (
+            AutoConfigManagerService,
+        )
         from claude_mpm.services.config_api.autoconfig_handler import (
             _get_auto_config_manager,
         )
 
         manager = _get_auto_config_manager()
         assert manager is not None
+        assert isinstance(manager, AutoConfigManagerService)
         assert manager._toolchain_analyzer is not None
         assert manager._agent_recommender is not None
 
