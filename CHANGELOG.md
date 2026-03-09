@@ -1,3 +1,9 @@
+## v5.9.56 (2026-03-09)
+
+### Feat
+
+- **install**: add claude-mpm install lsp command
+
 ## v5.9.55 (2026-03-09)
 
 ### Fix
