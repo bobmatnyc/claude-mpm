@@ -984,6 +984,15 @@ update-homebrew-tap-dry-run: ## Test Homebrew tap update without making changes
 # Publish release to all channels
 release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@echo "$(YELLOW)🚀 Publishing release...$(NC)"
+	@echo "$(YELLOW)🔑 Ensuring correct GitHub account...$(NC)"
+	@if [ -f ".gh-account" ]; then \
+		GH_ACCOUNT=$$(cat .gh-account | tr -d '[:space:]'); \
+		if [ -n "$$GH_ACCOUNT" ]; then \
+			gh auth switch --user "$$GH_ACCOUNT" 2>/dev/null && \
+				echo "$(GREEN)✓ Switched gh CLI to: $$GH_ACCOUNT$(NC)" || \
+				echo "$(YELLOW)⚠ Could not switch gh CLI to $$GH_ACCOUNT (continuing)$(NC)"; \
+		fi; \
+	fi
 	@VERSION=$$(cat VERSION); \
 	echo "Publishing version: $$VERSION"; \
 	read -p "Continue with publishing? [y/N]: " confirm; \
