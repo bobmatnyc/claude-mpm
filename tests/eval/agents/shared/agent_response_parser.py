@@ -34,8 +34,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
 
-class AgentType(str, Enum):
-    """Agent types in Claude MPM framework."""
+class EvalAgentType(str, Enum):
+    """Agent type classification for eval framework (not production)."""
 
     BASE = "base"  # BASE_AGENT_TEMPLATE.md only
     RESEARCH = "research"  # BASE_AGENT + BASE_RESEARCH.md
@@ -105,7 +105,7 @@ class AgentResponseAnalysis:
     Contains both BASE_AGENT common patterns and agent-specific patterns.
     """
 
-    agent_type: AgentType
+    agent_type: EvalAgentType
     tools_used: List[ToolUsage]
     verification_events: List[VerificationEvent]
     memory_capture: MemoryCapture
@@ -176,7 +176,7 @@ class AgentResponseParser:
         self._json_pattern = re.compile(self.JSON_BLOCK_PATTERN, re.DOTALL)
 
     def parse(
-        self, response_text: str, agent_type: AgentType | str = AgentType.BASE
+        self, response_text: str, agent_type: EvalAgentType | str = EvalAgentType.BASE
     ) -> AgentResponseAnalysis:
         """
         Parse agent response and return complete analysis.
@@ -196,7 +196,7 @@ class AgentResponseParser:
         """
         # Convert string to enum if needed
         if isinstance(agent_type, str):
-            agent_type = AgentType(agent_type)
+            agent_type = EvalAgentType(agent_type)
 
         # Parse BASE_AGENT common patterns
         tools_used = self._extract_tools(response_text)
@@ -224,27 +224,27 @@ class AgentResponseParser:
         )
 
         # Parse agent-specific patterns
-        if agent_type == AgentType.RESEARCH:
+        if agent_type == EvalAgentType.RESEARCH:
             analysis.agent_specific_data = self._parse_research_agent(
                 response_text, tools_used
             )
-        elif agent_type == AgentType.ENGINEER:
+        elif agent_type == EvalAgentType.ENGINEER:
             analysis.agent_specific_data = self._parse_engineer_agent(
                 response_text, tools_used
             )
-        elif agent_type == AgentType.QA:
+        elif agent_type == EvalAgentType.QA:
             analysis.agent_specific_data = self._parse_qa_agent(
                 response_text, tools_used
             )
-        elif agent_type == AgentType.OPS:
+        elif agent_type == EvalAgentType.OPS:
             analysis.agent_specific_data = self._parse_ops_agent(
                 response_text, tools_used
             )
-        elif agent_type == AgentType.DOCUMENTATION:
+        elif agent_type == EvalAgentType.DOCUMENTATION:
             analysis.agent_specific_data = self._parse_documentation_agent(
                 response_text
             )
-        elif agent_type == AgentType.PROMPT_ENGINEER:
+        elif agent_type == EvalAgentType.PROMPT_ENGINEER:
             analysis.agent_specific_data = self._parse_prompt_engineer_agent(
                 response_text
             )
@@ -662,7 +662,7 @@ class AgentResponseParser:
 
 
 def parse_agent_response(
-    response_text: str, agent_type: AgentType | str = AgentType.BASE
+    response_text: str, agent_type: EvalAgentType | str = EvalAgentType.BASE
 ) -> AgentResponseAnalysis:
     """
     Convenience function to parse agent response.

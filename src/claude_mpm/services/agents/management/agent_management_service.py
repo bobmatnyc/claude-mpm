@@ -27,7 +27,6 @@ from claude_mpm.models.agent_definition import (
     AgentPermissions,
     AgentRole,
     AgentSection,
-    AgentType,
     AgentWorkflow,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
@@ -447,7 +446,6 @@ class AgentManager:
         # Extract metadata
         raw_type = post.metadata.get("agent_type", post.metadata.get("type"))
         metadata = AgentMetadata(
-            type=AgentType.from_frontmatter(raw_type),
             role=AgentRole.from_frontmatter(raw_type),
             model_preference=post.metadata.get("model_preference", "claude-3-sonnet"),
             version=post.metadata.get("version", "1.0.0"),

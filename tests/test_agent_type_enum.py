@@ -1,23 +1,19 @@
-"""Test AgentType enum extension and from_frontmatter parsing."""
+"""Test AgentType alias and backward compatibility."""
 
 import pytest
 
-from claude_mpm.models.agent_definition import AgentType
+from claude_mpm.models.agent_definition import AgentRole, AgentType
 
 
-class TestAgentTypeEnum:
-    """Verify AgentType enum covers all frontmatter values."""
+class TestAgentTypeAlias:
+    """Verify AgentType is an alias for AgentRole."""
 
-    def test_original_values_preserved(self):
-        """Original enum values must not change."""
-        assert AgentType.CORE.value == "core"
-        assert AgentType.PROJECT.value == "project"
-        assert AgentType.CUSTOM.value == "custom"
-        assert AgentType.SYSTEM.value == "system"
-        assert AgentType.SPECIALIZED.value == "specialized"
+    def test_alias_identity(self):
+        """AgentType IS AgentRole."""
+        assert AgentType is AgentRole
 
-    def test_new_role_categories(self):
-        """New role categories exist."""
+    def test_role_values_accessible(self):
+        """Role values work through the alias."""
         assert AgentType.ENGINEER.value == "engineer"
         assert AgentType.QA.value == "qa"
         assert AgentType.OPS.value == "ops"
@@ -28,31 +24,31 @@ class TestAgentTypeEnum:
         assert AgentType.DATA.value == "data"
         assert AgentType.CONTENT.value == "content"
         assert AgentType.MANAGEMENT.value == "management"
+        assert AgentType.SPECIALIZED.value == "specialized"
+        assert AgentType.OTHER.value == "other"
 
-    def test_from_frontmatter_exact_match(self):
-        """Exact string values map correctly."""
-        assert AgentType.from_frontmatter("engineer") == AgentType.ENGINEER
-        assert AgentType.from_frontmatter("core") == AgentType.CORE
-        assert AgentType.from_frontmatter("qa") == AgentType.QA
+    def test_source_values_removed(self):
+        """Source-only values no longer exist."""
+        assert not hasattr(AgentType, "CORE")
+        assert not hasattr(AgentType, "PROJECT")
+        assert not hasattr(AgentType, "CUSTOM")
+        assert not hasattr(AgentType, "SYSTEM")
 
-    def test_from_frontmatter_aliases(self):
-        """Common aliases map correctly."""
-        assert AgentType.from_frontmatter("core_agent") == AgentType.CORE
-        assert AgentType.from_frontmatter("engineer_agent") == AgentType.ENGINEER
-        assert AgentType.from_frontmatter("code_analysis") == AgentType.RESEARCH
-
-    def test_from_frontmatter_unknown(self):
-        """Unknown values fall back to CUSTOM."""
-        assert AgentType.from_frontmatter("totally_unknown") == AgentType.CUSTOM
-        assert AgentType.from_frontmatter("") == AgentType.CUSTOM
-        assert AgentType.from_frontmatter(None) == AgentType.CUSTOM
+    def test_from_frontmatter_works(self):
+        """from_frontmatter works through alias."""
+        assert AgentType.from_frontmatter("engineer") == AgentRole.ENGINEER
+        assert AgentType.from_frontmatter("qa") == AgentRole.QA
+        assert AgentType.from_frontmatter("core") == AgentRole.OTHER
+        assert AgentType.from_frontmatter(None) == AgentRole.OTHER
 
     def test_from_frontmatter_normalization(self):
-        """Input is normalized before matching."""
-        assert AgentType.from_frontmatter("  Engineer  ") == AgentType.ENGINEER
+        """Normalization works through alias."""
+        assert AgentType.from_frontmatter("  Engineer  ") == AgentRole.ENGINEER
         assert (
-            AgentType.from_frontmatter("version-control") == AgentType.VERSION_CONTROL
+            AgentType.from_frontmatter("version-control") == AgentRole.VERSION_CONTROL
         )
-        assert (
-            AgentType.from_frontmatter("Version_Control") == AgentType.VERSION_CONTROL
-        )
+
+    def test_unknown_falls_to_other(self):
+        """Unknown values return OTHER (not CUSTOM)."""
+        assert AgentType.from_frontmatter("totally_unknown") == AgentRole.OTHER
+        assert AgentType.from_frontmatter("") == AgentRole.OTHER

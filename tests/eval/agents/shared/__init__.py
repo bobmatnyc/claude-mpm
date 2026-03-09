@@ -14,7 +14,7 @@ Exports:
 from .agent_response_parser import (
     AgentResponseAnalysis,
     AgentResponseParser,
-    AgentType,
+    EvalAgentType,
     MemoryCapture,
     ToolUsage,
     VerificationEvent,
@@ -24,7 +24,7 @@ from .agent_response_parser import (
 __all__ = [
     "AgentResponseAnalysis",
     "AgentResponseParser",
-    "AgentType",
+    "EvalAgentType",
     "MemoryCapture",
     "ToolUsage",
     "VerificationEvent",

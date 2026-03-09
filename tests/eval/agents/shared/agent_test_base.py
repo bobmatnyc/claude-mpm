@@ -17,7 +17,7 @@ Trade-offs:
 
 Example:
     class TestEngineerAgent(AgentTestBase):
-        agent_type = AgentType.ENGINEER
+        agent_type = EvalAgentType.ENGINEER
 
         def test_code_minimization(self, mock_agent):
             response = self.invoke_agent(
@@ -36,7 +36,7 @@ from deepeval.test_case import LLMTestCase
 from .agent_response_parser import (
     AgentResponseAnalysis,
     AgentResponseParser,
-    AgentType,
+    EvalAgentType,
     MemoryCapture,
     VerificationEvent,
 )
@@ -59,7 +59,7 @@ class AgentTestBase:
 
     Example:
         class TestResearchAgent(AgentTestBase):
-            agent_type = AgentType.RESEARCH
+            agent_type = EvalAgentType.RESEARCH
 
             def test_memory_management(self, mock_agent):
                 response = self.invoke_agent(
@@ -70,7 +70,7 @@ class AgentTestBase:
                 self.assert_document_summarizer_used(response)
     """
 
-    agent_type: AgentType = AgentType.BASE
+    agent_type: EvalAgentType = EvalAgentType.BASE
     parser: AgentResponseParser
 
     @classmethod
@@ -402,13 +402,13 @@ class AgentTestBase:
 class BaseAgentTest(AgentTestBase):
     """Specialized test class for BASE_AGENT testing."""
 
-    agent_type = AgentType.BASE
+    agent_type = EvalAgentType.BASE
 
 
 class ResearchAgentTest(AgentTestBase):
     """Specialized test class for Research agent testing."""
 
-    agent_type = AgentType.RESEARCH
+    agent_type = EvalAgentType.RESEARCH
 
     def assert_file_size_checked(self, analysis: AgentResponseAnalysis):
         """Assert file size was checked before reading large files."""
@@ -432,7 +432,7 @@ class ResearchAgentTest(AgentTestBase):
 class EngineerAgentTest(AgentTestBase):
     """Specialized test class for Engineer agent testing."""
 
-    agent_type = AgentType.ENGINEER
+    agent_type = EvalAgentType.ENGINEER
 
     def assert_search_before_create(self, analysis: AgentResponseAnalysis):
         """Assert search tools used before Write/Edit."""
@@ -461,7 +461,7 @@ class EngineerAgentTest(AgentTestBase):
 class QAAgentTest(AgentTestBase):
     """Specialized test class for QA agent testing."""
 
-    agent_type = AgentType.QA
+    agent_type = EvalAgentType.QA
 
     def assert_ci_mode_used(self, analysis: AgentResponseAnalysis):
         """Assert CI mode used for test execution."""
@@ -483,7 +483,7 @@ class QAAgentTest(AgentTestBase):
 class OpsAgentTest(AgentTestBase):
     """Specialized test class for Ops agent testing."""
 
-    agent_type = AgentType.OPS
+    agent_type = EvalAgentType.OPS
 
     def assert_environment_validated(self, analysis: AgentResponseAnalysis):
         """Assert environment validation performed."""

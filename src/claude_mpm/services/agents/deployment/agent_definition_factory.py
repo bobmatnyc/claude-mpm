@@ -10,7 +10,6 @@ from claude_mpm.models.agent_definition import (
     AgentMetadata,
     AgentPermissions,
     AgentRole,
-    AgentType,
 )
 from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
 
@@ -56,7 +55,6 @@ class AgentDefinitionFactory:
 
         # Create metadata
         metadata = AgentMetadata(
-            type=AgentType.CUSTOM,  # Deprecated placeholder -- unused by consumers after Phase 3
             role=AgentRole.from_frontmatter(agent_type)
             if agent_type
             else AgentRole.OTHER,

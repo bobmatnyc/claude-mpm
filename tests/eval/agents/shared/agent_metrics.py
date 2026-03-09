@@ -27,7 +27,11 @@ from typing import Any, Dict, List, Optional
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
 
-from .agent_response_parser import AgentResponseAnalysis, AgentResponseParser, AgentType
+from .agent_response_parser import (
+    AgentResponseAnalysis,
+    AgentResponseParser,
+    EvalAgentType,
+)
 
 
 class AgentMetricBase(BaseMetric, ABC):
@@ -61,7 +65,7 @@ class AgentMetricBase(BaseMetric, ABC):
     def __init__(
         self,
         threshold: float | None = None,
-        agent_type: AgentType = AgentType.BASE,
+        agent_type: EvalAgentType = EvalAgentType.BASE,
         strict: bool = True,
     ):
         """
@@ -229,7 +233,7 @@ class MemoryProtocolMetric(AgentMetricBase):
 
 
 def create_metric_suite(
-    agent_type: AgentType, threshold: float = 0.9
+    agent_type: EvalAgentType, threshold: float = 0.9
 ) -> List[AgentMetricBase]:
     """
     Create standard metric suite for agent type.
@@ -242,7 +246,7 @@ def create_metric_suite(
         List of configured metrics
 
     Example:
-        metrics = create_metric_suite(AgentType.RESEARCH, threshold=0.85)
+        metrics = create_metric_suite(EvalAgentType.RESEARCH, threshold=0.85)
         for metric in metrics:
             score = metric.measure(test_case)
             print(f"{metric.__name__}: {score:.2f}")
@@ -254,12 +258,12 @@ def create_metric_suite(
     ]
 
     # Add agent-specific metrics (will be implemented in Issue #107-#113)
-    # if agent_type == AgentType.RESEARCH:
+    # if agent_type == EvalAgentType.RESEARCH:
     #     metrics.extend([
     #         MemoryEfficiencyMetric(threshold=threshold),
     #         SamplingStrategyMetric(threshold=threshold),
     #     ])
-    # elif agent_type == AgentType.ENGINEER:
+    # elif agent_type == EvalAgentType.ENGINEER:
     #     metrics.extend([
     #         CodeMinimizationMetric(threshold=threshold),
     #         ConsolidationMetric(threshold=threshold),
@@ -364,7 +368,7 @@ class ThresholdPresets:
 
     Usage:
         metrics = create_metric_suite(
-            AgentType.ENGINEER,
+            EvalAgentType.ENGINEER,
             threshold=ThresholdPresets.STRICT
         )
     """

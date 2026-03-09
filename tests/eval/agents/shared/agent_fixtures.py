@@ -528,7 +528,7 @@ def mock_base_agent_response():
     Example:
         def test_base_agent_parsing(mock_base_agent_response):
             response = mock_base_agent_response["text"]
-            analysis = parser.parse(response, AgentType.BASE)
+            analysis = parser.parse(response, EvalAgentType.BASE)
             assert analysis.memory_protocol_score == 1.0
     """
     return {

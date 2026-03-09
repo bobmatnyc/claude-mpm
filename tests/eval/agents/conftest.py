@@ -57,7 +57,7 @@ async def mock_agent():
 
     Example:
         async def test_agent(mock_agent):
-            mock_agent.set_agent_type(AgentType.RESEARCH)
+            mock_agent.set_agent_type(EvalAgentType.RESEARCH)
             response = await mock_agent.process_request("Analyze code")
     """
 

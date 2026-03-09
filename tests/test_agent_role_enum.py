@@ -3,7 +3,7 @@
 import pytest
 
 from claude_mpm.core.unified_agent_registry import AgentSourceType
-from claude_mpm.models.agent_definition import AgentMetadata, AgentRole, AgentType
+from claude_mpm.models.agent_definition import AgentMetadata, AgentRole
 
 
 class TestAgentRoleMembers:
@@ -120,41 +120,41 @@ class TestFromFrontmatter:
         assert result == AgentRole.OTHER  # "universal" is unknown
 
 
-class TestAgentMetadataDualFields:
-    """Verify dual-field population on AgentMetadata."""
+class TestAgentMetadataFields:
+    """Verify AgentMetadata role and source fields."""
 
-    def test_auto_populate_role_from_type_engineer(self):
-        m = AgentMetadata(type=AgentType.ENGINEER)
+    def test_role_field_required(self):
+        m = AgentMetadata(role=AgentRole.ENGINEER)
         assert m.role == AgentRole.ENGINEER
 
-    def test_auto_populate_role_from_type_core(self):
-        m = AgentMetadata(type=AgentType.CORE)
-        assert m.role == AgentRole.OTHER  # Source value -> OTHER
-
-    def test_explicit_role_not_overwritten(self):
-        m = AgentMetadata(type=AgentType.CORE, role=AgentRole.ENGINEER)
-        assert m.role == AgentRole.ENGINEER
+    def test_type_property_returns_role(self):
+        m = AgentMetadata(role=AgentRole.ENGINEER)
+        assert m.type == AgentRole.ENGINEER
 
     def test_source_defaults_to_none(self):
-        m = AgentMetadata(type=AgentType.ENGINEER)
+        m = AgentMetadata(role=AgentRole.ENGINEER)
         assert m.source is None
 
     def test_explicit_source_preserved(self):
         m = AgentMetadata(
-            type=AgentType.ENGINEER,
+            role=AgentRole.ENGINEER,
             source=AgentSourceType.CORE,
         )
         assert m.source == AgentSourceType.CORE
         assert m.role == AgentRole.ENGINEER
 
-    def test_auto_populate_role_from_type_qa(self):
-        m = AgentMetadata(type=AgentType.QA)
+    def test_role_other(self):
+        m = AgentMetadata(role=AgentRole.OTHER)
+        assert m.role == AgentRole.OTHER
+
+    def test_role_qa(self):
+        m = AgentMetadata(role=AgentRole.QA)
         assert m.role == AgentRole.QA
 
-    def test_auto_populate_role_from_type_ops(self):
-        m = AgentMetadata(type=AgentType.OPS)
+    def test_role_ops(self):
+        m = AgentMetadata(role=AgentRole.OPS)
         assert m.role == AgentRole.OPS
 
-    def test_auto_populate_role_from_type_custom(self):
-        m = AgentMetadata(type=AgentType.CUSTOM)
-        assert m.role == AgentRole.OTHER  # "custom" is not in AgentRole
+    def test_type_property_matches_role(self):
+        m = AgentMetadata(role=AgentRole.SPECIALIZED)
+        assert m.type == m.role
