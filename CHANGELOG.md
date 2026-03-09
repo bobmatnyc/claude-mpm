@@ -1,3 +1,10 @@
+## v5.9.54 (2026-03-09)
+
+### Refactor
+
+- **tests**: consolidate duplicate test files and strengthen assertions
+- **tests**: remove 53 permanently-skipped dead test files
+
 ## v5.9.53 (2026-03-08)
 
 ### Feat
