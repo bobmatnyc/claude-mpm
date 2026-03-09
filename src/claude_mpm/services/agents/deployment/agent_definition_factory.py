@@ -47,12 +47,7 @@ class AgentDefinitionFactory:
         Returns:
             AgentDefinition object
         """
-        # Map tier to AgentType (deprecated) and AgentSourceType
-        type_map = {
-            ModificationTier.USER: AgentType.CUSTOM,
-            ModificationTier.PROJECT: AgentType.PROJECT,
-            ModificationTier.SYSTEM: AgentType.SYSTEM,
-        }
+        # Map tier to AgentSourceType
         source_map = {
             ModificationTier.USER: AgentSourceType.CUSTOM,
             ModificationTier.PROJECT: AgentSourceType.PROJECT,
@@ -61,7 +56,7 @@ class AgentDefinitionFactory:
 
         # Create metadata
         metadata = AgentMetadata(
-            type=type_map.get(tier, AgentType.CUSTOM),
+            type=AgentType.CUSTOM,  # Deprecated placeholder -- unused by consumers after Phase 3
             role=AgentRole.from_frontmatter(agent_type)
             if agent_type
             else AgentRole.OTHER,

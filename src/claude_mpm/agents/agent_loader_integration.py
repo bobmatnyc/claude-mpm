@@ -59,7 +59,7 @@ class EnhancedAgentLoader:
             "name": agent_def.name,
             "title": agent_def.title,
             "version": agent_def.metadata.version,
-            "type": agent_def.metadata.type.value,
+            "type": agent_def.metadata.role.value,
             "role": agent_def.metadata.role.value,
             "source": agent_def.metadata.source.value
             if agent_def.metadata.source

@@ -257,7 +257,8 @@ class AgentMetadata:
     - Different services may need different metadata views
     """
 
-    type: AgentType  # DEPRECATED -- use .role and .source
+    type: AgentType  # DEPRECATED in Phase 3. Will be removed in Phase 4.
+    # Use .role for role queries, .source for source queries.
     role: AgentRole = AgentRole.OTHER  # NEW: what the agent does
     source: Optional[AgentSourceType] = None  # NEW: where the agent comes from
     model_preference: str = "claude-3-sonnet"
@@ -346,7 +347,7 @@ class AgentDefinition:
             "title": self.title,
             "file_path": self.file_path,
             "metadata": {
-                "type": self.metadata.type.value,
+                "type": self.metadata.role.value,
                 "role": self.metadata.role.value,
                 "source": self.metadata.source.value if self.metadata.source else None,
                 "model_preference": self.metadata.model_preference,
