@@ -426,10 +426,121 @@ class NotionServer:
             )
 
 
+def _run_setup() -> None:
+    """Run interactive Notion credential collection and .mcp.json configuration."""
+    import json
+    import sys
+
+    from rich.console import Console
+    from rich.prompt import Prompt
+
+    console = Console()
+
+    console.print(
+        "\n[bold]Notion MCP Setup[/bold]\n"
+        "To use Notion, you need an Integration Token from Notion.\n"
+        "Visit: https://www.notion.so/my-integrations\n"
+    )
+
+    # Check for existing credentials in .env.local
+    env_local = Path.cwd() / ".env.local"
+    api_key_exists = False
+
+    if env_local.exists():
+        try:
+            with open(env_local) as f:
+                if "NOTION_API_KEY" in f.read():
+                    api_key_exists = True
+        except Exception:
+            pass
+
+    if api_key_exists:
+        console.print("[dim]NOTION_API_KEY already configured in .env.local[/dim]\n")
+    else:
+        # Prompt for API key
+        api_key = Prompt.ask(
+            "[cyan]Notion Integration Token (secret_...)[/cyan]",
+            password=True,
+        )
+
+        if not api_key:
+            console.print("[red]No token provided. Aborting.[/red]")
+            sys.exit(1)
+
+        if not api_key.startswith("secret_"):
+            console.print(
+                "[yellow]Warning: Notion tokens usually start with 'secret_'[/yellow]"
+            )
+
+        # Optionally ask for default database ID
+        database_id = Prompt.ask(
+            "[cyan]Default Database ID (optional, press Enter to skip)[/cyan]",
+            default="",
+        )
+
+        # Save to .env.local
+        try:
+            with open(env_local, "a") as f:
+                f.write(f'\nNOTION_API_KEY="{api_key}"  # pragma: allowlist secret\n')
+                if database_id:
+                    f.write(f'NOTION_DATABASE_ID="{database_id}"\n')
+            console.print(f"[green]✓ Credentials saved to {env_local}[/green]")
+        except OSError as e:
+            console.print(f"[red]Failed to write .env.local: {e}[/red]")
+            sys.exit(1)
+
+    # Configure .mcp.json
+    mcp_config_path = Path.cwd() / ".mcp.json"
+
+    server_config = {
+        "type": "stdio",
+        "command": "notion-mcp",
+        "args": [],
+        "env": {},
+    }
+
+    if mcp_config_path.exists():
+        try:
+            with open(mcp_config_path) as f:
+                config = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            console.print(f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]")
+            config = {"mcpServers": {}}
+    else:
+        config = {"mcpServers": {}}
+
+    if "mcpServers" not in config:
+        config["mcpServers"] = {}
+
+    if "notion-mcp" in config["mcpServers"]:
+        console.print("[dim]notion-mcp already configured in .mcp.json[/dim]")
+    else:
+        config["mcpServers"]["notion-mcp"] = server_config
+        try:
+            with open(mcp_config_path, "w") as f:
+                json.dump(config, f, indent=2)
+                f.write("\n")
+            console.print("[green]✓ Added notion-mcp to .mcp.json[/green]")
+        except OSError as e:
+            console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
+
+    console.print("\n[green]✓ Notion setup complete![/green]")
+    console.print(
+        "\n[dim]Next steps:[/dim]\n"
+        "  1. Share your database with the Notion integration\n"
+        "  2. MCP tools are available in Claude Code\n"
+    )
+
+
 def main() -> None:
     """Entry point for notion-mcp server."""
-    server = NotionServer()
-    asyncio.run(server.run())
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "setup":
+        _run_setup()
+    else:
+        server = NotionServer()
+        asyncio.run(server.run())
 
 
 if __name__ == "__main__":
