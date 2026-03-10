@@ -1,3 +1,11 @@
+## v5.9.58 (2026-03-10)
+
+### Fix
+
+- **footers**: replace Claude Code footers with Claude MPM across all agent files via startup migration
+- **sync**: --no-sync flag now correctly suppresses pm_skills verification
+- **doctor**: update report footer to 🤖🤖 Generated with Claude MPM
+
 ## v5.9.57 (2026-03-10)
 
 ### Feat
