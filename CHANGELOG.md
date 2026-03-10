@@ -1,3 +1,9 @@
+## v5.9.59 (2026-03-10)
+
+### Feat
+
+- replace one-off notion tool with autonomous notion-mpm setup
+
 ## v5.9.58 (2026-03-10)
 
 ### Fix
