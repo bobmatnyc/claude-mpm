@@ -1,3 +1,13 @@
+## v5.9.57 (2026-03-10)
+
+### Feat
+
+- **skills**: port Superpowers skills and update PR footers
+
+### Refactor
+
+- **tests**: remove 4 remaining permanently-skipped dead test files
+
 ## v5.9.56 (2026-03-09)
 
 ### Feat
