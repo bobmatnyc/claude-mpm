@@ -356,20 +356,6 @@ MCP_SKILLSET = MCPServiceDefinition(
     enabled_by_default=True,
 )
 
-# Notion MCP - Official Notion integration
-# Package: https://www.npmjs.com/package/@notionhq/notion-mcp-server
-NOTION_MCP = MCPServiceDefinition(
-    name="notion-mcp",
-    package=None,  # Internal server
-    install_method=InstallMethod.INTERNAL,
-    command="notion-mcp",
-    args=[],
-    required_env=["NOTION_API_KEY"],
-    optional_env=["NOTION_DATABASE_ID"],
-    description="Notion integration for databases, pages, and content with markdown import",
-    enabled_by_default=False,
-)
-
 # Confluence - Internal MCP server for Confluence operations
 CONFLUENCE_MCP = MCPServiceDefinition(
     name="confluence-mcp",
@@ -410,7 +396,6 @@ def _register_builtin_services() -> None:
         MCP_GITHUB,
         MCP_FILESYSTEM,
         MCP_SKILLSET,
-        NOTION_MCP,
         CONFLUENCE_MCP,
         MCP_LSP,
     ]

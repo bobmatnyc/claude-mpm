@@ -50,7 +50,7 @@ Common options:
     tools_parser.add_argument(
         "service",
         nargs="?",
-        help="Service name (google, slack, notion)",
+        help="Service name (google, slack, confluence)",
     )
 
     # Action name (required)

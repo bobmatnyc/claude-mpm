@@ -46,7 +46,7 @@ class ToolResult:
 class BaseToolModule(ABC):
     """Abstract base class for service-specific tool modules.
 
-    Each service (google, slack, notion) implements this interface to provide
+    Each service (google, slack, confluence) implements this interface to provide
     consistent CLI access to bulk operations.
 
     Example:

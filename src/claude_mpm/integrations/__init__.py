@@ -2,7 +2,7 @@
 
 This module provides:
 - Core integration framework (manifest, credentials, client, generator)
-- Platform-specific integrations (Notion, Confluence, etc.)
+- Platform-specific integrations (Confluence, etc.)
 
 Example:
     from claude_mpm.integrations.core import (

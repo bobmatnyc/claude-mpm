@@ -45,11 +45,6 @@ AUTONOMOUS_SETUP_SERVICES: dict[str, dict] = {
         "install_spec": SetupService.MCP_TICKETER,
         "mcp_server_name": None,
     },
-    "notion-mpm": {
-        "binary": "notion-mcp",
-        "install_spec": None,
-        "mcp_server_name": None,
-    },
 }
 
 
@@ -370,7 +365,6 @@ class SetupCommand(BaseCommand):
 [bold]Available Services:[/bold]
   slack-mpm              Set up Slack MCP server (token-based)
   gworkspace-mcp         Set up Google Workspace MCP (includes OAuth)
-  notion-mpm             Set up Notion MCP server (autonomous)
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
   mcp-vector-search      Set up mcp-vector-search semantic code search
@@ -402,7 +396,7 @@ class SetupCommand(BaseCommand):
   claude-mpm setup slack-mpm gworkspace-mcp
 
   # Multiple services (comma-separated)
-  claude-mpm setup slack-mpm,gworkspace-mcp,notion-mpm
+  claude-mpm setup slack-mpm,gworkspace-mcp
 
   # Service with options
   claude-mpm setup oauth --oauth-service gworkspace-mcp --no-browser
