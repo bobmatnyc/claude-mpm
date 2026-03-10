@@ -204,6 +204,36 @@ class SkillsService(LoggerMixin):
                     )
 
         self.logger.info(f"Discovered {len(skills)} bundled skills")
+
+        # Optionally scan Superpowers cache for additional skills.
+        # MPM's own bundled skills take precedence on name conflicts.
+        superpowers_path = (
+            Path.home() / ".claude" / "plugins" / "cache" / "Superpowers" / "skills"
+        )
+        if superpowers_path.exists():
+            self.logger.debug(
+                f"Found Superpowers cache at {superpowers_path}, scanning for skills"
+            )
+            existing_names = {s["name"] for s in skills}
+            for skill_dir in superpowers_path.iterdir():
+                if not skill_dir.is_dir():
+                    continue
+                skill_md = skill_dir / "SKILL.md"
+                if skill_md.exists() and skill_dir.name not in existing_names:
+                    metadata = self._parse_skill_metadata(skill_md)
+                    skills.append(
+                        {
+                            "name": skill_dir.name,
+                            "category": "superpowers",
+                            "path": skill_dir,
+                            "metadata": metadata,
+                        }
+                    )
+        else:
+            self.logger.debug(
+                f"Superpowers cache not found at {superpowers_path} (optional)"
+            )
+
         return skills
 
     def _parse_skill_metadata(self, skill_md: Path) -> Dict[str, Any]:

@@ -152,7 +152,7 @@ class PRTemplateService:
 - [x] Documentation updated if needed
 
 ---
-🤖 Generated with Claude MPM Agent Improver
+🤖🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 """
 
@@ -218,7 +218,7 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 - [x] No conflicts with existing skills
 {related_section}
 ---
-🤖 Generated with Claude MPM Skills Manager
+🤖🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 """
 
@@ -331,5 +331,5 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 
 {detailed_changes}
 
-🤖 Generated with Claude MPM
+🤖🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 """
