@@ -1,3 +1,10 @@
+## v5.9.60 (2026-03-10)
+
+### Feat
+
+- re-add notion-mpm as autonomous setup target using official MCP server
+- remove notion-mcp server and all notion references
+
 ## v5.9.59 (2026-03-10)
 
 ### Feat
