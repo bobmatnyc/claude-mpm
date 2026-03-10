@@ -45,6 +45,11 @@ AUTONOMOUS_SETUP_SERVICES: dict[str, dict] = {
         "install_spec": SetupService.MCP_TICKETER,
         "mcp_server_name": None,
     },
+    "notion-mpm": {
+        "binary": "notion-mpm",
+        "install_spec": SetupService.NOTION_MPM,
+        "mcp_server_name": None,
+    },
 }
 
 
@@ -370,6 +375,7 @@ class SetupCommand(BaseCommand):
   mcp-vector-search      Set up mcp-vector-search semantic code search
   mcp-skillset           Set up mcp-skillset RAG-powered skills (USER-LEVEL)
   mcp-ticketer           Set up mcp-ticketer ticket management via MCP
+  notion-mpm             Set up Notion MCP server (official @notionhq package)
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -403,6 +409,9 @@ class SetupCommand(BaseCommand):
 
   # Multiple services with options
   claude-mpm setup slack-mpm oauth --oauth-service gworkspace-mcp --no-launch
+
+  # Set up Notion MCP integration
+  claude-mpm setup notion-mpm
 
   # Set up mcp-vector-search
   claude-mpm setup mcp-vector-search

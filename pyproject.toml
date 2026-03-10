@@ -145,6 +145,7 @@ claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 claude-hook = "claude_mpm.hooks.claude_hooks.hook_handler:main"
 # google-workspace-mcp = "claude_mpm.mcp.google_workspace_server:main"  # REMOVED: Migrated to external gworkspace-mcp package
 confluence-mcp = "claude_mpm.mcp.confluence_server:main"
+notion-mpm = "claude_mpm.mcp.notion_setup:main"
 mpm-session-server = "claude_mpm.mcp.session_server:main"
 mpm-session-server-http = "claude_mpm.mcp.session_server_http:main"
 # DEPRECATED: MCP gateway archived 2025-12-11

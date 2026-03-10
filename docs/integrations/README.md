@@ -142,6 +142,32 @@ search_messages(query="deployment failed", count=20)
 
 ---
 
+#### Notion
+**Notion workspace integration via official MCP server**
+
+- Read and write Notion pages and databases
+- Search across your workspace
+- Manage blocks, comments, and users
+
+```bash
+claude-mpm setup notion-mpm
+```
+
+**Requires**: Notion integration token from https://www.notion.so/my-integrations
+
+**How it works**: `claude-mpm setup notion-mpm` collects your `NOTION_API_KEY`
+(and optional `NOTION_DATABASE_ID`), saves them to `.env.local`, and configures
+`.mcp.json` to use the official `@notionhq/notion-mcp-server` npm package. The
+`notion-mpm` binary handles setup only — the actual MCP server is the official
+Notion package, invoked by Claude Code via `npx` at runtime.
+
+**Key Features**:
+- Interactive credential collection
+- Automatic `.mcp.json` configuration
+- Uses official Notion SDK
+
+---
+
 #### [Confluence](CONFLUENCE_SETUP.md)
 **Atlassian Confluence integration (7 MCP tools + bulk CLI)**
 
@@ -228,6 +254,7 @@ claude-mpm tools confluence pages-batch-export --page-ids "..." --output export.
 | **Vector Search** | Core | 3 MCP | None | Code discovery |
 | **Google Workspace** | External | 67 MCP | OAuth 2.0 | Productivity suite |
 | **Slack** | External | 11 MCP | OAuth User Token | Team communication |
+| **Notion** | External | Official pkg | API Token | Workspace knowledge |
 | **Confluence** | External | 7 MCP + CLI | API Token | Team documentation |
 | **Session Server** | Developer | N/A MCP | None | Automation |
 | **LSP** | Developer | 40+ MCP | None | Code intelligence |

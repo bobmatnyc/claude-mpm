@@ -38,6 +38,7 @@ class SetupService(str, Enum):
     MCP_VECTOR_SEARCH = "mcp-vector-search"
     MCP_SKILLSET = "mcp-skillset"
     MCP_TICKETER = "mcp-ticketer"
+    NOTION_MPM = "notion-mpm"
     CONFLUENCE = "confluence"
     BRAVE_SEARCH = "brave-search"
     TAVILY = "tavily"
