@@ -1883,7 +1883,8 @@ def run_background_services(
         generate_dynamic_domain_authority_skills()
 
         # PM skills: verify and auto-repair once per day (same TTL as other syncs)
-        if not _skills_all_fresh or not _is_sync_fresh("pm_skills"):
+        # Skip when --no-sync is set — remote operations are intentionally suppressed.
+        if not no_sync and (not _skills_all_fresh or not _is_sync_fresh("pm_skills")):
             verify_and_show_pm_skills()  # PM skills verification and status
             _mark_sync_done("pm_skills")
 
