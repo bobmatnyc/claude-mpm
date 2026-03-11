@@ -1,3 +1,9 @@
+## v5.9.63 (2026-03-10)
+
+### Fix
+
+- remove Notion Database ID prompt from setup wizard
+
 ## v5.9.62 (2026-03-10)
 
 ### Fix
