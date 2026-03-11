@@ -1,3 +1,9 @@
+## v5.9.64 (2026-03-11)
+
+### Fix
+
+- fix progress bar restarting multiple times during multi-source skill sync
+
 ## v5.9.63 (2026-03-10)
 
 ### Fix
