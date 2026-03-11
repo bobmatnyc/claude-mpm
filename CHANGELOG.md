@@ -1,3 +1,9 @@
+## v5.9.65 (2026-03-11)
+
+### Fix
+
+- use sys.executable for package verification in UV tool installs
+
 ## v5.9.64 (2026-03-11)
 
 ### Fix
