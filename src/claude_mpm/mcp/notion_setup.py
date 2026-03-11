@@ -121,7 +121,7 @@ def _run_setup() -> int:
         api_key = api_key.strip()
         save_to_env = True
 
-    # --- Step 2: Optional database ID ---
+    # --- Step 2: Optional database ID (use existing if set, otherwise skip) ---
     existing_db = env_vars.get("NOTION_DATABASE_ID", "")
     if existing_db:
         console.print(
@@ -130,10 +130,7 @@ def _run_setup() -> int:
         )
         database_id = existing_db
     else:
-        database_id = Prompt.ask(
-            "[cyan]Notion Database ID[/cyan] (optional - press Enter to skip)",
-            default="",
-        ).strip()
+        database_id = ""
 
     # --- Step 3: Persist credentials ---
     if save_to_env:
