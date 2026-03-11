@@ -18,22 +18,32 @@ from pathlib import Path
 
 
 def _load_env_local(cwd: Path) -> dict[str, str]:
-    """Return variables from .env.local in cwd (best-effort; no hard dep on dotenv)."""
-    env_local = cwd / ".env.local"
-    if not env_local.exists():
-        return {}
-    result: dict[str, str] = {}
-    try:
-        with open(env_local) as fh:
-            for raw in fh:
-                line = raw.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                result[key.strip()] = value.strip().strip('"').strip("'")
-    except OSError:
-        pass
-    return result
+    """Return variables from .env.local, searching cwd and each parent directory.
+
+    Walks up the directory tree (cwd → parents) and stops as soon as an
+    .env.local containing at least one key is found.  This mirrors the
+    TokenManager search strategy so that ``notion-mpm setup`` works correctly
+    regardless of which subdirectory the user invokes it from.
+    """
+    candidates = [cwd, *cwd.parents]
+    for directory in candidates:
+        env_local = directory / ".env.local"
+        if not env_local.exists():
+            continue
+        result: dict[str, str] = {}
+        try:
+            with open(env_local) as fh:
+                for raw in fh:
+                    line = raw.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, _, value = line.partition("=")
+                    result[key.strip()] = value.strip().strip('"').strip("'")
+        except OSError:
+            continue
+        if result:
+            return result
+    return {}
 
 
 def _save_env_local(cwd: Path, entries: dict[str, str]) -> None:
@@ -102,7 +112,7 @@ def _run_setup() -> int:
             "https://www.notion.so/my-integrations[/dim]\n"
         )
         api_key = Prompt.ask(
-            "[cyan]Notion API key[/cyan] (secret_token from notion.so/my-integrations)",
+            "[cyan]Notion API key[/cyan] (ntn_... or secret_... from notion.so/my-integrations)",
             password=True,
         )
         if not api_key or not api_key.strip():
