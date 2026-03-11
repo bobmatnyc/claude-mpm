@@ -495,12 +495,12 @@ class RobustPackageInstaller:
 
         try:
             if self.is_uv_tool:
-                # For UV tool, verify via UV's Python environment
+                # For UV tool, verify using the same sys.executable that was used
+                # during installation (uv pip install --python sys.executable).
+                # Using "uv run --no-project python" would resolve a *different*
+                # interpreter and falsely report packages as missing.
                 verify_cmd = [
-                    "uv",
-                    "run",
-                    "--no-project",
-                    "python",
+                    sys.executable,
                     "-c",
                     f"import importlib.metadata; print(importlib.metadata.version('{package_name}'))",
                 ]
@@ -531,13 +531,13 @@ class RobustPackageInstaller:
             logger.warning(f"Verification timeout for {package_name}")
             return False
         except ImportError:
-            # Fallback for older Python versions
+            # Fallback for older Python versions (pkg_resources may not be available)
             try:
-                import pkg_resources
+                import pkg_resources  # type: ignore[import-untyped]
 
                 pkg_resources.get_distribution(package_name)
                 return True
-            except pkg_resources.DistributionNotFound:
+            except Exception:
                 return False
         except Exception as e:
             logger.debug(f"Verification error for {package_name}: {e}")
@@ -831,7 +831,7 @@ def install_with_retry(
         logging.getLogger().setLevel(logging.DEBUG)
 
     installer = RobustPackageInstaller(max_retries=max_retries)
-    _successful, failed, errors = installer.install_packages(packages)
+    _, failed, errors = installer.install_packages(packages)
 
     if verbose:
         print(installer.get_report())
