@@ -1,3 +1,9 @@
+## v5.9.62 (2026-03-10)
+
+### Fix
+
+- add missing NOTION_MPM entry to get_package_specs()
+
 ## v5.9.61 (2026-03-10)
 
 ### Feat
