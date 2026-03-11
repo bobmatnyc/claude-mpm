@@ -1,3 +1,13 @@
+## v5.9.61 (2026-03-10)
+
+### Feat
+
+- add app icon (pixel-art robot pyramid)
+
+### Fix
+
+- search parent dirs for .env.local in notion setup
+
 ## v5.9.60 (2026-03-10)
 
 ### Feat
