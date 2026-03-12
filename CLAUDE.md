@@ -1,67 +1,10 @@
-# Project Memory Configuration
+# Claude MPM Project
 
-This project uses KuzuMemory for intelligent context management.
+Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking.
 
 ## Project Information
-- **Path**: /Users/masa/Projects/claude-mpm
 - **Language**: Python
 - **Framework**: FastAPI
-
-## Memory Integration
-
-KuzuMemory is configured to enhance all AI interactions with project-specific context.
-
-**Note:** kuzu-memory integration is managed internally by MPM's hook delegation system, not through direct Claude Code hooks.
-
-### Available Commands:
-- `kuzu-memory enhance <prompt>` - Enhance prompts with project context
-- `kuzu-memory learn <content>` - Store learning from conversations (async)
-- `kuzu-memory recall <query>` - Query project memories
-- `kuzu-memory stats` - View memory statistics
-
-### MCP Tools Available:
-When interacting with Claude Desktop, the following MCP tools are available:
-- **kuzu_enhance**: Enhance prompts with project memories
-- **kuzu_learn**: Store new learnings asynchronously
-- **kuzu_recall**: Query specific memories
-- **kuzu_stats**: Get memory system statistics
-
-## Project Context
-
-Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking
-
-## Key Technologies
-- Python
-- Flask
-- Flask
-- FastAPI
-
-## Development Guidelines
-- Use kuzu-memory enhance for all AI interactions
-- Store important decisions with kuzu-memory learn
-- Query context with kuzu-memory recall when needed
-- Keep memories project-specific and relevant
-
-## Caveman Prompt Compression (MANDATORY)
-
-After ANY change to agent instructions (PM_INSTRUCTIONS.md, BASE_AGENT.md, BASE_ENGINEER.md, or agent definitions), apply caveman compression before committing:
-
-- **Tables over prose** — convert lists and rules to tables
-- **Terse imperative voice** — "Do X" not "You should consider doing X"
-- **No filler** — remove "It's important to...", "You should always...", "Please note that..."
-- **Remove generic advice** — Claude already knows "write clear code" and "handle errors"
-- **One-line rules** — if a rule needs 3 sentences to explain, it's too complex or too obvious
-- **Keep code examples ONLY where the rule is ambiguous without one**
-- **Target: ≤300 lines** for PM_INSTRUCTIONS, ≤150 for BASE_AGENT, ≤300 for BASE_ENGINEER
-
-Every token in agent instructions is multiplied by N delegations. Bloat = cost.
-
-## Memory Guidelines
-
-- Store project decisions and conventions
-- Record technical specifications and API details
-- Capture user preferences and patterns
-- Document error solutions and workarounds
 
 ## Publishing Workflow
 
@@ -89,7 +32,7 @@ Tests are run via `uv run pytest`, to ensure correct virtual environment activat
 This uses uv run pytest with xdist parallelization causing tests to run concurrently.
 ```bash
 make test
-``
+```
 
 **DO NOT**:
 - Manually edit version files
