@@ -54,9 +54,12 @@ def test_safe_import_with_logger():
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
 
-    # Test with logger
+    # Test with logger — falls back to "sys" when "nonexistent.module" fails
     module = safe_import("nonexistent.module", "sys", logger=logger)
     assert module is not None
+    import sys as _sys
+
+    assert module is _sys
     print("✓ Import with logging works")
 
 

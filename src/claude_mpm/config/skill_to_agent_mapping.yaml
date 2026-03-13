@@ -371,7 +371,33 @@ skill_mappings:
 
   universal/collaboration/brainstorming: *all_agents
   universal/collaboration/dispatching-parallel-agents: *all_agents
+  universal/collaboration/finishing-a-development-branch:
+    - python-engineer
+    - typescript-engineer
+    - golang-engineer
+    - rust-engineer
+    - java-engineer
+    - ruby-engineer
+    - php-engineer
+    - javascript-engineer
+    - phoenix-engineer
+    - ops
+    - version-control
+
   universal/collaboration/git-workflow: *all_agents
+
+  universal/collaboration/git-worktrees-superpowers:
+    - python-engineer
+    - typescript-engineer
+    - golang-engineer
+    - rust-engineer
+    - java-engineer
+    - ruby-engineer
+    - php-engineer
+    - javascript-engineer
+    - phoenix-engineer
+    - ops
+    - version-control
 
   universal/collaboration/git-worktrees:
     - python-engineer
@@ -386,6 +412,7 @@ skill_mappings:
     - ops
     - version-control
 
+  universal/collaboration/receiving-code-review: *all_agents
   universal/collaboration/requesting-code-review: *all_agents
 
   universal/collaboration/stacked-prs:
@@ -401,6 +428,7 @@ skill_mappings:
     - ops
     - version-control
 
+  universal/collaboration/subagent-driven-development: *all_agents
   universal/collaboration/writing-plans: *all_agents
 
   universal/data/database-migration:
@@ -418,6 +446,18 @@ skill_mappings:
     - data-engineer
     - python-engineer
     - content-agent
+
+  universal/debugging/finding-duplicate-functions:
+    - python-engineer
+    - typescript-engineer
+    - golang-engineer
+    - rust-engineer
+    - java-engineer
+    - ruby-engineer
+    - php-engineer
+    - javascript-engineer
+    - phoenix-engineer
+    - code-analyzer
 
   universal/debugging/root-cause-tracing: *all_agents
   universal/debugging/systematic-debugging: *all_agents

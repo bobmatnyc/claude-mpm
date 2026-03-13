@@ -177,6 +177,13 @@ def execute_command(command: str, args) -> int:
         result = manage_slack(args)
         return result if result is not None else 0
 
+    # Handle install command with lazy import
+    if command == "install":
+        from .commands.install import manage_install
+
+        result = manage_install(args)
+        return result if result is not None else 0
+
     # Handle setup command with lazy import
     if command == "setup":
         # Lazy import to avoid loading unless needed
@@ -435,6 +442,7 @@ def execute_command(command: str, args) -> int:
         "hook-errors",
         "autotodos",
         "oauth",
+        "install",
         "setup",
         "slack",
         "provider",

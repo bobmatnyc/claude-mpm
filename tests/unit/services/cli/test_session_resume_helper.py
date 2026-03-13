@@ -1168,6 +1168,8 @@ class TestEdgeCases:
         # Should still work
         new_session = helper.get_most_recent_session()
         assert new_session is not None
+        assert isinstance(new_session, dict)
+        assert "session_id" in new_session
 
     def test_symlinked_pause_directory(self, helper, tmp_path):
         """Test handles symlinked pause directory."""

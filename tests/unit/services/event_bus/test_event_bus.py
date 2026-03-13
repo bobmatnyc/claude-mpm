@@ -227,7 +227,13 @@ class TestEventPublishing:
         event_bus.publish("test.event", sample_event_data)
 
         # Assert
-        assert event_bus.get_stats()["last_event_time"] is not None
+        last_event_time = event_bus.get_stats()["last_event_time"]
+        assert last_event_time is not None
+        assert isinstance(last_event_time, str)
+        # Should be a valid ISO 8601 datetime string
+        from datetime import datetime
+
+        datetime.fromisoformat(last_event_time)  # raises ValueError if invalid
 
     def test_publish_records_in_history(self, event_bus, sample_event_data):
         """Test publish records event in history."""

@@ -437,6 +437,11 @@ def get_package_specs() -> dict[SetupService, PackageSpec]:
             python_version="3.13",
             module_name="mcp_ticketer",
         ),
+        SetupService.NOTION_MPM: PackageSpec(
+            name="notion-mpm",
+            binary_name="notion-mpm",
+            module_name="notion_mpm",
+        ),
     }
 
 

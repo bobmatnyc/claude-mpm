@@ -326,7 +326,11 @@ class OneshotSession:
 
     def _build_command(self) -> list:
         """Build the base Claude command."""
-        cmd = ["claude", "--dangerously-skip-permissions"]
+        from .constants import skip_permissions_disabled
+
+        cmd = ["claude"]
+        if not skip_permissions_disabled():
+            cmd.append("--dangerously-skip-permissions")
 
         # Add custom arguments
         if self.runner.claude_args:

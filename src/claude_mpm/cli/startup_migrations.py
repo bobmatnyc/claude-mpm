@@ -893,6 +893,80 @@ def _remove_unsupported_hook_events() -> bool:
 # Migration Registry
 # =============================================================================
 
+_CLAUDE_CODE_FOOTER_OLD = "Generated with [Claude Code](https://claude.ai/code)"
+_CLAUDE_CODE_FOOTER_OLD_ALT = (
+    "Generated with [Claude Code](https://claude.com/claude-code)"
+)
+_CLAUDE_MPM_FOOTER_NEW = (
+    "🤖🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)"
+)
+
+
+def _check_claude_code_footer_in_agents() -> bool:
+    """Check if any deployed agent files still have the old Claude Code footer.
+
+    Returns:
+        True if old footer text is found in any agent markdown file.
+    """
+    search_dirs = [
+        Path.home() / ".claude" / "agents",
+        Path.home() / ".claude-mpm" / "cache" / "agents",
+    ]
+    for search_dir in search_dirs:
+        if not search_dir.exists():
+            continue
+        for md_file in search_dir.glob("**/*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="ignore")
+                if (
+                    _CLAUDE_CODE_FOOTER_OLD in content
+                    or _CLAUDE_CODE_FOOTER_OLD_ALT in content
+                ):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def _replace_claude_code_footers_in_agents() -> bool:
+    """Replace Claude Code footers with Claude MPM footers in deployed agent files.
+
+    Scans ~/.claude/agents/ and ~/.claude-mpm/cache/agents/ for agent markdown
+    files containing the old "Generated with [Claude Code]" footer and replaces
+    them with "🤖🤖 Generated with [Claude MPM]".
+
+    Returns:
+        True if migration succeeded (or no files needed updating).
+    """
+    search_dirs = [
+        Path.home() / ".claude" / "agents",
+        Path.home() / ".claude-mpm" / "cache" / "agents",
+    ]
+    updated = 0
+    errors = 0
+    for search_dir in search_dirs:
+        if not search_dir.exists():
+            continue
+        for md_file in search_dir.glob("**/*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="ignore")
+                new_content = content.replace(
+                    _CLAUDE_CODE_FOOTER_OLD, _CLAUDE_MPM_FOOTER_NEW
+                )
+                new_content = new_content.replace(
+                    _CLAUDE_CODE_FOOTER_OLD_ALT, _CLAUDE_MPM_FOOTER_NEW
+                )
+                if new_content != content:
+                    md_file.write_text(new_content, encoding="utf-8")
+                    updated += 1
+                    logger.debug(f"Updated footer in {md_file}")
+            except OSError as e:
+                logger.debug(f"Could not update {md_file}: {e}")
+                errors += 1
+    logger.info(f"Footer migration: updated {updated} files, {errors} errors")
+    return errors == 0
+
+
 MIGRATIONS: list[Migration] = [
     Migration(
         id="v5.6.76-cache-dir-rename",
@@ -929,6 +1003,12 @@ MIGRATIONS: list[Migration] = [
         description="Remove unsupported v2.1.47+ hook events (WorktreeCreate, WorktreeRemove, TeammateIdle, TaskCompleted, ConfigChange) from settings on Claude Code < 2.1.47",
         check=_check_unsupported_hooks_exist,
         migrate=_remove_unsupported_hook_events,
+    ),
+    Migration(
+        id="v5.9.57-update-claude-code-footers",
+        description="Replace 'Generated with Claude Code' footers with 'Generated with Claude MPM' in deployed agent files",
+        check=_check_claude_code_footer_in_agents,
+        migrate=_replace_claude_code_footers_in_agents,
     ),
 ]
 

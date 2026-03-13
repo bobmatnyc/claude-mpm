@@ -13,7 +13,6 @@ claude-mpm setup kuzu-memory
 claude-mpm setup mcp-vector-search
 claude-mpm setup google-workspace-mcp
 claude-mpm setup slack
-claude-mpm setup notion
 claude-mpm setup confluence
 ```
 
@@ -143,38 +142,29 @@ search_messages(query="deployment failed", count=20)
 
 ---
 
-#### [Notion](NOTION_SETUP.md)
-**Notion workspace integration (7 MCP tools + bulk CLI)**
+#### Notion
+**Notion workspace integration via official MCP server**
 
-- Database queries and management
-- Page creation and updates
-- Markdown import
-- Content synchronization
-- Bulk operations (10x faster than MCP)
+- Read and write Notion pages and databases
+- Search across your workspace
+- Manage blocks, comments, and users
 
 ```bash
-claude-mpm setup notion
+claude-mpm setup notion-mpm
 ```
 
-**Requires**: Notion Integration Token (API key)
+**Requires**: Notion integration token from https://www.notion.so/my-integrations
+
+**How it works**: `claude-mpm setup notion-mpm` collects your `NOTION_API_KEY`
+(and optional `NOTION_DATABASE_ID`), saves them to `.env.local`, and configures
+`.mcp.json` to use the official `@notionhq/notion-mcp-server` npm package. The
+`notion-mpm` binary handles setup only — the actual MCP server is the official
+Notion package, invoked by Claude Code via `npx` at runtime.
 
 **Key Features**:
-- Interactive MCP tools
-- High-performance bulk CLI tools
-- Markdown to Notion conversion
-- Database property management
-
-**Quick Examples**:
-```bash
-# MCP: Query database
-query_database(database_id="...", filter={...})
-
-# MCP: Create page
-create_page(parent_id="...", title="New Page", content=[...])
-
-# Bulk: Import markdown
-claude-mpm tools notion md-import --files "*.md" --database-id "..."
-```
+- Interactive credential collection
+- Automatic `.mcp.json` configuration
+- Uses official Notion SDK
 
 ---
 
@@ -264,7 +254,7 @@ claude-mpm tools confluence pages-batch-export --page-ids "..." --output export.
 | **Vector Search** | Core | 3 MCP | None | Code discovery |
 | **Google Workspace** | External | 67 MCP | OAuth 2.0 | Productivity suite |
 | **Slack** | External | 11 MCP | OAuth User Token | Team communication |
-| **Notion** | External | 7 MCP + CLI | API Key | Documentation/DBs |
+| **Notion** | External | Official pkg | API Token | Workspace knowledge |
 | **Confluence** | External | 7 MCP + CLI | API Token | Team documentation |
 | **Session Server** | Developer | N/A MCP | None | Automation |
 | **LSP** | Developer | 40+ MCP | None | Code intelligence |
@@ -307,7 +297,7 @@ claude-mpm setup mcp-vector-search --force
 claude-mpm setup kuzu-memory mcp-vector-search
 
 # External services
-claude-mpm setup gworkspace-mcp slack notion
+claude-mpm setup gworkspace-mcp slack
 ```
 
 ### 2. Minimal Setup (Core Only)
@@ -321,7 +311,7 @@ claude-mpm setup kuzu-memory mcp-vector-search
 
 ```bash
 # Team communication + documentation
-claude-mpm setup slack notion confluence gworkspace-mcp
+claude-mpm setup slack confluence gworkspace-mcp
 ```
 
 ---
@@ -341,7 +331,7 @@ claude-mpm setup slack notion confluence gworkspace-mcp
 3. Complete browser authorization
 4. Tokens stored securely
 
-### API Keys (Notion, Confluence)
+### API Keys (Confluence)
 
 - Service generates API key/token
 - Store in `.env.local`
@@ -368,7 +358,6 @@ SLACK_OAUTH_CLIENT_ID="..."
 SLACK_OAUTH_CLIENT_SECRET="..."
 
 # API Key Services
-NOTION_API_KEY="secret_..."  # pragma: allowlist secret
 CONFLUENCE_URL="https://site.atlassian.net"
 CONFLUENCE_EMAIL="user@example.com"
 CONFLUENCE_API_TOKEN="..."  # pragma: allowlist secret

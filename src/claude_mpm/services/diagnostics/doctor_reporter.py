@@ -391,7 +391,9 @@ class DoctorReporter:
         print()
         print("---")
         print()
-        print("🤖 *Generated with [Claude Code](https://claude.com/claude-code)*")
+        print(
+            "🤖🤖 *Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)*"
+        )
         print()
         print(
             "*For more information, run `claude-mpm doctor --verbose` or visit the [documentation](https://github.com/bobmatnyc/claude-mpm).*"

@@ -25,6 +25,7 @@ LIGHTWEIGHT_COMMANDS = {
     "diagnose",
     "check-health",
     # Installation management
+    "install",
     "uninstall",
     "upgrade",
     "verify",

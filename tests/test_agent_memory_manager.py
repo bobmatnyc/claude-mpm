@@ -66,6 +66,8 @@ class TestAgentMemoryManager:
         # Memory should still be accessible
         memory = memory_manager.load_agent_memory("qa")
         assert memory is not None
+        assert isinstance(memory, str)
+        assert len(memory) > 0
 
     def test_line_length_truncation(self, memory_manager):
         """Test that long lines are truncated."""
@@ -76,6 +78,8 @@ class TestAgentMemoryManager:
         memory = memory_manager.load_agent_memory("research")
         # Memory should exist
         assert memory is not None
+        assert isinstance(memory, str)
+        assert len(memory) > 0
 
     def test_update_timestamp(self, memory_manager):
         """Test that timestamps are updated on changes."""
@@ -85,9 +89,11 @@ class TestAgentMemoryManager:
         # Add a learning
         memory_manager.add_learning("security", "Always validate input")
 
-        # Check memory is accessible
+        # Check memory is accessible and contains our learning
         updated_memory = memory_manager.load_agent_memory("security")
         assert updated_memory is not None
+        assert isinstance(updated_memory, str)
+        assert "Always validate input" in updated_memory
 
     @pytest.mark.skip(
         reason=(

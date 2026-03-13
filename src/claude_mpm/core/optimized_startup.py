@@ -203,6 +203,20 @@ class OptimizedStartup:
 
     def _verify_pm_skills(self) -> None:
         """Verify PM skills are deployed. Non-blocking with warnings."""
+        # Refresh environment.md if stale (non-fatal)
+        try:
+            from claude_mpm.services.environment.environment_detector import (
+                EnvironmentDetector,
+            )
+
+            project_dir = Path.cwd()
+            detector = EnvironmentDetector(project_dir)
+            if detector.is_stale():
+                detector.detect_and_write()
+                self.logger.debug("Environment configuration refreshed")
+        except Exception:
+            pass  # Non-fatal
+
         try:
             from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
 

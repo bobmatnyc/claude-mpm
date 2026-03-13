@@ -178,6 +178,12 @@ class TestEnhancedVersionParserInitialization:
         # Arrange & Act & Assert
         assert version_parser._version_pattern is not None
         assert version_parser._changelog_version_pattern is not None
+        import re
+
+        assert isinstance(version_parser._version_pattern, re.Pattern)
+        assert isinstance(version_parser._changelog_version_pattern, re.Pattern)
+        # Patterns should match semver strings
+        assert version_parser._version_pattern.match("1.2.3") is not None
 
 
 # ============================================================================

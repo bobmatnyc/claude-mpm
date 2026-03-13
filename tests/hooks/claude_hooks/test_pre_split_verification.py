@@ -52,6 +52,8 @@ class TestPreSplitVerification:
             from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
             assert ClaudeHookHandler is not None
+            assert isinstance(ClaudeHookHandler, type)
+            assert hasattr(ClaudeHookHandler, "handle")
         except ImportError as e:
             pytest.fail(f"Import failed: {e}")
 

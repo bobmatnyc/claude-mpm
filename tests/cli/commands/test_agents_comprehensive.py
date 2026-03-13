@@ -5,6 +5,7 @@ This module provides extensive test coverage for all agents command functionalit
 to serve as a safety net during refactoring.
 """
 
+from argparse import Namespace
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,7 @@ import pytest
 
 from claude_mpm.cli.commands.agents import AgentsCommand, manage_agents
 from claude_mpm.cli.shared import CommandResult
+from claude_mpm.constants import AgentCommands
 from claude_mpm.services.cli.agent_listing_service import AgentInfo, AgentTierInfo
 
 
@@ -1554,3 +1556,169 @@ class TestIntegrationScenarios:
         # Verify dependency service was called properly
         assert mock_dependency_service.check_dependencies.call_count == 2
         mock_dependency_service.install_dependencies.assert_called_once()
+
+
+class TestCommandRouting:
+    """Test command routing and initialization (migrated from test_agents_command.py)."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.command = AgentsCommand()
+
+    def test_initialization(self):
+        """Test AgentsCommand initialization."""
+        assert self.command.command_name == "agents"
+        assert self.command.logger is not None
+        assert self.command._deployment_service is None  # Lazy loaded
+        assert self.command._formatter is not None  # Formatter is initialized
+
+    def test_validate_args(self):
+        """Test argument validation."""
+        args = Namespace()
+        error = self.command.validate_args(args)
+        assert error is None  # Most agent commands are optional
+
+    def test_run_list_command(self):
+        """Test list agents command routing."""
+        args = Namespace(agents_command=AgentCommands.LIST.value, format="text")
+
+        with patch.object(self.command, "_list_agents") as mock_list:
+            mock_list.return_value = CommandResult.success_result("Agents listed")
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_list.assert_called_once_with(args)
+
+    def test_run_deploy_command(self):
+        """Test deploy agents command routing."""
+        args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
+
+        with patch.object(self.command, "_deploy_agents") as mock_deploy:
+            mock_deploy.return_value = CommandResult.success_result("Agents deployed")
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_deploy.assert_called_once_with(args, force=False)
+
+    def test_run_force_deploy_command(self):
+        """Test force deploy agents command routing."""
+        args = Namespace(agents_command=AgentCommands.FORCE_DEPLOY.value, format="text")
+
+        with patch.object(self.command, "_deploy_agents") as mock_deploy:
+            mock_deploy.return_value = CommandResult.success_result(
+                "Agents force deployed"
+            )
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_deploy.assert_called_once_with(args, force=True)
+
+    def test_run_clean_command(self):
+        """Test clean agents command routing."""
+        args = Namespace(agents_command=AgentCommands.CLEAN.value, format="text")
+
+        with patch.object(self.command, "_clean_agents") as mock_clean:
+            mock_clean.return_value = CommandResult.success_result("Agents cleaned")
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_clean.assert_called_once_with(args)
+
+    def test_run_view_command(self):
+        """Test view agent command routing."""
+        args = Namespace(agents_command=AgentCommands.VIEW.value, format="text")
+
+        with patch.object(self.command, "_view_agent") as mock_view:
+            mock_view.return_value = CommandResult.success_result("Agent viewed")
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_view.assert_called_once_with(args)
+
+    def test_run_fix_command(self):
+        """Test fix agents command routing."""
+        args = Namespace(agents_command=AgentCommands.FIX.value, format="text")
+
+        with patch.object(self.command, "_fix_agents") as mock_fix:
+            mock_fix.return_value = CommandResult.success_result("Agents fixed")
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_fix.assert_called_once_with(args)
+
+    def test_run_deps_check_command(self):
+        """Test dependencies check command routing."""
+        args = Namespace(agents_command="deps-check", format="text")
+
+        with patch.object(self.command, "_check_agent_dependencies") as mock_check:
+            mock_check.return_value = CommandResult.success_result(
+                "Dependencies checked"
+            )
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_check.assert_called_once_with(args)
+
+    def test_run_deps_install_command(self):
+        """Test dependencies install command routing."""
+        args = Namespace(agents_command="deps-install", format="text")
+
+        with patch.object(self.command, "_install_agent_dependencies") as mock_install:
+            mock_install.return_value = CommandResult.success_result(
+                "Dependencies installed"
+            )
+
+            result = self.command.run(args)
+
+            assert isinstance(result, CommandResult)
+            assert result.success is True
+            mock_install.assert_called_once_with(args)
+
+    def test_list_agents_implementation(self):
+        """Test _list_agents implementation via command routing."""
+        with patch.object(self.command, "_list_agents") as mock_list:
+            mock_list.return_value = CommandResult.success_result(
+                "Agents listed",
+                data={
+                    "agents": [
+                        {"name": "agent1", "version": "1.0.0"},
+                        {"name": "agent2", "version": "2.0.0"},
+                    ]
+                },
+            )
+
+            args = Namespace(agents_command=AgentCommands.LIST.value, format="json")
+            result = self.command.run(args)
+
+            assert result.success is True
+            assert result.data is not None
+            assert len(result.data["agents"]) == 2
+
+    def test_deploy_agents_with_error(self):
+        """Test deploy agents with error from direct service mock."""
+        mock_service = MagicMock()
+        mock_service.deploy_system_agents.side_effect = Exception("Deployment failed")
+
+        self.command._deployment_service = mock_service
+
+        args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is False
+        assert "Error" in result.message or "error" in result.message

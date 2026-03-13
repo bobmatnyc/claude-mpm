@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+
+  <!-- App icon background: warm cream -->
+  <rect width="512" height="512" rx="96" fill="#fdf5ee"/>
+
+  <!-- Ground shadow ellipse -->
+  <ellipse cx="256" cy="424" rx="188" ry="16" fill="#f0c898" opacity="0.75"/>
+
+  <!-- ===================== -->
+  <!--   TOP ROBOT (PM)      -->
+  <!-- ===================== -->
+  <g fill="#e55528">
+    <!-- Body: wide rectangle -->
+    <rect x="176" y="112" width="160" height="92"/>
+    <!-- Left ear -->
+    <rect x="152" y="126" width="24" height="30"/>
+    <!-- Right ear -->
+    <rect x="336" y="126" width="24" height="30"/>
+    <!-- Legs: 4 stubby legs, inner pair closer together -->
+    <rect x="194" y="204" width="22" height="48"/>
+    <rect x="222" y="204" width="22" height="48"/>
+    <rect x="268" y="204" width="22" height="48"/>
+    <rect x="296" y="204" width="22" height="48"/>
+  </g>
+  <!-- Eyes: tall black rectangles -->
+  <rect x="211" y="130" width="20" height="36" fill="#1c1008"/>
+  <rect x="281" y="130" width="20" height="36" fill="#1c1008"/>
+
+  <!-- ===================== -->
+  <!--  BOTTOM-LEFT ROBOT    -->
+  <!-- ===================== -->
+  <g fill="#e55528">
+    <rect x="78"  y="272" width="160" height="92"/>
+    <rect x="54"  y="286" width="24" height="30"/>
+    <rect x="238" y="286" width="24" height="30"/>
+    <rect x="96"  y="364" width="22" height="52"/>
+    <rect x="124" y="364" width="22" height="52"/>
+    <rect x="170" y="364" width="22" height="52"/>
+    <rect x="198" y="364" width="22" height="52"/>
+  </g>
+  <rect x="113" y="290" width="20" height="36" fill="#1c1008"/>
+  <rect x="183" y="290" width="20" height="36" fill="#1c1008"/>
+
+  <!-- ===================== -->
+  <!--  BOTTOM-RIGHT ROBOT   -->
+  <!-- ===================== -->
+  <g fill="#e55528">
+    <rect x="274" y="272" width="160" height="92"/>
+    <rect x="250" y="286" width="24" height="30"/>
+    <rect x="434" y="286" width="24" height="30"/>
+    <rect x="292" y="364" width="22" height="52"/>
+    <rect x="320" y="364" width="22" height="52"/>
+    <rect x="366" y="364" width="22" height="52"/>
+    <rect x="394" y="364" width="22" height="52"/>
+  </g>
+  <rect x="309" y="290" width="20" height="36" fill="#1c1008"/>
+  <rect x="379" y="290" width="20" height="36" fill="#1c1008"/>
+
+  <!-- ===================== -->
+  <!--  SPARKLES (4-pointed) -->
+  <!-- ===================== -->
+  <!-- Large — right -->
+  <path d="M385,158 L391,175 L408,181 L391,187 L385,204 L379,187 L362,181 L379,175 Z" fill="#f5c87a"/>
+  <!-- Medium — far right -->
+  <path d="M418,212 L422,224 L434,228 L422,232 L418,244 L414,232 L402,228 L414,224 Z" fill="#f5c87a"/>
+  <!-- Small — left -->
+  <path d="M150,228 L153,238 L163,241 L153,244 L150,254 L147,244 L137,241 L147,238 Z" fill="#f5c87a"/>
+  <!-- Tiny — upper left -->
+  <path d="M196,108 L198,115 L205,117 L198,119 L196,126 L194,119 L187,117 L194,115 Z" fill="#f5c87a"/>
+
+</svg>

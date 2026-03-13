@@ -111,6 +111,7 @@ class TestSessionServerInit:
             server = SessionServer()
 
             assert server.server is not None
+            assert isinstance(server, SessionServer)
             MockManager.assert_called_once_with(
                 max_concurrent=5,
                 default_timeout=None,

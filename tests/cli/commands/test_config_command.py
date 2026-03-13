@@ -105,6 +105,8 @@ class TestConfigCommand:
         args = Namespace()
         fmt = self.command._get_output_format(args)
         assert fmt is not None
+        assert isinstance(fmt, str)
+        assert str(fmt).lower() == "text"
 
     def test_get_output_format_from_args(self):
         """Test _get_output_format returns format from args."""

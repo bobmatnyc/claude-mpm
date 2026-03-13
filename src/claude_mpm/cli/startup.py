@@ -1257,9 +1257,26 @@ def sync_remote_skills_on_startup(force_sync: bool = False):
             show_counter=True,
         )
 
-        # Sync all sources with progress callback
+        # Wrap progress callback to accumulate across multiple sources.
+        # sync_all_sources calls callback(completed) with a PER-SOURCE absolute
+        # counter that resets to 1 at the start of each new source.  Without
+        # correction the bar jumps backward every time a new source begins,
+        # making it appear to "restart" several times.
+        _pb_max_seen = [0]
+        _pb_offset = [0]
+
+        def _cumulative_progress(completed: int) -> None:
+            if completed < _pb_max_seen[0]:
+                # Completed went backward → a new source has started.
+                # Bank the previous source's contribution into the offset.
+                _pb_offset[0] += _pb_max_seen[0]
+                _pb_max_seen[0] = 0
+            _pb_max_seen[0] = completed
+            sync_progress.update(_pb_offset[0] + completed)
+
+        # Sync all sources with cumulative progress callback
         results = manager.sync_all_sources(
-            force=force_sync, progress_callback=sync_progress.update
+            force=force_sync, progress_callback=_cumulative_progress
         )
 
         # Finish sync progress bar with clear breakdown
@@ -1883,7 +1900,8 @@ def run_background_services(
         generate_dynamic_domain_authority_skills()
 
         # PM skills: verify and auto-repair once per day (same TTL as other syncs)
-        if not _skills_all_fresh or not _is_sync_fresh("pm_skills"):
+        # Skip when --no-sync is set — remote operations are intentionally suppressed.
+        if not no_sync and (not _skills_all_fresh or not _is_sync_fresh("pm_skills")):
             verify_and_show_pm_skills()  # PM skills verification and status
             _mark_sync_done("pm_skills")
 

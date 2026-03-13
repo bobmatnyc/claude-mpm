@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "5.9.52"
+version = "5.9.65"
 description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -144,8 +144,8 @@ claude-mpm-monitor = "claude_mpm.scripts.launch_monitor:main"
 claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 claude-hook = "claude_mpm.hooks.claude_hooks.hook_handler:main"
 # google-workspace-mcp = "claude_mpm.mcp.google_workspace_server:main"  # REMOVED: Migrated to external gworkspace-mcp package
-notion-mcp = "claude_mpm.mcp.notion_server:main"
 confluence-mcp = "claude_mpm.mcp.confluence_server:main"
+notion-mpm = "claude_mpm.mcp.notion_setup:main"
 mpm-session-server = "claude_mpm.mcp.session_server:main"
 mpm-session-server-http = "claude_mpm.mcp.session_server_http:main"
 # DEPRECATED: MCP gateway archived 2025-12-11
@@ -307,7 +307,7 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "5.9.52"
+version = "5.9.65"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version", "pyproject.toml:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true

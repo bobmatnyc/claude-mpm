@@ -1,3 +1,98 @@
+## v5.9.65 (2026-03-11)
+
+### Fix
+
+- use sys.executable for package verification in UV tool installs
+
+## v5.9.64 (2026-03-11)
+
+### Fix
+
+- fix progress bar restarting multiple times during multi-source skill sync
+
+## v5.9.63 (2026-03-10)
+
+### Fix
+
+- remove Notion Database ID prompt from setup wizard
+
+## v5.9.62 (2026-03-10)
+
+### Fix
+
+- add missing NOTION_MPM entry to get_package_specs()
+
+## v5.9.61 (2026-03-10)
+
+### Feat
+
+- add app icon (pixel-art robot pyramid)
+
+### Fix
+
+- search parent dirs for .env.local in notion setup
+
+## v5.9.60 (2026-03-10)
+
+### Feat
+
+- re-add notion-mpm as autonomous setup target using official MCP server
+- remove notion-mcp server and all notion references
+
+## v5.9.59 (2026-03-10)
+
+### Feat
+
+- replace one-off notion tool with autonomous notion-mpm setup
+
+## v5.9.58 (2026-03-10)
+
+### Fix
+
+- **footers**: replace Claude Code footers with Claude MPM across all agent files via startup migration
+- **sync**: --no-sync flag now correctly suppresses pm_skills verification
+- **doctor**: update report footer to 🤖🤖 Generated with Claude MPM
+
+## v5.9.57 (2026-03-10)
+
+### Feat
+
+- **skills**: port Superpowers skills and update PR footers
+
+### Refactor
+
+- **tests**: remove 4 remaining permanently-skipped dead test files
+
+## v5.9.56 (2026-03-09)
+
+### Feat
+
+- **install**: add claude-mpm install lsp command
+
+## v5.9.55 (2026-03-09)
+
+### Fix
+
+- **release**: auto-switch gh CLI account in release-publish target
+
+### Refactor
+
+- **setup**: replace bespoke _setup_mcp_ticketer with declarative registry
+
+## v5.9.54 (2026-03-09)
+
+### Refactor
+
+- **tests**: consolidate duplicate test files and strengthen assertions
+- **tests**: remove 53 permanently-skipped dead test files
+
+## v5.9.53 (2026-03-08)
+
+### Feat
+
+- add --no-dangerously-skip-permissions opt-out for DevOps/SRE environments
+- Environmental Awareness System for PM command routing (#296)
+
 ## v5.9.52 (2026-03-06)
 
 ### Refactor

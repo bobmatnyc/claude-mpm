@@ -804,8 +804,10 @@ class TestETagCacheMigration:
             service = GitSourceSyncService(cache_dir=temp_cache_dir)
             service.sync_state = mock_state
 
-            # Service should still work
+            # Service should still work despite corrupted cache
             assert service is not None
+            assert isinstance(service, GitSourceSyncService)
+            assert service.cache_dir == temp_cache_dir
 
 
 # ==============================================================================
@@ -1330,8 +1332,10 @@ class TestAdvancedMigration:
             service = GitSourceSyncService(cache_dir=temp_cache_dir)
             service.sync_state = mock_state
 
-            # Service should still be functional
+            # Service should still be functional despite corrupted JSON syntax
             assert service is not None
+            assert isinstance(service, GitSourceSyncService)
+            assert service.cache_dir == temp_cache_dir
 
 
 class TestCacheIOErrors:

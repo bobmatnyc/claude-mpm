@@ -165,6 +165,14 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Skip permission prompts (passed to Claude Code)",
     )
     passthrough_group.add_argument(
+        "--no-dangerously-skip-permissions",
+        action="store_true",
+        dest="no_dangerously_skip_permissions",
+        help="Disable the --dangerously-skip-permissions flag passed to Claude Code subprocesses. "
+        "Use in security-sensitive environments (CI/CD, DevOps, SRE). "
+        "Also controlled by CLAUDE_MPM_NO_SKIP_PERMISSIONS=1 env var.",
+    )
+    passthrough_group.add_argument(
         "--output-format",
         type=str,
         metavar="FORMAT",
