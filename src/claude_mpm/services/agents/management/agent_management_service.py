@@ -25,8 +25,8 @@ from claude_mpm.models.agent_definition import (
     AgentDefinition,
     AgentMetadata,
     AgentPermissions,
+    AgentRole,
     AgentSection,
-    AgentType,
     AgentWorkflow,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
@@ -315,7 +315,11 @@ class AgentManager:
                 "location": loc,
                 "path": str(agent_file),
                 "version": agent_def.metadata.version,
-                "type": agent_def.metadata.type.value,
+                "type": agent_def.metadata.role.value,
+                "role": agent_def.metadata.role.value,
+                "source": agent_def.metadata.source.value
+                if agent_def.metadata.source
+                else None,
                 "specializations": agent_def.metadata.specializations,
                 **enrichment,
             }
@@ -440,8 +444,9 @@ class AgentManager:
         post = frontmatter.loads(content)
 
         # Extract metadata
+        raw_type = post.metadata.get("agent_type", post.metadata.get("type"))
         metadata = AgentMetadata(
-            type=AgentType(post.metadata.get("type", "core")),
+            role=AgentRole.from_frontmatter(raw_type),
             model_preference=post.metadata.get("model_preference", "claude-3-sonnet"),
             version=post.metadata.get("version", "1.0.0"),
             last_updated=post.metadata.get("last_updated"),
@@ -622,7 +627,7 @@ class AgentManager:
         """Convert AgentDefinition back to markdown."""
         # Start with frontmatter
         frontmatter_data = {
-            "type": definition.metadata.type.value,
+            "agent_type": definition.metadata.role.value,
             "model_preference": definition.metadata.model_preference,
             "version": definition.metadata.version,
             "last_updated": definition.metadata.last_updated,
@@ -720,7 +725,7 @@ class AgentManager:
 
         # Footer
         content.append("---")
-        content.append(f"**Agent Type**: {definition.metadata.type.value}")
+        content.append(f"**Agent Role**: {definition.metadata.role.value}")
         content.append(f"**Model Preference**: {definition.metadata.model_preference}")
         content.append(f"**Version**: {definition.metadata.version}")
         if definition.metadata.last_updated:

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Set
 
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class MemoryProcessor:
@@ -67,7 +68,8 @@ class MemoryProcessor:
         ]
 
         for agent_name in deployed_agents:
-            memory_filename = f"{agent_name}_memories.md"
+            normalized_name = normalize_agent_id(agent_name)
+            memory_filename = f"{normalized_name}_memories.md"
 
             # Search for memory file in each location (project takes precedence)
             for memory_dir in memory_locations:
@@ -84,6 +86,25 @@ class MemoryProcessor:
                         self.logger.error(
                             f"Failed to load memories for {agent_name}: {e}"
                         )
+                else:
+                    # Fallback: check for legacy underscore-format filename
+                    legacy_filename = f"{agent_name}_memories.md"
+                    if legacy_filename != memory_filename:
+                        legacy_file = memory_dir / legacy_filename
+                        if legacy_file.exists():
+                            try:
+                                content = legacy_file.read_text()
+                                agent_memories[agent_name] = content
+                                self.logger.debug(
+                                    f"Loaded legacy memories for {agent_name} "
+                                    f"from {legacy_file}"
+                                )
+                                break  # Use first found
+                            except Exception as e:
+                                self.logger.error(
+                                    f"Failed to load legacy memories "
+                                    f"for {agent_name}: {e}"
+                                )
 
         return agent_memories
 

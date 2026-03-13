@@ -453,14 +453,16 @@ class TestOllamaOnlyRouting:
     ):
         """Test OLLAMA_ONLY routes to Ollama when available."""
         # Arrange
-        await router_ollama.initialize()
         with patch.object(
+            router_ollama.ollama_provider, "initialize", return_value=True
+        ), patch.object(
             router_ollama.ollama_provider, "is_available", return_value=True
         ), patch.object(
             router_ollama.ollama_provider,
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
+            await router_ollama.initialize()
             # Act
             response = await router_ollama.analyze_content(
                 content=sample_content, task=ModelCapability.SENTIMENT
@@ -474,10 +476,12 @@ class TestOllamaOnlyRouting:
     async def test_fails_when_ollama_unavailable(self, router_ollama, sample_content):
         """Test OLLAMA_ONLY fails when Ollama unavailable."""
         # Arrange
-        await router_ollama.initialize()
         with patch.object(
+            router_ollama.ollama_provider, "initialize", return_value=True
+        ), patch.object(
             router_ollama.ollama_provider, "is_available", return_value=False
         ):
+            await router_ollama.initialize()
             # Act
             response = await router_ollama.analyze_content(
                 content=sample_content, task=ModelCapability.GENERAL
@@ -581,14 +585,16 @@ class TestPrivacyFirstRouting:
     ):
         """Test PRIVACY_FIRST routes to Ollama only."""
         # Arrange
-        await router_privacy.initialize()
         with patch.object(
+            router_privacy.ollama_provider, "initialize", return_value=True
+        ), patch.object(
             router_privacy.ollama_provider, "is_available", return_value=True
         ), patch.object(
             router_privacy.ollama_provider,
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
+            await router_privacy.initialize()
             # Act
             response = await router_privacy.analyze_content(
                 content=sample_content, task=ModelCapability.ACCESSIBILITY
@@ -602,10 +608,12 @@ class TestPrivacyFirstRouting:
     async def test_fails_with_privacy_message(self, router_privacy, sample_content):
         """Test PRIVACY_FIRST provides privacy-focused error message."""
         # Arrange
-        await router_privacy.initialize()
         with patch.object(
+            router_privacy.ollama_provider, "initialize", return_value=True
+        ), patch.object(
             router_privacy.ollama_provider, "is_available", return_value=False
         ):
+            await router_privacy.initialize()
             # Act
             response = await router_privacy.analyze_content(
                 content=sample_content, task=ModelCapability.GENERAL

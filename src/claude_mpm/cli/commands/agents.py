@@ -629,15 +629,29 @@ class AgentsCommand(AgentCommand):
             self.logger.info("Phase 1: Syncing agents to cache...")
 
             # Sync to cache (downloads from GitHub if needed)
-            sync_result = git_sync.sync_repository(force=force)
+            # Bug fix: sync_repository does not exist on GitSourceSyncService;
+            # the correct method is sync_agents which returns:
+            #   {"synced": [list], "cached": [list], "failed": [list],
+            #    "total_downloaded": int, "cache_hits": int}
+            sync_result = git_sync.sync_agents(force_refresh=force, show_progress=True)
 
-            if not sync_result.get("synced"):
-                error_msg = sync_result.get("error", "Unknown sync error")
+            # sync_agents returns lists; check for failures
+            synced_files = sync_result.get("synced", [])
+            cached_files = sync_result.get("cached", [])
+            failed_files = sync_result.get("failed", [])
+            agent_count = len(synced_files) + len(cached_files)
+
+            if not synced_files and not cached_files:
+                error_msg = (
+                    f"No agents synced or cached"
+                    f"{f'; {len(failed_files)} failed' if failed_files else ''}"
+                )
                 self.logger.error(f"Sync failed: {error_msg}")
                 return CommandResult.error_result(f"Sync failed: {error_msg}")
 
             self.logger.info(
-                f"Phase 1 complete: {sync_result.get('agent_count', 0)} agents in cache"
+                f"Phase 1 complete: {agent_count} agents in cache"
+                f" ({len(synced_files)} downloaded, {len(cached_files)} cached)"
             )
             self.logger.info(f"Phase 2: Deploying agents to {project_dir}...")
 
@@ -658,8 +672,8 @@ class AgentsCommand(AgentCommand):
                 "errors": deploy_result.get("failed", []),
                 "target_dir": deploy_result.get("deployment_dir", ""),
                 "sync_info": {
-                    "cached_agents": sync_result.get("agent_count", 0),
-                    "cache_dir": sync_result.get("cache_dir", ""),
+                    "cached_agents": agent_count,
+                    "cache_dir": str(git_sync.cache_dir),
                 },
             }
 

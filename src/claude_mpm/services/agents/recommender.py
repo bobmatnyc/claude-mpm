@@ -26,6 +26,7 @@ from claude_mpm.services.core.models.agent_config import (
     AgentSpecialization,
 )
 from claude_mpm.services.core.models.toolchain import ToolchainAnalysis
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class AgentRecommenderService(BaseService, IAgentRecommender):
@@ -323,7 +324,16 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         # Get from config
         agent_configs = self._capabilities_config.get("agent_capabilities", {})
         if agent_id not in agent_configs:
-            raise KeyError(f"Agent not found: {agent_id}")
+            normalized = normalize_agent_id(agent_id)
+            if normalized in agent_configs:
+                agent_id = normalized
+            else:
+                # YAML keys may use underscores -- try that form
+                underscore_id = agent_id.replace("-", "_").lower()
+                if underscore_id in agent_configs:
+                    agent_id = underscore_id
+                else:
+                    raise KeyError(f"Agent not found: {agent_id}")
 
         agent_config = agent_configs[agent_id]
         supports = agent_config.get("supports", {})

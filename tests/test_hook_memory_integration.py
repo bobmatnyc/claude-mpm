@@ -16,6 +16,7 @@ sys.path.insert(0, str(src_path))
 
 from claude_mpm.core.config import Config
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 def test_hook_memory_extraction():
@@ -28,7 +29,12 @@ def test_hook_memory_extraction():
     memory_manager = AgentMemoryManager(config=config, working_directory=temp_dir)
 
     agent_id = "hook_test_agent"
-    memory_file = temp_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
+    memory_file = (
+        temp_dir
+        / ".claude-mpm"
+        / "memories"
+        / f"{normalize_agent_id(agent_id)}_memories.md"
+    )
 
     try:
         print("1. Testing MEMORIES field extraction...")
@@ -100,7 +106,10 @@ These are incremental updates to existing memories.
         # First, let's test remember field on fresh agent
         fresh_agent_id = "fresh_agent"
         fresh_memory_file = (
-            temp_dir / ".claude-mpm" / "memories" / f"{fresh_agent_id}_memories.md"
+            temp_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id(fresh_agent_id)}_memories.md"
         )
 
         # Add initial memory
@@ -144,7 +153,10 @@ And some additional text.
         assert success, "Inline JSON extraction should succeed"
 
         mixed_memory_file = (
-            temp_dir / ".claude-mpm" / "memories" / f"{mixed_agent_id}_memories.md"
+            temp_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id(mixed_agent_id)}_memories.md"
         )
         mixed_content = mixed_memory_file.read_text()
 
@@ -161,7 +173,10 @@ And some additional text.
 
         timestamp_agent_id = "timestamp_test_agent"
         timestamp_memory_file = (
-            temp_dir / ".claude-mpm" / "memories" / f"{timestamp_agent_id}_memories.md"
+            temp_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id(timestamp_agent_id)}_memories.md"
         )
 
         # First add_learning creates the file with inline timestamp
@@ -279,7 +294,10 @@ Second block:
             assert success, f"Should extract from {test_case['name']}"
 
             memory_file = (
-                temp_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
+                temp_dir
+                / ".claude-mpm"
+                / "memories"
+                / f"{normalize_agent_id(agent_id)}_memories.md"
             )
             content = memory_file.read_text()
 

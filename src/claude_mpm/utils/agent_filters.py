@@ -84,6 +84,96 @@ def filter_base_agents(agents: List[Dict]) -> List[Dict]:
     return [a for a in agents if not is_base_agent(a.get("agent_id", ""))]
 
 
+def normalize_agent_id(agent_id: str) -> str:
+    """Canonical agent ID normalizer for memory lookups and comparisons.
+
+    Produces a stable, lowercase, kebab-case identifier with no -agent suffix.
+    This is the SINGLE SOURCE OF TRUTH for agent ID normalization.
+    All other normalizers should delegate to this function.
+
+    Algorithm:
+    1. Guard against empty/whitespace input
+    2. Extract leaf name (last component after /)
+    3. Strip common file extensions (.md, .yaml, .yml, .json)
+    4. Lowercase
+    5. Replace underscores and spaces with dashes
+    6. Collapse multiple dashes
+    7. Strip leading/trailing dashes
+    8. Strip -agent suffix
+    9. Guard against empty result
+
+    Args:
+        agent_id: Raw agent ID in any format
+
+    Returns:
+        Normalized lowercase kebab-case agent ID, or "" for invalid input
+
+    Examples:
+        >>> normalize_agent_id("python_engineer")
+        'python-engineer'
+        >>> normalize_agent_id("research-agent")
+        'research'
+        >>> normalize_agent_id("PM")
+        'pm'
+        >>> normalize_agent_id("")
+        ''
+        >>> normalize_agent_id("-agent")
+        'agent'
+        >>> normalize_agent_id("python-engineer.md")
+        'python-engineer'
+    """
+    if not agent_id or not agent_id.strip():
+        return ""
+
+    # Extract leaf name (handle path-style agent IDs)
+    leaf = agent_id.split("/")[-1]
+
+    # Strip common file extensions
+    for ext in (".md", ".yaml", ".yml", ".json"):
+        if leaf.lower().endswith(ext):
+            leaf = leaf[: -len(ext)]
+            break
+
+    # Lowercase, replace underscores and spaces with dashes
+    normalized = leaf.lower().replace("_", "-").replace(" ", "-")
+
+    # Collapse multiple dashes
+    while "--" in normalized:
+        normalized = normalized.replace("--", "-")
+
+    # Strip leading/trailing dashes
+    normalized = normalized.strip("-")
+
+    # Strip -agent suffix
+    if normalized.endswith("-agent"):
+        normalized = normalized[:-6]
+
+    return normalized
+
+
+def normalize_agent_id_for_comparison(agent_id: str) -> str:
+    """Normalize an agent_id to match deployed filename stems.
+
+    Delegates to normalize_agent_id() -- the canonical normalizer.
+    Kept for backward compatibility with existing callers.
+
+    Args:
+        agent_id: Raw agent ID from frontmatter
+
+    Returns:
+        Normalized stem matching deployed filename
+
+    Examples:
+        >>> normalize_agent_id_for_comparison("research-agent")
+        'research'
+        >>> normalize_agent_id_for_comparison("dart_engineer")
+        'dart-engineer'
+        >>> normalize_agent_id_for_comparison("PM")
+        'pm'
+    """
+    return normalize_agent_id(agent_id)
+
+
 def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     """Get set of currently deployed agent IDs.
 
@@ -95,13 +185,15 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
         project_dir: Project directory to check, defaults to current working directory
 
     Returns:
-        Set of deployed agent IDs (leaf names like "python-engineer", "qa")
+        Set of normalized deployed agent IDs (lowercase, hyphenated, no -agent suffix).
+        All IDs are passed through normalize_agent_id_for_comparison() so callers
+        can compare directly without additional normalization.
 
     Examples:
         >>> deployed = get_deployed_agent_ids()
         >>> "python-engineer" in deployed  # If agent exists in deployment state
         True
-        >>> "ENGINEER" in deployed  # If ENGINEER.md exists
+        >>> "engineer" in deployed  # If ENGINEER.md exists (normalized to lowercase)
         True
 
     Design Rationale:
@@ -139,10 +231,10 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
                 with state_path.open() as f:
                     state = json.load(f)
 
-                # Extract agent IDs from deployment state
+                # Extract agent IDs from deployment state and normalize
                 # Agent IDs are leaf names (e.g., "python-engineer", "qa")
                 agents = state.get("last_check_results", {}).get("agents", {})
-                deployed.update(agents.keys())
+                deployed.update(normalize_agent_id_for_comparison(k) for k in agents)
 
             except (json.JSONDecodeError, KeyError) as e:
                 # Log error but continue - don't break if state file is malformed
@@ -165,7 +257,7 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     if agents_dir.exists():
         for file in agents_dir.glob("*.md"):
             if file.stem not in {"BASE-AGENT", ".DS_Store"}:
-                deployed.add(file.stem)
+                deployed.add(normalize_agent_id_for_comparison(file.stem))
 
     # NOTE: .claude/templates/ contains PM instruction templates, NOT deployed agents
     # It should NOT be checked here. Agents are deployed to:
@@ -208,7 +300,11 @@ def filter_deployed_agents(
         - Preserves agent order for consistent UX
     """
     deployed_ids = get_deployed_agent_ids(project_dir)
-    return [a for a in agents if a.get("agent_id") not in deployed_ids]
+    return [
+        a
+        for a in agents
+        if normalize_agent_id_for_comparison(a.get("agent_id", "")) not in deployed_ids
+    ]
 
 
 def apply_all_filters(

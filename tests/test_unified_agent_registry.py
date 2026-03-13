@@ -60,6 +60,12 @@ class TestUnifiedAgentRegistry(unittest.TestCase):
         with patch(
             "claude_mpm.core.unified_agent_registry.get_path_manager",
             return_value=mock_path_manager,
+        ), patch(
+            "claude_mpm.core.unified_agent_registry.Path.cwd",
+            return_value=self.temp_path,
+        ), patch(
+            "claude_mpm.core.unified_agent_registry.Path.home",
+            return_value=self.temp_path,
         ):
             registry = UnifiedAgentRegistry(cache_enabled=False)
             agents_dict = registry.discover_agents(force_refresh=True)
@@ -104,6 +110,12 @@ class TestUnifiedAgentRegistry(unittest.TestCase):
         with patch(
             "claude_mpm.core.unified_agent_registry.get_path_manager",
             return_value=mock_path_manager,
+        ), patch(
+            "claude_mpm.core.unified_agent_registry.Path.cwd",
+            return_value=self.temp_path,
+        ), patch(
+            "claude_mpm.core.unified_agent_registry.Path.home",
+            return_value=self.temp_path,
         ):
             registry = UnifiedAgentRegistry(cache_enabled=False)
             agents_dict = registry.discover_agents(force_refresh=True)
@@ -136,6 +148,12 @@ class TestUnifiedAgentRegistry(unittest.TestCase):
         with patch(
             "claude_mpm.core.unified_agent_registry.get_path_manager",
             return_value=mock_path_manager,
+        ), patch(
+            "claude_mpm.core.unified_agent_registry.Path.cwd",
+            return_value=self.temp_path,
+        ), patch(
+            "claude_mpm.core.unified_agent_registry.Path.home",
+            return_value=self.temp_path,
         ):
             registry = UnifiedAgentRegistry(cache_enabled=False)
             agents_dict = registry.discover_agents(force_refresh=True)

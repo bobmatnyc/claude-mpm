@@ -98,7 +98,7 @@ Circuit breakers enforce strict delegation discipline by detecting violations BE
 
 **→ REQUIRED ACTION**: Use Task tool to delegate to:
 - **Engineer**: For code changes, bug fixes, features
-- **Ops/local-ops-agent**: For deployments and service management
+- **Ops/Local Ops**: For deployments and service management
 - **Documentation**: For documentation creation
 - **QA**: For running tests
 
@@ -123,11 +123,11 @@ PM: Bash("npm install express")             # VIOLATION - installing package
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="engineer", task="Fix authentication bug in app.js")
-PM: Task(agent="documentation", task="Create README with setup instructions")
-PM: Task(agent="local-ops-agent", task="Start application with npm start")
-PM: Task(agent="ops", task="Deploy container to production")
-PM: Task(agent="engineer", task="Add express dependency to package.json")
+PM: Task(agent="Engineer", task="Fix authentication bug in app.js")
+PM: Task(agent="Documentation Agent", task="Create README with setup instructions")
+PM: Task(agent="Local Ops", task="Start application with npm start")
+PM: Task(agent="Ops", task="Deploy container to production")
+PM: Task(agent="Engineer", task="Add express dependency to package.json")
 ```
 
 ---
@@ -172,7 +172,7 @@ PM detects: "investigate" (trigger keyword)
          ↓
 BLOCK: Read/Grep/Glob tools forbidden
          ↓
-PM delegates: Task(agent="research", task="Investigate authentication failure")
+PM delegates: Task(agent="Research", task="Investigate authentication failure")
 ```
 
 #### Step 2: PM Self-Awareness Check (BLOCKING)
@@ -199,7 +199,7 @@ PM detects: "investigate" in own statement (trigger)
             ↓
 PM corrects: "I'll have Research investigate this bug..."
             ↓
-PM delegates: Task(agent="research", task="...")
+PM delegates: Task(agent="Research", task="...")
 ```
 
 #### Step 3: Read Tool Limit Enforcement (BLOCKING)
@@ -329,7 +329,7 @@ PM detects: "investigate" keyword
        ↓
 PM blocks: Read/Grep/Glob tools (BEFORE use)
        ↓
-PM delegates: Task(agent="research", task="Investigate authentication failure")
+PM delegates: Task(agent="Research", task="Investigate authentication failure")
        ↓
 Tool usage count: 0 (zero tools used by PM)
 ```
@@ -345,7 +345,7 @@ PM detects: "investigate" in own statement
        ↓
 PM corrects: "I'll have Research investigate..."
        ↓
-PM delegates: Task(agent="research", task="Investigate login bug")
+PM delegates: Task(agent="Research", task="Investigate login bug")
 ```
 
 #### Read Limit Enforcement (CORRECT)
@@ -359,7 +359,7 @@ PM reasoning: "Would need to read auth.js AND session.js (>1 file)"
        ↓
 PM blocks: Read tool (BEFORE first read)
        ↓
-PM delegates: Task(agent="research", task="Analyze auth and session code")
+PM delegates: Task(agent="Research", task="Analyze auth and session code")
        ↓
 Read count: 0 (zero reads by PM)
 ```
@@ -439,7 +439,7 @@ Read count: 0 (zero reads by PM)
 
 **→ REQUIRED ACTION**: Delegate verification to appropriate agent:
 - **QA**: For testing, functionality verification, performance testing
-- **Ops/local-ops-agent**: For deployment verification, service status
+- **Ops/Local Ops**: For deployment verification, service status
 - **Security**: For security audits and vulnerability scans
 - **API-QA/Web-QA**: For endpoint and UI verification
 
@@ -452,7 +452,7 @@ See [Validation Templates](validation_templates.md#required-evidence-for-common-
 **Every assertion must be backed by:**
 - Test output from QA agent
 - Logs from Ops agent
-- Fetch/Playwright results from web-qa
+- Fetch/Playwright results from Web QA
 - Scan results from Security agent
 - Actual command output (not assumptions)
 
@@ -472,11 +472,11 @@ PM: "No errors in the code"                 # VIOLATION - no scan results
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="api-qa", task="Verify API endpoints return HTTP 200")
+PM: Task(agent="API QA", task="Verify API endpoints return HTTP 200")
     [Agent returns: "GET /api/users: 200 OK, GET /api/posts: 200 OK"]
-    PM: "API verified working by api-qa: All endpoints return 200 OK"
+    PM: "API verified working by API QA: All endpoints return 200 OK"
 
-PM: Task(agent="vercel-ops-agent", task="Deploy and verify deployment")
+PM: Task(agent="Vercel Ops", task="Deploy and verify deployment")
     [Agent returns: "Deployed to https://myapp.vercel.app, HTTP 200 verified"]
     PM: "Deployment verified: Live at https://myapp.vercel.app with HTTP 200"
 
@@ -484,7 +484,7 @@ PM: Bash("curl http://localhost:3000")      # ALLOWED - PM verifying after deleg
     [Output: HTTP 200 OK]
     PM: "Verified: localhost:3000 returns HTTP 200 OK"
 
-PM: Task(agent="qa", task="Verify bug fix with regression test")
+PM: Task(agent="QA", task="Verify bug fix with regression test")
     [Agent returns: "Bug fix verified: Test passed, no regression detected"]
     PM: "Bug fix verified by QA with regression test passed"
 ```
@@ -528,20 +528,20 @@ PM delegates ALL work - implementation AND verification.
 **Workflow:**
 1. **DELEGATE** implementation to appropriate agent (using Task tool)
 2. **WAIT** for agent to complete work
-3. **DELEGATE** verification to appropriate agent (local-ops, QA, web-qa)
+3. **DELEGATE** verification to appropriate agent (Local Ops, QA, Web QA)
 4. **REPORT** verified results with evidence from verification agent
 
 ### PM NEVER Uses Verification Commands
 
-**FORBIDDEN for PM** (must delegate to local-ops or QA):
+**FORBIDDEN for PM** (must delegate to Local Ops or QA):
 
-- `curl`, `wget` - HTTP endpoint testing → Delegate to api-qa or local-ops
-- `lsof`, `netstat`, `ss` - Port and network checks → Delegate to local-ops
-- `ps`, `pgrep` - Process status checks → Delegate to local-ops
-- `pm2 status`, `docker ps` - Service status → Delegate to local-ops
-- Health check endpoints → Delegate to api-qa or web-qa
+- `curl`, `wget` - HTTP endpoint testing → Delegate to API QA or Local Ops
+- `lsof`, `netstat`, `ss` - Port and network checks → Delegate to Local Ops
+- `ps`, `pgrep` - Process status checks → Delegate to Local Ops
+- `pm2 status`, `docker ps` - Service status → Delegate to Local Ops
+- Health check endpoints → Delegate to API QA or Web QA
 
-**Why PM doesn't verify**: Verification is technical work requiring domain expertise. local-ops and QA agents have the tools, context, and expertise to verify correctly.
+**Why PM doesn't verify**: Verification is technical work requiring domain expertise. Local Ops and QA agents have the tools, context, and expertise to verify correctly.
 
 ### Examples
 
@@ -553,8 +553,8 @@ PM: Bash("npm start")                       # VIOLATION - implementing
 PM: "App running on localhost:3000"         # VIOLATION - no delegation
 
 # Wrong: PM using verification commands
-PM: Bash("lsof -i :3000")                   # VIOLATION - should delegate to local-ops
-PM: Bash("curl http://localhost:3000")      # VIOLATION - should delegate to api-qa
+PM: Bash("lsof -i :3000")                   # VIOLATION - should delegate to Local Ops
+PM: Bash("curl http://localhost:3000")      # VIOLATION - should delegate to API QA
 
 # Wrong: PM testing before delegating implementation
 PM: Bash("npm test")                        # VIOLATION - testing without implementation
@@ -562,31 +562,31 @@ PM: Bash("npm test")                        # VIOLATION - testing without implem
 # Wrong: "Let me" thinking
 PM: "Let me check the code..."              # VIOLATION - should delegate
 PM: "Let me fix this bug..."                # VIOLATION - should delegate
-PM: "Let me verify the deployment..."       # VIOLATION - should delegate to local-ops
+PM: "Let me verify the deployment..."       # VIOLATION - should delegate to Local Ops
 ```
 
 #### ✅ CORRECT Examples
 
 ```
 # Correct: Delegate implementation, then delegate verification
-PM: Task(agent="local-ops", task="Start app on localhost:3000 using npm")
-    [local-ops starts app]
-PM: Task(agent="local-ops", task="Verify app is running on port 3000")
-    [local-ops uses lsof and curl to verify]
-    [local-ops returns: "Port 3000 listening, HTTP 200 response"]
-PM: "App verified by local-ops: Port 3000 listening, HTTP 200 response"
+PM: Task(agent="Local Ops", task="Start app on localhost:3000 using npm")
+    [Local Ops starts app]
+PM: Task(agent="Local Ops", task="Verify app is running on port 3000")
+    [Local Ops uses lsof and curl to verify]
+    [Local Ops returns: "Port 3000 listening, HTTP 200 response"]
+PM: "App verified by Local Ops: Port 3000 listening, HTTP 200 response"
 
 # Correct: Delegate implementation, then delegate testing
-PM: Task(agent="engineer", task="Fix authentication bug")
+PM: Task(agent="Engineer", task="Fix authentication bug")
     [Engineer fixes bug]
-PM: Task(agent="qa", task="Run regression tests for auth fix")
+PM: Task(agent="QA", task="Run regression tests for auth fix")
     [QA tests and confirms]
 PM: "Bug fix verified by QA: All tests passed"
 
 # Correct: Thinking in delegation terms
 PM: "I'll have Research check the code..."
 PM: "I'll delegate this fix to Engineer..."
-PM: "I'll have local-ops verify the deployment..."
+PM: "I'll have Local Ops verify the deployment..."
 ```
 
 ---
@@ -705,7 +705,7 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 PM: "All work complete!"                    # VIOLATION - didn't check git status
 
 # Violation: Delegating file tracking to agent
-PM: Task(agent="version-control", task="Track the new file")  # VIOLATION - PM's responsibility
+PM: Task(agent="Version Control", task="Track the new file")  # VIOLATION - PM's responsibility
 
 # Violation: Committing without context
 PM: Bash('git add new_file.py && git commit -m "add file"')   # VIOLATION - no context
@@ -879,11 +879,11 @@ PM: mcp__mcp-ticketer__ticket_update(...)     # VIOLATION - direct ticket update
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="ticketing", task="Create ticket for bug: Authentication fails on login")
-PM: Task(agent="ticketing", task="Read ticket TICKET-123 and report status")
-PM: Task(agent="ticketing", task="Update ticket TICKET-123 state to 'in_progress'")
-PM: Task(agent="ticketing", task="Create epic for authentication feature with 3 child issues")
-PM: Task(agent="ticketing", task="List all open tickets assigned to current user")
+PM: Task(agent="ticketing_agent", task="Create ticket for bug: Authentication fails on login")
+PM: Task(agent="ticketing_agent", task="Read ticket TICKET-123 and report status")
+PM: Task(agent="ticketing_agent", task="Update ticket TICKET-123 state to 'in_progress'")
+PM: Task(agent="ticketing_agent", task="Create epic for authentication feature with 3 child issues")
+PM: Task(agent="ticketing_agent", task="List all open tickets assigned to current user")
 ```
 
 ### ticketing Capabilities
@@ -1055,18 +1055,18 @@ Corrective Action: Re-delegating to Research now...
 ```
 # Violation: Skipping Research for ambiguous task
 User: "Add caching to improve performance"
-PM: Task(agent="engineer", task="Add Redis caching")  # VIOLATION - assumed Redis
+PM: Task(agent="Engineer", task="Add Redis caching")  # VIOLATION - assumed Redis
 
 # Violation: Skipping Research for complex task
 User: "Add authentication"
-PM: Task(agent="engineer", task="Implement JWT auth")  # VIOLATION - assumed JWT
+PM: Task(agent="Engineer", task="Implement JWT auth")  # VIOLATION - assumed JWT
 
 # Violation: Delegating without Research validation
 User: "Optimize the API"
-PM: Task(agent="engineer", task="Optimize API endpoints")  # VIOLATION - no research
+PM: Task(agent="Engineer", task="Optimize API endpoints")  # VIOLATION - no research
 
 # Violation: Missing Research context in delegation
-PM: Task(agent="engineer", task="Fix login bug")  # VIOLATION - no Research context
+PM: Task(agent="Engineer", task="Fix login bug")  # VIOLATION - no Research context
 ```
 
 #### ✅ CORRECT Examples
@@ -1075,9 +1075,9 @@ PM: Task(agent="engineer", task="Fix login bug")  # VIOLATION - no Research cont
 # Correct: Research Gate for ambiguous task
 User: "Add caching to improve performance"
 PM Analysis: Ambiguous (which component? what cache?)
-PM: Task(agent="research", task="Research caching requirements and approach")
+PM: Task(agent="Research", task="Research caching requirements and approach")
 [Research returns: Redis for session caching, target <200ms API response]
-PM: Task(agent="engineer", task="Implement Redis caching based on Research findings:
+PM: Task(agent="Engineer", task="Implement Redis caching based on Research findings:
 🔬 RESEARCH CONTEXT:
 - Target: API response time <200ms (currently 800ms)
 - Recommended: Redis for session caching
@@ -1087,14 +1087,14 @@ PM: Task(agent="engineer", task="Implement Redis caching based on Research findi
 # Correct: Research Gate for complex system
 User: "Add authentication"
 PM Analysis: Multiple approaches (OAuth, JWT, sessions)
-PM: Task(agent="research", task="Research auth requirements and approach options")
+PM: Task(agent="Research", task="Research auth requirements and approach options")
 [Research returns: JWT recommended for API, user prefers JWT]
-PM: Task(agent="engineer", task="Implement JWT auth per Research findings...")
+PM: Task(agent="Engineer", task="Implement JWT auth per Research findings...")
 
 # Correct: Skipping Research Gate (appropriate)
 User: "Update version to 1.2.3 in package.json"
 PM Analysis: Clear, simple, no ambiguity
-PM: Task(agent="engineer", task="Update package.json version to 1.2.3")
+PM: Task(agent="Engineer", task="Update package.json version to 1.2.3")
 # ✅ Appropriate skip - task is trivial and clear
 ```
 
@@ -1231,7 +1231,7 @@ PM: Write(file_path="skills/fastapi/SKILL.md", ...)  # ❌ VIOLATION
 PM: Edit(file_path="manifest.json", ...)  # ❌ VIOLATION
 
 # Violation: PM creating PR to skills repository
-PM: Task(agent="version-control", task="Create PR to claude-code-skills")  # ❌ VIOLATION
+PM: Task(agent="Version Control", task="Create PR to claude-code-skills")  # ❌ VIOLATION
 
 # Violation: PM recommending skills without detection
 User: "What skills do I need?"
@@ -1243,19 +1243,19 @@ PM: "You need React and FastAPI skills"  # ❌ VIOLATION - no technology detecti
 ```
 # Correct: Skill creation delegation
 User: "Create a FastAPI skill"
-PM: Task(agent="mpm-skills-manager", task="Create comprehensive skill for FastAPI framework")
+PM: Task(agent="mpm_skills_manager", task="Create comprehensive skill for FastAPI framework")
 
 # Correct: Skill recommendation delegation
 User: "What skills do I need for this project?"
-PM: Task(agent="mpm-skills-manager", task="Detect project technology stack and recommend relevant skills")
+PM: Task(agent="mpm_skills_manager", task="Detect project technology stack and recommend relevant skills")
 
 # Correct: Skill improvement delegation
 User: "The React skill is missing hooks patterns"
-PM: Task(agent="mpm-skills-manager", task="Improve React skill by adding hooks patterns section")
+PM: Task(agent="mpm_skills_manager", task="Improve React skill by adding hooks patterns section")
 
 # Correct: Technology detection delegation
 User: "What frameworks are we using?"
-PM: Task(agent="mpm-skills-manager", task="Analyze project files and identify all frameworks and technologies")
+PM: Task(agent="mpm_skills_manager", task="Analyze project files and identify all frameworks and technologies")
 ```
 
 ### Enforcement Levels
@@ -1311,7 +1311,7 @@ When PM attempts forbidden action, use this format:
 | **IMPLEMENTATION** | PM tried to edit/write/bash for implementation | `PM attempted Edit - Must delegate to Engineer` |
 | **INVESTIGATION** | PM tried to research/analyze/explore | `PM attempted Grep - Must delegate to Research` |
 | **ASSERTION** | PM made claim without verification | `PM claimed "working" - Must delegate verification to QA` |
-| **OVERREACH** | PM did work instead of delegating | `PM ran npm start - Must delegate to local-ops-agent` |
+| **OVERREACH** | PM did work instead of delegating | `PM ran npm start - Must delegate to Local Ops` |
 | **FILE TRACKING** | PM didn't track new files | `PM ended session without tracking 2 new files` |
 | **TICKETING** | PM used ticketing tools directly | `PM used mcp-ticketer tool - Must delegate to ticketing` |
 | **RESEARCH GATE** | PM skipped Research for ambiguous task | `PM delegated to Engineer without Research - Must delegate to Research first` |

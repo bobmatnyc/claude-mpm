@@ -211,7 +211,7 @@ class AgentListingService(IAgentListingService):
             for agent_data in agents_data:
                 agent = AgentInfo(
                     name=agent_data.get("name", ""),
-                    type=agent_data.get("type", "agent"),
+                    type=agent_data.get("agent_type", agent_data.get("type", "agent")),
                     tier="system",
                     path=agent_data.get("path", ""),
                     description=agent_data.get("description") if verbose else None,
@@ -247,7 +247,7 @@ class AgentListingService(IAgentListingService):
             for agent_data in agents_data:
                 agent = AgentInfo(
                     name=agent_data.get("name", ""),
-                    type=agent_data.get("type", "agent"),
+                    type=agent_data.get("agent_type", agent_data.get("type", "agent")),
                     tier=agent_data.get("tier", "system"),
                     path=agent_data.get("path", ""),
                     description=agent_data.get("description"),
@@ -293,7 +293,7 @@ class AgentListingService(IAgentListingService):
 
                 agent_info = AgentInfo(
                     name=agent_id,
-                    type=metadata.get("type", "agent"),
+                    type=metadata.get("agent_type", metadata.get("type", "agent")),
                     tier=tier,
                     path=metadata.get("path", ""),
                     description=metadata.get("description"),
@@ -369,7 +369,8 @@ class AgentListingService(IAgentListingService):
 
             details = {
                 "name": getattr(agent, "name", agent_name),
-                "type": getattr(agent, "type", "agent"),
+                "type": getattr(agent, "agent_type", None)
+                or getattr(agent, "type", "agent"),
                 "tier": getattr(agent, "tier", "system"),
                 "path": str(getattr(agent, "path", agent_path)),
                 "description": getattr(agent, "description", None),

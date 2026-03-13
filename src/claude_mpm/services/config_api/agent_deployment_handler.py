@@ -13,25 +13,19 @@ from typing import Any, Dict
 
 from aiohttp import web
 
+from claude_mpm.core.agent_name_registry import CORE_AGENT_IDS
 from claude_mpm.core.deployment_context import DeploymentContext
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.config_api.validation import (
     validate_path_containment,
     validate_safe_name,
 )
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = get_logger(__name__)
 
-# Agents that cannot be undeployed (BR-01)
-CORE_AGENTS = [
-    "engineer",
-    "research",
-    "qa",
-    "web-qa",
-    "documentation",
-    "ops",
-    "ticketing",
-]
+# Agents that cannot be undeployed (BR-01) — sourced from canonical registry.
+CORE_AGENTS = sorted(CORE_AGENT_IDS)
 
 # Lazy-initialized service singletons
 _backup_manager = None
@@ -262,6 +256,9 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
         valid, err_msg = validate_safe_name(agent_name, "agent")
         if not valid:
             return _error_response(400, err_msg, "VALIDATION_ERROR")
+
+        # Normalize agent name so that e.g. "dart_engineer" finds "dart-engineer.md"
+        agent_name = normalize_agent_id(agent_name)
 
         # BR-01: core agent protection
         if agent_name in CORE_AGENTS:

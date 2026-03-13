@@ -313,9 +313,9 @@ User selections:
 - Draft Mode: "Ready for Review"
 ```
 
-Step 5: PM Delegates to version-control
+Step 5: PM Delegates to Version Control
 ```
-PM → version-control: "Create stacked PRs for PROJ-101, PROJ-102, PROJ-103
+PM → Version Control: "Create stacked PRs for PROJ-101, PROJ-102, PROJ-103
 
 Strategy: Stacked (respects dependencies)
 - PR #1: PROJ-101 → main

@@ -41,7 +41,7 @@ from .observers import (
 
 # Recommender exports
 from .recommender import AgentRecommenderService
-from .registry import AgentMetadata, AgentRegistry, AgentTier, AgentType
+from .registry import AgentMetadata, AgentRegistry, AgentSourceType, AgentTier
 from .registry.deployed_agent_discovery import DeployedAgentDiscovery
 from .registry.modification_tracker import (
     AgentModification,
@@ -65,8 +65,8 @@ __all__ = [
     "AgentProfileLoader",
     "AgentRecommenderService",
     "AgentRegistry",
+    "AgentSourceType",
     "AgentTier",
-    "AgentType",
     "AgentVersionManager",
     "AutoConfigManagerService",
     "BaseAgentManager",

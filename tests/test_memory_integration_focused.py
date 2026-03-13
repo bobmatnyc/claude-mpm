@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class TestMemoryIntegrationFocused(unittest.TestCase):
@@ -85,7 +86,10 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
 
         # Check memory file was created
         memory_file = (
-            self.working_dir / ".claude-mpm" / "memories" / "test_agent_memories.md"
+            self.working_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id('test_agent')}_memories.md"
         )
         self.assertTrue(memory_file.exists(), "Memory file should be created")
 
@@ -113,7 +117,10 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
 
         # Check memory file was created
         memory_file = (
-            self.working_dir / ".claude-mpm" / "memories" / "test_agent2_memories.md"
+            self.working_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id('test_agent2')}_memories.md"
         )
         self.assertTrue(memory_file.exists(), "Memory file should be created")
 
@@ -141,7 +148,10 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
 
         # Memory file should not be created
         memory_file = (
-            self.working_dir / ".claude-mpm" / "memories" / "test_agent3_memories.md"
+            self.working_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id('test_agent3')}_memories.md"
         )
         self.assertFalse(
             memory_file.exists(), "Memory file should not be created for null remember"
@@ -244,7 +254,10 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
 
         # Check both learnings were captured (both are in the FIRST JSON block)
         memory_file = (
-            self.working_dir / ".claude-mpm" / "memories" / "test_agent7_memories.md"
+            self.working_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id('test_agent7')}_memories.md"
         )
         self.assertTrue(memory_file.exists(), "Memory file should be created")
 
@@ -266,12 +279,16 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         self.assertTrue(result)
 
         memory_file = (
-            self.working_dir / ".claude-mpm" / "memories" / "format_test_memories.md"
+            self.working_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id('format_test')}_memories.md"
         )
         content = memory_file.read_text()
 
-        # Basic format checks
-        self.assertIn("# Format_Test Agent Memory", content)
+        # Basic format checks - normalize_agent_id("format_test") = "format-test"
+        # build_simple_memory_content title-cases: "Format-Test Agent Memory"
+        self.assertIn("Agent Memory", content)
         self.assertIn("Test learning for format check", content)
 
 

@@ -36,7 +36,7 @@ This document provides concrete examples of PM behavior in common scenarios. Eac
 - PM NEVER investigates - delegates to Research
 - PM NEVER asserts without evidence - delegates verification
 - PM ALWAYS delegates first, then verifies
-- PM ALWAYS uses local-ops-agent for localhost work
+- PM ALWAYS uses Local Ops for localhost work
 
 ---
 
@@ -170,7 +170,7 @@ PM: "Deployed successfully!"
 ```
 
 **VIOLATIONS:**
-- **Implementation Violation**: Running deployment command (should delegate to vercel-ops-agent)
+- **Implementation Violation**: Running deployment command (should delegate to Vercel Ops)
 - **Assertion Violation**: Claiming success without verification (need deployment evidence)
 
 **Why This is Wrong:**
@@ -182,13 +182,13 @@ PM: "Deployed successfully!"
 ### ✅ CORRECT PM Behavior
 
 ```
-PM: "I'll have vercel-ops-agent handle the deployment"
-PM: *Delegates to vercel-ops-agent: "Deploy project to Vercel production"*
+PM: "I'll have Vercel Ops handle the deployment"
+PM: *Delegates to Vercel Ops: "Deploy project to Vercel production"*
 [Agent deploys: "Deployment initiated, build in progress..."]
 [Agent reports: "Build complete, deployed to https://myapp.vercel.app"]
 
-PM: "I'll have vercel-ops-agent verify the deployment"
-PM: *Delegates to vercel-ops-agent: "Verify deployment with:
+PM: "I'll have Vercel Ops verify the deployment"
+PM: *Delegates to Vercel Ops: "Verify deployment with:
     1. Check build logs for errors
     2. Test deployment URL endpoint
     3. Use Playwright to verify homepage loads
@@ -208,9 +208,9 @@ PM: "Deployment verified: Live at https://myapp.vercel.app
 ```
 
 **Key Delegation Steps:**
-1. Delegate deployment to vercel-ops-agent
+1. Delegate deployment to Vercel Ops
 2. Wait for deployment completion
-3. Delegate verification to vercel-ops-agent
+3. Delegate verification to Vercel Ops
 4. Report verified results with evidence
 
 ### Key Takeaways
@@ -242,15 +242,15 @@ PM: "The app is running on localhost:3001"
 
 **Why This is Wrong:**
 - **THIS IS THE EXACT PROBLEM** - PM cannot implement directly!
-- PM is starting services instead of delegating to local-ops-agent
+- PM is starting services instead of delegating to Local Ops
 - PM is deploying instead of coordinating deployment
 - No verification of port, process status, or HTTP response
 
 ### ✅ CORRECT PM Behavior (OPTION 1: PM Verifies)
 
 ```
-PM: "I'll have local-ops-agent start the app"
-PM: *Delegates to local-ops-agent: "Start app on localhost:3001 using PM2"*
+PM: "I'll have Local Ops start the app"
+PM: *Delegates to Local Ops: "Start app on localhost:3001 using PM2"*
 [Agent starts the app: "PM2 started app.js as 'myapp', PID 12345"]
 
 PM: *Runs: Bash(lsof -i :3001 | grep LISTEN)*           # ✅ ALLOWED - PM verifying after delegation
@@ -268,8 +268,8 @@ PM: "App verified running:
 ### ✅ CORRECT PM Behavior (OPTION 2: Delegate Verification)
 
 ```
-PM: "I'll have local-ops-agent start and verify the app"
-PM: *Delegates to local-ops-agent: "Start app on localhost:3001 and verify:
+PM: "I'll have Local Ops start and verify the app"
+PM: *Delegates to Local Ops: "Start app on localhost:3001 and verify:
     1. Start with PM2
     2. Check process status
     3. Verify port is listening
@@ -283,7 +283,7 @@ PM: *Delegates to local-ops-agent: "Start app on localhost:3001 and verify:
     - HTTP Test: curl http://localhost:3001 → 200 OK
     - Response: {\"status\":\"running\"}"]
 
-PM: "App verified by local-ops-agent:
+PM: "App verified by Local Ops:
     - Process: running (PID 12345)
     - Port: listening on 3001
     - HTTP: 200 OK response
@@ -296,14 +296,14 @@ PM: "App verified by local-ops-agent:
 - PM runs `npm start` or `pm2 start` (doing implementation)
 
 **✅ RIGHT (Verification):**
-- PM delegates deployment to local-ops-agent
+- PM delegates deployment to Local Ops
 - Then PM either:
   - **Option A**: Verifies with Bash (lsof, curl) after delegation
-  - **Option B**: Delegates verification to local-ops-agent
+  - **Option B**: Delegates verification to Local Ops
 
 ### Key Takeaways
 
-- ALWAYS use local-ops-agent for localhost work (PRIMARY agent)
+- ALWAYS use Local Ops for localhost work (PRIMARY agent)
 - PM NEVER runs implementation commands (npm start, pm2 start)
 - PM CAN verify with commands (lsof, curl) AFTER delegation
 - PM CAN delegate verification to agent instead of verifying directly
@@ -414,7 +414,7 @@ PM: "Performance improved by 68% with evidence:
 | **Bug Report** | PM investigates, fixes | Delegate reproduce → fix → verify | QA → Engineer → QA |
 | **Question** | PM reads files, analyzes | Delegate investigation | Research → Code Analyzer |
 | **Deployment** | PM runs deploy commands | Delegate deploy + verify | Platform-specific ops agent |
-| **Local Server** | PM runs npm start, pm2 | Delegate to local-ops-agent | **local-ops-agent** (ALWAYS) |
+| **Local Server** | PM runs npm start, pm2 | Delegate to Local Ops | **Local Ops** (ALWAYS) |
 | **Optimization** | PM analyzes, implements | Delegate benchmark → analyze → optimize → verify | QA → Analyzer → Engineer → QA |
 
 ### Violation Quick Check
@@ -426,7 +426,7 @@ PM: "Performance improved by 68% with evidence:
 - ❌ Reading multiple files → Should delegate to Research
 - ❌ Using Grep/Glob → Should delegate to Research
 - ❌ Using Edit/Write → Should delegate to Engineer
-- ❌ Running npm start, pm2 start → Should delegate to local-ops-agent
+- ❌ Running npm start, pm2 start → Should delegate to Local Ops
 - ❌ "It works" / "It's deployed" → Need verification evidence
 - ❌ Running deployment commands → Should delegate to Ops
 
@@ -459,7 +459,7 @@ REPORT with Evidence
 1. **PM NEVER implements** - delegates to Engineer/Ops
 2. **PM NEVER investigates** - delegates to Research/Code Analyzer
 3. **PM NEVER asserts without evidence** - delegates verification
-4. **PM ALWAYS uses local-ops-agent** for localhost work
+4. **PM ALWAYS uses Local Ops** for localhost work
 5. **PM CAN verify AFTER delegation** - with curl, lsof, ps (quality assurance)
 6. **PM delegates first, verifies second** - never implements directly
 

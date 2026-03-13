@@ -67,28 +67,29 @@ def create_skill_app():
 
 
 class TestCoreAgentProtection(AioHTTPTestCase):
-    """Test BR-01: 7 core agents cannot be undeployed."""
+    """Test BR-01: Core agents cannot be undeployed."""
 
     async def get_application(self):
         _reset_agent_singletons()
         return create_agent_app()
 
     def test_core_agents_list_complete(self):
-        """Verify all 7 expected core agents are defined."""
+        """Verify all expected core agents are defined (from CORE_AGENT_IDS)."""
         expected = {
-            "engineer",
-            "research",
-            "qa",
-            "web-qa",
+            "code-analyzer",
             "documentation",
-            "ops",
-            "ticketing",
+            "engineer",
+            "local-ops",
+            "qa",
+            "research",
+            "security",
+            "version-control",
         }
         assert set(CORE_AGENTS) == expected
-        assert len(CORE_AGENTS) == 7
+        assert len(CORE_AGENTS) == 8
 
-    async def test_all_seven_core_agents_return_403(self):
-        """Each of 7 core agents returns 403 on undeploy."""
+    async def test_all_core_agents_return_403(self):
+        """Each core agent returns 403 on undeploy."""
         for agent_name in CORE_AGENTS:
             resp = await self.client.request(
                 "DELETE",

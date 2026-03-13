@@ -154,7 +154,7 @@ The PM Template Ecosystem modularizes PM instruction content into specialized, f
 1. **Example 1: Bug Fixing** - Shows proper delegation to Engineer + QA
 2. **Example 2: Question Answering** - Shows proper delegation to Research
 3. **Example 3: Deployment** - Shows proper delegation to Ops + verification
-4. **Example 4: Local Server Management** - Shows proper use of local-ops-agent
+4. **Example 4: Local Server Management** - Shows proper use of Local Ops
 5. **Example 5: Performance Optimization** - Shows proper delegation + evidence collection
 
 **Integration with Other Templates**:

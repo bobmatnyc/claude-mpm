@@ -15,8 +15,8 @@ Task: Analyze requirements for [feature]
 Return: Technical requirements, gaps, measurable criteria, approach
 ```
 
-### Phase 2: Code Analyzer Review (MANDATORY)
-**Agent**: Code Analyzer (Opus model)
+### Phase 2: Code Analysis Review (MANDATORY)
+**Agent**: Code Analysis (Opus model)
 **Output**: APPROVED/NEEDS_IMPROVEMENT/BLOCKED
 **Template**:
 ```
@@ -35,13 +35,13 @@ Return: Approval status with specific recommendations
 **Requirements**: Complete code, error handling, basic test proof
 
 ### Phase 4: QA (MANDATORY)
-**Agent**: api-qa (APIs), web-qa (UI), qa (general)
+**Agent**: API QA (APIs), Web QA (UI), qa (general)
 **Requirements**: Real-world testing with evidence
 
 **Routing**:
 ```python
-if "API" in implementation: use api_qa
-elif "UI" in implementation: use web_qa
+if "API" in implementation: use "API QA"
+elif "UI" in implementation: use "Web QA"
 else: use qa
 ```
 
@@ -52,7 +52,7 @@ else: use qa
 | Phase | Verification Required | Evidence Format |
 |-------|----------------------|-----------------|
 | Research | Findings documented | File paths, line numbers, specific details |
-| Code Analyzer | Approval status | APPROVED/NEEDS_IMPROVEMENT/BLOCKED with rationale |
+| Code Analysis | Approval status | APPROVED/NEEDS_IMPROVEMENT/BLOCKED with rationale |
 | Implementation | Tests pass | Test command output, pass/fail counts |
 | Deployment | Service running | Health check response, process status, HTTP codes |
 | QA | All criteria verified | Test results with specific evidence |
@@ -87,8 +87,8 @@ Evidence:
 Status: PASSED
 ```
 
-### Phase 5: Documentation
-**Agent**: Documentation
+### Phase 5: Documentation Agent
+**Agent**: Documentation Agent
 **When**: Code changes made
 **Output**: Updated docs, API specs, README
 
@@ -96,7 +96,7 @@ Status: PASSED
 
 **Mandatory before `git push`**:
 1. Run `git diff origin/main HEAD`
-2. Delegate to Security Agent for credential scan
+2. Delegate to Security for credential scan
 3. Block push if secrets detected
 
 **Security Check Template**:
@@ -108,11 +108,11 @@ Return: Clean or list of blocked items
 
 ## Publish and Release Workflow
 
-**CRITICAL**: PM MUST DELEGATE all version bumps and releases to local-ops. PM never edits version files (pyproject.toml, package.json, VERSION) directly.
+**CRITICAL**: PM MUST DELEGATE all version bumps and releases to Local Ops. PM never edits version files (pyproject.toml, package.json, VERSION) directly.
 
-**Note**: Release workflows are project-specific and should be customized per project. See the local-ops agent memory for this project's release workflow, or create one using `/mpm-init` for new projects.
+**Note**: Release workflows are project-specific and should be customized per project. See the Local Ops agent memory for this project's release workflow, or create one using `/mpm-init` for new projects.
 
-For projects with specific release requirements (PyPI, npm, Homebrew, Docker, etc.), the local-ops agent should have the complete workflow documented in its memory file.
+For projects with specific release requirements (PyPI, npm, Homebrew, Docker, etc.), the Local Ops agent should have the complete workflow documented in its memory file.
 
 ## Ticketing Integration
 
@@ -133,7 +133,7 @@ When mcp-ticketer MCP tools are available, use them for all ticket operations:
 
 **Note**: MCP-first architecture (v2.5.0+) - CLI fallback deprecated.
 
-**Agent**: Delegate to `ticketing-agent` for all ticket operations
+**Agent**: Delegate to `ticketing_agent` for all ticket operations
 
 ## Structural Delegation Format
 

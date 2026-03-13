@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class MemoryOptimizer(LoggerMixin):
@@ -94,7 +95,8 @@ class MemoryOptimizer(LoggerMixin):
             Dict containing optimization results and statistics
         """
         try:
-            memory_file = self.memories_dir / f"{agent_id}_agent.md"
+            normalized_id = normalize_agent_id(agent_id)
+            memory_file = self.memories_dir / f"{normalized_id}_memories.md"
 
             if not memory_file.exists():
                 return {
@@ -187,7 +189,7 @@ class MemoryOptimizer(LoggerMixin):
             if not self.memories_dir.exists():
                 return {"success": False, "error": "Memory directory not found"}
 
-            memory_files = list(self.memories_dir.glob("*_agent.md"))
+            memory_files = list(self.memories_dir.glob("*_memories.md"))
             results = {}
 
             total_stats = {
@@ -200,7 +202,7 @@ class MemoryOptimizer(LoggerMixin):
             }
 
             for memory_file in memory_files:
-                agent_id = memory_file.stem.replace("_agent", "")
+                agent_id = memory_file.stem.replace("_memories", "")
                 result = self.optimize_agent_memory(agent_id)
                 results[agent_id] = result
 
@@ -580,7 +582,8 @@ class MemoryOptimizer(LoggerMixin):
         Returns:
             Analysis results
         """
-        memory_file = self.memories_dir / f"{agent_id}_agent.md"
+        normalized_id = normalize_agent_id(agent_id)
+        memory_file = self.memories_dir / f"{normalized_id}_memories.md"
 
         if not memory_file.exists():
             return {
@@ -637,11 +640,11 @@ class MemoryOptimizer(LoggerMixin):
         if not self.memories_dir.exists():
             return {"success": False, "error": "Memory directory not found"}
 
-        memory_files = list(self.memories_dir.glob("*_agent.md"))
+        memory_files = list(self.memories_dir.glob("*_memories.md"))
         agents_analysis = {}
 
         for memory_file in memory_files:
-            agent_id = memory_file.stem.replace("_agent", "")
+            agent_id = memory_file.stem.replace("_memories", "")
             agents_analysis[agent_id] = self._analyze_single_agent(agent_id)
 
         return {

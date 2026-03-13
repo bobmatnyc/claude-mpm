@@ -25,7 +25,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from claude_mpm.utils.agent_filters import normalize_agent_id
+
 from ...core.logger import get_logger
+from ...utils.agent_filters import get_deployed_agent_ids
 from .service_interfaces import ICacheManager, IMemoryManager, IPathResolver
 
 
@@ -156,7 +159,9 @@ class MemoryManager(IMemoryManager):
         self._path_resolver.ensure_directory(project_memories_dir)
 
         if agent_name:
-            memory_file = project_memories_dir / f"{agent_name}_memories.md"
+            memory_file = (
+                project_memories_dir / f"{normalize_agent_id(agent_name)}_memories.md"
+            )
         else:
             memory_file = project_memories_dir / "PM_memories.md"
 
@@ -241,7 +246,9 @@ class MemoryManager(IMemoryManager):
 
         if agent_name:
             # Clear specific agent memory
-            memory_file = project_memories_dir / f"{agent_name}_memories.md"
+            memory_file = (
+                project_memories_dir / f"{normalize_agent_id(agent_name)}_memories.md"
+            )
             if memory_file.exists():
                 memory_file.unlink()
                 self.logger.info(f"Cleared memories for agent: {agent_name}")
@@ -449,13 +456,15 @@ class MemoryManager(IMemoryManager):
             if old_file.stem.endswith("_agent"):
                 # Old format: {agent_name}_agent.md -> {agent_name}_memories.md
                 agent_name = old_file.stem[:-6]  # Remove "_agent" suffix
-                new_path = memories_dir / f"{agent_name}_memories.md"
+                normalized = normalize_agent_id(agent_name)
+                new_path = memories_dir / f"{normalized}_memories.md"
                 if not new_path.exists():
                     self._migrate_legacy_file(old_file, new_path)
             else:
                 # Intermediate format: {agent_name}.md -> {agent_name}_memories.md
                 agent_name = old_file.stem
-                new_path = memories_dir / f"{agent_name}_memories.md"
+                normalized = normalize_agent_id(agent_name)
+                new_path = memories_dir / f"{normalized}_memories.md"
                 if not new_path.exists():
                     self._migrate_legacy_file(old_file, new_path)
 
@@ -466,7 +475,8 @@ class MemoryManager(IMemoryManager):
                 continue
 
             # Extract agent name from file (remove "_memories" suffix)
-            agent_name = memory_file.stem[:-9]  # Remove "_memories" suffix
+            raw_agent_name = memory_file.stem[:-9]  # Remove "_memories" suffix
+            agent_name = normalize_agent_id(raw_agent_name)
 
             # Check if agent is deployed
             if agent_name in deployed_agents:
@@ -655,26 +665,21 @@ class MemoryManager(IMemoryManager):
         """
         Get a set of deployed agent names from .claude/agents/ directories.
 
+        Delegates to get_deployed_agent_ids() for canonical scanning and
+        normalization (lowercase, kebab-case, no -agent suffix), then caches
+        the result via _cache_manager.
+
         Returns:
-            Set of agent names (file stems) that are deployed
+            Set of normalized agent names that are deployed
         """
         # Try to get from cache first
         cached = self._cache_manager.get_deployed_agents()
         if cached is not None:
             return cached
 
-        # Cache miss - perform actual scan
+        # Cache miss - delegate to canonical function
         self.logger.debug("Scanning for deployed agents (cache miss)")
-        deployed = set()
-
-        # Check project-level .claude/agents/
-        project_agents_dir = Path.cwd() / ".claude" / "agents"
-        if project_agents_dir.exists():
-            for agent_file in project_agents_dir.glob("*.md"):
-                agent_name = agent_file.stem
-                if agent_name.upper() != "README":
-                    deployed.add(agent_name)
-                    self.logger.debug(f"Found deployed agent: {agent_name}")
+        deployed = get_deployed_agent_ids()
 
         # Cache the result
         self._cache_manager.set_deployed_agents(deployed)

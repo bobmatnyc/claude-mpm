@@ -146,7 +146,11 @@ class TestConfigureAgentScopeDeployment:
 
         target_file = project_scope_dirs["agents"] / "engineer.md"
         assert target_file.exists()
-        assert target_file.read_text() == "# Test Agent\nThis is a test agent."
+        content = target_file.read_text()
+        # Phase 3: configure.py now injects agent_id frontmatter during deployment
+        assert "# Test Agent" in content
+        assert "This is a test agent." in content
+        assert "agent_id: engineer" in content
 
     # TC-2-04
     def test_deploy_agent_missing_scope_defaults_to_project(
@@ -475,7 +479,8 @@ class TestConfigureScopeSwitch:
         agent.source_dict = {"source_file": str(source_agent_file)}
 
         cmd._deploy_single_agent(agent, show_feedback=False)
-        assert (project_scope_dirs["agents"] / "test-agent.md").exists()
+        # Phase 3: normalize_deployment_filename strips -agent suffix
+        assert (project_scope_dirs["agents"] / "test.md").exists()
 
         # Switch to user scope
         with patch(_HOME_PATCH, return_value=user_scope_dirs["home"]):
@@ -488,7 +493,7 @@ class TestConfigureScopeSwitch:
 
             # Deploy same agent -- should now go to user dir
             cmd._deploy_single_agent(agent, show_feedback=False)
-            assert (user_scope_dirs["agents"] / "test-agent.md").exists()
+            assert (user_scope_dirs["agents"] / "test.md").exists()
 
     # TC-2-20
     def test_switch_scope_back_is_consistent(self, project_scope_dirs, user_scope_dirs):

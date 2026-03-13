@@ -33,6 +33,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Set
 
+from claude_mpm.core.agent_name_registry import CORE_AGENT_IDS
+
 logger = logging.getLogger(__name__)
 
 
@@ -158,16 +160,8 @@ class ToolchainDetector:
         "make": ["ops"],
     }
 
-    # Core agents always included (use exact agent IDs from repository)
-    CORE_AGENTS = [
-        "engineer",
-        "qa-agent",
-        "memory-manager-agent",
-        "local-ops-agent",
-        "research-agent",
-        "documentation-agent",
-        "security-agent",
-    ]
+    # Core agents always included — sourced from canonical registry.
+    CORE_AGENTS = sorted(CORE_AGENT_IDS)
 
     # Directories to exclude from scanning
     EXCLUDED_DIRS = {

@@ -25,6 +25,7 @@ from claude_mpm.hooks.base_hook import (
     PostDelegationHook,
     PreDelegationHook,
 )
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = get_logger(__name__)
 
@@ -121,14 +122,8 @@ class MemoryPreDelegationHook(PreDelegationHook):
             if not agent_name:
                 return HookResult(success=True, data=context.data, modified=False)
 
-            # Normalize agent ID (e.g., "Engineer Agent" -> "engineer")
-            agent_id = (
-                agent_name.lower()
-                .replace(" ", "_")
-                .replace("_agent", "")
-                .replace("agent", "")
-                .strip("_")
-            )
+            # Normalize agent ID using canonical normalizer
+            agent_id = normalize_agent_id(agent_name)
 
             if agent_id:
                 # Load agent memory
@@ -302,14 +297,8 @@ class MemoryPostDelegationHook(PostDelegationHook):
             if not agent_name:
                 return HookResult(success=True, data=context.data, modified=False)
 
-            # Normalize agent ID
-            agent_id = (
-                agent_name.lower()
-                .replace(" ", "_")
-                .replace("_agent", "")
-                .replace("agent", "")
-                .strip("_")
-            )
+            # Normalize agent ID using canonical normalizer
+            agent_id = normalize_agent_id(agent_name)
 
             # Check if auto-learning is enabled for this specific agent
             agent_overrides = self.config.get("memory.agent_overrides", {})

@@ -33,7 +33,7 @@ from .agent_metrics import (
 )
 from .agent_response_parser import (
     AgentResponseParser,
-    AgentType,
+    EvalAgentType,
     parse_agent_response,
 )
 from .agent_test_base import (
@@ -63,10 +63,10 @@ class TestAgentResponseParser:
         parser = AgentResponseParser()
         response_text = mock_base_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.BASE)
+        analysis = parser.parse(response_text, EvalAgentType.BASE)
 
         # Check basic fields
-        assert analysis.agent_type == AgentType.BASE
+        assert analysis.agent_type == EvalAgentType.BASE
         assert analysis.tools_used
         assert analysis.memory_capture.json_block_present
 
@@ -82,7 +82,7 @@ class TestAgentResponseParser:
         parser = AgentResponseParser()
         response_text = mock_research_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.RESEARCH)
+        analysis = parser.parse(response_text, EvalAgentType.RESEARCH)
 
         # Check agent-specific data
         data = analysis.agent_specific_data
@@ -95,7 +95,7 @@ class TestAgentResponseParser:
         parser = AgentResponseParser()
         response_text = mock_engineer_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.ENGINEER)
+        analysis = parser.parse(response_text, EvalAgentType.ENGINEER)
 
         # Check agent-specific data
         data = analysis.agent_specific_data
@@ -108,7 +108,7 @@ class TestAgentResponseParser:
         parser = AgentResponseParser()
         response_text = mock_qa_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.QA)
+        analysis = parser.parse(response_text, EvalAgentType.QA)
 
         # Check agent-specific data
         data = analysis.agent_specific_data
@@ -120,17 +120,17 @@ class TestAgentResponseParser:
         """Test parse_agent_response convenience function."""
         response_text = mock_base_agent_response["text"]
 
-        analysis = parse_agent_response(response_text, AgentType.BASE)
+        analysis = parse_agent_response(response_text, EvalAgentType.BASE)
 
         assert analysis is not None
-        assert analysis.agent_type == AgentType.BASE
+        assert analysis.agent_type == EvalAgentType.BASE
 
     def test_extract_tools(self, mock_base_agent_response):
         """Test tool extraction from response."""
         parser = AgentResponseParser()
         response_text = mock_base_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.BASE)
+        analysis = parser.parse(response_text, EvalAgentType.BASE)
 
         # Should detect Edit and Read tools
         tool_names = {t.tool_name for t in analysis.tools_used}
@@ -142,7 +142,7 @@ class TestAgentResponseParser:
         parser = AgentResponseParser()
         response_text = mock_base_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.BASE)
+        analysis = parser.parse(response_text, EvalAgentType.BASE)
 
         # Should detect file_edit verification
         assert len(analysis.verification_events) > 0
@@ -155,7 +155,7 @@ class TestAgentResponseParser:
         parser = AgentResponseParser()
         response_text = mock_base_agent_response["text"]
 
-        analysis = parser.parse(response_text, AgentType.BASE)
+        analysis = parser.parse(response_text, EvalAgentType.BASE)
 
         memory = analysis.memory_capture
         assert memory.json_block_present
@@ -178,7 +178,7 @@ class TestAgentTestBase:
         test = BaseAgentTest()
         test.setup_class()
 
-        assert test.agent_type == AgentType.BASE
+        assert test.agent_type == EvalAgentType.BASE
         assert test.parser is not None
 
     def test_research_agent_test_initialization(self):
@@ -186,21 +186,21 @@ class TestAgentTestBase:
         test = ResearchAgentTest()
         test.setup_class()
 
-        assert test.agent_type == AgentType.RESEARCH
+        assert test.agent_type == EvalAgentType.RESEARCH
 
     def test_engineer_agent_test_initialization(self):
         """Test EngineerAgentTest initializes correctly."""
         test = EngineerAgentTest()
         test.setup_class()
 
-        assert test.agent_type == AgentType.ENGINEER
+        assert test.agent_type == EvalAgentType.ENGINEER
 
     def test_qa_agent_test_initialization(self):
         """Test QAAgentTest initializes correctly."""
         test = QAAgentTest()
         test.setup_class()
 
-        assert test.agent_type == AgentType.QA
+        assert test.agent_type == EvalAgentType.QA
 
     def test_create_test_case(self):
         """Test LLMTestCase creation."""
@@ -221,7 +221,7 @@ class TestAgentTestBase:
         test.setup_class()
 
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_base_agent_response["text"], AgentType.BASE)
+        analysis = parser.parse(mock_base_agent_response["text"], EvalAgentType.BASE)
 
         # Should pass (response has verification)
         test.assert_verification_present(analysis, min_score=0.9)
@@ -232,7 +232,7 @@ class TestAgentTestBase:
         test.setup_class()
 
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_base_agent_response["text"], AgentType.BASE)
+        analysis = parser.parse(mock_base_agent_response["text"], EvalAgentType.BASE)
 
         # Should pass (response has valid JSON)
         test.assert_memory_protocol_compliant(analysis, strict=True)
@@ -243,7 +243,7 @@ class TestAgentTestBase:
         test.setup_class()
 
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_base_agent_response["text"], AgentType.BASE)
+        analysis = parser.parse(mock_base_agent_response["text"], EvalAgentType.BASE)
 
         score = test.calculate_overall_score(analysis)
 
@@ -288,14 +288,14 @@ class TestAgentMetrics:
 
     def test_create_metric_suite(self):
         """Test metric suite creation."""
-        metrics = create_metric_suite(AgentType.BASE, threshold=0.9)
+        metrics = create_metric_suite(EvalAgentType.BASE, threshold=0.9)
 
         assert len(metrics) >= 2  # At least verification and memory protocol
         assert all(hasattr(m, "measure") for m in metrics)
 
     def test_calculate_aggregate_score(self, mock_base_agent_response):
         """Test aggregate score calculation."""
-        metrics = create_metric_suite(AgentType.BASE)
+        metrics = create_metric_suite(EvalAgentType.BASE)
 
         test_case = LLMTestCase(
             input="Test input", actual_output=mock_base_agent_response["text"]
@@ -310,7 +310,7 @@ class TestAgentMetrics:
 
     def test_generate_metric_report(self, mock_base_agent_response):
         """Test metric report generation."""
-        metrics = create_metric_suite(AgentType.BASE)
+        metrics = create_metric_suite(EvalAgentType.BASE)
 
         test_case = LLMTestCase(
             input="Test input", actual_output=mock_base_agent_response["text"]
@@ -348,7 +348,7 @@ class TestUtilityFunctions:
     def test_extract_violation_summary(self, mock_base_agent_response):
         """Test violation summary extraction."""
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_base_agent_response["text"], AgentType.BASE)
+        analysis = parser.parse(mock_base_agent_response["text"], EvalAgentType.BASE)
 
         summary = extract_violation_summary(analysis)
 
@@ -359,7 +359,7 @@ class TestUtilityFunctions:
     def test_format_violations(self, mock_base_agent_response):
         """Test violation formatting."""
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_base_agent_response["text"], AgentType.BASE)
+        analysis = parser.parse(mock_base_agent_response["text"], EvalAgentType.BASE)
 
         formatted = format_violations(analysis)
 
@@ -380,7 +380,7 @@ class TestInfrastructureIntegration:
         """Test complete flow: parse → analyze → evaluate → report."""
         # Parse
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_base_agent_response["text"], AgentType.BASE)
+        analysis = parser.parse(mock_base_agent_response["text"], EvalAgentType.BASE)
 
         # Create test case
         test_case = LLMTestCase(
@@ -389,7 +389,7 @@ class TestInfrastructureIntegration:
         )
 
         # Evaluate with metrics
-        metrics = create_metric_suite(AgentType.BASE)
+        metrics = create_metric_suite(EvalAgentType.BASE)
         result = calculate_aggregate_score(metrics, test_case)
 
         # Generate report
@@ -405,7 +405,7 @@ class TestInfrastructureIntegration:
         """Test complete flow for Research agent."""
         parser = AgentResponseParser()
         analysis = parser.parse(
-            mock_research_agent_response["text"], AgentType.RESEARCH
+            mock_research_agent_response["text"], EvalAgentType.RESEARCH
         )
 
         # Check Research-specific patterns
@@ -417,7 +417,7 @@ class TestInfrastructureIntegration:
         """Test complete flow for Engineer agent."""
         parser = AgentResponseParser()
         analysis = parser.parse(
-            mock_engineer_agent_response["text"], AgentType.ENGINEER
+            mock_engineer_agent_response["text"], EvalAgentType.ENGINEER
         )
 
         # Check Engineer-specific patterns
@@ -428,7 +428,7 @@ class TestInfrastructureIntegration:
     def test_end_to_end_qa_agent(self, mock_qa_agent_response):
         """Test complete flow for QA agent."""
         parser = AgentResponseParser()
-        analysis = parser.parse(mock_qa_agent_response["text"], AgentType.QA)
+        analysis = parser.parse(mock_qa_agent_response["text"], EvalAgentType.QA)
 
         # Check QA-specific patterns
         data = analysis.agent_specific_data

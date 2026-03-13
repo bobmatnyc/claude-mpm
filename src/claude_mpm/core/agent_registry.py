@@ -23,8 +23,8 @@ import yaml
 # Import from the unified agent registry system
 from .unified_agent_registry import (
     AgentMetadata as UnifiedAgentMetadata,
+    AgentSourceType,
     AgentTier,
-    AgentType,
     discover_agents as unified_discover_agents,
     get_agent as unified_get_agent,
     get_agent_registry,
@@ -176,7 +176,7 @@ class SimpleAgentRegistry:
             unified_tier = AgentTier(tier)
         if agent_type:
             try:
-                unified_agent_type = AgentType(agent_type)
+                unified_agent_type = AgentSourceType(agent_type)
             except ValueError:
                 # Handle legacy agent types
                 unified_agent_type = None
@@ -779,7 +779,7 @@ def list_agents(
 
     if agent_type:
         with contextlib.suppress(ValueError):
-            unified_agent_type = AgentType(agent_type)
+            unified_agent_type = AgentSourceType(agent_type)
 
     unified_agents = unified_list_agents(
         tier=unified_tier, agent_type=unified_agent_type

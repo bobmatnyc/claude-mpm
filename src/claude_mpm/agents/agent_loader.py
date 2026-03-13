@@ -269,14 +269,25 @@ class AgentLoader:
         if not agent_data:
             return None
 
-        # Handle AgentMetadata dataclass (has .path attribute pointing to JSON file)
+        # Handle AgentMetadata dataclass (has .path attribute)
         # vs legacy dict format (has .get() method)
         if hasattr(agent_data, "path") and agent_data.path:
-            import json as _json
-
             agent_path = Path(agent_data.path)
             if agent_path.exists():
                 try:
+                    if agent_path.suffix == ".md":
+                        # Extract markdown body after YAML frontmatter as instructions
+                        content = agent_path.read_text(encoding="utf-8")
+                        instructions = self._extract_md_body(content)
+                        if not instructions:
+                            logger.warning(
+                                f"Agent '{agent_id}' .md file has empty body"
+                            )
+                            return None
+                        return instructions
+                    # Legacy JSON format
+                    import json as _json
+
                     with open(agent_path) as f:
                         raw_data = _json.load(f)
                     instructions = raw_data.get("instructions", "")
@@ -284,7 +295,7 @@ class AgentLoader:
                         logger.warning(f"Agent '{agent_id}' has no instructions")
                         return None
                     return instructions
-                except (OSError, _json.JSONDecodeError) as e:
+                except (OSError, ValueError) as e:
                     logger.warning(f"Failed to read agent file '{agent_path}': {e}")
                     return None
             else:
@@ -300,6 +311,38 @@ class AgentLoader:
         else:
             logger.warning(f"Agent '{agent_id}' has unknown data format")
             return None
+
+    @staticmethod
+    def _extract_md_body(content: str) -> str:
+        """Extract markdown body (agent instructions) from frontmatter + body .md file.
+
+        Args:
+            content: Full .md file content with optional YAML frontmatter
+
+        Returns:
+            The markdown body after the frontmatter, or the full content if no frontmatter.
+            If frontmatter is malformed (opening --- but no closing ---), returns the
+            content after the opening --- line as a best-effort fallback.
+        """
+        if not content.startswith("---"):
+            return content.strip()
+        lines = content.split("\n")
+        in_frontmatter = False
+        body_start = 0
+        for i, line in enumerate(lines):
+            if line.strip() == "---":
+                if not in_frontmatter:
+                    in_frontmatter = True
+                else:
+                    body_start = i + 1
+                    break
+        if in_frontmatter and body_start == 0:
+            # Malformed frontmatter: opening --- but no closing ---
+            # Skip the opening --- line and return everything after it,
+            # which is better than returning YAML as agent instructions
+            logger.warning("Malformed frontmatter detected (no closing ---)")
+            return ""
+        return "\n".join(lines[body_start:]).strip()
 
     def get_agent_metadata(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """

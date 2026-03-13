@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 from .registry import Skill, get_registry
 
@@ -42,11 +43,14 @@ class SkillManager:
                 agent_id = agent_data.get("agent_id") or agent_data.get("agent_type")
                 if not agent_id:
                     continue
+                normalized = normalize_agent_id(agent_id)
 
                 # Extract skills list if present
                 skills = agent_data.get("skills", [])
                 if skills:
                     self.agent_skill_mapping[agent_id] = skills
+                    if normalized and normalized != agent_id:
+                        self.agent_skill_mapping[normalized] = skills
                     mapping_count += 1
                     logger.debug(
                         f"Agent '{agent_id}' mapped to {len(skills)} skills: {', '.join(skills)}"
@@ -137,7 +141,10 @@ class SkillManager:
         Returns:
             List of Skill objects for this agent
         """
-        skill_names = self.agent_skill_mapping.get(agent_type, [])
+        skill_names = self.agent_skill_mapping.get(agent_type)
+        if skill_names is None:
+            normalized_type = normalize_agent_id(agent_type)
+            skill_names = self.agent_skill_mapping.get(normalized_type, [])
 
         # Get skills from registry
         skills = []

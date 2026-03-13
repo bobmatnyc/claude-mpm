@@ -30,7 +30,12 @@ from ...core.deployment_context import DeploymentContext
 from ...core.unified_config import UnifiedConfig
 from ...services.agents.agent_recommendation_service import AgentRecommendationService
 from ...services.version_service import VersionService
-from ...utils.agent_filters import apply_all_filters, get_deployed_agent_ids
+from ...utils.agent_filters import (
+    apply_all_filters,
+    get_deployed_agent_ids,
+    normalize_agent_id,
+    normalize_agent_id_for_comparison,
+)
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
@@ -419,8 +424,8 @@ class ConfigureCommand(BaseCommand):
                 for agent in agents:
                     # Use agent_id (technical ID) for comparison, not display name
                     agent_id = getattr(agent, "agent_id", agent.name)
-                    agent_leaf_name = agent_id.split("/")[-1]
-                    agent.is_deployed = agent_leaf_name in deployed_ids
+                    normalized_id = normalize_agent_id_for_comparison(agent_id)
+                    agent.is_deployed = normalized_id in deployed_ids
 
                 # Filter BASE_AGENT from display (1M-502 Phase 1)
                 agents = self._filter_agent_configs(agents, filter_deployed=False)
@@ -1797,7 +1802,7 @@ class ConfigureCommand(BaseCommand):
             # FIX 2: Check actual deployment status from .claude/agents/ directory
             # Use agent_id (technical ID like "python-engineer") not display name
             agent_id = getattr(agent, "agent_id", agent.name)
-            is_installed = agent_id in deployed_ids
+            is_installed = normalize_agent_id_for_comparison(agent_id) in deployed_ids
             if is_installed:
                 status = "[green]Installed[/green]"
             else:
@@ -1862,7 +1867,10 @@ class ConfigureCommand(BaseCommand):
         # Show installed vs available count (use deployed_ids for accuracy)
         # Use agent_id (technical ID) for comparison, not display name
         installed_count = sum(
-            1 for a in agents if getattr(a, "agent_id", a.name) in deployed_ids
+            1
+            for a in agents
+            if normalize_agent_id_for_comparison(getattr(a, "agent_id", a.name))
+            in deployed_ids
         )
         available_count = len(agents) - installed_count
         self.console.print(
@@ -1933,13 +1941,13 @@ class ConfigureCommand(BaseCommand):
             self.logger.warning(f"Failed to get recommended agents: {e}")
             recommended_agent_ids = set()
 
-        # Build mapping: leaf name -> full path for deployed agents
+        # Build mapping: normalized name -> full path for deployed agents
         # Use agent_id (technical ID) for comparison, not display name
         deployed_full_paths = set()
         for agent in agents:
             agent_id = getattr(agent, "agent_id", agent.name)
-            agent_leaf_name = agent_id.split("/")[-1]
-            if agent_leaf_name in deployed_ids:
+            normalized_id = normalize_agent_id_for_comparison(agent_id)
+            if normalized_id in deployed_ids:
                 # Store agent_id for selection tracking (not display name)
                 deployed_full_paths.add(agent_id)
 
@@ -2293,8 +2301,10 @@ class ConfigureCommand(BaseCommand):
 
                 # Extract leaf name to match deployed filename
                 leaf_name = agent_id.split("/")[-1] if "/" in agent_id else agent_id
+                normalized_leaf = normalize_agent_id_for_comparison(leaf_name)
 
                 # Remove from scope-aware path (primary) + legacy locations
+                # _agent_file_paths already normalizes and checks both variants
                 paths_to_check = self._agent_file_paths(leaf_name)
 
                 removed = False
@@ -2304,6 +2314,8 @@ class ConfigureCommand(BaseCommand):
                         removed = True
 
                 # Also remove from virtual deployment state
+                # Check both raw and normalized keys for safety
+                keys_to_check = {leaf_name, normalized_leaf}
                 for state_path in self._deployment_state_paths():
                     if state_path.exists():
                         try:
@@ -2312,9 +2324,11 @@ class ConfigureCommand(BaseCommand):
                             agents_in_state = state.get("last_check_results", {}).get(
                                 "agents", {}
                             )
-                            if leaf_name in agents_in_state:
-                                del agents_in_state[leaf_name]
-                                removed = True
+                            for key in keys_to_check:
+                                if key in agents_in_state:
+                                    del agents_in_state[key]
+                                    removed = True
+                            if removed:
                                 with state_path.open("w") as f:
                                     json.dump(state, f, indent=2)
                         except (json.JSONDecodeError, KeyError):
@@ -2382,14 +2396,14 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Build mapping: leaf name -> full path for deployed agents
-        # This allows comparing deployed_ids (leaf names) with agent.agent_id (full paths)
+        # Build mapping: normalized name -> full path for deployed agents
+        # This allows comparing deployed_ids (normalized names) with agent.agent_id (full paths)
         deployed_full_paths = set()
         for agent in agents:
             # FIX: Use agent_id (technical ID) instead of display name
             agent_id = getattr(agent, "agent_id", agent.name)
-            agent_leaf_name = agent_id.split("/")[-1]
-            if agent_leaf_name in deployed_ids:
+            normalized_id = normalize_agent_id_for_comparison(agent_id)
+            if normalized_id in deployed_ids:
                 deployed_full_paths.add(agent_id)
 
         # Track current selection state (starts with deployed full paths, updated after each iteration)
@@ -2726,8 +2740,10 @@ class ConfigureCommand(BaseCommand):
                         leaf_name = agent_id.split("/")[-1]
                     else:
                         leaf_name = agent_id
+                    normalized_leaf = normalize_agent_id_for_comparison(leaf_name)
 
                     # Remove from scope-aware path (primary) + legacy locations
+                    # _agent_file_paths already normalizes and checks both variants
                     removed = False
                     for path in self._agent_file_paths(leaf_name):
                         if path.exists():
@@ -2735,6 +2751,8 @@ class ConfigureCommand(BaseCommand):
                             removed = True
 
                     # Also remove from virtual deployment state
+                    # Check both raw and normalized keys for safety
+                    keys_to_check = {leaf_name, normalized_leaf}
                     for state_path in self._deployment_state_paths():
                         if state_path.exists():
                             try:
@@ -2746,10 +2764,14 @@ class ConfigureCommand(BaseCommand):
                                 agents = state.get("last_check_results", {}).get(
                                     "agents", {}
                                 )
-                                if leaf_name in agents:
-                                    del agents[leaf_name]
-                                    removed = True
+                                state_modified = False
+                                for key in keys_to_check:
+                                    if key in agents:
+                                        del agents[key]
+                                        removed = True
+                                        state_modified = True
 
+                                if state_modified:
                                     # Save updated state
                                     with state_path.open("w") as f:
                                         json.dump(state, f, indent=2)
@@ -3043,21 +3065,34 @@ class ConfigureCommand(BaseCommand):
         ~/.claude/agents/) are included as secondary cleanup targets so that
         agents deployed to the wrong location by older code are still found
         and removed.
+
+        Normalizes agent_name (underscore -> dash, lowercase, strip -agent
+        suffix) and also checks the raw name for backward compatibility with
+        agents deployed before normalization was added.
         """
-        primary = self._ctx.agents_dir / f"{agent_name}.md"
-        # Legacy locations that older code may have written to
-        legacy_paths = [
-            Path.cwd() / ".claude-mpm" / "agents" / f"{agent_name}.md",
-            Path.cwd() / ".claude" / "agents" / f"{agent_name}.md",
-            Path.home() / ".claude" / "agents" / f"{agent_name}.md",
+        normalized = normalize_agent_id_for_comparison(agent_name)
+
+        # Build the set of name variants to check
+        names_to_check = [normalized]
+        if agent_name != normalized:
+            names_to_check.append(agent_name)  # Also check raw for backward compat
+
+        dirs_to_check = [
+            self._ctx.agents_dir,
+            Path.cwd() / ".claude-mpm" / "agents",
+            Path.cwd() / ".claude" / "agents",
+            Path.home() / ".claude" / "agents",
         ]
-        # Deduplicate while keeping primary first
-        seen = {primary}
-        paths = [primary]
-        for p in legacy_paths:
-            if p not in seen:
-                seen.add(p)
-                paths.append(p)
+
+        # Build paths for all name variants across all locations, deduplicated
+        seen: set[Path] = set()
+        paths: List[Path] = []
+        for name in names_to_check:
+            for d in dirs_to_check:
+                p = d / f"{name}.md"
+                if p not in seen:
+                    seen.add(p)
+                    paths.append(p)
         return paths
 
     def _deployment_state_paths(self) -> List[Path]:
@@ -3098,10 +3133,17 @@ class ConfigureCommand(BaseCommand):
                     return False
 
                 # Determine target file name (use leaf name from hierarchical ID)
+                from claude_mpm.services.agents.deployment_utils import (
+                    ensure_agent_id_in_frontmatter,
+                    get_underscore_variant_filename,
+                    normalize_deployment_filename,
+                )
+
                 if "/" in full_agent_id:
-                    target_name = full_agent_id.split("/")[-1] + ".md"
+                    raw_name = full_agent_id.split("/")[-1] + ".md"
                 else:
-                    target_name = full_agent_id + ".md"
+                    raw_name = full_agent_id + ".md"
+                target_name = normalize_deployment_filename(raw_name)
 
                 # Deploy to scope-aware agents directory
                 target_dir = self._ctx.agents_dir
@@ -3117,6 +3159,19 @@ class ConfigureCommand(BaseCommand):
                 import shutil
 
                 shutil.copy2(source_file, target_file)
+
+                # Ensure agent_id in frontmatter
+                content = target_file.read_text()
+                updated_content = ensure_agent_id_in_frontmatter(content, target_name)
+                if updated_content != content:
+                    target_file.write_text(updated_content)
+
+                # Clean up underscore variant if it exists
+                underscore_variant = get_underscore_variant_filename(target_name)
+                if underscore_variant:
+                    variant_path = target_dir / underscore_variant
+                    if variant_path.exists() and variant_path != target_file:
+                        variant_path.unlink()
 
                 if show_feedback:
                     self.console.print(
@@ -3165,12 +3220,11 @@ class ConfigureCommand(BaseCommand):
             if 0 <= idx < len(installed):
                 agent = installed[idx]
                 full_agent_id = getattr(agent, "full_agent_id", agent.name)
+                # Normalize so that e.g. "dart_engineer" -> "dart-engineer"
+                full_agent_id = normalize_agent_id(full_agent_id)
 
-                # Determine possible file names (hierarchical and leaf)
+                # Determine possible file names (normalized leaf name)
                 file_names = [f"{full_agent_id}.md"]
-                if "/" in full_agent_id:
-                    leaf_name = full_agent_id.split("/")[-1]
-                    file_names.append(f"{leaf_name}.md")
 
                 # Remove from active scope's agents directory
                 removed = False

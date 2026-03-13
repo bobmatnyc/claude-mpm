@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Memory File Service - Handles file operations for agent memories."""
 
 from pathlib import Path
@@ -23,51 +22,102 @@ class MemoryFileService:
     def get_memory_file_with_migration(self, directory: Path, agent_id: str) -> Path:
         """Get memory file path with migration support.
 
-        Migrates from old naming convention if needed.
-        Also handles hyphen to underscore conversion for agent IDs.
+        Normalizes agent_id to canonical kebab-case and lazily migrates
+        legacy files (underscore-format, singular _memory.md) on access.
 
         Args:
             directory: Directory to check for memory file
-            agent_id: Agent identifier (may contain hyphens or underscores)
+            agent_id: Agent identifier (any format accepted)
 
         Returns:
-            Path to the memory file
+            Path to the memory file (canonical kebab-case naming)
         """
-        # Normalize agent_id to use underscores (matching deployed agent names)
-        normalized_id = agent_id.replace("-", "_")
+        from claude_mpm.utils.agent_filters import normalize_agent_id
 
-        # Define possible file paths
-        new_file = directory / f"{normalized_id}_memories.md"
-        old_file = directory / f"{normalized_id}_memory.md"
+        # Normalize to canonical kebab-case (lowercase)
+        normalized_id = normalize_agent_id(agent_id)
+        if not normalized_id:
+            # Edge case guard (empty string, "-agent" input)
+            normalized_id = (
+                agent_id.replace("-", "_").lower() if agent_id else "unknown"
+            )
 
-        # Also check for legacy hyphenated versions
-        hyphenated_file = (
-            directory / f"{agent_id}_memories.md" if "-" in agent_id else None
-        )
+        # Canonical file path
+        canonical_file = directory / f"{normalized_id}_memories.md"
 
-        # Migration priority:
-        # 1. If hyphenated version exists and normalized doesn't, migrate it
-        if hyphenated_file and hyphenated_file.exists() and not new_file.exists():
-            try:
-                hyphenated_file.rename(new_file)
-                self.logger.info(
-                    f"Migrated hyphenated memory file: {hyphenated_file} -> {new_file}"
-                )
-            except Exception as e:
-                self.logger.warning(f"Could not migrate hyphenated memory file: {e}")
-                # Fall back to using the hyphenated version
-                return hyphenated_file
+        # If canonical already exists, return immediately
+        if canonical_file.exists():
+            return canonical_file
 
-        # 2. Migrate from old naming convention (_memory.md to _memories.md)
-        if old_file.exists() and not new_file.exists():
-            try:
-                old_file.rename(new_file)
-                self.logger.info(f"Migrated memory file: {old_file} -> {new_file}")
-            except Exception as e:
-                self.logger.warning(f"Could not migrate memory file: {e}")
-                return old_file
+        # Legacy fallback 1: hyphenated raw agent_id (e.g. research-agent_memories.md)
+        # This covers cases like "research-agent" that normalize to "research" but were
+        # stored using the raw hyphenated form before normalization was introduced.
+        raw_hyphenated_id = agent_id.lower()
+        if raw_hyphenated_id != normalized_id:
+            legacy_hyphenated = directory / f"{raw_hyphenated_id}_memories.md"
+            if legacy_hyphenated.exists():
+                try:
+                    legacy_hyphenated.rename(canonical_file)
+                    self.logger.info(
+                        f"Migrated hyphenated memory file: "
+                        f"{legacy_hyphenated.name} -> {canonical_file.name}"
+                    )
+                    return canonical_file
+                except Exception as e:
+                    self.logger.warning(
+                        f"Could not migrate hyphenated memory file: {e}"
+                    )
+                    return legacy_hyphenated
 
-        return new_file
+        # Legacy fallback 2: underscore-format file
+        underscore_id = agent_id.replace("-", "_").lower()
+        if underscore_id != normalized_id:
+            legacy_underscore = directory / f"{underscore_id}_memories.md"
+            if legacy_underscore.exists():
+                try:
+                    legacy_underscore.rename(canonical_file)
+                    self.logger.info(
+                        f"Migrated underscore memory file: "
+                        f"{legacy_underscore.name} -> {canonical_file.name}"
+                    )
+                    return canonical_file
+                except Exception as e:
+                    self.logger.warning(
+                        f"Could not migrate underscore memory file: {e}"
+                    )
+                    return legacy_underscore
+
+        # Legacy fallback 3: raw agent_id format (no normalization applied)
+        if agent_id != normalized_id and agent_id.lower() != underscore_id:
+            raw_file = directory / f"{agent_id}_memories.md"
+            if raw_file.exists() and not canonical_file.exists():
+                try:
+                    raw_file.rename(canonical_file)
+                    self.logger.info(
+                        f"Migrated raw memory file: "
+                        f"{raw_file.name} -> {canonical_file.name}"
+                    )
+                    return canonical_file
+                except Exception as e:
+                    self.logger.warning(f"Could not migrate raw memory file: {e}")
+                    return raw_file
+
+        # Legacy fallback 3: singular _memory.md format (oldest convention)
+        for stem in [normalized_id, underscore_id]:
+            old_singular = directory / f"{stem}_memory.md"
+            if old_singular.exists() and not canonical_file.exists():
+                try:
+                    old_singular.rename(canonical_file)
+                    self.logger.info(
+                        f"Migrated singular memory file: "
+                        f"{old_singular.name} -> {canonical_file.name}"
+                    )
+                    return canonical_file
+                except Exception as e:
+                    self.logger.warning(f"Could not migrate singular memory file: {e}")
+                    return old_singular
+
+        return canonical_file
 
     def save_memory_file(self, file_path: Path, content: str) -> bool:
         """Save content to a memory file.

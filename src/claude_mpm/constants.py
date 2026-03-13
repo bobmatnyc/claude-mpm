@@ -269,8 +269,8 @@ class Paths(str, Enum):
     MPM_PROMPTS_DIR = ".claude-mpm/prompts"
 
 
-class AgentMetadata(str, Enum):
-    """Agent metadata field constants."""
+class AgentMetadataFields(str, Enum):
+    """Agent metadata field name constants (not the models.AgentMetadata dataclass)."""
 
     NAME = "name"
     DESCRIPTION = "description"

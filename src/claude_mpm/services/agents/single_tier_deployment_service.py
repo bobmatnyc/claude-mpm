@@ -38,6 +38,7 @@ from claude_mpm.services.agents.deployment_utils import (
     deploy_agent_file,
 )
 from claude_mpm.services.agents.git_source_manager import GitSourceManager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = logging.getLogger(__name__)
 
@@ -516,8 +517,8 @@ class SingleTierDeploymentService:
         """
         logger.info(f"Removing agent: {agent_name}")
 
-        # Find deployed agent file
-        agent_file = self.deployment_dir / f"{agent_name.lower()}.md"
+        # Find deployed agent file (normalize to handle underscores, -agent suffix, etc.)
+        agent_file = self.deployment_dir / f"{normalize_agent_id(agent_name)}.md"
 
         if not agent_file.exists():
             logger.warning(f"Agent not found: {agent_name}")

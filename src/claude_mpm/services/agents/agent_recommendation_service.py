@@ -17,6 +17,7 @@ Architecture:
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+from ...core.agent_name_registry import CORE_AGENT_IDS
 from ...services.project.toolchain_analyzer import ToolchainAnalyzerService
 
 
@@ -30,17 +31,8 @@ class AgentRecommendationService:
     Can be used by CLI, API, or future auto-configuration features.
     """
 
-    # Core agents always included - Standard 6 core agents for essential PM workflow
-    # These agents are auto-deployed when no configuration exists
-    # Uses exact agent IDs from repository for consistency
-    CORE_AGENTS = {
-        "engineer",  # General-purpose implementation
-        "research",  # Codebase exploration and analysis
-        "qa",  # Testing and quality assurance
-        "documentation",  # Documentation generation
-        "ops",  # Basic deployment operations
-        "ticketing",  # Ticket tracking (essential for PM workflow)
-    }
+    # Core agents always included — sourced from canonical registry.
+    CORE_AGENTS = CORE_AGENT_IDS
 
     # Map detected languages to recommended engineer agents
     LANGUAGE_TO_AGENTS: Dict[str, List[str]] = {

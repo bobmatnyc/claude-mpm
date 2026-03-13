@@ -565,7 +565,7 @@ class AgentTemplateBuilder:
 
         # Add type field (important for agent categorization)
         if agent_type and agent_type != "general":
-            frontmatter_lines.append(f"type: {agent_type}")
+            frontmatter_lines.append(f"agent_type: {agent_type}")
 
         # Add optional metadata fields
         if metadata.get("color"):

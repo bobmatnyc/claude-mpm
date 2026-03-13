@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Agent Definition Models
 =======================
@@ -21,19 +20,102 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from claude_mpm.core.unified_agent_registry import AgentSourceType
 
-class AgentType(str, Enum):
-    """Agent type classification.
+# AgentType class removed in Phase 4.  Alias defined after AgentRole below.
 
-    WHY: Enum ensures only valid agent types are used throughout the system,
-    preventing typos and making the code more maintainable.
+
+class AgentRole(str, Enum):
+    """Agent classification by functional role.
+
+    Classifies agents by WHAT they do, not WHERE they come from.
+    For source classification, see core.unified_agent_registry.AgentSourceType.
     """
 
-    CORE = "core"
-    PROJECT = "project"
-    CUSTOM = "custom"
-    SYSTEM = "system"
-    SPECIALIZED = "specialized"
+    ENGINEER = "engineer"
+    QA = "qa"
+    OPS = "ops"
+    RESEARCH = "research"
+    SECURITY = "security"
+    DOCUMENTATION = "documentation"
+    VERSION_CONTROL = "version_control"
+    DATA = "data"
+    CONTENT = "content"
+    MANAGEMENT = "management"
+    SPECIALIZED = "specialized"  # Domain-specific (imagemagick, etc.)
+    OTHER = "other"  # Default for unrecognized values
+
+    @classmethod
+    def from_frontmatter(cls, value: str | None) -> "AgentRole":
+        """Parse agent role from frontmatter with normalization and aliases.
+
+        Source-like values ("core", "system", "project", "custom") map to OTHER
+        since they describe source, not role.
+
+        Pipe-delimited values take the first recognized token.
+
+        Args:
+            value: Raw agent_type string from frontmatter, or None.
+
+        Returns:
+            Matching AgentRole member, or AgentRole.OTHER if unknown.
+        """
+        if not value:
+            return cls.OTHER
+
+        # Handle pipe-delimited values: take first token
+        if "|" in value:
+            value = value.split("|")[0]
+
+        normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
+
+        # Direct match against enum values
+        for member in cls:
+            if member.value == normalized:
+                return member
+
+        # Source values -> OTHER (these describe origin, not role)
+        source_values = {"core", "project", "custom", "system"}
+        if normalized in source_values:
+            return cls.OTHER
+
+        # Aliases
+        aliases: dict[str, AgentRole] = {
+            # Legacy source-qualified aliases -> OTHER
+            "core_agent": cls.OTHER,
+            "project_agent": cls.OTHER,
+            # Role aliases
+            "engineer_agent": cls.ENGINEER,
+            "qa_agent": cls.QA,
+            "ops_agent": cls.OPS,
+            "research_agent": cls.RESEARCH,
+            "security_agent": cls.SECURITY,
+            "documentation_agent": cls.DOCUMENTATION,
+            "version_control_agent": cls.VERSION_CONTROL,
+            "data_agent": cls.DATA,
+            "content_agent": cls.CONTENT,
+            "management_agent": cls.MANAGEMENT,
+            "specialized_agent": cls.SPECIALIZED,
+            # Semantic aliases
+            "code_analysis": cls.RESEARCH,
+            "product_management": cls.MANAGEMENT,
+            "product": cls.MANAGEMENT,
+            "prompt_engineering": cls.ENGINEER,
+            "image_processing": cls.SPECIALIZED,
+            "analysis": cls.RESEARCH,
+            "claude_mpm": cls.OTHER,
+            "imagemagick": cls.SPECIALIZED,
+            "memory_manager": cls.MANAGEMENT,
+            "refactoring": cls.ENGINEER,
+        }
+
+        return aliases.get(normalized, cls.OTHER)
+
+
+# AgentType preserved as deprecated alias for import compatibility.
+# AgentType.ENGINEER etc. works via AgentRole members.
+# Source-only values (CORE, PROJECT, CUSTOM, SYSTEM) are no longer available.
+AgentType = AgentRole
 
 
 class AgentSection(str, Enum):
@@ -96,17 +178,23 @@ class AgentMetadata:
     - Different services may need different metadata views
     """
 
-    type: AgentType
+    role: AgentRole  # Primary: what the agent does
+    source: Optional[AgentSourceType] = None  # Primary: where it comes from
     model_preference: str = "claude-3-sonnet"
     version: str = "1.0.0"
     last_updated: Optional[datetime] = None
     author: Optional[str] = None
     tags: List[str] = field(default_factory=list)
     specializations: List[str] = field(default_factory=list)
-    # NEW: Collection metadata for enhanced agent matching
+    # Collection metadata for enhanced agent matching
     collection_id: Optional[str] = None  # Format: owner/repo-name
     source_path: Optional[str] = None  # Relative path in repository
     canonical_id: Optional[str] = None  # Format: collection_id:agent_id
+
+    @property
+    def type(self) -> AgentRole:
+        """Deprecated: use .role instead."""
+        return self.role
 
     def increment_serial_version(self) -> None:
         """Increment the patch version number.
@@ -174,7 +262,9 @@ class AgentDefinition:
             "title": self.title,
             "file_path": self.file_path,
             "metadata": {
-                "type": self.metadata.type.value,
+                "type": self.metadata.role.value,
+                "role": self.metadata.role.value,
+                "source": self.metadata.source.value if self.metadata.source else None,
                 "model_preference": self.metadata.model_preference,
                 "version": self.metadata.version,
                 "last_updated": (
