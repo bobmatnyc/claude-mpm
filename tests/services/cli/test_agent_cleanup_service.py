@@ -332,11 +332,11 @@ class TestAgentCleanupService:
         # Create mock agent files
         mock_agent1 = MagicMock()
         mock_agent1.name = "agent1.md"
-        mock_agent1.read_text.return_value = "author: claude-mpm\ncontent"
+        mock_agent1.read_text.return_value = "---\nauthor: claude-mpm\n---\ncontent"
 
         mock_agent2 = MagicMock()
         mock_agent2.name = "agent2.md"
-        mock_agent2.read_text.return_value = "author: user\ncontent"
+        mock_agent2.read_text.return_value = "---\nauthor: user\n---\ncontent"
 
         mock_agents_dir.glob.return_value = [mock_agent1, mock_agent2]
 

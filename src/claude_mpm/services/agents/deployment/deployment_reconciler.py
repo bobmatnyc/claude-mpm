@@ -378,41 +378,17 @@ class DeploymentReconciler:
 
     def _is_mpm_agent(self, deploy_dir: Path, agent_id: str) -> bool:
         """Check if agent is managed by MPM (not user-created)."""
-        agent_file = deploy_dir / f"{agent_id}.md"
-        if not agent_file.exists():
-            return False
+        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
 
-        try:
-            content = agent_file.read_text(encoding="utf-8")
-            # Check for MPM author markers
-            mpm_markers = [
-                "author: claude-mpm",
-                "author: 'claude-mpm'",
-                "author: anthropic",
-            ]
-            return any(marker in content.lower() for marker in mpm_markers)
-        except Exception as e:
-            logger.warning(f"Failed to check MPM marker for {agent_id}: {e}")
-            return False
+        agent_file = deploy_dir / f"{agent_id}.md"
+        return is_mpm_managed_file(agent_file)
 
     def _is_mpm_skill(self, deploy_dir: Path, skill_id: str) -> bool:
         """Check if skill is managed by MPM (not user-created)."""
-        skill_file = deploy_dir / f"{skill_id}.md"
-        if not skill_file.exists():
-            return False
+        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
 
-        try:
-            content = skill_file.read_text(encoding="utf-8")
-            # Check for MPM author markers
-            mpm_markers = [
-                "author: claude-mpm",
-                "author: 'claude-mpm'",
-                "author: anthropic",
-            ]
-            return any(marker in content.lower() for marker in mpm_markers)
-        except Exception as e:
-            logger.warning(f"Failed to check MPM marker for {skill_id}: {e}")
-            return False
+        skill_file = deploy_dir / f"{skill_id}.md"
+        return is_mpm_managed_file(skill_file)
 
     def _find_file_in_cache(
         self, item_id: str, cache_dir: Path, pattern: str

@@ -319,8 +319,10 @@ class AgentFileSystemManager:
         return info
 
     def _is_system_agent(self, content: str) -> bool:
-        """Check if an agent file is system-managed."""
-        return "claude-mpm" in content or "author: claude-mpm" in content
+        """Check if an agent file is system-managed via frontmatter author field."""
+        from claude_mpm.utils.agent_provenance import is_mpm_managed_agent
+
+        return is_mpm_managed_agent(content)
 
     def _convert_yaml_to_markdown(self, yaml_content: str, agent_name: str) -> str:
         """Convert YAML agent content to Markdown format with frontmatter."""
