@@ -82,7 +82,6 @@ AGENT_NAME_MAP: dict[str, str] = {
     "tauri-engineer": "Tauri Engineer",
     # ── Specialist engineers ──────────────────────────────────────────────
     "data-engineer": "Data Engineer",
-    "data-scientist": "Data Scientist",
     "refactoring-engineer": "Refactoring Engineer",
     "prompt-engineer": "Prompt Engineer",
     "web-ui": "Web UI",
@@ -91,7 +90,6 @@ AGENT_NAME_MAP: dict[str, str] = {
     "vercel-ops": "Vercel Ops",
     "gcp-ops": "Google Cloud Ops",
     "clerk-ops": "Clerk Operations",
-    "aws-ops": "aws_ops_agent",
     "digitalocean-ops": "DigitalOcean Ops",
     # ── QA agents ─────────────────────────────────────────────────────────
     "web-qa": "Web QA",
