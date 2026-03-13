@@ -158,7 +158,7 @@ class CapabilityGenerator:
                 content = f.read()
 
             # Default values
-            agent_data = {
+            agent_data: Dict[str, Any] = {
                 "id": agent_file.stem,
                 "display_name": agent_file.stem.replace("_", " ")
                 .replace("-", " ")
