@@ -49,7 +49,27 @@ class MemoryFileService:
         if canonical_file.exists():
             return canonical_file
 
-        # Legacy fallback 1: underscore-format file
+        # Legacy fallback 1: hyphenated raw agent_id (e.g. research-agent_memories.md)
+        # This covers cases like "research-agent" that normalize to "research" but were
+        # stored using the raw hyphenated form before normalization was introduced.
+        raw_hyphenated_id = agent_id.lower()
+        if raw_hyphenated_id != normalized_id:
+            legacy_hyphenated = directory / f"{raw_hyphenated_id}_memories.md"
+            if legacy_hyphenated.exists():
+                try:
+                    legacy_hyphenated.rename(canonical_file)
+                    self.logger.info(
+                        f"Migrated hyphenated memory file: "
+                        f"{legacy_hyphenated.name} -> {canonical_file.name}"
+                    )
+                    return canonical_file
+                except Exception as e:
+                    self.logger.warning(
+                        f"Could not migrate hyphenated memory file: {e}"
+                    )
+                    return legacy_hyphenated
+
+        # Legacy fallback 2: underscore-format file
         underscore_id = agent_id.replace("-", "_").lower()
         if underscore_id != normalized_id:
             legacy_underscore = directory / f"{underscore_id}_memories.md"
@@ -67,7 +87,7 @@ class MemoryFileService:
                     )
                     return legacy_underscore
 
-        # Legacy fallback 2: raw agent_id format (no normalization applied)
+        # Legacy fallback 3: raw agent_id format (no normalization applied)
         if agent_id != normalized_id and agent_id.lower() != underscore_id:
             raw_file = directory / f"{agent_id}_memories.md"
             if raw_file.exists() and not canonical_file.exists():

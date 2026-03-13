@@ -2,9 +2,30 @@
 
 from typing import Optional
 
+from claude_mpm.core.agent_name_registry import AGENT_NAME_MAP
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def _build_canonical_names_from_registry() -> dict[str, str]:
+    """Build CANONICAL_NAMES dict from AGENT_NAME_MAP as the single source of truth.
+
+    AGENT_NAME_MAP uses hyphen-format stems (e.g. "python-engineer").
+    CANONICAL_NAMES uses underscore-format keys (e.g. "python_engineer").
+    The first mapping for each display name wins (shorter/canonical stem takes priority).
+    """
+    result: dict[str, str] = {}
+    seen_names: set[str] = set()
+    for stem, display_name in AGENT_NAME_MAP.items():
+        underscore_key = stem.replace("-", "_")
+        # Always store the key→name mapping so every stem is reachable
+        if underscore_key not in result:
+            result[underscore_key] = display_name
+        # Track which display names we've seen so the first (canonical) stem wins
+        if display_name not in seen_names:
+            seen_names.add(display_name)
+    return result
 
 
 class AgentNameNormalizer:
@@ -17,64 +38,14 @@ class AgentNameNormalizer:
     """
 
     # Canonical agent names (standardized format)
-    # These are the display names used in TodoWrite prefixes
-    CANONICAL_NAMES = {
-        "research": "Research",
-        "engineer": "Engineer",
-        "qa": "QA",
-        "security": "Security",
-        "documentation": "Documentation Agent",
-        "ops": "Ops",
-        "version_control": "Version Control",
-        "data_engineer": "Data Engineer",
+    # These are the display names used in TodoWrite prefixes.
+    # Populated from AGENT_NAME_MAP (agent_name_registry) as the single source of truth,
+    # with additional entries for agents not yet in the registry (architect, pm).
+    CANONICAL_NAMES: dict[str, str] = {
+        **_build_canonical_names_from_registry(),
+        # Entries not yet present in AGENT_NAME_MAP:
         "architect": "Architect",
         "pm": "PM",
-        # Additional agent types from deployed agents
-        "python_engineer": "Python Engineer",
-        "golang_engineer": "Golang Engineer",
-        "java_engineer": "Java Engineer",
-        "javascript_engineer": "Javascript Engineer",
-        "typescript_engineer": "Typescript Engineer",
-        "rust_engineer": "Rust Engineer",
-        "ruby_engineer": "Ruby Engineer",
-        "php_engineer": "Php Engineer",
-        "phoenix_engineer": "Phoenix Engineer",
-        "nestjs_engineer": "nestjs-engineer",
-        "react_engineer": "React Engineer",
-        "nextjs_engineer": "Nextjs Engineer",
-        "svelte_engineer": "Svelte Engineer",
-        "dart_engineer": "Dart Engineer",
-        "tauri_engineer": "Tauri Engineer",
-        "prompt_engineer": "Prompt Engineer",
-        "refactoring_engineer": "Refactoring Engineer",
-        # QA variants
-        "api_qa": "API QA",
-        "web_qa": "Web QA",
-        "real_user": "real-user",
-        # Ops variants
-        "clerk_ops": "Clerk Operations",
-        "digitalocean_ops": "DigitalOcean Ops",
-        "gcp_ops": "Google Cloud Ops",
-        "local_ops": "Local Ops",
-        "vercel_ops": "Vercel Ops",
-        "project_organizer": "Project Organizer",
-        "agentic_coder_optimizer": "Agentic Coder Optimizer",
-        "tmux": "Tmux Agent",
-        # Universal agents
-        "code_analyzer": "Code Analysis",
-        "content": "Content Optimization",
-        "memory_manager": "Memory Manager",
-        "product_owner": "Product Owner",
-        "web_ui": "Web UI",
-        "imagemagick": "Imagemagick",
-        "ticketing": "ticketing_agent",
-        # MPM-specific agents
-        "mpm_agent_manager": "mpm_agent_manager",
-        "mpm_skills_manager": "mpm_skills_manager",
-        # New agents
-        "aws_ops": "aws_ops_agent",
-        "data_scientist": "Data Scientist",
-        "visual_basic_engineer": "Visual Basic Engineer",
     }
 
     # Aliases and variations that map to canonical names
