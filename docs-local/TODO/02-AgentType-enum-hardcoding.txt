@@ -1,7 +1,0 @@
-
-AgentType enum hardcodes values. Not Good.
-
-AgentType has been deprecated and converted to AgentRole (WHAT an agent does) and AgentSourceType (WHERE an agent comes from).
-
-Investigate codebase to ensure we do not have any stray path left.
-Remove any backwards compat code that has been added by the LLM. e.g. AgentType alias to AgentRole. imports of AgentType. etc

@@ -1,6 +1,0 @@
-
-Inspect code to find places where we have "model_preference" refering to hardcoded models like "claude-3-sonnet" or similar.
- 1) This is feels wrong
- 2) might be forcing use of wrong models
- 3) seems like a legacy thing
- 4) is it actually in use anywhere? If not, can we remove it?
