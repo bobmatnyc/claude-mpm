@@ -189,7 +189,9 @@ class TemplateProcessor:
             "description": metadata.get("description", f"Agent {agent_id}"),
             "authority": metadata.get("authority"),
             "primary_function": metadata.get("primary_function"),
-            "handoff_to": metadata.get("handoff_to"),
+            "handoff_agents": template_data.get("interactions", {}).get(
+                "handoff_agents", []
+            ),
             "model": template_data.get("model", {}).get("model"),
             "tools": self.extract_tools(template_data),
             "routing": self.extract_routing(template_data),

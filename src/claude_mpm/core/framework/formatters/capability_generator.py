@@ -116,8 +116,14 @@ class CapabilityGenerator:
                 section += f"- **Authority**: {agent['authority']}\n"
             if agent.get("primary_function"):
                 section += f"- **Primary Function**: {agent['primary_function']}\n"
-            if agent.get("handoff_to"):
-                section += f"- **Handoff To**: {agent['handoff_to']}\n"
+            handoff_agents = agent.get("interactions", {}).get("handoff_agents", [])
+            if handoff_agents:
+                agents_str = (
+                    ", ".join(handoff_agents)
+                    if isinstance(handoff_agents, list)
+                    else str(handoff_agents)
+                )
+                section += f"- **Handoff To**: {agents_str}\n"
             if agent.get("tools") and agent["tools"] != "standard":
                 section += f"- **Tools**: {agent['tools']}\n"
             if agent.get("model") and agent["model"] != "opus":

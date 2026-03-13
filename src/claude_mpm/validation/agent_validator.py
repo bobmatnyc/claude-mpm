@@ -36,6 +36,11 @@ from claude_mpm.core.constants import (
 )
 from claude_mpm.core.logging_utils import get_logger
 
+try:
+    from claude_mpm.utils.agent_filters import normalize_agent_id
+except ImportError:
+    normalize_agent_id = None  # type: ignore[assignment]
+
 logger = get_logger(__name__)
 
 
@@ -250,6 +255,20 @@ class AgentValidator:
                     f"Handoff agent ID '{handoff_id}' contains invalid characters"
                 )
                 result.is_valid = False
+
+        # Cross-reference against known agent IDs if provided
+        known_ids = getattr(self, "_known_agent_ids", None)
+        if known_ids and handoff_agents:
+            for ha_id in handoff_agents:
+                normalized = (
+                    normalize_agent_id(ha_id)
+                    if normalize_agent_id is not None
+                    else ha_id
+                )
+                if normalized not in known_ids:
+                    result.warnings.append(
+                        f"handoff_agents references unknown agent: '{ha_id}'"
+                    )
 
     def _validate_resource_tier_limits(
         self, agent_data: Dict[str, Any], tier: str, result: ValidationResult
