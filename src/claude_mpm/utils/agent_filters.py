@@ -126,7 +126,7 @@ def normalize_agent_id(agent_id: str) -> str:
         return ""
 
     # Extract leaf name (handle path-style agent IDs)
-    leaf = agent_id.split("/")[-1]
+    leaf = agent_id.rsplit("/", maxsplit=1)[-1]
 
     # Strip common file extensions
     for ext in (".md", ".yaml", ".yml", ".json"):

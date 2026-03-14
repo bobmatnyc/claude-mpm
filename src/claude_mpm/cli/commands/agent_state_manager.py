@@ -332,7 +332,7 @@ class SimpleAgentManager:
 
         # Fallback to physical file checks (legacy support)
         # For hierarchical IDs, check full ID, leaf name, and normalized name
-        leaf = agent_id.split("/")[-1]
+        leaf = agent_id.rsplit("/", maxsplit=1)[-1]
         normalized_name = normalize_deployment_filename(f"{leaf}.md")
         agent_file_names = [f"{agent_id}.md", normalized_name]
 
