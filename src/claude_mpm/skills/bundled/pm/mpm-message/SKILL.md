@@ -14,6 +14,39 @@ Send asynchronous messages to other Claude MPM instances running in different pr
 > **Important**: Always use `claude-mpm message` CLI commands or the `MessageService` Python API.
 > Never query `messaging.db` directly — the database location is an implementation detail.
 
+## ⚠️ Common Traps
+
+### Attribute name: `msg.type` NOT `msg.message_type`
+When **reading** a returned `Message` object, the field is `msg.type`.
+When **sending**, the parameter is `message_type=` (matches DB column).
+Confusing these causes `AttributeError: 'Message' object has no attribute 'message_type'`.
+
+```python
+# WRONG — causes AttributeError
+print(msg.message_type)
+
+# CORRECT
+print(msg.type)
+```
+
+### Use the CLI or MessageService — never raw SQL or direct DB access
+The PM must NEVER access `messaging.db` directly with sqlite3 or raw Python one-liners.
+Always use:
+- CLI: `claude-mpm message list / read / send / reply`
+- Python: `MessageService(Path.cwd())` — see API reference below
+
+### CLI Quick Reference
+```bash
+claude-mpm message list                          # all messages
+claude-mpm message list --status unread          # unread only
+claude-mpm message read <message-id>             # read + mark as read
+claude-mpm message send /path/to/project \
+  --subject "Subject" --body "Body" \
+  --type task --priority high --to-agent pm
+claude-mpm message reply <message-id> --body "Response"
+claude-mpm message archive <message-id>
+```
+
 ## How It Works
 
 1. **Send**: Message written to shared SQLite database (`~/.claude-mpm/messaging.db`)
