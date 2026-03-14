@@ -160,9 +160,11 @@ def _detect_and_remove_orphaned_agents(
         logger.debug("No expected agents found, skipping orphan detection")
         return []
 
-    # Scan deployed directory for orphans
-    removed: list[str] = []
+    # Scan deployed directory for orphan candidates
+    orphan_candidates: list[tuple[Path, str]] = []  # (file_path, stem)
+    total_deployed = 0
     for deployed_file in deploy_dir.glob("*.md"):
+        total_deployed += 1
         stem = deployed_file.stem
 
         # Skip if this agent is expected
@@ -179,7 +181,32 @@ def _detect_and_remove_orphaned_agents(
             logger.debug(f"Could not read {deployed_file} for orphan check: {e}")
             continue
 
-        # This is an orphaned MPM agent — remove it
+        orphan_candidates.append((deployed_file, stem))
+
+    # --- Threshold guard: prevent mass deletion from partial cache sync ---
+    # If BOTH conditions are true, skip all deletions:
+    #   1. Orphan ratio exceeds 20% of total deployed agents
+    #   2. More than 3 orphan candidates (absolute floor)
+    # This prevents mass deletion when cache is partially synced or buggy,
+    # while still allowing normal small-scale orphan cleanup.
+    ORPHAN_RATIO_THRESHOLD = 0.20
+    ORPHAN_ABSOLUTE_FLOOR = 3
+    if total_deployed > 0 and len(orphan_candidates) > ORPHAN_ABSOLUTE_FLOOR:
+        orphan_ratio = len(orphan_candidates) / total_deployed
+        if orphan_ratio > ORPHAN_RATIO_THRESHOLD:
+            logger.warning(
+                f"Orphan detection threshold exceeded: "
+                f"{len(orphan_candidates)}/{total_deployed} agents "
+                f"({orphan_ratio:.0%}) would be removed. "
+                f"Skipping all deletions to prevent mass removal "
+                f"(threshold: >{ORPHAN_RATIO_THRESHOLD:.0%} AND >{ORPHAN_ABSOLUTE_FLOOR} candidates). "
+                f"Candidates: {', '.join(stem for _, stem in orphan_candidates)}"
+            )
+            return []
+
+    # Remove confirmed orphans
+    removed: list[str] = []
+    for deployed_file, stem in orphan_candidates:
         try:
             deployed_file.unlink()
             removed.append(stem)
