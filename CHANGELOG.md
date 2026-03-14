@@ -1,3 +1,53 @@
+## v5.9.66 (2026-03-14)
+
+### Feat
+
+- promote kuzu-memory/mcp-vector-search to mandatory PM behavior (v0011)
+- phase 4 - remove legacy AgentType, finalize clean separation
+- phase 3 - migrate consumers from .type to .role/.source
+- phase 2 - add role + source to AgentMetadata, dual-populate
+- phase 1 - introduce AgentRole enum (purely additive)
+- phase 0 - clean up AgentSourceType prerequisites
+- add canonical normalize_agent_id() and apply boundary normalization
+- add authoritative agent name registry (v8 Phase 2)
+- promote kuzu-memory/mcp-vector-search to mandatory PM behavior (v0011)
+
+### Fix
+
+- resolve all remaining Pyright warnings (unused vars, deprecated iscoroutinefunction)
+- resolve IAgentRegistry undefined and lazy.py type errors
+- suppress unresolvable import warning in agent_name_normalizer
+- resolve type errors and import warning from #333 handoff_agents fix
+- address non-blocking review issues from PR #334 review
+- resolve import path and dead code in agent_name_normalizer
+- converge all agent name normalizers onto canonical normalize_agent_id()
+- replace inline agent normalization with canonical normalize_agent_id()
+- isolate unified_agent_registry tests from real filesystem agents
+- guard against malformed frontmatter in _extract_md_body()
+- move normalization into get_deployed_agent_ids() at source
+- update brittle test assertions in startup and config tests
+- move router.initialize() inside mock context in model router tests
+- normalize source names in deployment idempotency check
+- add .claude/agents/ and cache to discovery paths, add .md body extraction
+- normalize both sides in filter_deployed_agents comparison
+- normalize agent IDs in removal/undeploy path to match deployed filenames
+- normalize agent IDs at all comparison points so deployed agents show as Installed
+- normalize agent IDs before deployment status comparison
+- resolve 5 critical agent naming issues (C1-C5)
+- complete from_frontmatter alias coverage and agent_listing_service standardization
+- add filename normalization to legacy and configure deployment paths
+- standardize frontmatter field 'agent_type' over 'type'
+- complete Phase 1 agent naming audit (Changes 4, 5, 7, 10)
+- align CANONICAL_NAMES with upstream agent name: frontmatter values
+- PM references agents by name: field values (v8 Phase 3)
+- agents deploy command calls correct sync method (v8 Phase 1)
+
+### Refactor
+
+- remove dead code from templates/__init__.py
+- consolidate CORE_AGENTS into registry and add dynamic refresh
+- extend AgentType enum with role categories, rename registry AgentType to AgentSourceType
+
 ## v5.9.65 (2026-03-11)
 
 ### Fix
