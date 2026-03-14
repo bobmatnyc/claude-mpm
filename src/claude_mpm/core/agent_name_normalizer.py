@@ -18,7 +18,9 @@ exported for convenience.
 
 from typing import Optional
 
-from claude_mpm.core.agent_name_registry import AGENT_NAME_MAP
+from claude_mpm.core.agent_name_registry import (
+    AGENT_NAME_MAP,  # type: ignore[import-untyped]
+)
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
