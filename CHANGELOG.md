@@ -1,3 +1,9 @@
+## v5.9.69 (2026-03-14)
+
+### Fix
+
+- update PR template test assertion to match markdown link format
+
 ## v5.9.68 (2026-03-14)
 
 ### Fix
