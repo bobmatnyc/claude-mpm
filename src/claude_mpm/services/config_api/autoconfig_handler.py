@@ -89,7 +89,7 @@ def _get_auto_config_manager():
             try:
                 from claude_mpm.services.agents.registry import AgentRegistry
 
-                agent_registry = cast("IAgentRegistry", AgentRegistry())
+                agent_registry = cast("IAgentRegistry", AgentRegistry())  # type: ignore[arg-type]
             except Exception:
                 logger.warning(
                     "AgentRegistry not available; validation will skip agent existence checks"

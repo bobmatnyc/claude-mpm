@@ -169,7 +169,7 @@ class LazyService(Generic[T]):
         """Make LazyService callable if underlying service is."""
         instance = self._ensure_initialized()
         self._metrics.access_count += 1
-        return instance(*args, **kwargs)
+        return instance(*args, **kwargs)  # type: ignore[operator]
 
     def __repr__(self) -> str:
         """String representation of lazy service."""
@@ -370,7 +370,7 @@ class lazy_property:
         """
         self.func = func
         self.lock = threading.RLock()
-        functools.update_wrapper(self, func)
+        functools.update_wrapper(self, func)  # type: ignore[arg-type]
 
     def __get__(self, obj: Any, objtype: Optional[Type] = None) -> Any:
         """Return the cached value, computing it on first access.
@@ -477,6 +477,10 @@ class AsyncLazyService(Generic[T]):
                     f"{self._metrics.initialization_time:.2f}s"
                 )
 
+                if self._instance is None:
+                    raise RuntimeError(
+                        f"Service {self._name} initialization produced None"
+                    )
                 return self._instance
 
             except Exception as e:
