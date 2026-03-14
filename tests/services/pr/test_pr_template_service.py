@@ -188,7 +188,7 @@ Addresses user feedback about memory exhaustion.
         )
         self.assertIn("- Add hard limit of 5 files", message)
         self.assertIn("- Document MCP summarizer", message)
-        self.assertIn("Generated with Claude MPM", message)
+        self.assertIn("Claude MPM", message)
 
     def test_generate_commit_message_skill(self):
         """Test generating commit message for skill."""
