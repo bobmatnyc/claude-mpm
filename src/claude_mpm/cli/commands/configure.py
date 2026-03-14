@@ -416,6 +416,8 @@ class ConfigureCommand(BaseCommand):
             "[bold blue]Loading agents...[/bold blue]", spinner="dots"
         ):
             try:
+                if self.agent_manager is None:
+                    return agents
                 # Discover agents (includes both local and remote)
                 agents = self.agent_manager.discover_agents(include_remote=True)
 
@@ -495,6 +497,8 @@ class ConfigureCommand(BaseCommand):
 
     def _toggle_agents_interactive(self, agents: List[AgentConfig]) -> None:
         """Interactive multi-agent enable/disable with batch save."""
+        if self.agent_manager is None:
+            return
 
         # Initialize pending states from current states
         for agent in agents:
@@ -578,6 +582,8 @@ class ConfigureCommand(BaseCommand):
         WHY: When users enable agents, they expect them to be deployed
         automatically to .claude/agents/ so they're available for use.
         """
+        if self.agent_manager is None:
+            return
         try:
             # Get list of enabled agents from states
             enabled_agents = [
@@ -672,6 +678,8 @@ class ConfigureCommand(BaseCommand):
 
     def _manage_behaviors(self) -> None:
         """Behavior file management interface."""
+        if self.behavior_manager is None:
+            return
         # Note: BehaviorManager handles its own loop and clears screen
         # but doesn't display our header. We'll need to update BehaviorManager
         # to accept a header callback in the future. For now, just delegate.
@@ -712,14 +720,17 @@ class ConfigureCommand(BaseCommand):
                 self._display_header()
 
                 # Get list of enabled agents
-                agents = self.agent_manager.discover_agents()
-                # Filter BASE_AGENT from all agent operations (1M-502 Phase 1)
-                agents = self._filter_agent_configs(agents, filter_deployed=False)
-                enabled_agents = [
-                    a.name
-                    for a in agents
-                    if self.agent_manager.get_pending_state(a.name)
-                ]
+                if self.agent_manager is None:
+                    enabled_agents = []
+                else:
+                    agents = self.agent_manager.discover_agents()
+                    # Filter BASE_AGENT from all agent operations (1M-502 Phase 1)
+                    agents = self._filter_agent_configs(agents, filter_deployed=False)
+                    enabled_agents = [
+                        a.name
+                        for a in agents
+                        if self.agent_manager.get_pending_state(a.name)
+                    ]
 
                 if not enabled_agents:
                     self.console.print(
@@ -780,14 +791,17 @@ class ConfigureCommand(BaseCommand):
                 self.console.print("\n[bold]Auto-Linking Skills to Agents...[/bold]\n")
 
                 # Get enabled agents
-                agents = self.agent_manager.discover_agents()
-                # Filter BASE_AGENT from all agent operations (1M-502 Phase 1)
-                agents = self._filter_agent_configs(agents, filter_deployed=False)
-                enabled_agents = [
-                    a.name
-                    for a in agents
-                    if self.agent_manager.get_pending_state(a.name)
-                ]
+                if self.agent_manager is None:
+                    enabled_agents = []
+                else:
+                    agents = self.agent_manager.discover_agents()
+                    # Filter BASE_AGENT from all agent operations (1M-502 Phase 1)
+                    agents = self._filter_agent_configs(agents, filter_deployed=False)
+                    enabled_agents = [
+                        a.name
+                        for a in agents
+                        if self.agent_manager.get_pending_state(a.name)
+                    ]
 
                 if not enabled_agents:
                     self.console.print(
@@ -1364,22 +1378,32 @@ class ConfigureCommand(BaseCommand):
 
     def _display_behavior_files(self) -> None:
         """Display current behavior files."""
+        if self.behavior_manager is None:
+            return
         self.behavior_manager.display_behavior_files()
 
     def _edit_identity_config(self) -> None:
         """Edit identity configuration."""
+        if self.behavior_manager is None:
+            return
         self.behavior_manager.edit_identity_config()
 
     def _edit_workflow_config(self) -> None:
         """Edit workflow configuration."""
+        if self.behavior_manager is None:
+            return
         self.behavior_manager.edit_workflow_config()
 
     def _import_behavior_file(self) -> None:
         """Import a behavior file."""
+        if self.behavior_manager is None:
+            return
         self.behavior_manager.import_behavior_file()
 
     def _export_behavior_file(self) -> None:
         """Export a behavior file."""
+        if self.behavior_manager is None:
+            return
         self.behavior_manager.export_behavior_file()
 
     def _manage_startup_configuration(self) -> bool:
@@ -1472,6 +1496,8 @@ class ConfigureCommand(BaseCommand):
 
     def _list_agents_non_interactive(self) -> CommandResult:
         """List agents in non-interactive mode."""
+        if self.agent_manager is None:
+            return CommandResult.error_result("Agent manager not initialized")
         agents = self.agent_manager.discover_agents()
         # Filter BASE_AGENT from all agent lists (1M-502 Phase 1)
         agents = self._filter_agent_configs(agents, filter_deployed=False)
@@ -1494,6 +1520,8 @@ class ConfigureCommand(BaseCommand):
 
     def _enable_agent_non_interactive(self, agent_name: str) -> CommandResult:
         """Enable an agent in non-interactive mode."""
+        if self.agent_manager is None:
+            return CommandResult.error_result("Agent manager not initialized")
         try:
             self.agent_manager.set_agent_enabled(agent_name, True)
             return CommandResult.success_result(f"Agent '{agent_name}' enabled")
@@ -1502,6 +1530,8 @@ class ConfigureCommand(BaseCommand):
 
     def _disable_agent_non_interactive(self, agent_name: str) -> CommandResult:
         """Disable an agent in non-interactive mode."""
+        if self.agent_manager is None:
+            return CommandResult.error_result("Agent manager not initialized")
         try:
             self.agent_manager.set_agent_enabled(agent_name, False)
             return CommandResult.success_result(f"Agent '{agent_name}' disabled")
@@ -1560,6 +1590,8 @@ class ConfigureCommand(BaseCommand):
 
     def _run_behavior_management(self) -> CommandResult:
         """Jump directly to behavior management."""
+        if self.behavior_manager is None:
+            return CommandResult.error_result("Behavior manager not initialized")
         return self.behavior_manager.run_behavior_management()
 
     def _run_startup_configuration(self) -> CommandResult:
@@ -1991,8 +2023,8 @@ class ConfigureCommand(BaseCommand):
                 agent_map[agent_id] = agent
 
         # Monkey-patch questionary symbols for better visibility
-        questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
-        questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"
+        questionary.prompts.common.INDICATOR_SELECTED = "[✓]"  # type: ignore[attr-defined]
+        questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"  # type: ignore[attr-defined]
 
         # MAIN LOOP: Re-display UI when controls are used
         while True:
@@ -2131,7 +2163,9 @@ class ConfigureCommand(BaseCommand):
                                 title=choice_text,
                                 value=agent_id,  # Use agent_id for value
                                 checked=is_selected,
-                                disabled=is_required,  # Disable checkbox for required agents
+                                disabled="required"
+                                if is_required
+                                else None,  # Disable checkbox for required agents
                             )
                         )
 
@@ -2492,8 +2526,8 @@ class ConfigureCommand(BaseCommand):
             )
 
             # Monkey-patch questionary symbols for better visibility
-            questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
-            questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"
+            questionary.prompts.common.INDICATOR_SELECTED = "[✓]"  # type: ignore[attr-defined]
+            questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"  # type: ignore[attr-defined]
 
             try:
                 selected_collections = questionary.checkbox(
@@ -2654,12 +2688,12 @@ class ConfigureCommand(BaseCommand):
                 paths_to_check = self._agent_file_paths(leaf_name)
 
                 # Also check virtual deployment state
+                import json
+
                 state_exists = False
                 for state_path in self._deployment_state_paths():
                     if state_path.exists():
                         try:
-                            import json
-
                             with state_path.open() as f:
                                 state = json.load(f)
                             agents_in_state = state.get("last_check_results", {}).get(

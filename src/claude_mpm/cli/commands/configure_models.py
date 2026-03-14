@@ -4,7 +4,7 @@ This module contains data classes used by the configure command for
 agent metadata and configuration state management.
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class AgentConfig:
@@ -16,3 +16,6 @@ class AgentConfig:
         self.name = name
         self.description = description
         self.dependencies = dependencies or []
+        self.is_deployed: bool = False
+        self.source_dict: Optional[Dict[str, Any]] = None
+        self.full_agent_id: Optional[str] = None

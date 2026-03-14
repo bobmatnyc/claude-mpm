@@ -63,7 +63,7 @@ class AgentBuilderService:
         instructions: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         base_template: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Dict[str, Any], str]:
         """Create a new agent configuration.
 
         Args:
@@ -77,7 +77,7 @@ class AgentBuilderService:
             base_template: Optional base template to extend
 
         Returns:
-            Complete agent configuration dictionary
+            Tuple of (config dict, instructions string)
 
         Raises:
             AgentDeploymentError: If validation fails

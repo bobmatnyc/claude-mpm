@@ -6,7 +6,15 @@ used by Claude MPM for automated workflows.
 Extracted from configure.py (Phase 7/9) to reduce God Object complexity.
 """
 
-from rich.console import Console
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from logging import Logger
+
+    from rich.console import Console
+
 from rich.prompt import Confirm
 
 from ...utils.console import console as default_console
@@ -22,14 +30,14 @@ class HookManager:
     - Uninstalling hooks when requested
     """
 
-    def __init__(self, console: Console = None):
+    def __init__(self, console: Console | None = None):
         """Initialize hook manager.
 
         Args:
             console: Rich console for output (optional, defaults to shared console)
         """
         self.console = console or default_console
-        self.logger = None  # Will be set from parent if needed
+        self.logger: Logger | None = None  # Will be set from parent if needed
 
     def install_hooks(self, force: bool = False) -> CommandResult:
         """Install Claude MPM hooks for Claude Code integration.

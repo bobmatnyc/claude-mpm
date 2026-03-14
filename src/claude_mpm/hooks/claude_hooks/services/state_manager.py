@@ -20,17 +20,21 @@ try:
     from claude_mpm.hooks.claude_hooks.hook_handler import _log
 except ImportError:
 
-    def _log(msg: str) -> None:
+    def _log(message: str) -> None:
         pass  # Silent fallback
 
 
 # Import constants for configuration
+class _FallbackTimeoutConfig:
+    """Fallback timeout configuration when constants module is unavailable."""
+
+    QUICK_TIMEOUT = 2.0
+
+
 try:
     from claude_mpm.core.constants import TimeoutConfig
 except ImportError:
-    # Fallback values if constants module not available
-    class TimeoutConfig:
-        QUICK_TIMEOUT = 2.0
+    TimeoutConfig = _FallbackTimeoutConfig  # type: ignore[assignment,misc]
 
 
 # Debug mode - disabled by default to prevent logging overhead in production
@@ -174,7 +178,7 @@ class StateManagerService:
         """
         # Use current working directory if not specified
         if not working_dir:
-            working_dir = Path.cwd()
+            working_dir = str(Path.cwd())
 
         # Check cache first (cache for 30 seconds)
         current_time = datetime.now(timezone.utc).timestamp()
