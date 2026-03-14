@@ -24,6 +24,27 @@ from .deployment_reconciler import DeploymentReconciler, DeploymentResult
 logger = get_logger(__name__)
 
 
+def _extract_agent_id_from_frontmatter(content: str) -> Optional[str]:
+    """Extract agent_id from YAML frontmatter.
+
+    Args:
+        content: Full text content of the agent .md file
+
+    Returns:
+        The agent_id value if found, otherwise None.
+    """
+    if not content.startswith("---"):
+        return None
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return None
+    for line in parts[1].split("\n"):
+        line = line.strip()
+        if line.startswith("agent_id:"):
+            return line[9:].strip().strip("'\"")
+    return None
+
+
 def _detect_and_remove_orphaned_agents(
     project_path: Path,
     config: UnifiedConfig,
@@ -61,8 +82,27 @@ def _detect_and_remove_orphaned_agents(
 
     # Source 1: All agents in the cache (covers remote sources)
     if cache_dir.exists():
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+
         for agent_file in cache_dir.glob("**/*.md"):
+            # Add raw cache stem for backward compatibility
             expected_stems.add(agent_file.stem)
+            # Add normalized stem (strips -agent suffix, lowercases, etc.)
+            normalized_filename = normalize_deployment_filename(agent_file.name)
+            expected_stems.add(Path(normalized_filename).stem)
+            # Also check frontmatter for agent_id override (e.g. web-ui -> web-ui-engineer)
+            try:
+                content = agent_file.read_text(encoding="utf-8")
+                agent_id = _extract_agent_id_from_frontmatter(content)
+                if agent_id:
+                    normalized_id_filename = normalize_deployment_filename(
+                        f"{agent_id}.md"
+                    )
+                    expected_stems.add(Path(normalized_id_filename).stem)
+            except Exception:
+                pass  # Skip unreadable files
 
     # Source 2: Configured agents (covers explicit configuration)
     if config.agents.enabled:
@@ -73,14 +113,46 @@ def _detect_and_remove_orphaned_agents(
     # Source 3: Local templates (project-level)
     local_template_dir = project_path / ".claude-mpm" / "agents"
     if local_template_dir.exists():
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+
         for agent_file in local_template_dir.glob("*.md"):
             expected_stems.add(agent_file.stem)
+            normalized_filename = normalize_deployment_filename(agent_file.name)
+            expected_stems.add(Path(normalized_filename).stem)
+            try:
+                content = agent_file.read_text(encoding="utf-8")
+                agent_id = _extract_agent_id_from_frontmatter(content)
+                if agent_id:
+                    normalized_id_filename = normalize_deployment_filename(
+                        f"{agent_id}.md"
+                    )
+                    expected_stems.add(Path(normalized_id_filename).stem)
+            except Exception:
+                pass
 
     # Source 4: User-level templates
     user_template_dir = Path.home() / ".claude-mpm" / "agents"
     if user_template_dir.exists():
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+
         for agent_file in user_template_dir.glob("*.md"):
             expected_stems.add(agent_file.stem)
+            normalized_filename = normalize_deployment_filename(agent_file.name)
+            expected_stems.add(Path(normalized_filename).stem)
+            try:
+                content = agent_file.read_text(encoding="utf-8")
+                agent_id = _extract_agent_id_from_frontmatter(content)
+                if agent_id:
+                    normalized_id_filename = normalize_deployment_filename(
+                        f"{agent_id}.md"
+                    )
+                    expected_stems.add(Path(normalized_id_filename).stem)
+            except Exception:
+                pass
 
     if not expected_stems:
         # No expected agents found — don't remove anything
