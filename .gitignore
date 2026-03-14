@@ -383,3 +383,4 @@ Formula/
 
 # GitHub account marker (safe to commit)
 # .gh-account
+.kuzu_memory.db.wal
