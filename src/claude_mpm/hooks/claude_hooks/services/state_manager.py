@@ -134,7 +134,7 @@ class StateManagerService:
 
     def cleanup_old_entries(self):
         """Clean up old entries to prevent memory growth."""
-        datetime.now(timezone.utc).timestamp() - self.MAX_CACHE_AGE_SECONDS
+        _cutoff = datetime.now(timezone.utc).timestamp() - self.MAX_CACHE_AGE_SECONDS
 
         # Clean up delegation tracking dictionaries
         for storage in [self.active_delegations, self.delegation_requests]:

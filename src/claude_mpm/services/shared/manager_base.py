@@ -3,14 +3,14 @@ Base class for manager-style services to reduce duplication.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Set, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Set, TypeVar
 
 from .config_service_base import ConfigServiceBase
 
 T = TypeVar("T")
 
 
-class ManagerBase(ConfigServiceBase, ABC):
+class ManagerBase(ConfigServiceBase, Generic[T], ABC):
     """
     Base class for manager-style services.
 
@@ -134,7 +134,7 @@ class ManagerBase(ConfigServiceBase, ABC):
         self._item_metadata[item_id] = metadata or {}
 
         # Update indexes
-        self._update_indexes(item_id, item, metadata)
+        self._update_indexes(item_id, item, metadata or {})
 
         self.logger.debug(f"Registered item: {item_id}")
         return True

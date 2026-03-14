@@ -231,7 +231,7 @@ class AgentManagerCommand(AgentCommand):
             # Find agent files
             template_dir = Path(__file__).parent.parent.parent / "agents" / "templates"
             json_file = template_dir / f"{agent_id}.json"
-            template_dir / f"{agent_id}.md"
+            _md_file = template_dir / f"{agent_id}.md"
 
             if not json_file.exists():
                 return CommandResult.error_result(f"Agent '{agent_id}' not found")

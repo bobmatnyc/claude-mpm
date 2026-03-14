@@ -582,7 +582,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             session_log_file = project_logger.session_dir / "system.jsonl"
 
             # Log session start event
-            {
+            _session_event = {
                 "event": "session_start",
                 "runner": "ClaudeRunner",
                 "enable_tickets": config_data.get("enable_tickets"),

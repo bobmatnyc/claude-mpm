@@ -1856,7 +1856,9 @@ class ConfigureCommand(BaseCommand):
                 detected_langs = (
                     ", ".join(summary.get("detected_languages", [])) or "None"
                 )
-                ", ".join(summary.get("detected_frameworks", [])) or "None"
+                _detected_frameworks = (
+                    ", ".join(summary.get("detected_frameworks", [])) or "None"
+                )
                 self.console.print(
                     f"\n[dim]* = recommended for this project "
                     f"(detected: {detected_langs})[/dim]"

@@ -537,7 +537,7 @@ class AsyncAgentDeploymentService:
         )
 
         # Get tags from new format (metadata.tags) or old format
-        (
+        _tags = (
             agent_data.get("metadata", {}).get("tags")
             or agent_data.get("configuration_fields", {}).get("tags")
             or agent_data.get("tags")

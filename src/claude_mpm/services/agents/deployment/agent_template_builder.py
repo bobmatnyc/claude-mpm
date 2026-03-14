@@ -532,7 +532,7 @@ class AgentTemplateBuilder:
         has_core_tools = len(agent_tools.intersection(core_tools)) >= 5
 
         # Include tools field only if agent is clearly restricted (missing core tools or very few tools)
-        not has_core_tools or len(agent_tools) < 6
+        _include_tools = not has_core_tools or len(agent_tools) < 6
 
         # Build YAML frontmatter with all relevant metadata from JSON template
         # Include all fields that are useful for agent management and functionality
