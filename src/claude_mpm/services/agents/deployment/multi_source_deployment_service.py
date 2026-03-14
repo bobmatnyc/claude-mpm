@@ -1276,29 +1276,31 @@ class MultiSourceAgentDeploymentService:
     ) -> List[Dict[str, Any]]:
         """Detect deployed agents that don't have corresponding templates.
 
-        WHY: Orphaned agents can cause confusion with version warnings.
-        This method identifies them so they can be handled appropriately.
+        DEPRECATED: This method is retained only for backward compatibility.
+        All orphan detection and removal should use the canonical System A in
+        startup_reconciliation.py::_detect_and_remove_orphaned_agents().
+
+        Unlike System A, this method includes proper provenance filtering via
+        is_mpm_managed_file() so only MPM-managed agents are reported as orphans.
 
         Args:
             deployed_agents_dir: Directory containing deployed agents
             available_agents: Dictionary of available agents from all sources
 
         Returns:
-            List of orphaned agent information
+            List of orphaned agent information (only MPM-managed agents)
         """
+        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
+
         orphaned = []
 
         if not deployed_agents_dir.exists():
             return orphaned
 
         # Build a mapping of file stems to agent names for comparison
-        # Since available_agents uses display names like "Code Analysis Agent"
-        # but deployed files use stems like "code_analyzer"
         available_stems = set()
-        stem_to_name = {}
 
         for agent_name, agent_sources in available_agents.items():
-            # Get the file path from the first source to extract the stem
             if (
                 agent_sources
                 and isinstance(agent_sources, list)
@@ -1307,18 +1309,20 @@ class MultiSourceAgentDeploymentService:
                 first_source = agent_sources[0]
                 if "file_path" in first_source:
                     file_path = Path(first_source["file_path"])
-                    stem = file_path.stem
-                    available_stems.add(stem)
-                    stem_to_name[stem] = agent_name
+                    available_stems.add(file_path.stem)
 
         for deployed_file in deployed_agents_dir.glob("*.md"):
             agent_stem = deployed_file.stem
 
-            # Skip if this agent has a template (check by stem, not display name)
+            # Skip if this agent has a template
             if agent_stem in available_stems:
                 continue
 
-            # This is an orphaned agent
+            # Only report MPM-managed agents as orphans (provenance check)
+            if not is_mpm_managed_file(deployed_file):
+                continue
+
+            # This is an orphaned MPM-managed agent
             try:
                 deployed_content = deployed_file.read_text()
                 deployed_version, _, _ = (
@@ -1399,8 +1403,14 @@ class MultiSourceAgentDeploymentService:
     ) -> Dict[str, Any]:
         """Clean up orphaned agents that don't have templates.
 
-        WHY: Orphaned agents can accumulate over time and cause confusion.
-        This method provides a way to clean them up systematically.
+        DEPRECATED: This method is retained for backward compatibility with
+        the CLI cleanup command and AgentCleanupService. All automatic orphan
+        cleanup during startup uses the canonical System A in
+        startup_reconciliation.py::_detect_and_remove_orphaned_agents().
+
+        This method now delegates to detect_orphaned_agents() which includes
+        provenance checks (is_mpm_managed_file), ensuring only MPM-managed
+        agents are considered for removal.
 
         Args:
             deployed_agents_dir: Directory containing deployed agents
@@ -1409,13 +1419,12 @@ class MultiSourceAgentDeploymentService:
         Returns:
             Dictionary with cleanup results
         """
-        results = {"orphaned": [], "removed": [], "errors": []}
+        results: Dict[str, Any] = {"orphaned": [], "removed": [], "errors": []}
 
         # First, discover all available agents from all sources
         all_agents = self.discover_agents_from_all_sources()
-        set(all_agents.keys())
 
-        # Detect orphaned agents
+        # Detect orphaned agents (now includes provenance check)
         orphaned = self.detect_orphaned_agents(deployed_agents_dir, all_agents)
         results["orphaned"] = orphaned
 
