@@ -61,7 +61,7 @@ AGENT_NAME_MAP: dict[str, str] = {
     "security": "Security",
     "version-control": "Version Control",
     "code-analyzer": "Code Analysis",
-    "ticketing": "ticketing_agent",
+    "ticketing": "ticketing_agent",  # matches name: frontmatter (ID-style)
     # ── Engineering language agents ────────────────────────────────────────
     "python-engineer": "Python Engineer",
     "golang-engineer": "Golang Engineer",
@@ -77,11 +77,12 @@ AGENT_NAME_MAP: dict[str, str] = {
     "react-engineer": "React Engineer",
     "nextjs-engineer": "Nextjs Engineer",
     "svelte-engineer": "Svelte Engineer",
-    "nestjs-engineer": "nestjs-engineer",
+    "nestjs-engineer": "nestjs-engineer",  # matches name: frontmatter (ID-style)
     "phoenix-engineer": "Phoenix Engineer",
     "tauri-engineer": "Tauri Engineer",
     # ── Specialist engineers ──────────────────────────────────────────────
     "data-engineer": "Data Engineer",
+    "data-scientist": "Data Scientist",
     "refactoring-engineer": "Refactoring Engineer",
     "prompt-engineer": "Prompt Engineer",
     "web-ui": "Web UI",
@@ -91,10 +92,11 @@ AGENT_NAME_MAP: dict[str, str] = {
     "gcp-ops": "Google Cloud Ops",
     "clerk-ops": "Clerk Operations",
     "digitalocean-ops": "DigitalOcean Ops",
+    "aws-ops": "aws_ops_agent",  # matches name: frontmatter (ID-style)
     # ── QA agents ─────────────────────────────────────────────────────────
     "web-qa": "Web QA",
     "api-qa": "API QA",
-    "real-user": "real-user",
+    "real-user": "real-user",  # matches name: frontmatter (ID-style)
     # ── Utility agents ────────────────────────────────────────────────────
     "memory-manager-agent": "Memory Manager",
     "project-organizer": "Project Organizer",
@@ -109,8 +111,8 @@ AGENT_NAME_MAP: dict[str, str] = {
     "memory-manager": "Memory Manager",
     "tmux": "Tmux Agent",
     # ── MPM meta agents ───────────────────────────────────────────────────
-    "mpm-agent-manager": "mpm_agent_manager",
-    "mpm-skills-manager": "mpm_skills_manager",
+    "mpm-agent-manager": "mpm_agent_manager",  # matches name: frontmatter (ID-style)
+    "mpm-skills-manager": "mpm_skills_manager",  # matches name: frontmatter (ID-style)
     # ── Legacy -agent suffix variants (backward compatibility) ────────────
     # These deployed files carry the same name: values as their bare stems.
     "research-agent": "Research",
@@ -126,7 +128,8 @@ AGENT_NAME_MAP: dict[str, str] = {
     "digitalocean-ops-agent": "DigitalOcean Ops",
     "javascript-engineer-agent": "Javascript Engineer",
     "web-ui-engineer": "Web UI",
-    "ticketing-agent": "ticketing_agent",
+    "ticketing-agent": "ticketing_agent",  # matches name: frontmatter (ID-style)
+    "aws-ops-agent": "aws_ops_agent",  # matches name: frontmatter (ID-style)
 }
 
 # ---------------------------------------------------------------------------
