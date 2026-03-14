@@ -14,7 +14,6 @@ Key Principles:
 - Backward compatibility with empty enabled lists
 """
 
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -22,6 +21,7 @@ from typing import Dict, List, Optional, Set
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_config import UnifiedConfig
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.services.agents.deployment_utils import deploy_agent_file
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = get_logger(__name__)
@@ -342,12 +342,9 @@ class DeploymentReconciler:
         if not agent_file:
             raise FileNotFoundError(f"Agent file for '{agent_id}' not found in cache")
 
-        # Ensure deploy directory exists
-        deploy_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy agent file to deployment directory
-        dest_file = deploy_dir / agent_file.name
-        shutil.copy2(agent_file, dest_file)
+        # Deploy using unified deployment function (handles normalization,
+        # frontmatter injection, and legacy cleanup)
+        deploy_agent_file(agent_file, deploy_dir)
 
     def _deploy_skill(self, skill_id: str, cache_dir: Path, deploy_dir: Path) -> None:
         """Deploy skill from cache to project directory."""
@@ -356,12 +353,9 @@ class DeploymentReconciler:
         if not skill_file:
             raise FileNotFoundError(f"Skill file for '{skill_id}' not found in cache")
 
-        # Ensure deploy directory exists
-        deploy_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy skill file to deployment directory
-        dest_file = deploy_dir / skill_file.name
-        shutil.copy2(skill_file, dest_file)
+        # Deploy using unified deployment function (handles normalization,
+        # frontmatter injection, and legacy cleanup)
+        deploy_agent_file(skill_file, deploy_dir)
 
     def _remove_agent(self, agent_id: str, deploy_dir: Path) -> None:
         """Remove deployed agent."""
