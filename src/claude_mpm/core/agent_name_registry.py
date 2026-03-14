@@ -153,6 +153,11 @@ for _stem, _name in AGENT_NAME_MAP.items():
 def get_agent_name(stem: str) -> str:
     """Return the ``name:`` frontmatter value for the given filename *stem*.
 
+    Why: PM delegation requires the exact ``name:`` value declared in an agent's
+    frontmatter; a plain filename stem (e.g. ``"local-ops"``) may not match the
+    display name (``"Local Ops"``).  This helper centralises the lookup so
+    callers never hardcode the mapping themselves.
+
     If the stem is not found in :data:`AGENT_NAME_MAP`, the input is
     returned unchanged so that callers degrade gracefully.
 
@@ -161,12 +166,20 @@ def get_agent_name(stem: str) -> str:
 
     Returns:
         The agent's ``name:`` field value, or *stem* itself as a fallback.
+
+    Test: ``get_agent_name("local-ops") == "Local Ops"`` and
+    ``get_agent_name("nonexistent") == "nonexistent"`` (graceful fallback).
     """
     return AGENT_NAME_MAP.get(stem, stem)
 
 
 def get_agent_stem(name: str) -> str:
     """Return the canonical filename stem for the given agent *name*.
+
+    Why: Some callers start with a human-readable name (e.g. from a config
+    file or user input) and need the filesystem stem to locate the deployed
+    ``.md`` file.  This is the reverse of :func:`get_agent_name` and must
+    return the *canonical* (shortest) stem when multiple stems share a name.
 
     If the name is not found in :data:`NAME_TO_STEM`, the input is
     returned unchanged so that callers degrade gracefully.
@@ -176,6 +189,9 @@ def get_agent_stem(name: str) -> str:
 
     Returns:
         The canonical filename stem, or *name* itself as a fallback.
+
+    Test: ``get_agent_stem("Web QA") == "web-qa"`` (not ``"web-qa-agent"``).
+    ``get_agent_stem("unknown") == "unknown"`` (graceful passthrough).
     """
     return NAME_TO_STEM.get(name, name)
 
@@ -228,6 +244,12 @@ _runtime_name_map: dict[str, str] | None = None
 def get_agent_name_map() -> dict[str, str]:
     """Get agent name map with runtime refresh from deployed agents.
 
+    Why: The hardcoded :data:`AGENT_NAME_MAP` cannot know about custom or
+    newly-deployed agents.  This function overlays runtime-discovered mappings
+    so that delegation works for agents not yet in the static table.  Results
+    are module-level cached to avoid repeated filesystem scans; call
+    :func:`invalidate_cache` after deploying new agents.
+
     Priority:
         1. Runtime-discovered agents from ``.claude/agents/`` (most current)
         2. Cached agents from ``~/.claude-mpm/cache/agents/`` (second choice)
@@ -235,6 +257,10 @@ def get_agent_name_map() -> dict[str, str]:
 
     Returns:
         A ``dict[str, str]`` mapping filename stems to ``name:`` values.
+
+    Test: In a project with a custom ``my-agent.md`` whose frontmatter declares
+    ``name: My Agent``, ``get_agent_name_map()["my-agent"] == "My Agent"``
+    after the cache has been invalidated.
     """
     global _runtime_name_map
 
@@ -260,13 +286,41 @@ def get_agent_name_map() -> dict[str, str]:
 
 
 def invalidate_cache() -> None:
-    """Invalidate the runtime cache (call after deployment)."""
+    """Invalidate the runtime cache so the next call re-scans the filesystem.
+
+    Why: :func:`get_agent_name_map` caches its result to avoid repeated disk
+    reads.  After an agent is deployed or removed the cached result is stale;
+    callers (e.g. deployment handlers) must call this function to force a fresh
+    discovery on the next access.
+
+    What: Resets the module-level ``_runtime_name_map`` sentinel to ``None``.
+
+    Test: Call ``get_agent_name_map()``, then ``invalidate_cache()``, then
+    ``get_agent_name_map()`` again and verify the second call re-reads
+    deployed ``.md`` files (e.g. by adding a file between the two calls).
+    """
     global _runtime_name_map
     _runtime_name_map = None
 
 
 def _discover_agents_from_paths(search_paths: list[Path]) -> dict[str, str]:
-    """Read agent ``.md`` files and extract ``name:`` field values."""
+    """Read agent ``.md`` files and extract ``name:`` field values.
+
+    Why: Runtime discovery lets the registry learn about agents that were
+    deployed after the package was built, without requiring a code change.
+    Each ``.md`` file is expected to carry a YAML frontmatter block with a
+    ``name:`` key; files without valid frontmatter are silently skipped.
+
+    What: Iterates over each directory in *search_paths*, globs ``*.md``,
+    parses the YAML frontmatter, and maps ``stem -> name`` for every file
+    that declares a ``name`` field.
+
+    Test: Create a temp directory with ``my-agent.md`` containing valid
+    frontmatter (``name: My Agent``).  Call
+    ``_discover_agents_from_paths([tmp_dir])`` and assert the result equals
+    ``{"my-agent": "My Agent"}``.  A file with invalid YAML should not raise
+    and should simply be absent from the result.
+    """
     discovered: dict[str, str] = {}
     for dir_path in search_paths:
         if not dir_path.is_dir():

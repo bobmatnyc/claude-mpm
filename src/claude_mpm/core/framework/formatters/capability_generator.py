@@ -1,4 +1,17 @@
-"""Agent capability generator for dynamic agent discovery."""
+"""Agent capability generator for dynamic agent discovery.
+
+Why: The PM system prompt must list every available agent with its routing
+hints so the model knows when to delegate and to whom.  Hardcoding that list
+would fall out of date whenever agents are added or removed.  This module
+generates the ``## Available Agent Capabilities`` section dynamically from
+the agents actually deployed on disk, with a hardcoded fallback for
+environments where no agents are found.
+
+What: :class:`CapabilityGenerator` reads deployed ``.md`` agent files, merges
+their YAML frontmatter with routing metadata from JSON templates, and renders
+a Markdown section listing every agent with its description, routing keywords,
+authority, and model hints.
+"""
 
 import json
 from pathlib import Path
@@ -19,10 +32,30 @@ except ImportError:
 
 
 class CapabilityGenerator:
-    """Generates agent capability sections from deployed agents."""
+    """Generates the ``## Available Agent Capabilities`` section of the PM prompt.
+
+    Why: The PM model needs an up-to-date catalogue of available agents so it
+    can make informed delegation decisions.  This class encapsulates all logic
+    for discovering agents, parsing their metadata, and rendering the section,
+    keeping the formatter layer thin and testable.
+
+    Test: Instantiate with no arguments and call
+    ``generate_capabilities_section([], {})``; the returned string should
+    equal ``get_fallback_capabilities()`` (no agents found path).  With a
+    populated ``deployed_agents`` list the section should contain at least one
+    ``### <Name>`` heading per agent.
+    """
 
     def __init__(self):
-        """Initialize the capability generator."""
+        """Initialise the capability generator with a module-level logger.
+
+        Why: A dedicated logger prefixed ``"capability_generator"`` makes it
+        easy to filter debug output for this subsystem without enabling
+        verbose logging globally.
+
+        Test: After construction, ``self.logger`` is not ``None`` and
+        ``self.logger.name == "capability_generator"``.
+        """
         self.logger = get_logger("capability_generator")
 
     def generate_capabilities_section(
@@ -30,14 +63,37 @@ class CapabilityGenerator:
         deployed_agents: List[Dict[str, Any]],
         local_agents: Dict[str, Dict[str, Any]],
     ) -> str:
-        """Generate dynamic agent capabilities section.
+        """Generate the ``## Available Agent Capabilities`` Markdown section.
+
+        Why: The PM prompt must enumerate all reachable agents so the model
+        can select the right one without guessing.  Local (project-tier) agents
+        override deployed ones of the same ID so project customisations take
+        precedence.
+
+        What: Merges *local_agents* (highest priority) with *deployed_agents*,
+        de-duplicates by agent ID, sorts alphabetically, then renders each
+        agent as a Markdown sub-section with its description, routing hints,
+        authority, primary function, handoff targets, tools, model, and memory
+        routing metadata.  Falls back to :meth:`get_fallback_capabilities` if
+        no agents are found.
 
         Args:
-            deployed_agents: List of deployed agent metadata
-            local_agents: Dictionary of local JSON template agents
+            deployed_agents: List of deployed agent metadata dicts (each must
+                contain at least ``"id"`` and optionally ``"description"``,
+                ``"routing"``, ``"authority"``, etc.)
+            local_agents: Mapping of ``agent_id -> metadata`` for project-local
+                agents; these take precedence over identically-named deployed
+                agents.
 
         Returns:
-            Formatted capabilities section string
+            A Markdown string starting with
+            ``"\\n\\n## Available Agent Capabilities\\n\\n"`` and ending with
+            a total-agent count line.
+
+        Test: Pass one deployed agent ``{"id": "research", "description": "…"}``
+        and verify the returned string contains ``"### Research"`` and the
+        agent description.  Pass an empty list/dict and verify the fallback
+        string is returned instead.
         """
         # Build capabilities section
         section = "\n\n## Available Agent Capabilities\n\n"
@@ -145,13 +201,33 @@ class CapabilityGenerator:
         return section
 
     def parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
-        """Parse agent metadata from deployed agent file.
+        """Parse agent metadata from a deployed ``.md`` agent file.
+
+        Why: Each deployed agent carries its identity (``name``), description,
+        routing hints, and capability metadata in a YAML frontmatter block.
+        Centralising the parse logic here ensures every caller gets the same
+        structured dict with sensible defaults when fields are absent.
+
+        What: Reads *agent_file*, extracts the ``---`` frontmatter block,
+        parses it with ``yaml.safe_load``, then supplements missing fields
+        (``routing``, ``memory_routing``) from the corresponding JSON template
+        via :meth:`load_routing_from_template` and
+        :meth:`load_memory_routing_from_template`.  Returns ``None`` on any
+        read/parse error so callers can skip unreadable files gracefully.
 
         Args:
-            agent_file: Path to deployed agent file
+            agent_file: Path to the deployed ``.md`` agent file.
 
         Returns:
-            Dictionary with agent metadata or None
+            Dict with at minimum ``"id"``, ``"display_name"``, and
+            ``"description"`` keys, plus any additional frontmatter fields;
+            or ``None`` if the file could not be read or parsed.
+
+        Test: Create a temp ``.md`` file with valid frontmatter
+        ``name: My Agent`` and call ``parse_agent_metadata(path)``; assert
+        ``result["id"] == "My Agent"``.  A file with no frontmatter should
+        return a dict with the stem as the ``"id"``.  A completely
+        unreadable file (permissions error) should return ``None``.
         """
         try:
             with agent_file.open() as f:
@@ -209,14 +285,31 @@ class CapabilityGenerator:
     def load_routing_from_template(
         self, agent_name: str, framework_path: Optional[Path] = None
     ) -> Optional[Dict[str, Any]]:
-        """Load routing metadata from agent JSON template.
+        """Load routing metadata from an agent's JSON template file.
+
+        Why: Routing hints (keywords, file paths, priority) are stored in JSON
+        templates rather than the ``.md`` file so they can be updated without
+        redeploying the agent.  When an ``.md`` file lacks a ``routing`` key in
+        its frontmatter this method retrieves the routing data from the
+        corresponding template.
+
+        What: For packaged installations uses ``importlib.resources`` to
+        locate templates; for development mode resolves the path relative to
+        *framework_path*.  Tries the canonical agent name first, then
+        alternative spellings (hyphens vs underscores).  Returns ``None``
+        when no template is found or on any error.
 
         Args:
-            agent_name: Name of the agent
-            framework_path: Path to framework installation
+            agent_name: Stem of the agent file (e.g. ``"local-ops"``).
+            framework_path: Root of the framework installation; pass
+                ``None`` or ``Path("__PACKAGED__")`` for packaged mode.
 
         Returns:
-            Dictionary with routing metadata or None if not found
+            The ``"routing"`` sub-dict from the template, or ``None``.
+
+        Test: In development mode, create a mock template JSON with a
+        ``"routing"`` key and confirm the method returns that dict.  Pass an
+        unknown agent name and confirm ``None`` is returned without raising.
         """
         try:
             # Check if we have a framework path
@@ -275,14 +368,29 @@ class CapabilityGenerator:
     def load_memory_routing_from_template(
         self, agent_name: str, framework_path: Optional[Path] = None
     ) -> Optional[Dict[str, Any]]:
-        """Load memory routing metadata from agent JSON template.
+        """Load memory-routing metadata from an agent's JSON template file.
+
+        Why: Memory routing describes how an agent's outputs should be stored
+        in the project memory graph (KuzuDB).  Like routing hints, this data
+        lives in JSON templates rather than the ``.md`` file so it can evolve
+        independently.
+
+        What: Identical search strategy to :meth:`load_routing_from_template`
+        but returns the ``"memory_routing"`` sub-dict instead of ``"routing"``.
+        Also tries ``-agent`` and ``_agent`` name variants because some
+        templates use the suffixed form.
 
         Args:
-            agent_name: Name of the agent
-            framework_path: Path to framework installation
+            agent_name: Stem of the agent file (e.g. ``"engineer"``).
+            framework_path: Root of the framework installation; pass
+                ``None`` or ``Path("__PACKAGED__")`` for packaged mode.
 
         Returns:
-            Dictionary with memory routing metadata or None if not found
+            The ``"memory_routing"`` sub-dict from the template, or ``None``.
+
+        Test: Provide a mock template JSON with a ``"memory_routing"`` key;
+        confirm the method returns that dict.  An agent with no template
+        should return ``None`` without raising.
         """
         try:
             # Check if we have a framework path
@@ -343,10 +451,25 @@ class CapabilityGenerator:
             return None
 
     def get_fallback_capabilities(self) -> str:
-        """Return fallback capabilities when dynamic discovery fails.
+        """Return a static fallback capabilities section when discovery fails.
+
+        Why: If no agents are deployed (e.g. a fresh install or a CI
+        environment without a ``.claude/agents/`` directory) the PM prompt
+        must still list *something* so the model can function.  This method
+        returns a minimal hardcoded list of core agents.
+
+        What: Returns a fixed Markdown string listing eight core agents with
+        their canonical IDs.  This string is identical in structure to the
+        dynamically generated section so the model's prompt format is
+        consistent.
 
         Returns:
-            Fallback agent capabilities section
+            A Markdown string with a hardcoded ``## Available Agent
+            Capabilities`` section listing core agents.
+
+        Test: Call with no arguments and assert the return value contains
+        ``"## Available Agent Capabilities"`` and the string
+        ``"engineer"`` (the Engineer agent ID).
         """
         return """
 

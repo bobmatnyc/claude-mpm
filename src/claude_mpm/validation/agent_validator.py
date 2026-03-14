@@ -41,7 +41,21 @@ logger = get_logger(__name__)
 
 @dataclass
 class ValidationResult:
-    """Result of agent validation."""
+    """Result of validating a single agent configuration.
+
+    Why: Validation can produce multiple errors and warnings rather than
+    failing on the first problem.  Aggregating them in a structured dataclass
+    lets callers display all issues at once and decide how to react (e.g.
+    reject the agent vs. accept with warnings).
+
+    What: Immutable-by-convention dataclass holding a boolean verdict plus
+    lists of error and warning strings.  ``metadata`` carries audit
+    information (validated timestamp, schema version, agent ID).
+
+    Test: Construct with ``is_valid=False, errors=["bad field"]`` and assert
+    ``result.is_valid is False`` and ``"bad field" in result.errors``.
+    Default construction should give ``is_valid=True`` with empty lists.
+    """
 
     is_valid: bool
     errors: List[str] = field(default_factory=list)
@@ -79,7 +93,24 @@ class AgentValidator:
     }
 
     def __init__(self, schema_path: Optional[Path] = None):
-        """Initialize the validator with the agent schema."""
+        """Initialise the validator, loading and compiling the JSON schema.
+
+        Why: Schema compilation via ``Draft7Validator`` is expensive; doing it
+        once at construction time rather than on every ``validate_agent`` call
+        avoids redundant work when validating batches of agents.
+
+        What: Resolves *schema_path* (defaults to the package-bundled
+        ``agent_schema.json``), calls :meth:`_load_schema` to parse it, then
+        compiles a ``Draft7Validator`` instance stored as ``self.validator``.
+
+        Args:
+            schema_path: Optional override for the schema file location.
+                Defaults to ``paths.schemas_dir / "agent_schema.json"``.
+
+        Test: Construct with no arguments and assert ``self.schema`` is a
+        non-empty dict and ``self.validator`` is a ``Draft7Validator``.
+        Construct with a non-existent path and expect ``FileNotFoundError``.
+        """
         if schema_path is None:
             schema_path = paths.schemas_dir / "agent_schema.json"
 
@@ -88,12 +119,24 @@ class AgentValidator:
         self.validator = Draft7Validator(self.schema)
 
     def _load_schema(self) -> Dict[str, Any]:
-        """Load the JSON schema from file.
+        """Load and return the JSON schema dict from ``self.schema_path``.
+
+        Why: Separating schema loading from ``__init__`` makes it possible to
+        unit-test load failures (e.g. missing or corrupt schema) without
+        constructing a fully-wired validator.
+
+        What: Validates that the path exists and is a regular file, then
+        JSON-parses it.  Raises on any error so the caller (``__init__``)
+        can propagate the failure rather than silently using an empty schema.
 
         Security Considerations:
         - Schema file path is validated to exist and be a file
         - JSON parsing errors are caught and logged
         - Schema tampering would be detected by validation failures
+
+        Test: Point ``self.schema_path`` at a valid schema file; assert the
+        returned dict contains ``"properties"``.  Point at a non-existent
+        path; assert ``FileNotFoundError`` is raised.
         """
         try:
             # SECURITY: Validate schema path exists and is a file
@@ -450,7 +493,20 @@ class AgentValidator:
         return results
 
     def get_schema_info(self) -> Dict[str, Any]:
-        """Get information about the loaded schema."""
+        """Return a summary dict describing the loaded schema.
+
+        Why: Callers (CLI help commands, admin dashboards) need to display
+        schema metadata — version, required fields, available properties —
+        without parsing the raw schema dict themselves.
+
+        What: Extracts ``title``, ``description``, ``required``, and
+        ``properties`` keys from ``self.schema`` and packages them with the
+        schema file path into a flat dict.
+
+        Test: Call on a freshly constructed ``AgentValidator()`` and assert
+        the returned dict contains the key ``"required_fields"`` as a list
+        and ``"schema_path"`` as a non-empty string.
+        """
         return {
             "schema_path": str(self.schema_path),
             "schema_title": self.schema.get("title", "Unknown"),
@@ -515,17 +571,54 @@ def validate_agent_migration(
 
 # Convenience functions
 def validate_agent_file(file_path: Path) -> ValidationResult:
-    """Validate a single agent file."""
+    """Validate a single agent JSON file against the bundled schema.
+
+    Why: Most call sites only need to validate one file and don't want to
+    manage an ``AgentValidator`` instance lifetime.  This module-level
+    helper creates a throw-away validator and delegates to it.
+
+    What: Constructs a default ``AgentValidator``, calls ``validate_file``,
+    and returns the result.
+
+    Args:
+        file_path: Absolute path to the agent ``.json`` config file.
+
+    Returns:
+        :class:`ValidationResult` with ``is_valid``, ``errors``, and
+        ``warnings`` populated.
+
+    Test: Pass the path to a known-good agent JSON and assert
+    ``result.is_valid is True``.  Pass a path to a JSON missing required
+    fields and assert ``result.is_valid is False`` with a non-empty
+    ``result.errors`` list.
+    """
     validator = AgentValidator()
     return validator.validate_file(file_path)
 
 
 def validate_all_agents(directory: Path) -> Tuple[int, int, List[str]]:
-    """
-    Validate all agents in a directory and return summary.
+    """Validate every agent JSON file in *directory* and return a summary.
+
+    Why: CI pipelines and release scripts need a single call that scans an
+    entire agent directory, aggregates results, and fails with a clear count
+    and error list rather than stopping on the first bad file.
+
+    What: Constructs a default ``AgentValidator``, calls
+    ``validate_directory``, then splits results into valid/invalid counts and
+    flattens all error strings into a single list prefixed by filename.
+
+    Args:
+        directory: Path to the directory containing agent ``.json`` files.
 
     Returns:
-        Tuple of (valid_count, invalid_count, error_messages)
+        ``(valid_count, invalid_count, error_messages)`` where
+        *error_messages* is a flat list of ``"filename: error"`` strings
+        for every invalid agent.
+
+    Test: Pass a directory containing one valid and one invalid agent JSON;
+    assert ``valid_count == 1``, ``invalid_count == 1``, and
+    ``error_messages`` has exactly one entry containing the invalid
+    filename.
     """
     validator = AgentValidator()
     results = validator.validate_directory(directory)
