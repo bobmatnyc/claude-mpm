@@ -1,3 +1,9 @@
+## v5.9.68 (2026-03-14)
+
+### Fix
+
+- resolve type errors in agent_manager, configure, and state_manager
+
 ## v5.9.67 (2026-03-14)
 
 ### Fix
