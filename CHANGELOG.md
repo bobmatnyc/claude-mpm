@@ -1,3 +1,9 @@
+## v5.9.67 (2026-03-14)
+
+### Fix
+
+- auto-fix ruff PLC0207 lint errors (use rsplit instead of split[-1])
+
 ## v5.9.66 (2026-03-14)
 
 ### Feat
