@@ -92,6 +92,16 @@ class CircuitBreaker:
     """
 
     def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 30):
+        """Initialise the circuit breaker in the CLOSED (healthy) state.
+
+        WHY: The circuit needs a failure threshold and recovery timeout captured at
+        construction so all subsequent calls share the same policy without re-passing
+        parameters.
+        WHAT: Sets failure_threshold, recovery_timeout, initialises failure_count to 0,
+        last_failure_time to None, state to CLOSED, and creates a named logger.
+        TEST: Instantiate CircuitBreaker(failure_threshold=3); assert state is
+        CircuitState.CLOSED and failure_count == 0.
+        """
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failure_count = 0
@@ -167,6 +177,18 @@ class SocketIOConnectionPool:
         batch_window_ms: int = 50,
         health_check_interval: int = 30,
     ):
+        """Initialise the connection pool with default server coordinates from config.
+
+        WHY: Captures pool parameters (size, batch window, health interval) and sets up
+        all internal data structures so start() only needs to launch background threads.
+        The server port is derived from CLAUDE_MPM_SOCKETIO_PORT env var or the config
+        default so routes are consistent without scanning at startup.
+        WHAT: Initialises deques and dicts for connection management, creates a
+        CircuitBreaker and batch/health thread state, and reads the server URL from
+        environment or config default.
+        TEST: Instantiate SocketIOConnectionPool(max_connections=2); assert
+        max_connections==2, available_connections is empty, and _running is False.
+        """
         self.max_connections = max_connections
         self.batch_window_ms = batch_window_ms
         self.health_check_interval = health_check_interval

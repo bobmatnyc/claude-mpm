@@ -37,6 +37,14 @@ class RetryableEvent:
     skip_sid: Optional[str] = None
 
     def __post_init__(self):
+        """Initialise timestamp fields to the current time if not supplied by the caller.
+
+        WHY: dataclass __post_init__ is needed because mutable defaults (time.time()) are
+        not allowed as dataclass field defaults; timestamps must be captured at instantiation.
+        WHAT: Sets created_at and last_attempt to time.time() when their value is None.
+        TEST: Construct RetryableEvent without timestamps; assert both fields are close to
+        time.time() and neither is None.
+        """
         if self.created_at is None:
             self.created_at = time.time()
         if self.last_attempt is None:
@@ -75,6 +83,15 @@ class RetryQueue:
     """
 
     def __init__(self, max_size: int = 1000):
+        """Initialise the retry queue with a bounded deque and zeroed statistics.
+
+        WHY: A bounded deque automatically drops the oldest events when full, preventing
+        unbounded memory growth during extended outages.  The stats dict gives operators
+        visibility into retry health without needing external monitoring.
+        WHAT: Creates a deque(maxlen=max_size), an asyncio.Lock for concurrent access,
+        and a stats dict with queued/retried/succeeded/abandoned counters set to zero.
+        TEST: Instantiate RetryQueue(max_size=5); assert len(queue)==0 and all stats==0.
+        """
         self.queue: Deque[RetryableEvent] = deque(maxlen=max_size)
         self.lock = asyncio.Lock()
         self.stats = {"queued": 0, "retried": 0, "succeeded": 0, "abandoned": 0}
@@ -155,6 +172,17 @@ class SocketIOEventBroadcaster:
         server=None,  # Add server reference for event history access
         connection_manager=None,  # Add connection manager for robust delivery
     ):
+        """Initialise the broadcaster with shared server state and optional collaborators.
+
+        WHY: The broadcaster is separated from the core server to satisfy SRP; it receives
+        references to the shared sio instance, client set, buffer, and stats rather than
+        owning them, so the server remains the single source of truth.
+        WHAT: Stores all injected dependencies; sets loop to None (assigned later by
+        server); creates a RetryQueue(1000) for resilient delivery; creates an
+        EventNormalizer for consistent event schema; sets retry_interval to 2.0 s.
+        TEST: Construct with mock sio and empty sets; assert retry_queue is not None,
+        normalizer is not None, and loop is None.
+        """
         self.sio = sio
         self.connected_clients = connected_clients
         self.event_buffer = event_buffer
@@ -208,6 +236,15 @@ class SocketIOEventBroadcaster:
         """Helper to start retry processor from a different thread."""
 
         async def _create_retry_task():
+            """Create the retry-queue background task inside the target event loop.
+
+            WHY: asyncio.create_task() must be called from within the running event loop;
+            this coroutine is scheduled via run_coroutine_threadsafe so it executes in
+            the correct loop even when called from a different thread.
+            WHAT: Creates and stores the retry queue task then logs confirmation.
+            TEST: Call _start_retry_in_loop() from a thread; assert retry_task is not None
+            after future.result() returns.
+            """
             self.retry_task = asyncio.create_task(self._process_retry_queue())
             self.logger.info("🔄 Started retry queue processor (cross-thread)")
 
@@ -411,6 +448,15 @@ class SocketIOEventBroadcaster:
         if self.connection_manager and self.loop:
             # Buffer for each connected client asynchronously
             async def buffer_for_clients():
+                """Buffer the normalised event for every currently connected client.
+
+                WHY: Persistent buffering per client allows late-joining or reconnecting
+                clients to replay missed events without re-broadcasting to all clients.
+                WHAT: Iterates a snapshot of connected_clients and awaits
+                connection_manager.buffer_event for each SID.
+                TEST: Attach two mock SIDs; trigger buffer_for_clients; assert
+                buffer_event was called once per SID with the correct event dict.
+                """
                 for sid in list(self.connected_clients):
                     await self.connection_manager.buffer_event(sid, event)
 

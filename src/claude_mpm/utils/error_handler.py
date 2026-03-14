@@ -78,8 +78,28 @@ def handle_errors(
     """
 
     def decorator(func: Callable) -> Callable:
+        """Wrap the target function with error-catching and user-friendly reporting.
+
+        WHY: Captures the outer handle_errors configuration (error_type, fallback, log
+        level) via closure so the same error policy applies to any decorated callable.
+        WHAT: Returns a wrapper that catches the configured exception type (and any
+        unexpected Exception), logs it, prints a user-friendly message to stderr, and
+        returns fallback_value.
+        TEST: Decorate a function that raises MPMError; call it; assert fallback_value
+        is returned and get_user_friendly_message() output appears on stderr.
+        """
+
         @wraps(func)
         def wrapper(*args, **kwargs):
+            """Execute the wrapped function and handle exceptions with user feedback.
+
+            WHY: Provides the runtime enforcement of the error-handling policy chosen at
+            decoration time, preventing unhandled exceptions from crashing callers.
+            WHAT: Calls the original function; on caught exception logs it and prints a
+            user-friendly or unexpected-error message to stderr; returns fallback_value.
+            TEST: Wrap a function that raises a non-MPMError; assert stderr contains
+            the "Unexpected error" prompt and the return value equals fallback_value.
+            """
             try:
                 return func(*args, **kwargs)
             except error_type as e:
@@ -154,8 +174,27 @@ def retry_on_error(
     """
 
     def decorator(func: Callable) -> Callable:
+        """Wrap the target function with retry logic, choosing async or sync wrapper.
+
+        WHY: Captures the outer retry_on_error configuration via closure and selects
+        the correct wrapper (async vs. sync) based on the decorated function type.
+        WHAT: Returns async_wrapper for coroutine functions, sync_wrapper for regular
+        functions; both implement exponential-backoff retry with the captured parameters.
+        TEST: Decorate an async function that raises twice then succeeds; set max_attempts=3;
+        assert the result is returned and the function was called exactly 3 times.
+        """
+
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
+            """Retry an async function with exponential backoff.
+
+            WHY: Handles transient async failures (network, service unavailability) without
+            callers needing to write their own retry loops.
+            WHAT: Awaits the original coroutine in a loop; on failure sleeps for an
+            exponentially growing delay; raises the last exception after all attempts fail.
+            TEST: Wrap an async function that raises on attempts 1-2 and succeeds on 3;
+            assert the returned value matches the success result.
+            """
             import asyncio
 
             last_exception = None
@@ -181,6 +220,15 @@ def retry_on_error(
 
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
+            """Retry a synchronous function with exponential backoff.
+
+            WHY: Handles transient synchronous failures (I/O, locks) without callers
+            needing to write their own retry loops.
+            WHAT: Calls the original function in a loop; on failure sleeps for an
+            exponentially growing delay; raises the last exception after all attempts fail.
+            TEST: Wrap a function that raises on attempts 1-2 and succeeds on 3;
+            assert the returned value matches the success result.
+            """
             import time
 
             last_exception = None

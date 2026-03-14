@@ -10,7 +10,7 @@ import sys
 import traceback
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, cast
 
 from claude_mpm.core.constants import RetryConfig
 from claude_mpm.core.exceptions import MPMError
@@ -103,7 +103,7 @@ class ErrorHandler:
         strategy = strategy or self.default_strategy
 
         # Build error context
-        error_context = {
+        error_context: Dict[str, Any] = {
             "error_type": type(error).__name__,
             "error_message": str(error),
             "operation": operation or "unknown",
@@ -359,8 +359,27 @@ def with_error_handling(
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        """Wrap the target function with error-handling and retry logic.
+
+        WHY: Inner decorator captures the outer configuration (strategy, retries, etc.)
+        via closure so the same ``with_error_handling`` call can be applied to any callable.
+        WHAT: Returns a ``wrapper`` that runs the function inside a retry loop and
+        delegates caught exceptions to ``handle_error``.
+        TEST: Decorate a function that raises on the first two calls but succeeds on the
+        third; set max_retries=2; assert the wrapper returns the success result.
+        """
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
+            """Execute the wrapped function with retry and error-handling.
+
+            WHY: Provides the actual run-time enforcement of the error strategy chosen
+            at decoration time, including exponential-style retry counting and fallback.
+            WHAT: Calls the original function in a loop, retrying on configured exceptions
+            up to max_retries times, then delegates to handle_error on final failure.
+            TEST: Wrap a function that always raises; assert handle_error is called once
+            (not retried) when max_retries=0 and strategy=FALLBACK; check return value.
+            """
             operation = func.__name__
             retries = 0
 
@@ -417,8 +436,26 @@ def safe_operation(
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        """Wrap the target function to suppress exceptions and return a fallback.
+
+        WHY: Captures the outer safe_operation configuration (fallback, log flag, exception
+        types) so the decorator is reusable across different callables.
+        WHAT: Returns a wrapper that catches the configured exception types and returns
+        fallback_value instead of propagating the exception.
+        TEST: Decorate a function that raises ValueError; assert wrapper returns the
+        configured fallback and does not raise.
+        """
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
+            """Execute the wrapped function and return fallback on failure.
+
+            WHY: Guarantees that decorated utility functions never crash the caller, even
+            when underlying operations (file I/O, network, etc.) fail unexpectedly.
+            WHAT: Calls the original function; on exception logs a warning (if enabled)
+            and returns fallback_value (or its return value if callable).
+            TEST: Wrap a function that raises; assert the return value equals fallback_value.
+            """
             try:
                 return func(*args, **kwargs)
             except exceptions as e:
@@ -427,10 +464,10 @@ def safe_operation(
 
                 if callable(fallback_value):
                     try:
-                        return fallback_value(*args, **kwargs)
+                        return cast("T", fallback_value(*args, **kwargs))
                     except Exception:
-                        return None
-                return fallback_value
+                        return cast("T", None)
+                return cast("T", fallback_value)
 
         return wrapper
 
@@ -453,8 +490,28 @@ def retry_on_error(
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        """Wrap the target function with exponential-backoff retry logic.
+
+        WHY: Captures the outer retry_on_error configuration via closure so the same
+        retry policy can be applied to any callable without boilerplate.
+        WHAT: Returns a wrapper that retries the function up to max_retries times with
+        an increasing delay between attempts.
+        TEST: Decorate a function that raises on the first two calls but succeeds on the
+        third; set max_retries=3; assert the wrapper returns the success value.
+        """
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
+            """Execute the wrapped function with exponential-backoff retry.
+
+            WHY: Handles transient failures (network blips, lock contention) automatically
+            so callers don't need to implement retry loops themselves.
+            WHAT: Calls the original function in a for-loop; on exception sleeps for an
+            exponentially growing delay before retrying; raises the last exception after
+            exhausting all attempts.
+            TEST: Wrap a function that always raises; set max_retries=2; assert the
+            wrapper raises after exactly 3 total attempts (1 initial + 2 retries).
+            """
             current_delay = delay
             last_exception = None
 
@@ -482,7 +539,13 @@ def retry_on_error(
 
             # All retries exhausted
             logger.error(f"All {max_retries} retries failed for {func.__name__}")
-            raise last_exception
+            raise (
+                last_exception
+                if last_exception is not None
+                else RuntimeError(
+                    f"All {max_retries} retries failed for {func.__name__} with no captured exception"
+                )
+            )
 
         return wrapper
 

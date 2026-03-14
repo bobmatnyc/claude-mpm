@@ -35,6 +35,14 @@ _agent_deployment_service = None
 
 
 def _get_backup_manager():
+    """Return the module-level BackupManager singleton, creating it on first call.
+
+    WHY: Lazy initialisation avoids importing BackupManager at module load time and
+    ensures DeploymentContext.from_project() is called once, sharing the agents_dir
+    across all agent route handlers in this module.
+    WHAT: Creates BackupManager seeded with the project agents directory; caches it.
+    TEST: Call twice; assert both return values are the same object (identity check).
+    """
     global _backup_manager
     if _backup_manager is None:
         from claude_mpm.services.config_api.backup_manager import BackupManager
@@ -45,6 +53,13 @@ def _get_backup_manager():
 
 
 def _get_operation_journal():
+    """Return the module-level OperationJournal singleton, creating it on first call.
+
+    WHY: A single shared journal ensures all agent operations in this process are
+    recorded in the same log without competing initialisation.
+    WHAT: Lazily imports and instantiates OperationJournal; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _operation_journal
     if _operation_journal is None:
         from claude_mpm.services.config_api.operation_journal import OperationJournal
@@ -54,6 +69,13 @@ def _get_operation_journal():
 
 
 def _get_deployment_verifier():
+    """Return the module-level DeploymentVerifier singleton, creating it on first call.
+
+    WHY: Verification runs after every deploy/undeploy; a singleton avoids repeated
+    construction overhead and keeps a single verifier state for this process.
+    WHAT: Lazily imports and instantiates DeploymentVerifier; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _deployment_verifier
     if _deployment_verifier is None:
         from claude_mpm.services.config_api.deployment_verifier import (
@@ -65,6 +87,13 @@ def _get_deployment_verifier():
 
 
 def _get_agent_deployment_service():
+    """Return the module-level AgentDeploymentService singleton, creating it on first call.
+
+    WHY: AgentDeploymentService is used across every agent deploy/undeploy route; a
+    singleton avoids re-initialisation and reuses any internal caches or connections.
+    WHAT: Lazily imports and instantiates AgentDeploymentService; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _agent_deployment_service
     if _agent_deployment_service is None:
         from claude_mpm.services.agents.deployment.agent_deployment import (
@@ -76,6 +105,15 @@ def _get_agent_deployment_service():
 
 
 def _error_response(status: int, error: str, code: str) -> web.Response:
+    """Build a standardised JSON error response for agent deployment API endpoints.
+
+    WHY: Consistent error shape lets front-end code rely on a single schema for all
+    failure responses instead of handling ad-hoc formats from each handler.
+    WHAT: Returns a web.Response with JSON body ``{success: false, error: ..., code: ...}``
+    and the given HTTP status code.
+    TEST: Call with (404, "agent not found", "NOT_FOUND"); assert response.status==404
+    and parsed JSON contains success=false and the expected error string.
+    """
     return web.json_response(
         {"success": False, "error": error, "code": code},
         status=status,

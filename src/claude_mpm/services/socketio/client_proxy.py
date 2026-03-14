@@ -39,6 +39,15 @@ class SocketIOClientProxy:
     """
 
     def __init__(self, host: str = "localhost", port: int = 8765):
+        """Initialise the client proxy with target server coordinates.
+
+        WHY: Captures the host/port of the persistent Socket.IO server so all later
+        connection attempts use consistent coordinates without repeating them.
+        WHAT: Stores host, port, and initialises internal state (thread, loop, client)
+        to None; sets ``running=True`` for interface compatibility.
+        TEST: Instantiate with host="127.0.0.1", port=9000; assert self.host and
+        self.port reflect the supplied values and self._sio_client is None.
+        """
         self.host = host
         self.port = port
         self.logger = get_logger(__name__ + ".SocketIOClientProxy")
@@ -212,18 +221,51 @@ class SocketIOClientProxy:
 
     # Compatibility methods for WebSocketServer interface
     def session_started(self, session_id: str, launch_method: str, working_dir: str):
+        """Log that a Claude session has started (WebSocketServer interface compatibility).
+
+        WHY: Code that receives a WebSocketServer object calls session_started(); this stub
+        keeps the proxy substitutable for a real server without forwarding the event.
+        WHAT: Logs the session_id at DEBUG level; does not emit a Socket.IO event.
+        TEST: Call with any string arguments; assert no exception and logger.debug is called.
+        """
         self.logger.debug(f"SocketIOClientProxy: Session started {session_id}")
 
     def session_ended(self):
+        """Log that a Claude session has ended (WebSocketServer interface compatibility).
+
+        WHY: Maintains interface parity with WebSocketServer so callers need not branch
+        based on server type.
+        WHAT: Logs a DEBUG message; does not emit a Socket.IO event.
+        TEST: Call with no arguments; assert no exception and a debug log is emitted.
+        """
         self.logger.debug("SocketIOClientProxy: Session ended")
 
     def claude_status_changed(
         self, status: str, pid: Optional[int] = None, message: str = ""
     ):
+        """Log a Claude process status change (WebSocketServer interface compatibility).
+
+        WHY: Keeps the proxy substitutable for a real WebSocketServer when callers report
+        Claude process state changes.
+        WHAT: Logs the status string at DEBUG level; does not emit a Socket.IO event.
+        TEST: Call with status="running"; assert no exception and debug log contains "running".
+        """
         self.logger.debug(f"SocketIOClientProxy: Claude status {status}")
 
     def agent_delegated(self, agent: str, task: str, status: str = "started"):
+        """Log an agent delegation event (WebSocketServer interface compatibility).
+
+        WHY: Maintains interface parity with WebSocketServer for delegation notifications.
+        WHAT: Logs the agent name at DEBUG level; does not emit a Socket.IO event.
+        TEST: Call with agent="engineer", task="write tests"; assert no exception.
+        """
         self.logger.debug(f"SocketIOClientProxy: Agent {agent} delegated")
 
     def todo_updated(self, todos: List[Dict[str, Any]]):
+        """Log a todo-list update (WebSocketServer interface compatibility).
+
+        WHY: Maintains interface parity with WebSocketServer for todo-list notifications.
+        WHAT: Logs the todo count at DEBUG level; does not emit a Socket.IO event.
+        TEST: Call with a list of 3 dicts; assert no exception and log contains "3 todos".
+        """
         self.logger.debug(f"SocketIOClientProxy: Todo updated ({len(todos)} todos)")

@@ -48,6 +48,16 @@ class SocketIOServerCore:
     """
 
     def __init__(self, host: str = "localhost", port: int = 8765):
+        """Initialise core server state without starting any threads or the event loop.
+
+        WHY: Construction must be side-effect-free so the server object can be created
+        before the caller decides whether or where to start it; all I/O starts in start().
+        WHAT: Stores host/port, creates logger, and initialises all internal state
+        (running, threads, sio, connected_clients, event_buffer, stats, heartbeat) to
+        their safe defaults; does not bind any port or create threads.
+        TEST: Instantiate SocketIOServerCore(); assert running is False, sio is None,
+        and connected_clients is an empty set.
+        """
         self.host = host
         self.port = port
         self.logger = get_logger(__name__ + ".SocketIOServer")
@@ -920,6 +930,15 @@ class SocketIOServerCore:
 
                 # Serve Svelte index.html at root
                 async def index_handler(request):
+                    """Serve the Svelte dashboard index.html at the root path.
+
+                    WHY: The SvelteKit dashboard entry point must be served from / so
+                    the browser loads the SPA shell before client-side routing takes over.
+                    WHAT: Returns a FileResponse for svelte_build_path/index.html; returns
+                    404 if the file is absent (e.g., build step was not run).
+                    TEST: Place a dummy index.html in a temp dir; configure svelte_build_path;
+                    call index_handler with a mock request; assert FileResponse is returned.
+                    """
                     index_file = svelte_build_path / "index.html"
                     if index_file.exists():
                         self.logger.debug(
@@ -947,6 +966,16 @@ class SocketIOServerCore:
 
                 # Serve version.json from Svelte build directory
                 async def version_handler(request):
+                    """Serve the dashboard version.json or return a safe default payload.
+
+                    WHY: The Svelte dashboard reads version.json to display build info;
+                    returning a default instead of 404 prevents dashboard startup errors
+                    when the version file was not generated during the build.
+                    WHAT: Returns FileResponse for svelte_build_path/version.json if it
+                    exists; otherwise returns a hardcoded JSON default.
+                    TEST: Remove version.json from build dir; call version_handler; assert
+                    the response is JSON with key "full_version".
+                    """
                     version_file = svelte_build_path / "version.json"
                     if version_file.exists():
                         self.logger.debug(f"Serving version.json from: {version_file}")
@@ -970,6 +999,16 @@ class SocketIOServerCore:
 
                 # Fallback handler
                 async def fallback_handler(request):
+                    """Serve a plain-text fallback when the Svelte dashboard is absent.
+
+                    WHY: If the dashboard build was not run or is missing, the root path
+                    must still return 200 so health checks and the Socket.IO handshake
+                    are not blocked by an unhandled route.
+                    WHAT: Returns a 200 plain-text response indicating the server is
+                    running but the dashboard is unavailable.
+                    TEST: Remove dashboard from build dir; start server; GET /; assert
+                    status 200 and body contains "Dashboard not available".
+                    """
                     return web.Response(
                         text="Socket.IO server running - Dashboard not available",
                         status=200,
@@ -985,6 +1024,16 @@ class SocketIOServerCore:
 
             # Ensure we always have a basic handler
             async def error_handler(request):
+                """Serve a plain-text response when static file setup failed.
+
+                WHY: If an exception occurred while configuring static routes, the root
+                path must still respond so the server is functional for API routes and
+                Socket.IO even though the dashboard cannot be served.
+                WHAT: Returns a 200 plain-text response indicating static files are
+                unavailable; registered as the / route after the exception is caught.
+                TEST: Trigger the except branch by providing an invalid build path; GET /;
+                assert status 200 and body contains "Static files unavailable".
+                """
                 return web.Response(
                     text="Socket.IO server running - Static files unavailable",
                     status=200,

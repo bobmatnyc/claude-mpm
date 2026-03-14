@@ -279,6 +279,15 @@ async def handle_project_summary(request: web.Request) -> web.Response:
     try:
 
         def _get_summary():
+            """Collect project summary data in a thread pool for the dashboard.
+
+            WHY: All underlying service calls are synchronous/blocking; running in
+            a thread prevents the async route handler from stalling the event loop.
+            WHAT: Queries agent count, available agents, deployed skills, source counts,
+            and deployment mode from config, then returns a summary dict.
+            TEST: Mock all service singletons; call _get_summary(); assert the returned
+            dict has "agents", "skills", "sources", and "deployment_mode" keys.
+            """
             # Count deployed agents
             agent_mgr = _get_agent_manager("project")
             deployed_agents = agent_mgr.list_agents(location="project")
@@ -345,6 +354,15 @@ async def handle_agents_deployed(request: web.Request) -> web.Response:
     try:
 
         def _list_deployed():
+            """List deployed agents and enrich them with is_core flag in a thread pool.
+
+            WHY: list_agents is blocking; offloading to a thread keeps the event loop free
+            while this potentially slow file-system scan runs.
+            WHAT: Calls agent_mgr.list_agents(); maps CORE_AGENTS paths to name stems;
+            adds is_core=True for agents whose name matches a core agent stem.
+            TEST: Mock agent_mgr.list_agents() with known agents; assert returned list
+            includes is_core=True for core agent names and False for others.
+            """
             from claude_mpm.config.agent_presets import CORE_AGENTS
 
             agent_mgr = _get_agent_manager("project")
@@ -408,6 +426,15 @@ async def handle_agents_available(request: web.Request) -> web.Response:
         pagination_params = extract_pagination_params(request)
 
         def _list_available():
+            """List available (cached) agents with search filtering and is_deployed flag.
+
+            WHY: list_cached_agents is blocking; running in a thread avoids stalling the
+            event loop during what can be a moderately slow cache read.
+            WHAT: Fetches cached agents, promotes metadata fields, applies optional search
+            filter, and adds is_deployed=True for agents already in the project.
+            TEST: Mock git_mgr.list_cached_agents() with two agents; mock deployed_names
+            with one; assert the result has is_deployed=True for the deployed one only.
+            """
             git_mgr = _get_git_source_manager()
             agents = git_mgr.list_cached_agents()
 
@@ -478,6 +505,15 @@ async def handle_skills_deployed(request: web.Request) -> web.Response:
     try:
 
         def _list_deployed_skills():
+            """List deployed skills enriched with deployment-index metadata in a thread.
+
+            WHY: check_deployed_skills is synchronous; running in a thread keeps the
+            event loop responsive while scanning the skills directory.
+            WHAT: Calls SkillsDeployerService.check_deployed_skills then tries to load
+            the deployment index to add metadata (deployed_at, is_user_requested, etc.).
+            TEST: Mock SkillsDeployerService and load_deployment_index; assert the
+            returned list contains the expected metadata fields.
+            """
             skills_svc = _get_skills_deployer()
             skills_dir = ctx.skills_dir
             deployed = skills_svc.check_deployed_skills(skills_dir=skills_dir)
@@ -557,6 +593,15 @@ async def handle_skills_available(request: web.Request) -> web.Response:
         pagination_params = extract_pagination_params(request)
 
         def _list_available_skills():
+            """List available skills with is_deployed flag in a thread pool.
+
+            WHY: list_available_skills and check_deployed_skills are both synchronous;
+            running in a thread keeps the event loop free for other requests.
+            WHAT: Fetches available skills from the deployer, checks which are already
+            deployed (using path-normalisation), and adds is_deployed to each skill.
+            TEST: Mock list_available_skills() with two skills; mark one as deployed;
+            assert is_deployed=True for the deployed one and False for the other.
+            """
             skills_svc = _get_skills_deployer()
             result = skills_svc.list_available_skills(collection=collection)
 
@@ -662,6 +707,15 @@ async def handle_sources(request: web.Request) -> web.Response:
     try:
 
         def _list_sources():
+            """Enumerate all configured agent and skill sources in a thread pool.
+
+            WHY: AgentSourceConfiguration.load() and SkillSourceConfiguration are
+            synchronous; running in a thread avoids blocking the event loop.
+            WHAT: Loads agent repositories and skill source configurations, converts them
+            to serialisable dicts, and returns a combined list.
+            TEST: Mock AgentSourceConfiguration and SkillSourceConfiguration; assert the
+            returned list contains entries for both agent and skill source types.
+            """
             sources = []
 
             # Agent sources
@@ -759,6 +813,15 @@ async def handle_agent_detail(request: web.Request) -> web.Response:
             )
 
         def _get_detail() -> Optional[Dict[str, Any]]:
+            """Read and parse agent YAML + frontmatter detail in a thread pool.
+
+            WHY: read_agent performs file I/O; running in a thread keeps the event loop
+            free while the agent markdown file is read and its frontmatter parsed.
+            WHAT: Reads the agent definition via agent_mgr.read_agent, parses frontmatter
+            with the fm_lib library, and returns a serialisable dict or None if not found.
+            TEST: Mock agent_mgr.read_agent() with known YAML; assert the returned dict
+            contains the expected frontmatter keys.
+            """
             import frontmatter as fm_lib
 
             agent_mgr = _get_agent_manager("project")
@@ -875,6 +938,15 @@ async def handle_skill_detail(request: web.Request) -> web.Response:
             )
 
         def _get_skill_detail() -> Dict[str, Any]:
+            """Read and parse a deployed skill's SKILL.md frontmatter in a thread pool.
+
+            WHY: Reading the skill directory and parsing frontmatter involves file I/O;
+            running in a thread keeps the event loop free.
+            WHAT: Locates the skill directory in the project skills path, parses SKILL.md
+            frontmatter if present, and returns a serialisable dict with name and metadata.
+            TEST: Create a temp skill dir with SKILL.md; mock skill_name; assert the
+            returned dict contains frontmatter metadata fields.
+            """
             # Look for the skill in the deployed skills directory
             project_skills_dir = Path.cwd() / ".claude" / "skills"
             skill_dir = project_skills_dir / skill_name
@@ -1013,6 +1085,14 @@ async def handle_skill_links(request: web.Request) -> web.Response:
         pagination_params = extract_pagination_params(request)
 
         def _get_links():
+            """Fetch all skill-to-agent links and stats in a thread pool.
+
+            WHY: get_all_links and get_stats may involve file reads; running in a thread
+            avoids blocking the event loop.
+            WHAT: Calls SkillToAgentMapper.get_all_links() and get_stats(); returns the
+            (links, stats) tuple for the caller to paginate and serialise.
+            TEST: Mock mapper; assert _get_links() returns the mock links and stats.
+            """
             mapper = _get_skill_to_agent_mapper()
             links = mapper.get_all_links()
             stats = mapper.get_stats()
@@ -1067,6 +1147,15 @@ async def handle_skill_links_agent(request: web.Request) -> web.Response:
         agent_name = request.match_info["agent_name"]
 
         def _get_agent_skills():
+            """Fetch skills associated with a specific agent in a thread pool.
+
+            WHY: Mapper lookups may involve file I/O; running in a thread prevents the
+            event loop from blocking during the per-agent skills query.
+            WHAT: Calls SkillToAgentMapper.get_skills_for_agent(agent_name) and returns
+            the skills list.
+            TEST: Mock mapper.get_skills_for_agent("engineer"); assert the function
+            returns the mocked skills list.
+            """
             mapper = _get_skill_to_agent_mapper()
             return mapper.get_agent_skills(agent_name)
 
@@ -1109,6 +1198,15 @@ async def handle_validate(request: web.Request) -> web.Response:
     try:
 
         def _validate():
+            """Run cached configuration validation in a thread pool.
+
+            WHY: validate_cached may involve file reads; running in a thread keeps the
+            event loop free during validation.
+            WHAT: Fetches the ConfigValidationService singleton and calls validate_cached();
+            returns the validation result dict.
+            TEST: Mock ConfigValidationService.validate_cached() with a known result;
+            assert _validate() returns that result.
+            """
             svc = _get_config_validation_service()
             return svc.validate_cached()
 

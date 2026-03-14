@@ -65,6 +65,13 @@ class BaseValidator(ABC):
     """Base class for all validators"""
 
     def __init__(self):
+        """Initialise the base validator with a class-specific logger.
+
+        WHY: Each concrete validator subclass needs its own logger so log messages
+        identify the originating validator without manual naming at every log site.
+        WHAT: Creates a logger named after the concrete class using get_logger.
+        TEST: Instantiate a concrete subclass; assert self.logger.name == subclass name.
+        """
         self.logger = get_logger(self.__class__.__name__)
 
     @abstractmethod
@@ -280,6 +287,14 @@ class PatternValidator(BaseValidator):
     """Validates regex patterns - replaces 31 pattern validation functions"""
 
     def __init__(self):
+        """Initialise the pattern validator with an empty compiled-pattern cache.
+
+        WHY: Compiling the same regex repeatedly is wasteful; the cache ensures each
+        pattern is compiled at most once and reused across all subsequent validations.
+        WHAT: Calls super().__init__() for the logger; initialises _compiled_patterns
+        to an empty dict.
+        TEST: Instantiate; assert _compiled_patterns is an empty dict.
+        """
         super().__init__()
         self._compiled_patterns: Dict[str, Pattern] = {}
 
@@ -387,6 +402,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_url(value: str) -> bool:
+        """Return True if value is a valid absolute URL (has scheme and netloc).
+
+        WHY: URL validation is needed for configuration fields that point to external
+        services; urllib.parse handles edge cases better than a hand-rolled regex.
+        WHAT: Parses value with urlparse and checks both scheme and netloc are non-empty.
+        TEST: Assert _validate_url("https://example.com") is True and
+        _validate_url("not-a-url") is False.
+        """
         try:
             result = urllib.parse.urlparse(value)
             return all([result.scheme, result.netloc])
@@ -395,6 +418,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_uri(value: str) -> bool:
+        """Return True if value is a valid URI (has at least a scheme).
+
+        WHY: URI validation is broader than URL validation; some config fields accept
+        non-HTTP URIs (file:, data:, urn:) that lack a netloc component.
+        WHAT: Parses value with urlparse and checks the scheme is non-empty.
+        TEST: Assert _validate_uri("urn:isbn:0451450523") is True and
+        _validate_uri("no-scheme") is False.
+        """
         try:
             result = urllib.parse.urlparse(value)
             return bool(result.scheme)
@@ -403,6 +434,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_uuid(value: str) -> bool:
+        """Return True if value is a valid UUID string.
+
+        WHY: UUID format is used for identifiers in config; stdlib uuid.UUID parsing
+        provides authoritative validation without a fragile hand-rolled regex.
+        WHAT: Passes value to uuid.UUID(); returns True on success, False on ValueError.
+        TEST: Assert _validate_uuid("550e8400-e29b-41d4-a716-446655440000") is True
+        and _validate_uuid("not-a-uuid") is False.
+        """
         import uuid
 
         try:
@@ -413,6 +452,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_ipv4(value: str) -> bool:
+        """Return True if value is a valid IPv4 address string.
+
+        WHY: Config fields for host addresses should reject invalid IPs at validation
+        time rather than at runtime when connections fail.
+        WHAT: Passes value to ipaddress.IPv4Address(); returns True on success.
+        TEST: Assert _validate_ipv4("192.168.1.1") is True and
+        _validate_ipv4("999.0.0.1") is False.
+        """
         try:
             ipaddress.IPv4Address(value)
             return True
@@ -421,6 +468,13 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_ipv6(value: str) -> bool:
+        """Return True if value is a valid IPv6 address string.
+
+        WHY: Config fields may accept IPv6 addresses; stdlib ipaddress handles all
+        compressed and expanded forms correctly.
+        WHAT: Passes value to ipaddress.IPv6Address(); returns True on success.
+        TEST: Assert _validate_ipv6("::1") is True and _validate_ipv6("xyz") is False.
+        """
         try:
             ipaddress.IPv6Address(value)
             return True
@@ -429,6 +483,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_ip(value: str) -> bool:
+        """Return True if value is a valid IPv4 or IPv6 address string.
+
+        WHY: Some config fields accept either IP version; this unifies both checks into
+        one call using stdlib ipaddress which handles both families.
+        WHAT: Passes value to ipaddress.ip_address(); returns True for both IPv4/IPv6.
+        TEST: Assert _validate_ip("10.0.0.1") is True, _validate_ip("::1") is True,
+        and _validate_ip("not.an.ip") is False.
+        """
         try:
             ipaddress.ip_address(value)
             return True
@@ -437,6 +499,15 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_hostname(value: str) -> bool:
+        """Return True if value matches the RFC 1123 hostname format.
+
+        WHY: Hostnames in config must follow DNS naming rules to be usable at
+        runtime; validating early prevents obscure connection failures later.
+        WHAT: Matches value against a regex enforcing label length (1-63 chars),
+        total length (1-253 chars), no leading/trailing hyphens, and no consecutive hyphens.
+        TEST: Assert _validate_hostname("my-host.example.com") is True and
+        _validate_hostname("-bad.host") is False.
+        """
         pattern = re.compile(
             r"^(?=.{1,253}$)(?!-)(?!.*--)"
             r"[a-zA-Z0-9-]{1,63}"
@@ -446,6 +517,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_date(value: str) -> bool:
+        """Return True if value is a valid ISO 8601 date (YYYY-MM-DD).
+
+        WHY: Date fields in config must be parseable; validating the format early
+        prevents runtime errors when the value is consumed by date-aware code.
+        WHAT: Parses value with strptime("%Y-%m-%d"); returns True on success.
+        TEST: Assert _validate_date("2025-01-01") is True and
+        _validate_date("01-01-2025") is False.
+        """
         try:
             datetime.strptime(value, "%Y-%m-%d")
             return True
@@ -454,6 +533,15 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_time(value: str) -> bool:
+        """Return True if value is a valid time string (HH:MM:SS or HH:MM).
+
+        WHY: Time fields in config must be clock-parseable; accepting both HH:MM and
+        HH:MM:SS covers common shorthand without being overly strict.
+        WHAT: Tries strptime with HH:MM:SS then falls back to HH:MM; returns True on
+        first success.
+        TEST: Assert _validate_time("14:30:00") is True, _validate_time("14:30") is True,
+        and _validate_time("25:00") is False.
+        """
         try:
             datetime.strptime(value, "%H:%M:%S")
             return True
@@ -466,6 +554,15 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_datetime(value: str) -> bool:
+        """Return True if value matches any of the supported ISO 8601 datetime formats.
+
+        WHY: Datetime config fields may use different but equivalent representations;
+        accepting multiple common formats avoids brittle single-format requirements.
+        WHAT: Tries strptime with four formats in order and returns True on the first
+        match; returns False if all formats fail.
+        TEST: Assert _validate_datetime("2025-01-01T12:00:00Z") is True and
+        _validate_datetime("not-a-date") is False.
+        """
         formats = [
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%dT%H:%M:%S",
@@ -482,6 +579,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_json(value: str) -> bool:
+        """Return True if value is valid JSON.
+
+        WHY: Config fields that embed JSON snippets must be parseable at runtime;
+        early validation surfaces syntax errors before they cause harder-to-debug failures.
+        WHAT: Calls json.loads(value); returns True on success, False on decode error.
+        TEST: Assert _validate_json('{"k": 1}') is True and
+        _validate_json("{bad json}") is False.
+        """
         import json
 
         try:
@@ -492,6 +597,15 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_base64(value: str) -> bool:
+        """Return True if value is valid standard base64-encoded data.
+
+        WHY: Config fields for secrets or binary blobs are often base64-encoded; early
+        validation prevents opaque decode errors later in the pipeline.
+        WHAT: Calls base64.b64decode(value, validate=True) which rejects non-alphabet
+        characters; returns True on success.
+        TEST: Assert _validate_base64("aGVsbG8=") is True and
+        _validate_base64("not!base64$") is False.
+        """
         import base64
 
         try:
@@ -502,6 +616,14 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_path(value: str) -> bool:
+        """Return True if value is a syntactically valid filesystem path.
+
+        WHY: Path config fields must at minimum be parseable by pathlib; this
+        validates syntax without requiring the path to exist.
+        WHAT: Passes value to Path(); returns True if no exception is raised.
+        TEST: Assert _validate_path("/usr/local/bin") is True.
+        (Platform-specific invalid paths will return False.)
+        """
         try:
             Path(value)
             return True
@@ -510,6 +632,16 @@ class FormatValidator(BaseValidator):
 
     @staticmethod
     def _validate_semver(value: str) -> bool:
+        """Return True if value is a valid semantic version string (semver 2.0).
+
+        WHY: Version fields in config should conform to semver so downstream tooling
+        can compare and sort them reliably.
+        WHAT: Matches value against the full semver 2.0 regex (major.minor.patch with
+        optional pre-release and build metadata); returns True on full match.
+        TEST: Assert _validate_semver("1.2.3") is True,
+        _validate_semver("1.2.3-alpha.1") is True, and
+        _validate_semver("1.2") is False.
+        """
         pattern = re.compile(
             r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
             r"(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)"
@@ -1033,6 +1165,15 @@ class ValidationStrategy(IConfigStrategy):
     """
 
     def __init__(self):
+        """Initialise ValidationStrategy with all 15 composable validators.
+
+        WHY: Constructing validators at init time avoids per-call instantiation overhead
+        and provides a single registry dict that compose_validators can look up by type.
+        WHAT: Creates a logger and populates self.validators with one instance of each
+        concrete BaseValidator subclass, keyed by its ValidationType enum value.
+        TEST: Instantiate ValidationStrategy(); assert len(self.validators) == 15 and
+        ValidationType.SCHEMA is in self.validators.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.validators = {
             ValidationType.TYPE: TypeValidator(),
@@ -1129,6 +1270,16 @@ class ValidationStrategy(IConfigStrategy):
         """Compose multiple validators into a single function"""
 
         def composed_validator(config: Dict, schema: Dict) -> ValidationResult:
+            """Run each named validator against config and merge the results.
+
+            WHY: Composing validators at call time allows the same composed function to
+            be reused with different config inputs without capturing config in the closure.
+            WHAT: Iterates validator_names from the outer scope; for each name looks up
+            the corresponding ValidationType and BaseValidator, calls validate(), and
+            accumulates errors/warnings into a combined ValidationResult.
+            TEST: Compose "TYPE" and "REQUIRED" validators; call with a config missing
+            a required field; assert the result is invalid and errors list is non-empty.
+            """
             result = ValidationResult(valid=True)
 
             for name in validator_names:

@@ -107,6 +107,15 @@ class BaseDetectionStrategy(IToolchainDetectionStrategy):
     """
 
     def __init__(self):
+        """Initialise the base strategy with a class-specific logger.
+
+        WHY: Each concrete strategy subclass needs its own logger so log output
+        identifies which strategy produced it without manual naming at every log site.
+        WHAT: Creates a logger named ``<module>.<ClassName>`` using the concrete class
+        name so subclass log messages are distinguishable.
+        TEST: Instantiate a concrete subclass; assert self.logger.name ends with the
+        subclass name.
+        """
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def _file_exists(self, project_path: Path, *relative_paths: str) -> bool:
@@ -199,6 +208,13 @@ class NodeJSDetectionStrategy(BaseDetectionStrategy):
     }
 
     def get_language_name(self) -> str:
+        """Return the display name for the language this strategy detects.
+
+        WHY: Callers need a human-readable language name for reporting without having to
+        inspect the strategy class name; satisfies the IToolchainDetectionStrategy contract.
+        WHAT: Returns the string "Node.js".
+        TEST: Call get_language_name() on a NodeDetectionStrategy instance; assert == "Node.js".
+        """
         return "Node.js"
 
     def can_detect(self, project_path: Path) -> bool:
@@ -367,6 +383,13 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
     }
 
     def get_language_name(self) -> str:
+        """Return the display name for the language this strategy detects.
+
+        WHY: Callers need a human-readable language name for reporting without having to
+        inspect the strategy class name; satisfies the IToolchainDetectionStrategy contract.
+        WHAT: Returns the string "Python".
+        TEST: Call get_language_name() on a PythonDetectionStrategy instance; assert == "Python".
+        """
         return "Python"
 
     def can_detect(self, project_path: Path) -> bool:
@@ -644,6 +667,13 @@ class RustDetectionStrategy(BaseDetectionStrategy):
     }
 
     def get_language_name(self) -> str:
+        """Return the display name for the language this strategy detects.
+
+        WHY: Callers need a human-readable language name for reporting without having to
+        inspect the strategy class name; satisfies the IToolchainDetectionStrategy contract.
+        WHAT: Returns the string "Rust".
+        TEST: Call get_language_name() on a RustDetectionStrategy instance; assert == "Rust".
+        """
         return "Rust"
 
     def can_detect(self, project_path: Path) -> bool:
@@ -762,6 +792,13 @@ class GoDetectionStrategy(BaseDetectionStrategy):
     }
 
     def get_language_name(self) -> str:
+        """Return the display name for the language this strategy detects.
+
+        WHY: Callers need a human-readable language name for reporting without having to
+        inspect the strategy class name; satisfies the IToolchainDetectionStrategy contract.
+        WHAT: Returns the string "Go".
+        TEST: Call get_language_name() on a GoDetectionStrategy instance; assert == "Go".
+        """
         return "Go"
 
     def can_detect(self, project_path: Path) -> bool:

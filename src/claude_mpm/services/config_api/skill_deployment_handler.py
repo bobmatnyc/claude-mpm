@@ -33,6 +33,14 @@ _skills_deployer = None
 
 
 def _get_backup_manager():
+    """Return the module-level BackupManager singleton, creating it on first call.
+
+    WHY: Lazy initialisation avoids importing BackupManager at module load time and
+    ensures that DeploymentContext.from_project() is called only once, reusing the
+    same skills_dir across all route handlers in this module.
+    WHAT: Creates BackupManager seeded with the project skills directory; caches it.
+    TEST: Call twice; assert both return values are the same object (identity check).
+    """
     global _backup_manager
     if _backup_manager is None:
         from claude_mpm.services.config_api.backup_manager import BackupManager
@@ -43,6 +51,13 @@ def _get_backup_manager():
 
 
 def _get_operation_journal():
+    """Return the module-level OperationJournal singleton, creating it on first call.
+
+    WHY: A single shared journal ensures all skill operations in this process are
+    recorded in the same log without competing initialisation.
+    WHAT: Lazily imports and instantiates OperationJournal; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _operation_journal
     if _operation_journal is None:
         from claude_mpm.services.config_api.operation_journal import OperationJournal
@@ -52,6 +67,13 @@ def _get_operation_journal():
 
 
 def _get_deployment_verifier():
+    """Return the module-level DeploymentVerifier singleton, creating it on first call.
+
+    WHY: Verification is needed after every deploy/undeploy; a singleton avoids repeated
+    construction overhead across the many route handlers in this module.
+    WHAT: Lazily imports and instantiates DeploymentVerifier; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _deployment_verifier
     if _deployment_verifier is None:
         from claude_mpm.services.config_api.deployment_verifier import (
@@ -63,6 +85,13 @@ def _get_deployment_verifier():
 
 
 def _get_skills_deployer():
+    """Return the module-level SkillsDeployerService singleton, creating it on first call.
+
+    WHY: Skills deployment service is used in every deploy/undeploy route; a singleton
+    avoids re-initialisation and allows internal caches to persist across requests.
+    WHAT: Lazily imports and instantiates SkillsDeployerService; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _skills_deployer
     if _skills_deployer is None:
         from claude_mpm.services.skills_deployer import SkillsDeployerService
@@ -82,6 +111,15 @@ def _get_immutable_skills():
 
 
 def _error_response(status: int, error: str, code: str) -> web.Response:
+    """Build a standardised JSON error response for skill deployment API endpoints.
+
+    WHY: Consistent error shape lets front-end code rely on a single schema for all
+    failure responses instead of handling ad-hoc formats from each handler.
+    WHAT: Returns a web.Response with JSON body ``{success: false, error: ..., code: ...}``
+    and the given HTTP status code.
+    TEST: Call with (409, "already deployed", "CONFLICT"); assert response.status==409
+    and parsed JSON contains the expected keys with those values.
+    """
     return web.json_response(
         {"success": False, "error": error, "code": code},
         status=status,
@@ -89,6 +127,14 @@ def _error_response(status: int, error: str, code: str) -> web.Response:
 
 
 def _verification_to_dict(result) -> Dict[str, Any]:
+    """Convert a VerificationResult object to a JSON-serialisable dict.
+
+    WHY: VerificationResult is a domain object that cannot be directly serialised to
+    JSON; this adapter makes it safe to embed in API responses.
+    WHAT: Extracts passed flag, timestamp, and list of check dicts from the result object.
+    TEST: Build a mock VerificationResult with known passed/checks values; call this;
+    assert the returned dict mirrors those values exactly.
+    """
     return {
         "passed": result.passed,
         "timestamp": result.timestamp,

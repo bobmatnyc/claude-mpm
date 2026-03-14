@@ -12,9 +12,12 @@ import asyncio
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from aiohttp import web
+
+if TYPE_CHECKING:
+    from claude_mpm.services.core.interfaces.agent import IAgentRegistry
 
 from claude_mpm.core.config_scope import (
     ConfigScope,
@@ -37,6 +40,14 @@ _active_jobs: Dict[str, asyncio.Task] = {}
 
 
 def _get_toolchain_analyzer():
+    """Return the module-level ToolchainAnalyzerService singleton, creating it on first call.
+
+    WHY: Lazy initialisation avoids importing a heavyweight service at module load time and
+    ensures a single shared instance is reused across all requests in this process.
+    WHAT: Creates a ToolchainAnalyzerService once, caches it in the module global, and
+    returns the cached instance on subsequent calls.
+    TEST: Call twice; assert both return values are the same object (``is`` check).
+    """
     global _toolchain_analyzer
     if _toolchain_analyzer is None:
         from claude_mpm.services.project.toolchain_analyzer import (
@@ -48,6 +59,16 @@ def _get_toolchain_analyzer():
 
 
 def _get_auto_config_manager():
+    """Return the module-level AutoConfigManagerService singleton, creating it on first call.
+
+    WHY: Auto-config manager construction is expensive (imports recommender, registry) and
+    must not be cached when initialisation fails — a failed instance would poison all future
+    requests.  Raises on failure so the caller gets a real error and the global stays None.
+    WHAT: Lazily constructs AutoConfigManagerService with its collaborators; caches the
+    result; raises (does NOT cache) on any construction error.
+    TEST: Mock AutoConfigManagerService to raise; call twice; assert both calls raise and
+    the global remains None after both attempts.
+    """
     global _auto_config_manager
     if _auto_config_manager is None:
         try:
@@ -68,7 +89,7 @@ def _get_auto_config_manager():
             try:
                 from claude_mpm.services.agents.registry import AgentRegistry
 
-                agent_registry = AgentRegistry()
+                agent_registry = cast("IAgentRegistry", AgentRegistry())
             except Exception:
                 logger.warning(
                     "AgentRegistry not available; validation will skip agent existence checks"
@@ -93,6 +114,12 @@ def _reset_auto_config_manager():
 
 
 def _get_backup_manager():
+    """Return the module-level BackupManager singleton, creating it on first call.
+
+    WHY: Centralises backup-manager lifecycle so every route handler shares one instance.
+    WHAT: Lazily imports and instantiates BackupManager; caches in module global.
+    TEST: Call twice; assert identity equality of both return values.
+    """
     global _backup_manager
     if _backup_manager is None:
         from claude_mpm.services.config_api.backup_manager import BackupManager
@@ -102,6 +129,13 @@ def _get_backup_manager():
 
 
 def _get_skills_deployer():
+    """Return the module-level SkillsDeployerService singleton, creating it on first call.
+
+    WHY: Skills deployment is used in the auto-configure apply flow; a single shared
+    instance avoids redundant initialisation and reuses any internal caches.
+    WHAT: Lazily imports and instantiates SkillsDeployerService; caches in module global.
+    TEST: Call twice; assert both return values are the same object.
+    """
     global _skills_deployer
     if _skills_deployer is None:
         from claude_mpm.services.skills_deployer import SkillsDeployerService
@@ -111,6 +145,15 @@ def _get_skills_deployer():
 
 
 def _error_response(status: int, error: str, code: str) -> web.Response:
+    """Build a standardised JSON error response for auto-configure API endpoints.
+
+    WHY: Consistent error shape lets front-end code rely on a single schema for all
+    failure responses instead of handling ad-hoc formats from each handler.
+    WHAT: Returns a web.Response with JSON body ``{success: false, error: ..., code: ...}``
+    and the given HTTP status code.
+    TEST: Call with (400, "bad input", "VALIDATION_ERROR"); assert response.status==400
+    and the parsed JSON contains the expected keys.
+    """
     return web.json_response(
         {"success": False, "error": error, "code": code},
         status=status,
@@ -255,6 +298,13 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
                 )
 
             def _detect():
+                """Run synchronous toolchain analysis in a thread pool.
+
+                WHY: analyze_toolchain is blocking; wrapping it here lets
+                asyncio.to_thread() offload it without blocking the event loop.
+                WHAT: Calls _get_toolchain_analyzer().analyze_toolchain(project_path).
+                TEST: Mock ToolchainAnalyzerService; assert _detect() returns its result.
+                """
                 analyzer = _get_toolchain_analyzer()
                 return analyzer.analyze_toolchain(project_path)
 
@@ -302,6 +352,14 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
                 )
 
             def _preview():
+                """Run synchronous configuration preview in a thread pool.
+
+                WHY: preview_configuration is blocking (toolchain analysis + recommendation);
+                wrapping it lets asyncio.to_thread() offload it without stalling the loop.
+                WHAT: Calls _get_auto_config_manager().preview_configuration with the
+                captured project_path and min_confidence.
+                TEST: Mock AutoConfigManagerService; assert _preview() returns its result.
+                """
                 mgr = _get_auto_config_manager()
                 return mgr.preview_configuration(project_path, min_confidence)
 
@@ -310,6 +368,15 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
 
             # Add skill recommendations based on detected agents
             def _recommend_skills_for_preview():
+                """Map recommended agents to their associated skills.
+
+                WHY: Skill recommendations are derived from the agents the preview plans
+                to deploy; bundling them in the preview response lets the UI display
+                a complete picture without a second API call.
+                WHAT: Imports AGENT_SKILL_MAPPING; for each recommendation in the preview
+                collects the associated skills and returns a sorted unique list.
+                TEST: Provide a preview with two recs; assert result contains expected skills.
+                """
                 from claude_mpm.cli.interactive.skills_wizard import (
                     AGENT_SKILL_MAPPING,
                 )
@@ -457,6 +524,13 @@ async def _run_auto_configure(
         await _emit_progress(handler, job_id, "detecting", 1, total_phases)
 
         def _detect():
+            """Run toolchain analysis in a thread pool (phase 1 of auto-configure).
+
+            WHY: analyze_toolchain is synchronous/blocking; offloading to a thread
+            prevents it from stalling the async event loop during the background job.
+            WHAT: Delegates to _get_toolchain_analyzer().analyze_toolchain(project_path).
+            TEST: Mock ToolchainAnalyzerService; assert _detect() returns the mock result.
+            """
             return _get_toolchain_analyzer().analyze_toolchain(project_path)
 
         _analysis = await asyncio.to_thread(_detect)
@@ -465,6 +539,14 @@ async def _run_auto_configure(
         await _emit_progress(handler, job_id, "recommending", 2, total_phases)
 
         def _preview():
+            """Run configuration preview in a thread pool (phase 2 of auto-configure).
+
+            WHY: preview_configuration is synchronous/blocking; offloading to a thread
+            keeps the event loop free for other tasks during the background job.
+            WHAT: Delegates to _get_auto_config_manager().preview_configuration with
+            captured project_path and min_confidence.
+            TEST: Mock AutoConfigManagerService; assert _preview() returns its result.
+            """
             return _get_auto_config_manager().preview_configuration(
                 project_path, min_confidence
             )
@@ -507,6 +589,13 @@ async def _run_auto_configure(
 
         # Backup before applying
         def _backup():
+            """Create a pre-deployment backup in a thread pool (phase 3 of auto-configure).
+
+            WHY: Creating a backup is blocking I/O; running it in a thread keeps the
+            event loop responsive and provides rollback capability if later phases fail.
+            WHAT: Calls _get_backup_manager().create_backup("auto_configure", "config", job_id).
+            TEST: Mock BackupManager; assert _backup() returns the mock backup_result.
+            """
             return _get_backup_manager().create_backup(
                 "auto_configure", "config", job_id
             )
@@ -549,6 +638,15 @@ async def _run_auto_configure(
             try:
 
                 def _deploy_one(name=agent_id):
+                    """Deploy a single agent in a thread pool (phase 4 of auto-configure).
+
+                    WHY: Agent deployment is blocking; the default-argument capture of
+                    agent_id (``name=agent_id``) is the standard Python loop-closure fix.
+                    WHAT: Creates AgentDeploymentService, resolves the project agents dir,
+                    and calls svc.deploy_agent(name, agents_dir, force_rebuild=False).
+                    TEST: Mock AgentDeploymentService; call _deploy_one("engineer");
+                    assert deploy_agent was called with the correct arguments.
+                    """
                     from claude_mpm.services.agents.deployment.agent_deployment import (
                         AgentDeploymentService,
                     )
@@ -581,6 +679,16 @@ async def _run_auto_configure(
         skill_errors = []
 
         def _recommend_and_deploy_skills():
+            """Derive and deploy skills for deployed agents (phase 5 of auto-configure).
+
+            WHY: Skills are coupled to agents; deploying them automatically avoids a
+            manual follow-up step and surfaces skill errors inline in the same job.
+            WHAT: Builds a set of recommended skills from AGENT_SKILL_MAPPING for the
+            would_deploy list, then deploys them to the project-scoped skills directory.
+            Returns early with empty lists if no skills are needed.
+            TEST: Mock SkillsDeployerService; provide would_deploy containing a known
+            agent; assert deploy_skills was called with the expected skill names.
+            """
             from claude_mpm.cli.interactive.skills_wizard import (
                 AGENT_SKILL_MAPPING,
             )
@@ -623,6 +731,15 @@ async def _run_auto_configure(
         )
 
         def _verify():
+            """Verify each deployed agent in a thread pool (phase 6 of auto-configure).
+
+            WHY: Verification confirms each agent file is correctly placed; running it
+            in a thread keeps the event loop free and allows parallel progress reporting.
+            WHAT: Lazily imports DeploymentVerifier, iterates deployed_agents, calls
+            verify_agent_deployed for each, and returns a dict of {name: {passed: bool}}.
+            TEST: Mock DeploymentVerifier; provide deployed_agents=["qa"]; assert _verify()
+            returns {"qa": {"passed": True/False}} matching the mock's return value.
+            """
             verifier_mod = __import__(
                 "claude_mpm.services.config_api.deployment_verifier",
                 fromlist=["DeploymentVerifier"],

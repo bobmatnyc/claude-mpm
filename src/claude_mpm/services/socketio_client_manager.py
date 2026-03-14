@@ -49,6 +49,16 @@ class ServerInfo:
     """Information about a detected Socket.IO server."""
 
     def __init__(self, host: str, port: int, response_data: Dict[str, Any]):
+        """Populate ServerInfo from the raw version-endpoint response payload.
+
+        WHY: Centralises extraction of server metadata from the HTTP response dict so
+        callers never need to know the exact key names returned by the server.
+        WHAT: Stores host, port, and extracts server_version, server_id, socketio_version,
+        features, supported_client_versions, and compatibility_matrix from response_data
+        with safe .get() defaults; records detected_at timestamp.
+        TEST: Call with host="localhost", port=8768, and a dict containing known keys;
+        assert all attributes match the dict values and detected_at is set.
+        """
         self.host = host
         self.port = port
         self.server_version = response_data.get("server_version", "unknown")
@@ -63,6 +73,13 @@ class ServerInfo:
 
     @property
     def url(self) -> str:
+        """Build and return the HTTP base URL for this server.
+
+        WHY: Callers need a full URL string for connection and HTTP requests; computing
+        it here avoids duplicating the host/port formatting across multiple call sites.
+        WHAT: Returns ``http://{self.host}:{self.port}`` as a string.
+        TEST: Create ServerInfo("localhost", 8768, {}); assert url == "http://localhost:8768".
+        """
         return f"http://{self.host}:{self.port}"
 
     def is_compatible(
@@ -88,6 +105,16 @@ class SocketIOClientManager:
     """Manages Socket.IO client connections with server discovery and compatibility checking."""
 
     def __init__(self, client_version: str = CLAUDE_MPM_VERSION):
+        """Initialise the client manager with version tracking and empty connection state.
+
+        WHY: Captures the client version used for server compatibility checks and sets
+        up all connection-state attributes to their initial disconnected values.
+        WHAT: Stores client_version, creates logger, initialises connection state
+        (current_server, client, connected, thread, running) to None/False, and
+        initialises the server discovery dict; warns if dependencies are missing.
+        TEST: Instantiate SocketIOClientManager(); assert connected is False, client
+        is None, and client_version matches CLAUDE_MPM_VERSION.
+        """
         self.client_version = client_version
         self.logger = get_logger("socketio_client_manager")
 
@@ -282,16 +309,39 @@ class SocketIOClientManager:
 
         @self.client.event
         async def connect():
+            """Handle Socket.IO connect event; update connection state.
+
+            WHY: The client must track its own connection state so emit_event() can
+            gate on self.connected rather than querying the socketio client each time.
+            WHAT: Logs the connection at INFO level and sets self.connected = True.
+            TEST: Mock client; fire connect event; assert self.connected is True.
+            """
             self.logger.info("🔗 Socket.IO client connected")
             self.connected = True
 
         @self.client.event
         async def disconnect():
+            """Handle Socket.IO disconnect event; update connection state.
+
+            WHY: Keeping self.connected accurate prevents emit_event() from attempting
+            sends on a broken connection, which would produce spurious errors.
+            WHAT: Logs the disconnection at INFO level and sets self.connected = False.
+            TEST: Mock client; fire disconnect event; assert self.connected is False.
+            """
             self.logger.info("🔌 Socket.IO client disconnected")
             self.connected = False
 
         @self.client.event
         async def connection_ack(data):
+            """Handle server connection acknowledgment and log any compatibility issues.
+
+            WHY: The server sends an ack with compatibility metadata; logging warnings
+            here alerts operators to version mismatches before runtime failures occur.
+            WHAT: Logs the ack at INFO; checks data["compatibility"]["compatible"] and
+            warns if False.
+            TEST: Provide data={"compatibility": {"compatible": False, "warnings": ["x"]}};
+            assert a warning log is emitted.
+            """
             self.logger.info("🤝 Received connection acknowledgment")
             compatibility = data.get("compatibility", {})
             if not compatibility.get("compatible", True):
@@ -301,10 +351,24 @@ class SocketIOClientManager:
 
         @self.client.event
         async def compatibility_warning(data):
+            """Handle explicit compatibility-warning event from server.
+
+            WHY: The server may push compatibility warnings asynchronously after the
+            initial ack; logging them here ensures they are always surfaced to operators.
+            WHAT: Logs data at WARNING level.
+            TEST: Fire event with data={"msg": "old client"}; assert warning log contains it.
+            """
             self.logger.warning(f"⚠️ Server compatibility warning: {data}")
 
         @self.client.event
         async def server_status(data):
+            """Handle periodic server-status update from server.
+
+            WHY: Server status events provide operational visibility (e.g., client count)
+            without requiring active polling from the client.
+            WHAT: Logs the connected-client count at DEBUG level.
+            TEST: Fire event with data={"clients_connected": 3}; assert debug log contains "3".
+            """
             self.logger.debug(
                 f"📊 Server status: {data.get('clients_connected', 0)} clients"
             )

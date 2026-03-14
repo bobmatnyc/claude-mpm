@@ -76,6 +76,15 @@ class BaseContextManager(ABC):
     """Base class for context managers"""
 
     def __init__(self):
+        """Initialise the base context manager with a logger, context/config stores, and lock.
+
+        WHY: Subclasses need shared infrastructure (logger, context dicts, lock) to manage
+        configuration contexts without duplicating boilerplate in each subclass.
+        WHAT: Creates a named logger, two empty dicts (contexts, configs), and a
+        threading.RLock for thread-safe context mutation.
+        TEST: Instantiate a concrete subclass; assert contexts and configs are empty dicts
+        and _lock is a threading.RLock.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.contexts: Dict[str, ContextMetadata] = {}
         self.configs: Dict[str, ContextConfig] = {}
@@ -98,6 +107,15 @@ class HierarchicalContextManager(BaseContextManager):
     """Manages hierarchical context relationships"""
 
     def __init__(self):
+        """Initialise the hierarchical context manager with thread-local stack and hierarchy dict.
+
+        WHY: Hierarchical contexts need a per-thread stack (for implicit parent resolution)
+        and a global parent-to-children mapping for traversal and cleanup.
+        WHAT: Calls super().__init__(); creates threading.local for per-thread context
+        stack and an empty dict for the parent->children hierarchy.
+        TEST: Instantiate; assert context_hierarchy == {} and context_stack is a
+        threading.local instance.
+        """
         super().__init__()
         self.context_stack = threading.local()
         self.context_hierarchy: Dict[str, List[str]] = {}  # parent -> children
@@ -242,6 +260,13 @@ class ScopedConfigManager:
     """Manages configuration within scoped contexts"""
 
     def __init__(self, context_manager: HierarchicalContextManager):
+        """Initialise the scoped config manager with a shared hierarchical context manager.
+
+        WHY: ScopedConfigManager delegates context resolution to HierarchicalContextManager;
+        injecting it here (rather than creating one) allows context sharing across managers.
+        WHAT: Stores context_manager reference, creates named logger, and creates RLock.
+        TEST: Instantiate with a mock context_manager; assert self.context_manager is the mock.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.context_manager = context_manager
         self._lock = threading.RLock()
@@ -394,6 +419,13 @@ class IsolatedContextManager:
     """Manages isolated configuration contexts"""
 
     def __init__(self):
+        """Initialise the isolated context manager with an empty context store and lock.
+
+        WHY: Isolated contexts need their own dict separate from hierarchical contexts so
+        they never inherit from parent scopes; the lock protects concurrent access.
+        WHAT: Creates named logger, empty isolated_contexts dict, and RLock.
+        TEST: Instantiate; assert isolated_contexts == {} and _lock is a threading.RLock.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.isolated_contexts: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.RLock()
@@ -435,6 +467,13 @@ class ThreadLocalContextManager:
     """Manages thread-local configuration contexts"""
 
     def __init__(self):
+        """Initialise the thread-local context manager with a threading.local store.
+
+        WHY: Thread-local storage ensures that configuration set in one thread cannot
+        leak into another, making this manager safe for multi-threaded request handlers.
+        WHAT: Creates named logger and threading.local() for per-thread context storage.
+        TEST: Instantiate; assert thread_contexts is a threading.local instance.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.thread_contexts = threading.local()
         self._global_registry: weakref.WeakValueDictionary = (

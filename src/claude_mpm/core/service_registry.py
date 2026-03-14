@@ -132,11 +132,29 @@ class ServiceRegistry:
         if config and not factory:
 
             def factory(c):
+                """Instantiate service_class with name, config, and DI container.
+
+                WHY: Closes over service_class, name, and config so the DI container
+                can call this factory later with only the container argument.
+                WHAT: Constructs and returns a new service instance pre-seeded with
+                the config dict supplied at registration time.
+                TEST: Register a service with config={"key": "val"}; resolve it; assert
+                the instance's config attribute matches the supplied dict.
+                """
                 return service_class(name=name, config=config, container=c)
 
         elif not factory:
             # Default factory with container injection
             def factory(c):
+                """Instantiate service_class with name and DI container.
+
+                WHY: Provides a default factory when neither a custom factory nor a config
+                dict is supplied, keeping service construction consistent.
+                WHAT: Constructs and returns a new service instance with name and container
+                injected; no config is passed.
+                TEST: Register a service without config; resolve it; assert an instance of
+                the correct class is returned with the registered name.
+                """
                 return service_class(name=name, container=c)
 
         # Register with DI container
@@ -187,6 +205,15 @@ class ServiceRegistry:
         import asyncio
 
         async def _start_all():
+            """Iterate registered singletons and call start() on each.
+
+            WHY: Service startup is async; this coroutine lets asyncio.run() drive it
+            from the synchronous start_all_services() public method.
+            WHAT: Walks the service registry, resolves each singleton, and awaits start()
+            if the service exposes that method; logs errors without aborting others.
+            TEST: Register two mock services with async start(); call start_all_services();
+            assert both start() methods were awaited.
+            """
             for name, service_class in self._services.items():
                 try:
                     # Only start singleton services
@@ -212,6 +239,15 @@ class ServiceRegistry:
         import asyncio
 
         async def _stop_all():
+            """Iterate registered singletons in reverse order and call stop() on each.
+
+            WHY: Services should be shut down in reverse registration order to respect
+            dependency relationships (dependents stop before dependencies).
+            WHAT: Walks the reversed service list, checks for running singletons, and
+            awaits stop() if the service is still running; logs errors without aborting.
+            TEST: Register two mock running services; call stop_all_services(); assert
+            stop() was awaited on both and in reverse registration order.
+            """
             for name, service_class in reversed(list(self._services.items())):
                 try:
                     # Only stop singleton services
@@ -236,6 +272,15 @@ class ServiceRegistry:
         import asyncio
 
         async def _get_health():
+            """Collect health-check results from all running singleton services.
+
+            WHY: Health checks are async; this coroutine bridges the synchronous
+            get_service_health() public method to the async health_check() calls.
+            WHAT: Iterates cached singletons, calls health_check() on each, and builds
+            a dict of {name: {status, message, metrics}}; records errors inline.
+            TEST: Register a mock service whose health_check() returns a known result;
+            call get_service_health(); assert the returned dict contains that result.
+            """
             health_status = {}
 
             for name, service_class in self._services.items():

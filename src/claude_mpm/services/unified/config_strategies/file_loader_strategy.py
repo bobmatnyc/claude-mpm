@@ -50,6 +50,13 @@ class BaseFileLoader(ABC):
     """Base class for all file loaders"""
 
     def __init__(self):
+        """Initialise the base file loader with a class-specific logger and empty cache.
+
+        WHY: Each concrete loader subclass needs its own named logger; the shared cache
+        dict avoids re-reading the same config file in a single process lifetime.
+        WHAT: Creates a logger named after the concrete class and initialises _cache to {}.
+        TEST: Instantiate a concrete subclass; assert _cache == {} and logger.name matches.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self._cache = {}
 
@@ -106,6 +113,13 @@ class StructuredFileLoader(BaseFileLoader):
     """
 
     def supports(self, format: ConfigFormat) -> bool:
+        """Return True if this loader handles the given format.
+
+        WHY: The strategy dispatch system calls supports() on each loader to find
+        the right one without coupling dispatch logic to concrete classes.
+        WHAT: Returns True for JSON, YAML, and TOML formats.
+        TEST: Assert supports(ConfigFormat.YAML) is True and supports(ConfigFormat.ENV) is False.
+        """
         return format in [ConfigFormat.JSON, ConfigFormat.YAML, ConfigFormat.TOML]
 
     def load(self, context: FileLoadContext) -> Dict[str, Any]:
@@ -306,6 +320,13 @@ class EnvironmentFileLoader(BaseFileLoader):
     """
 
     def supports(self, format: ConfigFormat) -> bool:
+        """Return True if this loader handles environment-variable format.
+
+        WHY: Satisfies the BaseFileLoader contract so the dispatch system can route
+        ENV format loading to this class without coupling.
+        WHAT: Returns True only for ConfigFormat.ENV.
+        TEST: Assert supports(ConfigFormat.ENV) is True and supports(ConfigFormat.JSON) is False.
+        """
         return format == ConfigFormat.ENV
 
     def load(self, context: FileLoadContext) -> Dict[str, Any]:
@@ -428,11 +449,28 @@ class EnvironmentFileLoader(BaseFileLoader):
         """Interpolate variables in configuration values"""
 
         def interpolate_value(value: Any) -> Any:
+            """Recursively replace variable references in a config value.
+
+            WHY: Configuration files often use ${VAR} or $VAR syntax to reference
+            other config keys or environment variables; this function resolves them.
+            WHAT: For strings, applies regex substitution using the replacer closure;
+            for dicts and lists, recurses into each element.
+            TEST: Call with "${HOME}/data"; assert the result matches os.environ["HOME"] + "/data".
+            """
             if isinstance(value, str):
                 # Replace ${VAR} or $VAR patterns
                 pattern = r"\$\{([^}]+)\}|\$(\w+)"
 
                 def replacer(match):
+                    """Look up a variable name in config then env; return original text if not found.
+
+                    WHY: Config-first lookup lets local config override env variables; falling
+                    back to the original match prevents silent data loss for unknown variables.
+                    WHAT: Extracts var_name from the regex match groups; checks config dict then
+                    os.environ; returns the original matched string if neither contains the key.
+                    TEST: Call re.sub with this replacer and a match for "${UNKNOWN}"; assert the
+                    result is "${UNKNOWN}" (unchanged).
+                    """
                     var_name = match.group(1) or match.group(2)
                     # Look in config first, then environment
                     if var_name in config:
@@ -461,6 +499,13 @@ class ProgrammaticFileLoader(BaseFileLoader):
     """
 
     def supports(self, format: ConfigFormat) -> bool:
+        """Return True if this loader handles Python module configuration format.
+
+        WHY: Satisfies the BaseFileLoader contract so the dispatch system can route
+        PYTHON format loading to this class without coupling.
+        WHAT: Returns True only for ConfigFormat.PYTHON.
+        TEST: Assert supports(ConfigFormat.PYTHON) is True and supports(ConfigFormat.ENV) is False.
+        """
         return format == ConfigFormat.PYTHON
 
     def load(self, context: FileLoadContext) -> Dict[str, Any]:
@@ -524,6 +569,13 @@ class LegacyFileLoader(BaseFileLoader):
     """
 
     def supports(self, format: ConfigFormat) -> bool:
+        """Return True if this loader handles INI/properties file format.
+
+        WHY: Satisfies the BaseFileLoader contract so the dispatch system can route
+        INI format loading to this class without coupling.
+        WHAT: Returns True only for ConfigFormat.INI.
+        TEST: Assert supports(ConfigFormat.INI) is True and supports(ConfigFormat.YAML) is False.
+        """
         return format == ConfigFormat.INI
 
     def load(self, context: FileLoadContext) -> Dict[str, Any]:
@@ -686,6 +738,16 @@ class CompositeFileLoader(BaseFileLoader):
     """
 
     def __init__(self):
+        """Initialise the composite loader with one instance of each concrete loader.
+
+        WHY: The composite delegates to the correct sub-loader at runtime; constructing
+        them all here avoids repeated instantiation overhead on each load() call.
+        WHAT: Calls super().__init__() for the cache/logger; populates self.loaders dict
+        with one StructuredFileLoader, EnvironmentFileLoader, ProgrammaticFileLoader,
+        and LegacyFileLoader keyed by their LoaderType.
+        TEST: Instantiate CompositeFileLoader(); assert len(self.loaders) == 4 and
+        all LoaderType values are present.
+        """
         super().__init__()
         self.loaders = {
             LoaderType.STRUCTURED: StructuredFileLoader(),
@@ -817,6 +879,14 @@ class FileLoaderStrategy(IConfigStrategy):
     """
 
     def __init__(self):
+        """Initialise the file-loading strategy with a logger and composite loader.
+
+        WHY: The strategy wraps a CompositeFileLoader to handle all supported file formats
+        through a single entry point, reducing the number of loaders callers must manage.
+        WHAT: Creates a named logger and instantiates CompositeFileLoader as the delegate.
+        TEST: Instantiate FileLoadingStrategy(); assert composite_loader is a
+        CompositeFileLoader instance.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.composite_loader = CompositeFileLoader()
 

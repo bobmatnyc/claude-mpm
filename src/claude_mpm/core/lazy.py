@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Lazy loading service infrastructure for deferred instantiation.
 
 This module provides a lazy loading mechanism for services that are expensive
@@ -189,6 +188,14 @@ class LazyServiceRegistry:
     """
 
     def __init__(self):
+        """Initialise an empty thread-safe registry.
+
+        WHY: The registry needs a dict to store services, a logger for diagnostics,
+        and a lock to prevent race conditions during concurrent registration.
+        WHAT: Sets _services to an empty dict, creates a named logger, and creates
+        a threading.Lock for mutation protection.
+        TEST: Instantiate; assert _services is empty and _lock is a threading.Lock.
+        """
         self._services: Dict[str, LazyService] = {}
         self._logger = get_logger("lazy_registry")
         self._lock = threading.Lock()
@@ -352,11 +359,30 @@ class lazy_property:
     """
 
     def __init__(self, func: Callable) -> None:
+        """Store the wrapped function and create the reentrant lock.
+
+        WHY: Captures the function being decorated and sets up a per-descriptor lock
+        so concurrent first-access attempts don't double-initialise the property.
+        WHAT: Saves func, creates threading.RLock(), and copies function metadata
+        via functools.update_wrapper so the descriptor looks like the original function.
+        TEST: Apply @lazy_property to a method; assert the descriptor's __name__ matches
+        the original method name (update_wrapper was applied).
+        """
         self.func = func
         self.lock = threading.RLock()
         functools.update_wrapper(self, func)
 
     def __get__(self, obj: Any, objtype: Optional[Type] = None) -> Any:
+        """Return the cached value, computing it on first access.
+
+        WHY: Implements the descriptor protocol so the lazy property behaves like a
+        regular attribute to callers while deferring expensive computation.
+        WHAT: Returns self when accessed on the class (obj is None); otherwise checks
+        the instance dict for a cached value, computing it under the lock if absent and
+        storing it in the instance dict to bypass the descriptor on future accesses.
+        TEST: Attach a spy to the wrapped function; access the property twice on one
+        instance; assert the spy was called exactly once.
+        """
         if obj is None:
             return self
 
@@ -391,6 +417,15 @@ class AsyncLazyService(Generic[T]):
         init_kwargs: Optional[dict] = None,
         name: Optional[str] = None,
     ):
+        """Initialise the async lazy wrapper without starting the underlying service.
+
+        WHY: Defers construction of async services (those requiring ``await`` during
+        ``__init__``) until the first attribute access in an async context.
+        WHAT: Stores service class and construction arguments; creates an asyncio.Lock
+        for safe concurrent first-access; initialises LazyMetrics for monitoring.
+        TEST: Instantiate AsyncLazyService(MyAsyncService); assert is_initialized is False
+        and _instance is None before any awaiting occurs.
+        """
         self._service_class = service_class
         self._init_args = init_args
         self._init_kwargs = init_kwargs or {}
@@ -457,6 +492,18 @@ class AsyncLazyService(Generic[T]):
             )
 
         async def async_wrapper(*args, **kwargs):
+            """Ensure the service is initialised then proxy the attribute call.
+
+            WHY: Because the underlying service may not yet exist, the wrapper must
+            await initialisation before forwarding the call, making the lazy service
+            transparent to async callers.
+            WHAT: Awaits _ensure_initialized(); increments access count; retrieves the
+            named attribute from the instance; awaits it if it is a coroutine, otherwise
+            calls it synchronously and returns the result.
+            TEST: Create AsyncLazyService wrapping a class with an async method; call
+            the method via __getattr__; assert the service was initialised and the correct
+            result returned.
+            """
             instance = await self._ensure_initialized()
             self._metrics.access_count += 1
             attr = getattr(instance, name)

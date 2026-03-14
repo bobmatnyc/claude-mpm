@@ -161,6 +161,16 @@ def singleton(cls: Type[T]) -> Type[T]:
     """
 
     def new_new(cls_inner, *args, **kwargs):
+        """Replace __new__ to route construction through SingletonManager.
+
+        WHY: The @singleton decorator needs to intercept object creation on the decorated
+        class so every ``ClassName(...)`` call returns the same instance.
+        WHAT: Delegates to SingletonManager.get_instance with the calling class and the
+        original construction arguments; first call creates the instance, subsequent calls
+        return the cached one.
+        TEST: Apply @singleton to a class; construct two instances; assert both are the
+        same object and __init__ was only called once.
+        """
         return SingletonManager.get_instance(cls_inner, *args, **kwargs)
 
     cls.__new__ = new_new

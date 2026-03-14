@@ -63,20 +63,70 @@ class MemoryHookService(BaseService, MemoryHookInterface):
 
             # Create memory loading hook
             class MemoryLoadHook(PreDelegationHook):
+                """Pre-delegation hook that loads relevant memories before Claude runs.
+
+                WHY: Injects memory context into the delegation so Claude can reference
+                past learnings without requiring callers to manage memory themselves.
+                WHAT: Wraps MemoryHookService._load_relevant_memories_hook and exposes it
+                as a PreDelegationHook with priority 10 (runs early in the hook chain).
+                TEST: Instantiate with a mock memory_service; call execute(context); assert
+                _load_relevant_memories_hook was called with that context.
+                """
+
                 def __init__(self, memory_service):
+                    """Store reference to the enclosing MemoryHookService.
+
+                    WHY: Hook classes need access to the service for memory operations
+                    but are constructed inside register_memory_hooks to share state.
+                    WHAT: Calls super().__init__ with fixed name/priority; saves memory_service.
+                    TEST: Construct with a mock service; assert self.memory_service is set.
+                    """
                     super().__init__(name="memory_load", priority=10)
                     self.memory_service = memory_service
 
                 def execute(self, context: HookContext) -> HookResult:
+                    """Delegate to memory service to load memories for this context.
+
+                    WHY: Keeps hook logic thin; actual memory loading lives in the service.
+                    WHAT: Calls _load_relevant_memories_hook on the wrapped service and
+                    returns its HookResult.
+                    TEST: Provide a context with a known agent_name; assert the result
+                    contains memory data from the mock service.
+                    """
                     return self.memory_service._load_relevant_memories_hook(context)
 
             # Create memory saving hook
             class MemorySaveHook(PostDelegationHook):
+                """Post-delegation hook that saves new memories after Claude responds.
+
+                WHY: Extracts learnings from Claude's output and persists them so they are
+                available to future sessions without manual intervention.
+                WHAT: Wraps MemoryHookService._save_new_memories_hook and exposes it as a
+                PostDelegationHook with priority 90 (runs late in the hook chain).
+                TEST: Instantiate with a mock memory_service; call execute(context); assert
+                _save_new_memories_hook was called with that context.
+                """
+
                 def __init__(self, memory_service):
+                    """Store reference to the enclosing MemoryHookService.
+
+                    WHY: Hook classes need access to the service for memory persistence
+                    but are constructed inside register_memory_hooks to share state.
+                    WHAT: Calls super().__init__ with fixed name/priority; saves memory_service.
+                    TEST: Construct with a mock service; assert self.memory_service is set.
+                    """
                     super().__init__(name="memory_save", priority=90)
                     self.memory_service = memory_service
 
                 def execute(self, context: HookContext) -> HookResult:
+                    """Delegate to memory service to save memories from this context.
+
+                    WHY: Keeps hook logic thin; actual memory persistence lives in the service.
+                    WHAT: Calls _save_new_memories_hook on the wrapped service and
+                    returns its HookResult.
+                    TEST: Provide a context with response text; assert the result indicates
+                    successful save and the mock service's save method was invoked.
+                    """
                     return self.memory_service._save_new_memories_hook(context)
 
             # Register the hook objects
