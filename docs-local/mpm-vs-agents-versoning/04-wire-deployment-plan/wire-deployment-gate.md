@@ -6,7 +6,7 @@
 **Status**: Implementation-Ready Plan (Amended after Devil's Advocate Review)
 **Addresses**: Devil's Advocate Finding A-2 (dead code: DeploymentVersionGate and ManifestCache not wired into pipeline)
 **Depends on**: Phase 1 + Phase 2 implementation (complete)
-**Revision**: v2 - incorporates 9 devil's advocate findings (DA-1 through DA-9)
+**Revision**: v3 - incorporates 8 devil's advocate findings (DA-1 through DA-5, DA-7 through DA-9); skills out of scope
 
 ---
 
@@ -128,7 +128,6 @@ Wire ManifestCache and DeploymentVersionGate into the production pipeline so tha
 4. **Warning at deploy time**: If the cached manifest says `min_cli_version > current`, a warning is logged but deployment proceeds.
 5. **Fail-open**: If ManifestCache has no entry for a source (e.g., legacy cache, first run), deployment proceeds without constraint.
 6. **Both code paths covered**: The gate runs for BOTH explicit-config and auto-discover deployment modes (DA-1 fix).
-7. **Scope: agents only**: Skills deployment is NOT gated in this phase. Skills come from the same repo but the skills reconciler is a separate code path. Gating skills is a future enhancement (DA-6 scoping decision).
 
 ### Non-Goals
 
@@ -136,7 +135,6 @@ Wire ManifestCache and DeploymentVersionGate into the production pipeline so tha
 - Adding per-agent deploy-time checks (future enhancement)
 - Changing the sync-time check behavior
 - Adding UI prompts or interactive confirmation
-- Gating skills deployment (future enhancement, see DA-6)
 
 ---
 
@@ -589,7 +587,7 @@ No change needed in `startup_reconciliation.py` for the initial wiring.
 | W-4 | No-manifest scenario doesn't write to cache | ManifestCache.get returns None |
 | W-5 | Successive syncs update cache entry | last_checked timestamp advances |
 
-### 6.2 New Tests: Deploy-Time Gate (11 tests -- expanded from 8, DA-1/DA-2/DA-6/DA-7)
+### 6.2 New Tests: Deploy-Time Gate (11 tests -- expanded from 8, DA-1/DA-2/DA-7)
 
 | # | Test | Assert |
 |---|------|--------|
@@ -613,19 +611,13 @@ No change needed in `startup_reconciliation.py` for the initial wiring.
 | W-18 | Concurrent reads during write | Two threads can read while one writes |
 | W-19 | Busy timeout handles lock contention | No `database is locked` error under 5s contention |
 
-### 6.4 New Test: Skills Scoping (1 test -- DA-6)
-
-| # | Test | Assert |
-|---|------|--------|
-| W-20 | Skills deployment is NOT gated | reconcile_skills deploys even when manifest cache has INCOMPATIBLE_HARD entry (confirms intentional scoping) |
-
-### 6.5 Test Location
+### 6.4 Test Location
 
 ```
-tests/services/agents/compatibility/test_wiring.py    # W-1 through W-20
+tests/services/agents/compatibility/test_wiring.py    # W-1 through W-19
 ```
 
-### 6.6 Existing Tests
+### 6.5 Existing Tests
 
 All 170 existing compatibility tests must continue to pass. The wiring changes add behavior without modifying existing behavior.
 
@@ -687,9 +679,9 @@ Forces clean state on next sync. Note: this does NOT affect `AgentSyncState` (st
 | 5.0: SQLite WAL mode | ~2 lines in manifest_cache.py | 5 min |
 | 5.1: Cache at sync time | ~25 lines in git_source_sync_service.py | 30 min |
 | 5.2: Gate at deploy time | ~70 lines in deployment_reconciler.py | 1.5 hours |
-| 6: Tests (20 tests) | ~350 lines in test_wiring.py | 3.5 hours |
+| 6: Tests (19 tests) | ~330 lines in test_wiring.py | 3 hours |
 | Verification | Full test suite run | 30 min |
-| **Total** | **~450 lines** | **~6 hours** |
+| **Total** | **~430 lines** | **~5.5 hours** |
 
 ---
 
@@ -736,14 +728,6 @@ This section documents all findings from the devil's advocate review and how the
 **Fix**: W-11 description rewritten to: "Synced with CLI v6.0.0, deploy with v5.10.0: gate re-validates cached manifest against current CLI version and detects INCOMPATIBLE_WARN". The word "staleness" removed.
 
 **Status**: FIXED in plan v2.
-
-### DA-6 (MEDIUM): Skills Deployment Not Covered by Gate
-
-**Finding**: `reconcile_skills()` is a separate method that also copies files from cache to `.claude/skills/`. The plan only gates `reconcile_agents()`.
-
-**Fix**: Explicitly scoped as agents-only in Section 3 (Goal #7) and Non-Goals. Test W-20 added to verify skills deployment is intentionally NOT gated. Skills gating is documented as a future enhancement.
-
-**Status**: ACKNOWLEDGED, explicitly scoped out with rationale and test.
 
 ### DA-7 (LOW): `__version__` Edge Case (None/Empty)
 
