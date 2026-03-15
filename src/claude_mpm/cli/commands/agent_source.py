@@ -122,16 +122,9 @@ def _test_repository_sync(repo: GitRepository) -> dict:
         with tempfile.TemporaryDirectory() as temp_cache:
             temp_cache_path = Path(temp_cache)
 
-            # Override cache path for testing
-            original_cache_path = repo.cache_path
-            repo.cache_path = temp_cache_path / repo.identifier
-
-            # Sync repository
+            # Sync repository using temp cache root
             manager = GitSourceManager(cache_root=temp_cache_path)
             sync_result = manager.sync_repository(repo, force=True, show_progress=False)
-
-            # Restore original cache path
-            repo.cache_path = original_cache_path
 
             if not sync_result.get("synced"):
                 return {
