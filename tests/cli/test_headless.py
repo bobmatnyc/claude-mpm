@@ -476,19 +476,6 @@ class TestHeadlessIntegration:
 
                 assert exit_code == 126  # Standard "permission denied" exit code
 
-    def test_environment_sets_disable_telemetry(self, mock_runner):
-        """Headless run should set DISABLE_TELEMETRY=1."""
-        mock_runner.claude_args = []
-
-        with patch.object(
-            HeadlessSession, "_get_working_directory", return_value=Path("/test")
-        ):
-            session = HeadlessSession(mock_runner)
-
-        env = session._prepare_environment()
-
-        assert env.get("DISABLE_TELEMETRY") == "1"
-
     def test_environment_sets_ci_true(self, mock_runner):
         """Headless run should set CI=true."""
         mock_runner.claude_args = []

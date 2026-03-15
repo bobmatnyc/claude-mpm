@@ -18,7 +18,6 @@ Claude MPM startup follows a multi-phase initialization sequence that prepares t
 **File**: `src/claude_mpm/cli/startup.py::setup_early_environment()`
 
 **Actions**:
-- Disable telemetry (`DISABLE_TELEMETRY=1`)
 - Suppress ALL logging initially (until user preference loaded)
 - Set `CLAUDE_MPM_SKIP_CLEANUP` for configure command
 - Process command-line arguments

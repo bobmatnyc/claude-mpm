@@ -531,7 +531,13 @@ class TestOneshotSession:
         """Test environment preparation."""
         with patch("os.environ.copy", return_value={"TEST": "value"}):
             result = oneshot_session._prepare_environment()
-            assert result == {"TEST": "value", "DISABLE_TELEMETRY": "1"}
+            assert result == {"TEST": "value"}
+
+    def test_prepare_environment_does_not_force_disable_telemetry(self, oneshot_session):
+        """Environment should not override user's telemetry preferences."""
+        with patch("os.environ.copy", return_value={}):
+            result = oneshot_session._prepare_environment()
+            assert "DISABLE_TELEMETRY" not in result
 
     def test_build_command_basic(self, oneshot_session):
         """Test basic command building."""
