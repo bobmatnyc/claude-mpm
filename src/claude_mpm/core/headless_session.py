@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
+from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.core.logger import get_logger
 
 # Protocol imports for type checking without circular dependencies
@@ -379,8 +380,8 @@ class HeadlessSession:
         """Prepare the execution environment."""
         env = os.environ.copy()
 
-        # Disable telemetry for Claude Code
-        env["DISABLE_TELEMETRY"] = "1"
+        # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
+        apply_subprocess_env_defaults(env)
 
         # Ensure no interactive prompts
         env["CI"] = "true"
