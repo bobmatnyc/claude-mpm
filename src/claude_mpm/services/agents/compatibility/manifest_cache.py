@@ -38,9 +38,17 @@ class ManifestCache:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
+    def _connect(self) -> sqlite3.Connection:
+        """Open a connection with busy_timeout for concurrent access."""
+        conn = sqlite3.connect(str(self._db_path))
+        conn.execute("PRAGMA busy_timeout=5000")
+        return conn
+
     def _init_db(self) -> None:
         """Initialize the manifest_cache table."""
         with sqlite3.connect(str(self._db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS manifest_cache (
                     source_id TEXT PRIMARY KEY,
@@ -76,7 +84,7 @@ class ManifestCache:
             agent_overrides: Optional dict of per-agent override dicts.
             raw_content: Optional raw YAML text of the manifest.
         """
-        with sqlite3.connect(str(self._db_path)) as conn:
+        with self._connect() as conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO manifest_cache
@@ -108,7 +116,7 @@ class ManifestCache:
             JSON columns (compatibility_ranges, agent_overrides) are
             deserialized to Python objects.
         """
-        with sqlite3.connect(str(self._db_path)) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM manifest_cache WHERE source_id = ?",
@@ -134,7 +142,7 @@ class ManifestCache:
             List of dicts, each with all cache columns.  JSON columns are
             deserialized to Python objects.
         """
-        with sqlite3.connect(str(self._db_path)) as conn:
+        with self._connect() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM manifest_cache ORDER BY last_checked DESC"
@@ -160,7 +168,7 @@ class ManifestCache:
         Returns:
             True if an entry was deleted, False if it did not exist.
         """
-        with sqlite3.connect(str(self._db_path)) as conn:
+        with self._connect() as conn:
             cursor = conn.execute(
                 "DELETE FROM manifest_cache WHERE source_id = ?",
                 (source_id,),
@@ -174,7 +182,7 @@ class ManifestCache:
         Returns:
             Count of deleted entries.
         """
-        with sqlite3.connect(str(self._db_path)) as conn:
+        with self._connect() as conn:
             cursor = conn.execute("DELETE FROM manifest_cache")
             conn.commit()
             return cursor.rowcount

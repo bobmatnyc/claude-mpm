@@ -22,6 +22,9 @@ from typing import Dict, List, Optional, Set
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_config import UnifiedConfig
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.services.agents.compatibility import CompatibilityResult
+from claude_mpm.services.agents.compatibility.deploy_gate import DeploymentVersionGate
+from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = get_logger(__name__)
@@ -87,6 +90,20 @@ class DeploymentReconciler:
         self.config = config or self._load_config()
         self.path_manager = get_path_manager()
 
+        # Deploy-time manifest compatibility gate (fail-open on init error)
+        try:
+            self._manifest_cache = ManifestCache()
+            self._deploy_gate = DeploymentVersionGate(
+                manifest_cache=self._manifest_cache
+            )
+        except Exception as e:
+            logger.debug(
+                "ManifestCache initialization failed: %s. Deploy-time checks disabled.",
+                e,
+            )
+            self._manifest_cache = None
+            self._deploy_gate = None
+
     def _load_config(self) -> UnifiedConfig:
         """Load configuration from standard location."""
         # For now, return default config
@@ -109,6 +126,22 @@ class DeploymentReconciler:
 
         # Get current state
         state = self._get_agent_state(cache_dir, deploy_dir)
+
+        # [DA-1 FIX] Deploy-time manifest compatibility check
+        # MUST run before auto-discover early return to cover all code paths
+        blocked_sources = self._check_deploy_compatibility()
+        if blocked_sources:
+            error_msgs: List[str] = []
+            for source_id in blocked_sources:
+                error_msgs.append(
+                    f"Agent deployment blocked: source '{source_id}' requires "
+                    f"a newer CLI. Run: pip install --upgrade claude-mpm"
+                )
+            for msg in error_msgs:
+                logger.error(msg)
+            return DeploymentResult(
+                deployed=[], removed=[], unchanged=[], errors=error_msgs
+            )
 
         # Check backward compatibility
         if not self.config.agents.enabled and self.config.agents.auto_discover:
@@ -236,6 +269,71 @@ class DeploymentReconciler:
         result.unchanged.extend(list(state.unchanged))
 
         return result
+
+    def _check_deploy_compatibility(self) -> Set[str]:
+        """Check cached manifest compatibility before deploying agents.
+
+        Fail-open: Returns empty set if cache unavailable or version unknown.
+        """
+        if self._deploy_gate is None or self._manifest_cache is None:
+            return set()
+
+        import os
+
+        if os.environ.get("CLAUDE_MPM_SKIP_COMPAT_CHECK", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            return set()
+
+        blocked: Set[str] = set()
+
+        try:
+            from claude_mpm import __version__
+        except ImportError:
+            return blocked
+
+        if not __version__:
+            return blocked
+
+        try:
+            all_cached = self._manifest_cache.get_all()
+        except Exception as e:
+            logger.debug("ManifestCache read failed: %s. Skipping deploy gate.", e)
+            return blocked
+
+        if not all_cached:
+            return blocked
+
+        for entry in all_cached:
+            source_id = entry.get("source_id", "unknown")
+            raw_content = entry.get("raw_content")
+            try:
+                result = self._deploy_gate.check_before_deploy(
+                    source_id=source_id,
+                    cli_version=__version__,
+                    cached_manifest_content=raw_content,
+                )
+            except Exception as e:
+                logger.debug(
+                    "Deploy gate check failed for source '%s': %s. Skipping.",
+                    source_id,
+                    e,
+                )
+                continue
+
+            if result.status == CompatibilityResult.INCOMPATIBLE_HARD:
+                logger.error(
+                    "Deploy blocked for source '%s': %s",
+                    source_id,
+                    result.message,
+                )
+                blocked.add(source_id)
+            elif result.status == CompatibilityResult.INCOMPATIBLE_WARN:
+                pass  # Warning already logged by DeploymentVersionGate
+
+        return blocked
 
     def _get_agent_state(
         self, cache_dir: Path, deploy_dir: Path

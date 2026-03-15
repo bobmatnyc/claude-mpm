@@ -23,6 +23,7 @@ from claude_mpm.services.agents.compatibility import (
     ManifestChecker,
     ManifestCheckResult,
 )
+from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
 from claude_mpm.services.agents.compatibility.manifest_fetcher import ManifestFetcher
 
 # Import normalize function for exclusion filtering
@@ -271,6 +272,15 @@ class GitSourceSyncService:
 
         self.git_manager = CacheGitManager(self.cache_dir)
 
+        # Initialize ManifestCache for persisting check results (fail-open)
+        try:
+            self._manifest_cache = ManifestCache()
+        except Exception as e:
+            logger.debug(
+                "ManifestCache initialization failed: %s. Cache writes disabled.", e
+            )
+            self._manifest_cache = None
+
     def _check_manifest_compatibility(
         self, skip_check: bool = False
     ) -> ManifestCheckResult:
@@ -315,6 +325,28 @@ class GitSourceSyncService:
 
         checker = ManifestChecker()
         result = checker.check(manifest_content, __version__)
+
+        # Persist manifest check result for deploy-time validation
+        if (
+            self._manifest_cache is not None
+            and manifest_content is not None
+            and result.repo_format_version is not None
+        ):
+            try:
+                import yaml
+
+                parsed = yaml.safe_load(manifest_content)
+                self._manifest_cache.store(
+                    source_id=self.source_id,
+                    repo_format_version=result.repo_format_version,
+                    min_cli_version=result.min_cli_version or "0.0.0",
+                    max_cli_version=(parsed or {}).get("max_cli_version"),
+                    compatibility_ranges=(parsed or {}).get("compatibility_ranges"),
+                    agent_overrides=(parsed or {}).get("agents"),
+                    raw_content=manifest_content,
+                )
+            except Exception as e:
+                logger.debug("Failed to cache manifest result: %s", e)
 
         if result.status == CompatibilityResult.INCOMPATIBLE_HARD:
             raise IncompatibleRepoError(
