@@ -1,3 +1,22 @@
+## v5.9.70 (2026-03-15)
+
+### Feat
+
+- add threshold guard to orphan detection to prevent mass deletion
+- add one-time migration to clean up renamed agent files (Phase 3)
+
+### Fix
+
+- correct PM memory filename docs (PM_memories.md not PM.md), mark dead MemoryProcessor code (#337)
+- add missing aws-ops and data-scientist to AGENT_NAME_MAP
+- add rename-aware memory migration for 4 renamed agents
+- add provenance checks to all orphan detection paths and fix or-agent_id bug
+- replace shutil.copy2 with deploy_agent_file() in DeploymentReconciler
+- normalize cache stems in orphan detection to prevent false agent deletion
+- prevent tests from deleting real deployed agents during make test
+- unify agent provenance detection to prevent user agent deletion
+- clarify mpm-message skill - msg.type vs message_type trap, CLI-first usage
+
 ## v5.9.69 (2026-03-14)
 
 ### Fix
