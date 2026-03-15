@@ -379,9 +379,6 @@ class HeadlessSession:
         """Prepare the execution environment."""
         env = os.environ.copy()
 
-        # Disable telemetry for Claude Code
-        env["DISABLE_TELEMETRY"] = "1"
-
         # Ensure no interactive prompts
         env["CI"] = "true"
 

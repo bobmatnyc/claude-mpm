@@ -161,7 +161,6 @@ def configure_mcp_server(config, project_root):
             "PYTHONPATH": str(project_root / "src"),
             "CLAUDE_MPM_ROOT": str(project_root),
             "MCP_MODE": "production",
-            "DISABLE_TELEMETRY": "1",
         },
     }
 

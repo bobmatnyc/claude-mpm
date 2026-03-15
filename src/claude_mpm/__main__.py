@@ -13,9 +13,6 @@ keeping this file minimal and focused on its single responsibility.
 import os
 import sys
 
-# Disable telemetry by default
-os.environ["DISABLE_TELEMETRY"] = "1"
-
 # Add parent directory to path to ensure proper imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

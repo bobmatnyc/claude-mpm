@@ -42,7 +42,6 @@ class ClaudeMPMSubprocess:
         overrides: dict[str, str] | None = None,
     ) -> dict[str, str]:
         env = os.environ.copy()
-        env["DISABLE_TELEMETRY"] = "1"
         env["CI"] = "true"
         env["CLAUDE_MPM_USER_PWD"] = self.working_directory
         env["CLAUDE_MPM_IS_SUBPROCESS"] = "1"

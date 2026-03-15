@@ -23,9 +23,6 @@ proper Python module context and import resolution.
 import os
 import sys
 
-# Disable telemetry by default
-os.environ["DISABLE_TELEMETRY"] = "1"
-
 from . import main
 
 if __name__ == "__main__":

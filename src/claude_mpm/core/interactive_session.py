@@ -561,10 +561,6 @@ class InteractiveSession:
         for var in claude_vars_to_remove:
             clean_env.pop(var, None)
 
-        # Disable telemetry for Claude Code
-        # This ensures Claude Code doesn't send telemetry data during runtime
-        clean_env["DISABLE_TELEMETRY"] = "1"
-
         return clean_env
 
     def _change_to_user_directory(self, env: dict) -> None:

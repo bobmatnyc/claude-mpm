@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 # Claude MPM executable wrapper with venv support
 
-# Disable telemetry by default
-export DISABLE_TELEMETRY=1
-
 # Get the directory where this script is located, following symlinks
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
