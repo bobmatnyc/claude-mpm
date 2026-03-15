@@ -249,11 +249,15 @@ def handle_add_agent_source(args) -> int:
         # Generate source ID from URL
         source_id = _generate_source_id(args.url)
 
-        # Check if already exists (by identifier)
+        # Check if already exists (by identifier or same URL+branch combination)
+        new_branch = getattr(args, "branch", "main")
         for repo in config.repositories:
-            if repo.identifier == source_id or repo.url == args.url:
+            if repo.identifier == source_id or (
+                repo.url == args.url and repo.branch == new_branch
+            ):
                 print(f"❌ Source '{repo.identifier}' already exists")
                 print(f"   URL: {repo.url}")
+                print(f"   Branch: {repo.branch}")
                 print()
                 print(
                     f"💡 Remove it first: claude-mpm agent-source remove {repo.identifier}"
@@ -270,6 +274,7 @@ def handle_add_agent_source(args) -> int:
         repo = GitRepository(
             url=args.url,
             subdirectory=args.subdirectory,
+            branch=getattr(args, "branch", "main"),
             priority=args.priority,
             enabled=enabled,
         )
@@ -358,6 +363,7 @@ def handle_add_agent_source(args) -> int:
         status_text = "enabled" if enabled else "disabled"
         print(f"{status_emoji} Added agent source: {repo.identifier}")
         print(f"   URL: {args.url}")
+        print(f"   Branch: {repo.branch}")
         if args.subdirectory:
             print(f"   Subdirectory: {args.subdirectory}")
         print(f"   Priority: {args.priority}")
@@ -414,6 +420,7 @@ def handle_list_agent_sources(args) -> int:
                     "identifier": r.identifier,
                     "url": r.url,
                     "subdirectory": r.subdirectory,
+                    "branch": r.branch,
                     "priority": r.priority,
                     "enabled": r.enabled,
                 }
@@ -440,6 +447,7 @@ def handle_list_agent_sources(args) -> int:
 
                 print(f"  {status} {repo.identifier}{system_tag} ({status_text})")
                 print(f"     URL: {repo.url}")
+                print(f"     Branch: {repo.branch}")
                 if repo.subdirectory:
                     print(f"     Subdirectory: {repo.subdirectory}")
                 print(f"     Priority: {repo.priority}")
@@ -732,6 +740,7 @@ def handle_show_agent_source(args) -> int:
         print()
         print(f"  Status: {status_emoji} {status_text}")
         print(f"  URL: {repo_to_show.url}")
+        print(f"  Branch: {repo_to_show.branch}")
         if repo_to_show.subdirectory:
             print(f"  Subdirectory: {repo_to_show.subdirectory}")
         print(f"  Priority: {repo_to_show.priority}")

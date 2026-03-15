@@ -166,10 +166,10 @@ class TestGitSourceManagerSyncAllRepositories:
         results = manager.sync_all_repositories(repos)
 
         # Should sync both repositories
-        assert "owner/repo1" in results
-        assert "owner/repo2" in results
-        assert results["owner/repo1"]["synced"] is True
-        assert results["owner/repo2"]["synced"] is True
+        assert "owner/repo1/main" in results
+        assert "owner/repo2/main" in results
+        assert results["owner/repo1/main"]["synced"] is True
+        assert results["owner/repo2/main"]["synced"] is True
 
     @patch("src.claude_mpm.services.agents.git_source_manager.GitSourceSyncService")
     def test_sync_all_repositories_partial_failure(self, mock_sync_service_class):
@@ -198,9 +198,9 @@ class TestGitSourceManagerSyncAllRepositories:
         results = manager.sync_all_repositories(repos)
 
         # First should succeed, second should fail
-        assert results["owner/repo1"]["synced"] is True
-        assert results["owner/repo2"]["synced"] is False
-        assert "error" in results["owner/repo2"]
+        assert results["owner/repo1/main"]["synced"] is True
+        assert results["owner/repo2/main"]["synced"] is False
+        assert "error" in results["owner/repo2/main"]
 
     @patch("src.claude_mpm.services.agents.git_source_manager.GitSourceSyncService")
     def test_sync_all_repositories_skips_disabled(self, mock_sync_service_class):
@@ -217,8 +217,8 @@ class TestGitSourceManagerSyncAllRepositories:
         results = manager.sync_all_repositories(repos)
 
         # Only enabled repo should be synced
-        assert "owner/repo1" in results
-        assert "owner/repo2" not in results
+        assert "owner/repo1/main" in results
+        assert "owner/repo2/main" not in results
 
 
 class TestGitSourceManagerListCachedAgents:

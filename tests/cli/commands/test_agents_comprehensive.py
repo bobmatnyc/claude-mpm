@@ -1709,15 +1709,17 @@ class TestCommandRouting:
             assert len(result.data["agents"]) == 2
 
     def test_deploy_agents_with_error(self):
-        """Test deploy agents with error from direct service mock."""
-        mock_service = MagicMock()
-        mock_service.deploy_system_agents.side_effect = Exception("Deployment failed")
+        """Test deploy agents with error from _deploy_agents mock."""
+        # _deploy_agents is called internally by run() for the DEPLOY command.
+        # We mock it directly to verify that run() propagates the error result.
+        with patch.object(
+            self.command,
+            "_deploy_agents",
+            side_effect=Exception("Deployment failed"),
+        ):
+            args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
 
-        self.command._deployment_service = mock_service
-
-        args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
-
-        result = self.command.run(args)
+            result = self.command.run(args)
 
         assert isinstance(result, CommandResult)
         assert result.success is False

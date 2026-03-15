@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 
@@ -17,6 +16,9 @@ class GitRepository:
     Attributes:
         url: Full GitHub repository URL (e.g., https://github.com/owner/repo)
         subdirectory: Optional subdirectory within repository (e.g., "agents/backend")
+        branch: Git branch to use (default: "main"). Tags also work (e.g., "v2.0.0").
+                Branch names containing '/' are not supported (they break raw GitHub URL
+                parsing). Rename with: git branch -m feature/v2 feature-v2
         enabled: Whether this repository should be synced
         priority: Priority for agent resolution (lower = higher precedence)
         last_synced: Timestamp of last successful sync
@@ -24,17 +26,21 @@ class GitRepository:
     """
 
     url: str
-    subdirectory: Optional[str] = None
+    subdirectory: str | None = None
+    branch: str = "main"
     enabled: bool = True
     priority: int = 100
-    last_synced: Optional[datetime] = None
-    etag: Optional[str] = None
+    last_synced: datetime | None = None
+    etag: str | None = None
 
     @property
     def cache_path(self) -> Path:
         """Return cache directory path for this repository.
 
-        Cache structure: ~/.claude-mpm/cache/agents/{owner}/{repo}/{subdirectory}/
+        Cache structure: ~/.claude-mpm/cache/agents/{owner}/{repo}/{branch}/{subdirectory}/
+
+        Branch is always included in the path so that different branches of the same
+        repository do not overwrite each other's cached agent files.
 
         Returns:
             Absolute path to cache directory for this repository
@@ -45,7 +51,7 @@ class GitRepository:
             ...     subdirectory="agents"
             ... )
             >>> repo.cache_path
-            Path('/Users/user/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents')
+            Path('/Users/user/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/main/agents')
         """
         home = Path.home()
         base_cache = home / ".claude-mpm" / "cache" / "agents"
@@ -53,8 +59,8 @@ class GitRepository:
         # Extract owner and repo from URL
         owner, repo = self._parse_github_url(self.url)
 
-        # Build cache path: base/owner/repo/subdirectory
-        cache_path = base_cache / owner / repo
+        # Build cache path: base/owner/repo/branch/subdirectory
+        cache_path = base_cache / owner / repo / self.branch
 
         if self.subdirectory:
             # Normalize subdirectory path (remove leading/trailing slashes)
@@ -67,7 +73,11 @@ class GitRepository:
     def identifier(self) -> str:
         """Return unique identifier for this repository.
 
-        Format: {owner}/{repo}/{subdirectory} or {owner}/{repo}
+        Format: {owner}/{repo}/{branch}/{subdirectory} or {owner}/{repo}/{branch}
+
+        Branch is always included so that the same repository on different branches
+        produces distinct identifiers (e.g., for ETag caching, duplicate detection,
+        and cache directory isolation).
 
         Returns:
             Unique identifier string
@@ -78,10 +88,10 @@ class GitRepository:
             ...     subdirectory="agents"
             ... )
             >>> repo.identifier
-            'owner/repo/agents'
+            'owner/repo/main/agents'
         """
         owner, repo = self._parse_github_url(self.url)
-        base_id = f"{owner}/{repo}"
+        base_id = f"{owner}/{repo}/{self.branch}"
 
         if self.subdirectory:
             normalized_subdir = self.subdirectory.strip("/")
@@ -131,6 +141,16 @@ class GitRepository:
 
         except Exception as e:
             errors.append(f"Invalid URL format: {e}")
+
+        # Validate branch
+        if not self.branch or not self.branch.strip():
+            errors.append("Branch name cannot be empty")
+        elif "/" in self.branch:
+            errors.append(
+                f"Branch name cannot contain '/' (got: '{self.branch}'). "
+                "Use a branch without slashes, or rename with: "
+                "git branch -m old-name new-name"
+            )
 
         # Validate priority
         if self.priority < 0:

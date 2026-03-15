@@ -102,25 +102,25 @@ class TestGitRepositoryIdentifier:
     """Test GitRepository identifier generation."""
 
     def test_identifier_with_subdirectory(self):
-        """Test identifier includes subdirectory."""
+        """Test identifier includes branch and subdirectory."""
         repo = GitRepository(
             url="https://github.com/owner/repo", subdirectory="agents/backend"
         )
 
-        assert repo.identifier == "owner/repo/agents/backend"
+        assert repo.identifier == "owner/repo/main/agents/backend"
 
     def test_identifier_without_subdirectory(self):
-        """Test identifier without subdirectory."""
+        """Test identifier includes branch even without subdirectory."""
         repo = GitRepository(url="https://github.com/owner/repo")
 
-        assert repo.identifier == "owner/repo"
+        assert repo.identifier == "owner/repo/main"
 
     def test_identifier_extracts_from_url(self):
-        """Test identifier correctly parses GitHub URLs."""
+        """Test identifier correctly parses GitHub URLs and includes branch."""
         test_cases = [
-            ("https://github.com/owner/repo", "owner/repo"),
-            ("https://github.com/owner/repo.git", "owner/repo"),
-            ("https://github.com/owner-name/repo-name", "owner-name/repo-name"),
+            ("https://github.com/owner/repo", "owner/repo/main"),
+            ("https://github.com/owner/repo.git", "owner/repo/main"),
+            ("https://github.com/owner-name/repo-name", "owner-name/repo-name/main"),
         ]
 
         for url, expected_base in test_cases:
@@ -132,40 +132,42 @@ class TestGitRepositoryCachePath:
     """Test GitRepository cache path generation."""
 
     def test_cache_path_default_location(self):
-        """Test cache path uses default location."""
+        """Test cache path uses default location including branch segment."""
         repo = GitRepository(url="https://github.com/owner/repo", subdirectory="agents")
         cache_path = repo.cache_path
 
-        # Should be ~/.claude-mpm/cache/remote-agents/owner/repo/agents/
-        assert cache_path.parts[-5:] == (
+        # Should be ~/.claude-mpm/cache/agents/owner/repo/main/agents
+        assert cache_path.parts[-6:] == (
             "cache",
             "agents",
             "owner",
             "repo",
+            "main",
             "agents",
         )
         assert cache_path.is_absolute()
 
     def test_cache_path_without_subdirectory(self):
-        """Test cache path without subdirectory."""
+        """Test cache path without subdirectory still includes branch segment."""
         repo = GitRepository(url="https://github.com/owner/repo")
         cache_path = repo.cache_path
 
-        # Should be ~/.claude-mpm/cache/remote-agents/owner/repo/
-        assert cache_path.parts[-4:] == ("cache", "agents", "owner", "repo")
+        # Should be ~/.claude-mpm/cache/agents/owner/repo/main
+        assert cache_path.parts[-5:] == ("cache", "agents", "owner", "repo", "main")
 
     def test_cache_path_with_nested_subdirectory(self):
-        """Test cache path with nested subdirectory."""
+        """Test cache path with nested subdirectory includes branch between repo and subdir."""
         repo = GitRepository(
             url="https://github.com/owner/repo", subdirectory="tools/agents/backend"
         )
         cache_path = repo.cache_path
 
-        assert cache_path.parts[-7:] == (
+        assert cache_path.parts[-8:] == (
             "cache",
             "agents",
             "owner",
             "repo",
+            "main",
             "tools",
             "agents",
             "backend",
@@ -233,3 +235,102 @@ class TestGitRepositoryPriority:
         # Lower number should come first
         assert repos[0].priority == 50
         assert repos[1].priority == 100
+
+
+class TestGitRepositoryBranch:
+    """Test GitRepository branch field: default, validation, and isolation."""
+
+    def test_branch_default_is_main(self):
+        """GitRepository defaults branch to 'main' when not specified."""
+        repo = GitRepository(url="https://github.com/owner/repo")
+        assert repo.branch == "main"
+
+    def test_branch_can_be_set(self):
+        """GitRepository accepts an explicit branch name."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="develop")
+        assert repo.branch == "develop"
+
+    def test_branch_tag_names_work(self):
+        """Tag names can be used as branch values (they work in raw GitHub URLs)."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="v2.0.0")
+        assert repo.branch == "v2.0.0"
+        errors = repo.validate()
+        assert len(errors) == 0
+
+    def test_branch_in_identifier(self):
+        """Branch appears between repo-name and subdirectory in the identifier."""
+        repo = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="develop",
+        )
+        assert repo.identifier == "owner/repo/develop/agents"
+
+    def test_branch_in_identifier_no_subdirectory(self):
+        """Branch appears as the third segment when there is no subdirectory."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="staging")
+        assert repo.identifier == "owner/repo/staging"
+
+    def test_branch_in_cache_path(self):
+        """Branch segment is present between repo directory and subdirectory."""
+        repo = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="develop",
+        )
+        cache_path = repo.cache_path
+        # …/cache/agents/owner/repo/develop/agents
+        assert cache_path.parts[-6:] == (
+            "cache",
+            "agents",
+            "owner",
+            "repo",
+            "develop",
+            "agents",
+        )
+
+    def test_branch_in_cache_path_no_subdirectory(self):
+        """Branch segment is the final directory component when no subdirectory is given."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="staging")
+        cache_path = repo.cache_path
+        # …/cache/agents/owner/repo/staging
+        assert cache_path.parts[-5:] == ("cache", "agents", "owner", "repo", "staging")
+
+    def test_branch_validation_rejects_slash(self):
+        """Branch names containing '/' are rejected (they break raw GitHub URL parsing)."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="feature/v2")
+        errors = repo.validate()
+        assert len(errors) > 0
+        assert any("/" in error for error in errors)
+        # Error message should suggest the workaround
+        assert any("git branch -m" in error for error in errors)
+
+    def test_branch_validation_rejects_empty(self):
+        """Empty branch names are rejected."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="")
+        errors = repo.validate()
+        assert len(errors) > 0
+        assert any("branch" in error.lower() for error in errors)
+
+    def test_branch_validation_rejects_whitespace_only(self):
+        """Whitespace-only branch names are rejected."""
+        repo = GitRepository(url="https://github.com/owner/repo", branch="   ")
+        errors = repo.validate()
+        assert len(errors) > 0
+        assert any("branch" in error.lower() for error in errors)
+
+    def test_same_repo_different_branches_different_identifiers(self):
+        """Same URL + different branch produces different identifiers."""
+        repo_main = GitRepository(url="https://github.com/owner/repo", branch="main")
+        repo_staging = GitRepository(
+            url="https://github.com/owner/repo", branch="staging"
+        )
+        assert repo_main.identifier != repo_staging.identifier
+
+    def test_same_repo_different_branches_different_cache_paths(self):
+        """Same URL + different branch produces different cache paths."""
+        repo_main = GitRepository(url="https://github.com/owner/repo", branch="main")
+        repo_staging = GitRepository(
+            url="https://github.com/owner/repo", branch="staging"
+        )
+        assert repo_main.cache_path != repo_staging.cache_path
