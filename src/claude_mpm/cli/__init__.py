@@ -92,6 +92,17 @@ def main(argv: Optional[list] = None):
             "CLAUDE_MPM_NO_SYNC", "0"
         ) in ("1", "true", "True", "yes")
 
+        # Check for --skip-compat-check flag or environment variable
+        skip_compat_check = getattr(args, "skip_compat_check", False) or os.environ.get(
+            "CLAUDE_MPM_SKIP_COMPAT_CHECK", "0"
+        ) in ("1", "true", "True", "yes")
+
+        # Propagate CLI flag to env var so it reaches _check_manifest_compatibility
+        # (which checks the env var directly, avoiding the need to thread the flag
+        # through all intermediate startup functions)
+        if skip_compat_check:
+            os.environ["CLAUDE_MPM_SKIP_COMPAT_CHECK"] = "1"
+
         # Check if running in headless mode
         is_headless = getattr(args, "headless", False)
 

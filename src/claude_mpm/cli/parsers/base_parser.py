@@ -308,6 +308,12 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Skip agent and skills sync for faster startup (uses existing cached files)",
     )
     run_group.add_argument(
+        "--skip-compat-check",
+        action="store_true",
+        default=False,
+        help="Skip manifest compatibility checking during agent sync",
+    )
+    run_group.add_argument(
         "--chrome",
         action="store_true",
         help="Enable Claude in Chrome integration (passed to Claude Code)",
