@@ -17,6 +17,13 @@ class MemoryProcessor:
     def load_pm_memories(self) -> Dict[str, str]:
         """Load PM memories from various locations.
 
+        .. deprecated::
+            DEAD CODE — this method is never called by ``FrameworkLoader``.
+            PM memory loading goes through the ``MemoryManager`` service
+            (``FrameworkLoader`` → ``MemoryManager`` → ``ContentFormatter``),
+            not through this processor.  Retained for backward compatibility
+            only; should be removed in a future cleanup pass.
+
         Returns:
             Dictionary with actual_memories content
         """
