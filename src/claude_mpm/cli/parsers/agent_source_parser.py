@@ -54,7 +54,8 @@ def add_agent_source_subparser(subparsers) -> argparse.ArgumentParser:
     )
     add_parser.add_argument(
         "--subdirectory",
-        help="Subdirectory within repository containing agents (e.g., 'agents')",
+        default="agents",
+        help="Subdirectory within repository containing agents (default: agents)",
     )
     add_parser.add_argument(
         "--branch",
