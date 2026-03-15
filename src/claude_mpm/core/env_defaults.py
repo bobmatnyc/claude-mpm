@@ -29,7 +29,7 @@ _ENV_DEFAULTS: Dict[str, str] = {
 # Env vars where the consuming tool checks for existence, not value.
 # When the user sets value to "0" (meaning "don't disable"), the var must be
 # completely removed from the subprocess env so the tool doesn't see it.
-_PRESENCE_BASED_VARS: set = {"DISABLE_TELEMETRY"}
+_PRESENCE_BASED_VARS: set[str] = {"DISABLE_TELEMETRY"}
 
 
 def apply_env_defaults() -> None:
@@ -48,7 +48,8 @@ def get_telemetry_disabled() -> bool:
     Checks os.environ after defaults have been applied.
     Returns True when DISABLE_TELEMETRY == "1" (the default).
     """
-    return os.environ.get("DISABLE_TELEMETRY", "1") == "1"
+    default = _ENV_DEFAULTS["DISABLE_TELEMETRY"]
+    return os.environ.get("DISABLE_TELEMETRY", default) == default
 
 
 def apply_subprocess_env_defaults(env: Dict[str, str]) -> Dict[str, str]:

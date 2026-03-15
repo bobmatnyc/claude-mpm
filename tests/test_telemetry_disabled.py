@@ -13,70 +13,52 @@ import pytest
 
 def test_python_module():
     """Test if DISABLE_TELEMETRY defaults to '1' when not set in shell."""
-    try:
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import sys; sys.path.insert(0, 'src'); "
-                "from claude_mpm.core.env_defaults import apply_env_defaults; "
-                "apply_env_defaults(); "
-                "import os; print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
-            ],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).parent.parent,
-            check=False,
-            env={**os.environ, "DISABLE_TELEMETRY": ""},
-        )
-        output = result.stdout.strip()
-        # Empty string is treated as falsy; setdefault only skips if key exists
-        # Re-test with key fully absent
-        result2 = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import sys; sys.path.insert(0, 'src'); "
-                "from claude_mpm.core.env_defaults import apply_env_defaults; "
-                "apply_env_defaults(); "
-                "import os; print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
-            ],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).parent.parent,
-            check=False,
-            env={k: v for k, v in os.environ.items() if k != "DISABLE_TELEMETRY"},
-        )
-        return result2.stdout.strip() == "1"
-    except Exception as e:
-        print(f"  Error: {e}")
-        return False
+    # Run subprocess with DISABLE_TELEMETRY completely absent from env
+    clean_env = {k: v for k, v in os.environ.items() if k != "DISABLE_TELEMETRY"}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.path.insert(0, 'src'); "
+            "from claude_mpm.core.env_defaults import apply_env_defaults; "
+            "apply_env_defaults(); "
+            "import os; print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent,
+        check=False,
+        env=clean_env,
+    )
+    assert result.returncode == 0, f"Subprocess failed: {result.stderr}"
+    assert result.stdout.strip() == "1", (
+        f"Expected DISABLE_TELEMETRY='1' when unset, got '{result.stdout.strip()}'"
+    )
 
 
 def test_python_module_respects_override():
     """Test that DISABLE_TELEMETRY=0 in shell is honored (not overridden)."""
-    try:
-        env = {k: v for k, v in os.environ.items() if k != "DISABLE_TELEMETRY"}
-        env["DISABLE_TELEMETRY"] = "0"
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import sys; sys.path.insert(0, 'src'); "
-                "from claude_mpm.core.env_defaults import apply_env_defaults; "
-                "apply_env_defaults(); "
-                "import os; print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
-            ],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).parent.parent,
-            check=False,
-            env=env,
-        )
-        return result.stdout.strip() == "0"
-    except Exception as e:
-        print(f"  Error: {e}")
-        return False
+    env = {k: v for k, v in os.environ.items() if k != "DISABLE_TELEMETRY"}
+    env["DISABLE_TELEMETRY"] = "0"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.path.insert(0, 'src'); "
+            "from claude_mpm.core.env_defaults import apply_env_defaults; "
+            "apply_env_defaults(); "
+            "import os; print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent,
+        check=False,
+        env=env,
+    )
+    assert result.returncode == 0, f"Subprocess failed: {result.stderr}"
+    assert result.stdout.strip() == "0", (
+        f"Expected DISABLE_TELEMETRY='0' to be preserved, got '{result.stdout.strip()}'"
+    )
 
 
 @pytest.mark.skip(
