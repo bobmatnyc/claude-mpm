@@ -29,6 +29,12 @@ _ENV_DEFAULTS: Dict[str, str] = {
 # Env vars where the consuming tool checks for existence, not value.
 # When the user sets value to "0" (meaning "don't disable"), the var must be
 # completely removed from the subprocess env so the tool doesn't see it.
+#
+# ASSUMPTION: Claude Code (Anthropic CLI) treats DISABLE_TELEMETRY as a
+# presence-based flag — if the var exists in the environment (regardless of
+# value), telemetry is disabled. Verified as of Claude Code 1.x (2025-2026).
+# If this behavior changes in a future Claude Code release, this set should
+# be updated accordingly.
 _PRESENCE_BASED_VARS: set[str] = {"DISABLE_TELEMETRY"}
 
 

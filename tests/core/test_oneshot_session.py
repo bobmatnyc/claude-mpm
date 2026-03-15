@@ -533,6 +533,21 @@ class TestOneshotSession:
             result = oneshot_session._prepare_environment()
             assert result == {"TEST": "value", "DISABLE_TELEMETRY": "1"}
 
+    def test_prepare_environment_telemetry_opt_in(self, oneshot_session, monkeypatch):
+        """When DISABLE_TELEMETRY=0 in shell, var must be absent from subprocess env.
+
+        Claude Code checks for existence of DISABLE_TELEMETRY, not its value.
+        Setting it to "0" still disables telemetry, so we must remove it entirely.
+        """
+        monkeypatch.setenv("DISABLE_TELEMETRY", "0")
+        with patch(
+            "os.environ.copy",
+            return_value={"TEST": "value", "DISABLE_TELEMETRY": "0"},
+        ):
+            result = oneshot_session._prepare_environment()
+            assert "DISABLE_TELEMETRY" not in result
+            assert result["TEST"] == "value"
+
     def test_build_command_basic(self, oneshot_session):
         """Test basic command building."""
         oneshot_session.runner.use_native_agents = True
