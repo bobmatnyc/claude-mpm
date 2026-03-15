@@ -752,12 +752,12 @@ def deploy_output_style_on_startup():
 def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) -> int:
     """Remove agents that are managed by claude-mpm but no longer deployed.
 
-    WHY: When agent configurations change, old agents should be removed to avoid
-    confusion and stale agent references. Only removes claude-mpm managed agents,
-    leaving user-created agents untouched.
+    DEPRECATED: This function is a thin compatibility shim. All orphan detection
+    and removal is now handled by the canonical System A in
+    startup_reconciliation.py::_detect_and_remove_orphaned_agents().
 
-    SAFETY: Only removes files with claude-mpm ownership markers in frontmatter.
-    Files without frontmatter or without ownership indicators are preserved.
+    This shim uses the canonical provenance check (is_mpm_managed_agent) and
+    skips agents that appear in the deployed_agents list.
 
     Args:
         deploy_target: Path to .claude/agents/ directory
@@ -766,11 +766,8 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
     Returns:
         Number of agents removed
     """
-    import re
-
-    import yaml
-
     from ..core.logger import get_logger
+    from ..utils.agent_provenance import is_mpm_managed_agent
 
     logger = get_logger("cli")
     removed_count = 0
@@ -789,36 +786,16 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
         if agent_file.name in deployed_set:
             continue
 
-        # Check if this is a claude-mpm managed agent
+        # Use canonical provenance check (author field only)
         try:
             content = agent_file.read_text(encoding="utf-8")
+            if not is_mpm_managed_agent(content):
+                continue
 
-            # Parse YAML frontmatter
-            if content.startswith("---"):
-                match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-                if match:
-                    frontmatter = yaml.safe_load(match.group(1))
-
-                    # Check ownership indicators
-                    is_ours = False
-                    if frontmatter:
-                        author = frontmatter.get("author", "")
-                        source = frontmatter.get("source", "")
-                        agent_id = frontmatter.get("agent_id", "")
-
-                        # It's ours if it has any of these markers
-                        if (
-                            "Claude MPM" in str(author)
-                            or source == "remote"
-                            or agent_id
-                        ):
-                            is_ours = True
-
-                    if is_ours:
-                        # Safe to remove - it's our agent but not deployed
-                        agent_file.unlink()
-                        removed_count += 1
-                        logger.info(f"Removed orphaned agent: {agent_file.name}")
+            # Safe to remove - it's our agent but not deployed
+            agent_file.unlink()
+            removed_count += 1
+            logger.info(f"Removed orphaned agent: {agent_file.name}")
 
         except Exception as e:
             logger.debug(f"Could not check agent {agent_file.name}: {e}")

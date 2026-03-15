@@ -967,6 +967,103 @@ def _replace_claude_code_footers_in_agents() -> bool:
     return errors == 0
 
 
+# =============================================================================
+# Migration: v5.10.0-standardize-agent-names
+# =============================================================================
+
+# Old agent filenames that were renamed in the agents repository
+_STALE_AGENT_FILES = [
+    "tmux-agent.md",  # renamed to tmux.md
+    "content-agent.md",  # renamed to content.md
+    "memory-manager-agent.md",  # renamed to memory-manager.md
+    "web-ui.md",  # renamed to web-ui-engineer.md
+]
+
+
+def _check_agent_naming_migration_needed() -> bool:
+    """Check if any stale agent files from the naming standardization exist.
+
+    Checks the current project's .claude/agents/ directory for old-named
+    agent files that have been renamed in the agents repository.
+
+    Returns:
+        True if any stale files exist in .claude/agents/
+    """
+    agents_dir = Path.cwd() / ".claude" / "agents"
+    if not agents_dir.exists():
+        return False
+
+    return any((agents_dir / stale_file).exists() for stale_file in _STALE_AGENT_FILES)
+
+
+def _migrate_agent_naming_standardization() -> bool:
+    """Remove old-format agent files replaced by standardized naming.
+
+    This migration removes the 4 agent files that were renamed in the
+    agents repository naming standardization:
+    - tmux-agent.md → tmux.md
+    - content-agent.md → content.md
+    - memory-manager-agent.md → memory-manager.md
+    - web-ui.md → web-ui-engineer.md
+
+    Only removes files that:
+    1. Match the known stale filenames
+    2. Are MPM-managed (author: claude-mpm in frontmatter)
+    3. Actually exist in .claude/agents/
+
+    Returns:
+        True if migration succeeded (even if no files needed removing)
+    """
+    from claude_mpm.utils.agent_provenance import is_mpm_managed_agent
+
+    agents_dir = Path.cwd() / ".claude" / "agents"
+    if not agents_dir.exists():
+        print("   No .claude/agents/ directory found")
+        print("   ✓ Migration complete (no action needed)")
+        return True
+
+    removed = []
+    preserved = []
+    errors = []
+
+    for stale_filename in _STALE_AGENT_FILES:
+        stale_file = agents_dir / stale_filename
+        if not stale_file.exists():
+            continue
+
+        try:
+            content = stale_file.read_text(encoding="utf-8")
+
+            # Safety: Only remove if it's an MPM agent
+            if is_mpm_managed_agent(content):
+                stale_file.unlink()
+                removed.append(stale_filename)
+                logger.info(f"Removed stale agent file: {stale_filename}")
+            else:
+                preserved.append(stale_filename)
+                logger.info(f"Preserved user agent with stale name: {stale_filename}")
+        except Exception as e:
+            error_msg = f"Failed to process {stale_filename}: {e}"
+            errors.append(error_msg)
+            logger.warning(error_msg)
+
+    # Report results
+    if removed:
+        print(f"   Removed {len(removed)} stale agent file(s): {', '.join(removed)}")
+    if preserved:
+        print(
+            f"   Preserved {len(preserved)} user agent(s) with old names: "
+            f"{', '.join(preserved)}"
+        )
+    if errors:
+        print(f"   ⚠ {len(errors)} error(s) during cleanup")
+    if not removed and not preserved and not errors:
+        print("   No stale agent files found")
+
+    print("   ✓ Migration complete")
+    return len(errors) == 0
+
+
 MIGRATIONS: list[Migration] = [
     Migration(
         id="v5.6.76-cache-dir-rename",
@@ -1009,6 +1106,12 @@ MIGRATIONS: list[Migration] = [
         description="Replace 'Generated with Claude Code' footers with 'Generated with Claude MPM' in deployed agent files",
         check=_check_claude_code_footer_in_agents,
         migrate=_replace_claude_code_footers_in_agents,
+    ),
+    Migration(
+        id="v5.10.0-standardize-agent-names",
+        description="Remove old-format agent files replaced by naming standardization",
+        check=_check_agent_naming_migration_needed,
+        migrate=_migrate_agent_naming_standardization,
     ),
 ]
 
