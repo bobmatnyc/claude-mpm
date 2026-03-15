@@ -6,7 +6,6 @@ Tests cover three areas:
   3. WAL mode and SQLite concurrency (W-17 through W-19)
 """
 
-import contextlib
 import logging
 import sqlite3
 import threading
@@ -40,36 +39,24 @@ class TestSyncTimeCachePopulation:
         Returns (service, manifest_cache) tuple.
         """
         cache = manifest_cache
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(
-                patch(
-                    "claude_mpm.services.agents.sources.git_source_sync_service.AgentSyncState"
-                )
+        with (
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.AgentSyncState"
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ETagCache"
+            ),
+            patch("claude_mpm.services.agents.cache_git_manager.CacheGitManager"),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestCache",
+                return_value=cache,
             )
-            stack.enter_context(
-                patch(
-                    "claude_mpm.services.agents.sources.git_source_sync_service.ETagCache"
-                )
-            )
-            stack.enter_context(
-                patch("claude_mpm.services.agents.cache_git_manager.CacheGitManager")
-            )
-            if cache is not None:
-                stack.enter_context(
-                    patch(
-                        "claude_mpm.services.agents.sources.git_source_sync_service.ManifestCache",
-                        return_value=cache,
-                    )
-                )
-            else:
-                stack.enter_context(
-                    patch(
-                        "claude_mpm.services.agents.sources.git_source_sync_service.ManifestCache",
-                        side_effect=lambda: ManifestCache(
-                            db_path=tmp_path / "manifest.db"
-                        ),
-                    )
-                )
+            if cache is not None
+            else patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestCache",
+                side_effect=lambda: ManifestCache(db_path=tmp_path / "manifest.db"),
+            ),
+        ):
             from claude_mpm.services.agents.sources.git_source_sync_service import (
                 GitSourceSyncService,
             )
@@ -93,11 +80,15 @@ class TestSyncTimeCachePopulation:
             repo_format_version=1, min_cli_version="5.0.0"
         )
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
-        ) as mock_fetcher_cls, patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
-        ) as mock_checker_cls, patch("claude_mpm.__version__", "5.10.0"):
+        with (
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
+            ) as mock_fetcher_cls,
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
+            ) as mock_checker_cls,
+            patch("claude_mpm.__version__", "5.10.0"),
+        ):
             mock_fetcher_cls.return_value.fetch.return_value = manifest_content
             mock_checker_cls.return_value.check.return_value = ManifestCheckResult(
                 status=CompatibilityResult.COMPATIBLE,
@@ -125,11 +116,15 @@ class TestSyncTimeCachePopulation:
             repo_format_version=99, min_cli_version="5.0.0"
         )
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
-        ) as mock_fetcher_cls, patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
-        ) as mock_checker_cls, patch("claude_mpm.__version__", "5.10.0"):
+        with (
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
+            ) as mock_fetcher_cls,
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
+            ) as mock_checker_cls,
+            patch("claude_mpm.__version__", "5.10.0"),
+        ):
             mock_fetcher_cls.return_value.fetch.return_value = manifest_content
             mock_checker_cls.return_value.check.return_value = ManifestCheckResult(
                 status=CompatibilityResult.INCOMPATIBLE_HARD,
@@ -163,11 +158,15 @@ class TestSyncTimeCachePopulation:
             repo_format_version=1, min_cli_version="5.0.0"
         )
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
-        ) as mock_fetcher_cls, patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
-        ) as mock_checker_cls, patch("claude_mpm.__version__", "5.10.0"):
+        with (
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
+            ) as mock_fetcher_cls,
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
+            ) as mock_checker_cls,
+            patch("claude_mpm.__version__", "5.10.0"),
+        ):
             mock_fetcher_cls.return_value.fetch.return_value = manifest_content
             mock_checker_cls.return_value.check.return_value = ManifestCheckResult(
                 status=CompatibilityResult.COMPATIBLE,
@@ -186,11 +185,15 @@ class TestSyncTimeCachePopulation:
         """When manifest_content is None, cache remains empty."""
         svc, cache = self._make_sync_service(tmp_path)
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
-        ) as mock_fetcher_cls, patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
-        ) as mock_checker_cls, patch("claude_mpm.__version__", "5.10.0"):
+        with (
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
+            ) as mock_fetcher_cls,
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
+            ) as mock_checker_cls,
+            patch("claude_mpm.__version__", "5.10.0"),
+        ):
             mock_fetcher_cls.return_value.fetch.return_value = None
             mock_checker_cls.return_value.check.return_value = ManifestCheckResult(
                 status=CompatibilityResult.NO_MANIFEST,
@@ -215,11 +218,15 @@ class TestSyncTimeCachePopulation:
         )
 
         def run_check():
-            with patch(
-                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
-            ) as mock_fetcher_cls, patch(
-                "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
-            ) as mock_checker_cls, patch("claude_mpm.__version__", "5.10.0"):
+            with (
+                patch(
+                    "claude_mpm.services.agents.sources.git_source_sync_service.ManifestFetcher"
+                ) as mock_fetcher_cls,
+                patch(
+                    "claude_mpm.services.agents.sources.git_source_sync_service.ManifestChecker"
+                ) as mock_checker_cls,
+                patch("claude_mpm.__version__", "5.10.0"),
+            ):
                 mock_fetcher_cls.return_value.fetch.return_value = manifest_content
                 mock_checker_cls.return_value.check.return_value = ManifestCheckResult(
                     status=CompatibilityResult.COMPATIBLE,
@@ -256,12 +263,16 @@ class TestDeployTimeGate:
         Patches ManifestCache construction to use tmp_path-based DB,
         and allows overriding individual components.
         """
-        with patch(
-            "claude_mpm.services.agents.deployment.deployment_reconciler.ManifestCache",
-            return_value=manifest_cache or ManifestCache(db_path=tmp_path / "mc.db"),
-        ), patch(
-            "claude_mpm.services.agents.deployment.deployment_reconciler.DeploymentVersionGate",
-            return_value=deploy_gate or DeploymentVersionGate(),
+        with (
+            patch(
+                "claude_mpm.services.agents.deployment.deployment_reconciler.ManifestCache",
+                return_value=manifest_cache
+                or ManifestCache(db_path=tmp_path / "mc.db"),
+            ),
+            patch(
+                "claude_mpm.services.agents.deployment.deployment_reconciler.DeploymentVersionGate",
+                return_value=deploy_gate or DeploymentVersionGate(),
+            ),
         ):
             from claude_mpm.services.agents.deployment.deployment_reconciler import (
                 DeploymentReconciler,
@@ -341,8 +352,9 @@ class TestDeployTimeGate:
         config = self._make_config(auto_discover=True)
         reconciler = self._make_reconciler(tmp_path, config=config, manifest_cache=mc)
 
-        with patch("claude_mpm.__version__", "5.10.0"), caplog.at_level(
-            logging.WARNING, logger="claude_mpm"
+        with (
+            patch("claude_mpm.__version__", "5.10.0"),
+            caplog.at_level(logging.WARNING, logger="claude_mpm"),
         ):
             result = reconciler.reconcile_agents(project_path=tmp_path)
 
@@ -491,11 +503,14 @@ class TestDeployTimeGate:
         """ManifestCache() raises -> reconcile_agents deploys normally."""
         config = self._make_config(auto_discover=True)
 
-        with patch(
-            "claude_mpm.services.agents.deployment.deployment_reconciler.ManifestCache",
-            side_effect=RuntimeError("permission denied"),
-        ), patch(
-            "claude_mpm.services.agents.deployment.deployment_reconciler.DeploymentVersionGate",
+        with (
+            patch(
+                "claude_mpm.services.agents.deployment.deployment_reconciler.ManifestCache",
+                side_effect=RuntimeError("permission denied"),
+            ),
+            patch(
+                "claude_mpm.services.agents.deployment.deployment_reconciler.DeploymentVersionGate",
+            ),
         ):
             from claude_mpm.services.agents.deployment.deployment_reconciler import (
                 DeploymentReconciler,
@@ -549,8 +564,9 @@ class TestDeployTimeGate:
         config = self._make_config(auto_discover=True)
         reconciler = self._make_reconciler(tmp_path, config=config, manifest_cache=mc)
 
-        with patch("claude_mpm.__version__", "5.10.0"), patch.dict(
-            "os.environ", {"CLAUDE_MPM_SKIP_COMPAT_CHECK": "1"}
+        with (
+            patch("claude_mpm.__version__", "5.10.0"),
+            patch.dict("os.environ", {"CLAUDE_MPM_SKIP_COMPAT_CHECK": "1"}),
         ):
             result = reconciler.reconcile_agents(project_path=tmp_path)
 
