@@ -17,6 +17,7 @@ The actual os.execvpe() execution is mocked since it replaces the process.
 
 import io
 import json
+import os
 import subprocess
 import sys
 from argparse import Namespace
@@ -477,7 +478,7 @@ class TestHeadlessIntegration:
                 assert exit_code == 126  # Standard "permission denied" exit code
 
     def test_environment_sets_disable_telemetry(self, mock_runner):
-        """Headless run should set DISABLE_TELEMETRY=1."""
+        """Headless run should default DISABLE_TELEMETRY to '1' when not set."""
         mock_runner.claude_args = []
 
         with patch.object(
@@ -485,9 +486,25 @@ class TestHeadlessIntegration:
         ):
             session = HeadlessSession(mock_runner)
 
-        env = session._prepare_environment()
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DISABLE_TELEMETRY", None)
+            env = session._prepare_environment()
 
         assert env.get("DISABLE_TELEMETRY") == "1"
+
+    def test_environment_propagates_telemetry_override(self, mock_runner):
+        """Headless run should propagate a user-supplied DISABLE_TELEMETRY=0."""
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        with patch.dict(os.environ, {"DISABLE_TELEMETRY": "0"}):
+            env = session._prepare_environment()
+
+        assert env.get("DISABLE_TELEMETRY") == "0"
 
     def test_environment_sets_ci_true(self, mock_runner):
         """Headless run should set CI=true."""

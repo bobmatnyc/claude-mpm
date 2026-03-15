@@ -528,10 +528,19 @@ class TestOneshotSession:
             assert oneshot_session.runner.websocket_server is None
 
     def test_prepare_environment(self, oneshot_session):
-        """Test environment preparation."""
+        """Test environment preparation defaults DISABLE_TELEMETRY to '1'."""
         with patch("os.environ.copy", return_value={"TEST": "value"}):
-            result = oneshot_session._prepare_environment()
-            assert result == {"TEST": "value", "DISABLE_TELEMETRY": "1"}
+            with patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("DISABLE_TELEMETRY", None)
+                result = oneshot_session._prepare_environment()
+        assert result == {"TEST": "value", "DISABLE_TELEMETRY": "1"}
+
+    def test_prepare_environment_respects_override(self, oneshot_session):
+        """Test that a user-supplied DISABLE_TELEMETRY value is propagated."""
+        with patch("os.environ.copy", return_value={"TEST": "value"}):
+            with patch.dict(os.environ, {"DISABLE_TELEMETRY": "0"}):
+                result = oneshot_session._prepare_environment()
+        assert result["DISABLE_TELEMETRY"] == "0"
 
     def test_build_command_basic(self, oneshot_session):
         """Test basic command building."""

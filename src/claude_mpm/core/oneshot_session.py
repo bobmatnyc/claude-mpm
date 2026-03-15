@@ -18,6 +18,7 @@ import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
+from claude_mpm.core.constants import get_telemetry_env_value
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logger import get_logger
 
@@ -318,9 +319,8 @@ class OneshotSession:
         """Prepare the execution environment."""
         env = os.environ.copy()
 
-        # Disable telemetry for Claude Code
-        # This ensures Claude Code doesn't send telemetry data during runtime
-        env["DISABLE_TELEMETRY"] = "1"
+        # Propagate the user's DISABLE_TELEMETRY preference to the child process.
+        env["DISABLE_TELEMETRY"] = get_telemetry_env_value()
 
         return env
 

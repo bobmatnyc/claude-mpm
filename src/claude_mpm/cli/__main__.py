@@ -23,8 +23,8 @@ proper Python module context and import resolution.
 import os
 import sys
 
-# Disable telemetry by default
-os.environ["DISABLE_TELEMETRY"] = "1"
+# Disable telemetry by default, but respect any value already set in the shell
+os.environ.setdefault("DISABLE_TELEMETRY", "1")
 
 from . import main
 

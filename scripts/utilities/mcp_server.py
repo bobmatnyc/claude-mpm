@@ -17,8 +17,8 @@ import os
 import sys
 from pathlib import Path
 
-# Disable telemetry by default
-os.environ["DISABLE_TELEMETRY"] = "1"
+# Disable telemetry by default, but respect any value already set in the shell
+os.environ.setdefault("DISABLE_TELEMETRY", "1")
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent

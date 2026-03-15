@@ -276,6 +276,9 @@ class Defaults:
     TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
     LOG_TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+    # Telemetry defaults
+    DISABLE_TELEMETRY_DEFAULT = "1"  # Telemetry disabled by default
+
 
 class PerformanceConfig:
     """Performance optimization settings."""
@@ -447,6 +450,25 @@ class ProjectPaths:
     def get_claude_dir(cls) -> Path:
         """Get the Claude directory."""
         return Path.cwd() / cls.CLAUDE_DIR
+
+
+def get_telemetry_env_value() -> str:
+    """Get the DISABLE_TELEMETRY value, respecting the shell environment.
+
+    If DISABLE_TELEMETRY is already set in the environment (e.g. by the user
+    before launching claude-mpm), that value is returned unchanged.  Otherwise
+    the default of ``"1"`` (telemetry disabled) is used.
+
+    This function is intended for use when building subprocess environment
+    dictionaries so that a user-supplied ``DISABLE_TELEMETRY=0`` propagates
+    into every child process rather than being silently overwritten.
+
+    Returns:
+        The string value of DISABLE_TELEMETRY (``"0"`` or ``"1"``, or
+        whatever the user set).  Defaults to ``Defaults.DISABLE_TELEMETRY_DEFAULT``
+        (``"1"``) when the variable is absent from the environment.
+    """
+    return os.environ.get("DISABLE_TELEMETRY", Defaults.DISABLE_TELEMETRY_DEFAULT)
 
 
 def skip_permissions_disabled() -> bool:

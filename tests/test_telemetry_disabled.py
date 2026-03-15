@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-Test script to verify that DISABLE_TELEMETRY is set correctly.
+Test script to verify that DISABLE_TELEMETRY is handled correctly.
+
+The expected behaviour after centralisation:
+- When DISABLE_TELEMETRY is *not* set in the environment, entry points default
+  it to "1" (telemetry disabled).
+- When DISABLE_TELEMETRY is *already* set (e.g. DISABLE_TELEMETRY=0 by the
+  user), entry points preserve that value instead of overwriting it.
 """
 
 import os
@@ -11,28 +17,55 @@ from pathlib import Path
 import pytest
 
 
-def test_python_module():
-    """Test if DISABLE_TELEMETRY is set when running as Python module."""
-    try:
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                "import os; os.environ.setdefault('DISABLE_TELEMETRY', '0'); "
-                "import sys; sys.path.insert(0, 'src'); "
-                "from claude_mpm import __main__; "
-                "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
-            ],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).parent.parent,
-            check=False,
-        )
-        output = result.stdout.strip()
-        return output == "1"
-    except Exception as e:
-        print(f"  Error: {e}")
-        return False
+def _run_python_snippet(snippet: str, env: dict | None = None) -> str:
+    """Run a one-liner Python snippet in a subprocess and return its stdout."""
+    run_env = os.environ.copy()
+    if env is not None:
+        run_env.update(env)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"import sys; sys.path.insert(0, 'src'); {snippet}",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parent.parent,
+        check=False,
+        env=run_env,
+    )
+    return result.stdout.strip()
+
+
+def test_python_module_default():
+    """Entry point defaults DISABLE_TELEMETRY to '1' when not pre-set."""
+    # Strip DISABLE_TELEMETRY from the child environment so we test the true
+    # default path.
+    child_env = {k: v for k, v in os.environ.items() if k != "DISABLE_TELEMETRY"}
+    output = _run_python_snippet(
+        "import os; "
+        "from claude_mpm import __main__; "
+        "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
+        env=child_env,
+    )
+    assert output == "1", (
+        f"Expected DISABLE_TELEMETRY='1' when not pre-set, got {output!r}"
+    )
+
+
+def test_python_module_preserves_override():
+    """Entry point preserves DISABLE_TELEMETRY='0' when pre-set by the user."""
+    child_env = dict(os.environ)
+    child_env["DISABLE_TELEMETRY"] = "0"
+    output = _run_python_snippet(
+        "import os; "
+        "from claude_mpm import __main__; "
+        "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
+        env=child_env,
+    )
+    assert output == "0", (
+        f"Expected DISABLE_TELEMETRY='0' to be preserved, got {output!r}"
+    )
 
 
 @pytest.mark.skip(
@@ -64,9 +97,9 @@ def test_bash_script(script_path):
     "Not a standalone pytest test — 'script_path' is not a registered pytest fixture."
 )
 def test_python_script(script_path):
-    """Test if a Python script sets DISABLE_TELEMETRY."""
+    """Test if a Python script sets DISABLE_TELEMETRY (via setdefault pattern)."""
     try:
-        # Check if the script contains the environment setting
+        # Accept both the old hard-override pattern and the new setdefault pattern
         with script_path.open() as f:
             content = f.read()
         return (
@@ -102,12 +135,12 @@ def main():
         script_path = project_root / script
         if script_path.exists():
             if test_bash_script(script_path):
-                print(f"  ✅ {description}: DISABLE_TELEMETRY=1 is set")
+                print(f"  OK {description}: DISABLE_TELEMETRY=1 is set")
             else:
-                print(f"  ❌ {description}: DISABLE_TELEMETRY not properly set")
+                print(f"  FAIL {description}: DISABLE_TELEMETRY not properly set")
                 bash_passed = False
         else:
-            print(f"  ⚠️  {description}: Script not found at {script_path}")
+            print(f"  SKIP {description}: Script not found at {script_path}")
 
     # Test Python entry points
     print("\n2. Testing Python Entry Points:")
@@ -128,12 +161,12 @@ def main():
         script_path = project_root / script
         if script_path.exists():
             if test_python_script(script_path):
-                print(f"  ✅ {description}: Sets DISABLE_TELEMETRY=1")
+                print(f"  OK {description}: Sets DISABLE_TELEMETRY=1")
             else:
-                print(f"  ❌ {description}: Does not set DISABLE_TELEMETRY")
+                print(f"  FAIL {description}: Does not set DISABLE_TELEMETRY")
                 python_passed = False
         else:
-            print(f"  ⚠️  {description}: Script not found at {script_path}")
+            print(f"  SKIP {description}: Script not found at {script_path}")
 
     # Test Node.js scripts
     print("\n3. Testing Node.js Entry Points:")
@@ -149,29 +182,35 @@ def main():
             with script_path.open() as f:
                 content = f.read()
             if "process.env.DISABLE_TELEMETRY = '1'" in content:
-                print(f"  ✅ {description}: Sets DISABLE_TELEMETRY=1")
+                print(f"  OK {description}: Sets DISABLE_TELEMETRY=1")
             else:
-                print(f"  ❌ {description}: Does not set DISABLE_TELEMETRY")
+                print(f"  FAIL {description}: Does not set DISABLE_TELEMETRY")
                 node_passed = False
         else:
-            print(f"  ⚠️  {description}: Script not found at {script_path}")
+            print(f"  SKIP {description}: Script not found at {script_path}")
 
     # Test the actual Python module import
     print("\n4. Testing Runtime Behavior:")
-    if test_python_module():
-        print("  ✅ Python module sets DISABLE_TELEMETRY=1 on import")
-        module_passed = True
+    child_env = {k: v for k, v in os.environ.items() if k != "DISABLE_TELEMETRY"}
+    output = _run_python_snippet(
+        "import os; "
+        "from claude_mpm import __main__; "
+        "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))",
+        env=child_env,
+    )
+    module_passed = output == "1"
+    if module_passed:
+        print("  OK Python module defaults DISABLE_TELEMETRY=1")
     else:
-        print("  ❌ Python module does not set DISABLE_TELEMETRY properly")
-        module_passed = False
+        print(f"  FAIL Python module produced unexpected value: {output!r}")
 
     print("\n" + "=" * 60)
     all_passed = bash_passed and python_passed and node_passed and module_passed
     if all_passed:
-        print("✅ SUCCESS: All entry points properly set DISABLE_TELEMETRY=1")
+        print("SUCCESS: All entry points properly set DISABLE_TELEMETRY=1")
         print("Telemetry is disabled by default in claude-mpm")
     else:
-        print("⚠️  WARNING: Some entry points may not disable telemetry")
+        print("WARNING: Some entry points may not disable telemetry")
         print("Please review the failed tests above")
     print("=" * 60)
 

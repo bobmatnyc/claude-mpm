@@ -56,13 +56,24 @@ class TestPrepareEnvironment:
         # Should have environment variables from os.environ
         assert "PATH" in env or len(env) > 0
 
-    def test_sets_disable_telemetry(self):
-        """Should set DISABLE_TELEMETRY=1."""
+    def test_sets_disable_telemetry_default(self):
+        """Should default DISABLE_TELEMETRY to '1' when not set in the environment."""
         wrapper = ClaudeMPMSubprocess()
 
-        env = wrapper._prepare_environment()
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DISABLE_TELEMETRY", None)
+            env = wrapper._prepare_environment()
 
         assert env["DISABLE_TELEMETRY"] == "1"
+
+    def test_propagates_user_disable_telemetry_override(self):
+        """Should propagate a user-supplied DISABLE_TELEMETRY value to child env."""
+        wrapper = ClaudeMPMSubprocess()
+
+        with patch.dict(os.environ, {"DISABLE_TELEMETRY": "0"}):
+            env = wrapper._prepare_environment()
+
+        assert env["DISABLE_TELEMETRY"] == "0"
 
     def test_sets_ci_mode(self):
         """Should set CI=true for non-interactive mode."""

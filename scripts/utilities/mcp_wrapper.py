@@ -16,8 +16,8 @@ to make debugging easier when things go wrong.
 import os
 import sys
 
-# Disable telemetry by default (set as early as possible)
-os.environ["DISABLE_TELEMETRY"] = "1"
+# Disable telemetry by default, but respect any value already set in the shell
+os.environ.setdefault("DISABLE_TELEMETRY", "1")
 
 import atexit
 import json
