@@ -3,9 +3,10 @@
 **Document**: `wire-deployment-gate.md`
 **Series**: MPM vs. Agents Versioning (04-wire-deployment-plan)
 **Date**: 2026-03-15
-**Status**: Implementation-Ready Plan
+**Status**: Implementation-Ready Plan (Amended after Devil's Advocate Review)
 **Addresses**: Devil's Advocate Finding A-2 (dead code: DeploymentVersionGate and ManifestCache not wired into pipeline)
 **Depends on**: Phase 1 + Phase 2 implementation (complete)
+**Revision**: v2 - incorporates 9 devil's advocate findings (DA-1 through DA-9)
 
 ---
 
@@ -19,6 +20,7 @@
 6. [Test Plan](#6-test-plan)
 7. [Rollback Plan](#7-rollback-plan)
 8. [Risk Assessment](#8-risk-assessment)
+9. [Devil's Advocate Findings (v2)](#9-devils-advocate-findings-v2)
 
 ---
 
@@ -32,14 +34,14 @@ This creates a concrete gap: the manifest compatibility check runs at **sync tim
 
 ```
 Day 1: User runs CLI v5.10.0
-       sync_agents() → fetches manifest → COMPATIBLE → agents cached
-       reconcile_agents() → copies cached agents to .claude/agents/
+       sync_agents() -> fetches manifest -> COMPATIBLE -> agents cached
+       reconcile_agents() -> copies cached agents to .claude/agents/
 
 Day 3: Agent repo maintainer bumps min_cli_version to 6.0.0 in the manifest
 
 Day 5: User runs CLI v5.10.0 (same version, did not upgrade)
-       sync_agents() → fetches NEW manifest → INCOMPATIBLE_WARN → warns, agents re-cached
-       reconcile_agents() → copies cached agents to .claude/agents/ ← NO CHECK HERE
+       sync_agents() -> fetches NEW manifest -> INCOMPATIBLE_WARN -> warns, agents re-cached
+       reconcile_agents() -> copies cached agents to .claude/agents/ <- NO CHECK HERE
 
        The warning was logged during sync but the deploy proceeds silently.
        If the user had --no-sync (using stale cache), there would be NO check at all.
@@ -73,25 +75,26 @@ The deploy-time check is the **last line of defense** before agents reach the us
 
 ```
 startup.py: sync_remote_agents_on_startup()
-  → startup_sync.py: sync_agents_on_startup()
-    → git_source_sync_service.py: sync_agents()
-      → _check_manifest_compatibility()     ← WIRED (Phase 1)
-        → ManifestFetcher.fetch()
-        → ManifestChecker.check()
-        → IncompatibleRepoError on hard stop
-      → _get_agent_list()
-      → per-agent fetch
+  -> startup_sync.py: sync_agents_on_startup()
+    -> git_source_sync_service.py: sync_agents()
+      -> _check_manifest_compatibility()     <- WIRED (Phase 1)
+        -> ManifestFetcher.fetch()
+        -> ManifestChecker.check()
+        -> IncompatibleRepoError on hard stop
+      -> _get_agent_list()
+      -> per-agent fetch
 ```
 
 ### Deploy Pipeline (Currently NOT Wired)
 
 ```
 startup.py: sync_remote_agents_on_startup()
-  → startup_reconciliation.py: perform_startup_reconciliation()
-    → deployment_reconciler.py: DeploymentReconciler.reconcile_agents()
-      → _get_agent_state(cache_dir, deploy_dir)
-      → for agent_id in state.to_deploy:
-          _deploy_agent(agent_id, cache_dir, deploy_dir)   ← NO CHECK
+  -> startup_reconciliation.py: perform_startup_reconciliation()
+    -> deployment_reconciler.py: DeploymentReconciler.reconcile_agents()
+      -> _get_agent_state(cache_dir, deploy_dir)
+      -> [DA-1] auto_discover early return (line 114-123)  <- BYPASSES EVERYTHING
+      -> for agent_id in state.to_deploy:
+          _deploy_agent(agent_id, cache_dir, deploy_dir)   <- NO CHECK
 ```
 
 ### Key Integration Points
@@ -101,6 +104,17 @@ startup.py: sync_remote_agents_on_startup()
 | `git_source_sync_service.py` | `_check_manifest_compatibility()` | Fetches + checks manifest at sync time | Store result in ManifestCache after check |
 | `deployment_reconciler.py` | `DeploymentReconciler.reconcile_agents()` | Copies agents from cache to project | Call DeploymentVersionGate before deploying |
 | `startup_reconciliation.py` | `perform_startup_reconciliation()` | Orchestrates reconciliation | Pass ManifestCache to DeploymentReconciler |
+
+### Key Architecture Notes
+
+**Two separate SQLite databases in different directories** (DA-8):
+
+| Component | Database Path | Purpose |
+|-----------|--------------|---------|
+| `ManifestCache` | `~/.claude-mpm/cache/manifest_cache.db` | Manifest compatibility results |
+| `AgentSyncState` | `~/.config/claude-mpm/agent_sync.db` | Per-file content hashes, sync history |
+
+This means `rm -rf ~/.claude-mpm/cache/` destroys the manifest cache but preserves sync state. Option B (agent-to-source mapping) would require cross-database coordination.
 
 ---
 
@@ -113,6 +127,8 @@ Wire ManifestCache and DeploymentVersionGate into the production pipeline so tha
 3. **Hard stop at deploy time**: If the cached manifest says `repo_format_version > MAX_SUPPORTED`, deployment of agents from that source is skipped.
 4. **Warning at deploy time**: If the cached manifest says `min_cli_version > current`, a warning is logged but deployment proceeds.
 5. **Fail-open**: If ManifestCache has no entry for a source (e.g., legacy cache, first run), deployment proceeds without constraint.
+6. **Both code paths covered**: The gate runs for BOTH explicit-config and auto-discover deployment modes (DA-1 fix).
+7. **Scope: agents only**: Skills deployment is NOT gated in this phase. Skills come from the same repo but the skills reconciler is a separate code path. Gating skills is a future enhancement (DA-6 scoping decision).
 
 ### Non-Goals
 
@@ -120,6 +136,7 @@ Wire ManifestCache and DeploymentVersionGate into the production pipeline so tha
 - Adding per-agent deploy-time checks (future enhancement)
 - Changing the sync-time check behavior
 - Adding UI prompts or interactive confirmation
+- Gating skills deployment (future enhancement, see DA-6)
 
 ---
 
@@ -133,18 +150,19 @@ SYNC PHASE                              DEPLOY PHASE
 ManifestFetcher.fetch()                  DeploymentReconciler.reconcile_agents()
         |                                        |
         v                                        v
-ManifestChecker.check()                  for agent in to_deploy:
-        |                                    _deploy_agent(agent)  ← no check
+ManifestChecker.check()                  [auto_discover?] -> early return (NO CHECK)
+        |                                        |
+        v                                        v
+[result logged/raised]                   for agent in to_deploy:
+        |                                    _deploy_agent(agent)  <- no check
         v                                        |
-[result logged/raised]                           v
-        |                                  agent copied to .claude/agents/
-        v
-agents fetched to cache
+agents fetched to cache                          v
+                                         agent copied to .claude/agents/
 
-ManifestCache ← NOT POPULATED            DeploymentVersionGate ← NOT CALLED
+ManifestCache <- NOT POPULATED           DeploymentVersionGate <- NOT CALLED
 ```
 
-### After (Proposed)
+### After (Proposed, amended per DA-1)
 
 ```
 SYNC PHASE                              DEPLOY PHASE
@@ -152,16 +170,21 @@ SYNC PHASE                              DEPLOY PHASE
 ManifestFetcher.fetch()                  DeploymentReconciler.reconcile_agents()
         |                                        |
         v                                        v
-ManifestChecker.check()                  DeploymentVersionGate.check_before_deploy()
+ManifestChecker.check()                  _check_deploy_compatibility()   <- NEW (FIRST!)
         |                                        |
         v                                        v
 [result logged/raised]                   Read from ManifestCache
         |                                        |
         v                                        v
-ManifestCache.store()  ← NEW             [COMPATIBLE]  → proceed with deploy
-        |                                [WARN]        → log warning, proceed
-        v                                [HARD STOP]   → skip this source's agents
-agents fetched to cache                  [NO ENTRY]    → proceed (fail-open)
+ManifestCache.store()  <- NEW            [COMPATIBLE]  -> proceed
+        |                                [WARN]        -> log warning, proceed
+        v                                [HARD STOP]   -> return error, deploy nothing
+agents fetched to cache                  [NO ENTRY]    -> proceed (fail-open)
+                                         [CACHE INIT FAILED] -> proceed (fail-open)
+                                                 |
+                                                 v
+                                         [auto_discover?] -> early return (unchanged set)
+                                         [explicit config] -> deploy loop
                                                  |
                                                  v
                                          for agent in to_deploy:
@@ -171,6 +194,32 @@ agents fetched to cache                  [NO ENTRY]    → proceed (fail-open)
 ---
 
 ## 5. Implementation
+
+### 5.0 Change 0: SQLite Hardening (MUST BE FIRST - DA-3)
+
+> **DA-3 fix**: WAL mode must be enabled BEFORE any concurrent read/write
+> operations. Since sync (writer) and deploy (reader) can overlap during
+> startup, WAL mode must be the first change implemented.
+
+**File**: `src/claude_mpm/services/agents/compatibility/manifest_cache.py`
+**Method**: `_init_db()`
+**Change**: Enable WAL mode and set a busy timeout for concurrent access.
+
+```python
+    def _init_db(self) -> None:
+        """Initialize the manifest_cache table."""
+        with sqlite3.connect(str(self._db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS manifest_cache (
+                    ...
+                )
+            """)
+            conn.commit()
+```
+
+**Why first**: Sync writes to ManifestCache and deploy reads from it. Without WAL mode, the reader could see incomplete writes or hit `database is locked` errors. WAL mode is persistent per-database -- once set, all future connections use it automatically.
 
 ### 5.1 Change 1: Persist Manifest Check Results at Sync Time
 
@@ -185,11 +234,18 @@ agents fetched to cache                  [NO ENTRY]    → proceed (fail-open)
 from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
 ```
 
-#### 5.1.2 Initialize ManifestCache in `__init__`
+#### 5.1.2 Initialize ManifestCache in `__init__` (with fail-open guard - DA-2)
+
+> **DA-2 fix**: ManifestCache init can fail (permissions, disk, corrupt DB).
+> Failure must not prevent sync from working.
 
 ```python
 # In GitSourceSyncService.__init__, after self.git_manager initialization:
-self._manifest_cache = ManifestCache()
+try:
+    self._manifest_cache = ManifestCache()
+except Exception as e:
+    logger.debug("ManifestCache initialization failed: %s. Cache writes disabled.", e)
+    self._manifest_cache = None
 ```
 
 #### 5.1.3 Store result after check
@@ -198,7 +254,11 @@ In `_check_manifest_compatibility()`, after the checker runs and before returnin
 
 ```python
         # Persist manifest check result for deploy-time validation
-        if manifest_content is not None and result.repo_format_version is not None:
+        if (
+            self._manifest_cache is not None
+            and manifest_content is not None
+            and result.repo_format_version is not None
+        ):
             try:
                 import yaml
                 parsed = yaml.safe_load(manifest_content)
@@ -221,12 +281,13 @@ In `_check_manifest_compatibility()`, after the checker runs and before returnin
 - Cache write failures are caught and logged at DEBUG (fail-open)
 - `source_id` is used as the cache key (matches `GitSourceSyncService.source_id`)
 - `raw_content` is stored so DeploymentVersionGate can re-parse it with a potentially newer ManifestChecker
+- `self._manifest_cache` is checked for None before use (DA-2 fail-open guard)
 
 ### 5.2 Change 2: Add Deploy-Time Check to DeploymentReconciler
 
 **File**: `src/claude_mpm/services/agents/deployment/deployment_reconciler.py`
 **Method**: `reconcile_agents()`
-**Change**: Before the deploy loop, check manifest compatibility for each source's agents.
+**Change**: Before the deploy loop AND before the auto-discover early return, check manifest compatibility.
 
 #### 5.2.1 Add imports
 
@@ -239,25 +300,64 @@ from claude_mpm.services.agents.compatibility.deploy_gate import DeploymentVersi
 from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
 ```
 
-#### 5.2.2 Add DeploymentVersionGate to `__init__`
+#### 5.2.2 Add DeploymentVersionGate to `__init__` (with fail-open guard - DA-2)
+
+> **DA-2 fix**: ManifestCache init can fail. The entire DeploymentReconciler
+> must not crash because of a compatibility cache failure.
 
 ```python
 def __init__(self, config: Optional[UnifiedConfig] = None):
     self.config = config or self._load_config()
     self.path_manager = get_path_manager()
-    # Deploy-time manifest compatibility gate
-    self._manifest_cache = ManifestCache()
-    self._deploy_gate = DeploymentVersionGate(manifest_cache=self._manifest_cache)
+    # Deploy-time manifest compatibility gate (fail-open on init error)
+    try:
+        self._manifest_cache = ManifestCache()
+        self._deploy_gate = DeploymentVersionGate(manifest_cache=self._manifest_cache)
+    except Exception as e:
+        logger.debug(
+            "ManifestCache initialization failed: %s. Deploy-time checks disabled.", e
+        )
+        self._manifest_cache = None
+        self._deploy_gate = None
 ```
 
-#### 5.2.3 Add deploy-time check in `reconcile_agents()`
+#### 5.2.3 Add deploy-time check in `reconcile_agents()` -- BEFORE auto-discover (DA-1 fix)
 
-Insert a manifest compatibility check **before** the deploy loop (after `result = DeploymentResult(...)` and before `for agent_id in state.to_deploy:`):
+> **DA-1 CRITICAL fix**: The original plan placed the gate after the
+> auto-discover early return at line 125. This meant the gate was dead code
+> for all auto-discover users (the default mode). The gate MUST run before
+> the auto-discover branch.
+
+Insert the manifest compatibility check **immediately after `_get_agent_state()`** and **before the auto-discover check**:
 
 ```python
-        # Deploy-time manifest compatibility check
+    def reconcile_agents(self, project_path: Optional[Path] = None) -> DeploymentResult:
+        project_path = project_path or Path.cwd()
+        cache_dir = self.path_manager.get_cache_dir() / "agents"
+        deploy_dir = project_path / ".claude" / "agents"
+
+        # Get current state
+        state = self._get_agent_state(cache_dir, deploy_dir)
+
+        # [DA-1 FIX] Deploy-time manifest compatibility check
+        # MUST run before auto-discover early return to cover all code paths
         blocked_sources = self._check_deploy_compatibility()
-        # (blocked_sources is a set of source_ids whose agents should be skipped)
+        if blocked_sources:
+            error_msgs = []
+            for source_id in blocked_sources:
+                error_msgs.append(
+                    f"Agent deployment blocked: source '{source_id}' requires "
+                    f"a newer CLI. Run: pip install --upgrade claude-mpm"
+                )
+            for msg in error_msgs:
+                logger.error(msg)
+            return DeploymentResult(
+                deployed=[], removed=[], unchanged=[], errors=error_msgs
+            )
+
+        # Check backward compatibility (auto-discover early return)
+        if not self.config.agents.enabled and self.config.agents.auto_discover:
+            ...  # existing early return logic unchanged
 ```
 
 #### 5.2.4 New method: `_check_deploy_compatibility()`
@@ -270,9 +370,23 @@ Insert a manifest compatibility check **before** the deploy loop (after `result 
         CLI version.  Returns a set of source_ids whose agents should NOT be
         deployed (hard stop only).  Warnings are logged but do not block.
 
+        Fail-open: Returns empty set if cache is unavailable, uninitialized,
+        or if __version__ cannot be determined.
+
         Returns:
             Set of source_ids to skip during deployment.
         """
+        # Fail-open: if deploy gate was not initialized (DA-2)
+        if self._deploy_gate is None or self._manifest_cache is None:
+            return set()
+
+        # Fail-open: env var skip (rollback Tier 1)
+        import os
+        if os.environ.get("CLAUDE_MPM_SKIP_COMPAT_CHECK", "").lower() in (
+            "1", "true", "yes",
+        ):
+            return set()
+
         blocked: Set[str] = set()
 
         try:
@@ -280,7 +394,16 @@ Insert a manifest compatibility check **before** the deploy loop (after `result 
         except ImportError:
             return blocked  # Can't determine version; fail-open
 
-        all_cached = self._manifest_cache.get_all()
+        # Guard against empty/None __version__ in dev builds (DA-7)
+        if not __version__:
+            return blocked
+
+        try:
+            all_cached = self._manifest_cache.get_all()
+        except Exception as e:
+            logger.debug("ManifestCache read failed: %s. Skipping deploy gate.", e)
+            return blocked
+
         if not all_cached:
             return blocked  # No cached manifests; fail-open
 
@@ -288,11 +411,18 @@ Insert a manifest compatibility check **before** the deploy loop (after `result 
             source_id = entry.get("source_id", "unknown")
             raw_content = entry.get("raw_content")
 
-            result = self._deploy_gate.check_before_deploy(
-                source_id=source_id,
-                cli_version=__version__,
-                cached_manifest_content=raw_content,
-            )
+            try:
+                result = self._deploy_gate.check_before_deploy(
+                    source_id=source_id,
+                    cli_version=__version__,
+                    cached_manifest_content=raw_content,
+                )
+            except Exception as e:
+                logger.debug(
+                    "Deploy gate check failed for source '%s': %s. Skipping.",
+                    source_id, e,
+                )
+                continue  # Fail-open per source
 
             if result.status == CompatibilityResult.INCOMPATIBLE_HARD:
                 logger.error(
@@ -318,7 +448,7 @@ Insert a manifest compatibility check **before** the deploy loop (after `result 
 
 **Three options to resolve this**:
 
-##### Option A: Block ALL deploys if ANY source is blocked (simplest)
+##### Option A: Block ALL deploys if ANY source is blocked (simplest) -- RECOMMENDED
 
 If `_check_deploy_compatibility()` finds any hard-stopped source, block ALL agent deployments. This is safe but coarse -- a single bad source would block agents from other sources too.
 
@@ -337,54 +467,70 @@ If `_check_deploy_compatibility()` finds any hard-stopped source, block ALL agen
 
 ##### Option B: Agent-to-source mapping via AgentSyncState (accurate)
 
-`AgentSyncState` (SQLite) already tracks which source each agent file came from via `tracked_files`:
+> **DA-4 correction**: `AgentSyncState.get_all_tracked_files()` does NOT exist.
+> The table is `agent_files` (not `tracked_files`) with columns `(source_id,
+> file_path, content_sha, local_path, synced_at, file_size)`. Implementing
+> Option B requires:
+> 1. Adding a new `get_files_by_source()` method to `AgentSyncState`
+> 2. Cross-database coordination (`~/.config/claude-mpm/agent_sync.db` for
+>    sync state vs `~/.claude-mpm/cache/manifest_cache.db` for manifests)
+> 3. Handling agent ID collisions across sources (same agent from two sources)
+
+Corrected schema reference:
 
 ```sql
--- In agent_sync_state.db:
-CREATE TABLE tracked_files (
-    source_id TEXT,
-    filename TEXT,
-    content_hash TEXT,
-    ...
+-- In agent_sync_state.db (NOT tracked_files -- that was incorrect):
+CREATE TABLE agent_files (
+    source_id TEXT NOT NULL,
+    file_path TEXT NOT NULL,        -- e.g., "research.md"
+    content_sha TEXT NOT NULL,
+    local_path TEXT,
+    synced_at TEXT NOT NULL,
+    file_size INTEGER,
+    PRIMARY KEY (source_id, file_path)
 );
 ```
 
-We can query this to build an agent-to-source mapping:
+New method needed in `AgentSyncState`:
+
+```python
+    def get_files_by_source(self) -> Dict[str, List[str]]:
+        """Get all tracked files grouped by source_id.
+
+        Returns:
+            Dict mapping source_id to list of file_path strings.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT source_id, file_path FROM agent_files ORDER BY source_id"
+            )
+            result: Dict[str, List[str]] = {}
+            for row in cursor.fetchall():
+                result.setdefault(row["source_id"], []).append(row["file_path"])
+            return result
+```
+
+Then in DeploymentReconciler:
 
 ```python
     def _get_agent_source_map(self) -> Dict[str, str]:
         """Map agent IDs to their source IDs using AgentSyncState."""
-        from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
-        state = AgentSyncState()
-        mapping = {}
-        for source_id, files in state.get_all_tracked_files().items():
-            for filename in files:
-                agent_id = Path(filename).stem
-                mapping[agent_id] = source_id
-        return mapping
-```
-
-Then in `reconcile_agents()`:
-
-```python
-        agent_source_map = self._get_agent_source_map()
-
-        for agent_id in state.to_deploy:
-            source_id = agent_source_map.get(agent_id)
-            if source_id and source_id in blocked_sources:
-                error_msg = (
-                    f"Agent '{agent_id}' blocked: source '{source_id}' requires "
-                    f"a newer CLI. Run: pip install --upgrade claude-mpm"
-                )
-                logger.warning(error_msg)
-                result.errors.append(error_msg)
-                continue  # Skip this agent
-
-            # ... existing deploy logic
+        try:
+            from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
+            state = AgentSyncState()
+            mapping = {}
+            for source_id, files in state.get_files_by_source().items():
+                for filename in files:
+                    agent_id = Path(filename).stem
+                    mapping[agent_id] = source_id
+            return mapping
+        except Exception as e:
+            logger.debug("Failed to build agent-source map: %s", e)
+            return {}  # Fail-open
 ```
 
 **Pros**: Precise per-agent blocking based on actual source.
-**Cons**: Requires reading from AgentSyncState which may not exist on first run. Needs a `get_all_tracked_files()` method (may need to add to AgentSyncState).
+**Cons**: Requires new method in AgentSyncState, cross-database coordination, agent ID collision handling. Estimated +2 hours over Option A.
 
 ##### Option C: Warn-only at deploy time, hard-stop only at sync time (pragmatic)
 
@@ -425,29 +571,9 @@ Start with Option A (block all if any source blocked). The vast majority of depl
 **File**: `src/claude_mpm/services/agents/deployment/startup_reconciliation.py`
 **Change**: Minimal -- `DeploymentReconciler.__init__` creates its own `ManifestCache` instance. No threading needed unless we want to share the instance with the sync service (optimization, not required).
 
-The `ManifestCache` uses a well-known default path (`~/.claude-mpm/cache/manifest_cache.db`). Both `GitSourceSyncService` (writer) and `DeploymentReconciler` (reader) will independently connect to the same database. SQLite handles concurrent readers correctly.
+The `ManifestCache` uses a well-known default path (`~/.claude-mpm/cache/manifest_cache.db`). Both `GitSourceSyncService` (writer) and `DeploymentReconciler` (reader) will independently connect to the same database. SQLite with WAL mode (Change 0) handles concurrent readers correctly.
 
 No change needed in `startup_reconciliation.py` for the initial wiring.
-
-### 5.4 Change 4: SQLite Hardening (from Devil's Advocate C-1)
-
-**File**: `src/claude_mpm/services/agents/compatibility/manifest_cache.py`
-**Method**: `_init_db()`
-**Change**: Enable WAL mode and set a busy timeout for concurrent access.
-
-```python
-    def _init_db(self) -> None:
-        """Initialize the manifest_cache table."""
-        with sqlite3.connect(str(self._db_path)) as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=5000")
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS manifest_cache (
-                    ...
-                )
-            """)
-            conn.commit()
-```
 
 ---
 
@@ -463,7 +589,7 @@ No change needed in `startup_reconciliation.py` for the initial wiring.
 | W-4 | No-manifest scenario doesn't write to cache | ManifestCache.get returns None |
 | W-5 | Successive syncs update cache entry | last_checked timestamp advances |
 
-### 6.2 New Tests: Deploy-Time Gate (8 tests)
+### 6.2 New Tests: Deploy-Time Gate (11 tests -- expanded from 8, DA-1/DA-2/DA-6/DA-7)
 
 | # | Test | Assert |
 |---|------|--------|
@@ -472,25 +598,34 @@ No change needed in `startup_reconciliation.py` for the initial wiring.
 | W-8 | INCOMPATIBLE_WARN logs warning, deploys proceed | Warning logged, agents deployed |
 | W-9 | Empty cache (no entries) deploys normally (fail-open) | reconcile_agents deploys normally |
 | W-10 | Multiple sources, one blocked | All agents blocked (Option A behavior) |
-| W-11 | `--no-sync` with stale cache triggers warning | Deploy-time check catches the staleness |
-| W-12 | CLI downgrade scenario | Synced with v6.0.0 CLI, deploy with v5.10.0 → warning |
+| W-11 | `--no-sync` with CLI downgrade triggers re-validation | Synced with CLI v6.0.0, deploy with v5.10.0: gate re-validates cached manifest against current CLI version and detects INCOMPATIBLE_WARN |
+| W-12 | CLI downgrade hard-stop scenario | Synced with v6.0.0 CLI (rfv=1), then rfv bumped to 2 in cache, deploy with v5.10.0 -> hard stop |
 | W-13 | DeploymentVersionGate.check_before_deploy reads from cache | Verifies raw_content used for re-check |
+| W-14 | **[DA-1]** Auto-discover mode still runs deploy gate | `config.agents.enabled=[], auto_discover=True`: gate executes, hard-stop blocks deploy |
+| W-15 | **[DA-2]** ManifestCache init failure -> deploy proceeds (fail-open) | Mock ManifestCache() to raise; reconcile_agents deploys normally |
+| W-16 | **[DA-7]** `__version__` is None or empty -> fail-open | Mock `__version__` to `None`; deploy proceeds |
 
 ### 6.3 New Tests: WAL Mode and Concurrency (3 tests)
 
 | # | Test | Assert |
 |---|------|--------|
-| W-14 | WAL mode is set on init | PRAGMA journal_mode returns "wal" |
-| W-15 | Concurrent reads during write | Two threads can read while one writes |
-| W-16 | Busy timeout handles lock contention | No `database is locked` error under 5s contention |
+| W-17 | WAL mode is set on init | PRAGMA journal_mode returns "wal" |
+| W-18 | Concurrent reads during write | Two threads can read while one writes |
+| W-19 | Busy timeout handles lock contention | No `database is locked` error under 5s contention |
 
-### 6.4 Test Location
+### 6.4 New Test: Skills Scoping (1 test -- DA-6)
+
+| # | Test | Assert |
+|---|------|--------|
+| W-20 | Skills deployment is NOT gated | reconcile_skills deploys even when manifest cache has INCOMPATIBLE_HARD entry (confirms intentional scoping) |
+
+### 6.5 Test Location
 
 ```
-tests/services/agents/compatibility/test_wiring.py    # W-1 through W-16
+tests/services/agents/compatibility/test_wiring.py    # W-1 through W-20
 ```
 
-### 6.5 Existing Tests
+### 6.6 Existing Tests
 
 All 170 existing compatibility tests must continue to pass. The wiring changes add behavior without modifying existing behavior.
 
@@ -500,9 +635,8 @@ All 170 existing compatibility tests must continue to pass. The wiring changes a
 
 ### Tier 1: Disable Deploy-Time Check (Immediate)
 
-The env var `CLAUDE_MPM_SKIP_COMPAT_CHECK` already works for sync-time checks. Extend it to cover deploy-time:
+The env var `CLAUDE_MPM_SKIP_COMPAT_CHECK` already works for sync-time checks. The deploy-time gate also checks it (Section 5.2.4):
 
-In `DeploymentReconciler._check_deploy_compatibility()`:
 ```python
         import os
         if os.environ.get("CLAUDE_MPM_SKIP_COMPAT_CHECK", "").lower() in ("1", "true", "yes"):
@@ -522,9 +656,12 @@ The components remain in the codebase (tested, unused) -- back to current state.
 
 ```bash
 rm ~/.claude-mpm/cache/manifest_cache.db
+# Also remove WAL helper files if present:
+rm -f ~/.claude-mpm/cache/manifest_cache.db-wal
+rm -f ~/.claude-mpm/cache/manifest_cache.db-shm
 ```
 
-Forces clean state on next sync.
+Forces clean state on next sync. Note: this does NOT affect `AgentSyncState` (stored separately in `~/.config/claude-mpm/agent_sync.db`).
 
 ---
 
@@ -538,25 +675,96 @@ Forces clean state on next sync.
 | WAL mode file permissions issue | Low | Low | WAL creates `-wal` and `-shm` files next to the database. Same directory permissions apply. |
 | Option A over-blocks in multi-source | Low | Medium | Acceptable because multi-source is rare. Document in error message to use `--skip-compat-check`. |
 | Circular import from lazy `__version__` | Very Low | High | Same pattern used in 8 other places in the codebase. Already validated in Phase 1. |
+| **ManifestCache init crashes reconciler (DA-2)** | Low | **Critical** | **Fixed**: Wrapped in try/except; `_manifest_cache=None` disables gate (fail-open). |
+| **Auto-discover bypass (DA-1)** | N/A (was guaranteed) | **Critical** | **Fixed**: Gate moved before auto-discover early return. |
+| **WAL not ready for concurrent access (DA-3)** | Medium | High | **Fixed**: WAL mode is now Change 0, implemented first. |
+| `__version__` is None/empty in dev (DA-7) | Very Low | Low | Guard added in `_check_deploy_compatibility()`. |
 
-### Estimated Effort
+### Estimated Effort (revised per DA-9)
 
 | Task | Lines Changed | Time |
 |------|--------------|------|
-| 5.1: Cache at sync time | ~20 lines in git_source_sync_service.py | 30 min |
-| 5.2: Gate at deploy time | ~50 lines in deployment_reconciler.py | 1 hour |
-| 5.4: SQLite WAL mode | ~2 lines in manifest_cache.py | 5 min |
-| 6: Tests | ~200 lines in test_wiring.py | 2 hours |
+| 5.0: SQLite WAL mode | ~2 lines in manifest_cache.py | 5 min |
+| 5.1: Cache at sync time | ~25 lines in git_source_sync_service.py | 30 min |
+| 5.2: Gate at deploy time | ~70 lines in deployment_reconciler.py | 1.5 hours |
+| 6: Tests (20 tests) | ~350 lines in test_wiring.py | 3.5 hours |
 | Verification | Full test suite run | 30 min |
-| **Total** | **~270 lines** | **~4 hours** |
+| **Total** | **~450 lines** | **~6 hours** |
 
 ---
 
-## Appendix: Files Changed Summary
+## 9. Devil's Advocate Findings (v2)
 
-| File | Change Type | Description |
-|------|------------|-------------|
-| `src/claude_mpm/services/agents/sources/git_source_sync_service.py` | Modify | Add ManifestCache import, init, and store call in `_check_manifest_compatibility` |
-| `src/claude_mpm/services/agents/deployment/deployment_reconciler.py` | Modify | Add compatibility imports, init ManifestCache + DeploymentVersionGate, add `_check_deploy_compatibility()`, call before deploy loop |
-| `src/claude_mpm/services/agents/compatibility/manifest_cache.py` | Modify | Add WAL mode + busy_timeout PRAGMAs in `_init_db()` |
-| `tests/services/agents/compatibility/test_wiring.py` | Create | 16 new tests for the wiring |
+This section documents all findings from the devil's advocate review and how they were addressed in the amended plan.
+
+### DA-1 (CRITICAL): Auto-Discovery Early Return Bypasses Deploy Gate
+
+**Finding**: The original plan placed the deploy gate at line 125, after the auto-discover early return at line 114-123. Since `auto_discover=True` with empty `agents.enabled` is the DEFAULT configuration, the gate was dead code for most users.
+
+**Fix**: Section 5.2.3 now places the gate call immediately after `_get_agent_state()` and before the auto-discover branch. Test W-14 specifically verifies auto-discover mode triggers the gate.
+
+**Status**: FIXED in plan v2.
+
+### DA-2 (HIGH): ManifestCache Init Failure Crashes All Deployment
+
+**Finding**: `ManifestCache()` constructor creates directories and connects to SQLite. If this fails (permissions, disk full, corrupt DB), the entire `DeploymentReconciler` would fail to construct, preventing all agent deployment.
+
+**Fix**: Sections 5.1.2 and 5.2.2 now wrap `ManifestCache()` in try/except, setting it to `None` on failure. Section 5.2.4's `_check_deploy_compatibility()` checks for `None` and returns empty set (fail-open). Test W-15 verifies this.
+
+**Status**: FIXED in plan v2.
+
+### DA-3 (HIGH): WAL Mode Must Be Wired Before Deploy-Time Reads
+
+**Finding**: Sync (writer) and deploy (reader) overlap during startup. Without WAL mode, the reader could see incomplete writes or hit lock contention.
+
+**Fix**: Implementation reordered. WAL mode is now Section 5.0 (Change 0), explicitly marked as the first change to implement.
+
+**Status**: FIXED in plan v2.
+
+### DA-4 (MEDIUM): `get_all_tracked_files()` Doesn't Exist in AgentSyncState
+
+**Finding**: Option B referenced a non-existent method and an incorrect table name (`tracked_files` vs actual `agent_files`).
+
+**Fix**: Section 5.2.5 Option B corrected with actual schema, correct table name, new method signature (`get_files_by_source()`), and updated effort estimate (+2 hours).
+
+**Status**: FIXED in plan v2.
+
+### DA-5 (MEDIUM): Test W-11 Description Was Misleading
+
+**Finding**: W-11 described "staleness" but the plan has no TTL logic. What it actually tests is re-validation against a different CLI version.
+
+**Fix**: W-11 description rewritten to: "Synced with CLI v6.0.0, deploy with v5.10.0: gate re-validates cached manifest against current CLI version and detects INCOMPATIBLE_WARN". The word "staleness" removed.
+
+**Status**: FIXED in plan v2.
+
+### DA-6 (MEDIUM): Skills Deployment Not Covered by Gate
+
+**Finding**: `reconcile_skills()` is a separate method that also copies files from cache to `.claude/skills/`. The plan only gates `reconcile_agents()`.
+
+**Fix**: Explicitly scoped as agents-only in Section 3 (Goal #7) and Non-Goals. Test W-20 added to verify skills deployment is intentionally NOT gated. Skills gating is documented as a future enhancement.
+
+**Status**: ACKNOWLEDGED, explicitly scoped out with rationale and test.
+
+### DA-7 (LOW): `__version__` Edge Case (None/Empty)
+
+**Finding**: In development builds, `__version__` could be None or empty string.
+
+**Fix**: Guard added in Section 5.2.4: `if not __version__: return blocked`. Test W-16 verifies this.
+
+**Status**: FIXED in plan v2.
+
+### DA-8 (LOW): Two SQLite Databases in Different Directories
+
+**Finding**: Plan didn't document that ManifestCache and AgentSyncState live in different directories (`~/.claude-mpm/cache/` vs `~/.config/claude-mpm/`).
+
+**Fix**: Added architecture note in Section 2 (Key Architecture Notes) and updated Tier 3 rollback in Section 7 to clarify which database is affected.
+
+**Status**: FIXED in plan v2.
+
+### DA-9 (LOW): Effort Estimate Too Optimistic
+
+**Finding**: Original estimate (200 lines / 2 hours for tests) was too low given integration test fixture complexity and concurrency testing.
+
+**Fix**: Effort table revised upward: 350 lines / 3.5 hours for tests, total ~450 lines / ~6 hours.
+
+**Status**: FIXED in plan v2.
