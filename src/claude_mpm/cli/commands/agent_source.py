@@ -46,6 +46,8 @@ def _test_repository_access(repo: GitRepository) -> dict:
         >>> print(result["accessible"])
         True
     """
+    import os
+
     import requests
 
     try:
@@ -55,7 +57,12 @@ def _test_repository_access(repo: GitRepository) -> dict:
         # Test GitHub API access
         api_url = f"https://api.github.com/repos/{owner}/{repo_name}"
 
-        response = requests.get(api_url, timeout=10)
+        headers = {}
+        github_token = os.environ.get("GITHUB_TOKEN")
+        if github_token:
+            headers["Authorization"] = f"token {github_token}"
+
+        response = requests.get(api_url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             return {"accessible": True, "error": None}
@@ -65,10 +72,14 @@ def _test_repository_access(repo: GitRepository) -> dict:
                 "error": f"Repository not found: {owner}/{repo_name}",
             }
         if response.status_code == 403:
-            return {
-                "accessible": False,
-                "error": "Access denied (private repository or rate limit)",
-            }
+            if github_token:
+                error_msg = f"Access denied for {owner}/{repo_name} (check GITHUB_TOKEN permissions)"
+            else:
+                error_msg = (
+                    "GitHub API rate limit exceeded. "
+                    "Set GITHUB_TOKEN environment variable to authenticate."
+                )
+            return {"accessible": False, "error": error_msg}
         return {
             "accessible": False,
             "error": f"HTTP {response.status_code}: {response.reason}",
