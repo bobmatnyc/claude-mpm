@@ -75,6 +75,93 @@ def _mark_sync_done(key: str) -> None:
     _save_sync_state(state)
 
 
+def _agent_sources_changed_since_last_sync() -> bool:
+    """Return True if agent_sources.yaml was modified after last successful sync.
+
+    This ensures that adding/modifying agent sources triggers an immediate
+    re-sync regardless of TTL, so manifest compatibility is checked for
+    new sources on the next startup.
+    """
+    config_path = Path.home() / ".claude-mpm" / "config" / "agent_sources.yaml"
+    if not config_path.exists():
+        return False
+    try:
+        state = _load_sync_state()
+        last_sync = state.get("agents", 0)
+        config_mtime = config_path.stat().st_mtime
+        return config_mtime > last_sync
+    except (OSError, KeyError):
+        return False
+
+
+def _display_manifest_compatibility_warnings() -> None:
+    """Display console warnings for repos whose min_cli_version exceeds the running CLI.
+
+    Reads the ManifestCache (populated during sync) and compares each entry's
+    min_cli_version against the current CLI version.  Prints a user-visible
+    warning for every source that declares a higher minimum.
+
+    This is intentionally a post-sync check at the console layer — the sync
+    pipeline itself treats min_cli_version violations as soft warnings
+    (INCOMPATIBLE_WARN) and continues deploying agents.  This function makes
+    that warning impossible to miss on the console.
+    """
+    try:
+        from packaging.version import InvalidVersion, Version
+
+        from ..services.agents.compatibility.manifest_cache import ManifestCache
+
+        cache = ManifestCache()
+        entries = cache.get_all()
+        if not entries:
+            return
+
+        # Determine current CLI version
+        try:
+            from claude_mpm import __version__ as cli_version
+
+            cli_ver = Version(cli_version)
+        except (ImportError, InvalidVersion):
+            return
+
+        for entry in entries:
+            min_cli = entry.get("min_cli_version")
+            if not min_cli or min_cli == "0.0.0":
+                continue
+            try:
+                if cli_ver < Version(min_cli):
+                    source_id = entry.get("source_id", "unknown")
+                    print(
+                        f"\n\u26a0\ufe0f  {source_id} requires claude-mpm >= {min_cli} "
+                        f"(you have {cli_version})"
+                    )
+                    print(
+                        "    Agents deployed but may not work correctly. "
+                        "Run: pip install --upgrade claude-mpm"
+                    )
+                    # Surface migration notes from raw manifest content
+                    raw = entry.get("raw_content", "")
+                    if raw:
+                        import yaml
+
+                        try:
+                            data = yaml.safe_load(raw)
+                            notes = (
+                                data.get("migration_notes")
+                                if isinstance(data, dict)
+                                else None
+                            )
+                            if notes:
+                                print(f"    Migration notes: {notes.strip()}")
+                        except Exception:
+                            pass
+            except InvalidVersion:
+                continue
+
+    except Exception:
+        pass  # Non-critical — never block startup
+
+
 @contextlib.contextmanager
 def quiet_startup_context(headless: bool = False):
     """Redirect stdout to stderr for headless mode.
@@ -938,12 +1025,19 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
     # DEPRECATED: Legacy warning - no-op function, kept for compatibility
     check_legacy_cache()
 
-    # TTL-based skip: if last sync was recent, skip network checks entirely
-    if not force_sync and _is_sync_fresh("agents"):
+    # TTL-based skip: if last sync was recent AND sources haven't changed,
+    # skip network checks entirely for performance.
+    # _agent_sources_changed_since_last_sync() ensures that adding/modifying
+    # agent sources triggers an immediate re-sync regardless of TTL.
+    if (
+        not force_sync
+        and _is_sync_fresh("agents")
+        and not _agent_sources_changed_since_last_sync()
+    ):
         from ..core.logger import get_logger as _get_logger
 
         _get_logger("cli").debug(
-            f"Skipping agent sync (within {_get_sync_ttl()}s TTL). "
+            f"Skipping agent sync (within {_get_sync_ttl()}s TTL, sources unchanged). "
             "Use --force-sync to override."
         )
         return
@@ -999,6 +1093,10 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
             errors = result.get("errors", [])
             if errors:
                 logger.warning(f"Agent sync completed with {len(errors)} errors")
+
+            # Display manifest compatibility warnings to the console
+            # (after sync populates ManifestCache, before deployment)
+            _display_manifest_compatibility_warnings()
 
             # Phase 2: Deploy agents from cache to ~/.claude/agents/
             # Use reconciliation service to respect configuration.yaml settings

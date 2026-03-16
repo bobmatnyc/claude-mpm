@@ -1,7 +1,7 @@
 """Agent Startup Synchronization Service.
 
-Integrates GitSourceSyncService into Claude MPM's startup flow to ensure
-agent templates are synchronized automatically on initialization.
+Synchronizes agent templates from configured Git repositories on Claude MPM
+startup using AgentSourceConfiguration and GitSourceManager.
 
 Design Decision: Non-blocking startup integration
 
@@ -14,38 +14,30 @@ Trade-offs:
 - User Experience: No startup delays from network issues
 - Freshness: May use stale agents if sync fails silently
 
-Error Handling:
-- Network errors: Logged as warnings, use cached agents
-- Configuration errors: Logged and skipped
-- Sync failures: Partial success is acceptable
+Configuration Source:
+- Reads from AgentSourceConfiguration (agent_sources.yaml)
+- No longer depends on Config singleton or config["agent_sync"]
+- GitSourceManager handles per-repository sync orchestration
 """
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
-
-from claude_mpm.core.config import Config
-from claude_mpm.services.agents.sources.git_source_sync_service import (
-    GitSourceSyncService,
-)
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def sync_agents_on_startup(
-    config: Optional[Dict[str, Any]] = None, force_refresh: bool = False
-) -> Dict[str, Any]:
-    """Synchronize agents from remote sources on Claude MPM startup.
+    config: dict[str, Any] | None = None, force_refresh: bool = False
+) -> dict[str, Any]:
+    """Synchronize agents from remote Git sources on Claude MPM startup.
 
-    Design Decision: Single-source support for Stage 1
-
-    Rationale: Implementing multi-source support requires additional
-    complexity (priority resolution, conflict handling, source management).
-    Single-source (GitHub) is sufficient for initial deployment and
-    provides immediate value. Multi-source support planned for ticket 1M-390.
+    Loads repository configuration from AgentSourceConfiguration and
+    delegates multi-repository sync to GitSourceManager.
 
     Args:
-        config: Optional configuration dictionary. If None, loads from Config singleton.
+        config: Deprecated. Kept for backward compatibility but ignored.
+            Configuration is always loaded from AgentSourceConfiguration.
         force_refresh: Force download even if cache is fresh (bypasses ETag).
 
     Returns:
@@ -71,9 +63,20 @@ def sync_agents_on_startup(
     """
     import time
 
+    if config is not None:
+        import warnings
+
+        warnings.warn(
+            "The 'config' parameter to sync_agents_on_startup() is deprecated "
+            "and will be removed in a future version. Configuration is now loaded "
+            "from AgentSourceConfiguration (agent_sources.yaml).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     start_time = time.time()
 
-    result = {
+    result: dict[str, Any] = {
         "enabled": False,
         "sources_synced": 0,
         "total_downloaded": 0,
@@ -83,122 +86,51 @@ def sync_agents_on_startup(
     }
 
     try:
-        # Load configuration
-        if config is None:
-            config_obj = Config()
-            config = config_obj.to_dict()
+        from claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
-        # Get agent sync configuration
-        agent_sync_config = config.get("agent_sync", {})
+        agent_config = AgentSourceConfiguration.load()
+        enabled_repos = agent_config.get_enabled_repositories()
 
-        # Check if agent sync is enabled
-        if not agent_sync_config.get("enabled", True):
-            logger.debug("Agent sync disabled in configuration")
-            result["enabled"] = False
+        if not enabled_repos:
+            logger.debug("No enabled agent sources configured, skipping sync")
             return result
 
         result["enabled"] = True
+        logger.info(f"Syncing {len(enabled_repos)} agent source(s)")
 
-        # Get sources list
-        sources = agent_sync_config.get("sources", [])
+        manager = GitSourceManager()
+        sync_results = manager.sync_all_repositories(
+            repos=enabled_repos,
+            force=force_refresh,
+            show_progress=True,
+        )
 
-        if not sources:
-            logger.debug("No agent sources configured, skipping sync")
-            return result
-
-        # Get cache directory
-        cache_dir = agent_sync_config.get("cache_dir")
-        if cache_dir:
-            cache_dir = Path(cache_dir).expanduser()
-        else:
-            cache_dir = None  # Will use default
-
-        # Check for old cache directory names and provide migration guidance
-        # This handles users upgrading from older versions
-        old_cache_paths = [
-            Path.home() / ".claude-mpm" / "cache" / "remote-agents",
-        ]
-        new_cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
-
-        for old_cache in old_cache_paths:
-            if old_cache.exists() and not new_cache_dir.exists():
-                logger.warning(f"Found old cache directory: {old_cache}")
-                logger.warning(
-                    "The cache directory location has changed to: ~/.claude-mpm/cache/agents"
-                )
-                logger.warning("To migrate your existing cache, run:")
-                logger.warning(f"  mv {old_cache} {new_cache_dir}")
-                logger.info(
-                    "Agents will be re-synced to the new cache location automatically."
-                )
-                break  # Only show warning once
-
-        # Sync each enabled source
-        for source_config in sources:
-            try:
-                # Skip disabled sources
-                if not source_config.get("enabled", True):
-                    logger.debug(f"Skipping disabled source: {source_config.get('id')}")
-                    continue
-
-                source_id = source_config.get("id", "unknown")
-                source_url = source_config.get("url")
-
-                if not source_url:
-                    logger.warning(f"Source {source_id} missing URL, skipping")
-                    result["errors"].append(f"Source {source_id} missing URL")
-                    continue
-
-                logger.info(f"Syncing agents from source: {source_id}")
-
-                # Create sync service for this source
-                sync_service = GitSourceSyncService(
-                    source_url=source_url,
-                    cache_dir=cache_dir,
-                    source_id=source_id,
-                )
-
-                # Perform sync
-                sync_result = sync_service.sync_agents(force_refresh=force_refresh)
-
-                # Aggregate results
+        # Aggregate per-repo results into return format
+        for source_id, source_result in sync_results.items():
+            if source_result.get("synced"):
                 result["sources_synced"] += 1
-                result["total_downloaded"] += sync_result.get("total_downloaded", 0)
-                result["cache_hits"] += sync_result.get("cache_hits", 0)
-
-                # Log any failures
-                failed = sync_result.get("failed", [])
-                if failed:
-                    error_msg = (
-                        f"Source {source_id} failed to sync {len(failed)} agents"
-                    )
-                    logger.warning(error_msg)
-                    result["errors"].append(error_msg)
-
+                result["total_downloaded"] += source_result.get("files_updated", 0)
+                result["cache_hits"] += source_result.get("files_cached", 0)
                 logger.info(
-                    f"Source {source_id}: {sync_result['total_downloaded']} downloaded, "
-                    f"{sync_result['cache_hits']} cached"
+                    f"Source {source_id}: "
+                    f"{source_result.get('files_updated', 0)} downloaded, "
+                    f"{source_result.get('files_cached', 0)} cached"
                 )
-
-            except Exception as e:
-                # Log error but continue with other sources
-                error_msg = f"Failed to sync source {source_config.get('id')}: {e}"
-                logger.error(error_msg)
-                result["errors"].append(error_msg)
-                continue
+            else:
+                error = source_result.get("error", "Unknown error")
+                result["errors"].append(f"Source {source_id}: {error}")
+                logger.warning(f"Source {source_id}: sync failed - {error}")
 
     except Exception as e:
-        # Catch-all for unexpected errors
         error_msg = f"Agent sync failed: {e}"
         logger.error(error_msg)
         result["errors"].append(error_msg)
 
     finally:
-        # Record duration
         duration_ms = int((time.time() - start_time) * 1000)
         result["duration_ms"] = duration_ms
 
-        # Log summary
         if result["enabled"]:
             if result["sources_synced"] > 0:
                 logger.info(
@@ -213,16 +145,19 @@ def sync_agents_on_startup(
     return result
 
 
-def get_sync_status() -> Dict[str, Any]:
+def get_sync_status() -> dict[str, Any]:
     """Get current agent synchronization status.
+
+    Reads configuration from AgentSourceConfiguration to determine
+    which repositories are enabled and their status.
 
     Returns:
         Dictionary with sync status:
         {
             "enabled": bool,
             "sources_configured": int,
-            "last_sync": Optional[str],  # ISO timestamp
             "cache_dir": str,
+            "last_sync": Optional[str],  # ISO timestamp (placeholder)
         }
 
     Usage:
@@ -230,26 +165,17 @@ def get_sync_status() -> Dict[str, Any]:
         agent synchronization configuration.
     """
     try:
-        config = Config()
-        agent_sync_config = config.get("agent_sync", {})
+        from claude_mpm.config.agent_sources import AgentSourceConfiguration
 
-        sources = agent_sync_config.get("sources", [])
-        enabled_sources = [s for s in sources if s.get("enabled", True)]
+        agent_config = AgentSourceConfiguration.load()
+        enabled_repos = agent_config.get_enabled_repositories()
 
-        status = {
-            "enabled": agent_sync_config.get("enabled", True),
-            "sources_configured": len(enabled_sources),
-            "cache_dir": agent_sync_config.get(
-                "cache_dir", "~/.claude-mpm/cache/agents"
-            ),
+        return {
+            "enabled": len(enabled_repos) > 0,
+            "sources_configured": len(enabled_repos),
+            "cache_dir": str(Path.home() / ".claude-mpm" / "cache" / "agents"),
+            "last_sync": None,
         }
-
-        # Try to get last sync timestamp from sync state
-        # Future enhancement: Add get_last_sync_time() method to AgentSyncState
-        # to retrieve most recent sync timestamp across all sources
-        status["last_sync"] = None  # Placeholder for future implementation
-
-        return status
 
     except Exception as e:
         logger.error(f"Failed to get sync status: {e}")
