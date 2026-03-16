@@ -1008,33 +1008,45 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
         return
 
     try:
-        # Load active profile if configured
-        # Get project root (where .claude-mpm exists)
+        # Resolve all agent pipeline config sources in one call
         from pathlib import Path
 
         from ..core.shared.config_loader import ConfigLoader
+        from ..services.agents.pipeline_config import AgentPipelineConfig
         from ..services.agents.startup_sync import sync_agents_on_startup
-        from ..services.profile_manager import ProfileManager
         from ..utils.progress import ProgressBar
 
         project_root = Path.cwd()
 
-        profile_manager = ProfileManager(project_dir=project_root)
-        config_loader = ConfigLoader()
-        main_config = config_loader.load_main_config()
-        active_profile = main_config.get("active_profile")
+        # Determine active profile (fail-safe)
+        active_profile = None
+        try:
+            config_loader = ConfigLoader()
+            active_profile = config_loader.load_main_config().get("active_profile")
+        except Exception:
+            pass
 
-        if active_profile:
-            success = profile_manager.load_profile(active_profile)
-            if success:
-                summary = profile_manager.get_filtering_summary()
-                from ..core.logger import get_logger
+        pipeline_config = AgentPipelineConfig.resolve(
+            mode="startup",
+            profile=active_profile,
+            project_dir=project_root,
+        )
 
-                logger = get_logger("cli")
-                logger.info(
-                    f"Profile '{active_profile}' active: "
-                    f"{summary['enabled_agents_count']} agents enabled"
-                )
+        if pipeline_config.warnings:
+            from ..core.logger import get_logger as _gl
+
+            for _w in pipeline_config.warnings:
+                _gl("cli").warning("AgentPipelineConfig: %s", _w)
+
+        if active_profile and pipeline_config.enabled_agents:
+            from ..core.logger import get_logger
+
+            logger = get_logger("cli")
+            logger.info(
+                "Profile '%s' active: %d agents enabled",
+                active_profile,
+                len(pipeline_config.enabled_agents),
+            )
 
         # Phase 1: Sync files from Git sources
         result = sync_agents_on_startup(force_refresh=force_sync)
@@ -1066,27 +1078,25 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
             # Phase 2: Deploy agents from cache to ~/.claude/agents/
             # Use reconciliation service to respect configuration.yaml settings
             try:
-                from pathlib import Path
-
                 from ..core.unified_config import UnifiedConfig
                 from ..services.agents.deployment.startup_reconciliation import (
                     perform_startup_reconciliation,
                 )
 
-                # Load configuration
+                # Transitional bridge: build UnifiedConfig and overlay pipeline_config
+                # so that perform_startup_reconciliation() sees the resolved agent list.
                 unified_config = UnifiedConfig()
 
-                # Override with profile settings if active
-                if active_profile and profile_manager.active_profile:
-                    # Get enabled agents from profile (returns Set[str])
-                    profile_enabled_agents = (
-                        profile_manager.active_profile.get_enabled_agents()
-                    )
-                    # Update config with profile's enabled list (convert Set to List)
-                    unified_config.agents.enabled = list(profile_enabled_agents)
-                    logger.info(
-                        f"Profile '{active_profile}': Using {len(profile_enabled_agents)} enabled agents"
-                    )
+                # Compute effective enabled set: enabled + required - excluded
+                effective_agents = pipeline_config.get_agents_to_deploy()
+                if effective_agents:
+                    unified_config.agents.enabled = list(effective_agents)
+                    if active_profile:
+                        logger.info(
+                            "Profile '%s': Using %d enabled agents",
+                            active_profile,
+                            len(effective_agents),
+                        )
 
                 # Perform reconciliation to deploy configured agents
                 project_path = Path.cwd()
