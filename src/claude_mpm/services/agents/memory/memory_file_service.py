@@ -6,6 +6,16 @@ from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
+# Maps current (new) agent IDs to their previous (old) agent IDs.
+# Used by get_memory_file_with_migration() to find memory files that were
+# created under the old name before an agent was renamed.
+_AGENT_RENAME_MAP: dict[str, list[str]] = {
+    "tmux": ["tmux-agent", "tmux_agent"],
+    "content": ["content-agent", "content_agent"],
+    "memory-manager": ["memory-manager-agent", "memory_manager_agent"],
+    "web-ui-engineer": ["web-ui", "web_ui"],
+}
+
 
 class MemoryFileService:
     """Service for handling memory file operations."""
@@ -48,6 +58,27 @@ class MemoryFileService:
         # If canonical already exists, return immediately
         if canonical_file.exists():
             return canonical_file
+
+        # Rename-aware fallback: check previous agent IDs for renamed agents.
+        # This handles cases where an agent was renamed (e.g., "tmux-agent" -> "tmux")
+        # and the memory file still uses the old name.
+        previous_ids = _AGENT_RENAME_MAP.get(normalized_id, [])
+        for prev_id in previous_ids:
+            for suffix in ["_memories.md", "_memory.md"]:
+                legacy_file = directory / f"{prev_id}{suffix}"
+                if legacy_file.exists():
+                    self.logger.info(
+                        f"Migrating renamed agent memory: "
+                        f"{legacy_file.name} -> {canonical_file.name}"
+                    )
+                    try:
+                        legacy_file.rename(canonical_file)
+                        return canonical_file
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Could not migrate renamed agent memory file: {e}"
+                        )
+                        return legacy_file
 
         # Legacy fallback 1: hyphenated raw agent_id (e.g. research-agent_memories.md)
         # This covers cases like "research-agent" that normalize to "research" but were

@@ -24,6 +24,199 @@ from .deployment_reconciler import DeploymentReconciler, DeploymentResult
 logger = get_logger(__name__)
 
 
+def _extract_agent_id_from_frontmatter(content: str) -> Optional[str]:
+    """Extract agent_id from YAML frontmatter.
+
+    Args:
+        content: Full text content of the agent .md file
+
+    Returns:
+        The agent_id value if found, otherwise None.
+    """
+    if not content.startswith("---"):
+        return None
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return None
+    for line in parts[1].split("\n"):
+        line = line.strip()
+        if line.startswith("agent_id:"):
+            return line[9:].strip().strip("'\"")
+    return None
+
+
+def _detect_and_remove_orphaned_agents(
+    project_path: Path,
+    config: UnifiedConfig,
+    agent_result: DeploymentResult,
+) -> list[str]:
+    """Detect and remove orphaned MPM agents after reconciliation.
+
+    An orphaned agent is a deployed file in .claude/agents/ that:
+    1. Is managed by MPM (has author: claude-mpm in frontmatter)
+    2. Is NOT in the expected set of agents (not in cache or config)
+
+    This handles the case where agents are renamed in the source repo:
+    the old-named file persists while the new-named file is deployed.
+
+    Args:
+        project_path: Project directory
+        config: Configuration instance
+        agent_result: Result from reconciliation (for context)
+
+    Returns:
+        List of removed agent filenames
+    """
+    from claude_mpm.core.unified_paths import get_path_manager
+    from claude_mpm.utils.agent_provenance import is_mpm_managed_agent
+
+    deploy_dir = project_path / ".claude" / "agents"
+    if not deploy_dir.exists():
+        return []
+
+    path_manager = get_path_manager()
+    cache_dir = path_manager.get_cache_dir() / "agents"
+
+    # Build expected agent set
+    expected_stems: set[str] = set()
+
+    # Source 1: All agents in the cache (covers remote sources)
+    if cache_dir.exists():
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+
+        for agent_file in cache_dir.glob("**/*.md"):
+            # Add raw cache stem for backward compatibility
+            expected_stems.add(agent_file.stem)
+            # Add normalized stem (strips -agent suffix, lowercases, etc.)
+            normalized_filename = normalize_deployment_filename(agent_file.name)
+            expected_stems.add(Path(normalized_filename).stem)
+            # Also check frontmatter for agent_id override (e.g. web-ui -> web-ui-engineer)
+            try:
+                content = agent_file.read_text(encoding="utf-8")
+                agent_id = _extract_agent_id_from_frontmatter(content)
+                if agent_id:
+                    normalized_id_filename = normalize_deployment_filename(
+                        f"{agent_id}.md"
+                    )
+                    expected_stems.add(Path(normalized_id_filename).stem)
+            except Exception:
+                pass  # Skip unreadable files
+
+    # Source 2: Configured agents (covers explicit configuration)
+    if config.agents.enabled:
+        expected_stems.update(config.agents.enabled)
+    if config.agents.required:
+        expected_stems.update(config.agents.required)
+
+    # Source 3: Local templates (project-level)
+    local_template_dir = project_path / ".claude-mpm" / "agents"
+    if local_template_dir.exists():
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+
+        for agent_file in local_template_dir.glob("*.md"):
+            expected_stems.add(agent_file.stem)
+            normalized_filename = normalize_deployment_filename(agent_file.name)
+            expected_stems.add(Path(normalized_filename).stem)
+            try:
+                content = agent_file.read_text(encoding="utf-8")
+                agent_id = _extract_agent_id_from_frontmatter(content)
+                if agent_id:
+                    normalized_id_filename = normalize_deployment_filename(
+                        f"{agent_id}.md"
+                    )
+                    expected_stems.add(Path(normalized_id_filename).stem)
+            except Exception:
+                pass
+
+    # Source 4: User-level templates
+    user_template_dir = Path.home() / ".claude-mpm" / "agents"
+    if user_template_dir.exists():
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+
+        for agent_file in user_template_dir.glob("*.md"):
+            expected_stems.add(agent_file.stem)
+            normalized_filename = normalize_deployment_filename(agent_file.name)
+            expected_stems.add(Path(normalized_filename).stem)
+            try:
+                content = agent_file.read_text(encoding="utf-8")
+                agent_id = _extract_agent_id_from_frontmatter(content)
+                if agent_id:
+                    normalized_id_filename = normalize_deployment_filename(
+                        f"{agent_id}.md"
+                    )
+                    expected_stems.add(Path(normalized_id_filename).stem)
+            except Exception:
+                pass
+
+    if not expected_stems:
+        # No expected agents found — don't remove anything
+        # This prevents accidental deletion if cache is empty
+        logger.debug("No expected agents found, skipping orphan detection")
+        return []
+
+    # Scan deployed directory for orphan candidates
+    orphan_candidates: list[tuple[Path, str]] = []  # (file_path, stem)
+    total_deployed = 0
+    for deployed_file in deploy_dir.glob("*.md"):
+        total_deployed += 1
+        stem = deployed_file.stem
+
+        # Skip if this agent is expected
+        if stem in expected_stems:
+            continue
+
+        # Only remove MPM-managed agents (protect user agents)
+        try:
+            content = deployed_file.read_text(encoding="utf-8")
+            if not is_mpm_managed_agent(content):
+                logger.debug(f"Preserved user agent during orphan scan: {stem}")
+                continue
+        except Exception as e:
+            logger.debug(f"Could not read {deployed_file} for orphan check: {e}")
+            continue
+
+        orphan_candidates.append((deployed_file, stem))
+
+    # --- Threshold guard: prevent mass deletion from partial cache sync ---
+    # If BOTH conditions are true, skip all deletions:
+    #   1. Orphan ratio exceeds 20% of total deployed agents
+    #   2. More than 3 orphan candidates (absolute floor)
+    # This prevents mass deletion when cache is partially synced or buggy,
+    # while still allowing normal small-scale orphan cleanup.
+    ORPHAN_RATIO_THRESHOLD = 0.20
+    ORPHAN_ABSOLUTE_FLOOR = 3
+    if total_deployed > 0 and len(orphan_candidates) > ORPHAN_ABSOLUTE_FLOOR:
+        orphan_ratio = len(orphan_candidates) / total_deployed
+        if orphan_ratio > ORPHAN_RATIO_THRESHOLD:
+            logger.warning(
+                f"Orphan detection threshold exceeded: "
+                f"{len(orphan_candidates)}/{total_deployed} agents "
+                f"({orphan_ratio:.0%}) would be removed. "
+                f"Skipping all deletions to prevent mass removal "
+                f"(threshold: >{ORPHAN_RATIO_THRESHOLD:.0%} AND >{ORPHAN_ABSOLUTE_FLOOR} candidates). "
+                f"Candidates: {', '.join(stem for _, stem in orphan_candidates)}"
+            )
+            return []
+
+    # Remove confirmed orphans
+    removed: list[str] = []
+    for deployed_file, stem in orphan_candidates:
+        try:
+            deployed_file.unlink()
+            removed.append(stem)
+            logger.info(f"Removed orphaned agent: {stem}")
+        except Exception as e:
+            logger.warning(f"Failed to remove orphaned agent {stem}: {e}")
+
+    return removed
+
+
 def perform_startup_reconciliation(
     project_path: Optional[Path] = None,
     config: Optional[UnifiedConfig] = None,
@@ -57,6 +250,18 @@ def perform_startup_reconciliation(
 
     # Reconcile agents
     agent_result = reconciler.reconcile_agents(project_path)
+
+    # Detect and remove orphaned agents post-reconciliation
+    orphans_removed = _detect_and_remove_orphaned_agents(
+        project_path, config, agent_result
+    )
+    if orphans_removed and not silent:
+        logger.info(
+            f"Removed {len(orphans_removed)} orphaned agent(s): "
+            f"{', '.join(orphans_removed)}"
+        )
+    # Append orphan removals to the result for reporting
+    agent_result.removed.extend(orphans_removed)
 
     if agent_result.deployed and not silent:
         logger.info(f"Deployed agents: {', '.join(agent_result.deployed)}")

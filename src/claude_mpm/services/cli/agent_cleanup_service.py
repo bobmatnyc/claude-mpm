@@ -354,10 +354,11 @@ class AgentCleanupService(IAgentCleanupService):
             deployed_count = 0
             user_created_count = 0
 
+            from claude_mpm.utils.agent_provenance import is_mpm_managed_file
+
             for agent_file in agents_dir.glob("*.md"):
                 try:
-                    content = agent_file.read_text()
-                    if "author: claude-mpm" in content.lower():
+                    if is_mpm_managed_file(agent_file):
                         deployed_count += 1
                     else:
                         user_created_count += 1

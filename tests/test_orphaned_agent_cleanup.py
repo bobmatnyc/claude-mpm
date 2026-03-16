@@ -110,7 +110,12 @@ This is a user-created agent with custom frontmatter.
 
 
 def test_cleanup_with_multiple_ownership_markers(temp_agents_dir):
-    """Test cleanup with different ownership marker combinations."""
+    """Test cleanup with different ownership marker combinations.
+
+    Only agents with a recognized author field (e.g. 'Claude MPM', 'claude-mpm',
+    'anthropic') should be treated as MPM-managed. Having just 'source: remote'
+    or just 'agent_id: ...' is NOT sufficient for provenance.
+    """
     # Create agents with different markers
     agent_with_author = temp_agents_dir / "agent-author.md"
     agent_with_author.write_text(
@@ -142,14 +147,16 @@ agent_id: test-agent
 """
     )
 
-    # Run cleanup (none should remain)
+    # Run cleanup
     removed = _cleanup_orphaned_agents(temp_agents_dir, [])
 
-    # All should be removed
-    assert removed == 3
-    assert not agent_with_author.exists()
-    assert not agent_with_source.exists()
-    assert not agent_with_id.exists()
+    # Only the agent with a proper MPM author should be removed.
+    # Agents with only 'source: remote' or only 'agent_id' are NOT
+    # MPM-managed and should be preserved (fixes the 'or agent_id' bug).
+    assert removed == 1
+    assert not agent_with_author.exists()  # Removed: has MPM author
+    assert agent_with_source.exists()  # Preserved: no MPM author
+    assert agent_with_id.exists()  # Preserved: no MPM author
 
 
 def test_cleanup_skips_hidden_files(temp_agents_dir):
@@ -175,8 +182,14 @@ author: Claude MPM Team
 
 
 def test_cleanup_handles_invalid_yaml(temp_agents_dir):
-    """Test that cleanup handles agents with invalid YAML gracefully."""
-    # Create an agent with invalid YAML frontmatter
+    """Test that cleanup handles agents with invalid YAML gracefully.
+
+    The canonical is_mpm_managed_agent() does line-based parsing (not YAML),
+    so it can correctly detect the author even in malformed frontmatter.
+    An agent with 'author: Claude MPM Team' is detected as MPM-managed
+    regardless of other YAML issues.
+    """
+    # Create an agent with invalid YAML frontmatter but valid author line
     invalid_agent = temp_agents_dir / "invalid-agent.md"
     invalid_agent.write_text(
         """---
@@ -189,12 +202,13 @@ invalid yaml: [unclosed bracket
 """
     )
 
-    # Run cleanup (should not crash, should skip file)
+    # Run cleanup - should detect via line-based author check
     removed = _cleanup_orphaned_agents(temp_agents_dir, [])
 
-    # Should preserve file if YAML parsing fails (safety first)
-    assert removed == 0
-    assert invalid_agent.exists()
+    # The line-based provenance check finds "author: Claude MPM Team"
+    # so the agent IS identified as MPM-managed and removed
+    assert removed == 1
+    assert not invalid_agent.exists()
 
 
 def test_cleanup_with_empty_directory(temp_agents_dir):

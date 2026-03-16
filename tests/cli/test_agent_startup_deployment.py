@@ -363,24 +363,49 @@ class TestAgentStartupDeployment:
     def test_sync_remote_agents_no_error_display_when_successful(self):
         """Verify no error messages are shown when deployment succeeds."""
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
+        from claude_mpm.services.agents.deployment.deployment_reconciler import (
+            DeploymentResult,
+        )
 
         with ExitStack() as stack:
             mock_sync_agents = stack.enter_context(
                 patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
             )
-            mock_deployment_service_class = stack.enter_context(
+            # Mock the reconciliation function (Phase 2 code path)
+            # CRITICAL: Must mock perform_startup_reconciliation, NOT
+            # AgentDeploymentService. Phase 2 changed the code to use
+            # reconciliation. Without this mock, the REAL reconciliation
+            # runs against Path.cwd() and deletes deployed agents.
+            mock_reconcile = stack.enter_context(
                 patch(
-                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                    "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation",
+                    return_value=(
+                        DeploymentResult(
+                            deployed=["agent1"],
+                            removed=[],
+                            unchanged=[],
+                            errors=[],  # No errors
+                        ),
+                        DeploymentResult(
+                            deployed=[], removed=[], unchanged=[], errors=[]
+                        ),
+                    ),
                 )
             )
-            mock_progress_bar = stack.enter_context(
-                patch("claude_mpm.utils.progress.ProgressBar")
+            # Mock ConfigLoader to return config with no active_profile
+            mock_config_loader = stack.enter_context(
+                patch("claude_mpm.core.shared.config_loader.ConfigLoader")
+            )
+            mock_main_config = MagicMock()
+            mock_main_config.get.return_value = None
+            mock_config_loader.return_value.load_main_config.return_value = (
+                mock_main_config
             )
             mock_print = stack.enter_context(patch("builtins.print"))
             tmp_dir = stack.enter_context(tempfile.TemporaryDirectory())
             # Setup mocks
             tmp_path = Path(tmp_dir)
-            cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = tmp_path / ".claude-mpm" / "cache" / "agents"
             cache_dir.mkdir(parents=True)
 
             # Create agent file in cache
@@ -396,22 +421,6 @@ class TestAgentStartupDeployment:
                 "duration_ms": 500,
             }
 
-            # Mock deployment service to return success (no errors)
-            mock_deployment_service = MagicMock()
-            mock_deployment_service_class.return_value = mock_deployment_service
-
-            mock_deployment_service.deploy_agents.return_value = {
-                "deployed": ["agent1"],
-                "updated": [],
-                "skipped": [],
-                "errors": [],  # No errors
-                "total": 1,
-            }
-
-            # Mock progress bar
-            mock_progress_instance = MagicMock()
-            mock_progress_bar.return_value = mock_progress_instance
-
             # Mock Path.home()
             with patch("pathlib.Path.home", return_value=tmp_path):
                 # Run the function
@@ -419,6 +428,9 @@ class TestAgentStartupDeployment:
 
                 # CRITICAL VERIFICATION: No error messages should be displayed
                 print_calls = [str(call) for call in mock_print.call_args_list]
+
+                # Verify reconciliation was called (no errors)
+                mock_reconcile.assert_called_once()
 
                 # Verify error messages are NOT shown
                 assert not any(

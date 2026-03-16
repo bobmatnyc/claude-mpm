@@ -27,9 +27,14 @@ class TestStartupMigrations:
 
     @pytest.fixture
     def patch_home(self, temp_home):
-        """Patch Path.home() to return temp home."""
+        """Patch Path.home() and Path.cwd() to return temp home.
+
+        Also patches cwd to prevent migrations (like agent naming cleanup)
+        from operating on the real project's .claude/agents/ directory.
+        """
         with patch.object(Path, "home", return_value=temp_home):
-            yield temp_home
+            with patch.object(Path, "cwd", return_value=temp_home):
+                yield temp_home
 
     def test_check_cache_dir_rename_needed_true(self, patch_home):
         """Test that check returns True when remote-agents exists."""
@@ -194,3 +199,153 @@ agent_sync:
         # Migration should still be marked as completed
         if MIGRATIONS:
             assert _is_migration_completed(MIGRATIONS[0].id) is True
+
+
+class TestAgentNamingMigration:
+    """Tests for the v5.10.0-standardize-agent-names migration."""
+
+    @pytest.fixture
+    def agents_dir(self, tmp_path):
+        """Create a temporary .claude/agents/ directory."""
+        agents = tmp_path / ".claude" / "agents"
+        agents.mkdir(parents=True)
+        return agents
+
+    def _write_mpm_agent(self, path: Path, name: str):
+        """Write a mock MPM agent file."""
+        path.write_text(
+            f"---\nname: {name}\nauthor: claude-mpm\nversion: 1.0.0\n---\n"
+            f"# {name}\n\nInstructions here."
+        )
+
+    def _write_user_agent(self, path: Path, name: str):
+        """Write a mock user agent file."""
+        path.write_text(
+            f"---\nname: {name}\nauthor: john-doe\nversion: 1.0.0\n---\n"
+            f"# {name}\n\nUser instructions."
+        )
+
+    def test_check_returns_true_when_stale_files_exist(self, agents_dir):
+        """Check function detects stale files."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_agent_naming_migration_needed,
+        )
+
+        self._write_mpm_agent(agents_dir / "tmux-agent.md", "Tmux Agent")
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            assert _check_agent_naming_migration_needed() is True
+
+    def test_check_returns_false_when_no_stale_files(self, agents_dir):
+        """Check function returns False when no stale files exist."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_agent_naming_migration_needed,
+        )
+
+        self._write_mpm_agent(agents_dir / "tmux.md", "Tmux")
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            assert _check_agent_naming_migration_needed() is False
+
+    def test_check_returns_false_when_no_agents_dir(self, tmp_path):
+        """Check function returns False when .claude/agents/ doesn't exist."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_agent_naming_migration_needed,
+        )
+
+        with patch("claude_mpm.cli.startup_migrations.Path.cwd", return_value=tmp_path):
+            assert _check_agent_naming_migration_needed() is False
+
+    def test_migrate_removes_stale_mpm_agents(self, agents_dir):
+        """Migration removes MPM agents with stale names."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_agent_naming_standardization,
+        )
+
+        self._write_mpm_agent(agents_dir / "tmux-agent.md", "Tmux Agent")
+        self._write_mpm_agent(agents_dir / "content-agent.md", "Content Agent")
+        self._write_mpm_agent(agents_dir / "tmux.md", "Tmux")  # new name
+
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            result = _migrate_agent_naming_standardization()
+
+        assert result is True
+        assert not (agents_dir / "tmux-agent.md").exists()
+        assert not (agents_dir / "content-agent.md").exists()
+        assert (agents_dir / "tmux.md").exists()  # new file preserved
+
+    def test_migrate_preserves_user_agents_with_stale_names(self, agents_dir):
+        """Migration preserves user agents even if they have stale names."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_agent_naming_standardization,
+        )
+
+        self._write_user_agent(agents_dir / "tmux-agent.md", "My Tmux Agent")
+
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            result = _migrate_agent_naming_standardization()
+
+        assert result is True
+        assert (agents_dir / "tmux-agent.md").exists()  # preserved
+
+    def test_migrate_handles_missing_files_gracefully(self, agents_dir):
+        """Migration succeeds even if no stale files exist."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_agent_naming_standardization,
+        )
+
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            result = _migrate_agent_naming_standardization()
+
+        assert result is True
+
+    def test_migrate_handles_all_four_renames(self, agents_dir):
+        """Migration handles all 4 known filename renames."""
+        from claude_mpm.cli.startup_migrations import (
+            _STALE_AGENT_FILES,
+            _migrate_agent_naming_standardization,
+        )
+
+        for filename in _STALE_AGENT_FILES:
+            name = filename.replace(".md", "").replace("-", " ").title()
+            self._write_mpm_agent(agents_dir / filename, name)
+
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            result = _migrate_agent_naming_standardization()
+
+        assert result is True
+        for filename in _STALE_AGENT_FILES:
+            assert not (agents_dir / filename).exists()
+
+    def test_web_ui_rename_handled(self, agents_dir):
+        """The web-ui.md → web-ui-engineer.md rename is handled."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_agent_naming_standardization,
+        )
+
+        self._write_mpm_agent(agents_dir / "web-ui.md", "Web UI")
+
+        with patch(
+            "claude_mpm.cli.startup_migrations.Path.cwd",
+            return_value=agents_dir.parent.parent,
+        ):
+            result = _migrate_agent_naming_standardization()
+
+        assert result is True
+        assert not (agents_dir / "web-ui.md").exists()

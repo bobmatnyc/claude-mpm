@@ -1709,18 +1709,26 @@ class TestCommandRouting:
             assert len(result.data["agents"]) == 2
 
     def test_deploy_agents_with_error(self):
-        """Test deploy agents with error from _deploy_agents mock."""
-        # _deploy_agents is called internally by run() for the DEPLOY command.
-        # We mock it directly to verify that run() propagates the error result.
-        with patch.object(
-            self.command,
-            "_deploy_agents",
-            side_effect=Exception("Deployment failed"),
-        ):
+        """Test deploy agents with error from GitSourceSyncService mock.
+
+        IMPORTANT: _deploy_agents() instantiates GitSourceSyncService() directly
+        (not via self._deployment_service), so we must mock GitSourceSyncService
+        at the import site to prevent real network calls and real filesystem writes
+        to .claude/agents/.
+        """
+        from unittest.mock import patch
+
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService"
+        ) as mock_git_sync_class:
+            mock_git_sync = MagicMock()
+            mock_git_sync.sync_agents.side_effect = Exception("Sync failed")
+            mock_git_sync_class.return_value = mock_git_sync
+
             args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
 
             result = self.command.run(args)
 
-        assert isinstance(result, CommandResult)
-        assert result.success is False
-        assert "Error" in result.message or "error" in result.message
+            assert isinstance(result, CommandResult)
+            assert result.success is False
+            assert "Error" in result.message or "error" in result.message

@@ -14,7 +14,6 @@ Key Principles:
 - Backward compatibility with empty enabled lists
 """
 
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -25,6 +24,7 @@ from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.agents.compatibility import CompatibilityResult
 from claude_mpm.services.agents.compatibility.deploy_gate import DeploymentVersionGate
 from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
+from claude_mpm.services.agents.deployment_utils import deploy_agent_file
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = get_logger(__name__)
@@ -440,12 +440,9 @@ class DeploymentReconciler:
         if not agent_file:
             raise FileNotFoundError(f"Agent file for '{agent_id}' not found in cache")
 
-        # Ensure deploy directory exists
-        deploy_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy agent file to deployment directory
-        dest_file = deploy_dir / agent_file.name
-        shutil.copy2(agent_file, dest_file)
+        # Deploy using unified deployment function (handles normalization,
+        # frontmatter injection, and legacy cleanup)
+        deploy_agent_file(agent_file, deploy_dir)
 
     def _deploy_skill(self, skill_id: str, cache_dir: Path, deploy_dir: Path) -> None:
         """Deploy skill from cache to project directory."""
@@ -454,12 +451,9 @@ class DeploymentReconciler:
         if not skill_file:
             raise FileNotFoundError(f"Skill file for '{skill_id}' not found in cache")
 
-        # Ensure deploy directory exists
-        deploy_dir.mkdir(parents=True, exist_ok=True)
-
-        # Copy skill file to deployment directory
-        dest_file = deploy_dir / skill_file.name
-        shutil.copy2(skill_file, dest_file)
+        # Deploy using unified deployment function (handles normalization,
+        # frontmatter injection, and legacy cleanup)
+        deploy_agent_file(skill_file, deploy_dir)
 
     def _remove_agent(self, agent_id: str, deploy_dir: Path) -> None:
         """Remove deployed agent."""
@@ -476,41 +470,17 @@ class DeploymentReconciler:
 
     def _is_mpm_agent(self, deploy_dir: Path, agent_id: str) -> bool:
         """Check if agent is managed by MPM (not user-created)."""
-        agent_file = deploy_dir / f"{agent_id}.md"
-        if not agent_file.exists():
-            return False
+        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
 
-        try:
-            content = agent_file.read_text(encoding="utf-8")
-            # Check for MPM author markers
-            mpm_markers = [
-                "author: claude-mpm",
-                "author: 'claude-mpm'",
-                "author: anthropic",
-            ]
-            return any(marker in content.lower() for marker in mpm_markers)
-        except Exception as e:
-            logger.warning(f"Failed to check MPM marker for {agent_id}: {e}")
-            return False
+        agent_file = deploy_dir / f"{agent_id}.md"
+        return is_mpm_managed_file(agent_file)
 
     def _is_mpm_skill(self, deploy_dir: Path, skill_id: str) -> bool:
         """Check if skill is managed by MPM (not user-created)."""
-        skill_file = deploy_dir / f"{skill_id}.md"
-        if not skill_file.exists():
-            return False
+        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
 
-        try:
-            content = skill_file.read_text(encoding="utf-8")
-            # Check for MPM author markers
-            mpm_markers = [
-                "author: claude-mpm",
-                "author: 'claude-mpm'",
-                "author: anthropic",
-            ]
-            return any(marker in content.lower() for marker in mpm_markers)
-        except Exception as e:
-            logger.warning(f"Failed to check MPM marker for {skill_id}: {e}")
-            return False
+        skill_file = deploy_dir / f"{skill_id}.md"
+        return is_mpm_managed_file(skill_file)
 
     def _find_file_in_cache(
         self, item_id: str, cache_dir: Path, pattern: str
