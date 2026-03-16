@@ -470,12 +470,17 @@ class AgentsCommand(AgentCommand):
             CommandResult with agent list or error
         """
         try:
+            from ...config.agent_sources import AgentSourceConfiguration
             from ...services.agents.git_source_manager import GitSourceManager
             from ...services.agents.sync_orchestrator import AgentSyncOrchestrator
 
-            # Sync all configured sources via orchestrator (Phase 3 unification)
+            # Sync default source via orchestrator (Phase 3 unification).
+            # Scope to default repo only to preserve pre-refactor behaviour
+            # where GitSourceSyncService() only synced bobmatnyc/claude-mpm-agents.
+            source_config = AgentSourceConfiguration.load()
+            default_repos = source_config.get_enabled_repositories()[:1]
             orchestrator = AgentSyncOrchestrator(show_progress=False)
-            orch_result = orchestrator.sync(force=False)
+            orch_result = orchestrator.sync(force=False, repos=default_repos)
 
             if not orch_result.enabled:
                 message = (
@@ -606,6 +611,7 @@ class AgentsCommand(AgentCommand):
             if hasattr(args, "preset") and args.preset:
                 return self._deploy_preset(args)
 
+            from ...config.agent_sources import AgentSourceConfiguration
             from ...services.agents.sources.git_source_sync_service import (
                 GitSourceSyncService,
             )
@@ -618,8 +624,12 @@ class AgentsCommand(AgentCommand):
             # Phase 3 unification: use orchestrator for sync step.
             # INVARIANT: `agents deploy` is NEVER TTL-gated -- always pass
             # force=True when the user specifies --force.
+            # Scope to default repo only -- the old GitSourceSyncService()
+            # constructor only knew about bobmatnyc/claude-mpm-agents.
+            source_config = AgentSourceConfiguration.load()
+            default_repos = source_config.get_enabled_repositories()[:1]
             orchestrator = AgentSyncOrchestrator(show_progress=True)
-            orch_result = orchestrator.sync(force=force)
+            orch_result = orchestrator.sync(force=force, repos=default_repos)
 
             if not orch_result.enabled or (
                 orch_result.sources_synced == 0 and orch_result.sources_failed > 0

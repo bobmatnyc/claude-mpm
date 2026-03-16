@@ -194,14 +194,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
 
-    def _sync_remote_agent_sources(self, timeout_seconds: int = 30) -> dict[str, Any]:
+    def _sync_remote_agent_sources(self) -> dict[str, Any]:
         """Sync git-based agent sources before deployment.
 
         Delegates to AgentSyncOrchestrator (Phase 3 unification) and returns
         a backward-compatible dict for existing callers.
-
-        Args:
-            timeout_seconds: Timeout for git operations (default: 30 seconds)
 
         Returns:
             Dictionary with sync results:

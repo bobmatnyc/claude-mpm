@@ -611,8 +611,16 @@ class TestDeploymentOperations(TestAgentsCommand):
                 "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
                 return_value=mock_git_sync_service,
             ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+            ) as mock_config_load,
             patch("builtins.print"),
         ):
+            # Provide a deterministic default repo list via mocked config
+            mock_config = MagicMock()
+            mock_config.get_enabled_repositories.return_value = [MagicMock()]
+            mock_config_load.return_value = mock_config
+
             result = command.run(mock_args)
 
         assert result.success
@@ -620,8 +628,11 @@ class TestDeploymentOperations(TestAgentsCommand):
         assert "Deployed 3 agents from cache" in result.message
         assert result.data["total_deployed"] == 3
 
-        # Verify orchestrator sync was called (Phase 3 unification)
-        mock_sync_orchestrator.sync.assert_called_once_with(force=False)
+        # Verify orchestrator sync was called with force=False and scoped repos
+        mock_sync_orchestrator.sync.assert_called_once()
+        call_kwargs = mock_sync_orchestrator.sync.call_args[1]
+        assert call_kwargs["force"] is False
+        assert "repos" in call_kwargs and len(call_kwargs["repos"]) == 1
         # Verify deploy still goes through GitSourceSyncService
         mock_git_sync_service.deploy_agents_to_project.assert_called_once()
 
@@ -640,12 +651,22 @@ class TestDeploymentOperations(TestAgentsCommand):
                 "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
                 return_value=mock_git_sync_service,
             ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+            ) as mock_config_load,
         ):
+            mock_config = MagicMock()
+            mock_config.get_enabled_repositories.return_value = [MagicMock()]
+            mock_config_load.return_value = mock_config
+
             result = command.run(mock_args)
 
         assert result.success
-        # Verify force=True was passed to orchestrator
-        mock_sync_orchestrator.sync.assert_called_once_with(force=True)
+        # Verify force=True was passed to orchestrator with scoped repos
+        mock_sync_orchestrator.sync.assert_called_once()
+        call_kwargs = mock_sync_orchestrator.sync.call_args[1]
+        assert call_kwargs["force"] is True
+        assert "repos" in call_kwargs and len(call_kwargs["repos"]) == 1
         call_args = mock_git_sync_service.deploy_agents_to_project.call_args
         assert call_args[1]["force"] is True
 
