@@ -163,8 +163,12 @@ class AgentPipelineConfig:
         the first file found.  Project scope takes precedence.
 
         Sparse-override semantics: absent key means *enabled*.
-        Agents with enabled=True are added to enabled_agents.
-        Agents with enabled=False are added to excluded_agents.
+        Only agents explicitly disabled (enabled=False) are added to
+        excluded_agents.  Agents with enabled=True (or absent) are left
+        alone — they do NOT form a positive whitelist.  This prevents a
+        sparse file with only a handful of entries from being
+        misinterpreted as a comprehensive allow-list, which would cause
+        the reconciler to remove all agents not mentioned in the file.
         """
         try:
             effective_dir = project_dir or Path.cwd()
@@ -192,10 +196,13 @@ class AgentPipelineConfig:
                     # Treat unexpected formats as enabled (defensive)
                     enabled = True
 
-                if enabled:
-                    self.enabled_agents.add(agent_name)
-                else:
+                if not enabled:
                     self.excluded_agents.add(agent_name)
+                # NOTE: We intentionally do NOT add enabled agents to
+                # self.enabled_agents here.  A sparse agent_states.json
+                # only expresses exclusions; all other agents are
+                # implicitly allowed.  Adding them would create a tiny
+                # whitelist that causes mass removal by the reconciler.
 
         except Exception as exc:
             msg = f"Could not read agent_states.json: {exc}"

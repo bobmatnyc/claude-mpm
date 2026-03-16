@@ -1094,7 +1094,14 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
 
                 # Compute effective enabled set: enabled + required - excluded
                 effective_agents = pipeline_config.get_agents_to_deploy()
-                if effective_agents:
+                if effective_agents and (
+                    active_profile or pipeline_config.enabled_agents
+                ):
+                    # Only override when there is an explicit agent selection
+                    # (active profile or config-driven enabled list).  When
+                    # neither is present, effective_agents contains only the
+                    # default required set — overriding with that tiny list
+                    # would cause the reconciler to remove all other agents.
                     unified_config.agents.enabled = list(effective_agents)
                     if active_profile:
                         logger.info(
@@ -1102,6 +1109,11 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                             active_profile,
                             len(effective_agents),
                         )
+                else:
+                    # No explicit agent selection: keep agents.enabled empty
+                    # and enable auto_discover so the reconciler preserves all
+                    # currently deployed agents (its early-return path).
+                    unified_config.agents.auto_discover = True
 
                 # Perform reconciliation to deploy configured agents
                 project_path = Path.cwd()

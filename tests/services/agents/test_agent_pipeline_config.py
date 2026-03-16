@@ -382,10 +382,13 @@ def test_get_agents_to_deploy_deploy_all_mode():
 
 
 def test_startup_bridge_propagates_enabled_agents_to_unified_config(tmp_path: Path):
-    """The startup.py bridge must use get_agents_to_deploy() to overlay onto UnifiedConfig.
+    """Sparse agent_states.json only excludes agents; it does NOT whitelist.
 
-    Agents explicitly enabled in agent_states.json must appear in the effective
-    set; agents disabled must be excluded.
+    A sparse agent_states.json with only a few entries must NOT be interpreted
+    as a comprehensive allow-list.  Only agents with enabled=False are excluded;
+    agents with enabled=True (or absent) are left alone.  The effective set
+    is determined by required_agents (+ any config-driven enabled_agents)
+    minus excluded_agents.
     """
     config_dir = tmp_path / ".claude-mpm"
     config_dir.mkdir()
@@ -412,9 +415,15 @@ def test_startup_bridge_propagates_enabled_agents_to_unified_config(tmp_path: Pa
 
     effective = cfg.get_agents_to_deploy()
 
+    # engineer is in required → present in effective
     assert "engineer" in effective
-    assert "qa" in effective
+    # qa is NOT in required or enabled_agents (sparse file does not whitelist) → absent
+    assert "qa" not in effective
+    # java-engineer is excluded → absent
     assert "java-engineer" not in effective
+    # The sparse file only populated excluded_agents, not enabled_agents
+    assert cfg.enabled_agents == set()
+    assert cfg.excluded_agents == {"java-engineer"}
 
 
 # ---------------------------------------------------------------------------
