@@ -1,3 +1,20 @@
+## v5.10.0 (2026-03-16)
+
+### Feat
+
+- unify startup sync pipeline and add console manifest warnings
+- add configurable --branch flag to agent-source add
+- wire ManifestCache and DeploymentVersionGate into production pipeline
+- add manifest-based version coordination (Phase 1 & 2)
+
+### Fix
+
+- default --subdirectory to 'agents' in agent-source add
+- omit None/default values from agent_sources.yaml serialization
+- remove broken cache_path assignment in _test_repository_sync
+- pass GITHUB_TOKEN to API calls in agent-source add
+- align ruff target-version with requires-python (py38 -> py312)
+
 ## v5.9.70 (2026-03-15)
 
 ### Feat
