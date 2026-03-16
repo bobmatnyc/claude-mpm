@@ -9,6 +9,7 @@ Guides for the PM workflow and creating agents.
 - **Agent Patterns**: [agent-patterns.md](agent-patterns.md)
 - **Creating Agents**: [creating-agents.md](creating-agents.md)
 - **Capabilities Reference**: [agent-capabilities-reference.md](agent-capabilities-reference.md)
+- **Repository Versioning**: [agent-repository-versioning.md](agent-repository-versioning.md)
 
 ## Start Here
 
