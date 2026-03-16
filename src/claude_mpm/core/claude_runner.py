@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 # Core imports that don't cause circular dependencies
 from claude_mpm.core.container import get_container
@@ -34,7 +33,7 @@ class ClaudeRunner:
         self,
         enable_tickets: bool = True,
         log_level: str = "OFF",
-        claude_args: Optional[list] = None,
+        claude_args: list | None = None,
         launch_method: str = "exec",  # "exec" or "subprocess"
         enable_websocket: bool = False,
         websocket_port: int = 8765,
@@ -246,56 +245,6 @@ class ClaudeRunner:
                 self.logger.debug(f"Error reading {agent_file} for hash: {e}")
 
         return hash_obj.hexdigest()
-
-    def _check_deployment_state(self) -> bool:
-        """Check if agents are already deployed and up-to-date.
-
-        Returns:
-            True if agents are already deployed and match current version, False otherwise
-        """
-        state_file = self._get_deployment_state_path()
-        agents_dir = Path.cwd() / ".claude" / "agents"
-
-        # If state file doesn't exist, need to deploy
-        if not state_file.exists():
-            return False
-
-        # If agents directory doesn't exist, need to deploy
-        if not agents_dir.exists():
-            return False
-
-        try:
-            # Load deployment state
-            state_data = json.loads(state_file.read_text())
-
-            # Get current version from package
-            from claude_mpm import __version__
-
-            # Check if version matches
-            if state_data.get("version") != __version__:
-                self.logger.debug(
-                    f"Version mismatch: {state_data.get('version')} != {__version__}"
-                )
-                return False
-
-            # Check if agent count and hash match
-            current_hash = self._calculate_deployment_hash(agents_dir)
-            stored_hash = state_data.get("deployment_hash", "")
-
-            if current_hash != stored_hash:
-                self.logger.debug("Agent deployment hash mismatch")
-                return False
-
-            # All checks passed - agents are already deployed
-            agent_count = state_data.get("agent_count", 0)
-            self.logger.debug(
-                f"Agents already deployed: {agent_count} agents (v{__version__})"
-            )
-            return True
-
-        except Exception as e:
-            self.logger.debug(f"Error checking deployment state: {e}")
-            return False
 
     def _save_deployment_state(self, agent_count: int) -> None:
         """Save current deployment state.
@@ -689,7 +638,7 @@ class ClaudeRunner:
                 )
             return False
 
-    def run_interactive(self, initial_context: Optional[str] = None):
+    def run_interactive(self, initial_context: str | None = None):
         """Run Claude in interactive mode using the session management service.
 
         Delegates to the SessionManagementService for session orchestration.
@@ -703,7 +652,7 @@ class ClaudeRunner:
             self.logger.error("Session management service not available")
             print("Error: Session management service not available")
 
-    def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
+    def run_oneshot(self, prompt: str, context: str | None = None) -> bool:
         """Run Claude with a single prompt using the session management service.
 
         Delegates to the SessionManagementService for session orchestration.
@@ -725,7 +674,7 @@ class ClaudeRunner:
         """Extract tickets from Claude's response (disabled - use claude-mpm tickets CLI)."""
         # Ticket extraction disabled - users should use claude-mpm tickets CLI commands
 
-    def _load_system_instructions(self) -> Optional[str]:
+    def _load_system_instructions(self) -> str | None:
         """Load and process system instructions.
 
         Delegates to the SystemInstructionsService for loading and processing.
@@ -818,7 +767,7 @@ Use these agents to delegate specialized work via the Task tool.
         # Fallback if service not available
         return False
 
-    def _extract_agent_from_response(self, text: str) -> Optional[str]:
+    def _extract_agent_from_response(self, text: str) -> str | None:
         """Try to extract agent name from delegation response using the utility service."""
         if self.utility_service:
             return self.utility_service.extract_agent_from_response(text)
@@ -967,7 +916,7 @@ SimpleClaudeRunner = ClaudeRunner
 
 
 # Convenience functions for backward compatibility
-def run_claude_interactive(context: Optional[str] = None):
+def run_claude_interactive(context: str | None = None):
     """Run Claude interactively with optional context."""
     runner = ClaudeRunner()
     if context is None:
@@ -975,7 +924,7 @@ def run_claude_interactive(context: Optional[str] = None):
     runner.run_interactive(context)
 
 
-def run_claude_oneshot(prompt: str, context: Optional[str] = None) -> bool:
+def run_claude_oneshot(prompt: str, context: str | None = None) -> bool:
     """Run Claude with a single prompt."""
     runner = ClaudeRunner()
     if context is None:

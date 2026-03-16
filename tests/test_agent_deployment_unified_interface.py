@@ -53,6 +53,12 @@ class TestUnifiedAgentDeploymentInterface:
             ),
         ]
 
+    @pytest.mark.skip(
+        reason=(
+            "_deploy_agents_individual has been removed. "
+            "Migrate to _deploy_agents_unified when needed."
+        )
+    )
     def test_filters_base_agent(self, configure_command, sample_agents):
         """Test that BASE_AGENT is filtered from display."""
         with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
@@ -92,6 +98,12 @@ class TestUnifiedAgentDeploymentInterface:
                     # Verify filter_base_agents was called
                     mock_filter.assert_called_once()
 
+    @pytest.mark.skip(
+        reason=(
+            "_deploy_agents_individual has been removed. "
+            "Migrate to _deploy_agents_unified when needed."
+        )
+    )
     def test_shows_all_agents_including_deployed(
         self, configure_command, sample_agents
     ):
@@ -158,92 +170,10 @@ class TestUnifiedAgentDeploymentInterface:
 
     @pytest.mark.skip(
         reason=(
-            "_deploy_agents_individual is DEPRECATED and uses a complex interactive loop "
-            "that does not match the simpler behavior these tests were written against."
+            "_deploy_agents_individual has been removed. "
+            "Migrate to _deploy_agents_unified when needed."
         )
     )
-    def test_deploys_selected_undeployed_agents(self, configure_command, sample_agents):
-        """Test that newly selected agents are deployed."""
-        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
-            mock_filter.return_value = [
-                {
-                    "agent_id": "qa",
-                    "name": "qa",
-                    "description": "QA agent",
-                    "deployed": False,
-                },
-            ]
-
-            with patch(
-                "claude_mpm.utils.agent_filters.get_deployed_agent_ids"
-            ) as mock_deployed:
-                mock_deployed.return_value = set()  # Nothing deployed
-
-                with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = ["qa"]
-
-                    with patch(
-                        "claude_mpm.cli.commands.configure.Confirm"
-                    ) as mock_confirm:
-                        mock_confirm.ask.return_value = True
-
-                        with patch.object(
-                            configure_command, "_deploy_single_agent", return_value=True
-                        ) as mock_deploy:
-                            with patch("claude_mpm.cli.commands.configure.Prompt"):
-                                configure_command._deploy_agents_individual(
-                                    sample_agents
-                                )
-
-                            # Verify deploy was called for qa
-                            assert mock_deploy.call_count >= 1
-
-    @pytest.mark.skip(
-        reason=(
-            "_deploy_agents_individual is DEPRECATED and uses a complex interactive loop "
-            "that does not match the simpler behavior these tests were written against."
-        )
-    )
-    def test_removes_unselected_deployed_agents(self, configure_command, sample_agents):
-        """Test that unselected deployed agents are removed."""
-        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
-            mock_filter.return_value = [
-                {
-                    "agent_id": "engineer",
-                    "name": "engineer",
-                    "description": "Engineering agent",
-                    "deployed": True,
-                },
-            ]
-
-            with patch(
-                "claude_mpm.utils.agent_filters.get_deployed_agent_ids"
-            ) as mock_deployed:
-                mock_deployed.return_value = {"engineer"}  # Engineer deployed
-
-                with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = []  # User deselects all
-
-                    with patch(
-                        "claude_mpm.cli.commands.configure.Confirm"
-                    ) as mock_confirm:
-                        mock_confirm.ask.return_value = True
-
-                        with patch(
-                            "claude_mpm.cli.commands.configure.Path"
-                        ) as mock_path_cls:
-                            mock_file = Mock()
-                            mock_file.exists.return_value = True
-                            mock_file.unlink = Mock()
-                            mock_path_cls.return_value = mock_file
-                            mock_path_cls.cwd.return_value = Mock()
-                            mock_path_cls.home.return_value = Mock()
-
-                            with patch("claude_mpm.cli.commands.configure.Prompt"):
-                                configure_command._deploy_agents_individual(
-                                    sample_agents
-                                )
-
     def test_simple_text_format(self, configure_command, sample_agents):
         """Test that agent choices use simple 'agent/path - Display Name' format."""
         # Add display name to test agent
@@ -279,129 +209,6 @@ class TestUnifiedAgentDeploymentInterface:
                         choice_text = choice.title
                         # Should be "agent_id - Display Name" or just "agent_id"
                         assert "(" not in choice_text or len(choice_text) < 100
-
-    @pytest.mark.skip(
-        reason=(
-            "_deploy_agents_individual is DEPRECATED and uses a complex interactive loop "
-            "that does not match the simpler behavior these tests were written against."
-        )
-    )
-    def test_confirmation_before_changes(self, configure_command, sample_agents):
-        """Test that user is asked to confirm changes."""
-        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
-            mock_filter.return_value = [
-                {
-                    "agent_id": "qa",
-                    "name": "qa",
-                    "description": "QA agent",
-                    "deployed": False,
-                },
-            ]
-
-            with patch(
-                "claude_mpm.utils.agent_filters.get_deployed_agent_ids"
-            ) as mock_deployed:
-                mock_deployed.return_value = set()
-
-                with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = ["qa"]
-
-                    with patch(
-                        "claude_mpm.cli.commands.configure.Confirm"
-                    ) as mock_confirm:
-                        mock_confirm.ask.return_value = False  # User cancels
-
-                        with patch("claude_mpm.cli.commands.configure.Prompt"):
-                            configure_command._deploy_agents_individual(sample_agents)
-
-                        # Verify confirmation was requested
-                        mock_confirm.ask.assert_called_once()
-
-    @pytest.mark.skip(
-        reason=(
-            "_deploy_agents_individual is DEPRECATED and uses a complex interactive loop "
-            "that does not match the simpler behavior these tests were written against."
-        )
-    )
-    def test_handles_esc_gracefully(self, configure_command, sample_agents):
-        """Test that Esc (None return) is handled gracefully."""
-        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
-            mock_filter.return_value = [
-                {
-                    "agent_id": "qa",
-                    "name": "qa",
-                    "description": "QA agent",
-                    "deployed": False,
-                },
-            ]
-
-            with patch(
-                "claude_mpm.utils.agent_filters.get_deployed_agent_ids"
-            ) as mock_deployed:
-                mock_deployed.return_value = set()
-
-                with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = (
-                        None  # User pressed Esc
-                    )
-
-                    with patch("claude_mpm.cli.commands.configure.Prompt"):
-                        # Should not raise exception
-                        configure_command._deploy_agents_individual(sample_agents)
-
-                    # Verify no changes message was shown
-                    configure_command.console.print.assert_any_call(
-                        "[yellow]No changes made[/yellow]"
-                    )
-
-    @pytest.mark.skip(
-        reason=(
-            "_deploy_agents_individual is DEPRECATED and uses a complex interactive loop "
-            "that does not match the simpler behavior these tests were written against."
-        )
-    )
-    def test_shows_summary_after_changes(self, configure_command, sample_agents):
-        """Test that summary is shown after deploy/remove operations."""
-        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
-            mock_filter.return_value = [
-                {
-                    "agent_id": "qa",
-                    "name": "qa",
-                    "description": "QA agent",
-                    "deployed": False,
-                },
-            ]
-
-            with patch(
-                "claude_mpm.utils.agent_filters.get_deployed_agent_ids"
-            ) as mock_deployed:
-                mock_deployed.return_value = set()
-
-                with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = ["qa"]
-
-                    with patch(
-                        "claude_mpm.cli.commands.configure.Confirm"
-                    ) as mock_confirm:
-                        mock_confirm.ask.return_value = True
-
-                        with patch.object(
-                            configure_command, "_deploy_single_agent", return_value=True
-                        ):
-                            with patch("claude_mpm.cli.commands.configure.Prompt"):
-                                configure_command._deploy_agents_individual(
-                                    sample_agents
-                                )
-
-                            # Check that summary was printed
-                            calls = [
-                                str(call)
-                                for call in configure_command.console.print.call_args_list
-                            ]
-                            summary_calls = [
-                                c for c in calls if "Deployed" in c or "✓" in c
-                            ]
-                            assert len(summary_calls) > 0
 
 
 if __name__ == "__main__":

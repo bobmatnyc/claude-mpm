@@ -28,8 +28,14 @@ from claude_mpm.core.deployment_context import DeploymentContext
 
 
 def _make_source_agent(tmp_path: Path, name: str = "engineer") -> Path:
-    """Create a real .md source file for an agent and return its path."""
-    source = tmp_path / f"source_{name}.md"
+    """Create a real .md source file for an agent and return its path.
+
+    Phase 1a: deploy_agent_file derives the deployment filename from the
+    source file's name, so the source must be named '{name}.md' (e.g.
+    'engineer.md') to produce the expected deployment target 'engineer.md'.
+    In production, cache files are named after their agent IDs.
+    """
+    source = tmp_path / f"{name}.md"
     source.write_text(f"# {name.title()}\nAuto-generated test agent.")
     return source
 
@@ -61,9 +67,12 @@ def _make_configure_cmd(scope: str, project_dir: Path, fake_home: Path | None = 
     )
 
     if fake_home:
-        with patch(
-            "claude_mpm.cli.commands.configure.Path.home", return_value=fake_home
-        ), patch("claude_mpm.core.config_scope.Path.home", return_value=fake_home):
+        with (
+            patch(
+                "claude_mpm.cli.commands.configure.Path.home", return_value=fake_home
+            ),
+            patch("claude_mpm.core.config_scope.Path.home", return_value=fake_home),
+        ):
             with patch.object(cmd, "_run_interactive_tui", return_value=MagicMock()):
                 cmd.run(args)
     else:

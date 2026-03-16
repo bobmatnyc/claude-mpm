@@ -451,14 +451,6 @@ def cleanup_legacy_agent_cache() -> None:
         logger.info(f"Cleaned up legacy agent cache: {', '.join(removed)}")
 
 
-def check_legacy_cache() -> None:
-    """Deprecated: Legacy cache checking is no longer needed.
-
-    This function is kept for backward compatibility but does nothing.
-    All agent cache operations now use the standardized cache/agents/ directory.
-    """
-
-
 def setup_early_environment(argv):
     """
     Set up early environment variables and logging suppression.
@@ -998,9 +990,6 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
     """
-    # DEPRECATED: Legacy warning - no-op function, kept for compatibility
-    check_legacy_cache()
-
     # TTL-based skip: if last sync was recent AND sources haven't changed,
     # skip network checks entirely for performance.
     # _agent_sources_changed_since_last_sync() ensures that adding/modifying

@@ -53,11 +53,27 @@ def user_scope_dirs(tmp_path):
 
 
 @pytest.fixture
-def source_agent_file(tmp_path):
-    """Create a source agent .md file for deployment tests."""
-    source = tmp_path / "source_agent.md"
-    source.write_text("# Test Agent\nThis is a test agent.")
-    return source
+def make_source_agent_file(tmp_path):
+    """Factory fixture: create a source agent .md file named after the agent_id.
+
+    Phase 1a: deploy_agent_file derives the deployment filename from the
+    source file's name, so the source file must be named after the agent
+    (e.g. 'engineer.md') to produce the expected target ('engineer.md').
+    In production, cache files are named after their agent IDs.
+    """
+
+    def _factory(agent_id: str) -> Path:
+        source = tmp_path / f"{agent_id}.md"
+        source.write_text("# Test Agent\nThis is a test agent.")
+        return source
+
+    return _factory
+
+
+@pytest.fixture
+def source_agent_file(make_source_agent_file):
+    """Backward-compat fixture: source file named 'engineer.md' (most tests use engineer)."""
+    return make_source_agent_file("engineer")
 
 
 def _make_project_cmd(project_dir):
@@ -458,7 +474,7 @@ class TestConfigureScopeSwitch:
 
     # TC-2-19
     def test_switch_scope_deploy_targets_new_scope(
-        self, project_scope_dirs, user_scope_dirs, source_agent_file
+        self, project_scope_dirs, user_scope_dirs, make_source_agent_file
     ):
         """After switching to user scope, _deploy_single_agent writes to user dir."""
         cmd = _make_project_cmd(project_scope_dirs["root"])
@@ -472,11 +488,15 @@ class TestConfigureScopeSwitch:
             config_dir, cmd.current_scope, cmd.console
         )
 
+        # Phase 1a: source file must be named after the agent_id so
+        # deploy_agent_file derives the correct target filename.
+        test_agent_source = make_source_agent_file("test-agent")
+
         # Deploy agent in project scope first
         agent = Mock()
         agent.name = "test-agent"
         agent.full_agent_id = "test-agent"
-        agent.source_dict = {"source_file": str(source_agent_file)}
+        agent.source_dict = {"source_file": str(test_agent_source)}
 
         cmd._deploy_single_agent(agent, show_feedback=False)
         # Phase 3: normalize_deployment_filename strips -agent suffix

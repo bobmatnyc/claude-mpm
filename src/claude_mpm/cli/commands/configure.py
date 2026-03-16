@@ -15,7 +15,6 @@ import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import questionary
 import questionary.constants
@@ -89,7 +88,7 @@ class ConfigureCommand(BaseCommand):
         self._recommendation_service = None  # Lazy-initialized
         self._unified_config = None  # Lazy-initialized
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         return validate_configure_args(args)
 
@@ -404,7 +403,7 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 break
 
-    def _load_agents_with_spinner(self) -> List[AgentConfig]:
+    def _load_agents_with_spinner(self) -> list[AgentConfig]:
         """Load agents with loading indicator, don't show partial state.
 
         Returns:
@@ -439,7 +438,7 @@ class ConfigureCommand(BaseCommand):
 
         return agents
 
-    def _display_agent_sources_and_list(self, agents: List[AgentConfig]) -> None:
+    def _display_agent_sources_and_list(self, agents: list[AgentConfig]) -> None:
         """Display agent sources and agent list (only after all data loaded).
 
         Args:
@@ -487,15 +486,15 @@ class ConfigureCommand(BaseCommand):
         else:
             self.console.print("[yellow]No agents available[/yellow]")
 
-    def _display_agents_table(self, agents: List[AgentConfig]) -> None:
+    def _display_agents_table(self, agents: list[AgentConfig]) -> None:
         """Display a table of available agents."""
         self.agent_display.display_agents_table(agents)
 
-    def _display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
+    def _display_agents_with_pending_states(self, agents: list[AgentConfig]) -> None:
         """Display agents table with pending state indicators."""
         self.agent_display.display_agents_with_pending_states(agents)
 
-    def _toggle_agents_interactive(self, agents: List[AgentConfig]) -> None:
+    def _toggle_agents_interactive(self, agents: list[AgentConfig]) -> None:
         """Interactive multi-agent enable/disable with batch save."""
         if self.agent_manager is None:
             return
@@ -576,7 +575,7 @@ class ConfigureCommand(BaseCommand):
                             agent.name, not current
                         )
 
-    def _auto_deploy_enabled_agents(self, agents: List[AgentConfig]) -> None:
+    def _auto_deploy_enabled_agents(self, agents: list[AgentConfig]) -> None:
         """Auto-deploy enabled agents after saving configuration.
 
         WHY: When users enable agents, they expect them to be deployed
@@ -632,7 +631,7 @@ class ConfigureCommand(BaseCommand):
             self.logger.error(f"Auto-deployment failed: {e}", exc_info=True)
             self.console.print(f"[red]✗ Auto-deployment error: {e}[/red]")
 
-    def _customize_agent_template(self, agents: List[AgentConfig]) -> None:
+    def _customize_agent_template(self, agents: list[AgentConfig]) -> None:
         """Customize agent JSON template."""
         self.template_editor.customize_agent_template(agents)
 
@@ -644,15 +643,15 @@ class ConfigureCommand(BaseCommand):
         """Get the path to an agent's template file."""
         return self.template_editor.get_agent_template_path(agent_name)
 
-    def _edit_in_external_editor(self, template_path: Path, template: Dict) -> None:
+    def _edit_in_external_editor(self, template_path: Path, template: dict) -> None:
         """Open template in external editor."""
         self.template_editor.edit_in_external_editor(template_path, template)
 
-    def _modify_template_field(self, template: Dict, template_path: Path) -> None:
+    def _modify_template_field(self, template: dict, template_path: Path) -> None:
         """Add or modify a field in the template."""
         self.template_editor.modify_template_field(template, template_path)
 
-    def _remove_template_field(self, template: Dict, template_path: Path) -> None:
+    def _remove_template_field(self, template: dict, template_path: Path) -> None:
         """Remove a field from the template."""
         self.template_editor.remove_template_field(template, template_path)
 
@@ -660,15 +659,15 @@ class ConfigureCommand(BaseCommand):
         """Reset template to defaults."""
         self.template_editor.reset_template(agent, template_path)
 
-    def _create_custom_template_copy(self, agent: AgentConfig, template: Dict) -> None:
+    def _create_custom_template_copy(self, agent: AgentConfig, template: dict) -> None:
         """Create a customized copy of a system template."""
         self.template_editor.create_custom_template_copy(agent, template)
 
-    def _view_full_template(self, template: Dict) -> None:
+    def _view_full_template(self, template: dict) -> None:
         """View the full template without truncation."""
         self.template_editor.view_full_template(template)
 
-    def _reset_agent_defaults(self, agents: List[AgentConfig]) -> None:
+    def _reset_agent_defaults(self, agents: list[AgentConfig]) -> None:
         """Reset an agent to default enabled state and remove custom template."""
         self.template_editor.reset_agent_defaults(agents)
 
@@ -1410,43 +1409,43 @@ class ConfigureCommand(BaseCommand):
         """Manage startup configuration for MCP services and agents."""
         return self.startup_manager.manage_startup_configuration()
 
-    def _load_startup_configuration(self, config: Config) -> Dict:
+    def _load_startup_configuration(self, config: Config) -> dict:
         """Load current startup configuration from config."""
         return self.startup_manager.load_startup_configuration(config)
 
-    def _display_startup_configuration(self, startup_config: Dict) -> None:
+    def _display_startup_configuration(self, startup_config: dict) -> None:
         """Display current startup configuration in a table."""
         self.startup_manager.display_startup_configuration(startup_config)
 
-    def _configure_mcp_services(self, startup_config: Dict, config: Config) -> None:
+    def _configure_mcp_services(self, startup_config: dict, config: Config) -> None:
         """Configure which MCP services to enable at startup."""
         self.startup_manager.configure_mcp_services(startup_config, config)
 
-    def _configure_hook_services(self, startup_config: Dict, config: Config) -> None:
+    def _configure_hook_services(self, startup_config: dict, config: Config) -> None:
         """Configure which hook services to enable at startup."""
         self.startup_manager.configure_hook_services(startup_config, config)
 
-    def _configure_system_agents(self, startup_config: Dict, config: Config) -> None:
+    def _configure_system_agents(self, startup_config: dict, config: Config) -> None:
         """Configure which system agents to deploy at startup."""
         self.startup_manager.configure_system_agents(startup_config, config)
 
-    def _parse_id_selection(self, selection: str, max_id: int) -> List[int]:
+    def _parse_id_selection(self, selection: str, max_id: int) -> list[int]:
         """Parse ID selection string (e.g., '1,3,5' or '1-4')."""
         return parse_id_selection(selection, max_id)
 
-    def _enable_all_services(self, startup_config: Dict, config: Config) -> None:
+    def _enable_all_services(self, startup_config: dict, config: Config) -> None:
         """Enable all services and agents."""
         self.startup_manager.enable_all_services(startup_config, config)
 
-    def _disable_all_services(self, startup_config: Dict, config: Config) -> None:
+    def _disable_all_services(self, startup_config: dict, config: Config) -> None:
         """Disable all services and agents."""
         self.startup_manager.disable_all_services(startup_config, config)
 
-    def _reset_to_defaults(self, startup_config: Dict, config: Config) -> None:
+    def _reset_to_defaults(self, startup_config: dict, config: Config) -> None:
         """Reset startup configuration to defaults."""
         self.startup_manager.reset_to_defaults(startup_config, config)
 
-    def _save_startup_configuration(self, startup_config: Dict, config: Config) -> bool:
+    def _save_startup_configuration(self, startup_config: dict, config: Config) -> bool:
         """Save startup configuration to config file and return whether to proceed to startup."""
         return self.startup_manager.save_startup_configuration(startup_config, config)
 
@@ -1612,7 +1611,7 @@ class ConfigureCommand(BaseCommand):
     # Enhanced Agent Management Methods (Remote Agent Discovery Integration)
     # ========================================================================
 
-    def _get_configured_sources(self) -> List[Dict]:
+    def _get_configured_sources(self) -> list[dict]:
         """Get list of configured agent sources with agent counts."""
         try:
             from claude_mpm.config.agent_sources import AgentSourceConfiguration
@@ -1651,8 +1650,8 @@ class ConfigureCommand(BaseCommand):
             return []
 
     def _filter_agent_configs(
-        self, agents: List[AgentConfig], filter_deployed: bool = False
-    ) -> List[AgentConfig]:
+        self, agents: list[AgentConfig], filter_deployed: bool = False
+    ) -> list[AgentConfig]:
         """Filter AgentConfig objects using agent_filters utilities.
 
         Converts AgentConfig objects to dictionaries for filtering,
@@ -1689,8 +1688,8 @@ class ConfigureCommand(BaseCommand):
 
     @staticmethod
     def _calculate_column_widths(
-        terminal_width: int, columns: Dict[str, int]
-    ) -> Dict[str, int]:
+        terminal_width: int, columns: dict[str, int]
+    ) -> dict[str, int]:
         """Calculate dynamic column widths based on terminal size.
 
         Args:
@@ -1748,7 +1747,7 @@ class ConfigureCommand(BaseCommand):
         """
         return name.replace("_", " ").replace("-", " ").title()
 
-    def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
+    def _display_agents_with_source_info(self, agents: list[AgentConfig]) -> None:
         """Display agents table with source information and installation status."""
         from rich.table import Table
 
@@ -1926,7 +1925,7 @@ class ConfigureCommand(BaseCommand):
         self.console.print("  claude-mpm agent-source list")
         Prompt.ask("\nPress Enter to continue")
 
-    def _deploy_agents_unified(self, agents: List[AgentConfig]) -> None:
+    def _deploy_agents_unified(self, agents: list[AgentConfig]) -> None:
         """Unified agent selection with inline controls for recommended, presets, and collections.
 
         Design:
@@ -2393,463 +2392,6 @@ class ConfigureCommand(BaseCommand):
 
         Prompt.ask("\nPress Enter to continue")
 
-    def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
-        """Manage agent installation state (unified install/remove interface).
-
-        DEPRECATED: Use _deploy_agents_unified instead.
-        This method is kept for backward compatibility but should not be used.
-        """
-        if not agents:
-            self.console.print("[yellow]No agents available[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
-            return
-
-        # Get ALL agents (filter BASE_AGENT but keep deployed agents visible)
-        from claude_mpm.utils.agent_filters import (
-            filter_base_agents,
-            get_deployed_agent_ids,
-        )
-
-        # Filter BASE_AGENT but keep deployed agents visible
-        all_agents = filter_base_agents(
-            [
-                {
-                    "agent_id": getattr(a, "agent_id", a.name),
-                    "name": a.name,
-                    "description": a.description,
-                    "deployed": getattr(a, "is_deployed", False),
-                }
-                for a in agents
-            ]
-        )
-
-        # Get deployed agent IDs (original state - for calculating final changes)
-        # NOTE: deployed_ids contains LEAF NAMES (e.g., "python-engineer")
-        deployed_ids = get_deployed_agent_ids()
-
-        if not all_agents:
-            self.console.print("[yellow]No agents available[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
-            return
-
-        # Build mapping: normalized name -> full path for deployed agents
-        # This allows comparing deployed_ids (normalized names) with agent.agent_id (full paths)
-        deployed_full_paths = set()
-        for agent in agents:
-            # FIX: Use agent_id (technical ID) instead of display name
-            agent_id = getattr(agent, "agent_id", agent.name)
-            normalized_id = normalize_agent_id_for_comparison(agent_id)
-            if normalized_id in deployed_ids:
-                deployed_full_paths.add(agent_id)
-
-        # Track current selection state (starts with deployed full paths, updated after each iteration)
-        current_selection = deployed_full_paths.copy()
-
-        # Loop to allow adjusting selection
-        while True:
-            # Build agent mapping and collections
-            agent_map = {}  # For lookup after selection
-            collections = defaultdict(list)
-
-            for agent in agents:
-                # FIX: Use agent_id (technical ID) for comparison
-                agent_id = getattr(agent, "agent_id", agent.name)
-                if agent_id in {a["agent_id"] for a in all_agents}:
-                    # Determine collection ID
-                    source_type = getattr(agent, "source_type", "local")
-                    if source_type == "remote":
-                        source_dict = getattr(agent, "source_dict", {})
-                        repo_url = source_dict.get("source", "")
-                        # Extract repository name from URL
-                        if "/" in repo_url:
-                            parts = repo_url.rstrip("/").split("/")
-                            if len(parts) >= 2:
-                                collection_id = f"{parts[-2]}/{parts[-1]}"
-                            else:
-                                collection_id = "remote"
-                        else:
-                            collection_id = "remote"
-                    else:
-                        collection_id = "local"
-
-                    collections[collection_id].append(agent)
-                    agent_map[agent_id] = agent  # FIX: Use agent_id as key
-
-            # STEP 1: Collection-level selection
-            self.console.print("\n[bold cyan]Select Agent Collections[/bold cyan]")
-            self.console.print(
-                "[dim]Checking a collection installs ALL agents in that collection[/dim]"
-            )
-            self.console.print(
-                "[dim]Unchecking a collection removes ALL agents in that collection[/dim]"
-            )
-            self.console.print(
-                "[dim]For partial deployment, use 'Fine-tune individual agents'[/dim]\n"
-            )
-
-            collection_choices = []
-            for collection_id in sorted(collections.keys()):
-                agents_in_collection = collections[collection_id]
-
-                # Check if ANY agent in this collection is currently deployed
-                # This reflects actual deployment state, not just selection
-                # FIX: Use agent_id for comparison with current_selection
-                any_deployed = any(
-                    getattr(agent, "agent_id", agent.name) in current_selection
-                    for agent in agents_in_collection
-                )
-
-                # Count deployed agents for display
-                # FIX: Use agent_id for comparison with current_selection
-                deployed_count = sum(
-                    1
-                    for agent in agents_in_collection
-                    if getattr(agent, "agent_id", agent.name) in current_selection
-                )
-
-                collection_choices.append(
-                    Choice(
-                        f"{collection_id} ({deployed_count}/{len(agents_in_collection)} deployed)",
-                        value=collection_id,
-                        checked=any_deployed,
-                    )
-                )
-
-            # Add option to fine-tune individual agents
-            collection_choices.append(Separator())
-            collection_choices.append(
-                Choice(
-                    "→ Fine-tune individual agents...",
-                    value="__INDIVIDUAL__",
-                    checked=False,
-                )
-            )
-
-            # Monkey-patch questionary symbols for better visibility
-            questionary.prompts.common.INDICATOR_SELECTED = "[✓]"  # type: ignore[attr-defined]
-            questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"  # type: ignore[attr-defined]
-
-            try:
-                selected_collections = questionary.checkbox(
-                    "Select agent collections to deploy:",
-                    choices=collection_choices,
-                    instruction="(Space to toggle, Enter to continue)",
-                    style=self.QUESTIONARY_STYLE,
-                ).ask()
-            except Exception as e:
-                import sys
-
-                self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
-                self.console.print(
-                    "[red]Error: Could not display interactive menu[/red]"
-                )
-                self.console.print(f"[dim]Reason: {e}[/dim]")
-                if not sys.stdin.isatty():
-                    self.console.print("[dim]Interactive terminal required. Use:[/dim]")
-                    self.console.print(
-                        "[dim]  --list-agents to see available agents[/dim]"
-                    )
-                    self.console.print(
-                        "[dim]  --enable-agent/--disable-agent for scripting[/dim]"
-                    )
-                else:
-                    self.console.print(
-                        "[dim]This might be a terminal compatibility issue.[/dim]"
-                    )
-                Prompt.ask("\nPress Enter to continue")
-                return
-
-            # Handle cancellation
-            if selected_collections is None:
-                import sys
-
-                if not sys.stdin.isatty():
-                    self.console.print(
-                        "[red]Error: Interactive terminal required for agent selection[/red]"
-                    )
-                    self.console.print(
-                        "[dim]Use --list-agents to see available agents[/dim]"
-                    )
-                    self.console.print(
-                        "[dim]Use --enable-agent/--disable-agent for non-interactive mode[/dim]"
-                    )
-                else:
-                    self.console.print("[yellow]No changes made[/yellow]")
-                Prompt.ask("\nPress Enter to continue")
-                return
-
-            # STEP 2: Check if user wants individual selection
-            if "__INDIVIDUAL__" in selected_collections:
-                # Remove the __INDIVIDUAL__ marker
-                selected_collections = [
-                    c for c in selected_collections if c != "__INDIVIDUAL__"
-                ]
-
-                # Build individual agent choices with grouping
-                agent_choices = []
-                for collection_id in sorted(collections.keys()):
-                    agents_in_collection = collections[collection_id]
-
-                    # Add collection header separator
-                    agent_choices.append(
-                        Separator(
-                            f"\n── {collection_id} ({len(agents_in_collection)} agents) ──"
-                        )
-                    )
-
-                    # Add individual agents from this collection
-                    # FIX: Use agent_id for sorting, comparison, and values
-                    for agent in sorted(
-                        agents_in_collection,
-                        key=lambda a: getattr(a, "agent_id", a.name),
-                    ):
-                        agent_id = getattr(agent, "agent_id", agent.name)
-                        raw_display_name = getattr(agent, "display_name", agent.name)
-                        display_name = self._format_display_name(raw_display_name)
-                        is_selected = agent_id in deployed_full_paths
-
-                        choice_text = f"{agent_id}"
-                        if display_name and display_name != agent_id:
-                            choice_text += f" - {display_name}"
-
-                        agent_choices.append(
-                            Choice(
-                                title=choice_text, value=agent_id, checked=is_selected
-                            )
-                        )
-
-                self.console.print(
-                    "\n[bold cyan]Fine-tune Individual Agents[/bold cyan]"
-                )
-                self.console.print(
-                    "[dim][✓] Checked = Installed (uncheck to remove)[/dim]"
-                )
-                self.console.print(
-                    "[dim][ ] Unchecked = Available (check to install)[/dim]"
-                )
-                self.console.print(
-                    "[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n"
-                )
-
-                try:
-                    selected_agent_ids = questionary.checkbox(
-                        "Select individual agents:",
-                        choices=agent_choices,
-                        style=self.QUESTIONARY_STYLE,
-                    ).ask()
-                except Exception as e:
-                    import sys
-
-                    self.logger.error(
-                        f"Questionary checkbox failed: {e}", exc_info=True
-                    )
-                    self.console.print(
-                        "[red]Error: Could not display interactive menu[/red]"
-                    )
-                    self.console.print(f"[dim]Reason: {e}[/dim]")
-                    Prompt.ask("\nPress Enter to continue")
-                    return
-
-                if selected_agent_ids is None:
-                    self.console.print("[yellow]No changes made[/yellow]")
-                    Prompt.ask("\nPress Enter to continue")
-                    return
-
-                # Update current_selection with individual selections
-                current_selection = set(selected_agent_ids)
-            else:
-                # Apply collection-level selections
-                # For each collection, if it's selected, include ALL its agents
-                # If it's not selected, exclude ALL its agents
-                final_selections = set()
-                for collection_id in selected_collections:
-                    for agent in collections[collection_id]:
-                        # FIX: Use agent_id for selection tracking
-                        final_selections.add(getattr(agent, "agent_id", agent.name))
-
-                # Update current_selection
-                # This replaces the previous selection entirely with the new collection selections
-                current_selection = final_selections
-
-            # Determine actions based on ORIGINAL deployed state
-            # Compare full paths to full paths (deployed_full_paths was built from deployed_ids)
-            to_deploy = (
-                current_selection - deployed_full_paths
-            )  # Selected but not originally deployed
-
-            # For removal, verify files actually exist before adding to the set
-            # This prevents "Not found" warnings when multiple agents share leaf names
-            to_remove = set()
-            for agent_id in deployed_full_paths - current_selection:
-                # Extract leaf name to check file existence
-                leaf_name = agent_id.split("/")[-1] if "/" in agent_id else agent_id
-
-                # Check scope-aware path + legacy locations
-                paths_to_check = self._agent_file_paths(leaf_name)
-
-                # Also check virtual deployment state
-                import json
-
-                state_exists = False
-                for state_path in self._deployment_state_paths():
-                    if state_path.exists():
-                        try:
-                            with state_path.open() as f:
-                                state = json.load(f)
-                            agents_in_state = state.get("last_check_results", {}).get(
-                                "agents", {}
-                            )
-                            if leaf_name in agents_in_state:
-                                state_exists = True
-                                break
-                        except (json.JSONDecodeError, KeyError):
-                            continue
-
-                # Only add to removal set if file or state entry actually exists
-                if any(p.exists() for p in paths_to_check) or state_exists:
-                    to_remove.add(agent_id)
-
-            if not to_deploy and not to_remove:
-                self.console.print(
-                    "[yellow]No changes needed - all selected agents are already installed[/yellow]"
-                )
-                Prompt.ask("\nPress Enter to continue")
-                return
-
-            # Show what will happen
-            self.console.print("\n[bold]Changes to apply:[/bold]")
-            if to_deploy:
-                self.console.print(f"[green]Install {len(to_deploy)} agent(s)[/green]")
-                for agent_id in to_deploy:
-                    self.console.print(f"  + {agent_id}")
-            if to_remove:
-                self.console.print(f"[red]Remove {len(to_remove)} agent(s)[/red]")
-                for agent_id in to_remove:
-                    self.console.print(f"  - {agent_id}")
-
-            # Ask user to confirm, adjust, or cancel
-            action = questionary.select(
-                "\nWhat would you like to do?",
-                choices=[
-                    questionary.Choice("Apply these changes", value="apply"),
-                    questionary.Choice("Adjust selection", value="adjust"),
-                    questionary.Choice("Cancel", value="cancel"),
-                ],
-                default="apply",
-                style=self.QUESTIONARY_STYLE,
-            ).ask()
-
-            if action == "cancel":
-                self.console.print("[yellow]Changes cancelled[/yellow]")
-                Prompt.ask("\nPress Enter to continue")
-                return
-            if action == "adjust":
-                # current_selection is already updated, loop will use it
-                continue
-
-            # Execute changes
-            deploy_success = 0
-            deploy_fail = 0
-            remove_success = 0
-            remove_fail = 0
-
-            # Install new agents
-            for agent_id in to_deploy:
-                agent = agent_map.get(agent_id)
-                if agent and self._deploy_single_agent(agent, show_feedback=False):
-                    deploy_success += 1
-                    self.console.print(f"[green]✓ Installed: {agent_id}[/green]")
-                else:
-                    deploy_fail += 1
-                    self.console.print(f"[red]✗ Failed to install: {agent_id}[/red]")
-
-            # Remove agents
-            for agent_id in to_remove:
-                try:
-                    import json
-                    # Note: Path is already imported at module level (line 17)
-
-                    # Extract leaf name to match deployed filename
-                    # agent_id may be hierarchical (e.g., "engineer/mobile/tauri-engineer")
-                    # but deployed files use flattened leaf names (e.g., "tauri-engineer.md")
-                    if "/" in agent_id:
-                        leaf_name = agent_id.split("/")[-1]
-                    else:
-                        leaf_name = agent_id
-                    normalized_leaf = normalize_agent_id_for_comparison(leaf_name)
-
-                    # Remove from scope-aware path (primary) + legacy locations
-                    # _agent_file_paths already normalizes and checks both variants
-                    removed = False
-                    for path in self._agent_file_paths(leaf_name):
-                        if path.exists():
-                            path.unlink()
-                            removed = True
-
-                    # Also remove from virtual deployment state
-                    # Check both raw and normalized keys for safety
-                    keys_to_check = {leaf_name, normalized_leaf}
-                    for state_path in self._deployment_state_paths():
-                        if state_path.exists():
-                            try:
-                                with state_path.open() as f:
-                                    state = json.load(f)
-
-                                # Remove agent from deployment state
-                                # Deployment state uses leaf names, not full hierarchical paths
-                                agents = state.get("last_check_results", {}).get(
-                                    "agents", {}
-                                )
-                                state_modified = False
-                                for key in keys_to_check:
-                                    if key in agents:
-                                        del agents[key]
-                                        removed = True
-                                        state_modified = True
-
-                                if state_modified:
-                                    # Save updated state
-                                    with state_path.open("w") as f:
-                                        json.dump(state, f, indent=2)
-                            except (json.JSONDecodeError, KeyError) as e:
-                                # Log but don't fail - physical removal still counts
-                                self.logger.debug(
-                                    f"Failed to update deployment state at {state_path}: {e}"
-                                )
-
-                    if removed:
-                        remove_success += 1
-                        self.console.print(f"[green]✓ Removed: {agent_id}[/green]")
-                    else:
-                        remove_fail += 1
-                        self.console.print(f"[yellow]⚠ Not found: {agent_id}[/yellow]")
-                except Exception as e:
-                    remove_fail += 1
-                    self.console.print(f"[red]✗ Failed to remove {agent_id}: {e}[/red]")
-
-            # Show summary
-            self.console.print()
-            if deploy_success > 0:
-                self.console.print(
-                    f"[green]✓ Installed {deploy_success} agent(s)[/green]"
-                )
-            if deploy_fail > 0:
-                self.console.print(
-                    f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]"
-                )
-            if remove_success > 0:
-                self.console.print(
-                    f"[green]✓ Removed {remove_success} agent(s)[/green]"
-                )
-            if remove_fail > 0:
-                self.console.print(
-                    f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]"
-                )
-
-            Prompt.ask("\nPress Enter to continue")
-            # Exit the loop after successful execution
-            break
-
     def _deploy_agents_preset(self) -> None:
         """Install agents using preset configuration."""
         try:
@@ -2929,7 +2471,7 @@ class ConfigureCommand(BaseCommand):
             self.logger.error(f"Preset installation failed: {e}", exc_info=True)
             Prompt.ask("\nPress Enter to continue")
 
-    def _select_recommended_agents(self, agents: List[AgentConfig]) -> None:
+    def _select_recommended_agents(self, agents: list[AgentConfig]) -> None:
         """Select and install recommended agents based on toolchain detection."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
@@ -3093,7 +2635,7 @@ class ConfigureCommand(BaseCommand):
 
         Prompt.ask("\nPress Enter to continue")
 
-    def _agent_file_paths(self, agent_name: str) -> List[Path]:
+    def _agent_file_paths(self, agent_name: str) -> list[Path]:
         """Return the list of paths to check for an agent file.
 
         The primary path is the active scope's agents_dir. Legacy locations
@@ -3122,7 +2664,7 @@ class ConfigureCommand(BaseCommand):
 
         # Build paths for all name variants across all locations, deduplicated
         seen: set[Path] = set()
-        paths: List[Path] = []
+        paths: list[Path] = []
         for name in names_to_check:
             for d in dirs_to_check:
                 p = d / f"{name}.md"
@@ -3131,7 +2673,7 @@ class ConfigureCommand(BaseCommand):
                     paths.append(p)
         return paths
 
-    def _deployment_state_paths(self) -> List[Path]:
+    def _deployment_state_paths(self) -> list[Path]:
         """Return the list of deployment state file paths to check.
 
         Includes the active scope path plus legacy locations for cleanup.
@@ -3168,50 +2710,40 @@ class ConfigureCommand(BaseCommand):
                         )
                     return False
 
-                # Determine target file name (use leaf name from hierarchical ID)
-                from claude_mpm.services.agents.deployment_utils import (
-                    ensure_agent_id_in_frontmatter,
-                    get_underscore_variant_filename,
-                    normalize_deployment_filename,
-                )
-
-                if "/" in full_agent_id:
-                    raw_name = full_agent_id.split("/")[-1] + ".md"
-                else:
-                    raw_name = full_agent_id + ".md"
-                target_name = normalize_deployment_filename(raw_name)
-
                 # Deploy to scope-aware agents directory
                 target_dir = self._ctx.agents_dir
-                target_dir.mkdir(parents=True, exist_ok=True)
-                target_file = target_dir / target_name
 
                 if show_feedback:
                     self.console.print(
                         f"\n[white]Installing {full_agent_id}...[/white]"
                     )
 
-                # Copy the agent file
-                import shutil
+                from claude_mpm.services.agents.deployment_utils import (
+                    deploy_agent_file,
+                )
 
-                shutil.copy2(source_file, target_file)
+                # NOTE: deploy_agent_file derives the target filename from
+                # source_file.name (not full_agent_id).  This works because
+                # cache files are named after their agent IDs in production.
+                deploy_result = deploy_agent_file(
+                    source_file=source_file,
+                    deployment_dir=target_dir,
+                    cleanup_legacy=True,
+                    ensure_frontmatter=True,
+                    force=True,  # CRITICAL: configure expects always-write semantics
+                )
 
-                # Ensure agent_id in frontmatter
-                content = target_file.read_text()
-                updated_content = ensure_agent_id_in_frontmatter(content, target_name)
-                if updated_content != content:
-                    target_file.write_text(updated_content)
-
-                # Clean up underscore variant if it exists
-                underscore_variant = get_underscore_variant_filename(target_name)
-                if underscore_variant:
-                    variant_path = target_dir / underscore_variant
-                    if variant_path.exists() and variant_path != target_file:
-                        variant_path.unlink()
+                if not deploy_result.success:
+                    if show_feedback:
+                        self.console.print(
+                            f"[red]✗ Failed to install {full_agent_id}: {deploy_result.error}[/red]"
+                        )
+                    return False
 
                 if show_feedback:
+                    action = deploy_result.action
                     self.console.print(
-                        f"[green]✓ Successfully installed {full_agent_id} to {target_file}[/green]"
+                        f"[green]✓ Successfully installed {full_agent_id} ({action})[/green]"
                     )
                     Prompt.ask("\nPress Enter to continue")
 
@@ -3225,13 +2757,13 @@ class ConfigureCommand(BaseCommand):
             return False
 
         except Exception as e:
+            self.logger.error(f"Agent installation failed: {e}", exc_info=True)
             if show_feedback:
                 self.console.print(f"[red]Error installing agent: {e}[/red]")
-                self.logger.error(f"Agent installation failed: {e}", exc_info=True)
                 Prompt.ask("\nPress Enter to continue")
             return False
 
-    def _remove_agents(self, agents: List[AgentConfig]) -> None:
+    def _remove_agents(self, agents: list[AgentConfig]) -> None:
         """Remove installed agents."""
         # Filter to installed agents only
         installed = [a for a in agents if getattr(a, "is_deployed", False)]
@@ -3290,7 +2822,7 @@ class ConfigureCommand(BaseCommand):
             self.console.print("[red]Invalid selection[/red]")
             Prompt.ask("\nPress Enter to continue")
 
-    def _view_agent_details_enhanced(self, agents: List[AgentConfig]) -> None:
+    def _view_agent_details_enhanced(self, agents: list[AgentConfig]) -> None:
         """View detailed agent information with enhanced remote agent details."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")

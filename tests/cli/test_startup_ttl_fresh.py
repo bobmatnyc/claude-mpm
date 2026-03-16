@@ -23,7 +23,6 @@ from claude_mpm.cli.startup import sync_remote_agents_on_startup
 class TestStartupTTLFresh:
     """Verify TTL-fresh condition skips sync entirely."""
 
-    @patch("claude_mpm.cli.startup.check_legacy_cache")
     @patch(
         "claude_mpm.cli.startup._agent_sources_changed_since_last_sync",
         return_value=False,
@@ -33,7 +32,6 @@ class TestStartupTTLFresh:
         self,
         mock_is_fresh,
         mock_sources_changed,
-        mock_legacy_cache,
     ):
         """When last sync is within TTL and sources unchanged, the function
         returns immediately without calling sync_agents_on_startup()."""
@@ -51,10 +49,6 @@ class TestStartupTTLFresh:
         mock_is_fresh.assert_called_once_with("agents")
         mock_sources_changed.assert_called_once()
 
-        # Legacy cache check should still run (it's before the TTL check)
-        mock_legacy_cache.assert_called_once()
-
-    @patch("claude_mpm.cli.startup.check_legacy_cache")
     @patch(
         "claude_mpm.cli.startup._agent_sources_changed_since_last_sync",
         return_value=False,
@@ -64,7 +58,6 @@ class TestStartupTTLFresh:
         self,
         mock_is_fresh,
         mock_sources_changed,
-        mock_legacy_cache,
     ):
         """When force_sync=True, the TTL check is bypassed and
         sync_agents_on_startup() IS called even though _is_sync_fresh
