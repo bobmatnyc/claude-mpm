@@ -4,8 +4,8 @@
 # Same line length as Black
 line-length = 88
 
-# Target Python 3.8+
-target-version = "py38"
+# Target Python 3.12+ (matches requires-python in pyproject.toml)
+target-version = "py312"
 
 # Enable specific rule categories
 [lint]

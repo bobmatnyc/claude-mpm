@@ -175,8 +175,8 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
-# Target Python 3.11+ (project minimum)
-target-version = "py311"
+# Target Python 3.12+ (matches requires-python)
+target-version = "py312"
 line-length = 88
 
 # Exclude common directories

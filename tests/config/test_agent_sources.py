@@ -139,11 +139,11 @@ class TestAgentSourceConfigurationRepositoryManagement:
         assert len(config.repositories) == 2
 
     def test_remove_repository_by_identifier(self):
-        """Test removing a repository by identifier."""
+        """Test removing a repository by identifier (now includes branch segment)."""
         repo = GitRepository(url="https://github.com/owner/repo", subdirectory="agents")
         config = AgentSourceConfiguration(repositories=[repo])
 
-        removed = config.remove_repository("owner/repo/agents")
+        removed = config.remove_repository("owner/repo/main/agents")
 
         assert removed is True
         assert len(config.repositories) == 0
@@ -348,3 +348,122 @@ class TestAgentSourceConfigurationValidation:
         errors = config.validate()
 
         assert len(errors) == 0
+
+
+class TestAgentSourceConfigurationBranchRoundTrip:
+    """Test branch field is correctly loaded, saved, and listed."""
+
+    def test_load_config_with_branch(self):
+        """YAML that specifies branch field loads the correct branch."""
+        yaml_content = """
+disable_system_repo: true
+repositories:
+  - url: https://github.com/owner/repo
+    subdirectory: agents
+    branch: develop
+    enabled: true
+    priority: 100
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "agent_sources.yaml"
+            config_path.write_text(yaml_content)
+
+            config = AgentSourceConfiguration.load(config_path)
+
+            assert len(config.repositories) == 1
+            assert config.repositories[0].branch == "develop"
+
+    def test_load_config_without_branch_defaults_main(self):
+        """YAML without branch field defaults to 'main' for backward compatibility."""
+        yaml_content = """
+disable_system_repo: true
+repositories:
+  - url: https://github.com/owner/repo
+    subdirectory: agents
+    enabled: true
+    priority: 100
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "agent_sources.yaml"
+            config_path.write_text(yaml_content)
+
+            config = AgentSourceConfiguration.load(config_path)
+
+            assert len(config.repositories) == 1
+            assert config.repositories[0].branch == "main"
+
+    def test_save_config_includes_branch(self):
+        """Saved YAML always includes the branch field."""
+        repo = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="staging",
+        )
+        config = AgentSourceConfiguration(disable_system_repo=True, repositories=[repo])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "agent_sources.yaml"
+            config.save(config_path)
+
+            with open(config_path) as f:
+                data = yaml.safe_load(f)
+
+            assert data["repositories"][0]["branch"] == "staging"
+
+    def test_save_and_load_branch_roundtrip(self):
+        """Branch survives a save/load cycle without modification."""
+        repo = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="release-1",
+        )
+        original = AgentSourceConfiguration(
+            disable_system_repo=True, repositories=[repo]
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "config.yaml"
+            original.save(config_path)
+            loaded = AgentSourceConfiguration.load(config_path)
+
+            assert loaded.repositories[0].branch == "release-1"
+
+    def test_list_sources_includes_branch(self):
+        """list_sources() output dictionaries include the branch key."""
+        repo = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="develop",
+            enabled=True,
+        )
+        config = AgentSourceConfiguration(disable_system_repo=True, repositories=[repo])
+
+        sources = config.list_sources()
+
+        assert len(sources) == 1
+        assert "branch" in sources[0]
+        assert sources[0]["branch"] == "develop"
+
+    def test_same_url_different_branches_are_distinct(self):
+        """Two repos with the same URL but different branches have different identifiers."""
+        repo_main = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="main",
+        )
+        repo_staging = GitRepository(
+            url="https://github.com/owner/repo",
+            subdirectory="agents",
+            branch="staging",
+        )
+        config = AgentSourceConfiguration(
+            disable_system_repo=True,
+            repositories=[repo_main, repo_staging],
+        )
+
+        # Both should be valid (different identifiers, so no duplicate)
+        errors = config.validate()
+        assert len(errors) == 0
+
+        # And identifiers must differ
+        assert repo_main.identifier != repo_staging.identifier

@@ -3,7 +3,6 @@
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -58,7 +57,7 @@ class AgentSourceConfiguration:
         )
 
     @classmethod
-    def load(cls, config_path: Optional[Path] = None) -> "AgentSourceConfiguration":
+    def load(cls, config_path: Path | None = None) -> "AgentSourceConfiguration":
         """Load configuration from YAML file.
 
         Args:
@@ -109,6 +108,7 @@ class AgentSourceConfiguration:
                 repo = GitRepository(
                     url=repo_data["url"],
                     subdirectory=repo_data.get("subdirectory"),
+                    branch=repo_data.get("branch", "main"),
                     enabled=repo_data.get("enabled", True),
                     priority=repo_data.get("priority", 100),
                 )
@@ -124,7 +124,7 @@ class AgentSourceConfiguration:
             return cls()
 
     def save(
-        self, config_path: Optional[Path] = None, include_comments: bool = True
+        self, config_path: Path | None = None, include_comments: bool = True
     ) -> None:
         """Save configuration to YAML file.
 
@@ -143,18 +143,23 @@ class AgentSourceConfiguration:
         # Ensure parent directory exists
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Build YAML data structure
+        # Build YAML data structure, omitting None values for cleaner output
+        repos_data = []
+        for repo in self.repositories:
+            repo_dict: dict = {
+                "url": repo.url,
+            }
+            if repo.subdirectory:
+                repo_dict["subdirectory"] = repo.subdirectory
+            if repo.branch != "main":
+                repo_dict["branch"] = repo.branch
+            repo_dict["enabled"] = repo.enabled
+            repo_dict["priority"] = repo.priority
+            repos_data.append(repo_dict)
+
         data = {
             "disable_system_repo": self.disable_system_repo,
-            "repositories": [
-                {
-                    "url": repo.url,
-                    "subdirectory": repo.subdirectory,
-                    "enabled": repo.enabled,
-                    "priority": repo.priority,
-                }
-                for repo in self.repositories
-            ],
+            "repositories": repos_data,
         }
 
         try:
@@ -199,7 +204,7 @@ class AgentSourceConfiguration:
                 temp_path.unlink()
             raise
 
-    def get_system_repo(self) -> Optional[GitRepository]:
+    def get_system_repo(self) -> GitRepository | None:
         """Get system repository if not disabled.
 
         Returns:
@@ -332,7 +337,7 @@ class AgentSourceConfiguration:
         and API compatibility. Called by GitSourceManager and CLI commands.
 
         Returns:
-            List of dicts with keys: identifier, url, subdirectory, enabled, priority
+            List of dicts with keys: identifier, url, subdirectory, branch, enabled, priority
 
         Example:
             >>> config = AgentSourceConfiguration()
@@ -346,6 +351,7 @@ class AgentSourceConfiguration:
                 "identifier": repo.identifier,
                 "url": repo.url,
                 "subdirectory": repo.subdirectory,
+                "branch": repo.branch,
                 "enabled": repo.enabled,
                 "priority": repo.priority,
             }

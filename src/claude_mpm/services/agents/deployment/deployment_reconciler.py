@@ -16,11 +16,13 @@ Key Principles:
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_config import UnifiedConfig
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.services.agents.compatibility import CompatibilityResult
+from claude_mpm.services.agents.compatibility.deploy_gate import DeploymentVersionGate
+from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
 from claude_mpm.services.agents.deployment_utils import deploy_agent_file
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
@@ -31,10 +33,10 @@ logger = get_logger(__name__)
 class DeploymentResult:
     """Result of deployment reconciliation."""
 
-    deployed: List[str]  # Newly deployed
-    removed: List[str]  # Removed (not in config)
-    unchanged: List[str]  # Already deployed and still needed
-    errors: List[str]  # Errors during reconciliation
+    deployed: list[str]  # Newly deployed
+    removed: list[str]  # Removed (not in config)
+    unchanged: list[str]  # Already deployed and still needed
+    errors: list[str]  # Errors during reconciliation
 
     @property
     def success(self) -> bool:
@@ -46,22 +48,22 @@ class DeploymentResult:
 class ReconciliationState:
     """Current state of agent/skill deployment."""
 
-    configured: Set[str]  # IDs in config enabled list
-    deployed: Set[str]  # IDs currently deployed
-    cached: Set[str]  # IDs available in cache
+    configured: set[str]  # IDs in config enabled list
+    deployed: set[str]  # IDs currently deployed
+    cached: set[str]  # IDs available in cache
 
     @property
-    def to_deploy(self) -> Set[str]:
+    def to_deploy(self) -> set[str]:
         """Agents/skills that need deployment (in config but not deployed)."""
         return self.configured - self.deployed
 
     @property
-    def to_remove(self) -> Set[str]:
+    def to_remove(self) -> set[str]:
         """Agents/skills that should be removed (deployed but not in config)."""
         return self.deployed - self.configured
 
     @property
-    def unchanged(self) -> Set[str]:
+    def unchanged(self) -> set[str]:
         """Agents/skills already deployed and still needed."""
         return self.configured & self.deployed
 
@@ -77,7 +79,7 @@ class DeploymentReconciler:
     4. Remove agents/skills not in enabled lists
     """
 
-    def __init__(self, config: Optional[UnifiedConfig] = None):
+    def __init__(self, config: UnifiedConfig | None = None):
         """
         Initialize reconciler.
 
@@ -87,13 +89,27 @@ class DeploymentReconciler:
         self.config = config or self._load_config()
         self.path_manager = get_path_manager()
 
+        # Deploy-time manifest compatibility gate (fail-open on init error)
+        try:
+            self._manifest_cache = ManifestCache()
+            self._deploy_gate = DeploymentVersionGate(
+                manifest_cache=self._manifest_cache
+            )
+        except Exception as e:
+            logger.debug(
+                "ManifestCache initialization failed: %s. Deploy-time checks disabled.",
+                e,
+            )
+            self._manifest_cache = None
+            self._deploy_gate = None
+
     def _load_config(self) -> UnifiedConfig:
         """Load configuration from standard location."""
         # For now, return default config
         # TODO: Load from .claude-mpm/configuration.yaml
         return UnifiedConfig()
 
-    def reconcile_agents(self, project_path: Optional[Path] = None) -> DeploymentResult:
+    def reconcile_agents(self, project_path: Path | None = None) -> DeploymentResult:
         """
         Reconcile agent deployment with configuration.
 
@@ -109,6 +125,22 @@ class DeploymentReconciler:
 
         # Get current state
         state = self._get_agent_state(cache_dir, deploy_dir)
+
+        # [DA-1 FIX] Deploy-time manifest compatibility check
+        # MUST run before auto-discover early return to cover all code paths
+        blocked_sources = self._check_deploy_compatibility()
+        if blocked_sources:
+            error_msgs: list[str] = []
+            for source_id in blocked_sources:
+                error_msgs.append(
+                    f"Agent deployment blocked: source '{source_id}' requires "
+                    f"a newer CLI. Run: pip install --upgrade claude-mpm"
+                )
+            for msg in error_msgs:
+                logger.error(msg)
+            return DeploymentResult(
+                deployed=[], removed=[], unchanged=[], errors=error_msgs
+            )
 
         # Check backward compatibility
         if not self.config.agents.enabled and self.config.agents.auto_discover:
@@ -161,7 +193,7 @@ class DeploymentReconciler:
 
         return result
 
-    def reconcile_skills(self, project_path: Optional[Path] = None) -> DeploymentResult:
+    def reconcile_skills(self, project_path: Path | None = None) -> DeploymentResult:
         """
         Reconcile skill deployment with configuration.
 
@@ -237,6 +269,74 @@ class DeploymentReconciler:
 
         return result
 
+    def _check_deploy_compatibility(self) -> set[str]:
+        """Check cached manifest compatibility before deploying agents.
+
+        Fail-open: Returns empty set if cache unavailable or version unknown.
+        """
+        if self._deploy_gate is None or self._manifest_cache is None:
+            return set()
+
+        import os
+
+        if os.environ.get("CLAUDE_MPM_SKIP_COMPAT_CHECK", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            return set()
+
+        blocked: set[str] = set()
+
+        try:
+            from claude_mpm import __version__
+        except ImportError:
+            return blocked
+
+        if not __version__:
+            return blocked
+
+        try:
+            all_cached = self._manifest_cache.get_all()
+        except Exception as e:
+            logger.debug("ManifestCache read failed: %s. Skipping deploy gate.", e)
+            return blocked
+
+        if not all_cached:
+            return blocked
+
+        for entry in all_cached:
+            source_id = entry.get("source_id", "unknown")
+            raw_content = entry.get("raw_content")
+            try:
+                result = self._deploy_gate.check_before_deploy(
+                    source_id=source_id,
+                    cli_version=__version__,
+                    cached_manifest_content=raw_content,
+                )
+            except Exception as e:
+                logger.debug(
+                    "Deploy gate check failed for source '%s': %s. Skipping.",
+                    source_id,
+                    e,
+                )
+                continue
+
+            if result.status == CompatibilityResult.INCOMPATIBLE_HARD:
+                logger.error(
+                    "Deploy blocked for source '%s': %s",
+                    source_id,
+                    result.message,
+                )
+                blocked.add(source_id)
+            elif result.status == CompatibilityResult.INCOMPATIBLE_WARN:
+                # Warns the user but continues with deployment — agents are
+                # still deployed with the warning displayed.  This can be
+                # tightened to a hard stop in a future release.
+                pass
+
+        return blocked
+
     def _get_agent_state(
         self, cache_dir: Path, deploy_dir: Path
     ) -> ReconciliationState:
@@ -258,7 +358,7 @@ class DeploymentReconciler:
             cached=self._list_cached_agents(cache_dir),
         )
 
-    def _get_universal_agents(self, cache_dir: Path) -> Set[str]:
+    def _get_universal_agents(self, cache_dir: Path) -> set[str]:
         """Get all agents with 'universal' toolchain/category."""
         universal_agents = set()
         if not cache_dir.exists():
@@ -285,7 +385,7 @@ class DeploymentReconciler:
 
         return universal_agents
 
-    def _list_deployed_agents(self, deploy_dir: Path) -> Set[str]:
+    def _list_deployed_agents(self, deploy_dir: Path) -> set[str]:
         """List agent IDs currently deployed."""
         if not deploy_dir.exists():
             return set()
@@ -298,7 +398,7 @@ class DeploymentReconciler:
 
         return agent_ids
 
-    def _list_cached_agents(self, cache_dir: Path) -> Set[str]:
+    def _list_cached_agents(self, cache_dir: Path) -> set[str]:
         """List agent IDs available in cache."""
         if not cache_dir.exists():
             return set()
@@ -311,7 +411,7 @@ class DeploymentReconciler:
 
         return agent_ids
 
-    def _list_deployed_skills(self, deploy_dir: Path) -> Set[str]:
+    def _list_deployed_skills(self, deploy_dir: Path) -> set[str]:
         """List skill IDs currently deployed."""
         if not deploy_dir.exists():
             return set()
@@ -323,7 +423,7 @@ class DeploymentReconciler:
 
         return skill_ids
 
-    def _list_cached_skills(self, cache_dir: Path) -> Set[str]:
+    def _list_cached_skills(self, cache_dir: Path) -> set[str]:
         """List skill IDs available in cache."""
         if not cache_dir.exists():
             return set()
@@ -386,7 +486,7 @@ class DeploymentReconciler:
 
     def _find_file_in_cache(
         self, item_id: str, cache_dir: Path, pattern: str
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Find file in cache directory by ID pattern."""
         # Try exact match first
         exact_match = cache_dir / f"{item_id}.md"
@@ -399,7 +499,7 @@ class DeploymentReconciler:
 
         return None
 
-    def _get_agent_skill_dependencies(self, agent_ids: List[str]) -> Set[str]:
+    def _get_agent_skill_dependencies(self, agent_ids: list[str]) -> set[str]:
         """
         Get skill dependencies for enabled agents.
 
@@ -440,7 +540,7 @@ class DeploymentReconciler:
 
         return skill_deps
 
-    def _parse_agent_skills_from_frontmatter(self, agent_file: Path) -> List[str]:
+    def _parse_agent_skills_from_frontmatter(self, agent_file: Path) -> list[str]:
         """
         Parse skills list from agent frontmatter.
 
@@ -512,8 +612,8 @@ class DeploymentReconciler:
             return []
 
     def get_reconciliation_view(
-        self, project_path: Optional[Path] = None
-    ) -> Dict[str, ReconciliationState]:
+        self, project_path: Path | None = None
+    ) -> dict[str, ReconciliationState]:
         """
         Get reconciliation view for agents and skills.
 

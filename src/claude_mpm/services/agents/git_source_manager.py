@@ -1,9 +1,9 @@
 """Git source manager for multi-repository agent sync and discovery."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.models.git_repository import GitRepository
 from claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
@@ -45,7 +45,7 @@ class GitSourceManager:
         >>> agents = manager.list_cached_agents()
     """
 
-    def __init__(self, cache_root: Optional[Path] = None):
+    def __init__(self, cache_root: Path | None = None):
         """Initialize Git source manager.
 
         Args:
@@ -60,13 +60,13 @@ class GitSourceManager:
 
         # Bug #2 fix: Store repository metadata for source attribution
         # Maps repo_identifier -> {priority, url, ...}
-        self._repo_metadata: Dict[str, Dict[str, Any]] = {}
+        self._repo_metadata: dict[str, dict[str, Any]] = {}
 
         logger.info(f"GitSourceManager initialized with cache: {self.cache_root}")
 
     def sync_repository(
         self, repo: GitRepository, force: bool = False, show_progress: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Sync a single repository from Git.
 
@@ -113,9 +113,9 @@ class GitSourceManager:
 
         try:
             # Build source URL for raw GitHub content
-            # Format: https://raw.githubusercontent.com/owner/repo/main/subdirectory
+            # Format: https://raw.githubusercontent.com/owner/repo/{branch}/subdirectory
             owner, repo_name = repo._parse_github_url(repo.url)
-            branch = "main"  # TODO: Make configurable
+            branch = repo.branch
 
             if repo.subdirectory:
                 subdirectory = repo.subdirectory.strip("/")
@@ -154,7 +154,7 @@ class GitSourceManager:
                     )
                     for agent in discovered_agents
                 ],
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             logger.info(
@@ -170,15 +170,15 @@ class GitSourceManager:
             return {
                 "synced": False,
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
     def sync_all_repositories(
         self,
-        repos: List[GitRepository],
+        repos: list[GitRepository],
         force: bool = False,
         show_progress: bool = True,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """Sync multiple repositories.
 
         Syncs repositories in priority order (lower priority first).
@@ -271,8 +271,8 @@ class GitSourceManager:
             # Continue with empty metadata - will use defaults in _discover_agents_in_directory
 
     def list_cached_agents(
-        self, repo_identifier: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, repo_identifier: str | None = None
+    ) -> list[dict[str, Any]]:
         """List all cached agents, optionally filtered by repository.
 
         Scans cache directories for agent markdown files and returns
@@ -421,8 +421,8 @@ class GitSourceManager:
         self,
         directory: Path,
         repo_identifier: str,
-        repo_metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        repo_metadata: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """Discover agents in a specific directory with source attribution.
 
         Bug #2 fix: Enriches agent metadata with source information including
@@ -464,8 +464,8 @@ class GitSourceManager:
             return []
 
     def get_agent_path(
-        self, agent_name: str, repo_identifier: Optional[str] = None
-    ) -> Optional[Path]:
+        self, agent_name: str, repo_identifier: str | None = None
+    ) -> Path | None:
         """Get cached path for a specific agent.
 
         Args:
@@ -494,9 +494,9 @@ class GitSourceManager:
 
     def list_cached_agents_with_filters(
         self,
-        repo_identifier: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        repo_identifier: str | None = None,
+        filters: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """List cached agents with optional filters.
 
         This method extends list_cached_agents() by adding semantic filtering

@@ -46,6 +46,8 @@ def _test_repository_access(repo: GitRepository) -> dict:
         >>> print(result["accessible"])
         True
     """
+    import os
+
     import requests
 
     try:
@@ -55,7 +57,12 @@ def _test_repository_access(repo: GitRepository) -> dict:
         # Test GitHub API access
         api_url = f"https://api.github.com/repos/{owner}/{repo_name}"
 
-        response = requests.get(api_url, timeout=10)
+        headers = {}
+        github_token = os.environ.get("GITHUB_TOKEN")
+        if github_token:
+            headers["Authorization"] = f"token {github_token}"
+
+        response = requests.get(api_url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             return {"accessible": True, "error": None}
@@ -65,10 +72,14 @@ def _test_repository_access(repo: GitRepository) -> dict:
                 "error": f"Repository not found: {owner}/{repo_name}",
             }
         if response.status_code == 403:
-            return {
-                "accessible": False,
-                "error": "Access denied (private repository or rate limit)",
-            }
+            if github_token:
+                error_msg = f"Access denied for {owner}/{repo_name} (check GITHUB_TOKEN permissions)"
+            else:
+                error_msg = (
+                    "GitHub API rate limit exceeded. "
+                    "Set GITHUB_TOKEN environment variable to authenticate."
+                )
+            return {"accessible": False, "error": error_msg}
         return {
             "accessible": False,
             "error": f"HTTP {response.status_code}: {response.reason}",
@@ -111,16 +122,9 @@ def _test_repository_sync(repo: GitRepository) -> dict:
         with tempfile.TemporaryDirectory() as temp_cache:
             temp_cache_path = Path(temp_cache)
 
-            # Override cache path for testing
-            original_cache_path = repo.cache_path
-            repo.cache_path = temp_cache_path / repo.identifier
-
-            # Sync repository
+            # Sync repository using temp cache root
             manager = GitSourceManager(cache_root=temp_cache_path)
             sync_result = manager.sync_repository(repo, force=True, show_progress=False)
-
-            # Restore original cache path
-            repo.cache_path = original_cache_path
 
             if not sync_result.get("synced"):
                 return {
@@ -249,11 +253,15 @@ def handle_add_agent_source(args) -> int:
         # Generate source ID from URL
         source_id = _generate_source_id(args.url)
 
-        # Check if already exists (by identifier)
+        # Check if already exists (by identifier or same URL+branch combination)
+        new_branch = getattr(args, "branch", "main")
         for repo in config.repositories:
-            if repo.identifier == source_id or repo.url == args.url:
+            if repo.identifier == source_id or (
+                repo.url == args.url and repo.branch == new_branch
+            ):
                 print(f"❌ Source '{repo.identifier}' already exists")
                 print(f"   URL: {repo.url}")
+                print(f"   Branch: {repo.branch}")
                 print()
                 print(
                     f"💡 Remove it first: claude-mpm agent-source remove {repo.identifier}"
@@ -270,6 +278,7 @@ def handle_add_agent_source(args) -> int:
         repo = GitRepository(
             url=args.url,
             subdirectory=args.subdirectory,
+            branch=getattr(args, "branch", "main"),
             priority=args.priority,
             enabled=enabled,
         )
@@ -358,6 +367,7 @@ def handle_add_agent_source(args) -> int:
         status_text = "enabled" if enabled else "disabled"
         print(f"{status_emoji} Added agent source: {repo.identifier}")
         print(f"   URL: {args.url}")
+        print(f"   Branch: {repo.branch}")
         if args.subdirectory:
             print(f"   Subdirectory: {args.subdirectory}")
         print(f"   Priority: {args.priority}")
@@ -414,6 +424,7 @@ def handle_list_agent_sources(args) -> int:
                     "identifier": r.identifier,
                     "url": r.url,
                     "subdirectory": r.subdirectory,
+                    "branch": r.branch,
                     "priority": r.priority,
                     "enabled": r.enabled,
                 }
@@ -440,6 +451,7 @@ def handle_list_agent_sources(args) -> int:
 
                 print(f"  {status} {repo.identifier}{system_tag} ({status_text})")
                 print(f"     URL: {repo.url}")
+                print(f"     Branch: {repo.branch}")
                 if repo.subdirectory:
                     print(f"     Subdirectory: {repo.subdirectory}")
                 print(f"     Priority: {repo.priority}")
@@ -732,6 +744,7 @@ def handle_show_agent_source(args) -> int:
         print()
         print(f"  Status: {status_emoji} {status_text}")
         print(f"  URL: {repo_to_show.url}")
+        print(f"  Branch: {repo_to_show.branch}")
         if repo_to_show.subdirectory:
             print(f"  Subdirectory: {repo_to_show.subdirectory}")
         print(f"  Priority: {repo_to_show.priority}")

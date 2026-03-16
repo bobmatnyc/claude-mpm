@@ -18,6 +18,13 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import requests
 
 from claude_mpm.core.file_utils import get_file_hash
+from claude_mpm.services.agents.compatibility import (
+    CompatibilityResult,
+    ManifestChecker,
+    ManifestCheckResult,
+)
+from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
+from claude_mpm.services.agents.compatibility.manifest_fetcher import ManifestFetcher
 
 # Import normalize function for exclusion filtering
 from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
@@ -43,6 +50,20 @@ class NetworkError(GitSyncError):
 
 class CacheError(GitSyncError):
     """Cache read/write errors."""
+
+
+class IncompatibleRepoError(GitSyncError):
+    """Raised when the agent repo requires a newer CLI version (format unknown)."""
+
+    def __init__(
+        self,
+        message: str,
+        repo_format_version: int = 0,
+        min_cli_version: str = "",
+    ):
+        super().__init__(message)
+        self.repo_format_version = repo_format_version
+        self.min_cli_version = min_cli_version
 
 
 class ETagCache:
@@ -251,6 +272,99 @@ class GitSourceSyncService:
 
         self.git_manager = CacheGitManager(self.cache_dir)
 
+        # Initialize ManifestCache for persisting check results (fail-open)
+        try:
+            self._manifest_cache = ManifestCache()
+        except Exception as e:
+            logger.debug(
+                "ManifestCache initialization failed: %s. Cache writes disabled.", e
+            )
+            self._manifest_cache = None
+
+    def _check_manifest_compatibility(
+        self, skip_check: bool = False
+    ) -> ManifestCheckResult:
+        """Check agent repo manifest for compatibility with this CLI version.
+
+        Fetches agents-manifest.yaml from the source, parses it, and
+        checks repo_format_version and min_cli_version against this CLI.
+
+        Args:
+            skip_check: If True, skip the compatibility check entirely.
+
+        Returns:
+            ManifestCheckResult with compatibility status.
+
+        Raises:
+            IncompatibleRepoError: If repo_format_version is unsupported
+                (INCOMPATIBLE_HARD only). CLI-too-old is a warning, not an error.
+        """
+        import os
+
+        if skip_check or os.environ.get("CLAUDE_MPM_SKIP_COMPAT_CHECK", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            logger.debug("Manifest compatibility check skipped")
+            return ManifestCheckResult(
+                status=CompatibilityResult.NO_MANIFEST,
+                repo_format_version=None,
+                min_cli_version=None,
+                cli_version="",
+                message="Compatibility check skipped by user.",
+            )
+
+        from claude_mpm import __version__
+
+        fetcher = ManifestFetcher()
+        manifest_content = fetcher.fetch(
+            source_url=self.source_url,
+            session=self.session,
+        )
+
+        checker = ManifestChecker()
+        result = checker.check(manifest_content, __version__)
+
+        # Persist manifest check result for deploy-time validation
+        if (
+            self._manifest_cache is not None
+            and manifest_content is not None
+            and result.repo_format_version is not None
+        ):
+            try:
+                import yaml
+
+                parsed = yaml.safe_load(manifest_content)
+                self._manifest_cache.store(
+                    source_id=self.source_id,
+                    repo_format_version=result.repo_format_version,
+                    min_cli_version=result.min_cli_version or "0.0.0",
+                    max_cli_version=(parsed or {}).get("max_cli_version"),
+                    compatibility_ranges=(parsed or {}).get("compatibility_ranges"),
+                    agent_overrides=(parsed or {}).get("agents"),
+                    raw_content=manifest_content,
+                )
+            except Exception as e:
+                logger.debug("Failed to cache manifest result: %s", e)
+
+        if result.status == CompatibilityResult.INCOMPATIBLE_HARD:
+            raise IncompatibleRepoError(
+                result.message,
+                repo_format_version=result.repo_format_version or 0,
+                min_cli_version=result.min_cli_version or "",
+            )
+
+        if result.status == CompatibilityResult.INCOMPATIBLE_WARN:
+            logger.warning(result.message)
+
+        if result.status == CompatibilityResult.NO_MANIFEST:
+            logger.debug(
+                "No agents-manifest.yaml found; assuming repo_format_version=1"
+            )
+
+        return result
+
     def sync_agents(
         self,
         force_refresh: bool = False,
@@ -313,6 +427,23 @@ class GitSourceSyncService:
                 logger.warning(f"Git pull error (continuing with HTTP sync): {e}")
         else:
             logger.debug("Cache is not a git repository, skipping git operations")
+
+        # Check manifest compatibility before processing agents
+        # Wrapped in try/except for fail-open: unexpected errors must not
+        # prevent agent sync.  IncompatibleRepoError is intentionally NOT
+        # caught here — it must propagate to skip this source.
+        try:
+            self._check_manifest_compatibility(
+                skip_check=getattr(self, "_skip_compat_check", False)
+            )
+        except IncompatibleRepoError:
+            raise  # Intentional hard stop — re-raise
+        except Exception as e:
+            logger.warning(
+                "Manifest compatibility check failed unexpectedly: %s. "
+                "Proceeding with agent sync (fail-open).",
+                e,
+            )
 
         results = {
             "synced": [],

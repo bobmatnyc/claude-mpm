@@ -87,6 +87,7 @@ claude-mpm run --monitor
 ### Agents
 - **[Agent System](agents/README.md)** - Agent system overview
 - **[Creating Agents](agents/creating-agents.md)** - How to create custom agents
+- **[Repository Versioning](agents/agent-repository-versioning.md)** - Manifest-based compatibility between CLI and agent repos
 
 ### Developers
 - **[Developer Docs](developer/README.md)** - Developer documentation

@@ -273,7 +273,7 @@ class TestDeployAgent:
             with patch.object(service, "_deploy_agent_file") as mock_deploy:
                 mock_deploy.return_value = True
                 result = service.deploy_agent(
-                    "engineer", source_repo="owner1/repo1/agents"
+                    "engineer", source_repo="owner1/repo1/main/agents"
                 )
 
         assert result["deployed"] is True
@@ -352,7 +352,9 @@ class TestListAvailableAgents:
                 }
             ]
 
-            result = service.list_available_agents(source_repo="owner1/repo1/agents")
+            result = service.list_available_agents(
+                source_repo="owner1/repo1/main/agents"
+            )
 
         assert len(result) == 1
         assert result[0]["source"] == "owner1/repo1/agents"

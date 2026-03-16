@@ -54,7 +54,14 @@ def add_agent_source_subparser(subparsers) -> argparse.ArgumentParser:
     )
     add_parser.add_argument(
         "--subdirectory",
-        help="Subdirectory within repository containing agents (e.g., 'agents')",
+        default="agents",
+        help="Subdirectory within repository containing agents (default: agents)",
+    )
+    add_parser.add_argument(
+        "--branch",
+        default="main",
+        help="Git branch to use (default: main). Tags also work (e.g., v2.0.0). "
+        "Branch names containing '/' are not supported.",
     )
     add_parser.add_argument(
         "--priority",
