@@ -969,26 +969,31 @@ def _save_deployment_state_after_reconciliation(
 
 
 def sync_remote_agents_on_startup(force_sync: bool = False):
-    """
-    Synchronize agent templates from remote sources on startup.
+    """Synchronize agent templates from remote sources on startup.
 
-    WHY: Ensures agents are up-to-date from remote Git sources (GitHub)
-    without manual intervention. Uses ETag-based caching for efficient
-    updates (95%+ bandwidth reduction).
+    Architecture (Phase 3 unification):
+        TTL gate (this function)  -->  sync_agents_on_startup()
+                                          --> AgentSyncOrchestrator.sync()
+                                                --> GitSourceManager.sync_all_repositories()
 
-    DESIGN DECISION: Non-blocking synchronization that doesn't prevent
-    startup if network is unavailable. Failures are logged but don't
-    block startup to ensure claude-mpm remains functional.
+    The TTL gate is a startup-specific concern and stays here.
+    The orchestrator knows nothing about TTL -- it just syncs repos.
+
+    Behavioral invariants:
+        - Startup respects BOTH TTL AND _agent_sources_changed_since_last_sync().
+        - --force-sync bypasses TTL (passes force_sync=True).
+        - --no-sync skips this function entirely (handled by caller).
 
     Workflow:
-    1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
-    2. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
-    3. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
-    4. Cleanup legacy agent cache directories (after sync/deployment) - Phase 4
-    5. Log deployment results
+    1. TTL gate check (skip if recent sync AND sources unchanged)
+    2. Resolve pipeline config (profile, enabled agents)
+    3. Sync files from Git sources via orchestrator
+    4. Deploy agents from cache to ~/.claude/agents/ via reconciliation
+    5. Cleanup legacy agent cache directories
+    6. Record successful sync time for TTL
 
     Args:
-        force_sync: Force download even if cache is fresh (bypasses ETag).
+        force_sync: Force download even if cache is fresh (bypasses ETag/TTL).
     """
     # TTL-based skip: if last sync was recent AND sources haven't changed,
     # skip network checks entirely for performance.

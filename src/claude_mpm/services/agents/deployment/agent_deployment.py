@@ -29,7 +29,7 @@ ROLLBACK PROCEDURES:
 
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.config.agent_sources import AgentSourceConfiguration
 from claude_mpm.config.paths import paths
@@ -89,10 +89,10 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
     def __init__(
         self,
-        templates_dir: Optional[Path] = None,
-        base_agent_path: Optional[Path] = None,
-        working_directory: Optional[Path] = None,
-        config: Optional[Config] = None,
+        templates_dir: Path | None = None,
+        base_agent_path: Path | None = None,
+        working_directory: Path | None = None,
+        config: Config | None = None,
     ):
         """
         Initialize agent deployment service.
@@ -194,11 +194,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
 
-    def _sync_remote_agent_sources(self, timeout_seconds: int = 30) -> Dict[str, Any]:
+    def _sync_remote_agent_sources(self, timeout_seconds: int = 30) -> dict[str, Any]:
         """Sync git-based agent sources before deployment.
 
-        This method follows the skills system pattern: sync configured git repositories
-        to cache before discovery. Network failures are logged but don't block deployment.
+        Delegates to AgentSyncOrchestrator (Phase 3 unification) and returns
+        a backward-compatible dict for existing callers.
 
         Args:
             timeout_seconds: Timeout for git operations (default: 30 seconds)
@@ -218,87 +218,27 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             - Timeout: Individual repo timeouts don't stop overall sync
             - Missing cache dir: Created automatically
         """
-        import time
+        from claude_mpm.services.agents.sync_orchestrator import AgentSyncOrchestrator
 
-        start_time = time.time()
+        orchestrator = AgentSyncOrchestrator(show_progress=False)
+        sync_result = orchestrator.sync(force=False)
 
-        results = {
-            "synced_count": 0,
-            "failed_count": 0,
-            "repositories": {},
-            "duration_ms": 0,
+        # Return backward-compatible dict for existing callers
+        return {
+            "synced_count": sync_result.sources_synced,
+            "failed_count": sync_result.sources_failed,
+            "repositories": sync_result.raw_results,
+            "duration_ms": sync_result.duration_ms,
         }
-
-        # Load agent sources configuration
-        try:
-            config = AgentSourceConfiguration.load()
-            enabled_repos = [r for r in config.repositories if r.enabled]
-
-            if not enabled_repos:
-                self.logger.debug("No enabled agent sources configured")
-                return results
-
-            self.logger.info(f"Syncing {len(enabled_repos)} agent git sources...")
-
-            # Sync each enabled repository
-            for repo in enabled_repos:
-                repo_id = repo.identifier
-                try:
-                    # Sync with timeout (individual repo sync)
-                    # NOTE: show_progress=False to avoid duplicate progress bars
-                    # (startup sync already showed progress to user)
-                    sync_result = self.git_source_manager.sync_repository(
-                        repo,
-                        force=False,  # Use ETag-based caching
-                        show_progress=False,  # Suppress progress (startup already synced)
-                    )
-
-                    results["repositories"][repo_id] = sync_result
-
-                    if sync_result.get("synced"):
-                        results["synced_count"] += 1
-                        agents_discovered = sync_result.get("agents_discovered", [])
-                        self.logger.info(
-                            f"Synced {repo_id}: {sync_result.get('files_updated', 0)} files, "
-                            f"{len(agents_discovered)} agents"
-                        )
-                    else:
-                        results["failed_count"] += 1
-                        error = sync_result.get("error", "Unknown error")
-                        self.logger.warning(f"Failed to sync {repo_id}: {error}")
-
-                except Exception as e:
-                    # Don't let individual repo failures stop deployment
-                    results["failed_count"] += 1
-                    results["repositories"][repo_id] = {
-                        "synced": False,
-                        "error": str(e),
-                    }
-                    self.logger.warning(f"Exception syncing {repo_id}: {e}")
-
-        except Exception as e:
-            # Configuration loading failure - log but don't crash
-            self.logger.warning(f"Failed to load agent sources config: {e}")
-            results["failed_count"] = -1  # Indicates config failure
-
-        results["duration_ms"] = (time.time() - start_time) * 1000
-
-        if results["synced_count"] > 0:
-            self.logger.info(
-                f"Agent source sync complete: {results['synced_count']} succeeded, "
-                f"{results['failed_count']} failed ({results['duration_ms']:.0f}ms)"
-            )
-
-        return results
 
     def deploy_agents(
         self,
-        target_dir: Optional[Path] = None,
+        target_dir: Path | None = None,
         force_rebuild: bool = False,
         deployment_mode: str = "update",
-        config: Optional[Config] = None,
+        config: Config | None = None,
         use_async: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Build and deploy agents by combining base_agent.md with templates.
         Also deploys system instructions for PM framework.
@@ -540,7 +480,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         return results
 
-    def get_deployment_metrics(self) -> Dict[str, Any]:
+    def get_deployment_metrics(self) -> dict[str, Any]:
         """Get current deployment metrics."""
         return self.results_manager.get_deployment_metrics()
 
@@ -548,15 +488,13 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         """Reset deployment metrics."""
         return self.results_manager.reset_metrics()
 
-    def set_claude_environment(
-        self, config_dir: Optional[Path] = None
-    ) -> Dict[str, str]:
+    def set_claude_environment(self, config_dir: Path | None = None) -> dict[str, str]:
         """Set Claude environment variables for agent discovery."""
         if not config_dir:
             config_dir = self.working_directory / Paths.CLAUDE_CONFIG_DIR.value
         return self.environment_manager.set_claude_environment(config_dir)
 
-    def verify_deployment(self, config_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def verify_deployment(self, config_dir: Path | None = None) -> dict[str, Any]:
         """Verify agent deployment and Claude configuration."""
         if not config_dir:
             config_dir = self.working_directory / ".claude"
@@ -606,30 +544,30 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 context={"agent_name": agent_name, "error": str(e)},
             ) from e
 
-    def list_available_agents(self) -> List[Dict[str, Any]]:
+    def list_available_agents(self) -> list[dict[str, Any]]:
         """List available agent templates."""
         return self.discovery_service.list_available_agents()
 
-    def clean_deployment(self, config_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def clean_deployment(self, config_dir: Path | None = None) -> dict[str, Any]:
         """Clean up deployed agents."""
         if not config_dir:
             config_dir = self.working_directory / ".claude"
         return self.filesystem_manager.clean_deployment(config_dir)
 
-    def _get_agent_tools(self, agent_name: str, metadata: Dict[str, Any]) -> List[str]:
+    def _get_agent_tools(self, agent_name: str, metadata: dict[str, Any]) -> list[str]:
         """Get appropriate tools for an agent based on its type."""
         from .agent_config_provider import AgentConfigProvider
 
         return AgentConfigProvider.get_agent_tools(agent_name, metadata)
 
-    def _get_agent_specific_config(self, agent_name: str) -> Dict[str, Any]:
+    def _get_agent_specific_config(self, agent_name: str) -> dict[str, Any]:
         """Get agent-specific configuration based on agent type."""
         from .agent_config_provider import AgentConfigProvider
 
         return AgentConfigProvider.get_agent_specific_config(agent_name)
 
     def _deploy_system_instructions(
-        self, target_dir: Path, force_rebuild: bool, results: Dict[str, Any]
+        self, target_dir: Path, force_rebuild: bool, results: dict[str, Any]
     ) -> None:
         """Deploy system instructions and framework files for PM framework."""
         from .system_instructions_deployer import SystemInstructionsDeployer
@@ -638,8 +576,8 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         deployer.deploy_system_instructions(target_dir, force_rebuild, results)
 
     def deploy_system_instructions_explicit(
-        self, target_dir: Optional[Path] = None, force_rebuild: bool = False
-    ) -> Dict[str, Any]:
+        self, target_dir: Path | None = None, force_rebuild: bool = False
+    ) -> dict[str, Any]:
         """
         Explicitly deploy system instructions when requested by user.
 
@@ -691,7 +629,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         return results
 
-    def _convert_yaml_to_md(self, target_dir: Path) -> Dict[str, Any]:
+    def _convert_yaml_to_md(self, target_dir: Path) -> dict[str, Any]:
         """Convert existing YAML agent files to MD format with YAML frontmatter."""
         return self.format_converter.convert_yaml_to_md(target_dir)
 
@@ -707,11 +645,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
     def _try_async_deployment(
         self,
-        target_dir: Optional[Path],
+        target_dir: Path | None,
         force_rebuild: bool,
-        config: Optional[Config],
+        config: Config | None,
         deployment_start_time: float,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Try to use async deployment for better performance.
 
@@ -762,14 +700,14 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             self.logger.warning(f"Async deployment failed, falling back to sync: {e}")
             return None
 
-    def _load_deployment_config(self, config: Optional[Config]) -> tuple:
+    def _load_deployment_config(self, config: Config | None) -> tuple:
         """Load and process deployment configuration."""
         from .deployment_config_loader import DeploymentConfigLoader
 
         loader = DeploymentConfigLoader(self.logger)
         return loader.load_deployment_config(config)
 
-    def _determine_agents_directory(self, target_dir: Optional[Path]) -> Path:
+    def _determine_agents_directory(self, target_dir: Path | None) -> Path:
         """Determine the correct agents directory based on input."""
         from .agents_directory_resolver import AgentsDirectoryResolver
 
@@ -777,7 +715,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         return resolver.determine_agents_directory(target_dir)
 
     def _repair_existing_agents(
-        self, agents_dir: Path, results: Dict[str, Any]
+        self, agents_dir: Path, results: dict[str, Any]
     ) -> None:
         """
         Validate and repair broken frontmatter in existing agents.
@@ -809,7 +747,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             excluded_agents, config, filter_non_mpm
         )
 
-    def _validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
+    def _validate_and_repair_existing_agents(self, agents_dir: Path) -> dict[str, Any]:
         """Validate and repair broken frontmatter in existing agent files."""
         from .agent_frontmatter_validator import AgentFrontmatterValidator
 
@@ -838,11 +776,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
     def _get_multi_source_templates(
         self,
-        excluded_agents: List[str],
+        excluded_agents: list[str],
         config: Config,
         agents_dir: Path,
         force_rebuild: bool = False,
-    ) -> Tuple[List[Path], Dict[str, str], Dict[str, Any]]:
+    ) -> tuple[list[Path], dict[str, str], dict[str, Any]]:
         """Get agent templates from multiple sources with version comparison.
 
         WHY: This method uses the multi-source service to discover agents
@@ -986,7 +924,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
     # ================================================================================
     # These methods adapt the existing implementation to comply with AgentDeploymentInterface
 
-    def validate_agent(self, agent_path: Path) -> tuple[bool, List[str]]:
+    def validate_agent(self, agent_path: Path) -> tuple[bool, list[str]]:
         """Validate agent configuration and structure.
 
         WHY: This adapter method provides interface compliance while leveraging
@@ -1032,6 +970,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         except Exception as e:
             return False, [f"Validation error: {e!s}"]
 
-    def get_deployment_status(self) -> Dict[str, Any]:
+    def get_deployment_status(self) -> dict[str, Any]:
         """Get current deployment status and metrics."""
         return self.metrics_collector.get_deployment_status()
