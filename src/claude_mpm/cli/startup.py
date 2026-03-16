@@ -136,8 +136,7 @@ def _display_manifest_compatibility_warnings() -> None:
                         f"(you have {cli_version})"
                     )
                     print(
-                        "    Agents deployed but may not work correctly. "
-                        "Run: pip install --upgrade claude-mpm"
+                        "    Agents deployed but may not work correctly. Use your installation method to upgrade claude-mpm."
                     )
                     # Surface migration notes from raw manifest content
                     raw = entry.get("raw_content", "")
@@ -152,7 +151,7 @@ def _display_manifest_compatibility_warnings() -> None:
                                 else None
                             )
                             if notes:
-                                print(f"    Migration notes: {notes.strip()}")
+                                print(f"    Migration notes: {notes.strip()}\n")
                         except Exception:
                             pass
             except InvalidVersion:
