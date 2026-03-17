@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.enums import OperationResult, ServiceState
+from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
 
 
@@ -315,8 +316,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         if base_env:
             env.update(base_env)
 
-        # Disable telemetry for Claude Code subprocesses
-        # This ensures Claude Code doesn't send telemetry data during runtime
-        env["DISABLE_TELEMETRY"] = "1"
+        # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
+        apply_subprocess_env_defaults(env)
 
         return env

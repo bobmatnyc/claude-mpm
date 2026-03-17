@@ -13,16 +13,12 @@ DESIGN DECISION: Use comprehensive environment detection and setup with clear er
 to make debugging easier when things go wrong.
 """
 
-import os
-import sys
-
-# Disable telemetry by default (set as early as possible)
-os.environ["DISABLE_TELEMETRY"] = "1"
-
 import atexit
 import json
 import logging
+import os
 import signal
+import sys
 import tempfile
 import traceback
 from datetime import datetime, timezone
@@ -410,6 +406,11 @@ def main():
         # Setup Python path
         logger.info("Step 3: Setting up Python path...")
         setup_python_path(logger, project_root)
+
+        # Apply env var defaults (respects existing shell values)
+        from claude_mpm.core.env_defaults import apply_env_defaults
+
+        apply_env_defaults()
 
         # Test imports
         logger.info("Step 4: Testing required imports...")

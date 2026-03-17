@@ -20,11 +20,11 @@ This is equivalent to calling the claude-mpm script directly but ensures
 proper Python module context and import resolution.
 """
 
-import os
 import sys
 
-# Disable telemetry by default
-os.environ["DISABLE_TELEMETRY"] = "1"
+from claude_mpm.core.env_defaults import apply_env_defaults
+
+apply_env_defaults()
 
 from . import main
 

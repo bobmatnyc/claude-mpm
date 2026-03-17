@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path
 from typing import Any, AsyncIterator
 
+from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.mcp.errors import SessionError
 from claude_mpm.mcp.models import SessionResult
 from claude_mpm.mcp.ndjson_parser import (
@@ -42,7 +43,7 @@ class ClaudeMPMSubprocess:
         overrides: dict[str, str] | None = None,
     ) -> dict[str, str]:
         env = os.environ.copy()
-        env["DISABLE_TELEMETRY"] = "1"
+        apply_subprocess_env_defaults(env)
         env["CI"] = "true"
         env["CLAUDE_MPM_USER_PWD"] = self.working_directory
         env["CLAUDE_MPM_IS_SUBPROCESS"] = "1"
