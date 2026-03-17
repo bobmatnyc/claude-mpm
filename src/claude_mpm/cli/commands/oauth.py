@@ -470,7 +470,7 @@ class OAuthCommand(BaseCommand):
                 )
 
         # Run OAuth flow
-        OAuthError: type = Exception  # fallback if import fails
+        OAuthError = Exception  # fallback if import fails
         try:
             from claude_mpm.auth import OAuthManager
             from claude_mpm.auth.callback_server import DEFAULT_PORT
@@ -666,7 +666,7 @@ class OAuthCommand(BaseCommand):
         """Refresh OAuth tokens for a service."""
         service_name = args.service_name
 
-        OAuthError: type = Exception  # fallback if import fails
+        OAuthError = Exception  # fallback if import fails
         try:
             from claude_mpm.auth import OAuthManager
             from claude_mpm.auth.providers.google import OAuthError

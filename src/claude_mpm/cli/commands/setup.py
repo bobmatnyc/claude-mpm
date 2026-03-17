@@ -497,7 +497,7 @@ class SetupCommand(BaseCommand):
                     try:
                         from .oauth import _ensure_mcp_configured
 
-                        _ensure_mcp_configured(mcp_server_name)
+                        _ensure_mcp_configured(mcp_server_name, Path.cwd())
                     except Exception as exc:
                         console.print(
                             f"[yellow]Warning: could not update .mcp.json: {exc}[/yellow]"
