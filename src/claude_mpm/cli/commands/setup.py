@@ -495,7 +495,7 @@ class SetupCommand(BaseCommand):
                 # Step 3: optionally register in .mcp.json.
                 if mcp_server_name:
                     try:
-                        from ...services.oauth import _ensure_mcp_configured
+                        from .oauth import _ensure_mcp_configured
 
                         _ensure_mcp_configured(mcp_server_name)
                     except Exception as exc:
@@ -1171,7 +1171,7 @@ class SetupCommand(BaseCommand):
 
                 overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
                 if overwrite.lower() != "y":
-                    return CommandResult.failure_result("Setup cancelled")
+                    return CommandResult.error_result("Setup cancelled")
 
             # Add Brave Search configuration
             if "mcpServers" not in mcp_config:
@@ -1191,7 +1191,7 @@ class SetupCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]✗ Error setting up Brave Search: {e}[/red]")
-            return CommandResult.failure_result(f"Setup failed: {e}")
+            return CommandResult.error_result(f"Setup failed: {e}")
 
     def _setup_tavily(self, args) -> CommandResult:
         """Set up Tavily MCP server for AI-optimized search."""
@@ -1231,7 +1231,7 @@ class SetupCommand(BaseCommand):
 
                 overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
                 if overwrite.lower() != "y":
-                    return CommandResult.failure_result("Setup cancelled")
+                    return CommandResult.error_result("Setup cancelled")
 
             # Add Tavily configuration
             if "mcpServers" not in mcp_config:
@@ -1251,7 +1251,7 @@ class SetupCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]✗ Error setting up Tavily: {e}[/red]")
-            return CommandResult.failure_result(f"Setup failed: {e}")
+            return CommandResult.error_result(f"Setup failed: {e}")
 
     def _setup_firecrawl(self, args) -> CommandResult:
         """Set up Firecrawl MCP server for web scraping."""
@@ -1293,7 +1293,7 @@ class SetupCommand(BaseCommand):
 
                 overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
                 if overwrite.lower() != "y":
-                    return CommandResult.failure_result("Setup cancelled")
+                    return CommandResult.error_result("Setup cancelled")
 
             # Add Firecrawl configuration
             if "mcpServers" not in mcp_config:
@@ -1313,7 +1313,7 @@ class SetupCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]✗ Error setting up Firecrawl: {e}[/red]")
-            return CommandResult.failure_result(f"Setup failed: {e}")
+            return CommandResult.error_result(f"Setup failed: {e}")
 
     def _setup_kuzu_memory(self, args) -> CommandResult:
         """Set up kuzu-memory graph-based memory backend."""
