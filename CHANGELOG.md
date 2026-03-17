@@ -1,3 +1,11 @@
+## v5.10.1 (2026-03-17)
+
+### Fix
+
+- correct OAuthError fallback and _ensure_mcp_configured call in setup/oauth
+- resolve type errors in setup.py and oauth.py (failure_result, OAuthError)
+- validate gworkspace-mcp tokens and include OAuth env vars in .mcp.json (#344)
+
 ## v5.10.0 (2026-03-16)
 
 ### Feat
