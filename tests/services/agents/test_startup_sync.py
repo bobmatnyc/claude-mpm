@@ -470,7 +470,7 @@ class TestDisplayManifestCompatibilityWarnings:
         assert "org/my-agents" in captured.out
         assert "requires claude-mpm >= 99.0.0" in captured.out
         assert "you have 5.9.69" in captured.out
-        assert "pip install --upgrade claude-mpm" in captured.out
+        assert "Use your installation method to upgrade claude-mpm" in captured.out
 
     def test_no_warning_when_cli_version_satisfies(self, capsys):
         """When current CLI version >= min_cli_version, no output."""
