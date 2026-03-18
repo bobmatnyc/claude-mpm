@@ -1,3 +1,21 @@
+## v5.10.3 (2026-03-18)
+
+### Feat
+
+- **messaging**: add directory shortcuts CLI for message send command
+- prohibit direct gh ticket reads and multi-bash tasks - must delegate (v0012)
+
+### Fix
+
+- **tests**: update agent list assertions to match renamed fallback agents
+- **tests**: update upgrade message assertion to match new installation-method-agnostic wording
+- address review recommendations for DISABLE_TELEMETRY handling
+- address review — type annotation, registry fallback, test assertions
+
+### Refactor
+
+- centralize DISABLE_TELEMETRY handling via env_defaults module
+
 ## v5.10.2 (2026-03-17)
 
 ## v5.10.1 (2026-03-17)
