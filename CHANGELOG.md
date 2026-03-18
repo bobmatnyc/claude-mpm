@@ -1,3 +1,9 @@
+## v5.10.5 (2026-03-18)
+
+### Feat
+
+- **mcp**: add internal MCP server for messaging system
+
 ## v5.10.4 (2026-03-18)
 
 ### Fix
