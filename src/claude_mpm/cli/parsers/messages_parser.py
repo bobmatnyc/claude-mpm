@@ -128,4 +128,34 @@ def add_messages_subparser(subparsers) -> argparse.ArgumentParser:
         help="Show all sessions (including inactive/stale)",
     )
 
+    # Shortcut command group
+    shortcut_parser = messages_subparsers.add_parser(
+        "shortcut", help="Manage project path shortcuts"
+    )
+    shortcut_subparsers = shortcut_parser.add_subparsers(
+        dest="shortcut_command", help="Shortcut commands", metavar="SHORTCUT_SUBCOMMAND"
+    )
+
+    # shortcut add
+    shortcut_add = shortcut_subparsers.add_parser(
+        "add", help="Add or update a shortcut"
+    )
+    shortcut_add.add_argument(
+        "name", help="Shortcut name (alphanumeric, underscores, hyphens)"
+    )
+    shortcut_add.add_argument("path", help="Absolute directory path to shortcut to")
+
+    # shortcut list
+    shortcut_subparsers.add_parser("list", help="List all shortcuts")
+
+    # shortcut remove
+    shortcut_remove = shortcut_subparsers.add_parser("remove", help="Remove a shortcut")
+    shortcut_remove.add_argument("name", help="Shortcut name to remove")
+
+    # shortcut resolve
+    shortcut_resolve = shortcut_subparsers.add_parser(
+        "resolve", help="Resolve a shortcut name to its path"
+    )
+    shortcut_resolve.add_argument("name", help="Shortcut name to resolve")
+
     return messages_parser
