@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, List
 
 
-def remove_duplicate_version(filepath: Path) -> Dict:
+def remove_duplicate_version(filepath: Path) -> dict:
     """Remove standalone 'version' field from agent template."""
     with open(filepath) as f:
         data = json.load(f)

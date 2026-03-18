@@ -24,7 +24,7 @@ async def verify_server():
 
     if not os.access(server_path, os.X_OK):
         print("⚠ Server script not executable, fixing...", file=sys.stderr)
-        os.chmod(server_path, 0o755)
+        os.chmod(server_path, 0o755)  # nosec B103
 
     # Start the server
     try:
@@ -82,7 +82,7 @@ async def verify_server():
             print("✗ Invalid initialize response", file=sys.stderr)
             return False
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             print("✗ Server did not respond within 5 seconds", file=sys.stderr)
 
             # Check stderr for errors

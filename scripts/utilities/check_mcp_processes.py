@@ -19,7 +19,7 @@ import json
 import os
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
@@ -53,7 +53,7 @@ def format_duration(start_time: float) -> str:
     Returns:
         str: Formatted duration (e.g., "2h 15m")
     """
-    duration = datetime.now(timezone.utc).timestamp() - start_time
+    duration = datetime.now(UTC).timestamp() - start_time
 
     if duration < 60:
         return f"{int(duration)}s"
@@ -74,7 +74,7 @@ class MCPProcessChecker:
         self.pid_dir = Path(tempfile.gettempdir()) / "claude-mpm-mcp"
         self.current_pid = os.getpid()
 
-    def get_pid_file_info(self) -> List[Dict]:
+    def get_pid_file_info(self) -> list[dict]:
         """
         Get information from PID files.
 
@@ -96,7 +96,7 @@ class MCPProcessChecker:
 
         return pid_info_list
 
-    def find_mcp_processes(self) -> List[psutil.Process]:
+    def find_mcp_processes(self) -> list[psutil.Process]:
         """
         Find all MCP-related processes using psutil.
 
@@ -124,7 +124,7 @@ class MCPProcessChecker:
 
         return mcp_processes
 
-    def get_process_details(self, proc: psutil.Process) -> Dict:
+    def get_process_details(self, proc: psutil.Process) -> dict:
         """
         Get detailed information about a process.
 
@@ -160,9 +160,7 @@ class MCPProcessChecker:
         print("=" * 80)
         print("🔍 MCP Process Status Report")
         print("=" * 80)
-        print(
-            f"Report generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        print(f"Report generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}")
         print()
 
         # Check PID files

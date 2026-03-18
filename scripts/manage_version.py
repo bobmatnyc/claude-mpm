@@ -6,7 +6,7 @@ Provides functionality to increment versions and manage build numbers.
 """
 
 import argparse
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from typing import Tuple
@@ -59,7 +59,7 @@ def bump_version(current_version: str, bump_type: str) -> str:
     return f"{major}.{minor}.{patch}"
 
 
-def increment_build_number(project_root: Path) -> Tuple[int, int]:
+def increment_build_number(project_root: Path) -> tuple[int, int]:
     """Increment build number and return old and new values."""
     current_build = get_current_build_number(project_root)
     new_build = current_build + 1
@@ -122,7 +122,7 @@ def update_homebrew_tap(version: str, dry_run: bool = False) -> bool:
 
     try:
         print(f"🍺 Triggering Homebrew tap update for version {version}...")
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603
             cmd, check=False, capture_output=True, text=True, timeout=300
         )
 

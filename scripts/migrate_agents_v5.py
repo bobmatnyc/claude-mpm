@@ -17,7 +17,7 @@ Options:
 import argparse
 import json
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 import zipfile
 from datetime import datetime
@@ -40,7 +40,7 @@ class AgentMigrator:
         self.agents_dir = Path.home() / ".claude" / "agents"
         self.archive_path = Path.home() / ".claude" / "agents-old-archive.zip"
 
-    def find_old_agents(self) -> List[Path]:
+    def find_old_agents(self) -> list[Path]:
         """Find old JSON-template based agents.
 
         Returns:
@@ -76,7 +76,7 @@ class AgentMigrator:
         except Exception:
             return False
 
-    def create_archive_readme(self, old_agents: List[Path]) -> str:
+    def create_archive_readme(self, old_agents: list[Path]) -> str:
         """Create README content for archive.
 
         Args:
@@ -134,7 +134,7 @@ For More Information:
 See: docs/migration/agent-sources-git-default-v4.5.0.md
 """
 
-    def create_archive(self, old_agents: List[Path]) -> bool:
+    def create_archive(self, old_agents: list[Path]) -> bool:
         """Create ZIP archive of old agents.
 
         Args:
@@ -173,7 +173,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             print(f"❌ Failed to create archive: {e}")
             return False
 
-    def verify_archive(self, old_agents: List[Path]) -> bool:
+    def verify_archive(self, old_agents: list[Path]) -> bool:
         """Verify archive integrity.
 
         Args:
@@ -208,7 +208,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             print(f"❌ Archive verification error: {e}")
             return False
 
-    def remove_old_agents(self, old_agents: List[Path]) -> int:
+    def remove_old_agents(self, old_agents: list[Path]) -> int:
         """Remove old agent files.
 
         Args:
@@ -231,7 +231,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
 
         return removed
 
-    def deploy_git_agents(self) -> Tuple[bool, int]:
+    def deploy_git_agents(self) -> tuple[bool, int]:
         """Deploy fresh Git-sourced agents.
 
         Returns:
@@ -243,7 +243,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
 
         try:
             # Use agent-source sync to deploy from Git
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["claude-mpm", "agent-source", "sync"],
                 check=False,
                 capture_output=True,
@@ -273,7 +273,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             print(f"❌ Deployment error: {e}")
             return False, 0
 
-    def confirm_migration(self, old_agents: List[Path]) -> bool:
+    def confirm_migration(self, old_agents: list[Path]) -> bool:
         """Ask user to confirm migration.
 
         Args:

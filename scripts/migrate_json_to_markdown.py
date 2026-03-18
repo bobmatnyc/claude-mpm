@@ -64,10 +64,10 @@ class ConversionResult:
     """Result of a single template conversion."""
 
     json_path: str
-    md_path: Optional[str]
+    md_path: str | None
     status: str  # success, error, skipped
-    validation: Optional[ValidationResult]
-    error_message: Optional[str] = None
+    validation: ValidationResult | None
+    error_message: str | None = None
 
 
 @dataclass
@@ -78,8 +78,8 @@ class MigrationReport:
     converted: int
     errors: int
     warnings: int
-    results: List[ConversionResult]
-    archive_path: Optional[Path] = None
+    results: list[ConversionResult]
+    archive_path: Path | None = None
 
 
 def extract_frontmatter_fields(template_data: dict) -> dict:
@@ -196,7 +196,7 @@ def build_markdown(frontmatter: dict, instructions: str) -> str:
 
 def convert_json_to_markdown(
     json_path: Path, validate: bool = True
-) -> Tuple[str, ValidationResult]:
+) -> tuple[str, ValidationResult]:
     """
     Convert JSON template to markdown with YAML frontmatter.
 
@@ -248,7 +248,7 @@ def convert_json_to_markdown(
 
 def safe_convert(
     json_path: Path,
-    output_dir: Optional[Path] = None,
+    output_dir: Path | None = None,
     archive_mode: bool = False,
     dry_run: bool = False,
 ) -> ConversionResult:
@@ -350,9 +350,9 @@ def safe_convert(
 def migrate_templates(
     templates_dir: Path,
     dry_run: bool = False,
-    agent_name: Optional[str] = None,
+    agent_name: str | None = None,
     archive: bool = False,
-    output_dir: Optional[Path] = None,
+    output_dir: Path | None = None,
     verbose: bool = False,
 ) -> MigrationReport:
     """
@@ -392,7 +392,7 @@ def migrate_templates(
         )
 
     # Convert each template
-    results: List[ConversionResult] = []
+    results: list[ConversionResult] = []
     for json_path in json_files:
         if verbose:
             print(f"Converting: {json_path.name}...")

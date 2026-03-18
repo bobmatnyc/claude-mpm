@@ -54,17 +54,17 @@ logger = get_logger()
 class GitHubAPIDownloader:
     """Download skills using GitHub API."""
 
-    def __init__(self, github_token: Optional[str] = None) -> None:
+    def __init__(self, github_token: str | None = None) -> None:
         """Initialize downloader with optional GitHub token."""
-        self.github_token: Optional[str] = github_token
+        self.github_token: str | None = github_token
         self.session: requests.Session = requests.Session()
         if github_token:
             self.session.headers["Authorization"] = f"token {github_token}"
         self.session.headers["Accept"] = "application/vnd.github.v3+json"
-        self.rate_limit_remaining: Optional[int] = None
-        self.rate_limit_reset: Optional[int] = None
+        self.rate_limit_remaining: int | None = None
+        self.rate_limit_reset: int | None = None
 
-    def check_rate_limit(self) -> Tuple[int, int]:
+    def check_rate_limit(self) -> tuple[int, int]:
         """Check GitHub API rate limit status.
 
         Returns:
@@ -97,7 +97,7 @@ class GitHubAPIDownloader:
                     )
                     time.sleep(wait_time + 1)
 
-    def parse_github_url(self, url: str) -> Tuple[str, str, str, str]:
+    def parse_github_url(self, url: str) -> tuple[str, str, str, str]:
         """Parse GitHub URL to extract owner, repo, branch, and path.
 
         Args:
@@ -132,7 +132,7 @@ class GitHubAPIDownloader:
 
     def get_directory_contents(
         self, owner: str, repo: str, path: str, branch: str = "main"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get directory contents from GitHub API.
 
         Args:
@@ -171,7 +171,7 @@ class GitHubAPIDownloader:
 
     def download_file(
         self, owner: str, repo: str, path: str, branch: str = "main"
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         """Download a single file from GitHub.
 
         Args:
@@ -265,7 +265,7 @@ class GitHubAPIDownloader:
         return files_downloaded
 
 
-def load_skills_sources(config_path: Path) -> Dict[str, Any]:
+def load_skills_sources(config_path: Path) -> dict[str, Any]:
     """Load skills sources configuration with security checks.
 
     Args:

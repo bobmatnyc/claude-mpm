@@ -14,7 +14,7 @@ import asyncio
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Any, Dict, List, Optional
 
 # Socket.IO client import
@@ -46,7 +46,7 @@ class SocketIOMonitor:
         self.sio = socketio.AsyncClient(logger=False, engineio_logger=False)
         self.connected = False
         self.event_count = 0
-        self.event_history: List[Dict[str, Any]] = []
+        self.event_history: list[dict[str, Any]] = []
         self.event_types = {}
 
         # Setup event handlers
@@ -139,7 +139,7 @@ class SocketIOMonitor:
         # Store in history
         event_record = {
             "index": self.event_count,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "event_name": event_name,
             "data": data,
         }
@@ -157,7 +157,7 @@ class SocketIOMonitor:
         # Display the event
         self._display_event(event_record)
 
-    def _display_event(self, event: Dict[str, Any]):
+    def _display_event(self, event: dict[str, Any]):
         """Display an event with formatting."""
         print(f"\n{'=' * 60}")
         print(f"📨 EVENT #{event['index']} | {event['timestamp']}")
@@ -226,7 +226,7 @@ class SocketIOMonitor:
         if self.connected:
             await self.sio.disconnect()
 
-    async def run(self, duration: Optional[int] = None):
+    async def run(self, duration: int | None = None):
         """Run the monitor for a specified duration or until interrupted.
 
         Args:

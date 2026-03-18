@@ -140,7 +140,7 @@ exclude = [
 [lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]  # Allow unused imports in __init__
 "tests/*" = ["F403", "F405", "F401", "E402", "F841", "PLR0912", "PLR0915", "PLR2004", "DTZ005", "DTZ006", "DTZ007", "PTH123", "PTH207", "PTH109", "PTH107", "PTH110", "PTH113", "PTH118", "PTH120", "PTH119", "PTH116", "PTH102", "PTH208", "N806", "N802", "N803", "F821", "SIM117", "RUF012", "RUF100", "W293", "DTZ003", "B023", "B027", "E722", "F811", "RET504", "PLR0913"]  # More lenient for tests
-"scripts/*" = ["T201", "PLR0912", "PLR0915", "PLR2004", "E402", "F841", "PTH123", "DTZ005", "DTZ006", "E722", "E741", "RUF006", "W293", "W291", "F401", "PLR0911", "SIM102", "PTH109", "SIM117", "PLR0913", "B904", "B018", "RUF001", "PTH120", "PTH100", "PTH118", "PTH110", "PTH101"]  # More lenient for scripts
+"scripts/*" = ["T201", "PLR0912", "PLR0915", "PLR2004", "E402", "F841", "PTH123", "DTZ005", "DTZ006", "E722", "E741", "RUF006", "W293", "W291", "F401", "PLR0911", "SIM102", "PTH109", "SIM117", "PLR0913", "B904", "B018", "RUF001", "PTH120", "PTH100", "PTH118", "PTH110", "PTH101", "UP035"]  # More lenient for scripts
 "src/claude_mpm/utils/*" = ["E722", "E741"]  # Allow bare except in utilities
 "src/claude_mpm/validation/*" = ["E722"]  # Allow bare except in validation code
 "src/claude_mpm/agents/*" = ["PLR0911", "PTH123", "SIM102", "RUF012"]  # Allow agent complexity patterns

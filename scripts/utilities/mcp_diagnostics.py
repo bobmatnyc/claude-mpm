@@ -12,9 +12,9 @@ configuration, and potential issues to quickly identify and fix problems.
 
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 
@@ -28,7 +28,7 @@ def print_section(title):
 def check_command(cmd, name):
     """Check if a command exists and get its version."""
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603
             cmd, capture_output=True, text=True, timeout=5, check=False
         )
         output = result.stdout + result.stderr
@@ -42,7 +42,7 @@ def check_command(cmd, name):
 def diagnose():
     """Run comprehensive diagnostics."""
     print("MCP Server Diagnostics Report")
-    print(f"Generated: {datetime.now(timezone.utc).isoformat()}")
+    print(f"Generated: {datetime.now(UTC).isoformat()}")
 
     # System Information
     print_section("System Information")
@@ -246,7 +246,7 @@ def diagnose():
 
         try:
             # Start the server process
-            proc = subprocess.Popen(
+            proc = subprocess.Popen(  # nosec B603 B607
                 ["python3", str(wrapper_path)],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,

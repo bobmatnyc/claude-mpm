@@ -198,7 +198,7 @@ def main():
         test_method(
             "Wrapper from different CWD",
             ["python3", str(wrapper_script.absolute())],
-            cwd="/tmp",
+            cwd="/tmp",  # nosec B108
         )
     )
 

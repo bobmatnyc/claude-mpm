@@ -21,7 +21,7 @@ import signal
 import sys
 import tempfile
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 
@@ -48,7 +48,7 @@ class ProcessMonitor:
         """Initialize the process monitor."""
         self.logger = logger
         self.pid = os.getpid()
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
         self.pid_file = None
         self.setup_pid_tracking()
         self.setup_signal_handlers()

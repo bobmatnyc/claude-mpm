@@ -7,7 +7,7 @@ import asyncio
 import contextlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -41,7 +41,7 @@ class RealTimeEventMonitor:
 
         @self.client.event
         async def claude_event(data):
-            timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+            timestamp = datetime.now(UTC).strftime("%H:%M:%S")
             event_type = data.get("type", "unknown")
 
             print(f"[{timestamp}] 📨 HOOK EVENT RECEIVED:")
