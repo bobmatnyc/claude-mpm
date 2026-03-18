@@ -82,6 +82,7 @@ def sync_agents_on_startup(
     return {
         "enabled": sync_result.enabled,
         "sources_synced": sync_result.sources_synced,
+        "sources_failed": sync_result.sources_failed,
         "total_downloaded": sync_result.total_downloaded,
         "cache_hits": sync_result.cache_hits,
         "errors": sync_result.errors,

@@ -478,7 +478,11 @@ class AgentsCommand(AgentCommand):
             # Scope to default repo only to preserve pre-refactor behaviour
             # where GitSourceSyncService() only synced bobmatnyc/claude-mpm-agents.
             source_config = AgentSourceConfiguration.load()
-            default_repos = source_config.get_enabled_repositories()[:1]
+            default_repos = [
+                r
+                for r in source_config.get_enabled_repositories()
+                if "claude-mpm-agents" in r.identifier
+            ][:1]
             orchestrator = AgentSyncOrchestrator(show_progress=False)
             orch_result = orchestrator.sync(force=False, repos=default_repos)
 
@@ -627,7 +631,11 @@ class AgentsCommand(AgentCommand):
             # Scope to default repo only -- the old GitSourceSyncService()
             # constructor only knew about bobmatnyc/claude-mpm-agents.
             source_config = AgentSourceConfiguration.load()
-            default_repos = source_config.get_enabled_repositories()[:1]
+            default_repos = [
+                r
+                for r in source_config.get_enabled_repositories()
+                if "claude-mpm-agents" in r.identifier
+            ][:1]
             orchestrator = AgentSyncOrchestrator(show_progress=True)
             orch_result = orchestrator.sync(force=force, repos=default_repos)
 

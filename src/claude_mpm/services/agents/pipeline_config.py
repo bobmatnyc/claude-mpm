@@ -213,6 +213,16 @@ class AgentPipelineConfig:
     # Deployment helpers                                                    #
     # ------------------------------------------------------------------ #
 
+    @property
+    def has_explicit_agent_selection(self) -> bool:
+        """Whether the user explicitly configured an agent list.
+
+        When False, get_agents_to_deploy() returns only the default required
+        set — callers should NOT override agents.enabled with that result, as
+        doing so causes the reconciler to remove all non-required agents.
+        """
+        return bool(self.enabled_agents)
+
     def get_agents_to_deploy(self, cached_agents: set | None = None) -> set:
         """Return the set of agent IDs that should be deployed.
 

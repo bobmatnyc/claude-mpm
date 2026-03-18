@@ -1095,7 +1095,7 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                 # Compute effective enabled set: enabled + required - excluded
                 effective_agents = pipeline_config.get_agents_to_deploy()
                 if effective_agents and (
-                    active_profile or pipeline_config.enabled_agents
+                    active_profile or pipeline_config.has_explicit_agent_selection
                 ):
                     # Only override when there is an explicit agent selection
                     # (active profile or config-driven enabled list).  When

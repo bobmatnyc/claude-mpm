@@ -618,7 +618,9 @@ class TestDeploymentOperations(TestAgentsCommand):
         ):
             # Provide a deterministic default repo list via mocked config
             mock_config = MagicMock()
-            mock_config.get_enabled_repositories.return_value = [MagicMock()]
+            mock_repo = MagicMock()
+            mock_repo.identifier = "bobmatnyc/claude-mpm-agents/main/agents"
+            mock_config.get_enabled_repositories.return_value = [mock_repo]
             mock_config_load.return_value = mock_config
 
             result = command.run(mock_args)
@@ -656,7 +658,9 @@ class TestDeploymentOperations(TestAgentsCommand):
             ) as mock_config_load,
         ):
             mock_config = MagicMock()
-            mock_config.get_enabled_repositories.return_value = [MagicMock()]
+            mock_repo = MagicMock()
+            mock_repo.identifier = "bobmatnyc/claude-mpm-agents/main/agents"
+            mock_config.get_enabled_repositories.return_value = [mock_repo]
             mock_config_load.return_value = mock_config
 
             result = command.run(mock_args)

@@ -363,7 +363,20 @@ def deploy_agent_file(
         normalized_filename = normalize_deployment_filename(source_file.name)
         target_file = deployment_dir / normalized_filename
 
-        # Step 3: Clean up legacy underscore variants
+        # Step 3: Read and validate source content BEFORE legacy cleanup
+        # (prevents data loss if source is empty but underscore variant exists)
+        source_content = source_file.read_text(encoding="utf-8")
+
+        # Phase 1c: Content validation - reject empty/whitespace-only files
+        if not source_content.strip():
+            logger.warning(f"Skipping empty agent file: {source_file.name}")
+            return DeploymentResult(
+                success=False,
+                error=f"Agent file is empty: {source_file.name}",
+                cleaned_legacy=cleaned_legacy,
+            )
+
+        # Step 4: Clean up legacy underscore variants (safe — source validated above)
         if cleanup_legacy:
             underscore_variant = get_underscore_variant_filename(normalized_filename)
             if underscore_variant:
@@ -382,18 +395,6 @@ def deploy_agent_file(
                             f"{underscore_path}: {e}"
                         )
                         # Don't fail deployment just because cleanup failed
-
-        # Step 4: Read source content
-        source_content = source_file.read_text(encoding="utf-8")
-
-        # Phase 1c: Content validation - reject empty/whitespace-only files
-        if not source_content.strip():
-            logger.warning(f"Skipping empty agent file: {source_file.name}")
-            return DeploymentResult(
-                success=False,
-                error=f"Agent file is empty: {source_file.name}",
-                cleaned_legacy=cleaned_legacy,
-            )
 
         # Step 5: Check if deployment needed (content comparison)
         was_existing = target_file.exists()

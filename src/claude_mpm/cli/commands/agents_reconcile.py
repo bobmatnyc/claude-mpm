@@ -43,8 +43,10 @@ class AgentsReconcileCommand(BaseCommand):
         config = UnifiedConfig()
         # Compute effective enabled set: enabled + required - excluded
         effective_agents = pipeline_config.get_agents_to_deploy()
-        if effective_agents:
+        if effective_agents and pipeline_config.has_explicit_agent_selection:
             config.agents.enabled = list(effective_agents)
+        else:
+            config.agents.auto_discover = True
 
         reconciler = DeploymentReconciler(config)
 
