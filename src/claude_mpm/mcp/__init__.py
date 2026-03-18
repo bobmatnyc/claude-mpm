@@ -62,10 +62,20 @@ try:
 except ImportError:
     slack_user_proxy_main = None  # type: ignore[assignment]
 
+try:
+    from claude_mpm.mcp.messaging_server import (
+        MessagingMCPServer,
+        main as messaging_server_main,
+    )
+except ImportError:
+    MessagingMCPServer = None  # type: ignore[assignment,misc]
+    messaging_server_main = None  # type: ignore[assignment]
+
 __all__ = [
     "APIError",
     "ClaudeMPMSubprocess",
     "ContextWindowError",
+    "MessagingMCPServer",
     "NDJSONStreamParser",
     "NgrokTunnel",
     "RateLimitError",
@@ -84,6 +94,7 @@ __all__ = [
     "check_rclone_available",
     "extract_session_id",
     "extract_session_id_from_stream",
+    "messaging_server_main",
     "parse_error",
     "session_server_http_main",
     "session_server_main",
