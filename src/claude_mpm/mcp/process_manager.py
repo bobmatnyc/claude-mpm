@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 
-def format_bytes(bytes_value: int) -> str:
+def format_bytes(bytes_value: float) -> str:
     """Format bytes into human-readable string."""
     for unit in ["B", "KB", "MB", "GB", "TB"]:
         if bytes_value < 1024.0:

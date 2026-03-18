@@ -25,29 +25,19 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        import asyncio
+        import webbrowser
 
-        from claude_mpm.services.cli.dashboard_launcher import DashboardLauncher
-        from claude_mpm.services.socketio_server import SocketIOServer
+        from claude_mpm.services.socketio.server.main import SocketIOServer
 
         print(f"Starting Claude MPM Dashboard on http://{args.host}:{args.port}")
 
         server = SocketIOServer(host=args.host, port=args.port)
 
-        async def run_server() -> None:
-            await server.start()
+        if not args.no_browser:
+            url = f"http://{args.host}:{args.port}"
+            webbrowser.open(url)
 
-            if not args.no_browser:
-                launcher = DashboardLauncher()
-                launcher.open_dashboard(f"http://{args.host}:{args.port}")
-
-            try:
-                await asyncio.Event().wait()
-            except KeyboardInterrupt:
-                print("\nShutting down dashboard...")
-                await server.stop()
-
-        asyncio.run(run_server())
+        server.start_sync()
 
     except ImportError as e:
         print(f"Error: Missing dependencies for dashboard: {e}")
