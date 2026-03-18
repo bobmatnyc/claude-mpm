@@ -14,7 +14,7 @@ Ticket: 1M-382 - Migrate Agent System to Git-Based Markdown Repository
 import json
 import sqlite3
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -186,7 +186,7 @@ class TestETagCache:
 
         # Verify timestamp is recent
         last_modified = datetime.fromisoformat(entry["last_modified"])
-        assert (datetime.now(timezone.utc) - last_modified).total_seconds() < 5
+        assert (datetime.now(UTC) - last_modified).total_seconds() < 5
 
 
 # ==============================================================================
@@ -438,10 +438,10 @@ class TestGitSourceSyncServiceAgentSync:
         # The Git Tree API returns full paths; fallback returns just filenames
         all_items = " ".join(agent_list)
         for expected_agent in [
-            "research.md",
+            "research-agent.md",
             "engineer.md",
-            "qa.md",
-            "documentation.md",
+            "qa-agent.md",
+            "documentation-agent.md",
             "security.md",
             "ops.md",
         ]:
@@ -1604,7 +1604,7 @@ class TestErrorHandling:
                     "nonexistent-source",
                     "test.md",
                     "hash123",
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                 )
                 conn.execute(query, params)
 
