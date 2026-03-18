@@ -31,7 +31,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 def main():
@@ -296,7 +296,7 @@ def generate_compliance_report(exit_code: int, args: argparse.Namespace):
         print(f"✅ HTML report generated: {html_report}")
 
 
-def load_test_stats() -> Dict[str, Any]:
+def load_test_stats() -> dict[str, Any]:
     """Load test statistics from scenarios file."""
     scenarios_file = (
         Path(__file__).parent / "scenarios" / "pm_behavioral_requirements.json"

@@ -9,12 +9,11 @@ for common CLI operations.
 import difflib
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 from ..core.logger import get_logger
 
 
-def get_user_input(input_arg: Optional[str], logger) -> str:
+def get_user_input(input_arg: str | None, logger) -> str:
     """
     Get user input based on command line arguments.
 
@@ -46,7 +45,7 @@ def get_user_input(input_arg: Optional[str], logger) -> str:
     return sys.stdin.read()
 
 
-def get_agent_versions_display() -> Optional[str]:
+def get_agent_versions_display() -> str | None:
     """
     Get formatted agent versions display as a string.
 
@@ -216,10 +215,10 @@ def ensure_directories() -> None:
 
 def suggest_similar_commands(
     invalid_command: str,
-    valid_commands: List[str],
+    valid_commands: list[str],
     cutoff: float = 0.6,
     max_suggestions: int = 3,
-) -> Optional[str]:
+) -> str | None:
     """
     Suggest similar commands for an invalid command using fuzzy matching.
 

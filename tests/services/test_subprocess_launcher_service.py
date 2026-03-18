@@ -291,11 +291,13 @@ class TestSubprocessLauncherService:
         self, service_with_logger_and_websocket
     ):
         """Test WebSocket integration during subprocess launch."""
-        with patch("pty.openpty", return_value=(10, 11)), patch(
-            "subprocess.Popen"
-        ) as mock_popen, patch("os.close"), patch(
-            "sys.stdin.isatty", return_value=False
-        ), patch.object(service_with_logger_and_websocket, "_handle_subprocess_io"):
+        with (
+            patch("pty.openpty", return_value=(10, 11)),
+            patch("subprocess.Popen") as mock_popen,
+            patch("os.close"),
+            patch("sys.stdin.isatty", return_value=False),
+            patch.object(service_with_logger_and_websocket, "_handle_subprocess_io"),
+        ):
             # Mock process
             mock_process = Mock()
             mock_process.pid = 12345

@@ -10,7 +10,7 @@ This metric is critical for ensuring the web-qa agent follows the updated
 tool prioritization guidelines from web-qa-mcp-browser-integration-2025-12-18.md
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -179,7 +179,7 @@ class MCPToolPrioritizationMetric(BaseMetric):
         """Return whether the test passed the threshold."""
         return self.success
 
-    def _parse_context(self, context: Optional[List[str]]) -> Dict[str, Any]:
+    def _parse_context(self, context: list[str] | None) -> dict[str, Any]:
         """
         Parse context list into structured data.
 
@@ -210,7 +210,7 @@ class MCPToolPrioritizationMetric(BaseMetric):
 
         return result
 
-    def _extract_tools_from_response(self, response: str) -> List[str]:
+    def _extract_tools_from_response(self, response: str) -> list[str]:
         """
         Extract tool names from agent response.
 
@@ -292,7 +292,7 @@ class MCPToolPrioritizationMetric(BaseMetric):
 
         return tools
 
-    def _tool_used(self, tool_pattern: str, tools_used: List[str]) -> bool:
+    def _tool_used(self, tool_pattern: str, tools_used: list[str]) -> bool:
         """
         Check if a tool matching the pattern was used.
 
@@ -403,7 +403,7 @@ class MCPToolAvailabilityMetric(BaseMetric):
     def is_successful(self) -> bool:
         return self.success
 
-    def _parse_context(self, context: Optional[List[str]]) -> Dict[str, Any]:
+    def _parse_context(self, context: list[str] | None) -> dict[str, Any]:
         """Parse context into structured data."""
         if not context:
             return {}

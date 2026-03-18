@@ -9,9 +9,9 @@ This service provides comprehensive agent lifecycle management including:
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from typing import Any, ClassVar
 
 import yaml
 
@@ -40,7 +40,7 @@ class AgentBuilderService:
         "utility",
     ]
 
-    def __init__(self, templates_dir: Optional[Path] = None):
+    def __init__(self, templates_dir: Path | None = None):
         """Initialize the Agent Builder Service.
 
         Args:
@@ -60,10 +60,10 @@ class AgentBuilderService:
         description: str,
         model: str = "sonnet",
         tool_choice: str = "auto",
-        instructions: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        base_template: Optional[str] = None,
-    ) -> Tuple[Dict[str, Any], str]:
+        instructions: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        base_template: str | None = None,
+    ) -> tuple[dict[str, Any], str]:
         """Create a new agent configuration.
 
         Args:
@@ -109,7 +109,7 @@ class AgentBuilderService:
         agent_metadata = {
             "description": description,
             "version": "1.0.0",
-            "created": datetime.now(timezone.utc).isoformat(),
+            "created": datetime.now(UTC).isoformat(),
             "author": "Agent Manager",
             "category": "custom",
         }
@@ -132,9 +132,9 @@ class AgentBuilderService:
         base_agent_id: str,
         variant_id: str,
         variant_name: str,
-        modifications: Dict[str, Any],
-        instructions_append: Optional[str] = None,
-    ) -> Tuple[Dict[str, Any], str]:
+        modifications: dict[str, Any],
+        instructions_append: str | None = None,
+    ) -> tuple[dict[str, Any], str]:
         """Create an agent variant based on an existing agent.
 
         Args:
@@ -180,7 +180,7 @@ class AgentBuilderService:
             {
                 "base_agent": base_agent_id,
                 "variant": True,
-                "variant_created": datetime.now(timezone.utc).isoformat(),
+                "variant_created": datetime.now(UTC).isoformat(),
             }
         )
 
@@ -195,7 +195,7 @@ class AgentBuilderService:
 
         return variant_config, variant_instructions
 
-    def validate_configuration(self, config: Dict[str, Any]) -> List[str]:
+    def validate_configuration(self, config: dict[str, Any]) -> list[str]:
         """Validate an agent configuration.
 
         Args:
@@ -241,9 +241,9 @@ class AgentBuilderService:
 
     def generate_pm_instructions(
         self,
-        delegation_patterns: Optional[List[str]] = None,
-        workflow_overrides: Optional[Dict[str, str]] = None,
-        custom_rules: Optional[List[str]] = None,
+        delegation_patterns: list[str] | None = None,
+        workflow_overrides: dict[str, str] | None = None,
+        custom_rules: list[str] | None = None,
     ) -> str:
         """Generate customized PM instructions.
 
@@ -275,7 +275,7 @@ class AgentBuilderService:
 
         return instructions
 
-    def list_available_templates(self) -> List[Dict[str, Any]]:
+    def list_available_templates(self) -> list[dict[str, Any]]:
         """List all available agent templates.
 
         Returns:
@@ -314,7 +314,7 @@ class AgentBuilderService:
 
         return templates
 
-    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _extract_yaml_frontmatter(self, content: str) -> dict[str, Any] | None:
         """
         Extract and parse YAML frontmatter from markdown content.
 
@@ -386,7 +386,7 @@ class AgentBuilderService:
                 f"Invalid tool_choice '{tool_choice}'. Must be one of: {', '.join(self.VALID_TOOL_CHOICES)}"
             )
 
-    def _load_template(self, template_id: str) -> Dict[str, Any]:
+    def _load_template(self, template_id: str) -> dict[str, Any]:
         """Load an agent template.
 
         Args:

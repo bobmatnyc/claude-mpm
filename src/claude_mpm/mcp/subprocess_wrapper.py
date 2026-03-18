@@ -8,8 +8,9 @@ programmatically.
 import asyncio
 import os
 import uuid
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.mcp.errors import SessionError
@@ -182,7 +183,7 @@ class ClaudeMPMSubprocess:
                 messages=messages,
             )
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             await self.terminate()
             raise SessionError(
                 f"Session timed out after {timeout}s",
@@ -229,7 +230,7 @@ class ClaudeMPMSubprocess:
         except ProcessLookupError:
             # Process already exited
             pass
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if force:
                 try:
                     self.process.kill()

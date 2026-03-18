@@ -17,7 +17,7 @@ Design:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -39,7 +39,7 @@ class SkillsRegistry(LoggerMixin):
         >>> print(metadata['category'])  # 'testing'
     """
 
-    def __init__(self, registry_path: Optional[Path] = None) -> None:
+    def __init__(self, registry_path: Path | None = None) -> None:
         """Initialize Skills Registry.
 
         Args:
@@ -57,10 +57,10 @@ class SkillsRegistry(LoggerMixin):
             )
 
         self.registry_path: Path = registry_path
-        self.data: Dict[str, Any] = self.load_registry(registry_path)
+        self.data: dict[str, Any] = self.load_registry(registry_path)
 
     @staticmethod
-    def load_registry(registry_path: Path) -> Dict[str, Any]:
+    def load_registry(registry_path: Path) -> dict[str, Any]:
         """Load and parse registry YAML file.
 
         Args:
@@ -84,7 +84,7 @@ class SkillsRegistry(LoggerMixin):
             # Graceful degradation - return empty dict
             return {}
 
-    def get_agent_skills(self, agent_id: str) -> List[str]:
+    def get_agent_skills(self, agent_id: str) -> list[str]:
         """Get skills for a specific agent.
 
         Reads from registry['agent_skills'][agent_id] and combines
@@ -109,7 +109,7 @@ class SkillsRegistry(LoggerMixin):
 
         return required + optional
 
-    def get_skill_metadata(self, skill_name: str) -> Dict[str, Any]:
+    def get_skill_metadata(self, skill_name: str) -> dict[str, Any]:
         """Get metadata for a specific skill.
 
         Retrieves skill information from registry['skills_metadata'][skill_name].
@@ -132,7 +132,7 @@ class SkillsRegistry(LoggerMixin):
         """
         return self.data.get("skills_metadata", {}).get(skill_name, {})
 
-    def list_all_skills(self) -> List[str]:
+    def list_all_skills(self) -> list[str]:
         """List all skills in the registry.
 
         Returns:
@@ -146,7 +146,7 @@ class SkillsRegistry(LoggerMixin):
         """
         return list(self.data.get("skills_metadata", {}).keys())
 
-    def list_all_agents(self) -> List[str]:
+    def list_all_agents(self) -> list[str]:
         """List all agents in the registry.
 
         Returns:
@@ -159,7 +159,7 @@ class SkillsRegistry(LoggerMixin):
         """
         return list(self.data.get("agent_skills", {}).keys())
 
-    def get_skills_by_category(self, category: str) -> List[str]:
+    def get_skills_by_category(self, category: str) -> list[str]:
         """Get all skills in a specific category.
 
         Args:
@@ -181,7 +181,7 @@ class SkillsRegistry(LoggerMixin):
 
         return skills
 
-    def get_skills_by_source(self, source: str) -> List[str]:
+    def get_skills_by_source(self, source: str) -> list[str]:
         """Get all skills from a specific source repository.
 
         Args:
@@ -202,7 +202,7 @@ class SkillsRegistry(LoggerMixin):
 
         return skills
 
-    def validate_registry(self) -> Dict[str, Any]:
+    def validate_registry(self) -> dict[str, Any]:
         """Validate registry structure and content.
 
         Checks:
@@ -276,7 +276,7 @@ class SkillsRegistry(LoggerMixin):
 
         return {"valid": len(errors) == 0, "errors": errors, "warnings": warnings}
 
-    def get_registry_info(self) -> Dict[str, Any]:
+    def get_registry_info(self) -> dict[str, Any]:
         """Get summary information about the registry.
 
         Returns:
@@ -318,7 +318,7 @@ class SkillsRegistry(LoggerMixin):
             "sources": sorted(sources),
         }
 
-    def search_skills(self, query: str) -> List[Dict[str, Any]]:
+    def search_skills(self, query: str) -> list[dict[str, Any]]:
         """Search skills by name or description.
 
         Args:

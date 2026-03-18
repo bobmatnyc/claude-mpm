@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -24,8 +24,8 @@ class AgentDeploymentContext:
     source_info: str = "unknown"  # Source of the agent (system/project/user)
 
     # Base agent data
-    base_agent_data: Optional[Dict[str, Any]] = None
-    base_agent_version: Optional[tuple] = None
+    base_agent_data: dict[str, Any] | None = None
+    base_agent_version: tuple | None = None
 
     # Target directory
     agents_dir: Path = None
@@ -50,7 +50,7 @@ class AgentDeploymentContext:
         cls,
         template_file: Path,
         agents_dir: Path,
-        base_agent_data: Dict[str, Any],
+        base_agent_data: dict[str, Any],
         base_agent_version: tuple,
         force_rebuild: bool = False,
         deployment_mode: str = "update",

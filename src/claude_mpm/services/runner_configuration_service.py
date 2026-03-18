@@ -17,7 +17,7 @@ when registering the SessionManagementService.
 """
 
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.config import Config
@@ -49,7 +49,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
     # Implementation of abstract methods from RunnerConfigurationInterface
 
-    def initialize_runner(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def initialize_runner(self, config: dict[str, Any]) -> dict[str, Any]:
         """Initialize runner with configuration.
 
         Args:
@@ -70,7 +70,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         # This method can delegate to existing service registration methods
         # For now, this is a no-op as service registration is handled elsewhere
 
-    def load_configuration(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
+    def load_configuration(self, config_path: Path | None = None) -> dict[str, Any]:
         """Load configuration from file or defaults.
 
         Args:
@@ -111,7 +111,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             self.logger.error("Failed to load configuration", exc_info=True)
             raise RuntimeError(f"Configuration loading failed: {e}") from e
 
-    def validate_configuration(self, config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_configuration(self, config: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate configuration structure and values.
 
         Args:
@@ -145,7 +145,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
 
         return len(errors) == 0, errors
 
-    def setup_logging(self, config: Dict[str, Any]) -> None:
+    def setup_logging(self, config: dict[str, Any]) -> None:
         """Setup logging configuration.
 
         Args:
@@ -163,7 +163,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             except Exception as e:
                 self.logger.warning(f"Failed to setup logging: {e}")
 
-    def initialize_configuration(self, **kwargs) -> Dict[str, Any]:
+    def initialize_configuration(self, **kwargs) -> dict[str, Any]:
         """Initialize configuration and return configuration data.
 
         Args:
@@ -246,7 +246,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             self.logger.warning("Failed to initialize response logger", exc_info=True)
             return None
 
-    def get_user_working_directory(self) -> Optional[Path]:
+    def get_user_working_directory(self) -> Path | None:
         """Get user working directory from environment.
 
         Returns:
@@ -261,9 +261,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             return user_working_dir
         return None
 
-    def register_core_services(
-        self, container, user_working_dir: Optional[Path] = None
-    ):
+    def register_core_services(self, container, user_working_dir: Path | None = None):
         """Register core services in the DI container.
 
         Args:
@@ -562,8 +560,8 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             return None
 
     def create_session_log_file(
-        self, project_logger, log_level: str, config_data: Dict[str, Any]
-    ) -> Optional[Path]:
+        self, project_logger, log_level: str, config_data: dict[str, Any]
+    ) -> Path | None:
         """Create session log file and log session start event.
 
         Args:

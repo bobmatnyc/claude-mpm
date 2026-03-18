@@ -22,9 +22,9 @@ import string
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Add claude-mpm to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -51,7 +51,7 @@ class CacheTestResult:
     memory_usage_mb: float
     cache_size_entries: int
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
     timestamp: str = None
 
     def __post_init__(self):
@@ -524,7 +524,7 @@ class CacheBenchmark:
                 error_message=str(e),
             )
 
-    async def run_comprehensive_cache_benchmark(self) -> Dict[str, Any]:
+    async def run_comprehensive_cache_benchmark(self) -> dict[str, Any]:
         """Run comprehensive cache benchmark suite."""
         self.logger.info("🎯 Starting comprehensive cache benchmark...")
 
@@ -658,11 +658,11 @@ class CacheBenchmark:
             await cache.stop()
 
     def save_results(
-        self, results: Dict[str, Any], output_file: Optional[Path] = None
+        self, results: dict[str, Any], output_file: Path | None = None
     ) -> Path:
         """Save benchmark results to JSON file."""
         if output_file is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             output_file = Path(__file__).parent / f"cache_benchmark_{timestamp}.json"
 
         with output_file.open("w") as f:
@@ -671,7 +671,7 @@ class CacheBenchmark:
         self.logger.info(f"📁 Results saved to: {output_file}")
         return output_file
 
-    def print_summary(self, results: Dict[str, Any]):
+    def print_summary(self, results: dict[str, Any]):
         """Print benchmark summary."""
         metadata = results.get("benchmark_metadata", {})
         metrics = results.get("aggregate_metrics", {})

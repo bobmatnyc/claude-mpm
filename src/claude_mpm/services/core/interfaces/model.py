@@ -30,7 +30,7 @@ USAGE:
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class ModelCapability(Enum):
@@ -91,10 +91,10 @@ class ModelResponse:
     model: str
     task: str
     result: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert response to dictionary for serialization."""
         return {
             "success": self.success,
@@ -141,7 +141,7 @@ class IModelProvider(ABC):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -168,7 +168,7 @@ class IModelProvider(ABC):
         """
 
     @abstractmethod
-    def get_supported_capabilities(self) -> List[ModelCapability]:
+    def get_supported_capabilities(self) -> list[ModelCapability]:
         """
         Return list of capabilities this provider supports.
 
@@ -180,7 +180,7 @@ class IModelProvider(ABC):
         """
 
     @abstractmethod
-    async def get_available_models(self) -> List[str]:
+    async def get_available_models(self) -> list[str]:
         """
         List models available from this provider.
 
@@ -196,7 +196,7 @@ class IModelProvider(ABC):
         """
 
     @abstractmethod
-    async def get_model_info(self, model: str) -> Dict[str, Any]:
+    async def get_model_info(self, model: str) -> dict[str, Any]:
         """
         Get detailed information about a specific model.
 
@@ -234,7 +234,7 @@ class IModelRouter(ABC):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -254,7 +254,7 @@ class IModelRouter(ABC):
         """
 
     @abstractmethod
-    def get_active_provider(self) -> Optional[str]:
+    def get_active_provider(self) -> str | None:
         """
         Get name of currently active provider.
 
@@ -263,7 +263,7 @@ class IModelRouter(ABC):
         """
 
     @abstractmethod
-    async def get_provider_status(self) -> Dict[str, Dict[str, Any]]:
+    async def get_provider_status(self) -> dict[str, dict[str, Any]]:
         """
         Get status of all configured providers.
 

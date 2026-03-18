@@ -16,7 +16,7 @@ Key Responsibilities:
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_paths import get_path_manager
@@ -60,7 +60,7 @@ class AgentRecordService(BaseService):
 
         self.logger.info("AgentRecordService initialized")
 
-    async def save_records(self, records: Dict[str, AgentLifecycleRecord]) -> bool:
+    async def save_records(self, records: dict[str, AgentLifecycleRecord]) -> bool:
         """
         Save agent lifecycle records to disk.
 
@@ -90,7 +90,7 @@ class AgentRecordService(BaseService):
             self.logger.error(f"Failed to save agent records: {e}")
             return False
 
-    async def load_records(self) -> Dict[str, AgentLifecycleRecord]:
+    async def load_records(self) -> dict[str, AgentLifecycleRecord]:
         """
         Load agent lifecycle records from disk.
 
@@ -116,7 +116,7 @@ class AgentRecordService(BaseService):
 
         return records
 
-    async def save_history(self, history: List[Any]) -> bool:
+    async def save_history(self, history: list[Any]) -> bool:
         """
         Save operation history to disk.
 
@@ -159,7 +159,7 @@ class AgentRecordService(BaseService):
             self.logger.error(f"Failed to save operation history: {e}")
             return False
 
-    async def load_history(self) -> List[Dict[str, Any]]:
+    async def load_history(self) -> list[dict[str, Any]]:
         """
         Load operation history from disk.
 
@@ -181,7 +181,7 @@ class AgentRecordService(BaseService):
 
         return history
 
-    def _serialize_record(self, record: AgentLifecycleRecord) -> Dict[str, Any]:
+    def _serialize_record(self, record: AgentLifecycleRecord) -> dict[str, Any]:
         """
         Serialize an AgentLifecycleRecord to dictionary.
 
@@ -207,7 +207,7 @@ class AgentRecordService(BaseService):
             "metadata": record.metadata,
         }
 
-    def _deserialize_record(self, data: Dict[str, Any]) -> AgentLifecycleRecord:
+    def _deserialize_record(self, data: dict[str, Any]) -> AgentLifecycleRecord:
         """
         Deserialize a dictionary to AgentLifecycleRecord.
 
@@ -272,7 +272,7 @@ class AgentRecordService(BaseService):
 
     async def import_records(
         self, input_path: Path, merge: bool = False
-    ) -> Dict[str, AgentLifecycleRecord]:
+    ) -> dict[str, AgentLifecycleRecord]:
         """
         Import records from a file.
 
@@ -349,7 +349,7 @@ class AgentRecordService(BaseService):
             self.logger.error(f"Failed to cleanup old records: {e}")
             return 0
 
-    async def get_statistics(self) -> Dict[str, Any]:
+    async def get_statistics(self) -> dict[str, Any]:
         """
         Get statistics about stored records.
 
@@ -410,7 +410,7 @@ class AgentRecordService(BaseService):
         """Cleanup the record service."""
         self.logger.info("AgentRecordService cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform health check."""
         return {
             "storage_accessible": path_ops.validate_exists(self.records_file.parent),

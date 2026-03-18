@@ -8,7 +8,7 @@ using the mcp-vector-search service.
 import asyncio
 import json
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 import click
 from rich.console import Console
@@ -165,9 +165,9 @@ class MCPSearchInterface:
         query: str,
         limit: int = 10,
         similarity_threshold: float = 0.3,
-        file_extensions: Optional[list] = None,
-        language: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        file_extensions: list | None = None,
+        language: str | None = None,
+    ) -> dict[str, Any]:
         """Search code using semantic similarity."""
         params = {
             "query": query,
@@ -185,10 +185,10 @@ class MCPSearchInterface:
     async def search_similar(
         self,
         file_path: str,
-        function_name: Optional[str] = None,
+        function_name: str | None = None,
         limit: int = 10,
         similarity_threshold: float = 0.3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Find code similar to a specific file or function."""
         params = {
             "file_path": file_path,
@@ -204,8 +204,8 @@ class MCPSearchInterface:
         )
 
     async def search_context(
-        self, description: str, focus_areas: Optional[list] = None, limit: int = 10
-    ) -> Dict[str, Any]:
+        self, description: str, focus_areas: list | None = None, limit: int = 10
+    ) -> dict[str, Any]:
         """Search for code based on contextual description."""
         params = {"description": description, "limit": limit}
 
@@ -216,15 +216,15 @@ class MCPSearchInterface:
             "mcp__mcp-vector-search__search_context", params
         )
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         """Get project indexing status and statistics."""
         return await self._call_mcp_tool(
             "mcp__mcp-vector-search__get_project_status", {}
         )
 
     async def index_project(
-        self, force: bool = False, file_extensions: Optional[list] = None
-    ) -> Dict[str, Any]:
+        self, force: bool = False, file_extensions: list | None = None
+    ) -> dict[str, Any]:
         """Index or reindex the project codebase."""
         params = {"force": force}
 
@@ -236,8 +236,8 @@ class MCPSearchInterface:
         )
 
     async def _call_mcp_tool(
-        self, tool_name: str, params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, tool_name: str, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Call an MCP tool through the gateway."""
         if not self.mcp_gateway:
             await self.initialize()
@@ -254,7 +254,7 @@ class MCPSearchInterface:
             return {"error": str(e)}
 
 
-def display_search_results(results: Dict[str, Any], output_format: str = "rich"):
+def display_search_results(results: dict[str, Any], output_format: str = "rich"):
     """Display search results in the specified format."""
     if output_format == "json":
         console.print_json(json.dumps(results, indent=2))
@@ -320,16 +320,16 @@ def display_search_results(results: Dict[str, Any], output_format: str = "rich")
 @click.option("--force", is_flag=True, help="Force reindexing (with --index)")
 @click.option("--json", "output_json", is_flag=True, help="Output results as JSON")
 async def search_command(
-    query: Optional[str],
-    similar: Optional[str],
-    context: Optional[str],
+    query: str | None,
+    similar: str | None,
+    context: str | None,
     index: bool,
     status: bool,
     limit: int,
     threshold: float,
-    language: Optional[str],
+    language: str | None,
     extensions: tuple,
-    function: Optional[str],
+    function: str | None,
     focus: tuple,
     force: bool,
     output_json: bool,

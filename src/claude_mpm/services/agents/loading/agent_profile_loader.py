@@ -22,10 +22,10 @@ multi-file implementation for better maintainability.
 import asyncio
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -68,8 +68,8 @@ class ImprovedPrompt:
     agent_name: str
     version: str
     content: str
-    metrics: Dict[str, float] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, float] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     validated: bool = False
 
@@ -84,14 +84,14 @@ class AgentProfile:
     tier: ProfileTier
     source_path: str
     instructions: str = ""
-    capabilities: List[str] = field(default_factory=list)
-    constraints: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    improved_prompts: List[ImprovedPrompt] = field(default_factory=list)
+    capabilities: list[str] = field(default_factory=list)
+    constraints: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    improved_prompts: list[ImprovedPrompt] = field(default_factory=list)
     status: ProfileStatus = ProfileStatus.LOADED
-    error: Optional[str] = None
+    error: str | None = None
     loaded_at: datetime = field(default_factory=datetime.now)
-    cache_key: Optional[str] = None
+    cache_key: str | None = None
 
 
 # ============================================================================
@@ -107,7 +107,7 @@ class AgentProfileLoader(BaseService):
     multi-file implementation into a single, maintainable module.
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         """Initialize the agent profile loader."""
         super().__init__(name="agent_profile_loader", config=config)
 
@@ -127,12 +127,12 @@ class AgentProfileLoader(BaseService):
         self.tier_paths = {k: v for k, v in self.tier_paths.items() if v is not None}
 
         # Profile cache
-        self.profile_cache: Dict[str, AgentProfile] = {}
+        self.profile_cache: dict[str, AgentProfile] = {}
         self.cache_ttl = 3600  # 1 hour
 
         # Service integrations
-        self.shared_cache: Optional[SharedPromptCache] = None
-        self.agent_registry: Optional[AgentRegistry] = None
+        self.shared_cache: SharedPromptCache | None = None
+        self.agent_registry: AgentRegistry | None = None
 
         # Improved prompts storage
         self.improved_prompts_path = (
@@ -141,7 +141,7 @@ class AgentProfileLoader(BaseService):
         self.improved_prompts_path.mkdir(parents=True, exist_ok=True)
 
         # Performance tracking
-        self.load_metrics: Dict[str, float] = {}
+        self.load_metrics: dict[str, float] = {}
 
         logger.info("AgentProfileLoader initialized successfully")
         logger.info(f"  Working directory: {self.working_directory}")
@@ -177,7 +177,7 @@ class AgentProfileLoader(BaseService):
 
         logger.info("AgentProfileLoader service cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform service health checks."""
         checks = {}
 
@@ -210,7 +210,7 @@ class AgentProfileLoader(BaseService):
 
     async def load_agent_profile(
         self, agent_name: str, use_cache: bool = True
-    ) -> Optional[AgentProfile]:
+    ) -> AgentProfile | None:
         """
         Load agent profile with three-tier hierarchy precedence.
 
@@ -226,9 +226,7 @@ class AgentProfileLoader(BaseService):
         # Check cache first
         if use_cache and agent_name in self.profile_cache:
             profile = self.profile_cache[agent_name]
-            if (
-                datetime.now(timezone.utc) - profile.loaded_at
-            ).seconds < self.cache_ttl:
+            if (datetime.now(UTC) - profile.loaded_at).seconds < self.cache_ttl:
                 self.load_metrics[f"{agent_name}_cache_hit"] = (
                     asyncio.get_event_loop().time() - start_time
                 )
@@ -259,7 +257,7 @@ class AgentProfileLoader(BaseService):
 
     async def _load_profile_with_precedence(
         self, agent_name: str
-    ) -> Optional[AgentProfile]:
+    ) -> AgentProfile | None:
         """Load profile following tier precedence: Project → User → System."""
         for tier in [ProfileTier.PROJECT, ProfileTier.USER, ProfileTier.SYSTEM]:
             if tier not in self.tier_paths:
@@ -273,7 +271,7 @@ class AgentProfileLoader(BaseService):
 
     async def _load_profile_from_tier(
         self, agent_name: str, tier: ProfileTier
-    ) -> Optional[AgentProfile]:
+    ) -> AgentProfile | None:
         """Load profile from specific tier."""
         tier_path = self.tier_paths[tier]
 
@@ -302,7 +300,7 @@ class AgentProfileLoader(BaseService):
 
     async def _parse_profile_file(
         self, file_path: Path, tier: ProfileTier
-    ) -> Optional[AgentProfile]:
+    ) -> AgentProfile | None:
         """Parse agent profile from file."""
         try:
             # Read file content
@@ -355,7 +353,7 @@ class AgentProfileLoader(BaseService):
 
     def _parse_markdown_with_frontmatter(
         self, content: str
-    ) -> Tuple[Dict[str, Any], str]:
+    ) -> tuple[dict[str, Any], str]:
         """
         Parse markdown file with YAML frontmatter.
 
@@ -403,7 +401,7 @@ class AgentProfileLoader(BaseService):
     # Profile Discovery
     # ========================================================================
 
-    async def _discover_all_profiles(self) -> Dict[ProfileTier, List[str]]:
+    async def _discover_all_profiles(self) -> dict[ProfileTier, list[str]]:
         """Discover all available agent profiles across tiers."""
         discovered = {}
 
@@ -429,9 +427,7 @@ class AgentProfileLoader(BaseService):
 
         return discovered
 
-    async def get_available_agents(
-        self, tier: Optional[ProfileTier] = None
-    ) -> List[str]:
+    async def get_available_agents(self, tier: ProfileTier | None = None) -> list[str]:
         """Get list of available agents, optionally filtered by tier."""
         discovered = await self._discover_all_profiles()
 
@@ -449,7 +445,7 @@ class AgentProfileLoader(BaseService):
     # Improved Prompts Management
     # ========================================================================
 
-    async def _load_improved_prompts(self, agent_name: str) -> List[ImprovedPrompt]:
+    async def _load_improved_prompts(self, agent_name: str) -> list[ImprovedPrompt]:
         """Load improved prompts for an agent."""
         prompts = []
         prompt_file = self.improved_prompts_path / f"{agent_name}_prompts.json"
@@ -536,8 +532,8 @@ class AgentProfileLoader(BaseService):
     # ========================================================================
 
     async def enhance_task_creation(
-        self, agent_name: str, task_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, agent_name: str, task_params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Enhance Task Tool subprocess creation with agent profile data.
 
@@ -587,7 +583,7 @@ class AgentProfileLoader(BaseService):
     # Metrics and Validation
     # ========================================================================
 
-    async def validate_profile(self, agent_name: str) -> Dict[str, Any]:
+    async def validate_profile(self, agent_name: str) -> dict[str, Any]:
         """Validate agent profile structure and content."""
         profile = await self.load_agent_profile(agent_name)
 
@@ -624,7 +620,7 @@ class AgentProfileLoader(BaseService):
 
         return validation_results
 
-    async def get_profile_metrics(self) -> Dict[str, Any]:
+    async def get_profile_metrics(self) -> dict[str, Any]:
         """Get comprehensive profile loading metrics."""
         metrics = {
             "cache_size": len(self.profile_cache),
@@ -657,7 +653,7 @@ class AgentProfileLoader(BaseService):
     # Utility Methods
     # ========================================================================
 
-    def _detect_framework_path(self) -> Optional[Path]:
+    def _detect_framework_path(self) -> Path | None:
         """Detect the framework path for system-level agents."""
         possible_paths = [
             self.working_directory / "framework",
@@ -671,14 +667,14 @@ class AgentProfileLoader(BaseService):
 
         return None
 
-    def invalidate_cache(self, agent_name: Optional[str] = None) -> None:
+    def invalidate_cache(self, agent_name: str | None = None) -> None:
         """Invalidate profile cache."""
         if agent_name:
             self.profile_cache.pop(agent_name, None)
         else:
             self.profile_cache.clear()
 
-    async def reload_profile(self, agent_name: str) -> Optional[AgentProfile]:
+    async def reload_profile(self, agent_name: str) -> AgentProfile | None:
         """Force reload of agent profile, bypassing cache."""
         self.invalidate_cache(agent_name)
         return await self.load_agent_profile(agent_name, use_cache=False)

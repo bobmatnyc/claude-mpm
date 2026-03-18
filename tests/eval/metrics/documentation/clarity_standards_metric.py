@@ -44,7 +44,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -69,7 +69,7 @@ class ClarityStandardsMetric(BaseMetric):
     """
 
     # Active voice patterns (25% weight)
-    ACTIVE_VOICE_PATTERNS: List[str] = [
+    ACTIVE_VOICE_PATTERNS: list[str] = [
         r"\b(?:Run|Execute|Send|Configure|Install|Create|Delete|Update|Add|Remove)\b",
         r"\bYou (?:can|should|must|will|need to)\b",
         r"^\s*(?:To|For) \w+",  # Imperative mood
@@ -78,7 +78,7 @@ class ClarityStandardsMetric(BaseMetric):
     ]
 
     # Passive voice anti-patterns (negative scoring)
-    PASSIVE_VOICE_PATTERNS: List[str] = [
+    PASSIVE_VOICE_PATTERNS: list[str] = [
         r"(?:can|should|must|will) be \w+ed",
         r"(?:is|are|was|were) \w+ed\b",
         r"(?:is|are|was|were) (?:used|created|configured|performed)",
@@ -87,7 +87,7 @@ class ClarityStandardsMetric(BaseMetric):
     ]
 
     # Jargon handling patterns (20% weight)
-    ACRONYM_DEFINITION_PATTERNS: List[str] = [
+    ACRONYM_DEFINITION_PATTERNS: list[str] = [
         r"\b[A-Z]{2,}\s*\([^)]+\)",  # "PKCE (Proof Key...)"
         r"\b\w+\s*\(([A-Z]{2,})\)",  # "Proof Key (PKCE)"
         r"\b[A-Z]{2,}:\s*\w+",  # "JWT: JSON Web Token"
@@ -95,7 +95,7 @@ class ClarityStandardsMetric(BaseMetric):
         r"means\s+(?:that|the)",
     ]
 
-    GLOSSARY_PATTERNS: List[str] = [
+    GLOSSARY_PATTERNS: list[str] = [
         r"glossary",
         r"defined as",
         r"\*\*\w+\*\*:\s",  # **Term**: definition
@@ -104,12 +104,12 @@ class ClarityStandardsMetric(BaseMetric):
     ]
 
     # Code example patterns (30% weight)
-    CODE_BLOCK_PATTERNS: List[str] = [
+    CODE_BLOCK_PATTERNS: list[str] = [
         r"```(?:python|javascript|typescript|bash|sh|go|rust|java|c\+\+|ruby|php|sql)",
         r"```\w+\n",  # Any code block with language
     ]
 
-    EXAMPLE_PATTERNS: List[str] = [
+    EXAMPLE_PATTERNS: list[str] = [
         r"## (?:Example|Usage|Quick Start)",
         r"### Example:",
         r"For example[,:]",
@@ -120,7 +120,7 @@ class ClarityStandardsMetric(BaseMetric):
     ]
 
     # Conciseness anti-patterns (25% weight - negative scoring)
-    REDUNDANT_PHRASES: List[str] = [
+    REDUNDANT_PHRASES: list[str] = [
         r"in order to",
         r"it should be noted that",
         r"it is important to note",
@@ -135,7 +135,7 @@ class ClarityStandardsMetric(BaseMetric):
         r"in actual fact",
     ]
 
-    DIRECT_LANGUAGE_PATTERNS: List[str] = [
+    DIRECT_LANGUAGE_PATTERNS: list[str] = [
         r"^\s*\d+\.\s+",  # Numbered lists
         r"^\s*[-*]\s+",  # Bullet points
         r"## \w+",  # Clear headings
@@ -143,7 +143,7 @@ class ClarityStandardsMetric(BaseMetric):
     ]
 
     # Completeness patterns (bonus +15%)
-    REQUIRED_SECTIONS: List[str] = [
+    REQUIRED_SECTIONS: list[str] = [
         r"## (?:Overview|Purpose|Introduction)",
         r"## (?:Quick Start|Getting Started|Installation)",
         r"## (?:Reference|API|Configuration|Detailed)",
@@ -159,21 +159,21 @@ class ClarityStandardsMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.85 for 85% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Clarity Standards"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

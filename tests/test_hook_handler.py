@@ -22,7 +22,7 @@ import os
 import sys
 import time
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from io import StringIO
 from unittest.mock import Mock, patch
 
@@ -102,19 +102,23 @@ class TestClaudeHookHandler(unittest.TestCase):
         os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "false"
 
         # Mock the service imports to avoid dependencies
-        with patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
+        with (
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
+            ),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
+            ),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
+            ),
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
+            ),
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"),
+        ):
             self.handler = ClaudeHookHandler()
 
     def test_initialization(self):
@@ -252,7 +256,7 @@ class TestClaudeHookHandler(unittest.TestCase):
 
         event1 = {
             "hook_event_name": "Stop",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": "test",
         }
 
@@ -462,19 +466,23 @@ class TestEventProcessing(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "false"
-        with patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
+        with (
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
+            ),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
+            ),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
+            ),
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
+            ),
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"),
+        ):
             self.handler = ClaudeHookHandler()
 
     def test_process_user_prompt_event(self):
@@ -482,7 +490,7 @@ class TestEventProcessing(unittest.TestCase):
         event = {
             "hook_event_name": "UserPromptSubmit",
             "prompt": "Create a test file",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         self.handler.event_handlers.handle_user_prompt_fast = Mock()
@@ -588,7 +596,7 @@ class TestIntegration(unittest.TestCase):
             {
                 "hook_event_name": "Stop",
                 "response": "Task completed successfully",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
 
@@ -596,19 +604,23 @@ class TestIntegration(unittest.TestCase):
         mock_stdin.read.return_value = event_data
         mock_select.return_value = ([mock_stdin], [], [])
 
-        with patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
-        ) as MockDuplicate, patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
+        with (
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
+            ),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
+            ) as MockDuplicate,
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
+            ),
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"),
+            patch(
+                "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
+            ),
+            patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"),
+        ):
             # Setup duplicate detector to return False
             mock_dup_instance = MockDuplicate.return_value
             mock_dup_instance.is_duplicate.return_value = False

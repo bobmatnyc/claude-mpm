@@ -19,7 +19,6 @@ ARCHITECTURE:
 
 import os
 import subprocess  # nosec B404
-from typing import Optional
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -57,7 +56,7 @@ class SkillsManagementCommand(BaseCommand):
             self._skills_deployer = SkillsDeployerService()
         return self._skills_deployer
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         # Most skills commands are optional, basic validation
         if hasattr(args, "skills_command") and args.skills_command:
@@ -823,7 +822,7 @@ class SkillsManagementCommand(BaseCommand):
             console.print(f"[red]Error removing skills: {e}[/red]")
             return CommandResult(success=False, message=str(e), exit_code=1)
 
-    def _get_skill_metadata(self, skill_name: str) -> Optional[dict]:
+    def _get_skill_metadata(self, skill_name: str) -> dict | None:
         """Get skill metadata from SKILL.md file."""
         try:
             skill_path = self.skills_service.get_skill_path(skill_name)

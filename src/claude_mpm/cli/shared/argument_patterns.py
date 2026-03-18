@@ -7,85 +7,85 @@ across multiple CLI commands.
 
 import argparse
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 
 class CommonArguments:
     """Registry of common argument patterns used across CLI commands."""
 
     # Logging arguments
-    VERBOSE: ClassVar[Dict[str, Any]] = {
+    VERBOSE: ClassVar[dict[str, Any]] = {
         "flags": ["-v", "--verbose"],
         "action": "store_true",
         "help": "Enable verbose output",
     }
 
-    QUIET: ClassVar[Dict[str, Any]] = {
+    QUIET: ClassVar[dict[str, Any]] = {
         "flags": ["-q", "--quiet"],
         "action": "store_true",
         "help": "Suppress non-error output",
     }
 
-    DEBUG: ClassVar[Dict[str, Any]] = {
+    DEBUG: ClassVar[dict[str, Any]] = {
         "flags": ["--debug"],
         "action": "store_true",
         "help": "Enable debug logging",
     }
 
     # Configuration arguments
-    CONFIG_FILE: ClassVar[Dict[str, Any]] = {
+    CONFIG_FILE: ClassVar[dict[str, Any]] = {
         "flags": ["-c", "--config"],
         "type": Path,
         "help": "Path to configuration file",
     }
 
-    CONFIG_DIR: ClassVar[Dict[str, Any]] = {
+    CONFIG_DIR: ClassVar[dict[str, Any]] = {
         "flags": ["--config-dir"],
         "type": Path,
         "help": "Configuration directory path",
     }
 
     # Output arguments
-    OUTPUT_FORMAT: ClassVar[Dict[str, Any]] = {
+    OUTPUT_FORMAT: ClassVar[dict[str, Any]] = {
         "flags": ["-f", "--format"],
         "choices": ["json", "yaml", "table", "text"],
         "default": "text",
         "help": "Output format",
     }
 
-    OUTPUT_FILE: ClassVar[Dict[str, Any]] = {
+    OUTPUT_FILE: ClassVar[dict[str, Any]] = {
         "flags": ["-o", "--output"],
         "type": Path,
         "help": "Output file path",
     }
 
     # Common flags
-    FORCE: ClassVar[Dict[str, Any]] = {
+    FORCE: ClassVar[dict[str, Any]] = {
         "flags": ["--force"],
         "action": "store_true",
         "help": "Force operation without confirmation",
     }
 
-    DRY_RUN: ClassVar[Dict[str, Any]] = {
+    DRY_RUN: ClassVar[dict[str, Any]] = {
         "flags": ["--dry-run"],
         "action": "store_true",
         "help": "Show what would be done without executing",
     }
 
     # Agent-related arguments
-    AGENT_NAME: ClassVar[Dict[str, Any]] = {
+    AGENT_NAME: ClassVar[dict[str, Any]] = {
         "flags": ["--agent"],
         "help": "Agent name or pattern",
     }
 
-    AGENT_DIR: ClassVar[Dict[str, Any]] = {
+    AGENT_DIR: ClassVar[dict[str, Any]] = {
         "flags": ["--agent-dir"],
         "type": Path,
         "help": "Agent directory path",
     }
 
     # Memory-related arguments
-    MEMORY_DIR: ClassVar[Dict[str, Any]] = {
+    MEMORY_DIR: ClassVar[dict[str, Any]] = {
         "flags": ["--memory-dir"],
         "type": Path,
         "help": "Memory directory path",
@@ -93,7 +93,7 @@ class CommonArguments:
 
 
 def add_argument_from_pattern(
-    parser: argparse.ArgumentParser, pattern: Dict[str, Any]
+    parser: argparse.ArgumentParser, pattern: dict[str, Any]
 ) -> None:
     """Add an argument to parser from a pattern definition."""
     flags = pattern.pop("flags")
@@ -102,8 +102,8 @@ def add_argument_from_pattern(
 
 def add_common_arguments(
     parser: argparse.ArgumentParser,
-    include: Optional[List[str]] = None,
-    exclude: Optional[List[str]] = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
 ) -> None:
     """
     Add common arguments to a parser.

@@ -17,7 +17,7 @@ import json
 import logging
 import shutil
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -134,9 +134,8 @@ def backup_settings(path: Path) -> Path:
     Returns:
         Path to backup file
     """
-    from datetime import timezone
 
-    timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     backup_path = path.with_suffix(f".json.backup_{timestamp}")
     shutil.copy2(path, backup_path)
     return backup_path

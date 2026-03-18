@@ -11,9 +11,9 @@ Design Philosophy:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -28,14 +28,12 @@ class ContextMetrics:
     used_tokens: int = 0
     remaining_tokens: int = 0
     percentage_used: float = 0.0
-    stop_reason: Optional[str] = None
+    stop_reason: str | None = None
     model: str = "claude-sonnet-4.5"
     session_id: str = ""
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "total_budget": self.total_budget,
@@ -49,7 +47,7 @@ class ContextMetrics:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ContextMetrics":
+    def from_dict(cls, data: dict[str, Any]) -> "ContextMetrics":
         """Create from dictionary."""
         return cls(
             total_budget=data.get("total_budget", 200000),
@@ -59,7 +57,7 @@ class ContextMetrics:
             stop_reason=data.get("stop_reason"),
             model=data.get("model", "claude-sonnet-4.5"),
             session_id=data.get("session_id", ""),
-            timestamp=data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            timestamp=data.get("timestamp", datetime.now(UTC).isoformat()),
         )
 
 
@@ -79,37 +77,35 @@ class ResumeLog:
 
     # Session identification
     session_id: str
-    previous_session_id: Optional[str] = None
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    previous_session_id: str | None = None
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     # Context metrics
     context_metrics: ContextMetrics = field(default_factory=ContextMetrics)
 
     # Core content sections (with token budgets)
     mission_summary: str = ""  # 1,000 tokens - What was the overall goal?
-    accomplishments: List[str] = field(
+    accomplishments: list[str] = field(
         default_factory=list
     )  # 2,000 tokens - What was completed?
-    key_findings: List[str] = field(
+    key_findings: list[str] = field(
         default_factory=list
     )  # 2,500 tokens - What was discovered?
-    decisions_made: List[Dict[str, str]] = field(
+    decisions_made: list[dict[str, str]] = field(
         default_factory=list
     )  # 1,500 tokens - What choices were made and why?
-    next_steps: List[str] = field(
+    next_steps: list[str] = field(
         default_factory=list
     )  # 1,500 tokens - What needs to happen next?
-    critical_context: Dict[str, Any] = field(
+    critical_context: dict[str, Any] = field(
         default_factory=dict
     )  # 1,000 tokens - Essential state/data
 
     # Metadata
-    files_modified: List[str] = field(default_factory=list)
-    agents_used: Dict[str, int] = field(default_factory=dict)
-    errors_encountered: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    files_modified: list[str] = field(default_factory=list)
+    agents_used: dict[str, int] = field(default_factory=dict)
+    errors_encountered: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def to_markdown(self) -> str:
         """Generate markdown format for Claude consumption.
@@ -230,7 +226,7 @@ class ResumeLog:
 
         return "\n".join(sections)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "session_id": self.session_id,
@@ -250,7 +246,7 @@ class ResumeLog:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ResumeLog":
+    def from_dict(cls, data: dict[str, Any]) -> "ResumeLog":
         """Create from dictionary."""
         context_metrics_data = data.get("context_metrics", {})
         context_metrics = ContextMetrics.from_dict(context_metrics_data)
@@ -258,7 +254,7 @@ class ResumeLog:
         return cls(
             session_id=data.get("session_id", ""),
             previous_session_id=data.get("previous_session_id"),
-            created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
+            created_at=data.get("created_at", datetime.now(UTC).isoformat()),
             context_metrics=context_metrics,
             mission_summary=data.get("mission_summary", ""),
             accomplishments=data.get("accomplishments", []),
@@ -272,7 +268,7 @@ class ResumeLog:
             warnings=data.get("warnings", []),
         )
 
-    def save(self, storage_dir: Optional[Path] = None) -> Path:
+    def save(self, storage_dir: Path | None = None) -> Path:
         """Save resume log to markdown file.
 
         Args:
@@ -303,7 +299,7 @@ class ResumeLog:
 
     @classmethod
     def load(
-        cls, session_id: str, storage_dir: Optional[Path] = None
+        cls, session_id: str, storage_dir: Path | None = None
     ) -> Optional["ResumeLog"]:
         """Load resume log from file.
 

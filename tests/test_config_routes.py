@@ -55,24 +55,31 @@ class TestProjectSummary(AioHTTPTestCase):
 
         mock_skill_sources = [MagicMock(), MagicMock(), MagicMock()]
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_git_source_manager",
-            return_value=mock_git_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes.handle_project_summary.__module__",
-            create=True,
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_agent_config,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration"
-        ) as mock_skill_config_cls:
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_git_source_manager",
+                return_value=mock_git_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes.handle_project_summary.__module__",
+                create=True,
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_agent_config,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration"
+            ) as mock_skill_config_cls,
+        ):
             mock_skill_config_inst = MagicMock()
             mock_skill_config_inst.load.return_value = mock_skill_sources
             mock_skill_config_cls.return_value = mock_skill_config_inst
@@ -115,21 +122,27 @@ class TestProjectSummary(AioHTTPTestCase):
         mock_agent_config = MagicMock()
         mock_agent_config.repositories = []
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_git_source_manager",
-            return_value=mock_git_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_agent_config,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration"
-        ) as mock_skill_config_cls:
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_git_source_manager",
+                return_value=mock_git_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_agent_config,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration"
+            ) as mock_skill_config_cls,
+        ):
             mock_skill_config_inst = MagicMock()
             mock_skill_config_inst.load.return_value = []
             mock_skill_config_cls.return_value = mock_skill_config_inst
@@ -166,12 +179,15 @@ class TestAgentsDeployed(AioHTTPTestCase):
             },
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
-        ), patch(
-            "claude_mpm.config.agent_presets.CORE_AGENTS",
-            ["engineer/core/engineer", "universal/research"],
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
+            patch(
+                "claude_mpm.config.agent_presets.CORE_AGENTS",
+                ["engineer/core/engineer", "universal/research"],
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/agents/deployed")
             assert resp.status == 200
@@ -231,12 +247,15 @@ class TestAgentsAvailable(AioHTTPTestCase):
         mock_agent_mgr = MagicMock()
         mock_agent_mgr.list_agent_names.return_value = {"python-engineer"}
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_git_source_manager",
-            return_value=mock_git_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_git_source_manager",
+                return_value=mock_git_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/agents/available")
             assert resp.status == 200
@@ -271,12 +290,15 @@ class TestAgentsAvailable(AioHTTPTestCase):
         mock_agent_mgr = MagicMock()
         mock_agent_mgr.list_agent_names.return_value = set()
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_git_source_manager",
-            return_value=mock_git_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_git_source_manager",
+                return_value=mock_git_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
         ):
             resp = await self.client.request(
                 "GET", "/api/config/agents/available?search=python"
@@ -333,12 +355,15 @@ class TestSkillsDeployed(AioHTTPTestCase):
             "user_requested_skills": ["tdd"],
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
-            return_value=mock_index,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
+                return_value=mock_index,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/deployed")
             assert resp.status == 200
@@ -371,12 +396,15 @@ class TestSkillsDeployed(AioHTTPTestCase):
 
         mock_index = {"deployed_skills": {}, "user_requested_skills": []}
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
-            return_value=mock_index,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
+                return_value=mock_index,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/deployed")
             assert resp.status == 200
@@ -420,12 +448,15 @@ class TestSkillsAvailable(AioHTTPTestCase):
             },
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
-            return_value=mock_mapper,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
+                return_value=mock_mapper,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/available")
             assert resp.status == 200
@@ -451,12 +482,15 @@ class TestSkillsAvailable(AioHTTPTestCase):
         mock_mapper = MagicMock()
         mock_mapper.get_all_links.return_value = {"by_agent": {}, "by_skill": {}}
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
-            return_value=mock_mapper,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
+                return_value=mock_mapper,
+            ),
         ):
             resp = await self.client.request(
                 "GET", "/api/config/skills/available?collection=universal"
@@ -501,12 +535,15 @@ class TestSources(AioHTTPTestCase):
         mock_skill_source.enabled = True
         mock_skill_source.priority = 0
 
-        with patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_agent_config,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration"
-        ) as mock_skill_config_cls:
+        with (
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_agent_config,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration"
+            ) as mock_skill_config_cls,
+        ):
             mock_skill_config_inst = MagicMock()
             mock_skill_config_inst.load.return_value = [mock_skill_source]
             mock_skill_config_cls.return_value = mock_skill_config_inst
@@ -523,12 +560,15 @@ class TestSources(AioHTTPTestCase):
             assert data["sources"][1]["priority"] == 100
 
     async def test_sources_service_error(self):
-        with patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            side_effect=Exception("Config corrupt"),
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration"
-        ) as mock_skill_config_cls:
+        with (
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                side_effect=Exception("Config corrupt"),
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration"
+            ) as mock_skill_config_cls,
+        ):
             mock_skill_config_cls.side_effect = Exception("Config corrupt")
 
             resp = await self.client.request("GET", "/api/config/sources")
@@ -543,12 +583,15 @@ class TestSources(AioHTTPTestCase):
         mock_agent_config = MagicMock()
         mock_agent_config.repositories = []
 
-        with patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_agent_config,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration"
-        ) as mock_skill_config_cls:
+        with (
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_agent_config,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration"
+            ) as mock_skill_config_cls,
+        ):
             mock_skill_config_inst = MagicMock()
             mock_skill_config_inst.load.return_value = []
             mock_skill_config_cls.return_value = mock_skill_config_inst
@@ -593,12 +636,15 @@ class TestAgentsDeployedEnriched(AioHTTPTestCase):
             },
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
-        ), patch(
-            "claude_mpm.config.agent_presets.CORE_AGENTS",
-            [],
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
+            patch(
+                "claude_mpm.config.agent_presets.CORE_AGENTS",
+                [],
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/agents/deployed")
             assert resp.status == 200
@@ -639,12 +685,15 @@ class TestAgentsDeployedEnriched(AioHTTPTestCase):
             },
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
-        ), patch(
-            "claude_mpm.config.agent_presets.CORE_AGENTS",
-            [],
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
+            patch(
+                "claude_mpm.config.agent_presets.CORE_AGENTS",
+                [],
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/agents/deployed")
             assert resp.status == 200
@@ -703,26 +752,30 @@ class TestSkillsDeployedEnriched(AioHTTPTestCase):
             "user_requested_skills": [],
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
-            return_value=mock_index,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._build_manifest_lookup",
-            return_value={
-                "tdd": {
-                    "name": "tdd",
-                    "description": "Comprehensive TDD patterns",
-                    "version": "1.0.0",
-                    "toolchain": None,
-                    "framework": None,
-                    "tags": ["testing", "tdd", "quality"],
-                    "full_tokens": 3200,
-                    "entry_point_tokens": 85,
-                }
-            },
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
+                return_value=mock_index,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._build_manifest_lookup",
+                return_value={
+                    "tdd": {
+                        "name": "tdd",
+                        "description": "Comprehensive TDD patterns",
+                        "version": "1.0.0",
+                        "toolchain": None,
+                        "framework": None,
+                        "tags": ["testing", "tdd", "quality"],
+                        "full_tokens": 3200,
+                        "entry_point_tokens": 85,
+                    }
+                },
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/deployed")
             assert resp.status == 200
@@ -762,15 +815,19 @@ class TestSkillsDeployedEnriched(AioHTTPTestCase):
             "user_requested_skills": ["custom-skill"],
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
-            return_value=mock_index,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._build_manifest_lookup",
-            return_value={},
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.skills.selective_skill_deployer.load_deployment_index",
+                return_value=mock_index,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._build_manifest_lookup",
+                return_value={},
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/deployed")
             assert resp.status == 200
@@ -1009,13 +1066,17 @@ class TestSkillDetail(AioHTTPTestCase):
             },
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
-            return_value=mock_mapper,
-        ), patch("pathlib.Path.exists", return_value=False):
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
+                return_value=mock_mapper,
+            ),
+            patch("pathlib.Path.exists", return_value=False),
+        ):
             resp = await self.client.request(
                 "GET", "/api/config/skills/universal-testing-tdd/detail"
             )
@@ -1053,10 +1114,13 @@ class TestSkillDetail(AioHTTPTestCase):
         The skill detail endpoint catches individual data source errors
         internally and returns whatever data it can gather.
         """
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            side_effect=Exception("Service error"),
-        ), patch("pathlib.Path.exists", return_value=False):
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                side_effect=Exception("Service error"),
+            ),
+            patch("pathlib.Path.exists", return_value=False),
+        ):
             resp = await self.client.request(
                 "GET", "/api/config/skills/some-skill/detail"
             )
@@ -1074,13 +1138,17 @@ class TestSkillDetail(AioHTTPTestCase):
         mock_mapper = MagicMock()
         mock_mapper.get_all_links.return_value = {"by_agent": {}, "by_skill": {}}
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
-            return_value=mock_mapper,
-        ), patch("pathlib.Path.exists", return_value=False):
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
+                return_value=mock_mapper,
+            ),
+            patch("pathlib.Path.exists", return_value=False),
+        ):
             resp = await self.client.request(
                 "GET", "/api/config/skills/unknown-skill/detail"
             )
@@ -1121,12 +1189,15 @@ class TestSkillsAvailableAgentCount(AioHTTPTestCase):
             },
         }
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
-            return_value=mock_mapper,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
+                return_value=mock_mapper,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/available")
             assert resp.status == 200
@@ -1147,12 +1218,15 @@ class TestSkillsAvailableAgentCount(AioHTTPTestCase):
         mock_mapper = MagicMock()
         mock_mapper.get_all_links.side_effect = Exception("Mapper error")
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_skills_deployer",
-            return_value=mock_skills_svc,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
-            return_value=mock_mapper,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skills_deployer",
+                return_value=mock_skills_svc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_skill_to_agent_mapper",
+                return_value=mock_mapper,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/skills/available")
             assert resp.status == 200
@@ -1179,12 +1253,15 @@ class TestListAgentNames(AioHTTPTestCase):
         mock_agent_mgr = MagicMock()
         mock_agent_mgr.list_agent_names.return_value = {"agent-a"}
 
-        with patch(
-            "claude_mpm.services.monitor.config_routes._get_git_source_manager",
-            return_value=mock_git_mgr,
-        ), patch(
-            "claude_mpm.services.monitor.config_routes._get_agent_manager",
-            return_value=mock_agent_mgr,
+        with (
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_git_source_manager",
+                return_value=mock_git_mgr,
+            ),
+            patch(
+                "claude_mpm.services.monitor.config_routes._get_agent_manager",
+                return_value=mock_agent_mgr,
+            ),
         ):
             resp = await self.client.request("GET", "/api/config/agents/available")
             assert resp.status == 200

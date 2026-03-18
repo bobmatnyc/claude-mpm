@@ -1,7 +1,7 @@
 """Deployment configuration manager."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
@@ -21,7 +21,7 @@ class DeploymentConfigManager:
         self.logger = get_logger(__name__)
 
     def load_deployment_config(
-        self, config: Optional[Config] = None, **overrides
+        self, config: Config | None = None, **overrides
     ) -> DeploymentConfig:
         """Load deployment configuration from various sources.
 
@@ -52,7 +52,7 @@ class DeploymentConfigManager:
         )
         return deployment_config
 
-    def _extract_deployment_config(self, config: Config) -> Dict[str, Any]:
+    def _extract_deployment_config(self, config: Config) -> dict[str, Any]:
         """Extract deployment-specific configuration from Config object.
 
         Args:

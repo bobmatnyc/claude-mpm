@@ -22,7 +22,7 @@ Example:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -234,7 +234,7 @@ class MemoryProtocolMetric(AgentMetricBase):
 
 def create_metric_suite(
     agent_type: EvalAgentType, threshold: float = 0.9
-) -> List[AgentMetricBase]:
+) -> list[AgentMetricBase]:
     """
     Create standard metric suite for agent type.
 
@@ -275,8 +275,8 @@ def create_metric_suite(
 
 
 def calculate_aggregate_score(
-    metrics: List[AgentMetricBase], test_case: LLMTestCase
-) -> Dict[str, Any]:
+    metrics: list[AgentMetricBase], test_case: LLMTestCase
+) -> dict[str, Any]:
     """
     Calculate aggregate score across multiple metrics.
 
@@ -316,7 +316,7 @@ def calculate_aggregate_score(
 
 
 def generate_metric_report(
-    metrics: List[AgentMetricBase], test_case: LLMTestCase
+    metrics: list[AgentMetricBase], test_case: LLMTestCase
 ) -> str:
     """
     Generate human-readable metric evaluation report.
@@ -409,7 +409,7 @@ def get_threshold_for_severity(severity: str) -> float:
 # ============================================================================
 
 
-def extract_violation_summary(analysis: AgentResponseAnalysis) -> Dict[str, Any]:
+def extract_violation_summary(analysis: AgentResponseAnalysis) -> dict[str, Any]:
     """
     Extract violation summary from analysis.
 

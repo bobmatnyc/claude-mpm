@@ -14,9 +14,9 @@ DESIGN DECISIONS:
 """
 
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -41,9 +41,9 @@ class AgentReviewService:
     def review_project_agents(
         self,
         project_agents_dir: Path,
-        managed_agents: List[Dict[str, Any]],
-        recommended_agent_ids: Set[str],
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        managed_agents: list[dict[str, Any]],
+        recommended_agent_ids: set[str],
+    ) -> dict[str, list[dict[str, Any]]]:
         """Review existing project agents and categorize them.
 
         Args:
@@ -145,8 +145,8 @@ class AgentReviewService:
         return results
 
     def archive_agents(
-        self, agents_to_archive: List[Dict[str, Any]], project_agents_dir: Path
-    ) -> Dict[str, Any]:
+        self, agents_to_archive: list[dict[str, Any]], project_agents_dir: Path
+    ) -> dict[str, Any]:
         """Archive agents by moving them to .claude/agents/unused/.
 
         Args:
@@ -175,7 +175,7 @@ class AgentReviewService:
 
             try:
                 # Generate timestamped filename to avoid conflicts
-                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
                 archived_name = f"{agent_name}_{timestamp}.md"
                 archived_path = unused_dir / archived_name
 
@@ -204,7 +204,7 @@ class AgentReviewService:
 
         return results
 
-    def _parse_project_agent(self, agent_file: Path) -> Dict[str, Any]:
+    def _parse_project_agent(self, agent_file: Path) -> dict[str, Any]:
         """Parse a project agent file to extract metadata.
 
         Args:
@@ -251,7 +251,7 @@ class AgentReviewService:
         # TODO: Implement semantic version comparison (1.2.3 vs 1.2.4)
         return current_version != available_version
 
-    def get_archive_summary(self, project_agents_dir: Path) -> Dict[str, Any]:
+    def get_archive_summary(self, project_agents_dir: Path) -> dict[str, Any]:
         """Get summary of archived agents.
 
         Args:

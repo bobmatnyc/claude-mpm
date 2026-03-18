@@ -17,9 +17,8 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Tuple
 
 from rich.console import Console
 from rich.table import Table
@@ -128,7 +127,7 @@ class AuthCommand(BaseCommand):
         table.add_column("Expires At", style="white")
         table.add_column("Status", style="white")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for service, entry in tokens_data.items():
             token = entry.get("token", {})
             expires_at_str = token.get("expires_at", "")
@@ -163,7 +162,7 @@ class AuthCommand(BaseCommand):
 # ------------------------------------------------------------------
 
 
-def _load_credentials(working_dir: Path) -> Tuple[Optional[str], Optional[str]]:
+def _load_credentials(working_dir: Path) -> tuple[str | None, str | None]:
     """Load Google OAuth credentials from .env.local then environment.
 
     Checks .env.local in working_dir first (highest priority), then falls
@@ -273,7 +272,7 @@ def _refresh_gworkspace_token(
     expires_in = response_data.get("expires_in", 3600)
     from datetime import timedelta
 
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(expires_in))
+    expires_at = datetime.now(UTC) + timedelta(seconds=int(expires_in))
     expires_at_str = expires_at.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Update token fields in place; preserve refresh_token and scopes

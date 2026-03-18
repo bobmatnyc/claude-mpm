@@ -30,7 +30,6 @@ USAGE:
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
 
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.models.process import (
@@ -56,7 +55,7 @@ class IDeploymentStateManager(ABC):
     """
 
     @abstractmethod
-    def load_state(self) -> Dict[str, DeploymentState]:
+    def load_state(self) -> dict[str, DeploymentState]:
         """
         Load all deployment states from persistent storage.
 
@@ -69,7 +68,7 @@ class IDeploymentStateManager(ABC):
         """
 
     @abstractmethod
-    def save_state(self, states: Dict[str, DeploymentState]) -> None:
+    def save_state(self, states: dict[str, DeploymentState]) -> None:
         """
         Save all deployment states to persistent storage.
 
@@ -81,7 +80,7 @@ class IDeploymentStateManager(ABC):
         """
 
     @abstractmethod
-    def get_deployment(self, deployment_id: str) -> Optional[DeploymentState]:
+    def get_deployment(self, deployment_id: str) -> DeploymentState | None:
         """
         Get a specific deployment by ID.
 
@@ -93,7 +92,7 @@ class IDeploymentStateManager(ABC):
         """
 
     @abstractmethod
-    def get_all_deployments(self) -> List[DeploymentState]:
+    def get_all_deployments(self) -> list[DeploymentState]:
         """
         Get all tracked deployments.
 
@@ -102,7 +101,7 @@ class IDeploymentStateManager(ABC):
         """
 
     @abstractmethod
-    def get_deployments_by_status(self, status: ServiceState) -> List[DeploymentState]:
+    def get_deployments_by_status(self, status: ServiceState) -> list[DeploymentState]:
         """
         Get all deployments with a specific status.
 
@@ -114,7 +113,7 @@ class IDeploymentStateManager(ABC):
         """
 
     @abstractmethod
-    def get_deployment_by_port(self, port: int) -> Optional[DeploymentState]:
+    def get_deployment_by_port(self, port: int) -> DeploymentState | None:
         """
         Get deployment using a specific port.
 
@@ -128,7 +127,7 @@ class IDeploymentStateManager(ABC):
     @abstractmethod
     def get_deployments_by_project(
         self, working_directory: str
-    ) -> List[DeploymentState]:
+    ) -> list[DeploymentState]:
         """
         Get all deployments for a specific project directory.
 
@@ -277,7 +276,7 @@ class ILocalProcessManager(ABC):
         """
 
     @abstractmethod
-    def get_status(self, deployment_id: str) -> Optional[ProcessInfo]:
+    def get_status(self, deployment_id: str) -> ProcessInfo | None:
         """
         Get current status and runtime information for a process.
 
@@ -290,8 +289,8 @@ class ILocalProcessManager(ABC):
 
     @abstractmethod
     def list_processes(
-        self, status_filter: Optional[ServiceState] = None
-    ) -> List[ProcessInfo]:
+        self, status_filter: ServiceState | None = None
+    ) -> list[ProcessInfo]:
         """
         List all managed processes.
 
@@ -320,7 +319,7 @@ class ILocalProcessManager(ABC):
     @abstractmethod
     def find_available_port(
         self, preferred_port: int, max_attempts: int = 10
-    ) -> Optional[int]:
+    ) -> int | None:
         """
         Find an available port starting from preferred_port.
 
@@ -348,9 +347,7 @@ class ILocalProcessManager(ABC):
         """
 
     @abstractmethod
-    def generate_deployment_id(
-        self, project_name: str, port: Optional[int] = None
-    ) -> str:
+    def generate_deployment_id(self, project_name: str, port: int | None = None) -> str:
         """
         Generate a unique deployment ID.
 

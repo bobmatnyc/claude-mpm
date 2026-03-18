@@ -412,9 +412,11 @@ class TestProjectPathPropagation:
             "remote_agent_discovery_service.RemoteAgentDiscoveryService"
         )
 
-        with patch(discovery_patch) as mock_discovery_cls, patch(
-            review_patch
-        ) as mock_review_cls, patch.object(Path, "exists", return_value=True):
+        with (
+            patch(discovery_patch) as mock_discovery_cls,
+            patch(review_patch) as mock_review_cls,
+            patch.object(Path, "exists", return_value=True),
+        ):
             mock_discovery_cls.return_value.discover_remote_agents.return_value = [
                 managed_agent
             ]

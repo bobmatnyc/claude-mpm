@@ -22,11 +22,11 @@ import os
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from queue import Full, Queue
 from threading import Lock, Thread
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.constants import PerformanceConfig, SystemLimits, TimeoutConfig
 from claude_mpm.core.logging_utils import get_logger
@@ -57,7 +57,7 @@ class LogEntry:
     session_id: str
     request: str  # Standardized field name
     response: str  # Standardized field name
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     microseconds: int
 
 
@@ -80,12 +80,12 @@ class AsyncSessionLogger:
 
     def __init__(
         self,
-        base_dir: Optional[Path] = None,
-        log_format: Optional[LogFormat] = None,
-        max_queue_size: Optional[int] = None,
-        enable_async: Optional[bool] = None,
-        enable_compression: Optional[bool] = None,
-        config: Optional[Config] = None,
+        base_dir: Path | None = None,
+        log_format: LogFormat | None = None,
+        max_queue_size: int | None = None,
+        enable_async: bool | None = None,
+        enable_compression: bool | None = None,
+        config: Config | None = None,
     ):
         """
         Initialize the async session logger.
@@ -170,7 +170,7 @@ class AsyncSessionLogger:
 
             # Async infrastructure
             self._queue: Queue = Queue(maxsize=self.max_queue_size)
-            self._worker_thread: Optional[Thread] = None
+            self._worker_thread: Thread | None = None
             self._shutdown = False
             self._lock = Lock()
 
@@ -396,8 +396,8 @@ class AsyncSessionLogger:
         self,
         request_summary: str,
         response_content: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        agent: Optional[str] = None,
+        metadata: dict[str, Any] | None = None,
+        agent: str | None = None,
     ) -> bool:
         """
         Log a response with fire-and-forget async pattern.
@@ -419,7 +419,7 @@ class AsyncSessionLogger:
             agent_name = metadata["agent"].replace(" ", "_").lower()
 
         # Create timestamp with microsecond precision
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         timestamp = now.isoformat()
         microseconds = now.microsecond
 
@@ -520,7 +520,7 @@ class AsyncSessionLogger:
                     f"AsyncSessionLogger stats (no sessions logged): {self.stats}"
                 )
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get logger statistics."""
         with self._lock:
             return self.stats.copy()
@@ -545,14 +545,14 @@ class AsyncSessionLogger:
 
 
 # Singleton instance with lazy initialization
-_logger_instance: Optional[AsyncSessionLogger] = None
+_logger_instance: AsyncSessionLogger | None = None
 _logger_lock = Lock()
 
 
 def get_async_logger(
-    log_format: Optional[LogFormat] = None,
-    enable_async: Optional[bool] = None,
-    config: Optional[Config] = None,
+    log_format: LogFormat | None = None,
+    enable_async: bool | None = None,
+    config: Config | None = None,
 ) -> AsyncSessionLogger:
     """
     Get the singleton async logger instance.
@@ -632,8 +632,8 @@ def get_async_logger(
 def log_response_async(
     request_summary: str,
     response_content: str,
-    metadata: Optional[Dict[str, Any]] = None,
-    agent: Optional[str] = None,
+    metadata: dict[str, Any] | None = None,
+    agent: str | None = None,
 ) -> bool:
     """
     Convenience function for async response logging.

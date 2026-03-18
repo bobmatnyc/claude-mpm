@@ -24,7 +24,7 @@ Usage:
     raise AgentDeploymentError("Failed to deploy agent to .claude/agents directory")
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class MPMError(Exception):
@@ -39,7 +39,7 @@ class MPMError(Exception):
         error_code: Machine-readable error code (defaults to class name in lowercase)
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize MPM error with message and optional context.
 
         Args:
@@ -66,7 +66,7 @@ class MPMError(Exception):
 
         return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert error to dictionary format for structured logging/handling.
 
         Returns:
@@ -100,7 +100,7 @@ class AgentDeploymentError(MPMError):
     - YAML generation errors
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize agent deployment error.
 
         Args:
@@ -135,7 +135,7 @@ class ConfigurationError(MPMError):
     - Incompatible configuration versions
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize configuration error.
 
         Args:
@@ -170,7 +170,7 @@ class ConnectionError(MPMError):
     - Authentication failures
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize connection error.
 
         Args:
@@ -203,7 +203,7 @@ class ValidationError(MPMError):
     - Format violations (e.g., invalid JSON/YAML)
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize validation error.
 
         Args:
@@ -238,7 +238,7 @@ class ServiceNotFoundError(MPMError):
     - Incorrect service name or type
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize service not found error.
 
         Args:
@@ -276,7 +276,7 @@ class MemoryError(MPMError):
     claude_mpm.core.exceptions.MemoryError for clarity.
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize memory error.
 
         Args:
@@ -311,7 +311,7 @@ class HookError(MPMError):
     - Incompatible hook versions
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize hook error.
 
         Args:
@@ -346,7 +346,7 @@ class SessionError(MPMError):
     - Session persistence errors
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize session error.
 
         Args:
@@ -381,7 +381,7 @@ class FileOperationError(MPMError):
     - File locked by another process
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize file operation error.
 
         Args:
@@ -414,7 +414,7 @@ class ProcessError(MPMError):
     - Resource limits exceeded
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize process error.
 
         Args:
@@ -450,7 +450,7 @@ class RegistryError(MPMError):
     - Registry initialization failure
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize registry error.
 
         Args:
@@ -483,7 +483,7 @@ class SerializationError(MPMError):
     - Schema validation failures
     """
 
-    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, context: dict[str, Any] | None = None):
         """Initialize serialization error.
 
         Args:

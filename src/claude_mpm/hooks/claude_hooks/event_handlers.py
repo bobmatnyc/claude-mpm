@@ -16,9 +16,9 @@ import os
 import re
 import subprocess  # nosec B404 - subprocess used for safe claude CLI version checking only
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # Import _log helper to avoid stderr writes (which cause hook errors)
 try:
@@ -73,11 +73,11 @@ except ImportError:
 # ============================================================================
 
 # Log manager (for agent prompt logging)
-_log_manager: Optional[Any] = None
+_log_manager: Any | None = None
 _log_manager_loaded = False
 
 
-def _get_log_manager() -> Optional[Any]:
+def _get_log_manager() -> Any | None:
     """Get log manager with lazy loading."""
     global _log_manager, _log_manager_loaded
     if not _log_manager_loaded:
@@ -92,11 +92,11 @@ def _get_log_manager() -> Optional[Any]:
 
 
 # Config service (for autotodos configuration)
-_config: Optional[Any] = None
+_config: Any | None = None
 _config_loaded = False
 
 
-def _get_config() -> Optional[Any]:
+def _get_config() -> Any | None:
     """Get Config with lazy loading."""
     global _config, _config_loaded
     if not _config_loaded:
@@ -111,11 +111,11 @@ def _get_config() -> Optional[Any]:
 
 
 # Delegation detector (for anti-pattern detection)
-_delegation_detector: Optional[Any] = None
+_delegation_detector: Any | None = None
 _delegation_detector_loaded = False
 
 
-def _get_delegation_detector_service() -> Optional[Any]:
+def _get_delegation_detector_service() -> Any | None:
     """Get delegation detector with lazy loading."""
     global _delegation_detector, _delegation_detector_loaded
     if not _delegation_detector_loaded:
@@ -130,11 +130,11 @@ def _get_delegation_detector_service() -> Optional[Any]:
 
 
 # Event log (for PM violation logging)
-_event_log: Optional[Any] = None
+_event_log: Any | None = None
 _event_log_loaded = False
 
 
-def _get_event_log_service() -> Optional[Any]:
+def _get_event_log_service() -> Any | None:
     """Get event log with lazy loading."""
     global _event_log, _event_log_loaded
     if not _event_log_loaded:
@@ -164,10 +164,10 @@ class EventHandlers:
         self,
         hook_handler,
         *,
-        log_manager: Optional[Any] = None,
-        config: Optional[Any] = None,
-        delegation_detector: Optional[Any] = None,
-        event_log: Optional[Any] = None,
+        log_manager: Any | None = None,
+        config: Any | None = None,
+        delegation_detector: Any | None = None,
+        event_log: Any | None = None,
     ):
         """Initialize with reference to the main hook handler and optional services.
 
@@ -187,28 +187,28 @@ class EventHandlers:
         self._event_log = event_log
 
     @property
-    def log_manager(self) -> Optional[Any]:
+    def log_manager(self) -> Any | None:
         """Get log manager (injected or lazy loaded)."""
         if self._log_manager is not None:
             return self._log_manager
         return _get_log_manager()
 
     @property
-    def config(self) -> Optional[Any]:
+    def config(self) -> Any | None:
         """Get config (injected or lazy loaded)."""
         if self._config is not None:
             return self._config
         return _get_config()
 
     @property
-    def delegation_detector(self) -> Optional[Any]:
+    def delegation_detector(self) -> Any | None:
         """Get delegation detector (injected or lazy loaded)."""
         if self._delegation_detector is not None:
             return self._delegation_detector
         return _get_delegation_detector_service()
 
     @property
-    def event_log(self) -> Optional[Any]:
+    def event_log(self) -> Any | None:
         """Get event log (injected or lazy loaded)."""
         if self._event_log is not None:
             return self._event_log
@@ -237,7 +237,7 @@ class EventHandlers:
         )
         ack_data = {
             "prompt_preview": prompt[:80] + "..." if len(prompt) > 80 else prompt,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": "received",
             "project": project_name,
         }
@@ -258,7 +258,7 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "is_command": prompt.startswith("/"),
             "contains_code": "```" in prompt
             or "python" in prompt.lower()
@@ -286,7 +286,7 @@ class EventHandlers:
                     pending_prompts = getattr(self.hook_handler, "pending_prompts", {})
                     pending_prompts[session_id] = {
                         "prompt": prompt,
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "working_directory": working_dir,
                     }
                     if DEBUG:
@@ -354,7 +354,7 @@ class EventHandlers:
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         pre_tool_data = {
             "tool_name": tool_name,
@@ -493,7 +493,7 @@ class EventHandlers:
             "session_id": session_id,
             "prompt": tool_input.get("prompt", ""),
             "description": tool_input.get("description", ""),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "SubagentStart",  # For dashboard compatibility
         }
         self.hook_handler._emit_socketio_event(
@@ -518,7 +518,7 @@ class EventHandlers:
                         "session_id": session_id,
                         "delegation_context": {
                             "description": tool_input.get("description", ""),
-                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                         },
                     }
 
@@ -576,7 +576,7 @@ class EventHandlers:
             state_file = state_dir / "last_project.json"
             state_data = {
                 "alias": alias,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             with open(state_file, "w") as f:
@@ -590,7 +590,7 @@ class EventHandlers:
                 _log(f"Failed to save project alias: {e}")
             # Non-fatal: sticky context is a convenience feature
 
-    def _capture_pm_directive(self, prompt: str, project: Optional[str] = None) -> None:
+    def _capture_pm_directive(self, prompt: str, project: str | None = None) -> None:
         """Capture PM-level directive to persistent memory.
 
         Stores user orchestration commands for context enrichment:
@@ -623,7 +623,7 @@ class EventHandlers:
                 _log(f"Failed to capture PM directive: {e}")
             # Non-fatal: memory capture is optional
 
-    def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
+    def _get_git_branch(self, working_dir: str | None = None) -> str:
         """Get git branch for the given directory with caching."""
         # Use current working directory if not specified
         if not working_dir:
@@ -632,7 +632,7 @@ class EventHandlers:
         # Check cache first (cache for 300 seconds = 5 minutes)
         # WHY 5 minutes: Git branches rarely change during development sessions,
         # reducing subprocess overhead significantly without staleness issues
-        current_time = datetime.now(timezone.utc).timestamp()
+        current_time = datetime.now(UTC).timestamp()
         cache_key = working_dir
 
         if (
@@ -784,7 +784,7 @@ class EventHandlers:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "has_output": bool(result_data.get("output")),
             "has_error": bool(result_data.get("error")),
             "output_size": (
@@ -857,7 +857,7 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "is_user_input_request": "input" in message.lower()
             or "waiting" in message.lower(),
             "is_error_notification": "error" in message.lower()
@@ -1001,7 +1001,7 @@ class EventHandlers:
         """Extract metadata from stop event."""
         working_dir = event.get("cwd", "")
         return {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "working_directory": working_dir,
             "git_branch": (
                 self._get_git_branch(working_dir) if working_dir else "Unknown"
@@ -1172,7 +1172,7 @@ class EventHandlers:
                     "has_error": reason in ["error", "timeout", "failed", "blocked"],
                     "working_directory": working_dir,
                     "git_branch": git_branch,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "event_type": "subagent_stop",
                     "reason": reason,
                     "original_request_timestamp": request_info.get("timestamp"),
@@ -1265,7 +1265,7 @@ class EventHandlers:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "contains_code": "```" in response_text,
             "contains_json": "```json" in response_text,
             "hook_event_name": "AssistantResponse",  # Explicitly set for dashboard
@@ -1337,7 +1337,7 @@ class EventHandlers:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "SessionStart",
             "has_pending_tasks": False,
             "pending_task_count": 0,
@@ -1385,7 +1385,7 @@ class EventHandlers:
             "session_id": session_id,
             "agent_type": agent_type,
             "agent_id": agent_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "SubagentStart",  # Preserve correct hook name
             "working_directory": working_dir,
             "git_branch": git_branch,
@@ -1429,7 +1429,7 @@ class EventHandlers:
             "worktree_name": worktree_name,
             "worktree_path": worktree_path,
             "branch": branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "WorktreeCreate",
         }
 
@@ -1466,7 +1466,7 @@ class EventHandlers:
             "worktree_name": worktree_name,
             "worktree_path": worktree_path,
             "branch": branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "WorktreeRemove",
         }
 
@@ -1503,7 +1503,7 @@ class EventHandlers:
             "subtype": subtype,
             "changed_file": changed_file,
             "change_type": change_type,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "ConfigChange",
         }
 
@@ -1539,7 +1539,7 @@ class EventHandlers:
             "teammate_id": teammate_id,
             "teammate_type": teammate_type,
             "idle_reason": idle_reason,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "TeammateIdle",
         }
 
@@ -1577,7 +1577,7 @@ class EventHandlers:
             "task_title": task_title,
             "completed_by": completed_by,
             "completion_status": completion_status,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_event_name": "TaskCompleted",
         }
 
@@ -1643,7 +1643,7 @@ class EventHandlers:
                     "suggested_action": detection["suggested_todo"],
                     "action": detection["action"],
                     "session_id": event.get("session_id", ""),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "severity": "warning",  # Not critical, but should be fixed
                     "message": f"PM asked user to do something manually: {detection['original_text'][:80]}...",
                 },

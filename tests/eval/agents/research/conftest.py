@@ -5,8 +5,9 @@ Provides fixtures for loading test scenarios and creating test cases.
 """
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any
 
 import pytest
 
@@ -18,7 +19,7 @@ def scenarios_dir() -> Path:
 
 
 @pytest.fixture
-def load_scenarios(scenarios_dir: Path) -> Callable[[str], Dict[str, Any]]:
+def load_scenarios(scenarios_dir: Path) -> Callable[[str], dict[str, Any]]:
     """Create scenario loader function.
 
     Args:
@@ -28,7 +29,7 @@ def load_scenarios(scenarios_dir: Path) -> Callable[[str], Dict[str, Any]]:
         Function that loads scenario JSON files
     """
 
-    def _load(filename: str) -> Dict[str, Any]:
+    def _load(filename: str) -> dict[str, Any]:
         """Load scenario file by name.
 
         Args:
@@ -44,7 +45,7 @@ def load_scenarios(scenarios_dir: Path) -> Callable[[str], Dict[str, Any]]:
 
 
 @pytest.fixture
-def memory_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
+def memory_scenarios(load_scenarios: Callable) -> list[dict[str, Any]]:
     """Load memory protocol scenarios.
 
     Returns:
@@ -54,7 +55,7 @@ def memory_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def discovery_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
+def discovery_scenarios(load_scenarios: Callable) -> list[dict[str, Any]]:
     """Load discovery pattern scenarios.
 
     Returns:
@@ -64,7 +65,7 @@ def discovery_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def output_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
+def output_scenarios(load_scenarios: Callable) -> list[dict[str, Any]]:
     """Load output requirements scenarios.
 
     Returns:
@@ -74,14 +75,14 @@ def output_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def get_scenario_by_id() -> Callable[[List[Dict], str], Dict[str, Any]]:
+def get_scenario_by_id() -> Callable[[list[dict], str], dict[str, Any]]:
     """Create helper function to get scenario by ID.
 
     Returns:
         Function that finds scenario by scenario_id
     """
 
-    def _get(scenarios: List[Dict[str, Any]], scenario_id: str) -> Dict[str, Any]:
+    def _get(scenarios: list[dict[str, Any]], scenario_id: str) -> dict[str, Any]:
         """Get scenario by ID.
 
         Args:

@@ -14,7 +14,6 @@ DESIGN DECISIONS:
 """
 
 import asyncio
-from typing import Dict, Optional
 
 import socketio
 
@@ -69,7 +68,7 @@ class CodeAnalysisHandler:
             self.logger.error(f"Error registering code analysis handlers: {e}")
             raise
 
-    async def handle_analyze_file(self, sid: str, data: Dict):
+    async def handle_analyze_file(self, sid: str, data: dict):
         """Handle file analysis request.
 
         Args:
@@ -140,7 +139,7 @@ class CodeAnalysisHandler:
                 "code:error", {"error": f"Analysis error: {e!s}"}, room=sid
             )
 
-    async def handle_analyze_directory(self, sid: str, data: Dict):
+    async def handle_analyze_directory(self, sid: str, data: dict):
         """Handle directory analysis request.
 
         Args:
@@ -196,7 +195,7 @@ class CodeAnalysisHandler:
                 "code:error", {"error": f"Directory analysis error: {e!s}"}, room=sid
             )
 
-    async def handle_get_tree(self, sid: str, data: Dict):
+    async def handle_get_tree(self, sid: str, data: dict):
         """Handle request for code tree visualization data.
 
         Args:
@@ -233,7 +232,7 @@ class CodeAnalysisHandler:
                 "code:error", {"error": f"Tree data error: {e!s}"}, room=sid
             )
 
-    async def handle_clear_cache(self, sid: str, data: Dict):
+    async def handle_clear_cache(self, sid: str, data: dict):
         """Handle cache clearing request.
 
         Args:
@@ -269,7 +268,7 @@ class CodeAnalysisHandler:
                 "code:error", {"error": f"Cache clear error: {e!s}"}, room=sid
             )
 
-    async def _analyze_file_async(self, file_path: str) -> Optional[Dict]:
+    async def _analyze_file_async(self, file_path: str) -> dict | None:
         """Perform file analysis asynchronously.
 
         Args:
@@ -291,7 +290,7 @@ class CodeAnalysisHandler:
 
     async def _build_directory_tree_async(
         self, dir_path: str, max_depth: int
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Build directory tree asynchronously.
 
         Args:
@@ -312,7 +311,7 @@ class CodeAnalysisHandler:
             self.logger.error(f"Error in async directory tree building: {e}")
             return None
 
-    async def _get_tree_data_async(self, path: str, format_type: str) -> Optional[Dict]:
+    async def _get_tree_data_async(self, path: str, format_type: str) -> dict | None:
         """Get tree data in specified format asynchronously.
 
         Args:

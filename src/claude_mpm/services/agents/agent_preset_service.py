@@ -13,7 +13,7 @@ Trade-offs:
 - Reusability: Preset logic available to web UI, API, etc.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from ...config.agent_presets import (
     PRESETS,
@@ -45,7 +45,7 @@ class AgentPresetService:
         """
         self.source_manager = source_manager
 
-    def list_presets(self) -> List[Dict[str, Any]]:
+    def list_presets(self) -> list[dict[str, Any]]:
         """List all available presets with metadata.
 
         Returns:
@@ -82,7 +82,7 @@ class AgentPresetService:
         """
         return preset_name in PRESETS
 
-    def get_preset_agents(self, preset_name: str) -> List[str]:
+    def get_preset_agents(self, preset_name: str) -> list[str]:
         """Get agent list for preset.
 
         Args:
@@ -103,7 +103,7 @@ class AgentPresetService:
 
     def resolve_agents(
         self, preset_name: str, validate_availability: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Resolve preset to actual agent definitions from configured sources.
 
         This method cross-references preset agent IDs with available agents
@@ -169,7 +169,7 @@ class AgentPresetService:
         # Build lookup: agent_id -> list of sources
         # Each entry is (source_identifier, agent_data)
         logger.debug("[DEBUG] Building agent_sources lookup table")
-        agent_sources: Dict[str, List[tuple]] = {}
+        agent_sources: dict[str, list[tuple]] = {}
         for idx, agent in enumerate(all_agents):
             if idx % 10 == 0:
                 logger.debug(f"[DEBUG] Processing agent {idx}/{len(all_agents)}")

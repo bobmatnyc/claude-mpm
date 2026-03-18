@@ -25,7 +25,8 @@ USAGE:
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from claude_mpm.services.core.models.restart import RestartHistory
@@ -152,7 +153,7 @@ class IRestartPolicy(ABC):
 
     @abstractmethod
     def record_restart_attempt(
-        self, deployment_id: str, success: bool, failure_reason: Optional[str] = None
+        self, deployment_id: str, success: bool, failure_reason: str | None = None
     ) -> None:
         """
         Record a restart attempt and update circuit breaker state.

@@ -34,9 +34,9 @@ Usage Examples:
 
 import os
 import time
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from claude_mpm.core.enums import AgentCategory
 
@@ -52,7 +52,7 @@ from ..core.agent_name_normalizer import AgentNameNormalizer
 logger = get_logger(__name__)
 
 
-class ModelType(str, Enum):
+class ModelType(StrEnum):
     """Claude model types for agent configuration."""
 
     HAIKU = "haiku"
@@ -60,7 +60,7 @@ class ModelType(str, Enum):
     OPUS = "opus"
 
 
-class ComplexityLevel(str, Enum):
+class ComplexityLevel(StrEnum):
     """Task complexity levels for model selection."""
 
     LOW = "low"
@@ -81,7 +81,7 @@ __all__ = [
 ]
 
 
-def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
+def _get_agent_templates_dirs() -> dict[AgentTier, Path | None]:
     """
     Get directories containing agent JSON files across all tiers.
 
@@ -188,7 +188,7 @@ class AgentLoader:
             f"AgentLoader initialized in {init_time:.2f}ms with {len(self.registry.registry)} agents"
         )
 
-    def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def get_agent(self, agent_id: str) -> dict[str, Any] | None:
         """
         Retrieve agent configuration by ID.
 
@@ -243,7 +243,7 @@ class AgentLoader:
 
         return agent_data
 
-    def list_agents(self) -> List[Dict[str, Any]]:
+    def list_agents(self) -> list[dict[str, Any]]:
         """
         Get a summary list of all available agents.
 
@@ -252,9 +252,7 @@ class AgentLoader:
         """
         return self.registry.list_agents()
 
-    def get_agent_prompt(
-        self, agent_id: str, force_reload: bool = False
-    ) -> Optional[str]:
+    def get_agent_prompt(self, agent_id: str, force_reload: bool = False) -> str | None:
         """
         Retrieve agent instructions/prompt by ID.
 
@@ -344,7 +342,7 @@ class AgentLoader:
             return ""
         return "\n".join(lines[body_start:]).strip()
 
-    def get_agent_metadata(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def get_agent_metadata(self, agent_id: str) -> dict[str, Any] | None:
         """
         Get comprehensive agent metadata including capabilities and configuration.
 
@@ -412,7 +410,7 @@ class AgentLoader:
 
 
 # Global loader instance (singleton pattern)
-_loader: Optional[AgentLoader] = None
+_loader: AgentLoader | None = None
 
 
 def _get_loader() -> AgentLoader:
@@ -432,7 +430,7 @@ def _get_loader() -> AgentLoader:
 # Removed duplicate get_agent_prompt function - using the comprehensive version below
 
 
-def list_available_agents() -> Dict[str, Dict[str, Any]]:
+def list_available_agents() -> dict[str, dict[str, Any]]:
     """
     List all available agents with their key metadata including memory information.
 
@@ -494,7 +492,7 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
     return agents_dict
 
 
-def validate_agent_files() -> Dict[str, Dict[str, Any]]:
+def validate_agent_files() -> dict[str, dict[str, Any]]:
     """
     Validate all agent template files against the schema.
 
@@ -546,7 +544,7 @@ def reload_agents() -> None:
     logger.debug("Agent registry cleared, will reload on next access")
 
 
-def get_agent_tier(agent_name: str) -> Optional[str]:
+def get_agent_tier(agent_name: str) -> str | None:
     """
     Get the tier from which an agent was loaded.
 
@@ -561,7 +559,7 @@ def get_agent_tier(agent_name: str) -> Optional[str]:
     return tier.value if tier else None
 
 
-def list_agents_by_tier() -> Dict[str, List[str]]:
+def list_agents_by_tier() -> dict[str, list[str]]:
     """
     List available agents organized by their tier.
 
@@ -584,7 +582,7 @@ def list_agents_by_tier() -> Dict[str, List[str]]:
 # Duplicate functions removed - using the ones defined earlier
 
 
-def get_agent_metadata(agent_id: str) -> Optional[Dict[str, Any]]:
+def get_agent_metadata(agent_id: str) -> dict[str, Any] | None:
     """
     Get agent metadata without instruction content.
 
@@ -616,7 +614,7 @@ def get_agent_metadata(agent_id: str) -> Optional[Dict[str, Any]]:
 
 def load_agent_prompt_from_md(
     agent_name: str, force_reload: bool = False
-) -> Optional[str]:
+) -> str | None:
     """
     Load agent prompt from JSON template (legacy function name).
 
@@ -640,7 +638,7 @@ def load_agent_prompt_from_md(
 
 def _analyze_task_complexity(
     task_description: str, context_size: int = 0, **kwargs: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Analyze task complexity to determine optimal model selection.
 
@@ -682,8 +680,8 @@ def _analyze_task_complexity(
 
 
 def _get_model_config(
-    agent_name: str, complexity_analysis: Optional[Dict[str, Any]] = None
-) -> Tuple[str, Dict[str, Any]]:
+    agent_name: str, complexity_analysis: dict[str, Any] | None = None
+) -> tuple[str, dict[str, Any]]:
     """
     Determine optimal model configuration based on agent type and task complexity.
 
@@ -797,7 +795,7 @@ def get_agent_prompt(
     force_reload: bool = False,
     return_model_info: bool = False,
     **kwargs: Any,
-) -> Union[str, Tuple[str, str, Dict[str, Any]]]:
+) -> str | tuple[str, str, dict[str, Any]]:
     """
     Get agent prompt with optional dynamic model selection and base instructions.
 
@@ -939,7 +937,7 @@ def get_agent_prompt(
 
 def get_agent_prompt_with_model_info(
     agent_name: str, force_reload: bool = False, **kwargs: Any
-) -> Tuple[str, str, Dict[str, Any]]:
+) -> tuple[str, str, dict[str, Any]]:
     """
     Convenience wrapper to always get agent prompt with model selection information.
 
@@ -991,7 +989,7 @@ def get_agent_prompt_with_model_info(
 # Duplicate list_available_agents function removed
 
 
-def clear_agent_cache(agent_name: Optional[str] = None) -> None:
+def clear_agent_cache(agent_name: str | None = None) -> None:
     """
     Clear cached agent prompts for development or after updates.
 

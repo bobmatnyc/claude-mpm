@@ -16,10 +16,11 @@ DESIGN DECISIONS:
 import fnmatch
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..core.logging_config import get_logger
 
@@ -31,8 +32,8 @@ class FileMetadata:
     path: str
     size: int
     modified: float
-    hash: Optional[str] = None
-    language: Optional[str] = None
+    hash: str | None = None
+    language: str | None = None
 
 
 @dataclass
@@ -42,10 +43,10 @@ class TreeNode:
     name: str
     path: str
     type: str  # 'file' or 'directory'
-    children: List["TreeNode"] = field(default_factory=list)
-    metadata: Optional[FileMetadata] = None
+    children: list["TreeNode"] = field(default_factory=list)
+    metadata: FileMetadata | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         result = {"name": self.name, "path": self.path, "type": self.type}
 
@@ -255,7 +256,7 @@ class CodeTreeBuilder:
         ".less": "less",
     }
 
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self, cache_dir: Path | None = None):
         """Initialize tree builder.
 
         Args:
@@ -277,12 +278,12 @@ class CodeTreeBuilder:
     def build_tree(
         self,
         root_path: Path,
-        file_extensions: Optional[List[str]] = None,
-        ignore_patterns: Optional[List[str]] = None,
-        max_depth: Optional[int] = None,
+        file_extensions: list[str] | None = None,
+        ignore_patterns: list[str] | None = None,
+        max_depth: int | None = None,
         use_gitignore: bool = True,
         calculate_hashes: bool = False,
-        progress_callback: Optional[callable] = None,
+        progress_callback: Callable | None = None,
     ) -> TreeNode:
         """Build file tree from directory.
 
@@ -331,14 +332,14 @@ class CodeTreeBuilder:
         self,
         path: Path,
         root_path: Path,
-        file_extensions: Optional[List[str]],
-        ignore_patterns: Set[str],
-        gitignore_parser: Optional[GitignoreParser],
-        max_depth: Optional[int],
+        file_extensions: list[str] | None,
+        ignore_patterns: set[str],
+        gitignore_parser: GitignoreParser | None,
+        max_depth: int | None,
         current_depth: int,
         calculate_hashes: bool,
-        progress_callback: Optional[callable],
-    ) -> Optional[TreeNode]:
+        progress_callback: Callable | None,
+    ) -> TreeNode | None:
         """Recursively build tree node.
 
         Args:
@@ -438,7 +439,7 @@ class CodeTreeBuilder:
 
         return node
 
-    def _should_ignore(self, path: Path, ignore_patterns: Set[str]) -> bool:
+    def _should_ignore(self, path: Path, ignore_patterns: set[str]) -> bool:
         """Check if path matches any ignore pattern.
 
         Args:
@@ -452,7 +453,7 @@ class CodeTreeBuilder:
 
         return any(fnmatch.fnmatch(name, pattern) for pattern in ignore_patterns)
 
-    def _detect_language(self, path: Path) -> Optional[str]:
+    def _detect_language(self, path: Path) -> str | None:
         """Detect programming language from file extension.
 
         Args:
@@ -478,7 +479,7 @@ class CodeTreeBuilder:
         Returns:
             MD5 hash string
         """
-        hasher = hashlib.md5()
+        hasher = hashlib.md5()  # nosec
 
         try:
             with path.open("rb") as f:
@@ -505,7 +506,7 @@ class CodeTreeBuilder:
             "files_ignored": self.stats["files_ignored"],
             "total_size": self.stats["total_size"],
             "languages": list(self.stats["languages"]),
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
         with output_path.open("w") as f:
@@ -531,7 +532,7 @@ class CodeTreeBuilder:
 
         return self._dict_to_node(tree_dict)
 
-    def _dict_to_node(self, node_dict: Dict[str, Any]) -> TreeNode:
+    def _dict_to_node(self, node_dict: dict[str, Any]) -> TreeNode:
         """Convert dictionary to TreeNode.
 
         Args:
@@ -561,7 +562,7 @@ class CodeTreeBuilder:
 
         return node
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get current statistics.
 
         Returns:
@@ -571,7 +572,7 @@ class CodeTreeBuilder:
 
     def compare_trees(
         self, old_tree: TreeNode, new_tree: TreeNode
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         """Compare two trees to find differences.
 
         Args:
@@ -609,7 +610,7 @@ class CodeTreeBuilder:
             "modified": sorted(modified),
         }
 
-    def _get_all_files(self, tree: TreeNode) -> Dict[str, FileMetadata]:
+    def _get_all_files(self, tree: TreeNode) -> dict[str, FileMetadata]:
         """Get all files from tree.
 
         Args:

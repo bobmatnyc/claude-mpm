@@ -19,7 +19,6 @@ USAGE:
 """
 
 import os
-from typing import Optional
 
 
 class NetworkPorts:
@@ -62,7 +61,7 @@ class NetworkPorts:
     ENV_DEFAULT_HOST = "CLAUDE_MPM_DEFAULT_HOST"
 
     @classmethod
-    def get_monitor_port(cls, default: Optional[int] = None) -> int:
+    def get_monitor_port(cls, default: int | None = None) -> int:
         """Get monitor port from environment or default.
 
         Args:
@@ -76,7 +75,7 @@ class NetworkPorts:
         return int(os.getenv(cls.ENV_MONITOR_PORT, default))
 
     @classmethod
-    def get_commander_port(cls, default: Optional[int] = None) -> int:
+    def get_commander_port(cls, default: int | None = None) -> int:
         """Get commander port from environment or default.
 
         Args:
@@ -90,7 +89,7 @@ class NetworkPorts:
         return int(os.getenv(cls.ENV_COMMANDER_PORT, default))
 
     @classmethod
-    def get_dashboard_port(cls, default: Optional[int] = None) -> int:
+    def get_dashboard_port(cls, default: int | None = None) -> int:
         """Get dashboard port from environment or default.
 
         Args:
@@ -104,7 +103,7 @@ class NetworkPorts:
         return int(os.getenv(cls.ENV_DASHBOARD_PORT, default))
 
     @classmethod
-    def get_socketio_port(cls, default: Optional[int] = None) -> int:
+    def get_socketio_port(cls, default: int | None = None) -> int:
         """Get socketio port from environment or default.
 
         Args:

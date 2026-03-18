@@ -19,9 +19,9 @@ DESIGN DECISION: Store errors in JSON file rather than database because:
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..core.logger import get_logger
 
@@ -47,7 +47,7 @@ class HookErrorMemory:
         (r"Error:\s*(.+?)(?:\n|$)", "general_error"),
     ]
 
-    def __init__(self, memory_file: Optional[Path] = None):
+    def __init__(self, memory_file: Path | None = None):
         """Initialize hook error memory.
 
         Args:
@@ -60,9 +60,9 @@ class HookErrorMemory:
             memory_file = Path.cwd() / ".claude-mpm" / "hook_errors.json"
 
         self.memory_file = memory_file
-        self.errors: Dict[str, Any] = self._load_errors()
+        self.errors: dict[str, Any] = self._load_errors()
 
-    def _load_errors(self) -> Dict[str, Any]:
+    def _load_errors(self) -> dict[str, Any]:
         """Load previously encountered errors from disk.
 
         Returns:
@@ -96,7 +96,7 @@ class HookErrorMemory:
 
     def detect_error(
         self, output: str, stderr: str, returncode: int
-    ) -> Optional[Dict[str, str]]:
+    ) -> dict[str, str] | None:
         """Detect if output contains an error.
 
         WHY check both stdout and stderr:
@@ -142,7 +142,7 @@ class HookErrorMemory:
 
         return None
 
-    def record_error(self, error_info: Dict[str, str], hook_type: str):
+    def record_error(self, error_info: dict[str, str], hook_type: str):
         """Record an error to prevent future repetition.
 
         WHY use composite key:
@@ -157,7 +157,7 @@ class HookErrorMemory:
         # Create unique key for this error
         key = f"{error_info['type']}:{hook_type}:{error_info['details']}"
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         if key in self.errors:
             # Update existing error
@@ -181,7 +181,7 @@ class HookErrorMemory:
             f"Recorded error: {error_info['type']} (count: {self.errors[key]['count']})"
         )
 
-    def is_known_failing_hook(self, hook_type: str) -> Optional[Dict[str, Any]]:
+    def is_known_failing_hook(self, hook_type: str) -> dict[str, Any] | None:
         """Check if a hook type is known to fail repeatedly.
 
         WHY check for 2+ failures:
@@ -215,7 +215,7 @@ class HookErrorMemory:
         error_data = self.is_known_failing_hook(hook_type)
         return error_data is not None and error_data["count"] >= threshold
 
-    def suggest_fix(self, error_info: Dict[str, str]) -> str:
+    def suggest_fix(self, error_info: dict[str, str]) -> str:
         """Suggest a fix for the detected error.
 
         WHY provide suggestions:
@@ -288,7 +288,7 @@ Possible fixes:
             error_type, f"Unknown error type: {error_type}\n\nDetails: {details}"
         )
 
-    def clear_errors(self, hook_type: Optional[str] = None):
+    def clear_errors(self, hook_type: str | None = None):
         """Clear error memory to allow retry of failed hooks.
 
         Args:
@@ -314,7 +314,7 @@ Possible fixes:
                 f"Cleared {len(keys_to_remove)} error records for {hook_type}"
             )
 
-    def get_error_summary(self) -> Dict[str, Any]:
+    def get_error_summary(self) -> dict[str, Any]:
         """Get summary of all recorded errors.
 
         Returns:
@@ -353,10 +353,10 @@ Possible fixes:
 
 
 # Global instance
-_hook_error_memory: Optional[HookErrorMemory] = None
+_hook_error_memory: HookErrorMemory | None = None
 
 
-def get_hook_error_memory(memory_file: Optional[Path] = None) -> HookErrorMemory:
+def get_hook_error_memory(memory_file: Path | None = None) -> HookErrorMemory:
     """Get the global hook error memory instance.
 
     Args:
@@ -371,7 +371,7 @@ def get_hook_error_memory(memory_file: Optional[Path] = None) -> HookErrorMemory
     return _hook_error_memory
 
 
-def clear_hook_errors(hook_type: Optional[str] = None):
+def clear_hook_errors(hook_type: str | None = None):
     """Convenience function to clear hook error memory.
 
     Args:

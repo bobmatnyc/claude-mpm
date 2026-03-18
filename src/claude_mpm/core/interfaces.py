@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
+from typing import Any, Generic, TypeVar
 
 # Re-export everything from the new location for backward compatibility
 from claude_mpm.services.core.interfaces import (  # noqa: F401
@@ -114,7 +114,7 @@ class IServiceContainer(ABC):
         """Resolve a service by type"""
 
     @abstractmethod
-    def resolve_all(self, service_type: type) -> List[Any]:
+    def resolve_all(self, service_type: type) -> list[Any]:
         """Resolve all implementations of a service type"""
 
     @abstractmethod
@@ -155,11 +155,11 @@ class IConfigurationManager(ABC):
         """Set configuration value"""
 
     @abstractmethod
-    def get_section(self, section: str) -> Dict[str, Any]:
+    def get_section(self, section: str) -> dict[str, Any]:
         """Get entire configuration section"""
 
     @abstractmethod
-    def validate_schema(self, schema: Dict[str, Any]) -> bool:
+    def validate_schema(self, schema: dict[str, Any]) -> bool:
         """Validate configuration against schema"""
 
     @abstractmethod
@@ -180,7 +180,7 @@ class ICacheService(ABC):
         """Get value from cache"""
 
     @abstractmethod
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set value in cache with optional TTL"""
 
     @abstractmethod
@@ -196,7 +196,7 @@ class ICacheService(ABC):
         """Clear all cache entries"""
 
     @abstractmethod
-    def get_cache_metrics(self) -> Dict[str, Any]:
+    def get_cache_metrics(self) -> dict[str, Any]:
         """Get cache performance metrics"""
 
 
@@ -208,8 +208,8 @@ class HealthStatus:
     status: str  # healthy, degraded, unhealthy, unknown
     message: str
     timestamp: datetime
-    checks: Dict[str, bool]
-    metrics: Dict[str, Any]
+    checks: dict[str, bool]
+    metrics: dict[str, Any]
 
 
 class IHealthMonitor(ABC):
@@ -245,19 +245,19 @@ class AgentMetadata:
     type: str
     path: str
     tier: str
-    description: Optional[str] = None
-    version: Optional[str] = None
-    capabilities: List[str] = None
-    specializations: List[str] = None
-    frameworks: List[str] = None
-    domains: List[str] = None
-    roles: List[str] = None
+    description: str | None = None
+    version: str | None = None
+    capabilities: list[str] = None
+    specializations: list[str] = None
+    frameworks: list[str] = None
+    domains: list[str] = None
+    roles: list[str] = None
     is_hybrid: bool = False
     validation_score: float = 0.0
-    last_modified: Optional[float] = None
+    last_modified: float | None = None
     # Model configuration fields
-    preferred_model: Optional[str] = None
-    model_config: Optional[Dict[str, Any]] = None
+    preferred_model: str | None = None
+    model_config: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values for list fields"""
@@ -281,29 +281,29 @@ class IAgentRegistry(ABC):
     @abstractmethod
     async def discover_agents(
         self, force_refresh: bool = False
-    ) -> Dict[str, AgentMetadata]:
+    ) -> dict[str, AgentMetadata]:
         """Discover all available agents"""
 
     @abstractmethod
-    async def get_agent(self, agent_name: str) -> Optional[AgentMetadata]:
+    async def get_agent(self, agent_name: str) -> AgentMetadata | None:
         """Get specific agent metadata"""
 
     @abstractmethod
     async def list_agents(
-        self, agent_type: Optional[str] = None, tier: Optional[str] = None
-    ) -> List[AgentMetadata]:
+        self, agent_type: str | None = None, tier: str | None = None
+    ) -> list[AgentMetadata]:
         """List agents with optional filtering"""
 
     @abstractmethod
-    async def get_specialized_agents(self, agent_type: str) -> List[AgentMetadata]:
+    async def get_specialized_agents(self, agent_type: str) -> list[AgentMetadata]:
         """Get agents of a specific specialized type"""
 
     @abstractmethod
-    async def search_by_capability(self, capability: str) -> List[AgentMetadata]:
+    async def search_by_capability(self, capability: str) -> list[AgentMetadata]:
         """Search agents by capability"""
 
     @abstractmethod
-    async def get_registry_stats(self) -> Dict[str, Any]:
+    async def get_registry_stats(self) -> dict[str, Any]:
         """Get registry statistics"""
 
 
@@ -315,11 +315,11 @@ class CacheEntry:
     key: str
     value: Any
     created_at: float
-    ttl: Optional[float] = None
+    ttl: float | None = None
     access_count: int = 0
     last_accessed: float = 0.0
     size_bytes: int = 0
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -330,7 +330,7 @@ class IPromptCache(ABC):
     """Interface for high-performance prompt caching"""
 
     @abstractmethod
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get cached value by key"""
 
     @abstractmethod
@@ -338,8 +338,8 @@ class IPromptCache(ABC):
         self,
         key: str,
         value: Any,
-        ttl: Optional[float] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        ttl: float | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Set cached value with optional TTL"""
 
@@ -356,7 +356,7 @@ class IPromptCache(ABC):
         """Clear all cached values"""
 
     @abstractmethod
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get cache performance metrics"""
 
 
@@ -365,10 +365,10 @@ class IPromptCache(ABC):
 class TemplateRenderContext:
     """Context for template rendering"""
 
-    variables: Dict[str, Any]
-    metadata: Dict[str, Any]
-    target_path: Optional[Path] = None
-    template_id: Optional[str] = None
+    variables: dict[str, Any]
+    metadata: dict[str, Any]
+    target_path: Path | None = None
+    template_id: str | None = None
 
 
 class ITemplateManager(ABC):
@@ -381,11 +381,11 @@ class ITemplateManager(ABC):
         """Render template with given context"""
 
     @abstractmethod
-    async def load_template(self, template_id: str) -> Optional[str]:
+    async def load_template(self, template_id: str) -> str | None:
         """Load template by ID"""
 
     @abstractmethod
-    async def validate_template(self, template_content: str) -> Tuple[bool, List[str]]:
+    async def validate_template(self, template_content: str) -> tuple[bool, list[str]]:
         """Validate template syntax and variables"""
 
     @abstractmethod
@@ -402,7 +402,7 @@ class IServiceFactory(Generic[ServiceType], ABC):
         """Create service instance"""
 
     @abstractmethod
-    def create_with_config(self, config: Dict[str, Any]) -> ServiceType:
+    def create_with_config(self, config: dict[str, Any]) -> ServiceType:
         """Create service instance with configuration"""
 
     @abstractmethod
@@ -469,7 +469,7 @@ class IErrorHandler(ABC):
     """Interface for centralized error handling"""
 
     @abstractmethod
-    def handle_error(self, error: Exception, context: Dict[str, Any]) -> None:
+    def handle_error(self, error: Exception, context: dict[str, Any]) -> None:
         """Handle error with context"""
 
     @abstractmethod
@@ -477,7 +477,7 @@ class IErrorHandler(ABC):
         """Register error handler for specific error type"""
 
     @abstractmethod
-    def get_error_stats(self) -> Dict[str, Any]:
+    def get_error_stats(self) -> dict[str, Any]:
         """Get error statistics"""
 
 
@@ -495,12 +495,12 @@ class IPerformanceMonitor(ABC):
 
     @abstractmethod
     def record_metric(
-        self, name: str, value: float, tags: Optional[Dict[str, str]] = None
+        self, name: str, value: float, tags: dict[str, str] | None = None
     ) -> None:
         """Record a performance metric"""
 
     @abstractmethod
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics"""
 
 
@@ -540,7 +540,7 @@ class AgentDeploymentInterface(ABC):
     @abstractmethod
     def deploy_agents(
         self, force: bool = False, include_all: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy agents to target environment.
 
         Args:
@@ -552,7 +552,7 @@ class AgentDeploymentInterface(ABC):
         """
 
     @abstractmethod
-    def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
+    def validate_agent(self, agent_path: Path) -> tuple[bool, list[str]]:
         """Validate agent configuration and structure.
 
         Args:
@@ -574,7 +574,7 @@ class AgentDeploymentInterface(ABC):
         """
 
     @abstractmethod
-    def get_deployment_status(self) -> Dict[str, Any]:
+    def get_deployment_status(self) -> dict[str, Any]:
         """Get current deployment status and metrics.
 
         Returns:
@@ -595,7 +595,7 @@ class MemoryServiceInterface(ABC):
     """
 
     @abstractmethod
-    def load_memory(self, agent_id: str) -> Optional[str]:
+    def load_memory(self, agent_id: str) -> str | None:
         """Load memory for a specific agent.
 
         Args:
@@ -618,7 +618,7 @@ class MemoryServiceInterface(ABC):
         """
 
     @abstractmethod
-    def validate_memory_size(self, content: str) -> Tuple[bool, Optional[str]]:
+    def validate_memory_size(self, content: str) -> tuple[bool, str | None]:
         """Validate memory content size and structure.
 
         Args:
@@ -640,7 +640,7 @@ class MemoryServiceInterface(ABC):
         """
 
     @abstractmethod
-    def get_memory_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_memory_metrics(self, agent_id: str | None = None) -> dict[str, Any]:
         """Get memory usage metrics.
 
         Args:
@@ -697,7 +697,7 @@ class HookServiceInterface(ABC):
         """
 
     @abstractmethod
-    def get_registered_hooks(self) -> Dict[str, List[Any]]:
+    def get_registered_hooks(self) -> dict[str, list[Any]]:
         """Get all registered hooks by type.
 
         Returns:
@@ -705,7 +705,7 @@ class HookServiceInterface(ABC):
         """
 
     @abstractmethod
-    def clear_hooks(self, hook_type: Optional[str] = None) -> None:
+    def clear_hooks(self, hook_type: str | None = None) -> None:
         """Clear registered hooks.
 
         Args:
@@ -739,7 +739,7 @@ class SocketIOServiceInterface(ABC):
         """Stop the WebSocket server."""
 
     @abstractmethod
-    async def emit(self, event: str, data: Any, room: Optional[str] = None) -> None:
+    async def emit(self, event: str, data: Any, room: str | None = None) -> None:
         """Emit an event to connected clients.
 
         Args:
@@ -787,7 +787,7 @@ class ProjectAnalyzerInterface(ABC):
     """
 
     @abstractmethod
-    def analyze_project(self, project_path: Optional[Path] = None) -> Any:
+    def analyze_project(self, project_path: Path | None = None) -> Any:
         """Analyze project characteristics.
 
         Args:
@@ -798,7 +798,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def detect_technology_stack(self) -> List[str]:
+    def detect_technology_stack(self) -> list[str]:
         """Detect technologies used in the project.
 
         Returns:
@@ -806,7 +806,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def analyze_code_patterns(self) -> Dict[str, Any]:
+    def analyze_code_patterns(self) -> dict[str, Any]:
         """Analyze code patterns and conventions.
 
         Returns:
@@ -814,7 +814,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def get_project_structure(self) -> Dict[str, Any]:
+    def get_project_structure(self) -> dict[str, Any]:
         """Get project directory structure analysis.
 
         Returns:
@@ -822,7 +822,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def identify_entry_points(self) -> List[Path]:
+    def identify_entry_points(self) -> list[Path]:
         """Identify project entry points.
 
         Returns:
@@ -843,7 +843,7 @@ class TicketManagerInterface(ABC):
     """
 
     @abstractmethod
-    def create_task(self, title: str, description: str, **kwargs) -> Optional[str]:
+    def create_task(self, title: str, description: str, **kwargs) -> str | None:
         """Create a new task ticket.
 
         Args:
@@ -868,7 +868,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task(self, task_id: str) -> dict[str, Any] | None:
         """Get task details.
 
         Args:
@@ -879,9 +879,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def list_tasks(
-        self, status: Optional[str] = None, **filters
-    ) -> List[Dict[str, Any]]:
+    def list_tasks(self, status: str | None = None, **filters) -> list[dict[str, Any]]:
         """List tasks with optional filtering.
 
         Args:
@@ -893,7 +891,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def close_task(self, task_id: str, resolution: Optional[str] = None) -> bool:
+    def close_task(self, task_id: str, resolution: str | None = None) -> bool:
         """Close a task.
 
         Args:
@@ -930,12 +928,12 @@ class InterfaceRegistry:
     }
 
     @classmethod
-    def get_interface(cls, name: str) -> Optional[type]:
+    def get_interface(cls, name: str) -> type | None:
         """Get interface by name"""
         return cls._interfaces.get(name)
 
     @classmethod
-    def get_all_interfaces(cls) -> Dict[str, type]:
+    def get_all_interfaces(cls) -> dict[str, type]:
         """Get all registered interfaces"""
         return cls._interfaces.copy()
 

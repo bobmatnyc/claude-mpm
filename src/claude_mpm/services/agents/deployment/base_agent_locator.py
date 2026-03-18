@@ -3,7 +3,6 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 
 class BaseAgentLocator:
@@ -14,7 +13,7 @@ class BaseAgentLocator:
     variables, development paths, and user overrides.
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: logging.Logger | None = None):
         """Initialize the base agent locator.
 
         Args:

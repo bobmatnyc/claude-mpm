@@ -13,9 +13,8 @@ import tempfile
 import time
 import uuid
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -36,9 +35,9 @@ class JournalEntry:
     started_at: str
     status: str
     backup_id: str
-    completed_at: Optional[str] = None
-    error: Optional[str] = None
-    rollback_info: Optional[Dict] = None
+    completed_at: str | None = None
+    error: str | None = None
+    rollback_info: dict | None = None
 
 
 class OperationJournal:
@@ -56,7 +55,7 @@ class OperationJournal:
 
     JOURNAL_PATH = Path.home() / ".claude-mpm" / ".operation-journal.json"
 
-    def __init__(self, journal_path: Optional[Path] = None) -> None:
+    def __init__(self, journal_path: Path | None = None) -> None:
         """Initialize OperationJournal.
 
         Args:
@@ -70,7 +69,7 @@ class OperationJournal:
         entity_type: str,
         entity_id: str,
         backup_id: str,
-        rollback_info: Optional[Dict] = None,
+        rollback_info: dict | None = None,
     ) -> str:
         """Write intent before execution begins.
 
@@ -85,7 +84,7 @@ class OperationJournal:
             Operation ID like "op-{timestamp}-{random}".
         """
         op_id = f"op-{int(time.time())}-{uuid.uuid4().hex[:6]}"
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         entry = JournalEntry(
             id=op_id,
@@ -120,7 +119,7 @@ class OperationJournal:
         self._update_status(
             operation_id,
             "completed",
-            completed_at=datetime.now(timezone.utc).isoformat(),
+            completed_at=datetime.now(UTC).isoformat(),
         )
         logger.info("Journal: completed operation %s", operation_id)
 
@@ -134,19 +133,19 @@ class OperationJournal:
         self._update_status(
             operation_id,
             "failed",
-            completed_at=datetime.now(timezone.utc).isoformat(),
+            completed_at=datetime.now(UTC).isoformat(),
             error=error,
         )
         logger.warning("Journal: failed operation %s: %s", operation_id, error)
 
-    def check_incomplete_operations(self) -> List[JournalEntry]:
+    def check_incomplete_operations(self) -> list[JournalEntry]:
         """Find operations still in_progress (indicates a crash during execution).
 
         Returns:
             List of JournalEntry objects with status="in_progress".
         """
         journal = self._load_journal()
-        incomplete: List[JournalEntry] = []
+        incomplete: list[JournalEntry] = []
 
         for raw in journal["entries"]:
             if raw.get("status") == "in_progress":
@@ -174,7 +173,7 @@ class OperationJournal:
         self._update_status(
             operation_id,
             "rolled_back",
-            completed_at=datetime.now(timezone.utc).isoformat(),
+            completed_at=datetime.now(UTC).isoformat(),
         )
         logger.info("Journal: marked operation %s as rolled_back", operation_id)
 
@@ -182,8 +181,8 @@ class OperationJournal:
         self,
         operation_id: str,
         status: str,
-        completed_at: Optional[str] = None,
-        error: Optional[str] = None,
+        completed_at: str | None = None,
+        error: str | None = None,
     ) -> None:
         """Update the status of a journal entry.
 
@@ -214,7 +213,7 @@ class OperationJournal:
 
         self._save_journal(journal)
 
-    def _load_journal(self) -> Dict:
+    def _load_journal(self) -> dict:
         """Load journal from disk, creating empty journal if missing or corrupt.
 
         Returns:
@@ -233,7 +232,7 @@ class OperationJournal:
             logger.warning("Failed to load journal, starting fresh: %s", e)
             return {"version": "1.0", "entries": []}
 
-    def _save_journal(self, journal: Dict) -> None:
+    def _save_journal(self, journal: dict) -> None:
         """Atomically save journal to disk (write to temp, then rename).
 
         Args:

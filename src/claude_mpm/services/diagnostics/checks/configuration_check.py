@@ -7,7 +7,7 @@ and properly structured.
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -292,7 +292,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
             details={"paths_checked": paths_checked},
         )
 
-    def _validate_config_structure(self, config: Dict[str, Any]) -> list:
+    def _validate_config_structure(self, config: dict[str, Any]) -> list:
         """Validate configuration structure and return issues."""
         issues = []
 
@@ -318,7 +318,7 @@ class ConfigurationCheck(BaseDiagnosticCheck):
 
         return issues
 
-    def _check_deprecated_keys(self, config: Dict[str, Any]) -> list:
+    def _check_deprecated_keys(self, config: dict[str, Any]) -> list:
         """Check for deprecated configuration keys."""
         deprecated_keys = ["legacy_mode", "old_agent_format", "deprecated_logging"]
         found_deprecated = []

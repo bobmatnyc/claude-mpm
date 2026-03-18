@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 
@@ -19,43 +19,43 @@ class PipelineContext:
     """
 
     # Input parameters
-    target_dir: Optional[Path] = None
+    target_dir: Path | None = None
     force_rebuild: bool = False
     deployment_mode: str = "update"
-    config: Optional[Config] = None
+    config: Config | None = None
     use_async: bool = False
-    working_directory: Optional[Path] = None
-    templates_dir: Optional[Path] = None
-    base_agent_path: Optional[Path] = None
+    working_directory: Path | None = None
+    templates_dir: Path | None = None
+    base_agent_path: Path | None = None
 
     # Strategy and execution context
-    strategy: Optional[BaseDeploymentStrategy] = None
-    actual_target_dir: Optional[Path] = None
-    actual_templates_dir: Optional[Path] = None
-    actual_base_agent_path: Optional[Path] = None
+    strategy: BaseDeploymentStrategy | None = None
+    actual_target_dir: Path | None = None
+    actual_templates_dir: Path | None = None
+    actual_base_agent_path: Path | None = None
 
     # Configuration and exclusions
-    excluded_agents: List[str] = field(default_factory=list)
+    excluded_agents: list[str] = field(default_factory=list)
     case_sensitive_exclusion: bool = True
 
     # Template and agent data
-    template_files: List[Path] = field(default_factory=list)
-    base_agent_data: Optional[Dict[str, Any]] = None
-    base_agent_version: Optional[tuple] = None
-    agent_sources: Dict[str, str] = field(
+    template_files: list[Path] = field(default_factory=list)
+    base_agent_data: dict[str, Any] | None = None
+    base_agent_version: tuple | None = None
+    agent_sources: dict[str, str] = field(
         default_factory=dict
     )  # Maps agent names to sources
 
     # Deployment results
-    results: Dict[str, Any] = field(default_factory=dict)
+    results: dict[str, Any] = field(default_factory=dict)
 
     # Metrics and timing
-    deployment_start_time: Optional[float] = None
-    step_timings: Dict[str, float] = field(default_factory=dict)
+    deployment_start_time: float | None = None
+    step_timings: dict[str, float] = field(default_factory=dict)
 
     # Error handling
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     # Step control flags
     should_deploy_system_instructions: bool = True
@@ -127,7 +127,7 @@ class PipelineContext:
                 "strategy_used": self.strategy.name if self.strategy else "Unknown",
             }
 
-    def finalize_results(self, end_time: float) -> Dict[str, Any]:
+    def finalize_results(self, end_time: float) -> dict[str, Any]:
         """Finalize the results dictionary.
 
         Args:

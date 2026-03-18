@@ -4,14 +4,13 @@ This module defines Pydantic models for OAuth tokens and their metadata,
 providing type-safe token handling with automatic validation.
 """
 
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Optional
+from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class TokenStatus(str, Enum):
+class TokenStatus(StrEnum):
     """Status of an OAuth token."""
 
     VALID = "valid"
@@ -35,7 +34,7 @@ class OAuthToken(BaseModel):
     """
 
     access_token: str = Field(..., description="OAuth access token")
-    refresh_token: Optional[str] = Field(
+    refresh_token: str | None = Field(
         default=None, description="OAuth refresh token for renewal"
     )
     expires_at: datetime = Field(..., description="Token expiration timestamp (UTC)")
@@ -53,11 +52,11 @@ class OAuthToken(BaseModel):
         Returns:
             True if the token is expired or will expire within the buffer period.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Ensure expires_at is timezone-aware
         expires_at = self.expires_at
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            expires_at = expires_at.replace(tzinfo=UTC)
 
         from datetime import timedelta
 
@@ -79,10 +78,10 @@ class TokenMetadata(BaseModel):
     service_name: str = Field(..., description="MCP service name")
     provider: str = Field(..., description="OAuth provider identifier")
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="Token creation timestamp",
     )
-    last_refreshed: Optional[datetime] = Field(
+    last_refreshed: datetime | None = Field(
         default=None, description="Last token refresh timestamp"
     )
 

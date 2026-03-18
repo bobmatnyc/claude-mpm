@@ -25,7 +25,7 @@ try:
         """Register a service tool module."""
         _SERVICE_REGISTRY[service_name] = module_class
 
-    def get_service(service_name: str) -> Optional[type[BaseToolModule]]:
+    def get_service(service_name: str) -> type[BaseToolModule] | None:
         """Get service module class by name."""
         return _SERVICE_REGISTRY.get(service_name)
 

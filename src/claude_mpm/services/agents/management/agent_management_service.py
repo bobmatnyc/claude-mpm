@@ -12,8 +12,8 @@ Uses python-frontmatter and mistune for markdown parsing as recommended.
 """
 
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set
+from datetime import UTC, datetime
+from typing import Any
 
 import frontmatter
 import mistune
@@ -40,7 +40,7 @@ class AgentManager:
     """Manages agent definitions with CRUD operations and versioning."""
 
     def __init__(
-        self, framework_dir: Optional[Path] = None, project_dir: Optional[Path] = None
+        self, framework_dir: Path | None = None, project_dir: Path | None = None
     ):
         """
         Initialize AgentManager.
@@ -103,7 +103,7 @@ class AgentManager:
         logger.info(f"Created agent '{name}' at {file_path}")
         return file_path
 
-    def read_agent(self, name: str) -> Optional[AgentDefinition]:
+    def read_agent(self, name: str) -> AgentDefinition | None:
         """
         Read an agent definition.
 
@@ -128,8 +128,8 @@ class AgentManager:
             return None
 
     def update_agent(
-        self, name: str, updates: Dict[str, Any], increment_version: bool = True
-    ) -> Optional[AgentDefinition]:
+        self, name: str, updates: dict[str, Any], increment_version: bool = True
+    ) -> AgentDefinition | None:
         """
         Update an agent definition.
 
@@ -156,7 +156,7 @@ class AgentManager:
         # Increment version if requested
         if increment_version:
             agent_def.metadata.increment_serial_version()
-            agent_def.metadata.last_updated = datetime.now(timezone.utc)
+            agent_def.metadata.last_updated = datetime.now(UTC)
 
         # Write back
         agent_path = self._find_agent_file(name)
@@ -180,7 +180,7 @@ class AgentManager:
         section: AgentSection,
         content: str,
         increment_version: bool = True,
-    ) -> Optional[AgentDefinition]:
+    ) -> AgentDefinition | None:
         """
         Update a specific section of an agent.
 
@@ -234,7 +234,7 @@ class AgentManager:
         # Increment version
         if increment_version:
             agent_def.metadata.increment_serial_version()
-            agent_def.metadata.last_updated = datetime.now(timezone.utc)
+            agent_def.metadata.last_updated = datetime.now(UTC)
 
         # Write back
         return self.update_agent(name, {}, increment_version=False)
@@ -262,7 +262,7 @@ class AgentManager:
             logger.error(f"Error deleting agent '{name}': {e}")
             return False
 
-    def list_agent_names(self, location: Optional[str] = None) -> Set[str]:
+    def list_agent_names(self, location: str | None = None) -> set[str]:
         """Return set of agent names (filenames without .md) without parsing content.
 
         This is a lightweight alternative to list_agents() when only names are needed,
@@ -275,7 +275,7 @@ class AgentManager:
         Returns:
             Set of agent name strings (stems of .md files)
         """
-        names: Set[str] = set()
+        names: set[str] = set()
         if location in (None, "framework"):
             if self.framework_dir.exists():
                 names.update(
@@ -288,7 +288,7 @@ class AgentManager:
                 names.update(f.stem for f in self.project_dir.glob("*.md"))
         return names
 
-    def list_agents(self, location: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+    def list_agents(self, location: str | None = None) -> dict[str, dict[str, Any]]:
         """
         List all available agents.
 
@@ -302,7 +302,7 @@ class AgentManager:
 
         def _build_agent_entry(
             agent_file: Path, agent_name: str, loc: str
-        ) -> Optional[Dict[str, Any]]:
+        ) -> dict[str, Any] | None:
             agent_def = self.read_agent(agent_name)
             if not agent_def:
                 return None
@@ -343,7 +343,7 @@ class AgentManager:
 
         return agents
 
-    def _extract_enrichment_fields(self, raw_content: str) -> Dict[str, Any]:
+    def _extract_enrichment_fields(self, raw_content: str) -> dict[str, Any]:
         """Extract UI enrichment fields from agent raw content frontmatter.
 
         Parses the in-memory raw_content string to extract fields that are
@@ -357,7 +357,7 @@ class AgentManager:
         Returns:
             Dict of enrichment fields with safe defaults for missing/malformed data.
         """
-        defaults: Dict[str, Any] = {
+        defaults: dict[str, Any] = {
             "name": "",
             "description": "",
             "category": "",
@@ -403,7 +403,7 @@ class AgentManager:
             logger.warning("Failed to parse frontmatter for enrichment, using defaults")
             return defaults
 
-    def get_agent_api(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_api(self, name: str) -> dict[str, Any] | None:
         """
         Get agent data in API-friendly format.
 
@@ -421,7 +421,7 @@ class AgentManager:
 
     # Private helper methods
 
-    def _find_agent_file(self, name: str) -> Optional[Path]:
+    def _find_agent_file(self, name: str) -> Path | None:
         """Find agent file in project or framework directories."""
         # Check project first (higher precedence)
         if self.project_dir.exists():
@@ -501,7 +501,7 @@ class AgentManager:
             raw_sections=sections,
         )
 
-    def _extract_sections(self, content: str) -> Dict[str, str]:
+    def _extract_sections(self, content: str) -> dict[str, str]:
         """Extract sections from markdown content."""
         sections = {}
         current_section = None
@@ -531,7 +531,7 @@ class AgentManager:
 
         return sections
 
-    def _parse_list_content(self, content: str) -> List[str]:
+    def _parse_list_content(self, content: str) -> list[str]:
         """Parse bullet point or numbered list content."""
         items = []
         for line in content.split("\n"):
@@ -542,7 +542,7 @@ class AgentManager:
                 items.append(item.strip())
         return items
 
-    def _parse_when_to_use(self, content: str) -> Dict[str, List[str]]:
+    def _parse_when_to_use(self, content: str) -> dict[str, list[str]]:
         """Parse When to Use section."""
         result = {"select": [], "do_not_select": []}
         current_mode = None
@@ -587,7 +587,7 @@ class AgentManager:
 
         return permissions
 
-    def _parse_workflows(self, content: str) -> List[AgentWorkflow]:
+    def _parse_workflows(self, content: str) -> list[AgentWorkflow]:
         """Parse workflows from YAML blocks."""
         workflows = []
 

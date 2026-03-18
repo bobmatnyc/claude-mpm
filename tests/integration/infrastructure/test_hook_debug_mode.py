@@ -10,7 +10,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 # Add project root to path so we can import from the project
 project_root = Path(__file__).parent.parent
@@ -18,8 +18,8 @@ sys.path.insert(0, str(project_root / "src"))
 
 
 def run_hook_handler_test(
-    env_value: Optional[str] = None, test_name: str = "default"
-) -> Tuple[bool, str, str]:
+    env_value: str | None = None, test_name: str = "default"
+) -> tuple[bool, str, str]:
     """Run the hook handler with specific environment variable and capture output.
 
     Returns: (success, stdout, stderr)
@@ -81,7 +81,7 @@ def analyze_debug_output(stderr: str) -> bool:
     return any(indicator in stderr for indicator in debug_indicators)
 
 
-def test_debug_mode_scenarios() -> Dict[str, Dict]:
+def test_debug_mode_scenarios() -> dict[str, dict]:
     """Test all debug mode scenarios and return results."""
 
     test_scenarios = [
@@ -200,7 +200,7 @@ def test_debug_mode_scenarios() -> Dict[str, Dict]:
     return results
 
 
-def print_summary(results: Dict[str, Dict]):
+def print_summary(results: dict[str, dict]):
     """Print test summary."""
     print("\n" + "=" * 50)
     print("📊 TEST SUMMARY")

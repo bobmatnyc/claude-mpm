@@ -24,7 +24,7 @@ Test Requirements:
 import json
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -99,7 +99,7 @@ class TestMemorySystemIntegration:
         # We strip the trailing Z before parsing since +00:00 is already the UTC offset
         timestamp_match = content.split("<!-- Last Updated: ")[1].split(" -->")[0]
         timestamp = datetime.fromisoformat(timestamp_match.rstrip("Z"))
-        time_diff = datetime.now(timezone.utc).astimezone() - timestamp.astimezone()
+        time_diff = datetime.now(UTC).astimezone() - timestamp.astimezone()
         assert time_diff.total_seconds() < 60, "Timestamp should be recent"
 
         print(f"✓ Timestamp is recent: {timestamp}")

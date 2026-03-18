@@ -17,7 +17,6 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List
 
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
@@ -96,7 +95,7 @@ class TemplateEditor:
 
         return custom_template
 
-    def customize_agent_template(self, agents: List[AgentConfig]) -> None:
+    def customize_agent_template(self, agents: list[AgentConfig]) -> None:
         """Customize agent JSON template (entry point).
 
         Prompts for agent ID and launches the template editor.
@@ -265,7 +264,7 @@ class TemplateEditor:
         if choice != "b":
             Prompt.ask("Press Enter to continue")
 
-    def edit_in_external_editor(self, template_path: Path, template: Dict) -> None:
+    def edit_in_external_editor(self, template_path: Path, template: dict) -> None:
         """Open template in external editor.
 
         Uses $EDITOR environment variable (defaults to nano).
@@ -303,7 +302,7 @@ class TemplateEditor:
             # Clean up temp file
             Path(temp_path).unlink(missing_ok=True)
 
-    def modify_template_field(self, template: Dict, template_path: Path) -> None:
+    def modify_template_field(self, template: dict, template_path: Path) -> None:
         """Add or modify a field in the template.
 
         Supports dot notation for nested fields (e.g., "config.timeout").
@@ -347,7 +346,7 @@ class TemplateEditor:
         except Exception as e:
             self.console.print(f"[red]Error updating field: {e}[/red]")
 
-    def remove_template_field(self, template: Dict, template_path: Path) -> None:
+    def remove_template_field(self, template: dict, template_path: Path) -> None:
         """Remove a field from the template.
 
         Supports dot notation for nested fields.
@@ -403,7 +402,7 @@ class TemplateEditor:
                 f"[green]Template for '{agent.name}' reset to defaults![/green]"
             )
 
-    def create_custom_template_copy(self, agent: AgentConfig, template: Dict) -> None:
+    def create_custom_template_copy(self, agent: AgentConfig, template: dict) -> None:
         """Create a customized copy of a system template.
 
         Copies system template to project/user config directory for editing.
@@ -432,7 +431,7 @@ class TemplateEditor:
         self.console.print(f"[green]Created custom template at: {custom_path}[/green]")
         self.console.print("[green]You can now edit this template.[/green]")
 
-    def view_full_template(self, template: Dict) -> None:
+    def view_full_template(self, template: dict) -> None:
         """View the full template without truncation.
 
         Uses pager for long templates.
@@ -450,7 +449,7 @@ class TemplateEditor:
         with self.console.pager():
             self.console.print(syntax)
 
-    def reset_agent_defaults(self, agents: List[AgentConfig]) -> None:
+    def reset_agent_defaults(self, agents: list[AgentConfig]) -> None:
         """Reset an agent to default enabled state and remove custom template.
 
         This method:

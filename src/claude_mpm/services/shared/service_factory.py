@@ -2,7 +2,7 @@
 Service factory utilities to reduce service creation duplication.
 """
 
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, TypeVar
 
 from ...core.config import Config
 from ...core.logger import get_logger
@@ -27,9 +27,9 @@ class ServiceFactory:
         self.logger = get_logger("service_factory")
         self._config_loader = ConfigLoader()
         self._path_resolver = PathResolver()
-        self._registered_services: Dict[str, Type] = {}
+        self._registered_services: dict[str, type] = {}
 
-    def register_service(self, service_name: str, service_class: Type[T]) -> None:
+    def register_service(self, service_name: str, service_class: type[T]) -> None:
         """
         Register a service class.
 
@@ -44,9 +44,9 @@ class ServiceFactory:
 
     def create_service(
         self,
-        service_class: Type[T],
-        service_name: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
+        service_class: type[T],
+        service_name: str | None = None,
+        config: dict[str, Any] | None = None,
         singleton: bool = False,
         **kwargs,
     ) -> T:
@@ -90,7 +90,7 @@ class ServiceFactory:
     def create_registered_service(
         self,
         service_name: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         singleton: bool = False,
         **kwargs,
     ) -> Any:
@@ -123,9 +123,9 @@ class ServiceFactory:
 
     def create_agent_service(
         self,
-        service_class: Type[T],
+        service_class: type[T],
         agent_name: str,
-        agent_dir: Optional[str] = None,
+        agent_dir: str | None = None,
         **kwargs,
     ) -> T:
         """
@@ -167,9 +167,9 @@ class ServiceFactory:
 
     def create_memory_service(
         self,
-        service_class: Type[T],
-        agent_name: Optional[str] = None,
-        memory_dir: Optional[str] = None,
+        service_class: type[T],
+        agent_name: str | None = None,
+        memory_dir: str | None = None,
         **kwargs,
     ) -> T:
         """
@@ -208,7 +208,7 @@ class ServiceFactory:
         )
 
     def create_config_service(
-        self, service_class: Type[T], config_section: Optional[str] = None, **kwargs
+        self, service_class: type[T], config_section: str | None = None, **kwargs
     ) -> T:
         """
         Create a configuration-heavy service.
@@ -248,8 +248,8 @@ class ServiceFactory:
             return self._config_loader.load_main_config()
 
     def _filter_constructor_args(
-        self, service_class: Type, args: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, service_class: type, args: dict[str, Any]
+    ) -> dict[str, Any]:
         """Filter constructor arguments based on class signature."""
         import inspect
 
@@ -272,7 +272,7 @@ class ServiceFactory:
             self.logger.warning(f"Failed to filter constructor args: {e}")
             return args
 
-    def get_registered_services(self) -> Dict[str, str]:
+    def get_registered_services(self) -> dict[str, str]:
         """
         Get list of registered services.
 
@@ -288,7 +288,7 @@ class ServiceFactory:
 
 
 # Global factory instance (lazy initialization)
-_global_factory: Optional[ServiceFactory] = None
+_global_factory: ServiceFactory | None = None
 
 
 def get_service_factory() -> ServiceFactory:
@@ -299,11 +299,11 @@ def get_service_factory() -> ServiceFactory:
     return _global_factory
 
 
-def create_service(service_class: Type[T], **kwargs) -> T:
+def create_service[T](service_class: type[T], **kwargs) -> T:
     """Convenience function to create service using global factory."""
     return get_service_factory().create_service(service_class, **kwargs)
 
 
-def register_service(service_name: str, service_class: Type) -> None:
+def register_service(service_name: str, service_class: type) -> None:
     """Convenience function to register service with global factory."""
     get_service_factory().register_service(service_name, service_class)

@@ -28,10 +28,10 @@ import contextlib
 import json
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -83,19 +83,17 @@ class AgentMetadata:
     format: AgentFormat
     last_modified: float
     description: str = ""
-    specializations: List[str] = None
-    memory_files: List[str] = None
-    dependencies: List[str] = None
+    specializations: list[str] = None
+    memory_files: list[str] = None
+    dependencies: list[str] = None
     version: str = "1.0.0"
     author: str = ""
-    tags: List[str] = None
+    tags: list[str] = None
     is_memory_aware: bool = False
     # NEW: Collection-based identification fields
-    collection_id: Optional[str] = None  # Format: owner/repo-name
-    source_path: Optional[str] = None  # Relative path in repo
-    canonical_id: Optional[str] = (
-        None  # Format: collection_id:agent_id or legacy:filename
-    )
+    collection_id: str | None = None  # Format: owner/repo-name
+    source_path: str | None = None  # Relative path in repo
+    canonical_id: str | None = None  # Format: collection_id:agent_id or legacy:filename
 
     def __post_init__(self):
         """Initialize default values for mutable fields."""
@@ -108,7 +106,7 @@ class AgentMetadata:
         if self.tags is None:
             self.tags = []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         data = asdict(self)
         data["agent_type"] = self.agent_type.value
@@ -117,7 +115,7 @@ class AgentMetadata:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AgentMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> "AgentMetadata":
         """Create from dictionary representation."""
         data["agent_type"] = AgentSourceType(data["agent_type"])
         data["tier"] = AgentTier(data["tier"])
@@ -138,9 +136,9 @@ class UnifiedAgentRegistry:
         self.path_manager = get_path_manager()
 
         # Registry storage
-        self.registry: Dict[str, AgentMetadata] = {}
-        self.discovery_paths: List[Path] = []
-        self.discovered_files: Set[Path] = set()
+        self.registry: dict[str, AgentMetadata] = {}
+        self.discovery_paths: list[Path] = []
+        self.discovered_files: set[Path] = set()
 
         # Cache configuration
         self.cache_enabled = cache_enabled
@@ -215,7 +213,7 @@ class UnifiedAgentRegistry:
             f"Discovery paths configured: {[str(p) for p in self.discovery_paths]}"
         )
 
-    def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+    def discover_agents(self, force_refresh: bool = False) -> dict[str, AgentMetadata]:
         """
         Discover all agents from configured paths with tier precedence.
 
@@ -302,7 +300,7 @@ class UnifiedAgentRegistry:
             except Exception as e:
                 logger.warning(f"Failed to process agent file {file_path}: {e}")
 
-    def _extract_agent_name(self, file_path: Path) -> Optional[str]:
+    def _extract_agent_name(self, file_path: Path) -> str | None:
         """Extract agent name from file path."""
         # Remove extension and use filename as agent name
         name = file_path.stem
@@ -337,7 +335,7 @@ class UnifiedAgentRegistry:
 
     def _create_agent_metadata(
         self, file_path: Path, agent_name: str, tier: AgentTier
-    ) -> Optional[AgentMetadata]:
+    ) -> AgentMetadata | None:
         """Create agent metadata from file."""
         try:
             # Determine format
@@ -468,7 +466,7 @@ class UnifiedAgentRegistry:
 
     def _extract_file_metadata(
         self, file_path: Path, agent_format: AgentFormat
-    ) -> tuple[str, List[str]]:
+    ) -> tuple[str, list[str]]:
         """Extract description and specializations from agent file."""
         try:
             content = file_path.read_text(encoding="utf-8")
@@ -550,7 +548,7 @@ class UnifiedAgentRegistry:
 
         return ""
 
-    def _extract_markdown_specializations(self, content: str) -> List[str]:
+    def _extract_markdown_specializations(self, content: str) -> list[str]:
         """Extract specializations from markdown content."""
         specializations = []
 
@@ -651,7 +649,7 @@ class UnifiedAgentRegistry:
     # Public API Methods
     # ========================================================================
 
-    def get_agent(self, name: str) -> Optional[AgentMetadata]:
+    def get_agent(self, name: str) -> AgentMetadata | None:
         """Get agent metadata by name."""
         if not self.registry:
             self.discover_agents()
@@ -660,10 +658,10 @@ class UnifiedAgentRegistry:
 
     def list_agents(
         self,
-        tier: Optional[AgentTier] = None,
-        agent_type: Optional[AgentSourceType] = None,
-        tags: Optional[List[str]] = None,
-    ) -> List[AgentMetadata]:
+        tier: AgentTier | None = None,
+        agent_type: AgentSourceType | None = None,
+        tags: list[str] | None = None,
+    ) -> list[AgentMetadata]:
         """List agents with optional filtering."""
         if not self.registry:
             self.discover_agents()
@@ -682,32 +680,32 @@ class UnifiedAgentRegistry:
 
         return sorted(agents, key=lambda a: (a.tier.value, a.name))
 
-    def get_agent_names(self) -> List[str]:
+    def get_agent_names(self) -> list[str]:
         """Get list of all agent names."""
         if not self.registry:
             self.discover_agents()
 
         return sorted(self.registry.keys())
 
-    def get_core_agents(self) -> List[AgentMetadata]:
+    def get_core_agents(self) -> list[AgentMetadata]:
         """Get all core framework agents."""
         return self.list_agents(agent_type=AgentSourceType.CORE)
 
-    def get_specialized_agents(self) -> List[AgentMetadata]:
+    def get_specialized_agents(self) -> list[AgentMetadata]:
         """Get all specialized agents."""
         return self.list_agents(agent_type=AgentSourceType.SPECIALIZED)
 
-    def get_project_agents(self) -> List[AgentMetadata]:
+    def get_project_agents(self) -> list[AgentMetadata]:
         """Get all project-specific agents."""
         return self.list_agents(tier=AgentTier.PROJECT)
 
-    def get_memory_aware_agents(self) -> List[AgentMetadata]:
+    def get_memory_aware_agents(self) -> list[AgentMetadata]:
         """Get all memory-aware agents."""
         if not self.registry:
             self.discover_agents()
         return [a for a in self.registry.values() if a.is_memory_aware]
 
-    def get_agents_by_collection(self, collection_id: str) -> List[AgentMetadata]:
+    def get_agents_by_collection(self, collection_id: str) -> list[AgentMetadata]:
         """Get all agents from a specific collection.
 
         NEW: Enables collection-based agent selection.
@@ -735,7 +733,7 @@ class UnifiedAgentRegistry:
 
         return sorted(collection_agents, key=lambda a: a.name)
 
-    def list_collections(self) -> List[Dict[str, Any]]:
+    def list_collections(self) -> list[dict[str, Any]]:
         """List all available collections with agent counts.
 
         NEW: Provides overview of available collections.
@@ -762,7 +760,7 @@ class UnifiedAgentRegistry:
             self.discover_agents()
 
         # Group agents by collection_id
-        collections_map: Dict[str, List[str]] = {}
+        collections_map: dict[str, list[str]] = {}
 
         for agent in self.registry.values():
             if not agent.collection_id:
@@ -786,7 +784,7 @@ class UnifiedAgentRegistry:
 
         return sorted(collections, key=lambda c: c["collection_id"])
 
-    def get_agent_by_canonical_id(self, canonical_id: str) -> Optional[AgentMetadata]:
+    def get_agent_by_canonical_id(self, canonical_id: str) -> AgentMetadata | None:
         """Get agent by canonical ID (primary matching key).
 
         NEW: Primary matching method using canonical_id.
@@ -812,7 +810,7 @@ class UnifiedAgentRegistry:
 
         return None
 
-    def add_discovery_path(self, path: Union[str, Path]) -> None:
+    def add_discovery_path(self, path: str | Path) -> None:
         """Add a new path for agent discovery."""
         path = Path(path)
         if path.exists() and path not in self.discovery_paths:
@@ -826,7 +824,7 @@ class UnifiedAgentRegistry:
         self.discovery_stats["last_discovery"] = None
         logger.debug("Agent registry cache invalidated")
 
-    def get_registry_stats(self) -> Dict[str, Any]:
+    def get_registry_stats(self) -> dict[str, Any]:
         """Get registry statistics."""
         return {
             **self.discovery_stats,
@@ -835,13 +833,13 @@ class UnifiedAgentRegistry:
             "cache_enabled": self.cache_enabled,
         }
 
-    def export_registry(self, output_path: Union[str, Path]) -> None:
+    def export_registry(self, output_path: str | Path) -> None:
         """Export registry to JSON file."""
         output_path = Path(output_path)
 
         export_data = {
             "metadata": {
-                "export_time": datetime.now(timezone.utc).isoformat(),
+                "export_time": datetime.now(UTC).isoformat(),
                 "total_agents": len(self.registry),
                 "discovery_paths": [str(p) for p in self.discovery_paths],
             },
@@ -855,7 +853,7 @@ class UnifiedAgentRegistry:
 
         logger.info(f"Exported {len(self.registry)} agents to {output_path}")
 
-    def import_registry(self, input_path: Union[str, Path]) -> None:
+    def import_registry(self, input_path: str | Path) -> None:
         """Import registry from JSON file."""
         input_path = Path(input_path)
 
@@ -877,7 +875,7 @@ class UnifiedAgentRegistry:
 # ============================================================================
 
 # Global singleton instance
-_agent_registry: Optional[UnifiedAgentRegistry] = None
+_agent_registry: UnifiedAgentRegistry | None = None
 
 
 def get_agent_registry() -> UnifiedAgentRegistry:
@@ -889,75 +887,75 @@ def get_agent_registry() -> UnifiedAgentRegistry:
 
 
 # Convenience functions for backward compatibility
-def discover_agents() -> Dict[str, AgentMetadata]:
+def discover_agents() -> dict[str, AgentMetadata]:
     """Discover all agents."""
     return get_agent_registry().discover_agents()
 
 
 def list_agents(
-    tier: Optional[AgentTier] = None, agent_type: Optional[AgentSourceType] = None
-) -> List[AgentMetadata]:
+    tier: AgentTier | None = None, agent_type: AgentSourceType | None = None
+) -> list[AgentMetadata]:
     """List agents with optional filtering."""
     return get_agent_registry().list_agents(tier=tier, agent_type=agent_type)
 
 
-def get_agent(name: str) -> Optional[AgentMetadata]:
+def get_agent(name: str) -> AgentMetadata | None:
     """Get agent metadata by name."""
     return get_agent_registry().get_agent(name)
 
 
-def get_core_agents() -> List[AgentMetadata]:
+def get_core_agents() -> list[AgentMetadata]:
     """Get all core framework agents."""
     return get_agent_registry().get_core_agents()
 
 
-def get_specialized_agents() -> List[AgentMetadata]:
+def get_specialized_agents() -> list[AgentMetadata]:
     """Get all specialized agents."""
     return get_agent_registry().get_specialized_agents()
 
 
-def get_project_agents() -> List[AgentMetadata]:
+def get_project_agents() -> list[AgentMetadata]:
     """Get all project-specific agents."""
     return get_agent_registry().get_project_agents()
 
 
-def get_agent_names() -> List[str]:
+def get_agent_names() -> list[str]:
     """Get list of all agent names."""
     return get_agent_registry().get_agent_names()
 
 
-def get_registry_stats() -> Dict[str, Any]:
+def get_registry_stats() -> dict[str, Any]:
     """Get registry statistics."""
     return get_agent_registry().get_registry_stats()
 
 
-def get_agents_by_collection(collection_id: str) -> List[AgentMetadata]:
+def get_agents_by_collection(collection_id: str) -> list[AgentMetadata]:
     """Get all agents from a specific collection."""
     return get_agent_registry().get_agents_by_collection(collection_id)
 
 
-def list_collections() -> List[Dict[str, Any]]:
+def list_collections() -> list[dict[str, Any]]:
     """List all available collections."""
     return get_agent_registry().list_collections()
 
 
-def get_agent_by_canonical_id(canonical_id: str) -> Optional[AgentMetadata]:
+def get_agent_by_canonical_id(canonical_id: str) -> AgentMetadata | None:
     """Get agent by canonical ID."""
     return get_agent_registry().get_agent_by_canonical_id(canonical_id)
 
 
 # Legacy function names for backward compatibility
-def listAgents() -> List[str]:
+def listAgents() -> list[str]:
     """Legacy function: Get list of agent names."""
     return get_agent_names()
 
 
-def discover_agents_sync() -> Dict[str, AgentMetadata]:
+def discover_agents_sync() -> dict[str, AgentMetadata]:
     """Legacy function: Synchronous agent discovery."""
     return discover_agents()
 
 
-def list_agents_all() -> List[AgentMetadata]:
+def list_agents_all() -> list[AgentMetadata]:
     """Legacy function: List all agents."""
     return list_agents()
 

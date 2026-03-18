@@ -5,8 +5,8 @@ logging, error handling, and access to the server instance. All handler
 classes inherit from this to ensure consistent behavior.
 """
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from ....core.logger import get_logger
 from ....core.typing_utils import EventData, EventName, SocketId
@@ -36,8 +36,8 @@ class BaseEventHandler:
         self.server: SocketIOServer = server
         self.sio: socketio.AsyncServer = server.sio
         self.logger: Logger = get_logger(self.__class__.__name__)
-        self.clients: Dict[SocketId, Dict[str, Any]] = server.clients
-        self.event_history: List[Dict[str, Any]] = server.event_history
+        self.clients: dict[SocketId, dict[str, Any]] = server.clients
+        self.event_history: list[dict[str, Any]] = server.event_history
 
     def register_events(self) -> None:
         """Register all events handled by this handler.
@@ -70,7 +70,7 @@ class BaseEventHandler:
             self.logger.error(f"Stack trace: {traceback.format_exc()}")
 
     async def broadcast_event(
-        self, event: EventName, data: EventData, skip_sid: Optional[SocketId] = None
+        self, event: EventName, data: EventData, skip_sid: SocketId | None = None
     ) -> None:
         """Broadcast an event to all connected clients.
 
@@ -107,7 +107,7 @@ class BaseEventHandler:
         """
         event = {
             "type": event_type,
-            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat() + "Z",
             "data": data,
         }
         self.event_history.append(event)
@@ -116,7 +116,7 @@ class BaseEventHandler:
         )
 
     def log_error(
-        self, operation: str, error: Exception, context: Optional[Dict[str, Any]] = None
+        self, operation: str, error: Exception, context: dict[str, Any] | None = None
     ) -> None:
         """Log an error with context.
 

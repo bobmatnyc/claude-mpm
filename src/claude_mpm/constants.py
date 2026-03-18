@@ -3,10 +3,10 @@
 Build number tracking is now enabled for all builds.
 """
 
-from enum import Enum
+from enum import Enum, StrEnum
 
 
-class CLIPrefix(str, Enum):
+class CLIPrefix(StrEnum):
     """CLI command prefix constants."""
 
     MPM = "--mpm:"
@@ -24,7 +24,7 @@ class CLIPrefix(str, Enum):
         return self.value + flag
 
 
-class CLICommands(str, Enum):
+class CLICommands(StrEnum):
     """CLI command constants."""
 
     RUN = "run"
@@ -68,7 +68,7 @@ class CLICommands(str, Enum):
         return command in [cmd.value for cmd in cls]
 
 
-class AgentCommands(str, Enum):
+class AgentCommands(StrEnum):
     """Agent subcommand constants."""
 
     LIST = "list"
@@ -79,7 +79,7 @@ class AgentCommands(str, Enum):
     CLEAN = "clean"
 
 
-class MemoryCommands(str, Enum):
+class MemoryCommands(StrEnum):
     """Memory subcommand constants."""
 
     INIT = "init"
@@ -94,7 +94,7 @@ class MemoryCommands(str, Enum):
     SHOW = "show"
 
 
-class MonitorCommands(str, Enum):
+class MonitorCommands(StrEnum):
     """Monitor subcommand constants."""
 
     START = "start"
@@ -104,7 +104,7 @@ class MonitorCommands(str, Enum):
     PORT = "port"
 
 
-class DashboardCommands(str, Enum):
+class DashboardCommands(StrEnum):
     """Dashboard subcommand constants."""
 
     START = "start"
@@ -113,7 +113,7 @@ class DashboardCommands(str, Enum):
     OPEN = "open"
 
 
-class ConfigCommands(str, Enum):
+class ConfigCommands(StrEnum):
     """Config subcommand constants."""
 
     VALIDATE = "validate"
@@ -121,7 +121,7 @@ class ConfigCommands(str, Enum):
     STATUS = "status"
 
 
-class AggregateCommands(str, Enum):
+class AggregateCommands(StrEnum):
     """Event aggregator subcommand constants."""
 
     START = "start"
@@ -132,7 +132,7 @@ class AggregateCommands(str, Enum):
     EXPORT = "export"
 
 
-class MCPCommands(str, Enum):
+class MCPCommands(StrEnum):
     """MCP Gateway subcommand constants."""
 
     INSTALL = "install"
@@ -151,7 +151,7 @@ class MCPCommands(str, Enum):
     LIST = "list"
 
 
-class TicketCommands(str, Enum):
+class TicketCommands(StrEnum):
     """Ticket subcommand constants."""
 
     CREATE = "create"
@@ -165,7 +165,7 @@ class TicketCommands(str, Enum):
     WORKFLOW = "workflow"
 
 
-class SkillsCommands(str, Enum):
+class SkillsCommands(StrEnum):
     """Skills subcommand constants."""
 
     LIST = "list"
@@ -191,7 +191,7 @@ class SkillsCommands(str, Enum):
     COLLECTION_SET_DEFAULT = "collection-set-default"
 
 
-class CLIFlags(str, Enum):
+class CLIFlags(StrEnum):
     """CLI flag constants (without prefix)."""
 
     # Logging flags
@@ -230,7 +230,7 @@ class CLIFlags(str, Enum):
         return f"{prefix}{self.value}"
 
 
-class LogLevel(str, Enum):
+class LogLevel(StrEnum):
     """Logging level constants."""
 
     OFF = "OFF"
@@ -238,7 +238,7 @@ class LogLevel(str, Enum):
     DEBUG = "DEBUG"
 
 
-class OrchestratorMode(str, Enum):
+class OrchestratorMode(StrEnum):
     """Orchestrator mode constants."""
 
     SYSTEM_PROMPT = "system_prompt"
@@ -246,7 +246,7 @@ class OrchestratorMode(str, Enum):
     INTERACTIVE_SUBPROCESS = "interactive_subprocess"
 
 
-class EnvironmentVars(str, Enum):
+class EnvironmentVars(StrEnum):
     """Environment variable constants."""
 
     CLAUDE_CONFIG_DIR = "CLAUDE_CONFIG_DIR"
@@ -259,7 +259,7 @@ class EnvironmentVars(str, Enum):
     DEFAULT_TIMEOUT = "600000"  # 10 minutes in milliseconds
 
 
-class Paths(str, Enum):
+class Paths(StrEnum):
     """Path constants."""
 
     CLAUDE_AGENTS_DIR = ".claude/agents"

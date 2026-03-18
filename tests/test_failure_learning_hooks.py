@@ -9,7 +9,7 @@ Tests cover:
 - Integration: End-to-end failure-learning cycle
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -56,7 +56,7 @@ class TestFailureDetectionHook:
             hook_type=HookType.POST_DELEGATION,
             data={"tool_name": "Bash", "output": "Error: Test"},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert self.hook.validate(valid_context)
 
@@ -65,7 +65,7 @@ class TestFailureDetectionHook:
             hook_type=HookType.PRE_DELEGATION,
             data={"tool_name": "Bash"},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert not self.hook.validate(invalid_context)
 
@@ -76,7 +76,7 @@ class TestFailureDetectionHook:
             hook_type=HookType.POST_DELEGATION,
             data={"tool_name": "Bash"},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert self.hook.validate(valid_context)
 
@@ -85,7 +85,7 @@ class TestFailureDetectionHook:
             hook_type=HookType.POST_DELEGATION,
             data={},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert not self.hook.validate(invalid_context)
 
@@ -99,7 +99,7 @@ class TestFailureDetectionHook:
                 "exit_code": 1,
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -123,7 +123,7 @@ class TestFailureDetectionHook:
                 "exit_code": 1,
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -145,7 +145,7 @@ class TestFailureDetectionHook:
                 "exit_code": 1,
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -167,7 +167,7 @@ class TestFailureDetectionHook:
                 "exit_code": 0,
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -191,7 +191,7 @@ class TestFailureDetectionHook:
                 "working_directory": "/project",
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             session_id="test-session-123",
         )
 
@@ -237,7 +237,7 @@ class TestFixDetectionHook:
             hook_type=HookType.POST_DELEGATION,
             data={"tool_name": "Bash", "output": "All tests passed", "exit_code": 0},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -254,7 +254,7 @@ class TestFixDetectionHook:
             hook_type=HookType.POST_DELEGATION,
             data={"tool_name": "Bash", "output": "Success", "exit_code": 0},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -273,7 +273,7 @@ class TestFixDetectionHook:
             hook_type=HookType.POST_DELEGATION,
             data={"tool_name": "Bash", "output": "Still failing", "exit_code": 1},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -296,7 +296,7 @@ class TestFixDetectionHook:
                 "exit_code": 0,
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -332,7 +332,7 @@ class TestLearningExtractionHook:
             hook_type=HookType.POST_DELEGATION,
             data={},
             metadata={"fix_detected": True},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert self.hook.validate(valid_context)
 
@@ -341,7 +341,7 @@ class TestLearningExtractionHook:
             hook_type=HookType.POST_DELEGATION,
             data={},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         assert not self.hook.validate(invalid_context)
 
@@ -368,7 +368,7 @@ class TestLearningExtractionHook:
                 "failure_event": failure_event,
                 "fix_event": fix_event,
             },
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -406,7 +406,7 @@ class TestLearningExtractionHook:
                 "failure_event": failure_event,
                 "fix_event": fix_event,
             },
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -423,7 +423,7 @@ class TestLearningExtractionHook:
             hook_type=HookType.POST_DELEGATION,
             data={},
             metadata={},  # No fix_detected
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = self.hook.execute(context)
@@ -460,7 +460,7 @@ class TestIntegration:
                 "agent_type": "qa",
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         failure_result = self.failure_hook.execute(failure_context)
@@ -477,7 +477,7 @@ class TestIntegration:
                 "agent_type": "qa",
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         fix_result = self.fix_hook.execute(fix_context)
@@ -493,7 +493,7 @@ class TestIntegration:
                 "failure_event": fix_result.metadata["failure_event"],
                 "fix_event": fix_result.metadata["fix_event"],
             },
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         learning_result = self.learning_hook.execute(learning_context)

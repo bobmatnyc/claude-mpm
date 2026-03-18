@@ -21,8 +21,9 @@ Features:
 - Metrics and monitoring integration
 """
 
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logging_utils import get_logger
@@ -50,7 +51,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
         """Initialize unified deployment service."""
         self._logger = get_logger(f"{__name__}.UnifiedDeploymentService")
         self._registry = get_strategy_registry()
-        self._deployments: Dict[str, Dict[str, Any]] = {}
+        self._deployments: dict[str, dict[str, Any]] = {}
         self._deployment_counter = 0
         self._metrics = {
             "total_deployments": 0,
@@ -126,7 +127,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
         self._initialized = False
         self._logger.info("UnifiedDeploymentService shutdown complete")
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform health check.
 
@@ -144,7 +145,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
             "metrics": self.get_metrics(),
         }
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get service metrics.
 
@@ -177,8 +178,8 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
         }
 
     def validate_deployment(
-        self, target: Union[str, Path], config: Dict[str, Any]
-    ) -> List[str]:
+        self, target: str | Path, config: dict[str, Any]
+    ) -> list[str]:
         """
         Validate deployment configuration.
 
@@ -223,9 +224,9 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
     def deploy(
         self,
-        source: Union[str, Path],
-        target: Union[str, Path],
-        config: Optional[Dict[str, Any]] = None,
+        source: str | Path,
+        target: str | Path,
+        config: dict[str, Any] | None = None,
         force: bool = False,
     ) -> DeploymentResult:
         """
@@ -328,7 +329,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
             )
 
     def rollback(
-        self, deployment_id: str, rollback_info: Dict[str, Any]
+        self, deployment_id: str, rollback_info: dict[str, Any]
     ) -> DeploymentResult:
         """
         Rollback deployment.
@@ -388,8 +389,8 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
             )
 
     def list_deployments(
-        self, target: Optional[Union[str, Path]] = None
-    ) -> List[Dict[str, Any]]:
+        self, target: str | Path | None = None
+    ) -> list[dict[str, Any]]:
         """
         List deployments.
 
@@ -407,7 +408,7 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
         return deployments
 
-    def get_deployment_status(self, deployment_id: str) -> Dict[str, Any]:
+    def get_deployment_status(self, deployment_id: str) -> dict[str, Any]:
         """
         Get deployment status.
 
@@ -461,6 +462,6 @@ class UnifiedDeploymentService(IDeploymentService, IUnifiedService):
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()

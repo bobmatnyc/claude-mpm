@@ -26,11 +26,12 @@ import json
 import shutil
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
@@ -77,29 +78,29 @@ class AgentModification:
     tier: ModificationTier
     file_path: str
     timestamp: float
-    user_id: Optional[str] = None
-    modification_details: Dict[str, Any] = field(default_factory=dict)
-    file_hash_before: Optional[str] = None
-    file_hash_after: Optional[str] = None
-    file_size_before: Optional[int] = None
-    file_size_after: Optional[int] = None
-    backup_path: Optional[str] = None
+    user_id: str | None = None
+    modification_details: dict[str, Any] = field(default_factory=dict)
+    file_hash_before: str | None = None
+    file_hash_after: str | None = None
+    file_size_before: int | None = None
+    file_size_after: int | None = None
+    backup_path: str | None = None
     validation_status: str = "pending"
-    validation_errors: List[str] = field(default_factory=list)
-    related_modifications: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    validation_errors: list[str] = field(default_factory=list)
+    related_modifications: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def modification_datetime(self) -> datetime:
         """Get modification timestamp as datetime."""
-        return datetime.fromtimestamp(self.timestamp, tz=timezone.utc)
+        return datetime.fromtimestamp(self.timestamp, tz=UTC)
 
     @property
     def age_seconds(self) -> float:
         """Get age of modification in seconds."""
         return time.time() - self.timestamp
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         data = asdict(self)
         data["modification_type"] = self.modification_type.value
@@ -107,7 +108,7 @@ class AgentModification:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AgentModification":
+    def from_dict(cls, data: dict[str, Any]) -> "AgentModification":
         """Create from dictionary."""
         data["modification_type"] = ModificationType(data["modification_type"])
         data["tier"] = ModificationTier(data["tier"])
@@ -119,11 +120,11 @@ class ModificationHistory:
     """Complete modification history for an agent."""
 
     agent_name: str
-    modifications: List[AgentModification] = field(default_factory=list)
-    current_version: Optional[str] = None
+    modifications: list[AgentModification] = field(default_factory=list)
+    current_version: str | None = None
     total_modifications: int = 0
-    first_seen: Optional[float] = None
-    last_modified: Optional[float] = None
+    first_seen: float | None = None
+    last_modified: float | None = None
 
     def add_modification(self, modification: AgentModification) -> None:
         """Add a modification to history."""
@@ -134,14 +135,14 @@ class ModificationHistory:
         if self.first_seen is None:
             self.first_seen = modification.timestamp
 
-    def get_recent_modifications(self, hours: int = 24) -> List[AgentModification]:
+    def get_recent_modifications(self, hours: int = 24) -> list[AgentModification]:
         """Get modifications within specified hours."""
         cutoff = time.time() - (hours * 3600)
         return [mod for mod in self.modifications if mod.timestamp >= cutoff]
 
     def get_modifications_by_type(
         self, mod_type: ModificationType
-    ) -> List[AgentModification]:
+    ) -> list[AgentModification]:
         """Get modifications by type."""
         return [mod for mod in self.modifications if mod.modification_type == mod_type]
 
@@ -220,7 +221,7 @@ class AgentModificationTracker(BaseService):
     implementation into a single, maintainable module.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the agent modification tracker."""
         super().__init__("agent_modification_tracker", config)
 
@@ -232,16 +233,16 @@ class AgentModificationTracker(BaseService):
         self.persistence_interval = self.get_config("persistence_interval", 300)
 
         # Core components
-        self.shared_cache: Optional[SharedPromptCache] = None
-        self.agent_registry: Optional[AgentRegistry] = None
+        self.shared_cache: SharedPromptCache | None = None
+        self.agent_registry: AgentRegistry | None = None
 
         # Tracking data structures
-        self.modification_history: Dict[str, ModificationHistory] = {}
-        self.active_modifications: Dict[str, AgentModification] = {}
+        self.modification_history: dict[str, ModificationHistory] = {}
+        self.active_modifications: dict[str, AgentModification] = {}
 
         # File monitoring
-        self.file_observer: Optional[Observer] = None
-        self.watched_paths: Set[Path] = set()
+        self.file_observer: Observer | None = None
+        self.watched_paths: set[Path] = set()
 
         # Persistence paths
         self.persistence_root = get_path_manager().get_cache_dir() / "tracking"
@@ -254,12 +255,12 @@ class AgentModificationTracker(BaseService):
         self.history_root.mkdir(parents=True, exist_ok=True)
 
         # Background tasks
-        self._persistence_task: Optional[asyncio.Task] = None
-        self._cleanup_task: Optional[asyncio.Task] = None
-        self._file_event_tasks: Set[asyncio.Task] = set()  # Track file event tasks
+        self._persistence_task: asyncio.Task | None = None
+        self._cleanup_task: asyncio.Task | None = None
+        self._file_event_tasks: set[asyncio.Task] = set()  # Track file event tasks
 
         # Callbacks
-        self.modification_callbacks: List[Callable[[AgentModification], None]] = []
+        self.modification_callbacks: list[Callable[[AgentModification], None]] = []
 
         self.logger.info(
             f"AgentModificationTracker initialized with monitoring="
@@ -306,7 +307,7 @@ class AgentModificationTracker(BaseService):
 
         self.logger.info("AgentModificationTracker service cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform modification tracker health checks."""
         checks = {}
 
@@ -470,7 +471,7 @@ class AgentModificationTracker(BaseService):
 
     async def _collect_file_metadata(
         self, file_path: str, modification_type: ModificationType
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Collect comprehensive file metadata."""
         metadata = {}
 
@@ -496,9 +497,7 @@ class AgentModificationTracker(BaseService):
 
         return metadata
 
-    async def _create_backup(
-        self, file_path: str, modification_id: str
-    ) -> Optional[str]:
+    async def _create_backup(self, file_path: str, modification_id: str) -> str | None:
         """Create backup of agent file."""
         try:
             source = Path(file_path)
@@ -620,7 +619,7 @@ class AgentModificationTracker(BaseService):
 
     def _extract_agent_info_from_path(
         self, file_path: str
-    ) -> Optional[Tuple[str, ModificationTier]]:
+    ) -> tuple[str, ModificationTier] | None:
         """Extract agent name and tier from file path."""
         try:
             path = Path(file_path)
@@ -798,13 +797,13 @@ class AgentModificationTracker(BaseService):
 
     async def get_modification_history(
         self, agent_name: str
-    ) -> Optional[ModificationHistory]:
+    ) -> ModificationHistory | None:
         """Get modification history for specific agent."""
         return self.modification_history.get(agent_name)
 
     async def get_recent_modifications(
         self, hours: int = 24
-    ) -> List[AgentModification]:
+    ) -> list[AgentModification]:
         """Get all recent modifications across all agents."""
         cutoff = time.time() - (hours * 3600)
         recent = []
@@ -846,7 +845,7 @@ class AgentModificationTracker(BaseService):
             self.logger.error(f"Failed to restore agent backup: {e}")
             return False
 
-    async def get_modification_stats(self) -> Dict[str, Any]:
+    async def get_modification_stats(self) -> dict[str, Any]:
         """Get comprehensive modification statistics."""
         stats = {
             "total_agents_tracked": len(self.modification_history),

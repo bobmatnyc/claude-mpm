@@ -61,9 +61,12 @@ def _make_configure_cmd(scope: str, project_dir: Path, fake_home: Path | None = 
     )
 
     if fake_home:
-        with patch(
-            "claude_mpm.cli.commands.configure.Path.home", return_value=fake_home
-        ), patch("claude_mpm.core.config_scope.Path.home", return_value=fake_home):
+        with (
+            patch(
+                "claude_mpm.cli.commands.configure.Path.home", return_value=fake_home
+            ),
+            patch("claude_mpm.core.config_scope.Path.home", return_value=fake_home),
+        ):
             with patch.object(cmd, "_run_interactive_tui", return_value=MagicMock()):
                 cmd.run(args)
     else:

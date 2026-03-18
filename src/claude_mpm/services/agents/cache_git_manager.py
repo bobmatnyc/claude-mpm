@@ -38,7 +38,7 @@ Example:
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.services.git.git_operations_service import (
     GitAuthenticationError,
@@ -90,7 +90,7 @@ class CacheGitManager:
         else:
             logger.debug(f"Cache path is not a git repository: {cache_path}")
 
-    def _find_git_root(self) -> Optional[Path]:
+    def _find_git_root(self) -> Path | None:
         """
         Find git repository root starting from cache_path.
 
@@ -162,7 +162,7 @@ class CacheGitManager:
         """
         return self.repo_path is not None
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get comprehensive git status for cache.
 
@@ -202,7 +202,7 @@ class CacheGitManager:
 
             # Get uncommitted changes
             has_changes = self.git_ops.has_uncommitted_changes(self.repo_path)
-            uncommitted_files: List[str] = []
+            uncommitted_files: list[str] = []
 
             if has_changes:
                 # Parse git status --porcelain for file list
@@ -270,7 +270,7 @@ class CacheGitManager:
                 "is_clean": False,
             }
 
-    def pull_latest(self, branch: str = "main") -> Tuple[bool, str]:
+    def pull_latest(self, branch: str = "main") -> tuple[bool, str]:
         """
         Pull latest changes from remote.
 
@@ -338,8 +338,8 @@ class CacheGitManager:
             return False, error_msg
 
     def commit_changes(
-        self, message: str, files: Optional[List[Path]] = None
-    ) -> Tuple[bool, str]:
+        self, message: str, files: list[Path] | None = None
+    ) -> tuple[bool, str]:
         """
         Commit changes to cache.
 
@@ -387,7 +387,7 @@ class CacheGitManager:
             logger.error(error_msg)
             return False, error_msg
 
-    def push_changes(self, branch: str = "main") -> Tuple[bool, str]:
+    def push_changes(self, branch: str = "main") -> tuple[bool, str]:
         """
         Push committed changes to remote.
 
@@ -480,7 +480,7 @@ class CacheGitManager:
         status = self.get_status()
         return status.get("unpushed", 0) > 0
 
-    def check_conflicts(self) -> List[Path]:
+    def check_conflicts(self) -> list[Path]:
         """
         Check for merge conflicts after pull.
 
@@ -513,7 +513,7 @@ class CacheGitManager:
                 return []
 
             # Parse git status output for conflict markers
-            conflicted_files: List[Path] = []
+            conflicted_files: list[Path] = []
             for line in stdout.strip().split("\n"):
                 if line.strip():
                     status = line[:2]
@@ -530,7 +530,7 @@ class CacheGitManager:
             logger.error(f"Error checking conflicts: {e}")
             return []
 
-    def sync_with_remote(self) -> Tuple[bool, str]:
+    def sync_with_remote(self) -> tuple[bool, str]:
         """
         Full sync workflow: pull, handle conflicts, push if needed.
 

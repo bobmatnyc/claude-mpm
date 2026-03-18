@@ -3,7 +3,7 @@
 import asyncio
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 # Import framework components
 from claude_mpm.core.framework import (
@@ -74,10 +74,10 @@ class FrameworkLoader:
 
     def __init__(
         self,
-        framework_path: Optional[Path] = None,
-        agents_dir: Optional[Path] = None,
-        service_container: Optional[ServiceContainer] = None,
-        config: Optional[Dict[str, Any]] = None,
+        framework_path: Path | None = None,
+        agents_dir: Path | None = None,
+        service_container: ServiceContainer | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize framework loader with modular components.
@@ -206,7 +206,7 @@ class FrameworkLoader:
 
     # === Content Loading Methods ===
 
-    def _load_framework_content(self) -> Dict[str, Any]:
+    def _load_framework_content(self) -> dict[str, Any]:
         """Load framework content using modular components."""
         content = {
             "claude_md": "",
@@ -251,7 +251,7 @@ class FrameworkLoader:
 
         return content
 
-    def _load_actual_memories(self, content: Dict[str, Any]) -> None:
+    def _load_actual_memories(self, content: dict[str, Any]) -> None:
         """Load actual memories using the MemoryManager service."""
         memories = self._memory_manager.load_memories()
 
@@ -264,7 +264,7 @@ class FrameworkLoader:
 
     # === Agent Discovery Methods ===
 
-    def _get_deployed_agents(self) -> Set[str]:
+    def _get_deployed_agents(self) -> set[str]:
         """Get deployed agents with caching."""
         cached = self._cache_manager.get_deployed_agents()
         if cached is not None:
@@ -274,11 +274,11 @@ class FrameworkLoader:
         self._cache_manager.set_deployed_agents(deployed)
         return deployed
 
-    def _discover_local_json_templates(self) -> Dict[str, Dict[str, Any]]:
+    def _discover_local_json_templates(self) -> dict[str, dict[str, Any]]:
         """Discover local JSON agent templates."""
         return self.agent_loader.discover_local_json_templates()
 
-    def _parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
+    def _parse_agent_metadata(self, agent_file: Path) -> dict[str, Any] | None:
         """Parse agent metadata with caching."""
         cache_key = str(agent_file)
         file_mtime = agent_file.stat().st_mtime
@@ -524,7 +524,7 @@ class FrameworkLoader:
 
     # === Agent Registry Methods (backward compatibility) ===
 
-    def get_agent_list(self) -> List[str]:
+    def get_agent_list(self) -> list[str]:
         """Get list of available agents."""
         if self.agent_registry:
             agents = self.agent_registry.list_agents()
@@ -532,7 +532,7 @@ class FrameworkLoader:
                 return list(agents.keys())
         return list(self.framework_content["agents"].keys())
 
-    def get_agent_definition(self, agent_name: str) -> Optional[str]:
+    def get_agent_definition(self, agent_name: str) -> str | None:
         """Get specific agent definition."""
         if self.agent_registry:
             definition = self.agent_registry.get_agent_definition(agent_name)
@@ -540,7 +540,7 @@ class FrameworkLoader:
                 return definition
         return self.framework_content["agents"].get(agent_name)
 
-    def get_agent_hierarchy(self) -> Dict[str, List]:
+    def get_agent_hierarchy(self) -> dict[str, list]:
         """Get agent hierarchy from registry."""
         if self.agent_registry:
             return self.agent_registry.get_agent_hierarchy()

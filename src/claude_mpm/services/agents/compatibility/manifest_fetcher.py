@@ -13,7 +13,6 @@ Supported source URL forms (Phase 2):
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -61,7 +60,7 @@ class ManifestFetcher:
         source_url: str,
         session: requests.Session,
         timeout: int = MANIFEST_FETCH_TIMEOUT,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Fetch manifest content from the repository root.
 
         Detects local filesystem paths (starting with "/" or "file://") and
@@ -177,7 +176,7 @@ class ManifestFetcher:
 
         return b"".join(chunks).decode("utf-8", errors="replace")
 
-    def fetch_local(self, source_url: str) -> Optional[str]:
+    def fetch_local(self, source_url: str) -> str | None:
         """Read manifest content from a local filesystem path.
 
         Accepts either a bare absolute path (``/path/to/dir``) or a
@@ -233,7 +232,7 @@ class ManifestFetcher:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _compute_manifest_url(self, source_url: str) -> Optional[str]:
+    def _compute_manifest_url(self, source_url: str) -> str | None:
         """Derive the manifest URL from an agent source URL.
 
         Supported URL forms:

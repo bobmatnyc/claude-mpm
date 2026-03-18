@@ -3,7 +3,7 @@
 Provides backward compatibility for existing code using the old monitoring API.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .aggregator import MonitoringAggregatorService
 from .base import HealthChecker, HealthMetric
@@ -38,7 +38,7 @@ class ProcessResourceChecker(HealthChecker):
         """Get checker name."""
         return f"process_resources_{self.pid}"
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Perform health check."""
         return await self.service.check_health()
 
@@ -61,7 +61,7 @@ class NetworkConnectivityChecker(HealthChecker):
         """Get checker name."""
         return f"network_connectivity_{self.host}_{self.port}"
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Perform health check."""
         # Filter to only return metrics for the configured endpoint
         all_metrics = await self.service.check_health()
@@ -90,7 +90,7 @@ class ServiceHealthChecker(HealthChecker):
 
     def __init__(
         self,
-        service_stats: Dict[str, Any],
+        service_stats: dict[str, Any],
         max_clients: int = 1000,
         max_error_rate: float = 0.1,
     ):
@@ -110,7 +110,7 @@ class ServiceHealthChecker(HealthChecker):
         """Get checker name."""
         return "service_health"
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Perform health check."""
         metrics = await self.service.check_health()
         # Update exposed state for compatibility
@@ -125,7 +125,7 @@ class AdvancedHealthMonitor:
     Maintains backward compatibility with existing code.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize legacy advanced health monitor."""
         self.service = MonitoringAggregatorService(config)
 

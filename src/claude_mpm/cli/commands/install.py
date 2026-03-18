@@ -20,7 +20,6 @@ import json
 import shutil
 import subprocess  # nosec B404
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 
@@ -158,7 +157,7 @@ def detect_languages(cwd: Path) -> list[str]:
     return detected
 
 
-def _config_for(language: str) -> Optional[dict]:
+def _config_for(language: str) -> dict | None:
     """Return the language config dict for a given language name, or None."""
     for cfg in LANGUAGE_CONFIGS:
         if cfg["name"] == language:
@@ -334,7 +333,7 @@ def _install_lsp(args) -> int:
         0 on success, 1 on failure.
     """
     force: bool = getattr(args, "force", False)
-    language_override: Optional[str] = getattr(args, "language", None)
+    language_override: str | None = getattr(args, "language", None)
     cwd = Path.cwd()
 
     # ---- Determine which languages to install ----

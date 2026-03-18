@@ -31,9 +31,9 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Add claude-mpm to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -60,8 +60,8 @@ class PerformanceTarget:
     target_value: float
     target_unit: str
     description: str
-    baseline_value: Optional[float] = None
-    baseline_unit: Optional[str] = None
+    baseline_value: float | None = None
+    baseline_unit: str | None = None
 
 
 @dataclass
@@ -73,8 +73,8 @@ class BenchmarkResult:
     unit: str
     target: PerformanceTarget
     passed: bool
-    improvement_percent: Optional[float] = None
-    samples: List[float] = None
+    improvement_percent: float | None = None
+    samples: list[float] = None
     timestamp: str = None
 
     def __post_init__(self):
@@ -90,7 +90,7 @@ class BenchmarkSuite:
 
     name: str
     version: str
-    results: List[BenchmarkResult]
+    results: list[BenchmarkResult]
     total_passed: int = 0
     total_failed: int = 0
     overall_score: float = 0.0
@@ -128,13 +128,13 @@ class PerformanceBenchmarks:
                 logging.StreamHandler(),
                 logging.FileHandler(
                     Path(__file__).parent
-                    / f"benchmark_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
+                    / f"benchmark_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.log"
                 ),
             ],
         )
         return logging.getLogger("performance_benchmark")
 
-    def _define_targets(self) -> Dict[str, PerformanceTarget]:
+    def _define_targets(self) -> dict[str, PerformanceTarget]:
         """Define performance targets based on TSK-0056."""
         return {
             "startup_time": PerformanceTarget(
@@ -645,11 +645,11 @@ class PerformanceBenchmarks:
         return suite
 
     def save_results(
-        self, suite: BenchmarkSuite, output_file: Optional[Path] = None
+        self, suite: BenchmarkSuite, output_file: Path | None = None
     ) -> Path:
         """Save benchmark results to JSON file."""
         if output_file is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             output_file = (
                 Path(__file__).parent / f"performance_validation_{timestamp}.json"
             )

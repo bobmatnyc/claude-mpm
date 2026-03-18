@@ -9,7 +9,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -325,7 +325,7 @@ def main():
     """Run focused QA tests."""
     print("HARDENED SOCKET.IO DAEMON - FOCUSED QA TESTS")
     print("=" * 50)
-    print(f"Test started: {datetime.now(timezone.utc)}")
+    print(f"Test started: {datetime.now(UTC)}")
 
     cleanup_daemon()
 

@@ -63,15 +63,19 @@ class TestAddAgentSource(AioHTTPTestCase):
         mock_config.add_repository = MagicMock()
         mock_config.save = MagicMock()
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_config,
-        ), patch(
-            "claude_mpm.models.git_repository.GitRepository",
-            return_value=mock_repo,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_config,
+            ),
+            patch(
+                "claude_mpm.models.git_repository.GitRepository",
+                return_value=mock_repo,
+            ),
         ):
             resp = await self.client.request(
                 "POST",
@@ -116,15 +120,19 @@ class TestAddAgentSource(AioHTTPTestCase):
         new_repo = MagicMock()
         new_repo.identifier = "owner/repo"
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_config,
-        ), patch(
-            "claude_mpm.models.git_repository.GitRepository",
-            return_value=new_repo,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_config,
+            ),
+            patch(
+                "claude_mpm.models.git_repository.GitRepository",
+                return_value=new_repo,
+            ),
         ):
             resp = await self.client.request(
                 "POST",
@@ -175,15 +183,19 @@ class TestAddSkillSource(AioHTTPTestCase):
         mock_ssc = MagicMock()
         mock_ssc.add_source = MagicMock()
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration",
-            return_value=mock_ssc,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSource",
-            return_value=mock_source,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration",
+                return_value=mock_ssc,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSource",
+                return_value=mock_source,
+            ),
         ):
             resp = await self.client.request(
                 "POST",
@@ -232,15 +244,19 @@ class TestAddSkillSource(AioHTTPTestCase):
         mock_ssc = MagicMock()
         mock_ssc.add_source = MagicMock()
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration",
-            return_value=mock_ssc,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSource",
-            return_value=mock_source,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration",
+                return_value=mock_ssc,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSource",
+                return_value=mock_source,
+            ),
         ):
             resp = await self.client.request(
                 "POST",
@@ -273,12 +289,15 @@ class TestRemoveSource(AioHTTPTestCase):
         mock_config.remove_repository = MagicMock(return_value=True)
         mock_config.save = MagicMock()
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_config,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_config,
+            ),
         ):
             resp = await self.client.request(
                 "DELETE",
@@ -296,12 +315,15 @@ class TestRemoveSource(AioHTTPTestCase):
         mock_config = MagicMock()
         mock_config.remove_repository = MagicMock(return_value=False)
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_config,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_config,
+            ),
         ):
             resp = await self.client.request(
                 "DELETE",
@@ -346,12 +368,15 @@ class TestUpdateSource(AioHTTPTestCase):
         mock_config.repositories = [mock_repo]
         mock_config.save = MagicMock()
 
-        with patch(
-            "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
-            MagicMock(),
-        ), patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_config,
+        with (
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources.config_file_lock",
+                MagicMock(),
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_config,
+            ),
         ):
             resp = await self.client.request(
                 "PATCH",
@@ -449,15 +474,19 @@ class TestSyncAll(AioHTTPTestCase):
         mock_skill_2.enabled = True
         mock_ssc.load.return_value = [mock_skill_1, mock_skill_2]
 
-        with patch(
-            "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
-            return_value=mock_agent_config,
-        ), patch(
-            "claude_mpm.config.skill_sources.SkillSourceConfiguration",
-            return_value=mock_ssc,
-        ), patch(
-            "claude_mpm.services.monitor.routes.config_sources._run_sync_all",
-            new_callable=AsyncMock,
+        with (
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+                return_value=mock_agent_config,
+            ),
+            patch(
+                "claude_mpm.config.skill_sources.SkillSourceConfiguration",
+                return_value=mock_ssc,
+            ),
+            patch(
+                "claude_mpm.services.monitor.routes.config_sources._run_sync_all",
+                new_callable=AsyncMock,
+            ),
         ):
             resp = await self.client.request(
                 "POST",

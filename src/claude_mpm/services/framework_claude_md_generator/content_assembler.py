@@ -6,8 +6,8 @@ Assembles sections and applies template variable substitution.
 
 import hashlib
 from collections import OrderedDict
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
@@ -35,12 +35,12 @@ class ContentAssembler:
         Returns:
             str: 16-character hash of content
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         hash_obj = hashlib.sha256(timestamp.encode())
         return hash_obj.hexdigest()[:16]
 
     def assemble_content(
-        self, sections: OrderedDict, template_variables: Optional[Dict[str, str]] = None
+        self, sections: OrderedDict, template_variables: dict[str, str] | None = None
     ) -> str:
         """
         Assemble complete content from sections.
@@ -111,7 +111,7 @@ class ContentAssembler:
         return content
 
     def merge_sections(
-        self, base_sections: OrderedDict, custom_sections: Dict[str, tuple]
+        self, base_sections: OrderedDict, custom_sections: dict[str, tuple]
     ) -> OrderedDict:
         """
         Merge custom sections with base sections.
@@ -163,8 +163,8 @@ class ContentAssembler:
         return new_sections
 
     def create_metadata_dict(
-        self, version: str, framework_version: str, content_hash: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, version: str, framework_version: str, content_hash: str | None = None
+    ) -> dict[str, Any]:
         """
         Create metadata dictionary for header generation.
 
@@ -176,7 +176,7 @@ class ContentAssembler:
         Returns:
             Dict: Metadata for header
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         return {
             "version": version,

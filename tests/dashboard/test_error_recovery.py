@@ -19,7 +19,7 @@ import time
 import unittest
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -115,7 +115,7 @@ class EventValidationHandler:
         self.sanitized_count = 0
         self.rejected_count = 0
 
-    def validate_event(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def validate_event(self, event: dict[str, Any]) -> dict[str, Any] | None:
         """
         Validate and sanitize an event.
 
@@ -523,8 +523,9 @@ class TestResourceMonitoring(unittest.TestCase):
 
         # _monitor_loop uses `while self.monitoring:` — it won't execute unless
         # monitoring is True. Test the alert logic directly instead.
-        with patch.object(monitor, "get_memory_usage", return_value=100), patch.object(
-            monitor, "get_cpu_usage", return_value=0
+        with (
+            patch.object(monitor, "get_memory_usage", return_value=100),
+            patch.object(monitor, "get_cpu_usage", return_value=0),
         ):
             # Manually trigger alert recording (same logic as _monitor_loop)
             memory_mb = monitor.get_memory_usage()

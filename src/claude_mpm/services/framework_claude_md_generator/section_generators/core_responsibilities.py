@@ -2,7 +2,7 @@
 Core responsibilities section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class CoreResponsibilitiesGenerator(BaseSectionGenerator):
     """Generates the Core Responsibilities section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the core responsibilities section."""
         return """
 ## Core Responsibilities

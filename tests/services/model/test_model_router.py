@@ -131,8 +131,9 @@ async def test_router_initialize_success(
     """Test successful router initialization."""
     router = ModelRouter(config=router_config_auto)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         result = await router.initialize()
 
@@ -163,8 +164,9 @@ async def test_auto_route_ollama_success(
     )
     mock_ollama_provider.analyze_content = AsyncMock(return_value=mock_response)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -206,8 +208,9 @@ async def test_auto_route_fallback_to_claude(
     )
     mock_claude_provider.analyze_content = AsyncMock(return_value=mock_claude_response)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -240,8 +243,9 @@ async def test_auto_route_ollama_unavailable(
     )
     mock_claude_provider.analyze_content = AsyncMock(return_value=mock_claude_response)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -272,8 +276,9 @@ async def test_ollama_only_success(
     )
     mock_ollama_provider.analyze_content = AsyncMock(return_value=mock_response)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -295,8 +300,9 @@ async def test_ollama_only_unavailable(
 
     mock_ollama_provider.is_available = AsyncMock(return_value=False)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -327,8 +333,9 @@ async def test_claude_only(
     )
     mock_claude_provider.analyze_content = AsyncMock(return_value=mock_response)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -351,8 +358,9 @@ async def test_privacy_first_unavailable(mock_ollama_provider, mock_claude_provi
 
     mock_ollama_provider.is_available = AsyncMock(return_value=False)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         response = await router.analyze_content(
             content="Test content",
@@ -375,8 +383,9 @@ async def test_get_provider_status(
     router = ModelRouter(config=router_config_auto)
     router._initialized = True
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         status = await router.get_provider_status()
 
@@ -403,8 +412,9 @@ async def test_get_active_provider(
     )
     mock_ollama_provider.analyze_content = AsyncMock(return_value=mock_response)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         await router.analyze_content(
             content="Test content",
@@ -444,8 +454,9 @@ async def test_router_shutdown(
     """Test router shutdown."""
     router = ModelRouter(config=router_config_auto)
 
-    with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
-        router, "claude_provider", mock_claude_provider
+    with (
+        patch.object(router, "ollama_provider", mock_ollama_provider),
+        patch.object(router, "claude_provider", mock_claude_provider),
     ):
         await router.shutdown()
 

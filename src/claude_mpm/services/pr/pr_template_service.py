@@ -26,7 +26,6 @@ Example:
 """
 
 from enum import Enum
-from typing import List, Optional
 
 
 class PRType(Enum):
@@ -89,7 +88,7 @@ class PRTemplateService:
         problem: str,
         solution: str,
         testing_notes: str,
-        related_issues: Optional[List[str]] = None,
+        related_issues: list[str] | None = None,
     ) -> str:
         """
         Generate PR body for agent improvements.
@@ -162,7 +161,7 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
         improvements: str,
         justification: str,
         examples: str,
-        related_issues: Optional[List[str]] = None,
+        related_issues: list[str] | None = None,
     ) -> str:
         """
         Generate PR body for skill improvements.

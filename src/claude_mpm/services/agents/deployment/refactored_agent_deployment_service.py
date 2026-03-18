@@ -1,7 +1,7 @@
 """Refactored Agent Deployment Service using new architecture."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.interfaces import AgentDeploymentInterface
@@ -29,9 +29,9 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
 
     def __init__(
         self,
-        templates_dir: Optional[Path] = None,
-        base_agent_path: Optional[Path] = None,
-        working_directory: Optional[Path] = None,
+        templates_dir: Path | None = None,
+        base_agent_path: Path | None = None,
+        working_directory: Path | None = None,
     ):
         """Initialize the refactored deployment service.
 
@@ -71,7 +71,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
 
     def deploy_agents(
         self, force: bool = False, include_all: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy agents to target environment.
 
         Args:
@@ -138,7 +138,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
                 },
             }
 
-    def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
+    def validate_agent(self, agent_path: Path) -> tuple[bool, list[str]]:
         """Validate agent configuration and structure.
 
         Args:
@@ -219,7 +219,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             self.logger.error(f"Deployment cleanup failed: {e}", exc_info=True)
             return False
 
-    def get_deployment_status(self) -> Dict[str, Any]:
+    def get_deployment_status(self) -> dict[str, Any]:
         """Get current deployment status and metrics.
 
         Returns:
@@ -263,7 +263,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
 
     def deploy_agents_async(
         self, force: bool = False, include_all: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy agents using async execution if available.
 
         Args:

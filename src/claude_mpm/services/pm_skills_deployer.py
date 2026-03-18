@@ -38,10 +38,11 @@ References:
 
 import hashlib
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -127,9 +128,9 @@ class DeploymentResult:
     """
 
     success: bool
-    deployed: List[str]
-    skipped: List[str]
-    errors: List[Dict[str, str]]
+    deployed: list[str]
+    skipped: list[str]
+    errors: list[dict[str, str]]
     message: str
 
 
@@ -148,10 +149,10 @@ class VerificationResult:
     """
 
     verified: bool
-    warnings: List[str]
-    missing_skills: List[str]
-    corrupted_skills: List[str]
-    outdated_skills: List[str]
+    warnings: list[str]
+    missing_skills: list[str]
+    corrupted_skills: list[str]
+    outdated_skills: list[str]
     message: str
     skill_count: int = 0
 
@@ -298,7 +299,7 @@ class PMSkillsDeployerService(LoggerMixin):
         """
         return project_dir / ".claude" / "skills"
 
-    def _load_registry(self, project_dir: Path) -> Dict[str, Any]:
+    def _load_registry(self, project_dir: Path) -> dict[str, Any]:
         """Load PM skills registry with security checks.
 
         Args:
@@ -340,7 +341,7 @@ class PMSkillsDeployerService(LoggerMixin):
             self.logger.error(f"Failed to read registry file: {e}")
             return {}
 
-    def _save_registry(self, project_dir: Path, registry: Dict[str, Any]) -> bool:
+    def _save_registry(self, project_dir: Path, registry: dict[str, Any]) -> bool:
         """Save PM skills registry to file.
 
         Args:
@@ -367,7 +368,7 @@ class PMSkillsDeployerService(LoggerMixin):
             self.logger.error(f"Failed to save registry: {e}")
             return False
 
-    def _discover_bundled_pm_skills(self) -> List[Dict[str, Any]]:
+    def _discover_bundled_pm_skills(self) -> list[dict[str, Any]]:
         """Discover all PM skills in bundled templates directory.
 
         PM skills follow mpm-skill-name/SKILL.md structure.
@@ -410,7 +411,7 @@ class PMSkillsDeployerService(LoggerMixin):
         self.logger.info(f"Discovered {len(skills)} bundled PM skills")
         return skills
 
-    def _get_skills_for_tier(self, tier: str) -> List[str]:
+    def _get_skills_for_tier(self, tier: str) -> list[str]:
         """Get list of skills to deploy based on tier.
 
         Args:
@@ -437,7 +438,7 @@ class PMSkillsDeployerService(LoggerMixin):
         project_dir: Path,
         force: bool = False,
         tier: str = "standard",
-        progress_callback: Optional[Callable[[str, int, int], None]] = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
     ) -> DeploymentResult:
         """Deploy bundled PM skills to project directory with tier-based selection.
 
@@ -532,7 +533,7 @@ class PMSkillsDeployerService(LoggerMixin):
         existing_deployments = {skill["name"]: skill for skill in deployed_skills}
 
         new_deployed_skills = []
-        timestamp = datetime.now(tz=timezone.utc).isoformat()
+        timestamp = datetime.now(tz=UTC).isoformat()
         total_skills = len(skills)
 
         for idx, skill in enumerate(skills):
@@ -791,7 +792,7 @@ class PMSkillsDeployerService(LoggerMixin):
             skill_count=len(deployed_skills_data),
         )
 
-    def get_deployed_skills(self, project_dir: Path) -> List[PMSkillInfo]:
+    def get_deployed_skills(self, project_dir: Path) -> list[PMSkillInfo]:
         """Get list of deployed PM skills with metadata.
 
         Args:
@@ -829,7 +830,7 @@ class PMSkillsDeployerService(LoggerMixin):
 
         return skills
 
-    def check_updates_available(self, project_dir: Path) -> List[UpdateInfo]:
+    def check_updates_available(self, project_dir: Path) -> list[UpdateInfo]:
         """Check for available PM skill updates.
 
         Compares bundled skills against deployed skills to identify updates.

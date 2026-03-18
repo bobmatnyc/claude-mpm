@@ -19,7 +19,7 @@ RESPONSIBILITIES:
 import asyncio
 import time
 from abc import abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.core.base import BaseService
@@ -46,7 +46,7 @@ class BaseModelProvider(BaseService, IModelProvider):
     """
 
     # Task-specific prompt templates
-    TASK_PROMPTS: Dict[ModelCapability, str] = {
+    TASK_PROMPTS: dict[ModelCapability, str] = {
         ModelCapability.SEO_ANALYSIS: """Analyze the following content for SEO effectiveness. Provide:
 1. Primary and secondary keywords identified
 2. Keyword density analysis
@@ -143,7 +143,7 @@ Provide your analysis in a structured format.""",
     def __init__(
         self,
         provider_name: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize base model provider.
@@ -184,8 +184,8 @@ Provide your analysis in a structured format.""",
         model: str,
         task: ModelCapability,
         result: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
+        metadata: dict[str, Any] | None = None,
+        error: str | None = None,
     ) -> ModelResponse:
         """
         Create standardized model response.
@@ -218,7 +218,7 @@ Provide your analysis in a structured format.""",
         analyze_func,
         content: str,
         task: ModelCapability,
-        model: Optional[str] = None,
+        model: str | None = None,
         max_retries: int = 3,
         **kwargs,
     ) -> ModelResponse:
@@ -284,7 +284,7 @@ Provide your analysis in a structured format.""",
             error=f"Failed after {max_retries} attempts: {last_error}",
         )
 
-    def validate_content(self, content: str, max_length: Optional[int] = None) -> bool:
+    def validate_content(self, content: str, max_length: int | None = None) -> bool:
         """
         Validate content before analysis.
 
@@ -309,7 +309,7 @@ Provide your analysis in a structured format.""",
 
         return True
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get provider performance metrics.
 
@@ -354,7 +354,7 @@ Provide your analysis in a structured format.""",
         self._shutdown = True
 
     @abstractmethod
-    async def get_model_info(self, model: str) -> Dict[str, Any]:
+    async def get_model_info(self, model: str) -> dict[str, Any]:
         """
         Get model information.
 

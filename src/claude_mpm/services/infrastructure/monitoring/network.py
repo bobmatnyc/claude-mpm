@@ -4,7 +4,6 @@ Monitors network connectivity, port availability, and socket health.
 """
 
 import socket
-from typing import Dict, List, Optional
 
 from ....core.enums import HealthStatus
 from .base import BaseMonitoringService, HealthMetric
@@ -28,14 +27,14 @@ class NetworkHealthService(BaseMonitoringService):
         """
         super().__init__("NetworkHealth")
         self.default_timeout = default_timeout
-        self.monitored_endpoints: List[Dict[str, any]] = []
+        self.monitored_endpoints: list[dict[str, any]] = []
 
     def add_endpoint(
         self,
         host: str,
         port: int,
-        name: Optional[str] = None,
-        timeout: Optional[float] = None,
+        name: str | None = None,
+        timeout: float | None = None,
     ) -> None:
         """Add an endpoint to monitor.
 
@@ -54,7 +53,7 @@ class NetworkHealthService(BaseMonitoringService):
         self.monitored_endpoints.append(endpoint)
         self.logger.info(f"Added endpoint for monitoring: {endpoint['name']}")
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Check network health for all configured endpoints."""
         metrics = []
 
@@ -80,7 +79,7 @@ class NetworkHealthService(BaseMonitoringService):
 
         return metrics
 
-    def _check_socket_creation(self) -> List[HealthMetric]:
+    def _check_socket_creation(self) -> list[HealthMetric]:
         """Check if we can create sockets (resource availability)."""
         metrics = []
         try:
@@ -111,7 +110,7 @@ class NetworkHealthService(BaseMonitoringService):
         port: int,
         name: str,
         timeout: float,
-    ) -> List[HealthMetric]:
+    ) -> list[HealthMetric]:
         """Check connectivity to a specific endpoint.
 
         Args:
@@ -157,7 +156,7 @@ class NetworkHealthService(BaseMonitoringService):
                         message=f"Port {port} is not accessible on {host} (error: {result})",
                     )
                 )
-        except socket.timeout:
+        except TimeoutError:
             metrics.append(
                 HealthMetric(
                     name=metric_name,
@@ -178,7 +177,7 @@ class NetworkHealthService(BaseMonitoringService):
 
         return metrics
 
-    def check_port_available(self, port: int, host: str = "0.0.0.0") -> bool:
+    def check_port_available(self, port: int, host: str = "0.0.0.0") -> bool:  # nosec
         """Check if a port is available for binding.
 
         Args:
@@ -200,8 +199,8 @@ class NetworkHealthService(BaseMonitoringService):
         self,
         start_port: int,
         end_port: int,
-        host: str = "0.0.0.0",
-    ) -> List[int]:
+        host: str = "0.0.0.0",  # nosec
+    ) -> list[int]:
         """Scan a range of ports to find available ones.
 
         Args:

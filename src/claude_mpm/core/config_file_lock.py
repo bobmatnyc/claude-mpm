@@ -19,9 +19,9 @@ Limitations:
 import fcntl
 import os
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from claude_mpm.core.logging_config import get_logger
 

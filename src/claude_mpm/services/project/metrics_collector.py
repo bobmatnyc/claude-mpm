@@ -15,7 +15,7 @@ import logging
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import ClassVar, Dict, List, Tuple
+from typing import ClassVar
 
 
 @dataclass
@@ -30,8 +30,8 @@ class ProjectMetrics:
     blank_lines: int = 0
 
     # File type distribution
-    file_types: Dict[str, int] = None
-    largest_files: List[Tuple[str, int]] = None
+    file_types: dict[str, int] = None
+    largest_files: list[tuple[str, int]] = None
 
     # Directory metrics
     total_directories: int = 0
@@ -55,7 +55,7 @@ class ProjectMetrics:
         if self.largest_files is None:
             self.largest_files = []
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -153,7 +153,7 @@ class MetricsCollectorService:
 
         return metrics
 
-    def analyze_file_sizes(self) -> Dict[str, List[Tuple[str, int]]]:
+    def analyze_file_sizes(self) -> dict[str, list[tuple[str, int]]]:
         """Analyze file sizes and identify outliers.
 
         WHY: Large files often indicate code that needs refactoring
@@ -185,7 +185,7 @@ class MetricsCollectorService:
             "files_over_1000_lines": [f for f in file_sizes if f[1] > 1000],
         }
 
-    def analyze_directory_structure(self) -> Dict[str, any]:
+    def analyze_directory_structure(self) -> dict[str, any]:
         """Analyze project directory structure.
 
         WHY: Directory structure reveals architectural decisions
@@ -223,7 +223,7 @@ class MetricsCollectorService:
 
         return dir_info
 
-    def calculate_code_to_comment_ratio(self) -> Dict[str, float]:
+    def calculate_code_to_comment_ratio(self) -> dict[str, float]:
         """Calculate code to comment ratio for different file types.
 
         WHY: Comment ratio indicates documentation quality and

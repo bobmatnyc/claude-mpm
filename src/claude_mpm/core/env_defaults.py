@@ -18,11 +18,10 @@ circular imports. It is intentionally importable before any other module.
 """
 
 import os
-from typing import Dict
 
 # Registry of env var defaults for claude-mpm.
 # Format: {VAR_NAME: default_value}
-_ENV_DEFAULTS: Dict[str, str] = {
+_ENV_DEFAULTS: dict[str, str] = {
     "DISABLE_TELEMETRY": "1",
 }
 
@@ -58,7 +57,7 @@ def get_telemetry_disabled() -> bool:
     return os.environ.get("DISABLE_TELEMETRY", default) == default
 
 
-def apply_subprocess_env_defaults(env: Dict[str, str]) -> Dict[str, str]:
+def apply_subprocess_env_defaults(env: dict[str, str]) -> dict[str, str]:
     """Apply env var defaults to a subprocess environment dict.
 
     Uses the current process's resolved value (which respects the shell env

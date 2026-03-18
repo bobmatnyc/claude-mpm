@@ -224,11 +224,14 @@ class TestInitializeMethod:
     async def test_initialize_auto_strategy(self, router_auto):
         """Test initialize with AUTO strategy initializes both providers."""
         # Arrange
-        with patch.object(
-            router_auto.ollama_provider, "initialize", return_value=True
-        ) as mock_ollama, patch.object(
-            router_auto.claude_provider, "initialize", return_value=True
-        ) as mock_claude:
+        with (
+            patch.object(
+                router_auto.ollama_provider, "initialize", return_value=True
+            ) as mock_ollama,
+            patch.object(
+                router_auto.claude_provider, "initialize", return_value=True
+            ) as mock_claude,
+        ):
             # Act
             result = await router_auto.initialize()
 
@@ -242,11 +245,14 @@ class TestInitializeMethod:
     async def test_initialize_ollama_only_strategy(self, router_ollama):
         """Test initialize with OLLAMA_ONLY initializes only Ollama."""
         # Arrange
-        with patch.object(
-            router_ollama.ollama_provider, "initialize", return_value=True
-        ) as mock_ollama, patch.object(
-            router_ollama.claude_provider, "initialize", return_value=True
-        ) as mock_claude:
+        with (
+            patch.object(
+                router_ollama.ollama_provider, "initialize", return_value=True
+            ) as mock_ollama,
+            patch.object(
+                router_ollama.claude_provider, "initialize", return_value=True
+            ) as mock_claude,
+        ):
             # Act
             result = await router_ollama.initialize()
 
@@ -259,11 +265,14 @@ class TestInitializeMethod:
     async def test_initialize_claude_only_strategy(self, router_claude):
         """Test initialize with CLAUDE_ONLY initializes only Claude."""
         # Arrange
-        with patch.object(
-            router_claude.ollama_provider, "initialize", return_value=True
-        ) as mock_ollama, patch.object(
-            router_claude.claude_provider, "initialize", return_value=True
-        ) as mock_claude:
+        with (
+            patch.object(
+                router_claude.ollama_provider, "initialize", return_value=True
+            ) as mock_ollama,
+            patch.object(
+                router_claude.claude_provider, "initialize", return_value=True
+            ) as mock_claude,
+        ):
             # Act
             result = await router_claude.initialize()
 
@@ -276,9 +285,10 @@ class TestInitializeMethod:
     async def test_initialize_fails_when_no_providers(self, router_auto):
         """Test initialize fails when no providers initialize successfully."""
         # Arrange
-        with patch.object(
-            router_auto.ollama_provider, "initialize", return_value=False
-        ), patch.object(router_auto.claude_provider, "initialize", return_value=False):
+        with (
+            patch.object(router_auto.ollama_provider, "initialize", return_value=False),
+            patch.object(router_auto.claude_provider, "initialize", return_value=False),
+        ):
             # Act
             result = await router_auto.initialize()
 
@@ -290,9 +300,10 @@ class TestInitializeMethod:
     async def test_initialize_succeeds_with_one_provider(self, router_auto):
         """Test initialize succeeds if at least one provider initializes."""
         # Arrange
-        with patch.object(
-            router_auto.ollama_provider, "initialize", return_value=True
-        ), patch.object(router_auto.claude_provider, "initialize", return_value=False):
+        with (
+            patch.object(router_auto.ollama_provider, "initialize", return_value=True),
+            patch.object(router_auto.claude_provider, "initialize", return_value=False),
+        ):
             # Act
             result = await router_auto.initialize()
 
@@ -313,11 +324,10 @@ class TestShutdownMethod:
     async def test_shutdown_calls_all_providers(self, router_auto):
         """Test shutdown calls shutdown on all providers."""
         # Arrange
-        with patch.object(
-            router_auto.ollama_provider, "shutdown"
-        ) as mock_ollama, patch.object(
-            router_auto.claude_provider, "shutdown"
-        ) as mock_claude:
+        with (
+            patch.object(router_auto.ollama_provider, "shutdown") as mock_ollama,
+            patch.object(router_auto.claude_provider, "shutdown") as mock_claude,
+        ):
             # Act
             await router_auto.shutdown()
 
@@ -351,13 +361,16 @@ class TestAutoRouting:
         """Test AUTO routes to Ollama when available."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_analyze:
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_analyze,
+        ):
             # Act
             response = await router_auto.analyze_content(
                 content=sample_content, task=ModelCapability.SEO_ANALYSIS
@@ -376,17 +389,21 @@ class TestAutoRouting:
         """Test AUTO falls back to Claude when Ollama fails."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "analyze_content",
-            return_value=mock_error_response,
-        ), patch.object(
-            router_auto.claude_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_claude:
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "analyze_content",
+                return_value=mock_error_response,
+            ),
+            patch.object(
+                router_auto.claude_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_claude,
+        ):
             # Act
             response = await router_auto.analyze_content(
                 content=sample_content, task=ModelCapability.GRAMMAR
@@ -405,13 +422,16 @@ class TestAutoRouting:
         """Test AUTO routes to Claude when Ollama unavailable."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=False
-        ), patch.object(
-            router_auto.claude_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_claude:
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=False
+            ),
+            patch.object(
+                router_auto.claude_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_claude,
+        ):
             # Act
             response = await router_auto.analyze_content(
                 content=sample_content, task=ModelCapability.READABILITY
@@ -453,15 +473,19 @@ class TestOllamaOnlyRouting:
     ):
         """Test OLLAMA_ONLY routes to Ollama when available."""
         # Arrange
-        with patch.object(
-            router_ollama.ollama_provider, "initialize", return_value=True
-        ), patch.object(
-            router_ollama.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_ollama.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_analyze:
+        with (
+            patch.object(
+                router_ollama.ollama_provider, "initialize", return_value=True
+            ),
+            patch.object(
+                router_ollama.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_ollama.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_analyze,
+        ):
             await router_ollama.initialize()
             # Act
             response = await router_ollama.analyze_content(
@@ -476,10 +500,13 @@ class TestOllamaOnlyRouting:
     async def test_fails_when_ollama_unavailable(self, router_ollama, sample_content):
         """Test OLLAMA_ONLY fails when Ollama unavailable."""
         # Arrange
-        with patch.object(
-            router_ollama.ollama_provider, "initialize", return_value=True
-        ), patch.object(
-            router_ollama.ollama_provider, "is_available", return_value=False
+        with (
+            patch.object(
+                router_ollama.ollama_provider, "initialize", return_value=True
+            ),
+            patch.object(
+                router_ollama.ollama_provider, "is_available", return_value=False
+            ),
         ):
             await router_ollama.initialize()
             # Act
@@ -498,15 +525,19 @@ class TestOllamaOnlyRouting:
         """Test OLLAMA_ONLY never routes to Claude even on failure."""
         # Arrange
         await router_ollama.initialize()
-        with patch.object(
-            router_ollama.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_ollama.ollama_provider,
-            "analyze_content",
-            return_value=mock_error_response,
-        ), patch.object(
-            router_ollama.claude_provider, "analyze_content"
-        ) as mock_claude:
+        with (
+            patch.object(
+                router_ollama.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_ollama.ollama_provider,
+                "analyze_content",
+                return_value=mock_error_response,
+            ),
+            patch.object(
+                router_ollama.claude_provider, "analyze_content"
+            ) as mock_claude,
+        ):
             # Act
             response = await router_ollama.analyze_content(
                 content=sample_content, task=ModelCapability.SEO_ANALYSIS
@@ -555,12 +586,15 @@ class TestClaudeOnlyRouting:
         """Test CLAUDE_ONLY never routes to Ollama."""
         # Arrange
         await router_claude.initialize()
-        with patch.object(
-            router_claude.ollama_provider, "analyze_content"
-        ) as mock_ollama, patch.object(
-            router_claude.claude_provider,
-            "analyze_content",
-            return_value=mock_success_response,
+        with (
+            patch.object(
+                router_claude.ollama_provider, "analyze_content"
+            ) as mock_ollama,
+            patch.object(
+                router_claude.claude_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ),
         ):
             # Act
             await router_claude.analyze_content(
@@ -585,15 +619,19 @@ class TestPrivacyFirstRouting:
     ):
         """Test PRIVACY_FIRST routes to Ollama only."""
         # Arrange
-        with patch.object(
-            router_privacy.ollama_provider, "initialize", return_value=True
-        ), patch.object(
-            router_privacy.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_privacy.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_analyze:
+        with (
+            patch.object(
+                router_privacy.ollama_provider, "initialize", return_value=True
+            ),
+            patch.object(
+                router_privacy.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_privacy.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_analyze,
+        ):
             await router_privacy.initialize()
             # Act
             response = await router_privacy.analyze_content(
@@ -608,10 +646,13 @@ class TestPrivacyFirstRouting:
     async def test_fails_with_privacy_message(self, router_privacy, sample_content):
         """Test PRIVACY_FIRST provides privacy-focused error message."""
         # Arrange
-        with patch.object(
-            router_privacy.ollama_provider, "initialize", return_value=True
-        ), patch.object(
-            router_privacy.ollama_provider, "is_available", return_value=False
+        with (
+            patch.object(
+                router_privacy.ollama_provider, "initialize", return_value=True
+            ),
+            patch.object(
+                router_privacy.ollama_provider, "is_available", return_value=False
+            ),
         ):
             await router_privacy.initialize()
             # Act
@@ -640,17 +681,21 @@ class TestProviderStatus:
         """Test get_provider_status with AUTO strategy."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "get_available_models",
-            return_value=["model1", "model2"],
-        ), patch.object(
-            router_auto.ollama_provider, "get_metrics", return_value={}
-        ), patch.object(
-            router_auto.claude_provider, "is_available", return_value=True
-        ), patch.object(router_auto.claude_provider, "get_metrics", return_value={}):
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "get_available_models",
+                return_value=["model1", "model2"],
+            ),
+            patch.object(router_auto.ollama_provider, "get_metrics", return_value={}),
+            patch.object(
+                router_auto.claude_provider, "is_available", return_value=True
+            ),
+            patch.object(router_auto.claude_provider, "get_metrics", return_value={}),
+        ):
             # Act
             status = await router_auto.get_provider_status()
 
@@ -669,15 +714,19 @@ class TestProviderStatus:
         router_auto._route_count = {"ollama": 5, "claude": 3}
         router_auto._fallback_count = 2
 
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider, "get_available_models", return_value=[]
-        ), patch.object(
-            router_auto.ollama_provider, "get_metrics", return_value={}
-        ), patch.object(
-            router_auto.claude_provider, "is_available", return_value=True
-        ), patch.object(router_auto.claude_provider, "get_metrics", return_value={}):
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider, "get_available_models", return_value=[]
+            ),
+            patch.object(router_auto.ollama_provider, "get_metrics", return_value={}),
+            patch.object(
+                router_auto.claude_provider, "is_available", return_value=True
+            ),
+            patch.object(router_auto.claude_provider, "get_metrics", return_value={}),
+        ):
             # Act
             status = await router_auto.get_provider_status()
 
@@ -755,12 +804,15 @@ class TestGetActiveProvider:
         """Test active provider is set after routing."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ),
         ):
             # Act
             await router_auto.analyze_content(sample_content, ModelCapability.GENERAL)
@@ -826,12 +878,15 @@ class TestEdgeCases:
         await router_auto.initialize()
         import asyncio
 
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ),
         ):
             # Act
             tasks = [
@@ -857,13 +912,16 @@ class TestEdgeCases:
         """Test routing with specific model parameter."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_analyze:
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_analyze,
+        ):
             # Act
             await router_auto.analyze_content(
                 content=sample_content,
@@ -891,13 +949,16 @@ class TestEdgeCases:
         """Test routing passes kwargs to provider."""
         # Arrange
         await router_auto.initialize()
-        with patch.object(
-            router_auto.ollama_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.ollama_provider,
-            "analyze_content",
-            return_value=mock_success_response,
-        ) as mock_analyze:
+        with (
+            patch.object(
+                router_auto.ollama_provider, "is_available", return_value=True
+            ),
+            patch.object(
+                router_auto.ollama_provider,
+                "analyze_content",
+                return_value=mock_success_response,
+            ) as mock_analyze,
+        ):
             # Act
             await router_auto.analyze_content(
                 content=sample_content,

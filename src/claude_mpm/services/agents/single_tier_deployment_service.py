@@ -25,9 +25,9 @@ Trade-offs:
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.config.agent_sources import AgentSourceConfiguration
 from claude_mpm.models.git_repository import GitRepository
@@ -73,7 +73,7 @@ class SingleTierDeploymentService:
         self,
         config: AgentSourceConfiguration,
         deployment_dir: Path,
-        cache_root: Optional[Path] = None,
+        cache_root: Path | None = None,
     ):
         """Initialize single-tier deployment service.
 
@@ -100,7 +100,7 @@ class SingleTierDeploymentService:
 
     def deploy_all_agents(
         self, force_sync: bool = False, dry_run: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy all agents from configured Git sources.
 
         Workflow:
@@ -155,7 +155,7 @@ class SingleTierDeploymentService:
                 "deployed_agents": 0,
                 "skipped_agents": 0,
                 "conflicts_resolved": 0,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "agents": [],
             }
 
@@ -254,7 +254,7 @@ class SingleTierDeploymentService:
             "deployed_agents": deployed_count,
             "skipped_agents": skipped_count,
             "conflicts_resolved": conflicts_count,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "agents": agent_details,
         }
 
@@ -266,8 +266,8 @@ class SingleTierDeploymentService:
         return report
 
     def deploy_agent(
-        self, agent_name: str, source_repo: Optional[str] = None, dry_run: bool = False
-    ) -> Dict[str, Any]:
+        self, agent_name: str, source_repo: str | None = None, dry_run: bool = False
+    ) -> dict[str, Any]:
         """Deploy a specific agent.
 
         Args:
@@ -394,8 +394,8 @@ class SingleTierDeploymentService:
             }
 
     def list_available_agents(
-        self, source_repo: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, source_repo: str | None = None
+    ) -> list[dict[str, Any]]:
         """List all agents available from configured sources.
 
         Args:
@@ -455,7 +455,7 @@ class SingleTierDeploymentService:
         logger.debug(f"Found {len(formatted_agents)} available agents")
         return formatted_agents
 
-    def get_deployed_agents(self) -> List[Dict[str, Any]]:
+    def get_deployed_agents(self) -> list[dict[str, Any]]:
         """List currently deployed agents.
 
         Scans .claude/agents/ directory for deployed agent files.
@@ -533,8 +533,8 @@ class SingleTierDeploymentService:
             return False
 
     def sync_sources(
-        self, force: bool = False, repo_identifier: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, force: bool = False, repo_identifier: str | None = None
+    ) -> dict[str, Any]:
         """Sync Git sources.
 
         Wrapper for GitSourceManager.sync_all_repositories() with filtering.
@@ -570,7 +570,7 @@ class SingleTierDeploymentService:
 
         return self.git_source_manager.sync_all_repositories(repos, force)
 
-    def _discover_agents_in_repo(self, repo: GitRepository) -> List[Dict[str, Any]]:
+    def _discover_agents_in_repo(self, repo: GitRepository) -> list[dict[str, Any]]:
         """Discover agents in a specific repository's cache.
 
         Args:
@@ -595,8 +595,8 @@ class SingleTierDeploymentService:
             return []
 
     def _resolve_conflicts(
-        self, agents: List[Dict[str, Any]]
-    ) -> tuple[List[Dict[str, Any]], int]:
+        self, agents: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], int]:
         """Resolve agent name conflicts using priority system.
 
         When multiple repositories provide the same agent, choose the one
@@ -617,7 +617,7 @@ class SingleTierDeploymentService:
         4. Count groups with multiple agents as conflicts
         """
         # Group agents by name
-        agents_by_name: Dict[str, List[Dict[str, Any]]] = {}
+        agents_by_name: dict[str, list[dict[str, Any]]] = {}
 
         for agent in agents:
             name = agent.get("metadata", {}).get("name", "").lower().replace(" ", "-")
@@ -653,7 +653,7 @@ class SingleTierDeploymentService:
 
         return resolved, conflict_count
 
-    def _deploy_agent_file(self, agent: Dict[str, Any]) -> bool:
+    def _deploy_agent_file(self, agent: dict[str, Any]) -> bool:
         """Deploy a single agent file to deployment directory.
 
         Uses the unified deploy_agent_file() function from deployment_utils

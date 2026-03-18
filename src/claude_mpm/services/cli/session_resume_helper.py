@@ -15,9 +15,9 @@ DESIGN DECISIONS:
 
 import json
 import subprocess  # nosec B404 - subprocess needed for git commands
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 class SessionResumeHelper:
     """Helper for automatic session resume detection and prompting."""
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize session resume helper.
 
         Args:
@@ -58,7 +58,7 @@ class SessionResumeHelper:
 
         return len(session_files) > 0
 
-    def get_most_recent_session(self) -> Optional[Dict[str, Any]]:
+    def get_most_recent_session(self) -> dict[str, Any] | None:
         """Get the most recent paused session.
 
         Returns:
@@ -92,8 +92,8 @@ class SessionResumeHelper:
             return None
 
     def get_git_changes_since_pause(
-        self, paused_at: str, recent_commits: List[Dict[str, str]]
-    ) -> Tuple[int, List[Dict[str, str]]]:
+        self, paused_at: str, recent_commits: list[dict[str, str]]
+    ) -> tuple[int, list[dict[str, str]]]:
         """Calculate git changes since session was paused.
 
         Args:
@@ -160,11 +160,11 @@ class SessionResumeHelper:
         """
         try:
             pause_time = datetime.fromisoformat(paused_at)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             # Ensure pause_time is timezone-aware
             if pause_time.tzinfo is None:
-                pause_time = pause_time.replace(tzinfo=timezone.utc)
+                pause_time = pause_time.replace(tzinfo=UTC)
 
             delta = now - pause_time
 
@@ -192,7 +192,7 @@ class SessionResumeHelper:
             logger.error(f"Failed to calculate time elapsed: {e}")
             return "unknown time ago"
 
-    def format_resume_prompt(self, session_data: Dict[str, Any]) -> str:
+    def format_resume_prompt(self, session_data: dict[str, Any]) -> str:
         """Format a user-friendly resume prompt.
 
         Args:
@@ -268,7 +268,7 @@ class SessionResumeHelper:
             logger.error(f"Failed to format resume prompt: {e}")
             return "\n📋 Paused session found, but failed to format details.\n"
 
-    def check_and_display_resume_prompt(self) -> Optional[Dict[str, Any]]:
+    def check_and_display_resume_prompt(self) -> dict[str, Any] | None:
         """Check for paused sessions and display resume prompt if found.
 
         This is the main entry point for PM startup integration.
@@ -293,7 +293,7 @@ class SessionResumeHelper:
         # Return session data for PM to use
         return session_data
 
-    def clear_session(self, session_data: Dict[str, Any]) -> bool:
+    def clear_session(self, session_data: dict[str, Any]) -> bool:
         """Clear a paused session after successful resume.
 
         Args:
@@ -344,7 +344,7 @@ class SessionResumeHelper:
 
         return len(session_files)
 
-    def list_all_sessions(self) -> List[Dict[str, Any]]:
+    def list_all_sessions(self) -> list[dict[str, Any]]:
         """List all paused sessions sorted by most recent.
 
         Returns:

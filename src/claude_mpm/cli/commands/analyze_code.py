@@ -17,7 +17,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 try:
     from rich.console import Console
@@ -56,7 +56,7 @@ class AnalyzeCodeCommand(BaseCommand):
         self.logger = get_logger(__name__)
         self.console = Console() if RICH_AVAILABLE else None
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments.
 
         Args:
@@ -156,7 +156,7 @@ class AnalyzeCodeCommand(BaseCommand):
             return CommandResult(success=False, message=f"Analysis failed: {e!s}")
 
     def _build_file_tree(
-        self, path: Path, ignore_patterns: Optional[List[str]], max_depth: Optional[int]
+        self, path: Path, ignore_patterns: list[str] | None, max_depth: int | None
     ) -> dict:
         """Build file tree structure.
 
@@ -210,9 +210,9 @@ class AnalyzeCodeCommand(BaseCommand):
     def _analyze_code(
         self,
         path: Path,
-        languages: Optional[List[str]],
-        ignore_patterns: Optional[List[str]],
-        max_depth: Optional[int],
+        languages: list[str] | None,
+        ignore_patterns: list[str] | None,
+        max_depth: int | None,
         emit_events: bool,
         no_cache: bool,
     ) -> dict:

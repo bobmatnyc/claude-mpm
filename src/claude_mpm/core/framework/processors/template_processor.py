@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -19,7 +19,7 @@ except ImportError:
 class TemplateProcessor:
     """Processes JSON template files for agent configurations."""
 
-    def __init__(self, framework_path: Optional[Path] = None):
+    def __init__(self, framework_path: Path | None = None):
         """Initialize the template processor.
 
         Args:
@@ -28,7 +28,7 @@ class TemplateProcessor:
         self.logger = get_logger("template_processor")
         self.framework_path = framework_path
 
-    def load_template(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def load_template(self, agent_name: str) -> dict[str, Any] | None:
         """Load JSON template for an agent.
 
         Args:
@@ -49,7 +49,7 @@ class TemplateProcessor:
             self.logger.debug(f"Could not load template for {agent_name}: {e}")
             return None
 
-    def _load_packaged_template(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def _load_packaged_template(self, agent_name: str) -> dict[str, Any] | None:
         """Load template from packaged installation.
 
         Args:
@@ -73,7 +73,7 @@ class TemplateProcessor:
 
         return None
 
-    def _load_filesystem_template(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def _load_filesystem_template(self, agent_name: str) -> dict[str, Any] | None:
         """Load template from filesystem.
 
         Args:
@@ -102,7 +102,7 @@ class TemplateProcessor:
 
         return None
 
-    def _get_alternative_names(self, agent_name: str) -> List[str]:
+    def _get_alternative_names(self, agent_name: str) -> list[str]:
         """Get alternative naming variations for an agent.
 
         Args:
@@ -125,9 +125,7 @@ class TemplateProcessor:
             }
         )
 
-    def extract_routing(
-        self, template_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def extract_routing(self, template_data: dict[str, Any]) -> dict[str, Any] | None:
         """Extract routing information from template.
 
         Args:
@@ -139,8 +137,8 @@ class TemplateProcessor:
         return template_data.get("routing")
 
     def extract_memory_routing(
-        self, template_data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, template_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Extract memory routing information from template.
 
         Args:
@@ -151,7 +149,7 @@ class TemplateProcessor:
         """
         return template_data.get("memory_routing")
 
-    def extract_tools(self, template_data: Dict[str, Any]) -> str:
+    def extract_tools(self, template_data: dict[str, Any]) -> str:
         """Extract tools string from template data.
 
         Args:
@@ -171,7 +169,7 @@ class TemplateProcessor:
             return tools
         return "Standard Tools"
 
-    def extract_metadata(self, template_data: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metadata(self, template_data: dict[str, Any]) -> dict[str, Any]:
         """Extract agent metadata from template.
 
         Args:
@@ -198,7 +196,7 @@ class TemplateProcessor:
             "version": template_data.get("agent_version", "1.0.0"),
         }
 
-    def process_local_templates(self) -> Dict[str, Dict[str, Any]]:
+    def process_local_templates(self) -> dict[str, dict[str, Any]]:
         """Process all local JSON templates.
 
         Returns:

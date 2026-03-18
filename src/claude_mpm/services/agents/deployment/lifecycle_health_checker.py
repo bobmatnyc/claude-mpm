@@ -4,7 +4,7 @@ This module provides health checking functionality for the AgentLifecycleManager
 Extracted to reduce complexity and improve maintainability.
 """
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .agent_lifecycle_manager import AgentLifecycleManager
@@ -18,7 +18,7 @@ class LifecycleHealthChecker:
         self.lifecycle_manager = lifecycle_manager
         self.logger = lifecycle_manager.logger
 
-    async def perform_health_check(self) -> Dict[str, bool]:
+    async def perform_health_check(self) -> dict[str, bool]:
         """Perform comprehensive health checks."""
         checks = {}
 

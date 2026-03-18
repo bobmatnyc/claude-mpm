@@ -14,7 +14,7 @@ Design Principles:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
@@ -29,7 +29,7 @@ class NetworkConfig(BaseModel):
     socketio_port: int = Field(
         default=8765, ge=1024, le=65535, description="SocketIO server port"
     )
-    socketio_port_range: List[int] = Field(
+    socketio_port_range: list[int] = Field(
         default=[8765, 8775], description="Port range for SocketIO"
     )
     connection_timeout: int = Field(
@@ -67,7 +67,7 @@ class AgentConfig(BaseModel):
     """Agent system configuration."""
 
     # Explicit deployment lists (simplified model)
-    enabled: List[str] = Field(
+    enabled: list[str] = Field(
         default_factory=list,
         description="Explicit list of agent IDs to deploy (empty = use auto_discover)",
     )
@@ -75,7 +75,7 @@ class AgentConfig(BaseModel):
     # Required agents that are always deployed
     # Standard 7 core agents for essential PM workflow functionality
     # These are auto-deployed when no agents are specified in configuration
-    required: List[str] = Field(
+    required: list[str] = Field(
         default_factory=lambda: [
             "engineer",  # General-purpose implementation
             "research",  # Codebase exploration and analysis
@@ -97,7 +97,7 @@ class AgentConfig(BaseModel):
         default=False,
         description="Enable automatic agent discovery (deprecated, use enabled list)",
     )
-    precedence: List[str] = Field(
+    precedence: list[str] = Field(
         default=["project", "user", "system"], description="Agent precedence order"
     )
     enable_hot_reload: bool = Field(
@@ -146,7 +146,7 @@ class SecurityConfig(BaseModel):
     max_file_size_mb: int = Field(
         default=10, ge=1, description="Maximum file size for operations"
     )
-    allowed_file_extensions: List[str] = Field(
+    allowed_file_extensions: list[str] = Field(
         default=[".md", ".txt", ".json", ".yaml", ".yml", ".py"],
         description="Allowed file extensions",
     )
@@ -272,7 +272,7 @@ class SkillConfig(BaseModel):
     """Skill system configuration."""
 
     # Explicit deployment lists (simplified model)
-    enabled: List[str] = Field(
+    enabled: list[str] = Field(
         default_factory=list,
         description="Explicit list of skill IDs to deploy (includes agent dependencies)",
     )
@@ -311,15 +311,13 @@ class UnifiedConfig(BaseSettings):
     documentation: DocumentationConfig = Field(default_factory=DocumentationConfig)
 
     # Path configuration
-    base_path: Optional[Path] = Field(
-        default=None, description="Base path for Claude MPM"
-    )
-    config_path: Optional[Path] = Field(
+    base_path: Path | None = Field(default=None, description="Base path for Claude MPM")
+    config_path: Path | None = Field(
         default=None, description="Configuration file path"
     )
 
     # Additional settings for backward compatibility
-    extra_settings: Dict[str, Any] = Field(
+    extra_settings: dict[str, Any] = Field(
         default_factory=dict, description="Additional settings"
     )
 
@@ -404,7 +402,7 @@ class UnifiedConfig(BaseSettings):
         else:
             raise ConfigurationError(f"Invalid configuration key: {keys[-1]}")
 
-    def to_legacy_dict(self) -> Dict[str, Any]:
+    def to_legacy_dict(self) -> dict[str, Any]:
         """
         Convert to legacy dictionary format for backward compatibility.
 
@@ -478,7 +476,7 @@ class ConfigurationService:
     the application while maintaining backward compatibility with existing code.
     """
 
-    def __init__(self, config: Optional[UnifiedConfig] = None):
+    def __init__(self, config: UnifiedConfig | None = None):
         """
         Initialize configuration service.
 
@@ -486,7 +484,7 @@ class ConfigurationService:
             config: Optional pre-configured UnifiedConfig instance
         """
         self._config = config or self._load_default_config()
-        self._legacy_config: Optional[Any] = None
+        self._legacy_config: Any | None = None
 
     def _load_default_config(self) -> UnifiedConfig:
         """Load configuration from environment and default files."""
@@ -499,7 +497,7 @@ class ConfigurationService:
                 Path.home() / ".claude-mpm" / "configuration.yml",
             ]
 
-            config_data: Dict[str, Any] = {}
+            config_data: dict[str, Any] = {}
             for config_path in config_paths:
                 if config_path.exists():
                     import yaml
@@ -585,7 +583,7 @@ class ConfigurationService:
         except Exception as e:
             raise ConfigurationError(f"Configuration validation failed: {e}") from e
 
-    def export_to_file(self, file_path: Union[str, Path], format: str = "yaml") -> None:
+    def export_to_file(self, file_path: str | Path, format: str = "yaml") -> None:
         """
         Export configuration to file.
 

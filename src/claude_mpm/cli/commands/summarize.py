@@ -15,12 +15,11 @@ Why: Lightweight, fast, no dependencies, works offline.
 
 import json
 import re
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Optional
 
 
-class SummaryStyle(str, Enum):
+class SummaryStyle(StrEnum):
     """Summary output styles."""
 
     BRIEF = "brief"
@@ -29,7 +28,7 @@ class SummaryStyle(str, Enum):
     EXECUTIVE = "executive"
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     """Output format types."""
 
     TEXT = "text"
@@ -57,7 +56,7 @@ class DocumentSummarizer:
         self.max_words = max_words
 
     def summarize(
-        self, content: str, style: SummaryStyle, lines_limit: Optional[int] = None
+        self, content: str, style: SummaryStyle, lines_limit: int | None = None
     ) -> str:
         """
         Summarize document content.

@@ -8,10 +8,10 @@ Enforces template structure and provides section-specific update methods.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
@@ -20,7 +20,7 @@ from claude_mpm.services.shared import ConfigServiceBase
 logger = get_logger(__name__)
 
 
-class BaseAgentSection(str, Enum):
+class BaseAgentSection(StrEnum):
     """Base agent markdown sections."""
 
     FRAMEWORK_CONTEXT = "Agent Framework Context"
@@ -46,28 +46,28 @@ class BaseAgentStructure:
     description: str = "These instructions are prepended to EVERY agent prompt."
 
     # Main sections
-    framework_context: Dict[str, Any] = field(default_factory=dict)
-    behavioral_rules: Dict[str, List[str]] = field(default_factory=dict)
+    framework_context: dict[str, Any] = field(default_factory=dict)
+    behavioral_rules: dict[str, list[str]] = field(default_factory=dict)
     temporal_context: str = ""
-    quality_standards: Dict[str, List[str]] = field(default_factory=dict)
-    tool_usage: Dict[str, List[str]] = field(default_factory=dict)
-    collaboration_protocols: Dict[str, str] = field(default_factory=dict)
-    performance_optimization: Dict[str, str] = field(default_factory=dict)
-    escalation_triggers: List[str] = field(default_factory=list)
-    output_formats: Dict[str, str] = field(default_factory=dict)
-    framework_integration: Dict[str, List[str]] = field(default_factory=dict)
-    universal_constraints: List[str] = field(default_factory=list)
-    success_criteria: List[str] = field(default_factory=list)
+    quality_standards: dict[str, list[str]] = field(default_factory=dict)
+    tool_usage: dict[str, list[str]] = field(default_factory=dict)
+    collaboration_protocols: dict[str, str] = field(default_factory=dict)
+    performance_optimization: dict[str, str] = field(default_factory=dict)
+    escalation_triggers: list[str] = field(default_factory=list)
+    output_formats: dict[str, str] = field(default_factory=dict)
+    framework_integration: dict[str, list[str]] = field(default_factory=dict)
+    universal_constraints: list[str] = field(default_factory=list)
+    success_criteria: list[str] = field(default_factory=list)
 
     # Raw sections for preservation
-    raw_sections: Dict[str, str] = field(default_factory=dict)
+    raw_sections: dict[str, str] = field(default_factory=dict)
 
 
 class BaseAgentManager(ConfigServiceBase):
     """Manages base_agent.md with structured updates and validation."""
 
     def __init__(
-        self, agents_dir: Optional[Path] = None, config: Optional[Dict[str, Any]] = None
+        self, agents_dir: Path | None = None, config: dict[str, Any] | None = None
     ):
         """Initialize BaseAgentManager."""
         super().__init__("base_agent_manager", config=config)
@@ -81,7 +81,7 @@ class BaseAgentManager(ConfigServiceBase):
         self.base_agent_path = self.agents_dir / "BASE_AGENT_TEMPLATE.md"
         self.cache = SharedPromptCache.get_instance()
 
-    def read_base_agent(self) -> Optional[BaseAgentStructure]:
+    def read_base_agent(self) -> BaseAgentStructure | None:
         """
         Read and parse base_agent.md into structured format.
 
@@ -100,8 +100,8 @@ class BaseAgentManager(ConfigServiceBase):
             return None
 
     def update_base_agent(
-        self, updates: Dict[str, Any], backup: bool = True
-    ) -> Optional[BaseAgentStructure]:
+        self, updates: dict[str, Any], backup: bool = True
+    ) -> BaseAgentStructure | None:
         """
         Update base_agent.md with structured updates.
 
@@ -141,7 +141,7 @@ class BaseAgentManager(ConfigServiceBase):
 
     def update_section(
         self, section: BaseAgentSection, content: str, backup: bool = True
-    ) -> Optional[BaseAgentStructure]:
+    ) -> BaseAgentStructure | None:
         """
         Update a specific section of base_agent.md.
 
@@ -240,7 +240,7 @@ class BaseAgentManager(ConfigServiceBase):
 
         return False
 
-    def validate_structure(self) -> Dict[str, bool]:
+    def validate_structure(self) -> dict[str, bool]:
         """
         Validate that base_agent.md has all required sections.
 
@@ -342,7 +342,7 @@ class BaseAgentManager(ConfigServiceBase):
 
         return "\n".join(lines)
 
-    def _parse_list_content(self, content: str) -> List[str]:
+    def _parse_list_content(self, content: str) -> list[str]:
         """Parse list items from markdown content."""
         items = []
         for line in content.split("\n"):
@@ -356,7 +356,7 @@ class BaseAgentManager(ConfigServiceBase):
 
     def _create_backup(self) -> Path:
         """Create a timestamped backup of base_agent.md."""
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         backup_path = self.base_agent_path.parent / f"base_agent_{timestamp}.backup"
 
         if self.base_agent_path.exists():
@@ -389,7 +389,7 @@ def update_base_agent_section(section: BaseAgentSection, content: str) -> bool:
     return result is not None
 
 
-def validate_base_agent() -> Dict[str, bool]:
+def validate_base_agent() -> dict[str, bool]:
     """Quick function to validate base agent structure."""
     manager = get_base_agent_manager()
     return manager.validate_structure()

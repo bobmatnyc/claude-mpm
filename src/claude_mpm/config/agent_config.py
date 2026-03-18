@@ -18,7 +18,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
@@ -40,12 +40,12 @@ class AgentConfig:
     """Configuration for agent loading and discovery."""
 
     # Agent directory paths
-    project_agents_dir: Optional[Path] = None
-    user_agents_dir: Optional[Path] = None
-    system_agents_dir: Optional[Path] = None
+    project_agents_dir: Path | None = None
+    user_agents_dir: Path | None = None
+    system_agents_dir: Path | None = None
 
     # Additional search paths (from environment or config)
-    additional_paths: List[Path] = field(default_factory=list)
+    additional_paths: list[Path] = field(default_factory=list)
 
     # Precedence configuration
     precedence_mode: AgentPrecedenceMode = AgentPrecedenceMode.OVERRIDE
@@ -321,7 +321,7 @@ class AgentConfig:
 
         return result
 
-    def get_enabled_tiers(self) -> Dict[str, Optional[Path]]:
+    def get_enabled_tiers(self) -> dict[str, Path | None]:
         """
         Get enabled agent directories by tier.
 
@@ -341,7 +341,7 @@ class AgentConfig:
 
         return tiers
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary for serialization."""
         return {
             "project_agents_dir": (
@@ -367,7 +367,7 @@ class AgentConfig:
 
 
 # Global configuration instance
-_global_config: Optional[AgentConfig] = None
+_global_config: AgentConfig | None = None
 
 
 def get_agent_config() -> AgentConfig:

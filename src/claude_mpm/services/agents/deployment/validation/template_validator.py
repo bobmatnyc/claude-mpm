@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -113,7 +113,7 @@ class TemplateValidator:
         return result
 
     def _validate_template_structure(
-        self, template_data: Dict[str, Any], result: ValidationResult
+        self, template_data: dict[str, Any], result: ValidationResult
     ) -> None:
         """Validate the basic template structure.
 
@@ -144,7 +144,7 @@ class TemplateValidator:
                 )
 
     def _validate_metadata(
-        self, metadata: Dict[str, Any], result: ValidationResult
+        self, metadata: dict[str, Any], result: ValidationResult
     ) -> None:
         """Validate metadata section.
 
@@ -205,7 +205,7 @@ class TemplateValidator:
                 )
 
     def _validate_capabilities(
-        self, capabilities: Dict[str, Any], result: ValidationResult
+        self, capabilities: dict[str, Any], result: ValidationResult
     ) -> None:
         """Validate capabilities section.
 

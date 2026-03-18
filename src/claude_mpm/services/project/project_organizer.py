@@ -17,7 +17,7 @@ Created: 2025-01-26
 """
 
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import ClassVar
 
 from rich.console import Console
 
@@ -179,7 +179,7 @@ class ProjectOrganizer:
         self.gitignore_path = project_path / ".gitignore"
         self.structure_report = {}
 
-    def verify_structure(self, project_type: Optional[str] = None) -> Dict:
+    def verify_structure(self, project_type: str | None = None) -> dict:
         """Verify project structure and identify missing components."""
         report = {
             "project_path": str(self.project_path),
@@ -231,9 +231,7 @@ class ProjectOrganizer:
         self.structure_report = report
         return report
 
-    def _is_required_directory(
-        self, dir_name: str, project_type: Optional[str]
-    ) -> bool:
+    def _is_required_directory(self, dir_name: str, project_type: str | None) -> bool:
         """Determine if a directory is required for the project."""
         # Always required directories
         always_required = {"tmp", "scripts", "docs"}
@@ -249,7 +247,7 @@ class ProjectOrganizer:
 
         return False
 
-    def _check_common_issues(self) -> List[Dict]:
+    def _check_common_issues(self) -> list[dict]:
         """Check for common project organization issues."""
         issues = []
 
@@ -341,7 +339,7 @@ class ProjectOrganizer:
 
         return issues
 
-    def _generate_recommendations(self, report: Dict) -> List[str]:
+    def _generate_recommendations(self, report: dict) -> list[str]:
         """Generate recommendations based on verification report."""
         recommendations = []
 
@@ -364,7 +362,7 @@ class ProjectOrganizer:
 
         return recommendations
 
-    def create_missing_directories(self, force: bool = False) -> Dict:
+    def create_missing_directories(self, force: bool = False) -> dict:
         """Create missing standard directories."""
         created = []
         skipped = []
@@ -445,7 +443,7 @@ This directory is used for {description.lower()}.
                 readme_path.write_text(content)
                 logger.debug(f"Created README in {dir_path}")
 
-    def update_gitignore(self, additional_patterns: Optional[List[str]] = None) -> bool:
+    def update_gitignore(self, additional_patterns: list[str] | None = None) -> bool:
         """Update or create .gitignore file with standard patterns."""
         try:
             # Read existing content
@@ -492,7 +490,7 @@ This directory is used for {description.lower()}.
 
     def organize_misplaced_files(
         self, dry_run: bool = True, auto_safe: bool = True
-    ) -> Dict:
+    ) -> dict:
         """Organize misplaced files into proper directories.
 
         Args:
@@ -811,7 +809,7 @@ This directory is used for {description.lower()}.
 
         return doc
 
-    def generate_structure_report_json(self) -> Dict:
+    def generate_structure_report_json(self) -> dict:
         """Generate a comprehensive JSON structure report."""
         validation = self.validate_structure()
         organize_result = self.organize_misplaced_files(dry_run=True, auto_safe=True)
@@ -870,7 +868,7 @@ This directory is used for {description.lower()}.
 
     def ensure_project_ready(
         self, auto_organize: bool = False, safe_mode: bool = True
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """Ensure project is ready for Claude MPM usage.
 
         Args:
@@ -945,7 +943,7 @@ This directory is used for {description.lower()}.
         ready = len(issues_found) == 0
         return ready, actions_taken
 
-    def validate_structure(self) -> Dict:
+    def validate_structure(self) -> dict:
         """Validate the project structure meets Claude MPM standards."""
         validation = {
             "is_valid": True,

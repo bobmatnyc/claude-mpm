@@ -10,7 +10,7 @@ import os
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.constants import Defaults
 
@@ -71,18 +71,18 @@ class LoggerFactory:
     """Factory for creating standardized loggers."""
 
     _initialized = False
-    _log_dir: Optional[Path] = None
+    _log_dir: Path | None = None
     _log_level: str = Defaults.DEFAULT_LOG_LEVEL
-    _handlers: Dict[str, logging.Handler] = {}
+    _handlers: dict[str, logging.Handler] = {}
 
     @classmethod
     def initialize(
         cls,
-        log_level: Optional[str] = None,
-        log_dir: Optional[Path] = None,
+        log_level: str | None = None,
+        log_dir: Path | None = None,
         log_to_file: bool = False,
-        log_format: Optional[str] = None,
-        date_format: Optional[str] = None,
+        log_format: str | None = None,
+        date_format: str | None = None,
     ) -> None:
         """Initialize the logging system globally.
 
@@ -154,8 +154,8 @@ class LoggerFactory:
     @classmethod
     def _setup_file_handler(
         cls,
-        log_format: Optional[str] = None,
-        date_format: Optional[str] = None,
+        log_format: str | None = None,
+        date_format: str | None = None,
     ) -> None:
         """Set up file logging handlers with both size and time-based rotation."""
         if not cls._log_dir:
@@ -202,8 +202,8 @@ class LoggerFactory:
     def get_logger(
         cls,
         name: str,
-        component: Optional[str] = None,
-        level: Optional[str] = None,
+        component: str | None = None,
+        level: str | None = None,
     ) -> logging.Logger:
         """Get a standardized logger instance.
 
@@ -286,8 +286,8 @@ class LoggerFactory:
 @lru_cache(maxsize=128)
 def get_logger(
     name: str,
-    component: Optional[str] = None,
-    level: Optional[str] = None,
+    component: str | None = None,
+    level: str | None = None,
 ) -> logging.Logger:
     """Get a standardized logger instance (cached).
 
@@ -312,10 +312,10 @@ def get_logger(
 
 
 def initialize_logging(
-    log_level: Optional[str] = None,
-    log_dir: Optional[Path] = None,
+    log_level: str | None = None,
+    log_dir: Path | None = None,
     log_to_file: bool = False,
-    log_format: Optional[str] = None,
+    log_format: str | None = None,
 ) -> None:
     """Initialize the logging system with standard configuration.
 
@@ -344,7 +344,7 @@ def set_log_level(level: str) -> None:
     LoggerFactory.set_level(level)
 
 
-def get_component_logger(component: str, name: Optional[str] = None) -> logging.Logger:
+def get_component_logger(component: str, name: str | None = None) -> logging.Logger:
     """Get a logger for a specific component.
 
     Args:
@@ -374,7 +374,7 @@ class StructuredLogger:
             logger: Base logger instance
         """
         self.logger = logger
-        self.context: Dict[str, Any] = {}
+        self.context: dict[str, Any] = {}
 
     def with_context(self, **kwargs) -> "StructuredLogger":
         """Add context to all log messages.
@@ -433,7 +433,7 @@ class StructuredLogger:
 
 
 def get_structured_logger(
-    name: str, component: Optional[str] = None, **context
+    name: str, component: str | None = None, **context
 ) -> StructuredLogger:
     """Get a structured logger with initial context.
 
@@ -467,7 +467,7 @@ class PerformanceLogger:
             logger: Base logger instance
         """
         self.logger = logger
-        self._timers: Dict[str, float] = {}
+        self._timers: dict[str, float] = {}
 
     def start_timer(self, operation: str) -> None:
         """Start timing an operation.
@@ -521,7 +521,7 @@ class PerformanceLogger:
         ctx = f" [{context}]" if context else ""
         self.logger.info(f"Memory usage{ctx}: {memory_mb:.2f} MB")
 
-    def log_metrics(self, metrics: Dict[str, Any], context: str = "") -> None:
+    def log_metrics(self, metrics: dict[str, Any], context: str = "") -> None:
         """Log performance metrics.
 
         Args:

@@ -14,8 +14,8 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 1
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, Optional
 
 from ....core.enums import OperationResult, ValidationSeverity
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 ConfigurationStatus = OperationResult
 
 
-class AgentSpecialization(str, Enum):
+class AgentSpecialization(StrEnum):
     """Agent specialization categories.
 
     WHY: Agents have different areas of expertise. This enum provides
@@ -58,16 +58,16 @@ class AgentCapabilities:
 
     agent_id: str
     agent_name: str
-    specializations: List[AgentSpecialization] = field(default_factory=list)
-    supported_languages: List[str] = field(default_factory=list)
-    supported_frameworks: List[str] = field(default_factory=list)
-    required_tools: List[str] = field(default_factory=list)
-    optional_tools: List[str] = field(default_factory=list)
-    deployment_targets: List[str] = field(default_factory=list)
+    specializations: list[AgentSpecialization] = field(default_factory=list)
+    supported_languages: list[str] = field(default_factory=list)
+    supported_frameworks: list[str] = field(default_factory=list)
+    required_tools: list[str] = field(default_factory=list)
+    optional_tools: list[str] = field(default_factory=list)
+    deployment_targets: list[str] = field(default_factory=list)
     description: str = ""
-    strengths: List[str] = field(default_factory=list)
-    limitations: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    strengths: list[str] = field(default_factory=list)
+    limitations: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate agent capabilities."""
@@ -107,12 +107,12 @@ class AgentRecommendation:
     agent_id: str
     agent_name: str
     confidence_score: float  # 0.0-1.0
-    match_reasons: List[str] = field(default_factory=list)
-    concerns: List[str] = field(default_factory=list)
-    capabilities: Optional[AgentCapabilities] = None
+    match_reasons: list[str] = field(default_factory=list)
+    concerns: list[str] = field(default_factory=list)
+    capabilities: AgentCapabilities | None = None
     deployment_priority: int = 1  # Lower = higher priority
-    configuration_hints: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    configuration_hints: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate agent recommendation."""
@@ -163,7 +163,7 @@ class AgentRecommendation:
             else "No specific reasons"
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert recommendation to dictionary."""
         return {
             "agent_id": self.agent_id,
@@ -198,13 +198,13 @@ class ConfigurationResult:
     """
 
     status: OperationResult
-    deployed_agents: List[str] = field(default_factory=list)
-    failed_agents: List[str] = field(default_factory=list)
-    validation_warnings: List[str] = field(default_factory=list)
-    validation_errors: List[str] = field(default_factory=list)
-    recommendations: List[AgentRecommendation] = field(default_factory=list)
+    deployed_agents: list[str] = field(default_factory=list)
+    failed_agents: list[str] = field(default_factory=list)
+    validation_warnings: list[str] = field(default_factory=list)
+    validation_errors: list[str] = field(default_factory=list)
+    recommendations: list[AgentRecommendation] = field(default_factory=list)
     message: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_successful(self) -> bool:
@@ -226,7 +226,7 @@ class ConfigurationResult:
         """Get number of successfully deployed agents."""
         return len(self.deployed_agents)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary."""
         return {
             "status": self.status.value,
@@ -250,9 +250,9 @@ class ValidationIssue:
 
     severity: ValidationSeverity
     message: str
-    agent_id: Optional[str] = None
-    field: Optional[str] = None
-    suggested_fix: Optional[str] = None
+    agent_id: str | None = None
+    field: str | None = None
+    suggested_fix: str | None = None
 
     def __post_init__(self):
         """Validate issue data."""
@@ -272,19 +272,19 @@ class ValidationResult:
     """
 
     is_valid: bool
-    issues: List[ValidationIssue] = field(default_factory=list)
-    validated_agents: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    issues: list[ValidationIssue] = field(default_factory=list)
+    validated_agents: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def errors(self) -> List[ValidationIssue]:
+    def errors(self) -> list[ValidationIssue]:
         """Get all error-level issues."""
         return [
             issue for issue in self.issues if issue.severity == ValidationSeverity.ERROR
         ]
 
     @property
-    def warnings(self) -> List[ValidationIssue]:
+    def warnings(self) -> list[ValidationIssue]:
         """Get all warning-level issues."""
         return [
             issue
@@ -293,7 +293,7 @@ class ValidationResult:
         ]
 
     @property
-    def infos(self) -> List[ValidationIssue]:
+    def infos(self) -> list[ValidationIssue]:
         """Get all info-level issues."""
         return [
             issue for issue in self.issues if issue.severity == ValidationSeverity.INFO
@@ -319,7 +319,7 @@ class ValidationResult:
         """Get number of warnings."""
         return len(self.warnings)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert validation result to dictionary."""
         return {
             "is_valid": self.is_valid,
@@ -357,14 +357,14 @@ class ConfigurationPreview:
     before deployment. Provides summary statistics for quick assessment.
     """
 
-    recommendations: List[AgentRecommendation] = field(default_factory=list)
-    validation_result: Optional[ValidationResult] = None
+    recommendations: list[AgentRecommendation] = field(default_factory=list)
+    validation_result: ValidationResult | None = None
     detected_toolchain: Optional["ToolchainAnalysis"] = None
     estimated_deployment_time: float = 0.0  # seconds
-    would_deploy: List[str] = field(default_factory=list)
-    would_skip: List[str] = field(default_factory=list)
+    would_deploy: list[str] = field(default_factory=list)
+    would_skip: list[str] = field(default_factory=list)
     requires_confirmation: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def deployment_count(self) -> int:
@@ -388,7 +388,7 @@ class ConfigurationPreview:
         """Get number of high-confidence recommendations."""
         return sum(1 for rec in self.recommendations if rec.is_high_confidence)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert preview to dictionary."""
         return {
             "deployment_count": self.deployment_count,

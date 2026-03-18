@@ -10,7 +10,7 @@ DESIGN DECISION: We prioritize pure Python implementations over native ones
 for better cross-platform compatibility, even if they might be slightly slower.
 """
 
-from typing import Any, ClassVar, Dict, Optional, Tuple
+from typing import Any, ClassVar
 
 from ..core.logger import get_logger
 
@@ -45,7 +45,7 @@ class DatabaseConnector:
 
     def __init__(self):
         """Initialize the database connector."""
-        self.available_drivers: Dict[str, Tuple[str, Any]] = {}
+        self.available_drivers: dict[str, tuple[str, Any]] = {}
         self._scan_available_drivers()
 
     def _scan_available_drivers(self) -> None:
@@ -76,7 +76,7 @@ class DatabaseConnector:
                 self.available_drivers["oracle"] = (package_name, driver)
                 logger.info(f"Oracle driver available: {package_name}")
 
-    def _try_import(self, module_name: str) -> Optional[Any]:
+    def _try_import(self, module_name: str) -> Any | None:
         """
         Try to import a module and return it if successful.
 
@@ -95,7 +95,7 @@ class DatabaseConnector:
 
     def get_mysql_connection_string(
         self, host: str, database: str, user: str, password: str, port: int = 3306
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get a SQLAlchemy connection string for MySQL with automatic driver selection.
 
@@ -132,7 +132,7 @@ class DatabaseConnector:
 
     def get_postgresql_connection_string(
         self, host: str, database: str, user: str, password: str, port: int = 5432
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get a SQLAlchemy connection string for PostgreSQL with automatic driver selection.
 
@@ -164,7 +164,7 @@ class DatabaseConnector:
 
     def get_oracle_connection_string(
         self, host: str, database: str, user: str, password: str, port: int = 1521
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Get a SQLAlchemy connection string for Oracle with automatic driver selection.
 
@@ -194,7 +194,7 @@ class DatabaseConnector:
 
         return None
 
-    def get_available_drivers(self) -> Dict[str, str]:
+    def get_available_drivers(self) -> dict[str, str]:
         """
         Get a summary of available database drivers.
 
@@ -206,7 +206,7 @@ class DatabaseConnector:
             for db_type, driver_info in self.available_drivers.items()
         }
 
-    def suggest_missing_drivers(self) -> Dict[str, str]:
+    def suggest_missing_drivers(self) -> dict[str, str]:
         """
         Suggest drivers to install for databases without drivers.
 

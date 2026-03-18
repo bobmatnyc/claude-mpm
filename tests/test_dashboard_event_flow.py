@@ -10,7 +10,7 @@ This script:
 
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import requests
 import socketio as socketio_client
@@ -63,7 +63,7 @@ def test_dashboard_event_flow():
         "hook_input_data": {
             "query": "This is a test prompt to verify dashboard events are working"
         },
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "session_id": "test-dashboard-" + str(int(time.time())),
     }
 
@@ -112,7 +112,7 @@ def test_dashboard_event_flow():
         ]
 
         for test_event in test_events:
-            test_event["timestamp"] = datetime.now(timezone.utc).isoformat()
+            test_event["timestamp"] = datetime.now(UTC).isoformat()
             test_event["session_id"] = hook_event["session_id"]
 
             try:

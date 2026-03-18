@@ -24,7 +24,7 @@ import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import psutil
 
@@ -204,7 +204,7 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"⚠️ Failed to cleanup test directory {test_dir}: {e}")
 
-    def measure_memory_usage(self) -> Dict[str, float]:
+    def measure_memory_usage(self) -> dict[str, float]:
         """Measure current memory usage."""
         memory_info = self.process.memory_info()
         return {
@@ -213,7 +213,7 @@ if __name__ == "__main__":
             "percent": self.process.memory_percent(),  # Memory percentage
         }
 
-    def test_event_throughput(self, codebase_size: str = "medium") -> Dict[str, Any]:
+    def test_event_throughput(self, codebase_size: str = "medium") -> dict[str, Any]:
         """Test event throughput during code analysis."""
         print(f"\n⚡ Testing Event Throughput ({codebase_size} codebase)...")
 
@@ -367,7 +367,7 @@ if __name__ == "__main__":
             if test_dir:
                 self.cleanup_test_codebase(test_dir)
 
-    def test_memory_usage_scaling(self) -> Dict[str, Any]:
+    def test_memory_usage_scaling(self) -> dict[str, Any]:
         """Test memory usage scaling with different codebase sizes."""
         print("\n📊 Testing Memory Usage Scaling...")
 
@@ -499,7 +499,7 @@ if __name__ == "__main__":
 
         return result
 
-    def test_error_recovery_scenarios(self) -> Dict[str, Any]:
+    def test_error_recovery_scenarios(self) -> dict[str, Any]:
         """Test various error scenarios and recovery mechanisms."""
         print("\n🚨 Testing Error Recovery Scenarios...")
 
@@ -667,7 +667,7 @@ if __name__ == "__main__":
 
         return result
 
-    def test_concurrent_processing(self) -> Dict[str, Any]:
+    def test_concurrent_processing(self) -> dict[str, Any]:
         """Test concurrent analysis processing."""
         print("\n🔄 Testing Concurrent Processing...")
 
@@ -786,7 +786,7 @@ if __name__ == "__main__":
 
         return result
 
-    def run_performance_test_suite(self) -> Dict[str, Any]:
+    def run_performance_test_suite(self) -> dict[str, Any]:
         """Run the complete performance and error testing suite."""
         print("⚡ Starting Performance and Error Testing Suite")
         print("=" * 60)

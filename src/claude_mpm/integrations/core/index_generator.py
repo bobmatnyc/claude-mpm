@@ -5,7 +5,7 @@ Generates _index.yaml from catalog integrations for discovery and CI validation.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path  # noqa: TC003 - used at runtime
 from typing import Any
 
@@ -77,7 +77,7 @@ class CatalogIndexGenerator:
         index_data = {
             "# Auto-generated catalog index": None,
             "# DO NOT EDIT - run 'mpm integrate rebuild-index' to regenerate": None,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "version": "1.0",
             "total_count": len(integrations),
             "integrations": integrations,

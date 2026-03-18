@@ -15,10 +15,10 @@ This module provides:
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.unified.strategies import (
@@ -66,13 +66,13 @@ class DeploymentContext:
     """
 
     # Core deployment info
-    source: Union[str, Path]
-    target: Union[str, Path]
+    source: str | Path
+    target: str | Path
     deployment_type: DeploymentType
 
     # Configuration
-    config: Dict[str, Any] = field(default_factory=dict)
-    environment: Dict[str, str] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
+    environment: dict[str, str] = field(default_factory=dict)
 
     # Options
     force: bool = False
@@ -81,13 +81,13 @@ class DeploymentContext:
     backup_enabled: bool = True
 
     # Versioning
-    version: Optional[str] = None
-    previous_version: Optional[str] = None
+    version: str | None = None
+    previous_version: str | None = None
 
     # Metadata
-    tags: List[str] = field(default_factory=list)
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    labels: dict[str, str] = field(default_factory=dict)
+    annotations: dict[str, Any] = field(default_factory=dict)
 
     def to_strategy_context(self) -> StrategyContext:
         """Convert to generic strategy context."""
@@ -120,35 +120,35 @@ class DeploymentResult:
     message: str = ""
 
     # Deployment details
-    deployment_id: Optional[str] = None
-    deployed_path: Optional[Path] = None
-    deployment_url: Optional[str] = None
+    deployment_id: str | None = None
+    deployed_path: Path | None = None
+    deployment_url: str | None = None
 
     # Versioning
-    version: Optional[str] = None
-    previous_version: Optional[str] = None
+    version: str | None = None
+    previous_version: str | None = None
 
     # Timing
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    duration_seconds: Optional[float] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_seconds: float | None = None
 
     # Artifacts
-    artifacts: List[Path] = field(default_factory=list)
-    logs: List[str] = field(default_factory=list)
+    artifacts: list[Path] = field(default_factory=list)
+    logs: list[str] = field(default_factory=list)
 
     # Rollback info
     rollback_available: bool = False
-    rollback_info: Dict[str, Any] = field(default_factory=dict)
+    rollback_info: dict[str, Any] = field(default_factory=dict)
 
     # Metrics
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
     # Errors and warnings
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "success": self.success,
@@ -190,7 +190,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
     - get_health_status(): Check deployment health
     """
 
-    def __init__(self, metadata: Optional[StrategyMetadata] = None):
+    def __init__(self, metadata: StrategyMetadata | None = None):
         """
         Initialize deployment strategy.
 
@@ -199,8 +199,8 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         """
         super().__init__(metadata or self._create_metadata())
         self._logger = get_logger(f"{__name__}.{self.__class__.__name__}")
-        self._current_deployment: Optional[DeploymentContext] = None
-        self._deployment_history: List[DeploymentResult] = []
+        self._current_deployment: DeploymentContext | None = None
+        self._deployment_history: list[DeploymentResult] = []
 
     def _create_metadata(self) -> StrategyMetadata:
         """Create default metadata for strategy."""
@@ -215,10 +215,10 @@ class DeploymentStrategy(BaseDeploymentStrategy):
     # Override base class method
     def deploy(
         self,
-        source: Union[str, Path],
-        target: Union[str, Path],
-        config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        source: str | Path,
+        target: str | Path,
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Execute deployment (implements base class abstract method).
 
@@ -255,7 +255,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         result = DeploymentResult(
             success=False,
             status=DeploymentStatus.PENDING,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
 
         try:
@@ -334,7 +334,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
                     result.errors.append(f"Rollback failed: {rollback_error!s}")
 
         finally:
-            result.completed_at = datetime.now(timezone.utc)
+            result.completed_at = datetime.now(UTC)
             if result.started_at:
                 result.duration_seconds = (
                     result.completed_at - result.started_at
@@ -351,7 +351,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
     # Abstract methods to be implemented by subclasses
 
     @abstractmethod
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """
         Validate deployment configuration.
 
@@ -363,7 +363,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         """
 
     @abstractmethod
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """
         Prepare deployment artifacts.
 
@@ -376,8 +376,8 @@ class DeploymentStrategy(BaseDeploymentStrategy):
 
     @abstractmethod
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """
         Execute the deployment.
 
@@ -391,7 +391,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
 
     @abstractmethod
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """
         Verify deployment success.
@@ -418,7 +418,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
         """
 
     @abstractmethod
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """
         Get health status of deployment.
 
@@ -432,7 +432,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
     # Helper methods
 
     def _detect_deployment_type(
-        self, source: Union[str, Path], config: Optional[Dict[str, Any]]
+        self, source: str | Path, config: dict[str, Any] | None
     ) -> DeploymentType:
         """
         Detect deployment type from source and config.
@@ -466,7 +466,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
 
     def _collect_metrics(
         self, context: DeploymentContext, result: DeploymentResult
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Collect deployment metrics.
 
@@ -487,7 +487,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
             "warning_count": len(result.warnings),
         }
 
-    def _get_size(self, path: Union[str, Path]) -> int:
+    def _get_size(self, path: str | Path) -> int:
         """Get size of file or directory in bytes."""
         path = Path(path)
         if path.is_file():
@@ -511,7 +511,7 @@ class DeploymentStrategy(BaseDeploymentStrategy):
 
         return True
 
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """Validate input data for strategy."""
         errors = []
 
@@ -527,16 +527,16 @@ class DeploymentStrategy(BaseDeploymentStrategy):
 
         return errors
 
-    def prepare_rollback(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_rollback(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """Prepare rollback information."""
         return {
             "deployment_id": deployment_info.get("deployment_id"),
             "deployed_path": str(deployment_info.get("deployed_path")),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "artifacts": deployment_info.get("artifacts", []),
         }
 
-    def cleanup(self, target: Union[str, Path]) -> bool:
+    def cleanup(self, target: str | Path) -> bool:
         """Clean up deployment artifacts."""
         try:
             target_path = Path(target)

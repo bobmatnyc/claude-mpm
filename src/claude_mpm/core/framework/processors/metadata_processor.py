@@ -3,7 +3,7 @@
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -17,7 +17,7 @@ class MetadataProcessor:
         """Initialize the metadata processor."""
         self.logger = get_logger("metadata_processor")
 
-    def extract_metadata_from_content(self, content: str) -> Dict[str, Optional[str]]:
+    def extract_metadata_from_content(self, content: str) -> dict[str, str | None]:
         """Extract metadata from content string.
 
         Args:
@@ -45,7 +45,7 @@ class MetadataProcessor:
 
         return metadata
 
-    def parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
+    def parse_agent_metadata(self, agent_file: Path) -> dict[str, Any] | None:
         """Parse agent metadata from deployed agent file.
 
         Args:
@@ -98,7 +98,7 @@ class MetadataProcessor:
             self.logger.debug(f"Could not parse metadata from {agent_file}: {e}")
             return None
 
-    def extract_cache_metadata(self, data: Any, cache_key: str) -> Tuple[Any, float]:
+    def extract_cache_metadata(self, data: Any, cache_key: str) -> tuple[Any, float]:
         """Extract cache metadata for storage.
 
         Args:
@@ -112,8 +112,8 @@ class MetadataProcessor:
 
     def validate_cache_metadata(
         self,
-        cached_data: Tuple[Any, float],
-        file_path: Optional[Path] = None,
+        cached_data: tuple[Any, float],
+        file_path: Path | None = None,
         ttl: float = 60.0,
     ) -> bool:
         """Validate cache metadata for freshness.

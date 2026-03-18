@@ -9,7 +9,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import questionary
 
@@ -58,8 +58,8 @@ class AgentWizard:
 
     @staticmethod
     def _calculate_column_widths(
-        terminal_width: int, columns: Dict[str, int]
-    ) -> Dict[str, int]:
+        terminal_width: int, columns: dict[str, int]
+    ) -> dict[str, int]:
         """Calculate dynamic column widths based on terminal size.
 
         Args:
@@ -100,7 +100,7 @@ class AgentWizard:
         # Terminal too narrow, use minimum widths
         return columns.copy()
 
-    def run_interactive_create(self) -> Tuple[bool, str]:
+    def run_interactive_create(self) -> tuple[bool, str]:
         """Run interactive agent creation wizard.
 
         Returns:
@@ -188,7 +188,7 @@ class AgentWizard:
             self.logger.error(error_msg, exc_info=True)
             return False, error_msg
 
-    def _merge_agent_sources(self) -> List[Dict[str, Any]]:
+    def _merge_agent_sources(self) -> list[dict[str, Any]]:
         """
         Merge agents from all sources with precedence: local > discovered.
 
@@ -262,7 +262,7 @@ class AgentWizard:
         agent_list = list(agents.values())
         return apply_all_filters(agent_list, filter_base=True, filter_deployed=False)
 
-    def run_interactive_manage(self) -> Tuple[bool, str]:
+    def run_interactive_manage(self) -> tuple[bool, str]:
         """Run interactive agent management menu.
 
         Returns:
@@ -433,7 +433,7 @@ class AgentWizard:
             self.logger.error(error_msg, exc_info=True)
             return False, error_msg
 
-    def _get_agent_id(self) -> Optional[str]:
+    def _get_agent_id(self) -> str | None:
         """Get and validate agent ID from user."""
         while True:
             agent_id = input(
@@ -557,7 +557,7 @@ class AgentWizard:
 
             print("❌ Invalid choice. Please select a number from the list.")
 
-    def _get_inheritance_option(self) -> Tuple[Optional[str], Optional[Dict]]:
+    def _get_inheritance_option(self) -> tuple[str | None, dict | None]:
         """Get inheritance option from user."""
         print("\n5. Would you like to inherit from an existing agent?")
         print("   [1] No, start fresh")
@@ -572,7 +572,7 @@ class AgentWizard:
                 return self._select_system_agent()
             print("❌ Invalid choice. Please select 1 or 2.")
 
-    def _select_system_agent(self) -> Tuple[Optional[str], Optional[Dict]]:
+    def _select_system_agent(self) -> tuple[str | None, dict | None]:
         """Let user select a system agent to inherit from."""
         try:
             # Get available system agents
@@ -611,7 +611,7 @@ class AgentWizard:
             print("❌ Could not load system agents for inheritance.")
             return None, None
 
-    def _get_capabilities_configuration(self) -> Dict[str, Any]:
+    def _get_capabilities_configuration(self) -> dict[str, Any]:
         """Get capabilities configuration from user."""
         print("\n6. What additional capabilities should this agent have?")
 
@@ -687,7 +687,7 @@ class AgentWizard:
             return description
 
     def _get_agent_instructions(
-        self, agent_id: str, agent_type: str, parent_agent: Optional[str]
+        self, agent_id: str, agent_type: str, parent_agent: str | None
     ) -> str:
         """Get agent instructions from user."""
         print("\n8. Agent Instructions:")
@@ -741,11 +741,11 @@ class AgentWizard:
         agent_name: str,
         agent_type: str,
         model: str,
-        parent_agent: Optional[str],
-        capabilities: Dict,
+        parent_agent: str | None,
+        capabilities: dict,
         description: str,
         instructions: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create preview configuration dictionary."""
         config = {
             "agent_id": agent_id,
@@ -764,7 +764,7 @@ class AgentWizard:
 
         return config
 
-    def _confirm_creation(self, config: Dict[str, Any]) -> bool:
+    def _confirm_creation(self, config: dict[str, Any]) -> bool:
         """Show preview and get confirmation from user."""
         print_section_header("📋", "Agent Configuration Preview", width=BANNER_WIDTH)
 
@@ -801,8 +801,8 @@ class AgentWizard:
         agent_name: str,
         agent_type: str,
         model: str,
-        parent_agent: Optional[str],
-        capabilities: Dict,
+        parent_agent: str | None,
+        capabilities: dict,
         description: str,
         instructions: str,
     ) -> LocalAgentTemplate:
@@ -818,7 +818,7 @@ class AgentWizard:
             tier="project",
         )
 
-    def _manage_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
+    def _manage_single_agent(self, template: LocalAgentTemplate) -> tuple[bool, str]:
         """Manage a single agent."""
         print(f"\n🔧 Managing Agent: {template.agent_id}")
         print(f"   Name: {template.metadata.get('name', template.agent_id)}")
@@ -848,7 +848,7 @@ class AgentWizard:
             return True, "Back to menu"
         return False, "Invalid choice"
 
-    def _view_agent_details(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
+    def _view_agent_details(self, template: LocalAgentTemplate) -> tuple[bool, str]:
         """View detailed agent information."""
         print(f"\n📄 Agent Details: {template.agent_id}")
         print("=" * 50)
@@ -873,7 +873,7 @@ class AgentWizard:
         input("\nPress Enter to continue...")
         return True, "Agent details viewed"
 
-    def _edit_agent_config(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
+    def _edit_agent_config(self, template: LocalAgentTemplate) -> tuple[bool, str]:
         """Edit agent configuration."""
         print(f"\n✏️  Editing Agent: {template.agent_id}")
         print("This will open the JSON file in your default editor.")
@@ -901,7 +901,7 @@ class AgentWizard:
         except Exception as e:
             return False, f"Failed to open editor: {e}"
 
-    def _deploy_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
+    def _deploy_single_agent(self, template: LocalAgentTemplate) -> tuple[bool, str]:
         """Deploy a single agent."""
         try:
             from claude_mpm.services.agents.deployment.local_template_deployment import (
@@ -920,7 +920,7 @@ class AgentWizard:
         except Exception as e:
             return False, f"Deployment error: {e}"
 
-    def _delete_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
+    def _delete_agent(self, template: LocalAgentTemplate) -> tuple[bool, str]:
         """Delete an agent with comprehensive options."""
         print(f"\n🗑️  Delete Agent: {template.agent_id}")
         print(f"   Name: {template.metadata.get('name', template.agent_id)}")
@@ -980,7 +980,7 @@ class AgentWizard:
         errors = "\n".join(result["errors"])
         return False, f"Failed to delete agent:\n{errors}"
 
-    def _export_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
+    def _export_single_agent(self, template: LocalAgentTemplate) -> tuple[bool, str]:
         """Export a single agent."""
         output_dir = Path("./exported-agents")
         output_dir.mkdir(exist_ok=True)
@@ -992,7 +992,7 @@ class AgentWizard:
 
         return True, f"Agent exported to {output_file}"
 
-    def _interactive_import(self) -> Tuple[bool, str]:
+    def _interactive_import(self) -> tuple[bool, str]:
         """Interactive agent import."""
         input_dir = input("\nEnter directory path to import from: ").strip()
 
@@ -1014,7 +1014,7 @@ class AgentWizard:
         count = self.manager.import_local_templates(input_path, tier)
         return True, f"Imported {count} agents from {input_path}"
 
-    def _interactive_export(self) -> Tuple[bool, str]:
+    def _interactive_export(self) -> tuple[bool, str]:
         """Interactive agent export."""
         output_dir = input(
             "\nEnter directory path to export to [./exported-agents]: "
@@ -1033,7 +1033,7 @@ class AgentWizard:
             return self.manager.project_agents_dir / f"{template.agent_id}.json"
         return self.manager.user_agents_dir / f"{template.agent_id}.json"
 
-    def _interactive_delete_menu(self, templates: list) -> Tuple[bool, str]:
+    def _interactive_delete_menu(self, templates: list) -> tuple[bool, str]:
         """Interactive deletion menu for multiple agents."""
         print_section_header("🗑️", "Delete Agents", width=BANNER_WIDTH)
 
@@ -1136,7 +1136,7 @@ class AgentWizard:
 
         return len(results["successful"]) > 0, message.strip()
 
-    def _show_agent_details(self, agent: Dict[str, Any]) -> None:
+    def _show_agent_details(self, agent: dict[str, Any]) -> None:
         """Show detailed information about an agent.
 
         Args:
@@ -1159,7 +1159,7 @@ class AgentWizard:
 
         input("\nPress Enter to continue...")
 
-    def _deploy_agent_interactive(self, available_agents: List[Dict[str, Any]]):
+    def _deploy_agent_interactive(self, available_agents: list[dict[str, Any]]):
         """Interactive agent deployment.
 
         Args:
@@ -1485,7 +1485,7 @@ class AgentWizard:
                 print("❌ Invalid choice")
                 input("\nPress Enter to continue...")
 
-    def _deploy_from_filtered_list(self, agents: List[Dict[str, Any]]):
+    def _deploy_from_filtered_list(self, agents: list[dict[str, Any]]):
         """Deploy an agent from a filtered list.
 
         Args:
@@ -1598,7 +1598,7 @@ class AgentWizard:
 
         input("\nPress Enter to continue...")
 
-    def _view_from_filtered_list(self, agents: List[Dict[str, Any]]):
+    def _view_from_filtered_list(self, agents: list[dict[str, Any]]):
         """View details of an agent from filtered list.
 
         Args:

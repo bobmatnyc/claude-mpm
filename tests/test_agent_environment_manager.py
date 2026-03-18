@@ -277,8 +277,9 @@ class TestAgentEnvironmentManager:
         for config_dir in test_configs:
             config_dir.mkdir(parents=True, exist_ok=True)
 
-        with patch("pathlib.Path.cwd", return_value=temp_dir), patch(
-            "pathlib.Path.home", return_value=temp_dir / "home"
+        with (
+            patch("pathlib.Path.cwd", return_value=temp_dir),
+            patch("pathlib.Path.home", return_value=temp_dir / "home"),
         ):
             locations = env_manager._find_claude_config_locations()
 

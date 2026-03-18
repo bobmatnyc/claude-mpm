@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import socketio
 
@@ -24,7 +24,7 @@ def connect():
                 }
             ]
         },
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "session_id": "test-session-quick",
     }
 

@@ -221,14 +221,18 @@ export default App;
         command._auto_config_manager = mock_auto_config
 
         # Mock skill recommendations and print
-        with patch("builtins.print") as mock_print, patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {
-                "python-engineer": ["python-testing", "fastapi-local-dev"],
-                "react-developer": ["react", "typescript"],
-                "ops": ["docker", "systematic-debugging"],
-            },
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch("builtins.print") as mock_print,
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {
+                    "python-engineer": ["python-testing", "fastapi-local-dev"],
+                    "react-developer": ["react", "typescript"],
+                    "ops": ["docker", "systematic-debugging"],
+                },
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             args = Namespace(
                 project_path=realistic_project_structure,
                 min_confidence=0.5,
@@ -286,10 +290,14 @@ export default App;
         }
         command._skills_deployer = mock_skills
 
-        with patch("builtins.input", return_value="y") as mock_input, patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {"python-engineer": ["python-testing"], "react-developer": ["react"]},
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch("builtins.input", return_value="y") as mock_input,
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {"python-engineer": ["python-testing"], "react-developer": ["react"]},
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             args = Namespace(
                 project_path=realistic_project_structure,
                 min_confidence=0.7,
@@ -387,10 +395,13 @@ export default App;
         }
         command._skills_deployer = mock_skills
 
-        with patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {"python-engineer": ["python-testing"], "react-developer": ["react"]},
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {"python-engineer": ["python-testing"], "react-developer": ["react"]},
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             args = Namespace(
                 project_path=realistic_project_structure,
                 min_confidence=0.5,
@@ -420,15 +431,18 @@ export default App;
         assert command._auto_config_manager is None
 
         # Patch at source modules where classes are defined
-        with patch(
-            "claude_mpm.services.agents.auto_config_manager.AutoConfigManagerService"
-        ) as MockManager, patch(
-            "claude_mpm.services.agents.recommender.AgentRecommenderService"
-        ) as MockRecommender, patch(
-            "claude_mpm.services.agents.registry.AgentRegistry"
-        ) as MockRegistry, patch(
-            "claude_mpm.services.project.toolchain_analyzer.ToolchainAnalyzerService"
-        ) as MockAnalyzer:
+        with (
+            patch(
+                "claude_mpm.services.agents.auto_config_manager.AutoConfigManagerService"
+            ) as MockManager,
+            patch(
+                "claude_mpm.services.agents.recommender.AgentRecommenderService"
+            ) as MockRecommender,
+            patch("claude_mpm.services.agents.registry.AgentRegistry") as MockRegistry,
+            patch(
+                "claude_mpm.services.project.toolchain_analyzer.ToolchainAnalyzerService"
+            ) as MockAnalyzer,
+        ):
             # Make AgentDeploymentService import fail (triggers try/except ImportError)
             with patch.dict(
                 sys.modules, {"claude_mpm.services.agents.deployment": None}
@@ -486,10 +500,13 @@ export default App;
         }
         command._skills_deployer = mock_skills
 
-        with patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {"python-engineer": ["python-testing"]},
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {"python-engineer": ["python-testing"]},
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             args = Namespace(
                 project_path=realistic_project_structure,
                 min_confidence=0.5,
@@ -545,8 +562,9 @@ class TestAutoConfigureAsyncBoundaries:
         mock_auto_config.auto_configure = AsyncMock(return_value=deployment_result)
         command._auto_config_manager = mock_auto_config
 
-        with patch("asyncio.run") as mock_asyncio_run, patch.object(
-            command, "_review_project_agents", return_value=None
+        with (
+            patch("asyncio.run") as mock_asyncio_run,
+            patch.object(command, "_review_project_agents", return_value=None),
         ):
             mock_asyncio_run.return_value = deployment_result
 

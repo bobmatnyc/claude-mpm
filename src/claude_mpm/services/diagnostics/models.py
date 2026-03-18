@@ -6,13 +6,13 @@ consistency across all checks and reporting.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from enum import StrEnum
+from typing import Any
 
 from ...core.enums import OperationResult, ValidationSeverity
 
 
-class DiagnosticStatus(str, Enum):
+class DiagnosticStatus(StrEnum):
     """Backward compatibility wrapper for diagnostic status values.
 
     WHY: Provides backward compatibility for tests and code that use
@@ -44,19 +44,19 @@ class DiagnosticResult:
     """
 
     category: str  # e.g., "Installation", "Agents", "MCP Server"
-    status: Union[OperationResult, ValidationSeverity]
+    status: OperationResult | ValidationSeverity
     message: str
-    details: Dict[str, Any] = field(default_factory=dict)
-    fix_command: Optional[str] = None
-    fix_description: Optional[str] = None
-    sub_results: List["DiagnosticResult"] = field(default_factory=list)
+    details: dict[str, Any] = field(default_factory=dict)
+    fix_command: str | None = None
+    fix_description: str | None = None
+    sub_results: list["DiagnosticResult"] = field(default_factory=list)
 
     # Enhanced troubleshooting fields (issue #125)
     explanation: str = ""  # What this check means and why it matters
     severity: str = "medium"  # critical, high, medium, low, info
     doc_link: str = ""  # Link to relevant documentation
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         result = {
             "category": self.category,
@@ -106,7 +106,7 @@ class DiagnosticSummary:
     warning_count: int = 0
     error_count: int = 0
     skipped_count: int = 0
-    results: List[DiagnosticResult] = field(default_factory=list)
+    results: list[DiagnosticResult] = field(default_factory=list)
 
     def add_result(self, result: DiagnosticResult):
         """Add a result to the summary."""
@@ -128,7 +128,7 @@ class DiagnosticSummary:
         return self.warning_count > 0 or self.error_count > 0
 
     @property
-    def overall_status(self) -> Union[OperationResult, ValidationSeverity]:
+    def overall_status(self) -> OperationResult | ValidationSeverity:
         """Get overall system status."""
         if self.error_count > 0:
             return ValidationSeverity.ERROR
@@ -136,7 +136,7 @@ class DiagnosticSummary:
             return ValidationSeverity.WARNING
         return OperationResult.SUCCESS
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "summary": {

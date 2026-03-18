@@ -25,7 +25,6 @@ USAGE:
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import psutil
 from filelock import FileLock
@@ -101,7 +100,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         self._shutdown = True
         self.log_info("State manager shutdown complete")
 
-    def load_state(self) -> Dict[str, DeploymentState]:
+    def load_state(self) -> dict[str, DeploymentState]:
         """
         Load all deployment states from file.
 
@@ -143,7 +142,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
             except Exception as e:
                 raise StateCorruptionError(f"Failed to load state: {e}") from e
 
-    def save_state(self, states: Dict[str, DeploymentState]) -> None:
+    def save_state(self, states: dict[str, DeploymentState]) -> None:
         """
         Save all deployment states to file.
 
@@ -156,7 +155,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         with self._file_lock:
             self._write_state(states)
 
-    def _write_state(self, states: Dict[str, DeploymentState]) -> None:
+    def _write_state(self, states: dict[str, DeploymentState]) -> None:
         """
         Internal method to write state without locking.
 
@@ -184,7 +183,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
                 temp_file.unlink()
             raise OSError(f"Failed to write state: {e}") from e
 
-    def get_deployment(self, deployment_id: str) -> Optional[DeploymentState]:
+    def get_deployment(self, deployment_id: str) -> DeploymentState | None:
         """
         Get a specific deployment by ID.
 
@@ -197,7 +196,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         states = self.load_state()
         return states.get(deployment_id)
 
-    def get_all_deployments(self) -> List[DeploymentState]:
+    def get_all_deployments(self) -> list[DeploymentState]:
         """
         Get all tracked deployments.
 
@@ -207,7 +206,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         states = self.load_state()
         return list(states.values())
 
-    def get_deployments_by_status(self, status: ServiceState) -> List[DeploymentState]:
+    def get_deployments_by_status(self, status: ServiceState) -> list[DeploymentState]:
         """
         Get all deployments with a specific status.
 
@@ -220,7 +219,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
         states = self.load_state()
         return [s for s in states.values() if s.status == status]
 
-    def get_deployment_by_port(self, port: int) -> Optional[DeploymentState]:
+    def get_deployment_by_port(self, port: int) -> DeploymentState | None:
         """
         Get deployment using a specific port.
 
@@ -238,7 +237,7 @@ class DeploymentStateManager(SyncBaseService, IDeploymentStateManager):
 
     def get_deployments_by_project(
         self, working_directory: str
-    ) -> List[DeploymentState]:
+    ) -> list[DeploymentState]:
         """
         Get all deployments for a specific project directory.
 

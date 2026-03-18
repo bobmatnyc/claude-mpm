@@ -38,7 +38,7 @@ Example:
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -62,7 +62,7 @@ class MemoryProtocolMetric(BaseMetric):
     """
 
     # Required fields with expected types
-    REQUIRED_FIELDS: Dict[str, Union[type, Tuple[type, ...]]] = {
+    REQUIRED_FIELDS: dict[str, type | tuple[type, ...]] = {
         "task_completed": bool,
         "instructions": str,
         "results": str,
@@ -72,7 +72,7 @@ class MemoryProtocolMetric(BaseMetric):
     }
 
     # Memory trigger patterns (MUST capture when present in user input)
-    MEMORY_TRIGGERS: List[str] = [
+    MEMORY_TRIGGERS: list[str] = [
         "remember",
         "don't forget",
         "memorize",
@@ -81,7 +81,7 @@ class MemoryProtocolMetric(BaseMetric):
     ]
 
     # User-specific patterns (SHOULD NOT capture - too personal)
-    USER_SPECIFIC_KEYWORDS: List[str] = [
+    USER_SPECIFIC_KEYWORDS: list[str] = [
         "i prefer",
         "my style",
         "i like",
@@ -89,7 +89,7 @@ class MemoryProtocolMetric(BaseMetric):
     ]
 
     # Obvious facts patterns (SHOULD NOT capture - not valuable)
-    OBVIOUS_KEYWORDS: List[str] = [
+    OBVIOUS_KEYWORDS: list[str] = [
         "code is in",
         "file is located",
         "standard practice",
@@ -111,21 +111,21 @@ class MemoryProtocolMetric(BaseMetric):
             threshold: Minimum score to pass (default: 1.0 for strict compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Memory Protocol"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 
@@ -192,7 +192,7 @@ class MemoryProtocolMetric(BaseMetric):
     # JSON EXTRACTION
     # ========================================================================
 
-    def _extract_json(self, output: str) -> Tuple[Optional[Dict[str, Any]], bool]:
+    def _extract_json(self, output: str) -> tuple[dict[str, Any] | None, bool]:
         """
         Extract JSON block from output.
 
@@ -262,7 +262,7 @@ class MemoryProtocolMetric(BaseMetric):
         return 0.5  # JSON found but not ideally positioned
 
     def _score_required_fields(
-        self, json_data: Optional[Dict[str, Any]], json_valid: bool
+        self, json_data: dict[str, Any] | None, json_valid: bool
     ) -> float:
         """
         Score required fields presence and type correctness (30% weight).
@@ -304,7 +304,7 @@ class MemoryProtocolMetric(BaseMetric):
         return score
 
     def _score_memory_capture(
-        self, user_input: str, json_data: Optional[Dict[str, Any]], json_valid: bool
+        self, user_input: str, json_data: dict[str, Any] | None, json_valid: bool
     ) -> float:
         """
         Score memory capture appropriateness (25% weight).
@@ -358,7 +358,7 @@ class MemoryProtocolMetric(BaseMetric):
         return 0.7
 
     def _score_memory_quality(
-        self, json_data: Optional[Dict[str, Any]], json_valid: bool
+        self, json_data: dict[str, Any] | None, json_valid: bool
     ) -> float:
         """
         Score memory quality (15% weight).
@@ -417,7 +417,7 @@ class MemoryProtocolMetric(BaseMetric):
             passes += 1
 
         # Check for duplicates
-        unique_entries: Set[str] = set()
+        unique_entries: set[str] = set()
         has_duplicates = False
         for entry in entries:
             if isinstance(entry, str):
@@ -443,7 +443,7 @@ class MemoryProtocolMetric(BaseMetric):
         required_fields_score: float,
         memory_capture_score: float,
         memory_quality_score: float,
-        json_data: Optional[Dict[str, Any]],
+        json_data: dict[str, Any] | None,
         json_valid: bool,
         user_input: str,
     ) -> str:
@@ -578,7 +578,7 @@ class MemoryProtocolMetric(BaseMetric):
                     )
 
                 # Check duplicates
-                seen: Set[str] = set()
+                seen: set[str] = set()
                 duplicates = []
                 for entry in remember_field:
                     if isinstance(entry, str):

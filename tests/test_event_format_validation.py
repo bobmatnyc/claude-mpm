@@ -20,7 +20,7 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 # Add the src directory to the path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -75,7 +75,7 @@ class EventFormatValidator:
             "format_violations": [],
         }
 
-    def validate_event_format(self, event_type: str) -> Tuple[bool, str]:
+    def validate_event_format(self, event_type: str) -> tuple[bool, str]:
         """Validate a single event type format.
 
         Args:
@@ -122,7 +122,7 @@ class EventFormatValidator:
 
         return True, "Valid colon format"
 
-    def test_event_normalizer(self) -> Dict[str, Any]:
+    def test_event_normalizer(self) -> dict[str, Any]:
         """Test the event normalizer for format consistency."""
         print("\n📝 Testing Event Normalizer...")
 
@@ -223,7 +223,7 @@ class EventFormatValidator:
 
         return result
 
-    def test_event_emitter_formats(self) -> Dict[str, Any]:
+    def test_event_emitter_formats(self) -> dict[str, Any]:
         """Test the event emitter for consistent format usage."""
         print("\n📡 Testing Event Emitter Formats...")
 
@@ -327,7 +327,7 @@ class EventFormatValidator:
 
         return result
 
-    def test_expected_event_coverage(self) -> Dict[str, Any]:
+    def test_expected_event_coverage(self) -> dict[str, Any]:
         """Test that all expected colon-format events are covered."""
         print("\n📋 Testing Expected Event Coverage...")
 
@@ -387,7 +387,7 @@ class EventFormatValidator:
 
         return result
 
-    def test_deprecated_format_detection(self) -> Dict[str, Any]:
+    def test_deprecated_format_detection(self) -> dict[str, Any]:
         """Test detection of deprecated event formats."""
         print("\n🚫 Testing Deprecated Format Detection...")
 
@@ -480,7 +480,7 @@ class EventFormatValidator:
 
         return result
 
-    def run_validation_suite(self) -> Dict[str, Any]:
+    def run_validation_suite(self) -> dict[str, Any]:
         """Run the complete event format validation suite."""
         print("📊 Starting Event Format Validation Suite")
         print("=" * 60)

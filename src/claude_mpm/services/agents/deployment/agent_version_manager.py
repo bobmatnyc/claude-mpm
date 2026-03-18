@@ -9,7 +9,7 @@ maintainability and testability.
 
 import re
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -28,7 +28,7 @@ class AgentVersionManager:
         """Initialize the version manager."""
         self.logger = get_logger(__name__)
 
-    def parse_version(self, version_value: Any) -> Tuple[int, int, int]:
+    def parse_version(self, version_value: Any) -> tuple[int, int, int]:
         """
         Parse version from various formats to semantic version tuple.
 
@@ -69,7 +69,7 @@ class AgentVersionManager:
         # Default to 0.0.0 for invalid formats
         return (0, 0, 0)
 
-    def format_version_display(self, version_tuple: Tuple[int, int, int]) -> str:
+    def format_version_display(self, version_tuple: tuple[int, int, int]) -> str:
         """
         Format version tuple for display.
 
@@ -115,7 +115,7 @@ class AgentVersionManager:
         return True
 
     def compare_versions(
-        self, v1: Tuple[int, int, int], v2: Tuple[int, int, int]
+        self, v1: tuple[int, int, int], v2: tuple[int, int, int]
     ) -> int:
         """
         Compare two version tuples.
@@ -153,7 +153,7 @@ class AgentVersionManager:
 
     def extract_version_from_frontmatter(
         self, content: str
-    ) -> Tuple[Tuple[int, int, int], bool, str]:
+    ) -> tuple[tuple[int, int, int], bool, str]:
         """
         Extract version information from YAML frontmatter.
 
@@ -218,8 +218,8 @@ class AgentVersionManager:
         self,
         deployed_file: Path,
         template_file: Path,
-        current_base_version: Tuple[int, int, int],
-    ) -> Tuple[bool, str]:
+        current_base_version: tuple[int, int, int],
+    ) -> tuple[bool, str]:
         """
         Check if a deployed agent needs to be updated.
 
@@ -291,7 +291,7 @@ class AgentVersionManager:
             # On error, assume update is needed
             return (True, "version check failed")
 
-    def validate_version_in_content(self, content: str) -> Tuple[bool, list]:
+    def validate_version_in_content(self, content: str) -> tuple[bool, list]:
         """
         Validate version information in agent content.
 

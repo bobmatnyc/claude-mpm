@@ -22,9 +22,9 @@ import importlib
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # Add the src directory to the path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -41,7 +41,7 @@ from test_event_format_validation import EventFormatValidator
 class ComprehensiveTestRunner:
     """Orchestrates and runs all code analysis tests."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """Initialize the test runner.
 
         Args:
@@ -73,7 +73,7 @@ class ComprehensiveTestRunner:
             ),
         ]
 
-    async def run_event_format_tests(self) -> Dict[str, Any]:
+    async def run_event_format_tests(self) -> dict[str, Any]:
         """Run event format validation tests."""
         print("\n" + "=" * 60)
         print("🔍 RUNNING EVENT FORMAT VALIDATION TESTS")
@@ -97,7 +97,7 @@ class ComprehensiveTestRunner:
                 "error": str(e),
             }
 
-    async def run_performance_tests(self) -> Dict[str, Any]:
+    async def run_performance_tests(self) -> dict[str, Any]:
         """Run performance and error scenario tests."""
         print("\n" + "=" * 60)
         print("⚡ RUNNING PERFORMANCE & ERROR TESTS")
@@ -121,7 +121,7 @@ class ComprehensiveTestRunner:
                 "error": str(e),
             }
 
-    async def run_socketio_tests(self) -> Dict[str, Any]:
+    async def run_socketio_tests(self) -> dict[str, Any]:
         """Run Socket.IO client tests."""
         print("\n" + "=" * 60)
         print("📡 RUNNING SOCKET.IO CLIENT TESTS")
@@ -156,7 +156,7 @@ class ComprehensiveTestRunner:
                 "error": str(e),
             }
 
-    async def run_browser_tests(self) -> Dict[str, Any]:
+    async def run_browser_tests(self) -> dict[str, Any]:
         """Run browser automation tests."""
         print("\n" + "=" * 60)
         print("🌐 RUNNING BROWSER AUTOMATION TESTS")
@@ -194,7 +194,7 @@ class ComprehensiveTestRunner:
                 "error": str(e),
             }
 
-    async def run_complete_flow_tests(self) -> Dict[str, Any]:
+    async def run_complete_flow_tests(self) -> dict[str, Any]:
         """Run complete event flow tests."""
         print("\n" + "=" * 60)
         print("🔄 RUNNING COMPLETE EVENT FLOW TESTS")
@@ -231,7 +231,7 @@ class ComprehensiveTestRunner:
                 "error": str(e),
             }
 
-    def check_dependencies(self) -> Dict[str, bool]:
+    def check_dependencies(self) -> dict[str, bool]:
         """Check if required dependencies are available."""
         print("🔍 Checking dependencies...")
 
@@ -267,7 +267,7 @@ class ComprehensiveTestRunner:
 
         return dependencies
 
-    def generate_html_report(self, results: Dict[str, Any]) -> str:
+    def generate_html_report(self, results: dict[str, Any]) -> str:
         """Generate an HTML report of test results."""
         html_template = """
 <!DOCTYPE html>
@@ -512,7 +512,7 @@ class ComprehensiveTestRunner:
 
         # Fill in the template
         html_content = html_template.format(
-            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            timestamp=datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
             overall_status=overall_status,
             overall_status_class=overall_status_class,
             modules_tested=total_modules,
@@ -524,7 +524,7 @@ class ComprehensiveTestRunner:
 
         return html_content
 
-    async def run_comprehensive_test_suite(self) -> Dict[str, Any]:
+    async def run_comprehensive_test_suite(self) -> dict[str, Any]:
         """Run the complete comprehensive test suite."""
         print("🚀 Starting Comprehensive Code Analysis Test Suite")
         print("=" * 70)
@@ -605,7 +605,7 @@ class ComprehensiveTestRunner:
             "test_results": test_results,
             "configuration": self.config,
             "dependencies": dependencies,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Print final summary
@@ -724,7 +724,7 @@ def main():
         if args.save_json:
             json_file = (
                 output_dir
-                / f"comprehensive_test_results_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+                / f"comprehensive_test_results_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
             )
             with json_file.open("w") as f:
                 json.dump(results, f, indent=2, default=str)
@@ -734,7 +734,7 @@ def main():
             html_content = runner.generate_html_report(results)
             html_file = (
                 output_dir
-                / f"test_report_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.html"
+                / f"test_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.html"
             )
             with html_file.open("w") as f:
                 f.write(html_content)

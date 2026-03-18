@@ -10,7 +10,7 @@ meaningful content beyond just imports.
 
 import os
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Module-level constants
 VERSION = "1.0.0"
@@ -27,7 +27,7 @@ def get_version() -> str:
     return VERSION
 
 
-def initialize_package(config: Optional[Dict] = None) -> None:
+def initialize_package(config: dict | None = None) -> None:
     """Initialize the package with optional configuration."""
     global public_config
     if config:
@@ -48,7 +48,7 @@ class PackageManager:
         self.initialized = True
         return True
 
-    def get_status(self) -> Dict:
+    def get_status(self) -> dict:
         """Get package status."""
         return {
             "initialized": self.initialized,

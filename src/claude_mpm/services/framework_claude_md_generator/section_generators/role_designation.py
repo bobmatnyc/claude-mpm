@@ -2,7 +2,7 @@
 Role designation section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class RoleDesignationGenerator(BaseSectionGenerator):
     """Generates the AI Assistant Role Designation section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the role designation section."""
         deployment_date = data.get("deployment_date", self.get_timestamp())
 

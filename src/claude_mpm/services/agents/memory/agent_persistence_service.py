@@ -16,7 +16,7 @@ DESIGN DECISION: Creating a minimal stub because:
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class PersistenceStrategy(Enum):
@@ -45,13 +45,13 @@ class PersistenceRecord:
     operation_type: PersistenceOperation
     agent_name: str
     source_tier: Any
-    target_tier: Optional[Any] = None
-    strategy: Optional[PersistenceStrategy] = None
+    target_tier: Any | None = None
+    strategy: PersistenceStrategy | None = None
     success: bool = True
     timestamp: float = 0.0
-    file_path: Optional[str] = None
-    error_message: Optional[str] = None
-    metadata: Dict[str, Any] = None
+    file_path: str | None = None
+    error_message: str | None = None
+    metadata: dict[str, Any] = None
 
 
 class AgentPersistenceService:
@@ -75,8 +75,8 @@ class AgentPersistenceService:
         agent_name: str,
         agent_content: str,
         source_tier: Any,
-        target_tier: Optional[Any] = None,
-        strategy: Optional[PersistenceStrategy] = None,
+        target_tier: Any | None = None,
+        strategy: PersistenceStrategy | None = None,
     ) -> PersistenceRecord:
         """
         Create a persistence record (actual persistence handled by AgentManager).

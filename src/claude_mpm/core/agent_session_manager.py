@@ -3,9 +3,8 @@
 import json
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
 
 from ..core.logger import get_logger
 
@@ -16,7 +15,7 @@ class AgentSessionManager:
     """Manages separate sessions for each agent type to avoid context pollution."""
 
     def __init__(
-        self, session_dir: Optional[Path] = None, max_sessions_per_agent: int = 3
+        self, session_dir: Path | None = None, max_sessions_per_agent: int = 3
     ):
         """Initialize agent session manager.
 
@@ -29,14 +28,14 @@ class AgentSessionManager:
         self.max_sessions_per_agent = max_sessions_per_agent
 
         # Sessions organized by agent type
-        self.agent_sessions: Dict[str, Dict[str, Dict]] = defaultdict(dict)
-        self.session_locks: Dict[str, bool] = {}  # Track which sessions are in use
+        self.agent_sessions: dict[str, dict[str, dict]] = defaultdict(dict)
+        self.session_locks: dict[str, bool] = {}  # Track which sessions are in use
 
         self._load_sessions()
 
     def get_agent_session(
         self, agent_type: str, create_if_missing: bool = True
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get or create a session for a specific agent type.
 
         Args:
@@ -53,10 +52,10 @@ class AgentSessionManager:
             if not self.session_locks.get(session_id, False):
                 # Check if session is still fresh (not too old)
                 created = datetime.fromisoformat(session_data["created_at"])
-                if datetime.now(timezone.utc) - created < timedelta(hours=1):
+                if datetime.now(UTC) - created < timedelta(hours=1):
                     # Use this session
                     self.session_locks[session_id] = True
-                    session_data["last_used"] = datetime.now(timezone.utc).isoformat()
+                    session_data["last_used"] = datetime.now(UTC).isoformat()
                     session_data["use_count"] += 1
                     logger.info(f"Reusing session {session_id} for {agent_type} agent")
                     return session_id
@@ -85,8 +84,8 @@ class AgentSessionManager:
         session_data = {
             "id": session_id,
             "agent_type": agent_type,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_used": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "last_used": datetime.now(UTC).isoformat(),
             "use_count": 0,
             "tasks_completed": [],
         }
@@ -122,7 +121,7 @@ class AgentSessionManager:
                 sessions[session_id]["tasks_completed"].append(
                     {
                         "task": task[:100],  # Truncate long tasks
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "success": success,
                     }
                 )
@@ -135,7 +134,7 @@ class AgentSessionManager:
         Args:
             max_age_hours: Maximum age in hours
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         max_age = timedelta(hours=max_age_hours)
 
         for agent_type in list(self.agent_sessions.keys()):
@@ -154,7 +153,7 @@ class AgentSessionManager:
         if any(self.agent_sessions.values()):
             self._save_sessions()
 
-    def get_session_stats(self) -> Dict[str, Dict]:
+    def get_session_stats(self) -> dict[str, dict]:
         """Get statistics about current sessions.
 
         Returns:
@@ -207,7 +206,7 @@ class AgentSessionManager:
         try:
             data = {
                 "agent_sessions": dict(self.agent_sessions),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(UTC).isoformat(),
             }
             with session_file.open("w") as f:
                 json.dump(data, f, indent=2)

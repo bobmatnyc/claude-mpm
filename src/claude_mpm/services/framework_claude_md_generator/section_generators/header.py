@@ -2,7 +2,7 @@
 Header section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class HeaderGenerator(BaseSectionGenerator):
     """Generates the header section with version metadata."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the header section."""
         version = data.get("version", f"{self.framework_version}-001")
         timestamp = self.get_timestamp()

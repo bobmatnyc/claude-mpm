@@ -1,7 +1,7 @@
 """Framework content formatter for generating instructions."""
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -37,11 +37,11 @@ class ContentFormatter:
 
     def format_full_framework(
         self,
-        framework_content: Dict[str, Any],
+        framework_content: dict[str, Any],
         capabilities_section: str,
         context_section: str,
         inject_output_style: bool = False,
-        output_style_content: Optional[str] = None,
+        output_style_content: str | None = None,
     ) -> str:
         """Format complete framework instructions.
 
@@ -130,7 +130,7 @@ class ContentFormatter:
         # Otherwise generate minimal framework
         return self.format_minimal_framework(framework_content)
 
-    def format_minimal_framework(self, framework_content: Dict[str, Any]) -> str:
+    def format_minimal_framework(self, framework_content: dict[str, Any]) -> str:
         """Format minimal framework instructions when full framework not available.
 
         Args:

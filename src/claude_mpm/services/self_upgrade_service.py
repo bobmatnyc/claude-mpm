@@ -23,9 +23,8 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from packaging import version
 
@@ -224,7 +223,7 @@ class SelfUpgradeService:
 
         return False
 
-    def _get_claude_code_version(self) -> Optional[str]:
+    def _get_claude_code_version(self) -> str | None:
         """
         Get the installed Claude Code version.
 
@@ -254,7 +253,7 @@ class SelfUpgradeService:
 
         return None
 
-    def check_claude_code_compatibility(self) -> Dict[str, any]:
+    def check_claude_code_compatibility(self) -> dict[str, any]:
         """
         Check Claude Code version compatibility.
 
@@ -328,8 +327,8 @@ class SelfUpgradeService:
             }
 
     async def check_for_update(
-        self, cache_ttl: Optional[int] = None
-    ) -> Optional[Dict[str, any]]:
+        self, cache_ttl: int | None = None
+    ) -> dict[str, any] | None:
         """
         Check if an update is available.
 
@@ -378,12 +377,12 @@ class SelfUpgradeService:
                         "update_available": True,
                         "installation_method": InstallationMethod.NPM,
                         "upgrade_command": self._get_upgrade_command(),
-                        "checked_at": datetime.now(timezone.utc).isoformat(),
+                        "checked_at": datetime.now(UTC).isoformat(),
                     }
 
         return None
 
-    async def _check_npm_version(self) -> Optional[str]:
+    async def _check_npm_version(self) -> str | None:
         """
         Check npm registry for latest version.
 
@@ -425,7 +424,7 @@ class SelfUpgradeService:
             self.installation_method, "pip install --upgrade claude-mpm"
         )
 
-    def prompt_for_upgrade(self, update_info: Dict[str, any]) -> bool:
+    def prompt_for_upgrade(self, update_info: dict[str, any]) -> bool:
         """
         Prompt user to upgrade with enhanced formatting.
 
@@ -460,7 +459,7 @@ class SelfUpgradeService:
             print("\n")
             return False
 
-    def display_update_notification(self, update_info: Dict[str, any]) -> None:
+    def display_update_notification(self, update_info: dict[str, any]) -> None:
         """
         Display a non-interactive update notification.
 
@@ -478,7 +477,7 @@ class SelfUpgradeService:
         )
         print()
 
-    def perform_upgrade(self, update_info: Dict[str, any]) -> Tuple[bool, str]:
+    def perform_upgrade(self, update_info: dict[str, any]) -> tuple[bool, str]:
         """
         Perform the upgrade.
 
@@ -505,7 +504,7 @@ class SelfUpgradeService:
             result = subprocess.run(
                 command,
                 check=False,
-                shell=True,
+                shell=True,  # nosec
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5 minutes
@@ -557,7 +556,7 @@ class SelfUpgradeService:
 
     async def check_and_prompt_on_startup(
         self, auto_upgrade: bool = False, check_claude_code: bool = True
-    ) -> Optional[Dict[str, any]]:
+    ) -> dict[str, any] | None:
         """
         Check for updates on startup and optionally prompt user.
         Also checks Claude Code version compatibility.

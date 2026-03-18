@@ -32,7 +32,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -56,7 +56,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     """
 
     # Mock data anti-patterns (NEGATIVE - flag if found in production)
-    MOCK_DATA_PATTERNS: List[str] = [
+    MOCK_DATA_PATTERNS: list[str] = [
         r"\bmock_\w+\s*=",
         r"\bdummy_\w+\s*=",
         r"\bplaceholder_\w+\s*=",
@@ -72,7 +72,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     ]
 
     # Production code indicators
-    PRODUCTION_CODE_PATTERNS: List[str] = [
+    PRODUCTION_CODE_PATTERNS: list[str] = [
         r"def\s+\w+\s*\(",  # Function definition
         r"class\s+\w+",  # Class definition
         r"async\s+def",  # Async function
@@ -81,7 +81,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     ]
 
     # Test file indicators (mock data OK in tests)
-    TEST_FILE_PATTERNS: List[str] = [
+    TEST_FILE_PATTERNS: list[str] = [
         r"test_\w+\.py",
         r"conftest\.py",
         r"@pytest",
@@ -93,7 +93,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     ]
 
     # Silent fallback anti-patterns
-    SILENT_FALLBACK_PATTERNS: List[str] = [
+    SILENT_FALLBACK_PATTERNS: list[str] = [
         r"except.*:\s*pass",
         r"except.*:\s*return\s+None",
         r"except.*:\s*return\s+\{\}",
@@ -107,7 +107,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     ]
 
     # Explicit error propagation patterns (POSITIVE)
-    ERROR_PROPAGATION_PATTERNS: List[str] = [
+    ERROR_PROPAGATION_PATTERNS: list[str] = [
         r"raise\s+\w+Error",
         r"raise\s+.*from\s+",
         r"logger\.error\(",
@@ -120,7 +120,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     ]
 
     # Acceptable fallback patterns (POSITIVE - justified fallbacks)
-    ACCEPTABLE_FALLBACK_PATTERNS: List[str] = [
+    ACCEPTABLE_FALLBACK_PATTERNS: list[str] = [
         r'(?:config|default).*=.*getenv\(.*,\s*["\']?\w+',  # Config with default
         r"default\s*=",
         r"graceful\s+degradation",
@@ -133,7 +133,7 @@ class AntiPatternDetectionMetric(BaseMetric):
     ]
 
     # Logging patterns (required for fallbacks)
-    LOGGING_PATTERNS: List[str] = [
+    LOGGING_PATTERNS: list[str] = [
         r"logger\.\w+\(",
         r"logging\.\w+\(",
         r"log\.\w+\(",
@@ -149,21 +149,21 @@ class AntiPatternDetectionMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.9 for 90% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Anti-Pattern Detection"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

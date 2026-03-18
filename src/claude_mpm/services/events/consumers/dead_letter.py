@@ -6,9 +6,9 @@ Handles events that failed processing in other consumers.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -29,10 +29,10 @@ class DeadLetterConsumer(IEventConsumer):
 
     def __init__(
         self,
-        output_dir: Optional[Path] = None,
+        output_dir: Path | None = None,
         max_file_size: int = 10 * 1024 * 1024,  # 10MB
         retention_days: int = 7,
-        topics: Optional[List[str]] = None,
+        topics: list[str] | None = None,
     ):
         """
         Initialize dead letter consumer.
@@ -52,7 +52,7 @@ class DeadLetterConsumer(IEventConsumer):
 
         # State
         self._initialized = False
-        self._current_file: Optional[Path] = None
+        self._current_file: Path | None = None
         self._current_file_size = 0
 
         # Metrics
@@ -128,7 +128,7 @@ class DeadLetterConsumer(IEventConsumer):
             self.logger.error(f"Error storing failed event: {e}")
             return False
 
-    async def consume_batch(self, events: List[Event]) -> int:
+    async def consume_batch(self, events: list[Event]) -> int:
         """Store multiple failed events."""
         successful = 0
         for event in events:
@@ -145,10 +145,10 @@ class DeadLetterConsumer(IEventConsumer):
 
     async def replay_events(
         self,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        topic_filter: Optional[str] = None,
-    ) -> List[Event]:
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        topic_filter: str | None = None,
+    ) -> list[Event]:
         """
         Replay stored events for reprocessing.
 
@@ -203,7 +203,7 @@ class DeadLetterConsumer(IEventConsumer):
         """Check if consumer is healthy."""
         return self._initialized and self._current_file is not None
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get consumer metrics."""
         return {
             **self._metrics,
@@ -231,7 +231,7 @@ class DeadLetterConsumer(IEventConsumer):
         # Store if event has error messages
         return bool(event.metadata.error_messages)
 
-    def _serialize_event(self, event: Event) -> Dict[str, Any]:
+    def _serialize_event(self, event: Event) -> dict[str, Any]:
         """Serialize an event for storage."""
         return {
             "id": event.id,
@@ -257,7 +257,7 @@ class DeadLetterConsumer(IEventConsumer):
             ),
         }
 
-    def _deserialize_event(self, data: Dict[str, Any]) -> Event:
+    def _deserialize_event(self, data: dict[str, Any]) -> Event:
         """Deserialize an event from storage."""
         from ..core import EventMetadata, EventPriority
 
@@ -284,7 +284,7 @@ class DeadLetterConsumer(IEventConsumer):
 
     def _rotate_file(self) -> None:
         """Rotate to a new output file."""
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         self._current_file = self.output_dir / f"dead-letter-{timestamp}.jsonl"
         self._current_file_size = 0
         self._metrics["files_created"] += 1
@@ -293,9 +293,7 @@ class DeadLetterConsumer(IEventConsumer):
 
     async def _cleanup_old_files(self) -> None:
         """Remove files older than retention period."""
-        cutoff_time = datetime.now(timezone.utc).timestamp() - (
-            self.retention_days * 86400
-        )
+        cutoff_time = datetime.now(UTC).timestamp() - (self.retention_days * 86400)
 
         for file_path in self.output_dir.glob("dead-letter-*.jsonl"):
             try:

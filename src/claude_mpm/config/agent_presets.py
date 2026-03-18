@@ -19,10 +19,11 @@ Trade-offs:
 - Discoverability: Presets shown in CLI help and error messages
 """
 
-from typing import Any, Callable, Dict, List, Union
+from collections.abc import Callable
+from typing import Any
 
 # Type for preset resolver (can be static list or dynamic function)
-PresetResolver = Union[List[str], Callable[[], List[str]]]
+PresetResolver = list[str] | Callable[[], list[str]]
 
 # Core agents included in ALL presets (MIN and MAX).
 # Note: These are deploy-path format IDs, not bare stems.
@@ -40,7 +41,7 @@ CORE_AGENTS = [
     "documentation/ticketing",  # Ticket tracking (essential for PM workflow)
 ]
 
-PRESETS: Dict[str, Dict[str, Any]] = {
+PRESETS: dict[str, dict[str, Any]] = {
     # ========================================
     # Universal Minimal Preset
     # ========================================
@@ -419,7 +420,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def get_preset_names() -> List[str]:
+def get_preset_names() -> list[str]:
     """Get list of all available preset names.
 
     Returns:
@@ -433,7 +434,7 @@ def get_preset_names() -> List[str]:
     return list(PRESETS.keys())
 
 
-def get_preset_info(preset_name: str) -> Dict[str, Any]:
+def get_preset_info(preset_name: str) -> dict[str, Any]:
     """Get preset metadata (description, use cases, agent count).
 
     Args:
@@ -466,7 +467,7 @@ def get_preset_info(preset_name: str) -> Dict[str, Any]:
     }
 
 
-def get_preset_agents(preset_name: str) -> List[str]:
+def get_preset_agents(preset_name: str) -> list[str]:
     """Get agent list for preset.
 
     Args:

@@ -9,7 +9,6 @@ import hashlib
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict
 
 from ....core.enums import OperationResult, ValidationSeverity
 from ..models import DiagnosticResult
@@ -104,7 +103,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
                 details={"error": str(e)},
             )
 
-    def _find_instruction_files(self) -> Dict[Path, str]:
+    def _find_instruction_files(self) -> dict[Path, str]:
         """Find all instruction files in the project and user directories."""
         found_files = {}
 
@@ -142,7 +141,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
 
         return found_files
 
-    def _check_claude_md_placement(self, files: Dict[Path, str]) -> DiagnosticResult:
+    def _check_claude_md_placement(self, files: dict[Path, str]) -> DiagnosticResult:
         """Check that CLAUDE.md files are properly placed."""
         claude_files = [
             path for path, file_type in files.items() if path.name == "CLAUDE.md"
@@ -191,7 +190,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
             details={"count": len(claude_files)},
         )
 
-    def _check_duplicates(self, files: Dict[Path, str]) -> DiagnosticResult:
+    def _check_duplicates(self, files: dict[Path, str]) -> DiagnosticResult:
         """Check for duplicate content between instruction files."""
         if len(files) < 2:
             return DiagnosticResult(
@@ -212,7 +211,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
                 for para in paragraphs:
                     para = para.strip()
                     if len(para) > 50:  # Skip short snippets
-                        hash_val = hashlib.md5(para.encode()).hexdigest()
+                        hash_val = hashlib.md5(para.encode()).hexdigest()  # nosec
                         content_snippets[hash_val].append((path, para[:100]))
             except Exception:
                 continue
@@ -247,7 +246,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
             details={},
         )
 
-    def _check_conflicts(self, files: Dict[Path, str]) -> DiagnosticResult:
+    def _check_conflicts(self, files: dict[Path, str]) -> DiagnosticResult:
         """Check for conflicting directives between instruction files."""
         conflicts = []
         pattern_occurrences = defaultdict(list)
@@ -301,7 +300,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
             details={},
         )
 
-    def _check_agent_definitions(self, files: Dict[Path, str]) -> DiagnosticResult:
+    def _check_agent_definitions(self, files: dict[Path, str]) -> DiagnosticResult:
         """Check for overlapping or duplicate agent definitions."""
         agent_definitions = defaultdict(list)
         agent_pattern = r"(?:agent|Agent)\s+(\w+).*?(?:specializes?|expert|handles?)"
@@ -350,7 +349,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
             details={"total_agents": len(agent_definitions)},
         )
 
-    def _check_separation_of_concerns(self, files: Dict[Path, str]) -> DiagnosticResult:
+    def _check_separation_of_concerns(self, files: dict[Path, str]) -> DiagnosticResult:
         """Check that instruction files follow proper separation of concerns."""
         issues = []
 

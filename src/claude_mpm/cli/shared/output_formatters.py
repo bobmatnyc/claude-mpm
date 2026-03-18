@@ -3,7 +3,7 @@ Output formatting utilities for CLI commands.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -24,9 +24,7 @@ class OutputFormatter:
         return yaml.dump(data, default_flow_style=False, sort_keys=False)
 
     @staticmethod
-    def format_table(
-        data: Union[List[Dict], Dict], headers: Optional[List[str]] = None
-    ) -> str:
+    def format_table(data: list[dict] | dict, headers: list[str] | None = None) -> str:
         """Format data as a simple table."""
         if not data:
             return "No data to display"
@@ -192,10 +190,10 @@ def format_error_message(
 
 
 def format_list_output(
-    items: List[Any],
-    title: Optional[str] = None,
+    items: list[Any],
+    title: str | None = None,
     format_type: str = OutputFormat.TEXT,
-    headers: Optional[List[str]] = None,
+    headers: list[str] | None = None,
 ) -> str:
     """
     Format a list of items for output.

@@ -5,9 +5,8 @@ TaskList/TaskGet tools surface them to the PM agent.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -25,7 +24,7 @@ PRIORITY_MAP = {
 class TaskInjector:
     """Inject messages into Claude Code task list."""
 
-    def __init__(self, tasks_dir: Optional[Path] = None):
+    def __init__(self, tasks_dir: Path | None = None):
         """Initialize with tasks directory.
 
         Args:
@@ -79,7 +78,7 @@ class TaskInjector:
             ),
             "status": "pending",
             "priority": task_priority,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "metadata": {
                 "source": "mpm-messaging",
                 "message_id": message_id,

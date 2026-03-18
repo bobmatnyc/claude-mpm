@@ -19,7 +19,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -34,13 +34,11 @@ class ValidationResult:
     """Result of frontmatter validation."""
 
     is_valid: bool
-    errors: List[str]
-    warnings: List[str]
-    corrections: List[str]
-    corrected_frontmatter: Optional[Dict[str, Any]] = None
-    field_corrections: Optional[Dict[str, Any]] = (
-        None  # Specific field-level corrections
-    )
+    errors: list[str]
+    warnings: list[str]
+    corrections: list[str]
+    corrected_frontmatter: dict[str, Any] | None = None
+    field_corrections: dict[str, Any] | None = None  # Specific field-level corrections
 
 
 class FrontmatterValidator:
@@ -109,7 +107,7 @@ class FrontmatterValidator:
         self.schema = self._load_schema()
         self.all_valid_fields = self._extract_valid_fields()
 
-    def _load_schema(self) -> Optional[Dict[str, Any]]:
+    def _load_schema(self) -> dict[str, Any] | None:
         """Load the frontmatter schema from JSON file."""
         schema_path = (
             Path(__file__).parent.parent / "schemas" / "frontmatter_schema.json"
@@ -149,7 +147,7 @@ class FrontmatterValidator:
             "canonical_id",
         }
 
-    def validate_and_correct(self, frontmatter: Dict[str, Any]) -> ValidationResult:
+    def validate_and_correct(self, frontmatter: dict[str, Any]) -> ValidationResult:
         """
         Validate and automatically correct frontmatter.
 
@@ -159,11 +157,11 @@ class FrontmatterValidator:
         Returns:
             ValidationResult with validation status and corrected frontmatter
         """
-        errors: List[str] = []
-        warnings: List[str] = []
-        corrections: List[str] = []
+        errors: list[str] = []
+        warnings: list[str] = []
+        corrections: list[str] = []
         corrected = frontmatter.copy()
-        field_corrections: Dict[str, Any] = {}
+        field_corrections: dict[str, Any] = {}
 
         # Check required fields
         self._validate_required_fields(corrected, errors)
@@ -196,7 +194,7 @@ class FrontmatterValidator:
         )
 
     def _validate_required_fields(
-        self, corrected: Dict[str, Any], errors: List[str]
+        self, corrected: dict[str, Any], errors: list[str]
     ) -> None:
         """Check that all required fields are present."""
         required_fields = (
@@ -210,10 +208,10 @@ class FrontmatterValidator:
 
     def _validate_name_field(
         self,
-        corrected: Dict[str, Any],
-        field_corrections: Dict[str, Any],
-        errors: List[str],
-        corrections: List[str],
+        corrected: dict[str, Any],
+        field_corrections: dict[str, Any],
+        errors: list[str],
+        corrections: list[str],
     ) -> None:
         """Validate and correct the name field."""
         if "name" not in corrected:
@@ -237,10 +235,10 @@ class FrontmatterValidator:
 
     def _validate_model_field(
         self,
-        corrected: Dict[str, Any],
-        field_corrections: Dict[str, Any],
-        errors: List[str],
-        corrections: List[str],
+        corrected: dict[str, Any],
+        field_corrections: dict[str, Any],
+        errors: list[str],
+        corrections: list[str],
     ) -> None:
         """Validate and correct the model field."""
         if "model" not in corrected:
@@ -272,10 +270,10 @@ class FrontmatterValidator:
 
     def _validate_tools_field(
         self,
-        corrected: Dict[str, Any],
-        field_corrections: Dict[str, Any],
-        warnings: List[str],
-        corrections: List[str],
+        corrected: dict[str, Any],
+        field_corrections: dict[str, Any],
+        warnings: list[str],
+        corrections: list[str],
     ) -> None:
         """Validate and correct the tools field."""
         if "tools" not in corrected:
@@ -308,10 +306,10 @@ class FrontmatterValidator:
 
     def _validate_version_fields(
         self,
-        corrected: Dict[str, Any],
-        field_corrections: Dict[str, Any],
-        errors: List[str],
-        corrections: List[str],
+        corrected: dict[str, Any],
+        field_corrections: dict[str, Any],
+        errors: list[str],
+        corrections: list[str],
     ) -> None:
         """Validate and correct version fields."""
         version_fields = ["version", "base_version"]
@@ -348,7 +346,7 @@ class FrontmatterValidator:
                 errors.append(f"Invalid {field} format: {version}")
 
     def _validate_description_field(
-        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+        self, corrected: dict[str, Any], errors: list[str], warnings: list[str]
     ) -> None:
         """Validate the description field."""
         if "description" not in corrected:
@@ -365,7 +363,7 @@ class FrontmatterValidator:
             warnings.append(f"Description too long ({len(desc)} chars, maximum 200)")
 
     def _validate_category_field(
-        self, corrected: Dict[str, Any], warnings: List[str]
+        self, corrected: dict[str, Any], warnings: list[str]
     ) -> None:
         """Validate the category field."""
         if "category" not in corrected:
@@ -382,7 +380,7 @@ class FrontmatterValidator:
             warnings.append(f"Invalid category: {corrected['category']}")
 
     def _validate_resource_tier_field(
-        self, corrected: Dict[str, Any], warnings: List[str]
+        self, corrected: dict[str, Any], warnings: list[str]
     ) -> None:
         """Validate the resource_tier field."""
         if "resource_tier" not in corrected:
@@ -393,7 +391,7 @@ class FrontmatterValidator:
             warnings.append(f"Invalid resource_tier: {corrected['resource_tier']}")
 
     def _validate_color_field(
-        self, corrected: Dict[str, Any], errors: List[str]
+        self, corrected: dict[str, Any], errors: list[str]
     ) -> None:
         """Validate the color field."""
         if "color" not in corrected:
@@ -404,7 +402,7 @@ class FrontmatterValidator:
             errors.append(f"Field 'color' must be a string, got {type(color).__name__}")
 
     def _validate_author_field(
-        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+        self, corrected: dict[str, Any], errors: list[str], warnings: list[str]
     ) -> None:
         """Validate the author field."""
         if "author" not in corrected:
@@ -419,7 +417,7 @@ class FrontmatterValidator:
             warnings.append(f"Author field too long ({len(author)} chars, maximum 100)")
 
     def _validate_tags_field(
-        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+        self, corrected: dict[str, Any], errors: list[str], warnings: list[str]
     ) -> None:
         """Validate the tags field."""
         if "tags" not in corrected:
@@ -446,7 +444,7 @@ class FrontmatterValidator:
                 )
 
     def _validate_numeric_fields(
-        self, corrected: Dict[str, Any], errors: List[str], warnings: List[str]
+        self, corrected: dict[str, Any], errors: list[str], warnings: list[str]
     ) -> None:
         """Validate numeric fields (max_tokens, temperature)."""
         for field_name, (min_val, max_val) in [
@@ -472,10 +470,10 @@ class FrontmatterValidator:
 
     def _validate_collection_fields(
         self,
-        corrected: Dict[str, Any],
-        field_corrections: Dict[str, Any],
-        errors: List[str],
-        warnings: List[str],
+        corrected: dict[str, Any],
+        field_corrections: dict[str, Any],
+        errors: list[str],
+        warnings: list[str],
     ) -> None:
         """Validate collection-based identification fields.
 
@@ -544,7 +542,7 @@ class FrontmatterValidator:
         """
         return ModelTier.normalize(model).value
 
-    def _correct_tools(self, tools: Any) -> Tuple[List[str], List[str]]:
+    def _correct_tools(self, tools: Any) -> tuple[list[str], list[str]]:
         """
         Correct tools field formatting issues.
 
@@ -642,7 +640,7 @@ class FrontmatterValidator:
                 corrections=[],
             )
 
-    def _extract_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _extract_frontmatter(self, content: str) -> dict[str, Any] | None:
         """
         Extract frontmatter from file content.
 
@@ -713,7 +711,7 @@ class FrontmatterValidator:
         return result
 
     def _apply_field_corrections(
-        self, frontmatter_content: str, field_corrections: Dict[str, Any]
+        self, frontmatter_content: str, field_corrections: dict[str, Any]
     ) -> str:
         """
         Apply field-level corrections while preserving structure and other fields.

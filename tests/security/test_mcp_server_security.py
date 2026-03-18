@@ -135,7 +135,7 @@ class TestMCPServerSecurity:
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_process = AsyncMock()
             # Simulate a timeout
-            mock_process.communicate.side_effect = asyncio.TimeoutError()
+            mock_process.communicate.side_effect = TimeoutError()
             mock_exec.return_value = mock_process
 
             # Simulate the secure implementation with timeout
@@ -149,7 +149,7 @@ class TestMCPServerSecurity:
                 )
                 _stdout, _stderr = await asyncio.wait_for(proc.communicate(), timeout=1)
                 raise AssertionError("Expected TimeoutError")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # This is expected behavior
                 pass
 

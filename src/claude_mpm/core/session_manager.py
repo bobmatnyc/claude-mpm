@@ -4,9 +4,9 @@ import gzip
 import json
 import shutil
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..core.logger import get_logger
 
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 class SessionManager:
     """Manages session IDs for Claude subprocess reuse."""
 
-    def __init__(self, session_dir: Optional[Path] = None):
+    def __init__(self, session_dir: Path | None = None):
         """Initialize session manager.
 
         Args:
@@ -24,7 +24,7 @@ class SessionManager:
         """
         self.session_dir = session_dir or Path.home() / ".claude-mpm" / "sessions"
         self.session_dir.mkdir(parents=True, exist_ok=True)
-        self.active_sessions: Dict[str, Dict[str, Any]] = {}
+        self.active_sessions: dict[str, dict[str, Any]] = {}
         self._load_sessions()
 
     def create_session(self, context: str = "default") -> str:
@@ -41,8 +41,8 @@ class SessionManager:
         self.active_sessions[session_id] = {
             "id": session_id,
             "context": context,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_used": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "last_used": datetime.now(UTC).isoformat(),
             "use_count": 0,
             "agents_run": [],
         }
@@ -65,7 +65,7 @@ class SessionManager:
             Session ID
         """
         # Look for existing session in context
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         max_age = timedelta(minutes=max_age_minutes)
 
         for session_id, session_data in self.active_sessions.items():
@@ -95,11 +95,11 @@ class SessionManager:
                 {
                     "agent": agent,
                     "task": task[:100],  # Truncate long tasks
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
             self.active_sessions[session_id]["last_used"] = datetime.now(
-                timezone.utc
+                UTC
             ).isoformat()
             self._save_sessions()
 
@@ -113,7 +113,7 @@ class SessionManager:
             max_age_hours: Maximum age in hours
             archive: Whether to archive sessions before removing
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         max_age = timedelta(hours=max_age_hours)
 
         expired = []
@@ -133,9 +133,7 @@ class SessionManager:
         if expired:
             self._save_sessions()
 
-    def get_recent_sessions(
-        self, limit: int = 10, context: Optional[str] = None
-    ) -> list:
+    def get_recent_sessions(self, limit: int = 10, context: str | None = None) -> list:
         """Get recent sessions sorted by last used time.
 
         Args:
@@ -158,7 +156,7 @@ class SessionManager:
 
         return sessions[:limit]
 
-    def get_session_by_id(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_session_by_id(self, session_id: str) -> dict[str, Any] | None:
         """Get session data by ID.
 
         Args:
@@ -169,7 +167,7 @@ class SessionManager:
         """
         return self.active_sessions.get(session_id)
 
-    def get_last_interactive_session(self) -> Optional[str]:
+    def get_last_interactive_session(self) -> str | None:
         """Get the most recently used interactive session ID.
 
         WHY: For --resume without arguments, we want to resume the last
@@ -209,7 +207,7 @@ class SessionManager:
                 logger.error(f"Failed to load sessions: {e}")
                 self.active_sessions = {}
 
-    def _archive_sessions(self, sessions: List[Dict[str, Any]]):
+    def _archive_sessions(self, sessions: list[dict[str, Any]]):
         """Archive sessions to compressed files.
 
         WHY: Archiving preserves conversation history while reducing the size
@@ -225,7 +223,7 @@ class SessionManager:
         archive_dir.mkdir(parents=True, exist_ok=True)
 
         # Create timestamped archive file
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         archive_name = f"sessions_archive_{timestamp}.json.gz"
         archive_path = archive_dir / archive_name
 
@@ -281,7 +279,7 @@ class SessionManager:
             archive_dir = Path.home() / ".claude-mpm" / "archives"
             archive_dir.mkdir(parents=True, exist_ok=True)
 
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_name = f"claude_json_backup_{timestamp}.json.gz"
             backup_path = archive_dir / backup_name
 
@@ -315,7 +313,7 @@ class OrchestrationSession:
         """
         self.session_manager = session_manager
         self.context = context
-        self.session_id: Optional[str] = None
+        self.session_id: str | None = None
 
     def __enter__(self) -> str:
         """Enter session context, return session ID."""

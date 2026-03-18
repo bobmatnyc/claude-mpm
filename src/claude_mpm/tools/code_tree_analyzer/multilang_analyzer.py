@@ -11,7 +11,7 @@ allowing us to support JavaScript, TypeScript, and other languages.
 
 import importlib.util
 from pathlib import Path
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 from ...core.logging_config import get_logger
 from ..code_tree_events import CodeNodeEvent, CodeTreeEventEmitter
@@ -36,7 +36,7 @@ class MultiLanguageAnalyzer:
         "typescript": "tree_sitter_typescript",
     }
 
-    def __init__(self, emitter: Optional[CodeTreeEventEmitter] = None):
+    def __init__(self, emitter: CodeTreeEventEmitter | None = None):
         self.logger = get_logger(__name__)
         self.emitter = emitter
         self.parsers = {}
@@ -67,7 +67,7 @@ class MultiLanguageAnalyzer:
                 # Silently skip unavailable parsers - will fall back to basic file discovery
                 self.logger.debug(f"Language parser not available for {lang}: {e}")
 
-    def analyze_file(self, file_path: Path, language: str) -> List[CodeNode]:
+    def analyze_file(self, file_path: Path, language: str) -> list[CodeNode]:
         """Analyze a file using tree-sitter.
 
         Args:
@@ -106,7 +106,7 @@ class MultiLanguageAnalyzer:
 
         return nodes
 
-    def _extract_js_nodes(self, tree, file_path: Path, source: bytes) -> List[CodeNode]:
+    def _extract_js_nodes(self, tree, file_path: Path, source: bytes) -> list[CodeNode]:
         """Extract nodes from JavaScript/TypeScript files."""
         nodes = []
 
@@ -187,7 +187,7 @@ class MultiLanguageAnalyzer:
 
     def _extract_generic_nodes(
         self, tree, file_path: Path, source: bytes, language: str
-    ) -> List[CodeNode]:
+    ) -> list[CodeNode]:
         """Generic node extraction for other languages."""
         # Simple generic extraction - can be enhanced per language
         nodes = []

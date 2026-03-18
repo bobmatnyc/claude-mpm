@@ -13,7 +13,7 @@ not just in isolation.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -817,8 +817,8 @@ Unable to complete deployment due to production cluster outage. This requires ma
     def _create_memory_response(
         self,
         session: str,
-        memory_content: Optional[List[str]] = None,
-        recalled_memory: Optional[str] = None,
+        memory_content: list[str] | None = None,
+        recalled_memory: str | None = None,
     ) -> str:
         """Generate memory-enabled response for different session types.
 
@@ -965,7 +965,7 @@ $ ruff check config.py
 
 The file should now point to the production database."""
 
-    def _extract_workflow_steps(self, response: str) -> List[Dict[str, Any]]:
+    def _extract_workflow_steps(self, response: str) -> list[dict[str, Any]]:
         """Extract workflow steps from response text.
 
         Args:
@@ -1007,7 +1007,7 @@ The file should now point to the production database."""
 
         return steps
 
-    def _extract_json_block(self, response: str) -> Optional[Dict[str, Any]]:
+    def _extract_json_block(self, response: str) -> dict[str, Any] | None:
         """Extract and parse JSON block from response.
 
         Args:

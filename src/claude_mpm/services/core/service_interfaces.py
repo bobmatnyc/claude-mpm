@@ -20,7 +20,7 @@ INCLUDES:
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 # Import CLI service interfaces
 
@@ -32,7 +32,7 @@ class ICacheManager(ABC):
     """Interface for framework-specific cache management service."""
 
     @abstractmethod
-    def get_capabilities(self) -> Optional[str]:
+    def get_capabilities(self) -> str | None:
         """Get cached agent capabilities."""
 
     @abstractmethod
@@ -40,31 +40,31 @@ class ICacheManager(ABC):
         """Set agent capabilities cache."""
 
     @abstractmethod
-    def get_deployed_agents(self) -> Optional[Set[str]]:
+    def get_deployed_agents(self) -> set[str] | None:
         """Get cached deployed agents set."""
 
     @abstractmethod
-    def set_deployed_agents(self, agents: Set[str]) -> None:
+    def set_deployed_agents(self, agents: set[str]) -> None:
         """Set deployed agents cache."""
 
     @abstractmethod
     def get_agent_metadata(
         self, agent_file: str
-    ) -> Optional[Tuple[Optional[Dict[str, Any]], float]]:
+    ) -> tuple[dict[str, Any] | None, float] | None:
         """Get cached agent metadata for a specific file."""
 
     @abstractmethod
     def set_agent_metadata(
-        self, agent_file: str, metadata: Optional[Dict[str, Any]], mtime: float
+        self, agent_file: str, metadata: dict[str, Any] | None, mtime: float
     ) -> None:
         """Set agent metadata cache for a specific file."""
 
     @abstractmethod
-    def get_memories(self) -> Optional[Dict[str, Any]]:
+    def get_memories(self) -> dict[str, Any] | None:
         """Get cached memories."""
 
     @abstractmethod
-    def set_memories(self, memories: Dict[str, Any]) -> None:
+    def set_memories(self, memories: dict[str, Any]) -> None:
         """Set memories cache."""
 
     @abstractmethod
@@ -89,7 +89,7 @@ class IPathResolver(ABC):
     """Interface for path resolution and validation service."""
 
     @abstractmethod
-    def resolve_path(self, path: str, base_dir: Optional[Path] = None) -> Path:
+    def resolve_path(self, path: str, base_dir: Path | None = None) -> Path:
         """
         Resolve a path relative to a base directory.
 
@@ -127,7 +127,7 @@ class IPathResolver(ABC):
         """
 
     @abstractmethod
-    def find_project_root(self, start_path: Optional[Path] = None) -> Optional[Path]:
+    def find_project_root(self, start_path: Path | None = None) -> Path | None:
         """
         Find the project root directory.
 
@@ -144,7 +144,7 @@ class IMemoryManager(ABC):
     """Interface for agent memory management service."""
 
     @abstractmethod
-    def load_memories(self, agent_name: Optional[str] = None) -> Dict[str, Any]:
+    def load_memories(self, agent_name: str | None = None) -> dict[str, Any]:
         """
         Load memories for an agent or all agents.
 
@@ -156,9 +156,7 @@ class IMemoryManager(ABC):
         """
 
     @abstractmethod
-    def save_memory(
-        self, key: str, value: Any, agent_name: Optional[str] = None
-    ) -> None:
+    def save_memory(self, key: str, value: Any, agent_name: str | None = None) -> None:
         """
         Save a memory entry.
 
@@ -170,8 +168,8 @@ class IMemoryManager(ABC):
 
     @abstractmethod
     def search_memories(
-        self, query: str, agent_name: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, agent_name: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Search memories by query.
 
@@ -184,7 +182,7 @@ class IMemoryManager(ABC):
         """
 
     @abstractmethod
-    def clear_memories(self, agent_name: Optional[str] = None) -> None:
+    def clear_memories(self, agent_name: str | None = None) -> None:
         """
         Clear memories for an agent or all agents.
 
@@ -193,7 +191,7 @@ class IMemoryManager(ABC):
         """
 
     @abstractmethod
-    def get_memory_stats(self) -> Dict[str, Any]:
+    def get_memory_stats(self) -> dict[str, Any]:
         """
         Get memory system statistics.
 
@@ -225,7 +223,7 @@ class IFrameworkLoader(ABC):
         """
 
     @abstractmethod
-    def get_deployed_agents(self) -> Set[str]:
+    def get_deployed_agents(self) -> set[str]:
         """
         Get set of deployed agent names.
 
@@ -238,7 +236,7 @@ class IFrameworkLoader(ABC):
         """Reload framework instructions and clear caches."""
 
     @abstractmethod
-    def get_version(self) -> Optional[str]:
+    def get_version(self) -> str | None:
         """
         Get framework version.
 
@@ -298,7 +296,7 @@ class IFileSystemService(ABC):
         """
 
     @abstractmethod
-    def list_directory(self, path: Path, pattern: Optional[str] = None) -> List[Path]:
+    def list_directory(self, path: Path, pattern: str | None = None) -> list[Path]:
         """
         List directory contents.
 
@@ -316,7 +314,7 @@ class IEnvironmentService(ABC):
     """Interface for environment and configuration management."""
 
     @abstractmethod
-    def get_env(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_env(self, key: str, default: str | None = None) -> str | None:
         """
         Get environment variable.
 
@@ -373,11 +371,11 @@ class IProcessManager(ABC):
     @abstractmethod
     def run_command(
         self,
-        command: List[str],
-        cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        timeout: Optional[float] = None,
-    ) -> Tuple[int, str, str]:
+        command: list[str],
+        cwd: Path | None = None,
+        env: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> tuple[int, str, str]:
         """
         Run a command and return result.
 
@@ -394,9 +392,9 @@ class IProcessManager(ABC):
     @abstractmethod
     def start_process(
         self,
-        command: List[str],
-        cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
+        command: list[str],
+        cwd: Path | None = None,
+        env: dict[str, str] | None = None,
     ) -> int:
         """
         Start a background process.

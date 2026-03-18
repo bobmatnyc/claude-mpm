@@ -8,7 +8,6 @@ Extracted from configure.py (Phase 5/9) to reduce God Object complexity.
 
 import shutil
 from pathlib import Path
-from typing import Optional
 
 from rich.box import ROUNDED
 from rich.console import Console
@@ -33,7 +32,7 @@ class BehaviorManager:
         self,
         config_dir: Path,
         current_scope: str = "project",
-        console: Optional[Console] = None,
+        console: Console | None = None,
     ):
         """Initialize behavior manager.
 

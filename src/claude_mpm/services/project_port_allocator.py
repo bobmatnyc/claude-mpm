@@ -24,9 +24,9 @@ DESIGN DECISIONS:
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import psutil
 
@@ -58,9 +58,9 @@ class ProjectPortAllocator(SyncBaseService):
 
     def __init__(
         self,
-        project_root: Optional[Path] = None,
-        port_range_start: Optional[int] = None,
-        port_range_end: Optional[int] = None,
+        project_root: Path | None = None,
+        port_range_start: int | None = None,
+        port_range_end: int | None = None,
     ):
         """
         Initialize the port allocator.
@@ -177,7 +177,7 @@ class ProjectPortAllocator(SyncBaseService):
         """
         return any(start <= port <= end for start, end in self.PROTECTED_PORT_RANGES)
 
-    def _load_project_state(self) -> Dict[str, Any]:
+    def _load_project_state(self) -> dict[str, Any]:
         """
         Load project deployment state.
 
@@ -193,7 +193,7 @@ class ProjectPortAllocator(SyncBaseService):
 
         return {}
 
-    def _save_project_state(self, state: Dict[str, Any]) -> None:
+    def _save_project_state(self, state: dict[str, Any]) -> None:
         """
         Save project deployment state atomically.
 
@@ -213,7 +213,7 @@ class ProjectPortAllocator(SyncBaseService):
             self.log_error(f"Failed to save project state: {e}")
             raise
 
-    def _load_global_registry(self) -> Dict[str, Any]:
+    def _load_global_registry(self) -> dict[str, Any]:
         """
         Load global port registry.
 
@@ -229,7 +229,7 @@ class ProjectPortAllocator(SyncBaseService):
 
         return {"allocations": {}, "last_updated": None}
 
-    def _save_global_registry(self, registry: Dict[str, Any]) -> None:
+    def _save_global_registry(self, registry: dict[str, Any]) -> None:
         """
         Save global port registry atomically.
 
@@ -238,7 +238,7 @@ class ProjectPortAllocator(SyncBaseService):
         """
         try:
             # Update timestamp
-            registry["last_updated"] = datetime.now(timezone.utc).isoformat()
+            registry["last_updated"] = datetime.now(UTC).isoformat()
 
             # Write to temporary file first
             temp_file = self.global_registry_file.with_suffix(".tmp")
@@ -254,7 +254,7 @@ class ProjectPortAllocator(SyncBaseService):
 
     def get_project_port(
         self,
-        project_path: Optional[Path] = None,
+        project_path: Path | None = None,
         service_name: str = "main",
         respect_env_override: bool = True,
     ) -> int:
@@ -363,8 +363,8 @@ class ProjectPortAllocator(SyncBaseService):
         self,
         port: int,
         service_name: str = "main",
-        deployment_info: Optional[Dict[str, Any]] = None,
-        project_path: Optional[Path] = None,
+        deployment_info: dict[str, Any] | None = None,
+        project_path: Path | None = None,
     ) -> None:
         """
         Register a port allocation for a project service.
@@ -393,7 +393,7 @@ class ProjectPortAllocator(SyncBaseService):
             {
                 "port": port,
                 "service_name": service_name,
-                "registered_at": datetime.now(timezone.utc).isoformat(),
+                "registered_at": datetime.now(UTC).isoformat(),
             }
         )
 
@@ -403,7 +403,7 @@ class ProjectPortAllocator(SyncBaseService):
         if port not in state.get("port_history", []):
             state.setdefault("port_history", []).append(port)
 
-        state["last_updated"] = datetime.now(timezone.utc).isoformat()
+        state["last_updated"] = datetime.now(UTC).isoformat()
 
         self._save_project_state(state)
 
@@ -414,7 +414,7 @@ class ProjectPortAllocator(SyncBaseService):
             "project_path": str(project_path),
             "project_hash": project_hash,
             "service_name": service_name,
-            "registered_at": datetime.now(timezone.utc).isoformat(),
+            "registered_at": datetime.now(UTC).isoformat(),
         }
 
         self._save_global_registry(registry)
@@ -425,7 +425,7 @@ class ProjectPortAllocator(SyncBaseService):
         self,
         port: int,
         service_name: str = "main",
-        project_path: Optional[Path] = None,
+        project_path: Path | None = None,
     ) -> None:
         """
         Release a port allocation.
@@ -443,7 +443,7 @@ class ProjectPortAllocator(SyncBaseService):
 
         if service_name in deployments:
             del deployments[service_name]
-            state["last_updated"] = datetime.now(timezone.utc).isoformat()
+            state["last_updated"] = datetime.now(UTC).isoformat()
             self._save_project_state(state)
 
         # Update global registry
@@ -481,7 +481,7 @@ class ProjectPortAllocator(SyncBaseService):
             del deployments[service_name]
 
         if dead_services:
-            state["last_updated"] = datetime.now(timezone.utc).isoformat()
+            state["last_updated"] = datetime.now(UTC).isoformat()
             self._save_project_state(state)
 
         # Clean global registry
@@ -544,8 +544,8 @@ class ProjectPortAllocator(SyncBaseService):
     def get_allocation_info(
         self,
         service_name: str = "main",
-        project_path: Optional[Path] = None,
-    ) -> Optional[Dict[str, Any]]:
+        project_path: Path | None = None,
+    ) -> dict[str, Any] | None:
         """
         Get allocation information for a service.
 
@@ -564,8 +564,8 @@ class ProjectPortAllocator(SyncBaseService):
 
     def list_project_allocations(
         self,
-        project_path: Optional[Path] = None,
-    ) -> Dict[str, Any]:
+        project_path: Path | None = None,
+    ) -> dict[str, Any]:
         """
         List all port allocations for a project.
 
@@ -586,7 +586,7 @@ class ProjectPortAllocator(SyncBaseService):
             "last_updated": state.get("last_updated"),
         }
 
-    def list_global_allocations(self) -> Dict[str, Any]:
+    def list_global_allocations(self) -> dict[str, Any]:
         """
         List all global port allocations.
 

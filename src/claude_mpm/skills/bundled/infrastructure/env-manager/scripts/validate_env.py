@@ -16,21 +16,20 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class ValidationError:
     """Represents a validation error."""
 
     def __init__(
-        self, line: Optional[int], key: str, message: str, severity: str = "error"
+        self, line: int | None, key: str, message: str, severity: str = "error"
     ):
         self.line = line
         self.key = key
         self.message = message
         self.severity = severity  # "error" or "warning"
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "line": self.line,
             "key": self.key,
@@ -60,13 +59,13 @@ class EnvValidator:
     # Secret indicators (variables that should never be in NEXT_PUBLIC_, etc.)
     SECRET_INDICATORS = ["secret", "key", "password", "token", "private", "api_key"]
 
-    def __init__(self, framework: Optional[str] = None, strict: bool = False):
+    def __init__(self, framework: str | None = None, strict: bool = False):
         self.framework = framework
         self.strict = strict
-        self.errors: List[ValidationError] = []
-        self.warnings: List[ValidationError] = []
+        self.errors: list[ValidationError] = []
+        self.warnings: list[ValidationError] = []
 
-    def parse_env_file(self, env_file: Path) -> Dict[str, str]:
+    def parse_env_file(self, env_file: Path) -> dict[str, str]:
         """Parse .env file safely. Returns dict of key-value pairs."""
         vars_dict = {}
 
@@ -103,7 +102,7 @@ class EnvValidator:
 
         return vars_dict
 
-    def validate_structure(self, env_file: Path) -> List[ValidationError]:
+    def validate_structure(self, env_file: Path) -> list[ValidationError]:
         """Validate basic file structure."""
         errors = []
 
@@ -173,9 +172,9 @@ class EnvValidator:
 
         return errors
 
-    def check_duplicates(self, env_file: Path) -> Dict[str, List[int]]:
+    def check_duplicates(self, env_file: Path) -> dict[str, list[int]]:
         """Find duplicate keys and their line numbers."""
-        keys: Dict[str, List[int]] = {}
+        keys: dict[str, list[int]] = {}
 
         with open(env_file) as f:
             for line_num, line in enumerate(f, 1):
@@ -206,7 +205,7 @@ class EnvValidator:
 
         return duplicates
 
-    def compare_env_files(self, env_file: Path, example_file: Path) -> Dict:
+    def compare_env_files(self, env_file: Path, example_file: Path) -> dict:
         """Compare .env against .env.example."""
         if not example_file.exists():
             self.warnings.append(
@@ -244,7 +243,7 @@ class EnvValidator:
 
         return {"missing": missing, "extra": extra, "common": common}
 
-    def validate_framework_specific(self, env_file: Path) -> List[ValidationError]:
+    def validate_framework_specific(self, env_file: Path) -> list[ValidationError]:
         """Validate framework-specific rules."""
         errors = []
         vars_dict = self.parse_env_file(env_file)
@@ -262,7 +261,7 @@ class EnvValidator:
 
         return errors
 
-    def _validate_nextjs(self, vars_dict: Dict[str, str]) -> List[ValidationError]:
+    def _validate_nextjs(self, vars_dict: dict[str, str]) -> list[ValidationError]:
         """Validate Next.js environment variables."""
         errors = []
 
@@ -295,7 +294,7 @@ class EnvValidator:
 
         return errors
 
-    def _validate_vite(self, vars_dict: Dict[str, str]) -> List[ValidationError]:
+    def _validate_vite(self, vars_dict: dict[str, str]) -> list[ValidationError]:
         """Validate Vite environment variables."""
         errors = []
 
@@ -327,7 +326,7 @@ class EnvValidator:
 
         return errors
 
-    def _validate_react(self, vars_dict: Dict[str, str]) -> List[ValidationError]:
+    def _validate_react(self, vars_dict: dict[str, str]) -> list[ValidationError]:
         """Validate Create React App environment variables."""
         errors = []
 
@@ -348,7 +347,7 @@ class EnvValidator:
 
         return errors
 
-    def _validate_nodejs(self, vars_dict: Dict[str, str]) -> List[ValidationError]:
+    def _validate_nodejs(self, vars_dict: dict[str, str]) -> list[ValidationError]:
         """Validate Node.js environment variables."""
         errors = []
 
@@ -384,7 +383,7 @@ class EnvValidator:
 
         return errors
 
-    def _validate_flask(self, vars_dict: Dict[str, str]) -> List[ValidationError]:
+    def _validate_flask(self, vars_dict: dict[str, str]) -> list[ValidationError]:
         """Validate Flask environment variables."""
         errors = []
 
@@ -425,7 +424,7 @@ class EnvValidator:
 
         return errors
 
-    def validate(self, env_file: Path, example_file: Optional[Path] = None) -> Dict:
+    def validate(self, env_file: Path, example_file: Path | None = None) -> dict:
         """Run all validations. Returns summary dict."""
         self.errors = []
         self.warnings = []

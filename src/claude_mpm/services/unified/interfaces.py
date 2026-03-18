@@ -23,13 +23,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, TypeVar, Union
+from typing import Any, TypeVar
 
 from claude_mpm.core.enums import ValidationSeverity
 
 # Type variables for generic interfaces
 T = TypeVar("T")
-ConfigType = TypeVar("ConfigType", bound=Dict[str, Any])
+ConfigType = TypeVar("ConfigType", bound=dict[str, Any])
 
 
 class ServiceCapability(Enum):
@@ -64,11 +64,11 @@ class ServiceMetadata:
 
     name: str
     version: str
-    capabilities: Set[ServiceCapability] = field(default_factory=set)
-    dependencies: List[str] = field(default_factory=list)
+    capabilities: set[ServiceCapability] = field(default_factory=set)
+    dependencies: list[str] = field(default_factory=list)
     description: str = ""
-    tags: Set[str] = field(default_factory=set)
-    deprecated_services: List[str] = field(default_factory=list)
+    tags: set[str] = field(default_factory=set)
+    deprecated_services: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -76,10 +76,10 @@ class DeploymentResult:
     """Result of a deployment operation."""
 
     success: bool
-    deployed_path: Optional[Path] = None
+    deployed_path: Path | None = None
     message: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    rollback_info: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    rollback_info: dict[str, Any] | None = None
 
 
 @dataclass
@@ -87,11 +87,11 @@ class AnalysisResult:
     """Result of an analysis operation."""
 
     success: bool
-    findings: List[Dict[str, Any]] = field(default_factory=list)
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    findings: list[dict[str, Any]] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
     summary: str = ""
     severity: str = ValidationSeverity.INFO
-    recommendations: List[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -99,9 +99,9 @@ class ConfigurationResult:
     """Result of a configuration operation."""
 
     success: bool
-    config: Dict[str, Any] = field(default_factory=dict)
-    validation_errors: List[str] = field(default_factory=list)
-    applied_defaults: Dict[str, Any] = field(default_factory=dict)
+    config: dict[str, Any] = field(default_factory=dict)
+    validation_errors: list[str] = field(default_factory=list)
+    applied_defaults: dict[str, Any] = field(default_factory=dict)
     source: str = ""  # file, environment, default, etc.
 
 
@@ -125,8 +125,8 @@ class IDeploymentService(ABC):
 
     @abstractmethod
     def validate_deployment(
-        self, target: Union[str, Path], config: Dict[str, Any]
-    ) -> List[str]:
+        self, target: str | Path, config: dict[str, Any]
+    ) -> list[str]:
         """
         Validate deployment configuration before execution.
 
@@ -141,9 +141,9 @@ class IDeploymentService(ABC):
     @abstractmethod
     def deploy(
         self,
-        source: Union[str, Path],
-        target: Union[str, Path],
-        config: Optional[Dict[str, Any]] = None,
+        source: str | Path,
+        target: str | Path,
+        config: dict[str, Any] | None = None,
         force: bool = False,
     ) -> DeploymentResult:
         """
@@ -161,7 +161,7 @@ class IDeploymentService(ABC):
 
     @abstractmethod
     def rollback(
-        self, deployment_id: str, rollback_info: Dict[str, Any]
+        self, deployment_id: str, rollback_info: dict[str, Any]
     ) -> DeploymentResult:
         """
         Rollback a previous deployment.
@@ -176,8 +176,8 @@ class IDeploymentService(ABC):
 
     @abstractmethod
     def list_deployments(
-        self, target: Optional[Union[str, Path]] = None
-    ) -> List[Dict[str, Any]]:
+        self, target: str | Path | None = None
+    ) -> list[dict[str, Any]]:
         """
         List existing deployments.
 
@@ -189,7 +189,7 @@ class IDeploymentService(ABC):
         """
 
     @abstractmethod
-    def get_deployment_status(self, deployment_id: str) -> Dict[str, Any]:
+    def get_deployment_status(self, deployment_id: str) -> dict[str, Any]:
         """
         Get status of a specific deployment.
 
@@ -222,8 +222,8 @@ class IAnalyzerService(ABC):
     @abstractmethod
     def analyze(
         self,
-        target: Union[str, Path, Any],
-        options: Optional[Dict[str, Any]] = None,
+        target: str | Path | Any,
+        options: dict[str, Any] | None = None,
     ) -> AnalysisResult:
         """
         Perform analysis on the target.
@@ -239,9 +239,9 @@ class IAnalyzerService(ABC):
     @abstractmethod
     def batch_analyze(
         self,
-        targets: List[Union[str, Path, Any]],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> List[AnalysisResult]:
+        targets: list[str | Path | Any],
+        options: dict[str, Any] | None = None,
+    ) -> list[AnalysisResult]:
         """
         Perform batch analysis on multiple targets.
 
@@ -254,7 +254,7 @@ class IAnalyzerService(ABC):
         """
 
     @abstractmethod
-    def get_metrics(self, target: Union[str, Path, Any]) -> Dict[str, Any]:
+    def get_metrics(self, target: str | Path | Any) -> dict[str, Any]:
         """
         Get analysis metrics for a target.
 
@@ -268,10 +268,10 @@ class IAnalyzerService(ABC):
     @abstractmethod
     def compare(
         self,
-        target1: Union[str, Path, Any],
-        target2: Union[str, Path, Any],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        target1: str | Path | Any,
+        target2: str | Path | Any,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Compare two targets and analyze differences.
 
@@ -287,7 +287,7 @@ class IAnalyzerService(ABC):
     @abstractmethod
     def get_recommendations(
         self, analysis_result: AnalysisResult
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get recommendations based on analysis results.
 
@@ -318,9 +318,7 @@ class IConfigurationService(ABC):
         """
 
     @abstractmethod
-    def load_config(
-        self, source: Union[str, Path, Dict[str, Any]]
-    ) -> ConfigurationResult:
+    def load_config(self, source: str | Path | dict[str, Any]) -> ConfigurationResult:
         """
         Load configuration from source.
 
@@ -333,7 +331,7 @@ class IConfigurationService(ABC):
 
     @abstractmethod
     def save_config(
-        self, config: Dict[str, Any], target: Union[str, Path]
+        self, config: dict[str, Any], target: str | Path
     ) -> ConfigurationResult:
         """
         Save configuration to target.
@@ -347,7 +345,7 @@ class IConfigurationService(ABC):
         """
 
     @abstractmethod
-    def validate_config(self, config: Dict[str, Any]) -> List[str]:
+    def validate_config(self, config: dict[str, Any]) -> list[str]:
         """
         Validate configuration against schema.
 
@@ -360,8 +358,8 @@ class IConfigurationService(ABC):
 
     @abstractmethod
     def merge_configs(
-        self, *configs: Dict[str, Any], strategy: str = "deep"
-    ) -> Dict[str, Any]:
+        self, *configs: dict[str, Any], strategy: str = "deep"
+    ) -> dict[str, Any]:
         """
         Merge multiple configurations.
 
@@ -375,7 +373,7 @@ class IConfigurationService(ABC):
 
     @abstractmethod
     def get_config_value(
-        self, key: str, default: Any = None, config: Optional[Dict[str, Any]] = None
+        self, key: str, default: Any = None, config: dict[str, Any] | None = None
     ) -> Any:
         """
         Get configuration value by key with optional default.
@@ -391,7 +389,7 @@ class IConfigurationService(ABC):
 
     @abstractmethod
     def set_config_value(
-        self, key: str, value: Any, config: Optional[Dict[str, Any]] = None
+        self, key: str, value: Any, config: dict[str, Any] | None = None
     ) -> ConfigurationResult:
         """
         Set configuration value by key.
@@ -406,7 +404,7 @@ class IConfigurationService(ABC):
         """
 
     @abstractmethod
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         """
         Get configuration schema definition.
 
@@ -415,7 +413,7 @@ class IConfigurationService(ABC):
         """
 
     @abstractmethod
-    def apply_defaults(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def apply_defaults(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Apply default values to configuration.
 
@@ -451,7 +449,7 @@ class IUnifiedService(ABC):
         """
 
     @abstractmethod
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform health check on the service.
 
@@ -460,7 +458,7 @@ class IUnifiedService(ABC):
         """
 
     @abstractmethod
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get service metrics.
 

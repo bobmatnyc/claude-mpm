@@ -14,7 +14,7 @@ DESIGN DECISIONS:
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from rich.panel import Panel
@@ -345,7 +345,7 @@ class ConfigCommand(BaseCommand):
                 f"Failed to get configuration status: {e}"
             )
 
-    def _display_status_panel(self, status: Dict[str, Any]) -> None:
+    def _display_status_panel(self, status: dict[str, Any]) -> None:
         """Display configuration status panel."""
         panel_content = []
 
@@ -383,7 +383,7 @@ class ConfigCommand(BaseCommand):
         )
         console.print(panel)
 
-    def _display_detailed_status(self, status: Dict[str, Any]) -> None:
+    def _display_detailed_status(self, status: dict[str, Any]) -> None:
         """Display detailed errors and warnings."""
         if status.get("errors"):
             console.print("\n[bold red]Errors:[/bold red]")

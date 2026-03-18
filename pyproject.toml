@@ -247,6 +247,8 @@ ignore = [
     "DTZ007", # datetime timezone
     "C401",   # unnecessary list comprehension
     "PLW0108", # lambda may be unnecessary
+    "UP046",   # PEP 695 generic class syntax (requires manual rewrite)
+    "UP049",   # PEP 695 private type parameters (requires manual rewrite)
 ]
 
 # Allow autofix for all rules

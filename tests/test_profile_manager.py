@@ -6,7 +6,7 @@ Tests profile loading, filtering, and glob pattern matching for skills.
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import yaml
@@ -74,7 +74,7 @@ def profiles_dir():
         yield profiles_path
 
 
-def _create_test_profile(path: Path, data: Dict[str, Any]):
+def _create_test_profile(path: Path, data: dict[str, Any]):
     """Helper to create a test profile YAML file."""
     with path.open("w") as f:
         yaml.safe_dump(data, f)

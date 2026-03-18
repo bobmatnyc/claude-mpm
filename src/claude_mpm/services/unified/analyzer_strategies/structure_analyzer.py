@@ -11,7 +11,7 @@ Created: 2025-01-26
 
 import fnmatch
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from typing import Any, ClassVar
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -136,7 +136,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
             and context.operation in self.metadata.supported_operations
         )
 
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """Validate input data for strategy."""
         errors = []
 
@@ -156,8 +156,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         return errors
 
     def analyze(
-        self, target: Any, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, target: Any, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Execute structure analysis on target.
 
@@ -187,8 +187,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         }
 
     def _analyze_structure(
-        self, root_path: Path, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, root_path: Path, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze the structure of a project directory."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -227,8 +227,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         return results
 
     def _build_tree(
-        self, root_path: Path, max_depth: int, ignore_patterns: List[str]
-    ) -> Tuple[Dict[str, Any], Dict[str, int]]:
+        self, root_path: Path, max_depth: int, ignore_patterns: list[str]
+    ) -> tuple[dict[str, Any], dict[str, int]]:
         """Build directory tree structure."""
         tree = {
             "name": root_path.name,
@@ -252,7 +252,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
             return False
 
         def walk_directory(
-            current_path: Path, current_node: Dict[str, Any], depth: int
+            current_path: Path, current_node: dict[str, Any], depth: int
         ) -> None:
             """Recursively walk directory tree."""
             if depth > max_depth:
@@ -309,7 +309,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         return tree, statistics
 
-    def _detect_patterns(self, root_path: Path, tree: Dict[str, Any]) -> Dict[str, Any]:
+    def _detect_patterns(self, root_path: Path, tree: dict[str, Any]) -> dict[str, Any]:
         """Detect common project patterns."""
         patterns = {
             "has_src": False,
@@ -355,11 +355,11 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         return patterns
 
-    def _detect_naming_convention(self, tree: Dict[str, Any]) -> str:
+    def _detect_naming_convention(self, tree: dict[str, Any]) -> str:
         """Detect naming convention used in the project."""
         file_names = []
 
-        def collect_names(node: Dict[str, Any]) -> None:
+        def collect_names(node: dict[str, Any]) -> None:
             """Collect all file and directory names."""
             if node["type"] == "file":
                 name = (
@@ -402,8 +402,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         return max(patterns, key=patterns.get)
 
     def _analyze_organization(
-        self, root_path: Path, tree: Dict[str, Any], stats: Dict[str, int]
-    ) -> Dict[str, Any]:
+        self, root_path: Path, tree: dict[str, Any], stats: dict[str, int]
+    ) -> dict[str, Any]:
         """Analyze project organization quality."""
         organization = {
             "structure_score": 0,
@@ -474,7 +474,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         return organization
 
-    def _detect_architecture(self, tree: Dict[str, Any]) -> Dict[str, Any]:
+    def _detect_architecture(self, tree: dict[str, Any]) -> dict[str, Any]:
         """Detect architectural patterns in the project structure."""
         architecture = {
             "pattern": "unknown",
@@ -485,7 +485,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         # Get all directory names at various levels
         dir_names = set()
 
-        def collect_dir_names(node: Dict[str, Any], depth: int = 0) -> None:
+        def collect_dir_names(node: dict[str, Any], depth: int = 0) -> None:
             """Collect directory names up to depth 3."""
             if depth > 3 or node["type"] != "directory":
                 return
@@ -521,8 +521,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         return architecture
 
     def _calculate_structure_complexity(
-        self, tree: Dict[str, Any], stats: Dict[str, int]
-    ) -> Dict[str, Any]:
+        self, tree: dict[str, Any], stats: dict[str, int]
+    ) -> dict[str, Any]:
         """Calculate structural complexity metrics."""
         complexity = {
             "structural_complexity": 0,
@@ -555,7 +555,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         cross_cutting_dirs = {"common", "shared", "utils", "helpers", "core"}
         dir_names = set()
 
-        def collect_dir_names(node: Dict[str, Any]) -> None:
+        def collect_dir_names(node: dict[str, Any]) -> None:
             if node["type"] == "directory":
                 dir_names.add(node["name"].lower())
                 for child in node.get("children", []):
@@ -600,7 +600,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         return "unknown"
 
-    def _detect_framework(self, root_path: Path, language: str) -> Optional[str]:
+    def _detect_framework(self, root_path: Path, language: str) -> str | None:
         """Detect framework based on language and files."""
         framework_indicators = {
             "python": {
@@ -637,7 +637,7 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
 
         return None
 
-    def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metrics(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """Extract key metrics from analysis results."""
         metrics = {}
 
@@ -676,8 +676,8 @@ class StructureAnalyzerStrategy(AnalyzerStrategy):
         return metrics
 
     def compare_results(
-        self, baseline: Dict[str, Any], current: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, baseline: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare two structure analysis results."""
         comparison = {
             "structure_changes": {},

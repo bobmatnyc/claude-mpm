@@ -18,9 +18,9 @@ Event schema:
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.config_file_lock import get_config_file_mtime
 from claude_mpm.core.logging_config import get_logger
@@ -44,8 +44,8 @@ class ConfigEventHandler:
         operation: str,
         entity_type: str,
         status: str,
-        entity_id: Optional[str] = None,
-        data: Optional[Dict[str, Any]] = None,
+        entity_id: str | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """Emit a config_event to all connected clients.
 
@@ -63,7 +63,7 @@ class ConfigEventHandler:
             "entity_id": entity_id,
             "status": status,
             "data": data or {},
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         try:
@@ -91,8 +91,8 @@ class ConfigFileWatcher:
     def __init__(self, config_event_handler: ConfigEventHandler):
         self.handler = config_event_handler
         self.poll_interval = 5.0
-        self._mtimes: Dict[str, float] = {}
-        self._task: Optional[asyncio.Task] = None
+        self._mtimes: dict[str, float] = {}
+        self._task: asyncio.Task | None = None
         self._watched_files = self._get_watched_files()
 
     def _get_watched_files(self) -> list:

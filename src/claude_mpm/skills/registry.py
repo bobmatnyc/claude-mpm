@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -46,10 +46,10 @@ class Skill:
     # Core spec fields (agentskills.io)
     name: str
     description: str
-    license: Optional[str] = None
-    compatibility: Optional[str] = None
-    metadata: Dict[str, Any] = None
-    allowed_tools: List[str] = None
+    license: str | None = None
+    compatibility: str | None = None
+    metadata: dict[str, Any] = None
+    allowed_tools: list[str] = None
 
     # Internal fields (not in frontmatter spec)
     path: Path = None
@@ -59,14 +59,14 @@ class Skill:
     # Derived fields (from metadata or fallback)
     version: str = "0.1.0"  # From metadata.version or top-level
     skill_id: str = ""  # Internal ID (defaults to name)
-    agent_types: List[str] = None  # Which agent types can use this skill
-    updated_at: Optional[str] = None  # From metadata.updated
-    tags: List[str] = None  # From metadata.tags or top-level
+    agent_types: list[str] = None  # Which agent types can use this skill
+    updated_at: str | None = None  # From metadata.updated
+    tags: list[str] = None  # From metadata.tags or top-level
 
     # Claude-mpm extensions (preserved for backward compat)
-    category: Optional[str] = None
-    toolchain: Optional[str] = None
-    progressive_disclosure: Optional[Dict[str, Any]] = None
+    category: str | None = None
+    toolchain: str | None = None
+    progressive_disclosure: dict[str, Any] | None = None
     user_invocable: bool = False
 
     def __post_init__(self):
@@ -83,7 +83,7 @@ class Skill:
             self.skill_id = self.name
 
 
-def validate_agentskills_spec(skill: Skill) -> tuple[bool, List[str]]:
+def validate_agentskills_spec(skill: Skill) -> tuple[bool, list[str]]:
     """Validate skill against agentskills.io specification.
 
     Args:
@@ -157,12 +157,12 @@ class SkillsRegistry:
 
     def __init__(self):
         """Initialize the skills registry."""
-        self.skills: Dict[str, Skill] = {}
+        self.skills: dict[str, Skill] = {}
         self._load_bundled_skills()
         self._load_user_skills()
         self._load_project_skills()
 
-    def _parse_skill_frontmatter(self, content: str) -> Dict[str, Any]:
+    def _parse_skill_frontmatter(self, content: str) -> dict[str, Any]:
         """Parse YAML frontmatter from skill markdown file with spec validation.
 
         Supports both agentskills.io spec format and legacy claude-mpm format
@@ -192,8 +192,8 @@ class SkillsRegistry:
             return {}
 
     def _apply_backward_compatibility(
-        self, frontmatter: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, frontmatter: dict[str, Any]
+    ) -> dict[str, Any]:
         """Apply backward compatibility transformations to legacy frontmatter.
 
         Auto-migrates legacy claude-mpm fields to agentskills.io spec format:
@@ -255,8 +255,8 @@ class SkillsRegistry:
         return frontmatter
 
     def _create_skill_from_frontmatter(
-        self, frontmatter: Dict[str, Any], path: Path, content: str, source: str
-    ) -> Optional[Skill]:
+        self, frontmatter: dict[str, Any], path: Path, content: str, source: str
+    ) -> Skill | None:
         """Create Skill object from frontmatter with spec compliance.
 
         Args:
@@ -441,17 +441,17 @@ class SkillsRegistry:
 
         return " ".join(description_lines)[:200]  # Limit to 200 chars
 
-    def get_skill(self, name: str) -> Optional[Skill]:
+    def get_skill(self, name: str) -> Skill | None:
         """Get a skill by name."""
         return self.skills.get(name)
 
-    def list_skills(self, source: Optional[str] = None) -> List[Skill]:
+    def list_skills(self, source: str | None = None) -> list[Skill]:
         """List all skills, optionally filtered by source."""
         if source:
             return [s for s in self.skills.values() if s.source == source]
         return list(self.skills.values())
 
-    def get_skills_for_agent(self, agent_type: str) -> List[Skill]:
+    def get_skills_for_agent(self, agent_type: str) -> list[Skill]:
         """
         Get skills mapped to a specific agent type.
 
@@ -480,7 +480,7 @@ class SkillsRegistry:
 
 
 # Global registry instance (singleton pattern)
-_registry: Optional[SkillsRegistry] = None
+_registry: SkillsRegistry | None = None
 
 
 def get_registry() -> SkillsRegistry:

@@ -2,7 +2,7 @@
 Delegation constraints section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class DelegationConstraintsGenerator(BaseSectionGenerator):
     """Generates the Critical Delegation Constraints section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the delegation constraints section."""
         return """
 ## 🚨 CRITICAL DELEGATION CONSTRAINTS

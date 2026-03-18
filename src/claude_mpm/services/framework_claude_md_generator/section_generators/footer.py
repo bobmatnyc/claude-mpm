@@ -2,7 +2,7 @@
 Footer section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class FooterGenerator(BaseSectionGenerator):
     """Generates the footer section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the footer section."""
         deployment_id = data.get("deployment_id", "{{DEPLOYMENT_ID}}")
         timestamp = self.get_timestamp()

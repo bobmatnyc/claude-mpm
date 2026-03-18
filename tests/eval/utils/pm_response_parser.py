@@ -11,7 +11,7 @@ Parses PM agent responses to extract:
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 
 @dataclass
@@ -19,8 +19,8 @@ class ToolUsage:
     """Represents a tool call detected in PM response."""
 
     tool_name: str
-    parameters: Dict[str, Any]
-    line_number: Optional[int] = None
+    parameters: dict[str, Any]
+    line_number: int | None = None
 
 
 @dataclass
@@ -30,7 +30,7 @@ class DelegationEvent:
     agent_name: str
     task_description: str
     context: str = ""
-    acceptance_criteria: List[str] = None
+    acceptance_criteria: list[str] = None
 
 
 @dataclass
@@ -39,18 +39,18 @@ class Assertion:
 
     text: str
     has_evidence: bool
-    evidence_source: Optional[str] = None
-    line_number: Optional[int] = None
+    evidence_source: str | None = None
+    line_number: int | None = None
 
 
 @dataclass
 class PMResponseAnalysis:
     """Complete analysis of PM response."""
 
-    tools_used: List[ToolUsage]
-    delegations: List[DelegationEvent]
-    assertions: List[Assertion]
-    violations: List[str]
+    tools_used: list[ToolUsage]
+    delegations: list[DelegationEvent]
+    assertions: list[Assertion]
+    violations: list[str]
     evidence_quality_score: float
     delegation_correctness_score: float
 
@@ -155,7 +155,7 @@ class PMResponseParser:
             delegation_correctness_score=delegation_score,
         )
 
-    def _extract_tools(self, text: str) -> List[ToolUsage]:
+    def _extract_tools(self, text: str) -> list[ToolUsage]:
         """Extract all tool usage from response text."""
         tools = []
 
@@ -170,7 +170,7 @@ class PMResponseParser:
 
         return tools
 
-    def _extract_delegations(self, text: str) -> List[DelegationEvent]:
+    def _extract_delegations(self, text: str) -> list[DelegationEvent]:
         """Extract delegation events from response text."""
         delegations = []
 
@@ -212,7 +212,7 @@ class PMResponseParser:
 
         return delegations
 
-    def _extract_assertions(self, text: str) -> List[Assertion]:
+    def _extract_assertions(self, text: str) -> list[Assertion]:
         """Extract assertions and check for evidence."""
         assertions = []
 
@@ -239,7 +239,7 @@ class PMResponseParser:
 
         return assertions
 
-    def _check_for_evidence(self, context: str) -> tuple[bool, Optional[str]]:
+    def _check_for_evidence(self, context: str) -> tuple[bool, str | None]:
         """Check if context contains evidence attribution."""
         for pattern_str in self.EVIDENCE_PATTERNS:
             pattern = re.compile(pattern_str, re.IGNORECASE)
@@ -254,7 +254,7 @@ class PMResponseParser:
 
         return False, None
 
-    def _detect_violations(self, text: str, tools_used: List[ToolUsage]) -> List[str]:
+    def _detect_violations(self, text: str, tools_used: list[ToolUsage]) -> list[str]:
         """Detect circuit breaker violations."""
         violations = []
 
@@ -286,7 +286,7 @@ class PMResponseParser:
 
         return violations
 
-    def _calculate_evidence_quality(self, assertions: List[Assertion]) -> float:
+    def _calculate_evidence_quality(self, assertions: list[Assertion]) -> float:
         """
         Calculate evidence quality score (0.0-1.0).
 
@@ -300,9 +300,9 @@ class PMResponseParser:
 
     def _calculate_delegation_correctness(
         self,
-        delegations: List[DelegationEvent],
-        tools_used: List[ToolUsage],
-        violations: List[str],
+        delegations: list[DelegationEvent],
+        tools_used: list[ToolUsage],
+        violations: list[str],
     ) -> float:
         """
         Calculate delegation correctness score (0.0-1.0).
@@ -328,7 +328,7 @@ class PMResponseParser:
 
         return max(0.0, score)
 
-    def extract_ticketing_context(self, text: str) -> Dict[str, Any]:
+    def extract_ticketing_context(self, text: str) -> dict[str, Any]:
         """
         Extract ticketing-specific context from response.
 

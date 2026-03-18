@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 """
 
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -69,9 +69,10 @@ class TestMemoryCRUDService:
             "# Test Template"
         )
 
-        with patch("pathlib.Path.mkdir"), patch(
-            "pathlib.Path.write_text"
-        ) as mock_write:
+        with (
+            patch("pathlib.Path.mkdir"),
+            patch("pathlib.Path.write_text") as mock_write,
+        ):
             result = service.create_memory("test_agent", "default")
 
             assert result["success"] is True
@@ -100,7 +101,7 @@ class TestMemoryCRUDService:
         memory_file = MagicMock()
         memory_file.exists.return_value = True
         memory_file.stat.return_value = MagicMock(
-            st_size=1024, st_mtime=datetime.now(timezone.utc).timestamp()
+            st_size=1024, st_mtime=datetime.now(UTC).timestamp()
         )
 
         with patch.object(Path, "__truediv__", return_value=memory_file):
@@ -134,8 +135,8 @@ class TestMemoryCRUDService:
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
             st_size=1024,
-            st_mtime=datetime.now(timezone.utc).timestamp(),
-            st_ctime=datetime.now(timezone.utc).timestamp(),
+            st_mtime=datetime.now(UTC).timestamp(),
+            st_ctime=datetime.now(UTC).timestamp(),
         )
 
         file2 = MagicMock()
@@ -143,8 +144,8 @@ class TestMemoryCRUDService:
         file2.stem = "agent2_memories"
         file2.stat.return_value = MagicMock(
             st_size=2048,
-            st_mtime=datetime.now(timezone.utc).timestamp(),
-            st_ctime=datetime.now(timezone.utc).timestamp(),
+            st_mtime=datetime.now(UTC).timestamp(),
+            st_ctime=datetime.now(UTC).timestamp(),
         )
 
         mock_memory_manager.memories_dir = memory_dir
@@ -251,8 +252,8 @@ class TestMemoryCRUDService:
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
             st_size=1024,
-            st_mtime=datetime.now(timezone.utc).timestamp(),
-            st_ctime=datetime.now(timezone.utc).timestamp(),
+            st_mtime=datetime.now(UTC).timestamp(),
+            st_ctime=datetime.now(UTC).timestamp(),
         )
 
         with patch.object(service, "_get_memory_files", return_value=[file1]):
@@ -278,7 +279,7 @@ class TestMemoryCRUDService:
         old_file.stem = "old_agent_memories"
 
         # Mock old modification time (35 days ago)
-        old_timestamp = datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60)
+        old_timestamp = datetime.now(UTC).timestamp() - (35 * 24 * 60 * 60)
         old_file.stat.return_value = MagicMock(st_size=1024, st_mtime=old_timestamp)
 
         with patch.object(service, "_get_memory_files", return_value=[old_file]):
@@ -302,7 +303,7 @@ class TestMemoryCRUDService:
         file1.stem = "agent1_memories"
         file1.stat.return_value = MagicMock(
             st_size=1024,
-            st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60)),
+            st_mtime=(datetime.now(UTC).timestamp() - (35 * 24 * 60 * 60)),
         )
 
         file2 = MagicMock()
@@ -310,7 +311,7 @@ class TestMemoryCRUDService:
         file2.stem = "agent2_memories"
         file2.stat.return_value = MagicMock(
             st_size=2048,
-            st_mtime=(datetime.now(timezone.utc).timestamp() - (35 * 24 * 60 * 60)),
+            st_mtime=(datetime.now(UTC).timestamp() - (35 * 24 * 60 * 60)),
         )
 
         with patch.object(service, "_get_memory_files", return_value=[file1, file2]):
@@ -436,9 +437,12 @@ class TestMemoryCRUDServiceIntegration:
         # Memory manager should not be created yet
         assert service._memory_manager is None
 
-        with patch(
-            "claude_mpm.services.cli.memory_crud_service.AgentMemoryManager"
-        ) as mock_class, patch("claude_mpm.core.shared.config_loader.ConfigLoader"):
+        with (
+            patch(
+                "claude_mpm.services.cli.memory_crud_service.AgentMemoryManager"
+            ) as mock_class,
+            patch("claude_mpm.core.shared.config_loader.ConfigLoader"),
+        ):
             mock_instance = MagicMock()
             mock_instance.memories_dir = Path("/test")
             mock_instance.load_agent_memory.return_value = None

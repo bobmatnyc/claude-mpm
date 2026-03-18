@@ -23,10 +23,10 @@ information than lose important insights.
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
@@ -67,7 +67,7 @@ class MemoryOptimizer(LoggerMixin):
     }
 
     def __init__(
-        self, config: Optional[Config] = None, working_directory: Optional[Path] = None
+        self, config: Config | None = None, working_directory: Path | None = None
     ):
         """Initialize the memory optimizer.
 
@@ -82,7 +82,7 @@ class MemoryOptimizer(LoggerMixin):
         self.working_directory = working_directory or Path(Path.cwd())
         self.memories_dir = self.working_directory / ".claude-mpm" / "memories"
 
-    def optimize_agent_memory(self, agent_id: str) -> Dict[str, Any]:
+    def optimize_agent_memory(self, agent_id: str) -> dict[str, Any]:
         """Optimize memory for a specific agent.
 
         WHY: Individual agent memories can be optimized independently, allowing
@@ -165,7 +165,7 @@ class MemoryOptimizer(LoggerMixin):
                     else 0
                 ),
                 "backup_created": str(backup_path),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 **optimization_stats,
             }
 
@@ -176,7 +176,7 @@ class MemoryOptimizer(LoggerMixin):
             self.logger.error(f"Error optimizing memory for {agent_id}: {e}")
             return {"success": False, "agent_id": agent_id, "error": str(e)}
 
-    def optimize_all_memories(self) -> Dict[str, Any]:
+    def optimize_all_memories(self) -> dict[str, Any]:
         """Optimize all agent memory files.
 
         WHY: Bulk optimization allows maintenance of the entire memory system
@@ -231,7 +231,7 @@ class MemoryOptimizer(LoggerMixin):
 
             return {
                 "success": True,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "agents": results,
                 "summary": {
                     **total_stats,
@@ -245,8 +245,8 @@ class MemoryOptimizer(LoggerMixin):
             return {"success": False, "error": str(e)}
 
     def analyze_optimization_opportunities(
-        self, agent_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, agent_id: str | None = None
+    ) -> dict[str, Any]:
         """Analyze potential optimization opportunities without making changes.
 
         WHY: Users may want to understand what optimizations would be performed
@@ -267,7 +267,7 @@ class MemoryOptimizer(LoggerMixin):
             self.logger.error(f"Error analyzing optimization opportunities: {e}")
             return {"success": False, "error": str(e)}
 
-    def _parse_memory_sections(self, content: str) -> Dict[str, List[str]]:
+    def _parse_memory_sections(self, content: str) -> dict[str, list[str]]:
         """Parse memory content into sections and items.
 
         Args:
@@ -302,8 +302,8 @@ class MemoryOptimizer(LoggerMixin):
         return sections
 
     def _optimize_section(
-        self, items: List[str], agent_id: str
-    ) -> Tuple[List[str], Dict[str, int]]:
+        self, items: list[str], agent_id: str
+    ) -> tuple[list[str], dict[str, int]]:
         """Optimize a single section by removing duplicates and consolidating.
 
         Args:
@@ -352,7 +352,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return optimized_items, stats
 
-    def _remove_duplicates(self, bullet_points: List[str]) -> Tuple[List[str], int]:
+    def _remove_duplicates(self, bullet_points: list[str]) -> tuple[list[str], int]:
         """Remove duplicate bullet points.
 
         Args:
@@ -380,8 +380,8 @@ class MemoryOptimizer(LoggerMixin):
         return unique_points, duplicates_removed
 
     def _consolidate_similar_items(
-        self, bullet_points: List[str]
-    ) -> Tuple[List[str], int]:
+        self, bullet_points: list[str]
+    ) -> tuple[list[str], int]:
         """Consolidate similar bullet points.
 
         Args:
@@ -432,7 +432,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return consolidated, items_consolidated
 
-    def _merge_similar_items(self, similar_items: List[str]) -> str:
+    def _merge_similar_items(self, similar_items: list[str]) -> str:
         """Merge similar items into a single consolidated item.
 
         Args:
@@ -460,7 +460,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return base_content
 
-    def _reorder_by_priority(self, bullet_points: List[str]) -> List[str]:
+    def _reorder_by_priority(self, bullet_points: list[str]) -> list[str]:
         """Reorder bullet points by priority/importance.
 
         Args:
@@ -499,7 +499,7 @@ class MemoryOptimizer(LoggerMixin):
         return sorted(bullet_points, key=lambda x: (-get_priority_score(x), x.lower()))
 
     def _rebuild_memory_content(
-        self, sections: Dict[str, List[str]], agent_id: str
+        self, sections: dict[str, list[str]], agent_id: str
     ) -> str:
         """Rebuild memory content from optimized sections.
 
@@ -546,7 +546,7 @@ class MemoryOptimizer(LoggerMixin):
 
         # Update timestamp
         content = "\n".join(content_lines)
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
         return re.sub(
             r"<!-- Last Updated: .+ \| Auto-updated by: .+ -->",
             f"<!-- Last Updated: {timestamp} | Auto-updated by: optimizer -->",
@@ -562,7 +562,7 @@ class MemoryOptimizer(LoggerMixin):
         Returns:
             Path to backup file
         """
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         backup_name = f"{memory_file.stem}_backup_{timestamp}{memory_file.suffix}"
         backup_path = memory_file.parent / backup_name
 
@@ -573,7 +573,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return backup_path
 
-    def _analyze_single_agent(self, agent_id: str) -> Dict[str, Any]:
+    def _analyze_single_agent(self, agent_id: str) -> dict[str, Any]:
         """Analyze optimization opportunities for a single agent.
 
         Args:
@@ -631,7 +631,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return analysis
 
-    def _analyze_all_agents(self) -> Dict[str, Any]:
+    def _analyze_all_agents(self) -> dict[str, Any]:
         """Analyze optimization opportunities for all agents.
 
         Returns:
@@ -649,7 +649,7 @@ class MemoryOptimizer(LoggerMixin):
 
         return {
             "success": True,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "agents_analyzed": len(agents_analysis),
             "agents": agents_analysis,
         }

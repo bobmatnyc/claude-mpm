@@ -5,7 +5,7 @@ Simple test to diagnose why events aren't appearing in the dashboard.
 
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import socketio
 
@@ -97,26 +97,26 @@ async def main():
             {
                 "event": "TestStart",
                 "message": "Starting diagnostic test",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "source": "test_script",
             },
             {
                 "event": "SubagentStart",
                 "agent": "TestAgent",
                 "task": "Testing event flow",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "ToolCall",
                 "tool": "Diagnostic",
                 "args": {"test": True},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "SubagentStop",
                 "agent": "TestAgent",
                 "result": "Test completed",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ]
 

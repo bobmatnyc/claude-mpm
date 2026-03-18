@@ -44,7 +44,7 @@ else:
         __version__ = "0.0.0"
 
 
-def main(argv: Optional[list] = None):
+def main(argv: list | None = None):
     """Main CLI entry point orchestrating argument parsing and command execution."""
     argv = setup_early_environment(argv)
 

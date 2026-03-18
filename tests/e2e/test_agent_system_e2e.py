@@ -34,7 +34,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import yaml
@@ -116,7 +116,7 @@ class TestAgentSystemE2E:
 
     def create_test_agent(
         self, agent_id: str, name: str, category: str = "engineering"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a test agent JSON template.
 
@@ -826,7 +826,7 @@ class TestAgentSystemE2E:
         # injection pattern (AgentLoader.__new__ + _load_agents + _metrics) was
         # removed during refactoring. get_metrics() no longer exists.
         loader = AgentLoader()
-        error_types: Dict[str, int] = {}
+        error_types: dict[str, int] = {}
 
         # Use well-known registered agent IDs (always present in the registry)
         all_candidates = ["research", "engineer", "qa", "security", "documentation"]

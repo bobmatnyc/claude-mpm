@@ -18,7 +18,7 @@ EXTRACTED FROM: services/core/interfaces.py (lines 1195-1397)
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 # WebSocket/SocketIO service interface
@@ -42,7 +42,7 @@ class SocketIOServiceInterface(ABC):
         """Stop the WebSocket server synchronously."""
 
     @abstractmethod
-    def broadcast_event(self, event_type: str, data: Dict[str, Any]) -> None:
+    def broadcast_event(self, event_type: str, data: dict[str, Any]) -> None:
         """Broadcast an event to all connected clients.
 
         Args:
@@ -52,7 +52,7 @@ class SocketIOServiceInterface(ABC):
 
     @abstractmethod
     def send_to_client(
-        self, client_id: str, event_type: str, data: Dict[str, Any]
+        self, client_id: str, event_type: str, data: dict[str, Any]
     ) -> bool:
         """Send an event to a specific client.
 
@@ -99,7 +99,7 @@ class SocketIOServiceInterface(ABC):
 
     @abstractmethod
     def claude_status_changed(
-        self, status: str, pid: Optional[int] = None, message: str = ""
+        self, status: str, pid: int | None = None, message: str = ""
     ) -> None:
         """Notify Claude status change.
 
@@ -120,7 +120,7 @@ class SocketIOServiceInterface(ABC):
         """
 
     @abstractmethod
-    def todo_updated(self, todos: List[Dict[str, Any]]) -> None:
+    def todo_updated(self, todos: list[dict[str, Any]]) -> None:
         """Notify todo list update.
 
         Args:
@@ -141,7 +141,7 @@ class ProjectAnalyzerInterface(ABC):
     """
 
     @abstractmethod
-    def analyze_project(self, project_path: Path) -> Dict[str, Any]:
+    def analyze_project(self, project_path: Path) -> dict[str, Any]:
         """Analyze project structure and characteristics.
 
         Args:
@@ -152,7 +152,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def detect_technology_stack(self) -> List[str]:
+    def detect_technology_stack(self) -> list[str]:
         """Detect technologies used in the project.
 
         Returns:
@@ -160,7 +160,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def analyze_code_patterns(self) -> Dict[str, Any]:
+    def analyze_code_patterns(self) -> dict[str, Any]:
         """Analyze code patterns and conventions.
 
         Returns:
@@ -168,7 +168,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def get_project_structure(self) -> Dict[str, Any]:
+    def get_project_structure(self) -> dict[str, Any]:
         """Get project directory structure analysis.
 
         Returns:
@@ -176,7 +176,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def identify_entry_points(self) -> List[Path]:
+    def identify_entry_points(self) -> list[Path]:
         """Identify project entry points.
 
         Returns:
@@ -184,7 +184,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def get_dependencies(self) -> Dict[str, List[str]]:
+    def get_dependencies(self) -> dict[str, list[str]]:
         """Get project dependencies by type.
 
         Returns:
@@ -192,7 +192,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def analyze_test_coverage(self) -> Dict[str, Any]:
+    def analyze_test_coverage(self) -> dict[str, Any]:
         """Analyze test coverage if available.
 
         Returns:
@@ -200,7 +200,7 @@ class ProjectAnalyzerInterface(ABC):
         """
 
     @abstractmethod
-    def get_build_configuration(self) -> Dict[str, Any]:
+    def get_build_configuration(self) -> dict[str, Any]:
         """Get build configuration information.
 
         Returns:
@@ -236,7 +236,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def get_ticket(self, ticket_id: str) -> Optional[Dict[str, Any]]:
+    def get_ticket(self, ticket_id: str) -> dict[str, Any] | None:
         """Get ticket by ID.
 
         Args:
@@ -247,7 +247,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def update_ticket(self, ticket_id: str, updates: Dict[str, Any]) -> bool:
+    def update_ticket(self, ticket_id: str, updates: dict[str, Any]) -> bool:
         """Update ticket information.
 
         Args:
@@ -260,8 +260,8 @@ class TicketManagerInterface(ABC):
 
     @abstractmethod
     def list_tickets(
-        self, status: Optional[str] = None, priority: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, status: str | None = None, priority: str | None = None
+    ) -> list[dict[str, Any]]:
         """List tickets with optional filtering.
 
         Args:
@@ -285,7 +285,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def close_ticket(self, ticket_id: str, resolution: Optional[str] = None) -> bool:
+    def close_ticket(self, ticket_id: str, resolution: str | None = None) -> bool:
         """Close a ticket.
 
         Args:
@@ -297,7 +297,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def search_tickets(self, query: str) -> List[Dict[str, Any]]:
+    def search_tickets(self, query: str) -> list[dict[str, Any]]:
         """Search tickets by query.
 
         Args:
@@ -308,7 +308,7 @@ class TicketManagerInterface(ABC):
         """
 
     @abstractmethod
-    def get_ticket_statistics(self) -> Dict[str, Any]:
+    def get_ticket_statistics(self) -> dict[str, Any]:
         """Get ticket statistics.
 
         Returns:

@@ -34,10 +34,7 @@ class TestStream(TestBase):
         :param rewind_stream: function called to rewind the stream to make it ready
             for reuse"""
         ns = 10
-        assert len(cdata) > ns - 1, "Data must be larger than %i, was %i" % (
-            ns,
-            len(cdata),
-        )
+        assert len(cdata) > ns - 1, f"Data must be larger than {ns}, was {len(cdata)}"
 
         # read in small steps
         ss = len(cdata) // ns

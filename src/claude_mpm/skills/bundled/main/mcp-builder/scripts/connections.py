@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack
-from typing import Any, Optional
+from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.sse import sse_client
@@ -76,8 +76,8 @@ class MCPConnectionStdio(MCPConnection):
     def __init__(
         self,
         command: str,
-        args: Optional[list[str]] = None,
-        env: Optional[dict[str, str]] = None,
+        args: list[str] | None = None,
+        env: dict[str, str] | None = None,
     ):
         super().__init__()
         self.command = command
@@ -93,7 +93,7 @@ class MCPConnectionStdio(MCPConnection):
 class MCPConnectionSSE(MCPConnection):
     """MCP connection using Server-Sent Events."""
 
-    def __init__(self, url: str, headers: Optional[dict[str, str]] = None):
+    def __init__(self, url: str, headers: dict[str, str] | None = None):
         super().__init__()
         self.url = url
         self.headers = headers or {}
@@ -105,7 +105,7 @@ class MCPConnectionSSE(MCPConnection):
 class MCPConnectionHTTP(MCPConnection):
     """MCP connection using Streamable HTTP."""
 
-    def __init__(self, url: str, headers: Optional[dict[str, str]] = None):
+    def __init__(self, url: str, headers: dict[str, str] | None = None):
         super().__init__()
         self.url = url
         self.headers = headers or {}
@@ -116,11 +116,11 @@ class MCPConnectionHTTP(MCPConnection):
 
 def create_connection(
     transport: str,
-    command: Optional[str] = None,
-    args: Optional[list[str]] = None,
-    env: Optional[dict[str, str]] = None,
-    url: Optional[str] = None,
-    headers: Optional[dict[str, str]] = None,
+    command: str | None = None,
+    args: list[str] | None = None,
+    env: dict[str, str] | None = None,
+    url: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> MCPConnection:
     """Factory function to create the appropriate MCP connection.
 

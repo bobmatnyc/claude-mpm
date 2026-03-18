@@ -24,7 +24,7 @@ import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import aiofiles
 
@@ -52,9 +52,9 @@ class AsyncAgentDeploymentService:
 
     def __init__(
         self,
-        templates_dir: Optional[Path] = None,
-        base_agent_path: Optional[Path] = None,
-        working_directory: Optional[Path] = None,
+        templates_dir: Path | None = None,
+        base_agent_path: Path | None = None,
+        working_directory: Path | None = None,
     ):
         """Initialize async agent deployment service.
 
@@ -178,8 +178,8 @@ class AsyncAgentDeploymentService:
         return framework_base_agent
 
     async def discover_agents_async(
-        self, directories: List[Path]
-    ) -> Dict[str, List[Path]]:
+        self, directories: list[Path]
+    ) -> dict[str, list[Path]]:
         """Discover agent files across multiple directories in parallel.
 
         WHY: Parallel directory scanning reduces I/O wait time significantly.
@@ -194,7 +194,7 @@ class AsyncAgentDeploymentService:
         """
         start_time = time.time()
 
-        async def scan_directory(directory: Path) -> Tuple[str, List[Path]]:
+        async def scan_directory(directory: Path) -> tuple[str, list[Path]]:
             """Scan a single directory for agent files asynchronously."""
             if not directory.exists():
                 return str(directory), []
@@ -230,8 +230,8 @@ class AsyncAgentDeploymentService:
         return discovered
 
     async def load_agent_files_async(
-        self, file_paths: List[Path]
-    ) -> List[Dict[str, Any]]:
+        self, file_paths: list[Path]
+    ) -> list[dict[str, Any]]:
         """Load and parse multiple agent files in parallel.
 
         WHY: JSON parsing is CPU-bound but file reading is I/O-bound.
@@ -248,7 +248,7 @@ class AsyncAgentDeploymentService:
         """
         start_time = time.time()
 
-        async def load_single_file(file_path: Path) -> Optional[Dict[str, Any]]:
+        async def load_single_file(file_path: Path) -> dict[str, Any] | None:
             """Load and parse a single agent file asynchronously."""
             try:
                 # Non-blocking file read
@@ -289,8 +289,8 @@ class AsyncAgentDeploymentService:
         return valid_agents
 
     async def validate_agents_async(
-        self, agents: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, agents: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Validate multiple agents in parallel.
 
         WHY: Agent validation involves checking schemas and constraints.
@@ -303,7 +303,7 @@ class AsyncAgentDeploymentService:
             List of valid agent configurations
         """
 
-        async def validate_single(agent: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        async def validate_single(agent: dict[str, Any]) -> dict[str, Any] | None:
             """Validate a single agent configuration."""
             try:
                 # Basic validation (extend as needed)
@@ -329,10 +329,10 @@ class AsyncAgentDeploymentService:
 
     async def deploy_agents_async(
         self,
-        target_dir: Optional[Path] = None,
+        target_dir: Path | None = None,
         force_rebuild: bool = False,
-        config: Optional[Config] = None,
-    ) -> Dict[str, Any]:
+        config: Config | None = None,
+    ) -> dict[str, Any]:
         """Deploy agents using async operations for maximum performance.
 
         WHY: This async deployment method provides:
@@ -439,10 +439,10 @@ class AsyncAgentDeploymentService:
 
     def _filter_excluded_agents(
         self,
-        agents: List[Dict[str, Any]],
-        excluded_agents: List[str],
+        agents: list[dict[str, Any]],
+        excluded_agents: list[str],
         case_sensitive: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Filter out excluded agents from the list."""
         if not excluded_agents:
             return agents
@@ -471,11 +471,11 @@ class AsyncAgentDeploymentService:
         )
 
     async def _deploy_agents_async(
-        self, agents: List[Dict[str, Any]], agents_dir: Path, results: Dict[str, Any]
+        self, agents: list[dict[str, Any]], agents_dir: Path, results: dict[str, Any]
     ) -> None:
         """Deploy agents using async file operations."""
 
-        async def deploy_single_agent(agent: Dict[str, Any]) -> Optional[str]:
+        async def deploy_single_agent(agent: dict[str, Any]) -> str | None:
             """Deploy a single agent asynchronously."""
             try:
                 agent_name = agent.get("_agent_name", "unknown")
@@ -509,7 +509,7 @@ class AsyncAgentDeploymentService:
             if name is not None:
                 results["deployed"].append(name)
 
-    def _build_agent_markdown_sync(self, agent_data: Dict[str, Any]) -> str:
+    def _build_agent_markdown_sync(self, agent_data: dict[str, Any]) -> str:
         """Build agent markdown content matching the synchronous deployment format."""
 
         # Extract agent info from the loaded JSON data
@@ -697,13 +697,13 @@ class AsyncAgentDeploymentService:
 
 # Convenience function to run async deployment from sync code
 def deploy_agents_async_wrapper(
-    templates_dir: Optional[Path] = None,
-    base_agent_path: Optional[Path] = None,
-    working_directory: Optional[Path] = None,
-    target_dir: Optional[Path] = None,
+    templates_dir: Path | None = None,
+    base_agent_path: Path | None = None,
+    working_directory: Path | None = None,
+    target_dir: Path | None = None,
     force_rebuild: bool = False,
-    config: Optional[Config] = None,
-) -> Dict[str, Any]:
+    config: Config | None = None,
+) -> dict[str, Any]:
     """Wrapper to run async deployment from synchronous code.
 
     WHY: This wrapper allows the async deployment to be called from

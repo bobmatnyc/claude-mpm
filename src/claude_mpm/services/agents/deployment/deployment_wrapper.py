@@ -2,7 +2,7 @@
 
 import contextlib
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.services.agents.deployment import AgentDeploymentService
 
@@ -18,7 +18,7 @@ class DeploymentServiceWrapper:
             if not attr.startswith("_") and not hasattr(self, attr):
                 setattr(self, attr, getattr(deployment_service, attr))
 
-    def deploy_system_agents(self, force: bool = False) -> Dict[str, Any]:
+    def deploy_system_agents(self, force: bool = False) -> dict[str, Any]:
         """Deploy system agents only.
 
         Args:
@@ -42,7 +42,7 @@ class DeploymentServiceWrapper:
             "target_dir": result.get("target_dir", ""),
         }
 
-    def deploy_project_agents(self, force: bool = False) -> Dict[str, Any]:
+    def deploy_project_agents(self, force: bool = False) -> dict[str, Any]:
         """Deploy project agents only.
 
         Args:
@@ -71,7 +71,7 @@ class DeploymentServiceWrapper:
             "target_dir": str(project_dir),
         }
 
-    def get_agent_details(self, agent_name: str) -> Dict[str, Any]:
+    def get_agent_details(self, agent_name: str) -> dict[str, Any]:
         """Get detailed information for a specific agent.
 
         Args:

@@ -15,9 +15,9 @@ DESIGN DECISION: Transform all events to a consistent schema:
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from ...core.logging_config import get_logger
 
@@ -77,14 +77,14 @@ class NormalizedEvent:
     type: str = ""  # WHAT category of event
     subtype: str = ""  # Specific event type
     timestamp: str = ""  # ISO format timestamp
-    data: Dict[str, Any] = field(default_factory=dict)  # Event payload
-    correlation_id: Optional[str] = (
+    data: dict[str, Any] = field(default_factory=dict)  # Event payload
+    correlation_id: str | None = (
         None  # For correlating related events (e.g., pre_tool/post_tool)
     )
-    session_id: Optional[str] = None  # Session identifier for stream grouping
-    cwd: Optional[str] = None  # Working directory for project identification
+    session_id: str | None = None  # Session identifier for stream grouping
+    cwd: str | None = None  # Working directory for project identification
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for emission."""
         result = {
             "event": self.event,
@@ -204,9 +204,7 @@ class EventNormalizer:
             "errors": 0,
         }
 
-    def normalize(
-        self, event_data: Any, source: Optional[str] = None
-    ) -> NormalizedEvent:
+    def normalize(self, event_data: Any, source: str | None = None) -> NormalizedEvent:
         """Normalize an event to the standard schema.
 
         WHY: This method handles various input formats and transforms them
@@ -284,7 +282,7 @@ class EventNormalizer:
                 source="system",
                 type="unknown",
                 subtype="error",
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 data={"original": str(event_data), "error": str(e)},
             )
 
@@ -300,7 +298,7 @@ class EventNormalizer:
         required_fields = {"source", "type", "subtype", "timestamp", "data"}
         return all(field in event_data for field in required_fields)
 
-    def _validate_normalized(self, event_data: Dict[str, Any]) -> NormalizedEvent:
+    def _validate_normalized(self, event_data: dict[str, Any]) -> NormalizedEvent:
         """Validate and convert an already normalized event.
 
         WHY: Ensure even pre-normalized events are valid and properly typed.
@@ -333,16 +331,14 @@ class EventNormalizer:
             source=source,
             type=event_data.get("type", "unknown"),
             subtype=event_data.get("subtype", "generic"),
-            timestamp=event_data.get(
-                "timestamp", datetime.now(timezone.utc).isoformat()
-            ),
+            timestamp=event_data.get("timestamp", datetime.now(UTC).isoformat()),
             data=event_data.get("data", {}),
             correlation_id=event_data.get("correlation_id"),
             session_id=session_id,
             cwd=cwd,
         )
 
-    def _extract_event_info(self, event_data: Any) -> Tuple[str, str, Dict[str, Any]]:
+    def _extract_event_info(self, event_data: Any) -> tuple[str, str, dict[str, Any]]:
         """Extract event type, subtype, and data from various formats.
 
         WHY: The system has multiple event formats that need to be handled:
@@ -380,7 +376,7 @@ class EventNormalizer:
         self.stats["unknown_format"] += 1
         return "unknown", "generic", {"original": str(event_data)}
 
-    def _extract_event_name(self, event_dict: Dict[str, Any]) -> str:
+    def _extract_event_name(self, event_dict: dict[str, Any]) -> str:
         """Extract event name from dictionary.
 
         WHY: Events use different field names for the event identifier.
@@ -401,7 +397,7 @@ class EventNormalizer:
 
         return "unknown"
 
-    def _map_event_name(self, event_name: str) -> Tuple[str, str]:
+    def _map_event_name(self, event_name: str) -> tuple[str, str]:
         """Map event name to (type, subtype) tuple.
 
         WHY: Consistent categorization helps clients filter and handle events.
@@ -571,7 +567,7 @@ class EventNormalizer:
         # Default to unknown with lowercase subtype
         return "unknown", event_name.lower() if event_name else ""
 
-    def _extract_data_payload(self, event_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_data_payload(self, event_dict: dict[str, Any]) -> dict[str, Any]:
         """Extract the data payload from an event dictionary.
 
         WHY: Different event formats store the payload in different places.
@@ -614,17 +610,15 @@ class EventNormalizer:
                     # Convert other formats
                     try:
                         if isinstance(timestamp, (int, float)):
-                            return datetime.fromtimestamp(
-                                timestamp, tz=timezone.utc
-                            ).isoformat()
+                            return datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
                     except Exception:  # nosec B110
                         pass
 
         # Generate new timestamp if not found
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def _determine_source(
-        self, event_data: Any, event_type: str, source_override: Optional[str] = None
+        self, event_data: Any, event_type: str, source_override: str | None = None
     ) -> str:
         """Determine the source of an event.
 
@@ -697,7 +691,7 @@ class EventNormalizer:
         # Default to system source
         return EventSource.SYSTEM.value
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get normalization statistics.
 
         WHY: Monitoring normalization helps identify problematic event sources.
@@ -719,7 +713,7 @@ class EventNormalizer:
 
 
 # Utility functions for consistent event type checking
-def is_hook_event(event_data: Dict[str, Any]) -> bool:
+def is_hook_event(event_data: dict[str, Any]) -> bool:
     """Check if an event is a hook event (handles both normalized and legacy formats).
 
     WHY: Hook events can come in multiple formats and we need consistent checking
@@ -744,7 +738,7 @@ def is_hook_event(event_data: Dict[str, Any]) -> bool:
     return bool(isinstance(event_type, str) and event_type.startswith("hook."))
 
 
-def get_hook_event_name(event_data: Dict[str, Any]) -> str:
+def get_hook_event_name(event_data: dict[str, Any]) -> str:
     """Extract the hook event name from either normalized or legacy format.
 
     WHY: Hook events store their specific name differently in normalized vs legacy
@@ -776,7 +770,7 @@ def get_hook_event_name(event_data: Dict[str, Any]) -> str:
 
 
 def is_event_type(
-    event_data: Dict[str, Any], type_name: str, subtype: Optional[str] = None
+    event_data: dict[str, Any], type_name: str, subtype: str | None = None
 ) -> bool:
     """Check if an event matches a specific type and optionally subtype.
 

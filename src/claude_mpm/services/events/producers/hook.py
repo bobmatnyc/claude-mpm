@@ -7,8 +7,8 @@ This replaces direct Socket.IO emission in the hook handler.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -59,7 +59,7 @@ class HookEventProducer(IEventProducer):
             self._metrics["events_failed"] += 1
             return False
 
-    async def publish_batch(self, events: List[Event]) -> int:
+    async def publish_batch(self, events: list[Event]) -> int:
         """Publish multiple hook events."""
         successful = 0
 
@@ -79,8 +79,8 @@ class HookEventProducer(IEventProducer):
 
     async def publish_response(
         self,
-        response_data: Dict[str, Any],
-        correlation_id: Optional[str] = None,
+        response_data: dict[str, Any],
+        correlation_id: str | None = None,
     ) -> bool:
         """
         Publish an assistant response event.
@@ -96,7 +96,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="hook.response",
             type="AssistantResponse",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data=response_data,
             correlation_id=correlation_id,
@@ -108,9 +108,9 @@ class HookEventProducer(IEventProducer):
     async def publish_tool_use(
         self,
         tool_name: str,
-        tool_params: Dict[str, Any],
-        tool_result: Optional[Any] = None,
-        correlation_id: Optional[str] = None,
+        tool_params: dict[str, Any],
+        tool_result: Any | None = None,
+        correlation_id: str | None = None,
     ) -> bool:
         """
         Publish a tool usage event.
@@ -128,7 +128,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="hook.tool",
             type="ToolUse",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "tool": tool_name,
@@ -145,8 +145,8 @@ class HookEventProducer(IEventProducer):
         self,
         error_type: str,
         error_message: str,
-        error_details: Optional[Dict[str, Any]] = None,
-        correlation_id: Optional[str] = None,
+        error_details: dict[str, Any] | None = None,
+        correlation_id: str | None = None,
     ) -> bool:
         """
         Publish an error event.
@@ -164,7 +164,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="hook.error",
             type="Error",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "error_type": error_type,
@@ -181,8 +181,8 @@ class HookEventProducer(IEventProducer):
         self,
         subagent_name: str,
         event_type: str,
-        event_data: Dict[str, Any],
-        correlation_id: Optional[str] = None,
+        event_data: dict[str, Any],
+        correlation_id: str | None = None,
     ) -> bool:
         """
         Publish a subagent-related event.
@@ -200,7 +200,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic=f"hook.subagent.{event_type.lower()}",
             type=f"Subagent{event_type}",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "subagent": subagent_name,
@@ -215,8 +215,8 @@ class HookEventProducer(IEventProducer):
     async def publish_raw_hook_event(
         self,
         hook_type: str,
-        hook_data: Dict[str, Any],
-        correlation_id: Optional[str] = None,
+        hook_data: dict[str, Any],
+        correlation_id: str | None = None,
     ) -> bool:
         """
         Publish a raw hook event.
@@ -255,7 +255,7 @@ class HookEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic=topic,
             type=hook_type,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data=hook_data,
             correlation_id=correlation_id,
@@ -264,6 +264,6 @@ class HookEventProducer(IEventProducer):
 
         return await self.publish(event)
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get producer metrics."""
         return self._metrics

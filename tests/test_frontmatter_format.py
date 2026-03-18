@@ -7,7 +7,7 @@ follows the correct format and contains all required fields.
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -321,7 +321,7 @@ Content
 
     # Helper methods
 
-    def _extract_frontmatter(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    def _extract_frontmatter(self, file_path: Path) -> dict[str, Any] | None:
         """Extract YAML frontmatter from a markdown file."""
         content = file_path.read_text()
 
@@ -374,7 +374,7 @@ Content
         except yaml.YAMLError:
             return None, content
 
-    def _validate_frontmatter(self, frontmatter: Optional[Dict[str, Any]]) -> List[str]:
+    def _validate_frontmatter(self, frontmatter: dict[str, Any] | None) -> list[str]:
         """Validate frontmatter and return list of errors."""
         errors = []
 
@@ -432,7 +432,7 @@ Content
         pattern = r"^\d+\.\d+\.\d+$"
         return bool(re.match(pattern, version))
 
-    def _create_agent_content(self, exclude_field: Optional[str] = None) -> str:
+    def _create_agent_content(self, exclude_field: str | None = None) -> str:
         """Create agent content with optional field exclusion."""
         fields = {
             "name": "test_agent",

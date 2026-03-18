@@ -15,7 +15,7 @@ authority, and model hints.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -60,8 +60,8 @@ class CapabilityGenerator:
 
     def generate_capabilities_section(
         self,
-        deployed_agents: List[Dict[str, Any]],
-        local_agents: Dict[str, Dict[str, Any]],
+        deployed_agents: list[dict[str, Any]],
+        local_agents: dict[str, dict[str, Any]],
     ) -> str:
         """Generate the ``## Available Agent Capabilities`` Markdown section.
 
@@ -200,7 +200,7 @@ class CapabilityGenerator:
 
         return section
 
-    def parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
+    def parse_agent_metadata(self, agent_file: Path) -> dict[str, Any] | None:
         """Parse agent metadata from a deployed ``.md`` agent file.
 
         Why: Each deployed agent carries its identity (``name``), description,
@@ -234,7 +234,7 @@ class CapabilityGenerator:
                 content = f.read()
 
             # Default values
-            agent_data: Dict[str, Any] = {
+            agent_data: dict[str, Any] = {
                 "id": agent_file.stem,
                 "display_name": agent_file.stem.replace("_", " ")
                 .replace("-", " ")
@@ -283,8 +283,8 @@ class CapabilityGenerator:
             return None
 
     def load_routing_from_template(
-        self, agent_name: str, framework_path: Optional[Path] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, agent_name: str, framework_path: Path | None = None
+    ) -> dict[str, Any] | None:
         """Load routing metadata from an agent's JSON template file.
 
         Why: Routing hints (keywords, file paths, priority) are stored in JSON
@@ -366,8 +366,8 @@ class CapabilityGenerator:
             return None
 
     def load_memory_routing_from_template(
-        self, agent_name: str, framework_path: Optional[Path] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, agent_name: str, framework_path: Path | None = None
+    ) -> dict[str, Any] | None:
         """Load memory-routing metadata from an agent's JSON template file.
 
         Why: Memory routing describes how an agent's outputs should be stored

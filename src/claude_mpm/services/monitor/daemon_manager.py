@@ -29,7 +29,6 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 from ...core.enums import OperationResult
 from ...core.logging_config import get_logger
@@ -58,8 +57,8 @@ class DaemonManager:
         self,
         port: int = 8765,
         host: str = "localhost",
-        pid_file: Optional[str] = None,
-        log_file: Optional[str] = None,
+        pid_file: str | None = None,
+        log_file: str | None = None,
     ):
         """Initialize the daemon manager.
 
@@ -395,7 +394,7 @@ class DaemonManager:
             self.logger.error(f"Error killing claude-mpm processes: {e}")
             return False
 
-    def is_our_service(self) -> Tuple[bool, Optional[int]]:
+    def is_our_service(self) -> tuple[bool, int | None]:
         """Check if the service on the port is our claude-mpm monitor.
 
         Returns:
@@ -454,7 +453,7 @@ class DaemonManager:
             self.logger.error(f"Error checking service ownership: {e}")
             return False, None
 
-    def _find_service_pid(self) -> Optional[int]:
+    def _find_service_pid(self) -> int | None:
         """Find PID of service on our port using lsof.
 
         Returns:
@@ -912,7 +911,7 @@ class DaemonManager:
             self.cleanup_pid_file()
             return False
 
-    def get_pid(self) -> Optional[int]:
+    def get_pid(self) -> int | None:
         """Get daemon PID from PID file.
 
         Returns:
@@ -1080,7 +1079,7 @@ class DaemonManager:
             except Exception as e:
                 # Try to write error to a debug file since logging might not work
                 try:
-                    with Path("/tmp/daemon_debug_error.txt").open("a") as debug:
+                    with Path("/tmp/daemon_debug_error.txt").open("a") as debug:  # nosec
                         debug.write(f"Error reporting error: {e}\n")
                         debug.write(f"Status file: {self.startup_status_file}\n")
                 except Exception:

@@ -8,7 +8,7 @@ session management system to support git-based context approaches.
 
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 def analyze_recent_activity(
     repo_path: str = ".", days: int = 7, max_commits: int = 50, min_commits: int = 25
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Analyze recent git activity for context reconstruction with adaptive time window.
 
@@ -268,7 +268,7 @@ def analyze_recent_activity(
     return analysis
 
 
-def get_current_branch(repo_path: str = ".") -> Optional[str]:
+def get_current_branch(repo_path: str = ".") -> str | None:
     """
     Get the current git branch name.
 
@@ -291,7 +291,7 @@ def get_current_branch(repo_path: str = ".") -> Optional[str]:
         return None
 
 
-def get_commits_since(since_sha: str, repo_path: str = ".") -> List[Dict[str, str]]:
+def get_commits_since(since_sha: str, repo_path: str = ".") -> list[dict[str, str]]:
     """
     Get commits since a specific SHA.
 
@@ -334,7 +334,7 @@ def get_commits_since(since_sha: str, repo_path: str = ".") -> List[Dict[str, st
         return []
 
 
-def get_current_status(repo_path: str = ".") -> Dict[str, Any]:
+def get_current_status(repo_path: str = ".") -> dict[str, Any]:
     """
     Get current git status.
 

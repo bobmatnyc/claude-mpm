@@ -7,8 +7,8 @@ Inspired by awesome-claude-code's template generation approach.
 """
 
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import yaml
 
@@ -16,7 +16,7 @@ import yaml
 class AgentProfileGenerator:
     """Generates agent profiles from templates."""
 
-    def __init__(self, template_path: Optional[Path] = None):
+    def __init__(self, template_path: Path | None = None):
         """Initialize the generator with a template path."""
         self.template_path = (
             template_path
@@ -24,7 +24,7 @@ class AgentProfileGenerator:
         )
         self.template = self._load_template()
 
-    def _load_template(self) -> Dict[str, Any]:
+    def _load_template(self) -> dict[str, Any]:
         """Load the agent profile template."""
         if not self.template_path.exists():
             raise FileNotFoundError(f"Template not found: {self.template_path}")
@@ -32,13 +32,11 @@ class AgentProfileGenerator:
         with self.template_path.open() as f:
             return yaml.safe_load(f)
 
-    def generate_profile(self, config: Dict[str, Any]) -> str:
+    def generate_profile(self, config: dict[str, Any]) -> str:
         """Generate an agent profile from configuration."""
         # Set default values
         config.setdefault("VERSION", "1.0.0")
-        config.setdefault(
-            "CREATED_DATE", datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        )
+        config.setdefault("CREATED_DATE", datetime.now(UTC).strftime("%Y-%m-%d"))
         config.setdefault("AUTHOR", "claude-mpm")
 
         # Convert template to string
@@ -50,7 +48,7 @@ class AgentProfileGenerator:
         # Clean up any remaining placeholders
         return re.sub(r"\{\{[^}]+\}\}", "", result)
 
-    def _replace_placeholders(self, template: str, values: Dict[str, Any]) -> str:
+    def _replace_placeholders(self, template: str, values: dict[str, Any]) -> str:
         """Replace template placeholders with actual values."""
         for key, value in values.items():
             placeholder = f"{{{{{key}}}}}"
@@ -63,7 +61,7 @@ class AgentProfileGenerator:
 
         return template
 
-    def generate_agent_documentation(self, agent_config: Dict[str, Any]) -> str:
+    def generate_agent_documentation(self, agent_config: dict[str, Any]) -> str:
         """Generate markdown documentation for an agent."""
         doc_lines = []
 
@@ -123,7 +121,7 @@ class AgentProfileGenerator:
 
     def create_agent_from_template(
         self, agent_name: str, role: str, category: str = "analysis"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a new agent configuration from template."""
         return {
             "AGENT_NAME": agent_name,

@@ -5,7 +5,7 @@ Tests for SQLite messaging database.
 import json
 import sqlite3
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -34,7 +34,7 @@ def sample_message():
         "subject": "Test Task",
         "body": "This is a test task message.",
         "status": "unread",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "reply_to": None,
         "metadata": {"key": "value"},
         "attachments": ["file1.txt", "file2.py"],
@@ -89,7 +89,7 @@ class TestMessagingDatabase:
                 "body": f"Body {i}",
                 "status": "unread" if i < 3 else "read",
                 "priority": "high" if i == 0 else "normal",
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
             }
             for i in range(5)
         ]
@@ -155,7 +155,7 @@ class TestMessagingDatabase:
                 "to_project": "/p2",
                 "subject": "Test",
                 "body": "Test",
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
                 **msg,
             }
             tmp_db.insert_message(full_msg)
@@ -221,7 +221,7 @@ class TestMessagingDatabase:
     def test_cleanup_stale_sessions(self, tmp_db):
         """Test cleaning up stale sessions."""
         # Register sessions with different last_active times
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Active session
         tmp_db.register_session("active-session", "/project1", 111)
@@ -265,7 +265,7 @@ class TestMessagingDatabase:
                 "to_project": "/p2",
                 "subject": f"Message {i}",
                 "body": "Test",
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
                 **msg_data,
             }
             tmp_db.insert_message(msg)
@@ -291,7 +291,7 @@ class TestMessagingDatabase:
                 "body": "Test",
                 "priority": priority,
                 "status": "unread",
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
             }
             tmp_db.insert_message(msg)
 
@@ -346,7 +346,7 @@ class TestMessagingDatabase:
             "to_project": "/p2",
             "subject": "JSON Test",
             "body": "Testing JSON fields",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "metadata": {
                 "nested": {"key": "value"},
                 "list": [1, 2, 3],
@@ -377,9 +377,7 @@ class TestMessagingDatabase:
                 "body": f"Body {i}",
                 "status": "unread" if i % 3 == 0 else "read",
                 "priority": ["low", "normal", "high", "urgent"][i % 4],
-                "created_at": (
-                    datetime.now(timezone.utc) - timedelta(hours=i)
-                ).isoformat(),
+                "created_at": (datetime.now(UTC) - timedelta(hours=i)).isoformat(),
             }
             tmp_db.insert_message(msg)
 

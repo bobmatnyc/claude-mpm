@@ -13,7 +13,6 @@ DESIGN DECISIONS:
 
 import signal
 import sys
-from typing import Optional
 
 from ...constants import DashboardCommands
 from ...services.cli.unified_dashboard_manager import UnifiedDashboardManager
@@ -31,7 +30,7 @@ class DashboardCommand(BaseCommand):
         self.port_manager = PortManager()
         self.server = None
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         if hasattr(args, "dashboard_command") and args.dashboard_command:
             valid_commands = [cmd.value for cmd in DashboardCommands]

@@ -1,12 +1,12 @@
 """Ticket data models."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class TicketStatus(str, Enum):
+class TicketStatus(StrEnum):
     """Ticket status enumeration."""
 
     OPEN = "open"
@@ -16,7 +16,7 @@ class TicketStatus(str, Enum):
     BLOCKED = "blocked"
 
 
-class TicketPriority(str, Enum):
+class TicketPriority(StrEnum):
     """Ticket priority enumeration."""
 
     LOW = "low"

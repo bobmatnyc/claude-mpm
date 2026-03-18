@@ -6,7 +6,7 @@ Implements testing patterns from awesome-claude-code.
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import yaml
@@ -36,7 +36,7 @@ class TestAgentValidator:
         return AgentValidator()
 
     @pytest.fixture
-    def valid_agent_config(self) -> Dict[str, Any]:
+    def valid_agent_config(self) -> dict[str, Any]:
         """Create a valid agent configuration."""
         return {
             "name": "test_agent",
@@ -47,7 +47,7 @@ class TestAgentValidator:
         }
 
     @pytest.fixture
-    def invalid_agent_config(self) -> Dict[str, Any]:
+    def invalid_agent_config(self) -> dict[str, Any]:
         """Create an invalid agent configuration."""
         return {
             "name": "invalid_agent",

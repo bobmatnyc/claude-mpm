@@ -9,12 +9,12 @@ operations with automatic configuration generation.
 
 import os
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import ClassVar
 
 
-class InstallMethod(str, Enum):
+class InstallMethod(StrEnum):
     """Installation method for MCP services."""
 
     UVX = "uvx"

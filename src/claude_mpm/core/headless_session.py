@@ -20,7 +20,7 @@ matching the behavior of normal interactive mode. This ensures:
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.core.logger import get_logger
@@ -107,7 +107,7 @@ class HeadlessSession:
         except ValueError:
             return False
 
-    def _is_resume_mode(self, resume_session: Optional[str] = None) -> bool:
+    def _is_resume_mode(self, resume_session: str | None = None) -> bool:
         """Check if we're in resume mode (either via argument or claude_args).
 
         Args:
@@ -214,7 +214,7 @@ class HeadlessSession:
 
         return cmd
 
-    def build_claude_command(self, resume_session: Optional[str] = None) -> list:
+    def build_claude_command(self, resume_session: str | None = None) -> list:
         """Build the Claude command for headless execution.
 
         Args:
@@ -282,8 +282,8 @@ class HeadlessSession:
 
     def run(
         self,
-        prompt: Optional[str] = None,
-        resume_session: Optional[str] = None,
+        prompt: str | None = None,
+        resume_session: str | None = None,
     ) -> int:
         """Run Claude Code in headless mode with stream-json output.
 

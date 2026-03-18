@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 # Core imports that don't cause circular dependencies
 from claude_mpm.core.container import get_container
@@ -34,7 +33,7 @@ class ClaudeRunner:
         self,
         enable_tickets: bool = True,
         log_level: str = "OFF",
-        claude_args: Optional[list] = None,
+        claude_args: list | None = None,
         launch_method: str = "exec",  # "exec" or "subprocess"
         enable_websocket: bool = False,
         websocket_port: int = 8765,
@@ -689,7 +688,7 @@ class ClaudeRunner:
                 )
             return False
 
-    def run_interactive(self, initial_context: Optional[str] = None):
+    def run_interactive(self, initial_context: str | None = None):
         """Run Claude in interactive mode using the session management service.
 
         Delegates to the SessionManagementService for session orchestration.
@@ -703,7 +702,7 @@ class ClaudeRunner:
             self.logger.error("Session management service not available")
             print("Error: Session management service not available")
 
-    def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
+    def run_oneshot(self, prompt: str, context: str | None = None) -> bool:
         """Run Claude with a single prompt using the session management service.
 
         Delegates to the SessionManagementService for session orchestration.
@@ -725,7 +724,7 @@ class ClaudeRunner:
         """Extract tickets from Claude's response (disabled - use claude-mpm tickets CLI)."""
         # Ticket extraction disabled - users should use claude-mpm tickets CLI commands
 
-    def _load_system_instructions(self) -> Optional[str]:
+    def _load_system_instructions(self) -> str | None:
         """Load and process system instructions.
 
         Delegates to the SystemInstructionsService for loading and processing.
@@ -818,7 +817,7 @@ Use these agents to delegate specialized work via the Task tool.
         # Fallback if service not available
         return False
 
-    def _extract_agent_from_response(self, text: str) -> Optional[str]:
+    def _extract_agent_from_response(self, text: str) -> str | None:
         """Try to extract agent name from delegation response using the utility service."""
         if self.utility_service:
             return self.utility_service.extract_agent_from_response(text)
@@ -967,7 +966,7 @@ SimpleClaudeRunner = ClaudeRunner
 
 
 # Convenience functions for backward compatibility
-def run_claude_interactive(context: Optional[str] = None):
+def run_claude_interactive(context: str | None = None):
     """Run Claude interactively with optional context."""
     runner = ClaudeRunner()
     if context is None:
@@ -975,7 +974,7 @@ def run_claude_interactive(context: Optional[str] = None):
     runner.run_interactive(context)
 
 
-def run_claude_oneshot(prompt: str, context: Optional[str] = None) -> bool:
+def run_claude_oneshot(prompt: str, context: str | None = None) -> bool:
     """Run Claude with a single prompt."""
     runner = ClaudeRunner()
     if context is None:

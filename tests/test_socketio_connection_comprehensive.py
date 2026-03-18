@@ -9,7 +9,7 @@ import asyncio
 import contextlib
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 import aiohttp
@@ -65,7 +65,7 @@ class SocketIOConnectionTester:
         # Handle custom events
         @self.sio.on("*")
         async def catch_all(event, *args):
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
             self.events_received.append(
                 {"timestamp": timestamp, "event": event, "data": args}
             )
@@ -101,7 +101,7 @@ class SocketIOConnectionTester:
         print("\n🔍 Testing event emission")
         test_data = {
             "test": True,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "message": "Test event from connection tester",
         }
 
@@ -127,7 +127,7 @@ class SocketIOConnectionTester:
             response = await self.sio.call("echo", {"message": "Hello, server!"})
             print(f"✅ Received response: {response}")
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             print("❌ Request timed out - server may not support 'echo' event")
             return False
         except Exception as e:

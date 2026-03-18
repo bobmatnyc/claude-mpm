@@ -17,7 +17,7 @@ connection overhead and implement circuit breaker patterns.
 """
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Import constants for configuration
 try:
@@ -45,10 +45,10 @@ class SocketIOConnectionPool:
 
     def __init__(self, max_connections: int = 3):
         self.max_connections = max_connections
-        self.connections: List[Dict[str, Any]] = []
+        self.connections: list[dict[str, Any]] = []
         self.last_cleanup = time.time()
 
-    def get_connection(self, port: int) -> Optional[Any]:
+    def get_connection(self, port: int) -> Any | None:
         """Get or create a connection to the specified port."""
         if time.time() - self.last_cleanup > 60:
             self._cleanup_dead_connections()
@@ -79,7 +79,7 @@ class SocketIOConnectionPool:
 
         return None
 
-    def _create_connection(self, port: int) -> Optional[Any]:
+    def _create_connection(self, port: int) -> Any | None:
         """Create a new Socket.IO connection with persistent keep-alive.
 
         WHY persistent connections:
@@ -211,7 +211,7 @@ class SocketIOConnectionPool:
             self._close_connection(conn.get("client"))
         self.connections.clear()
 
-    def emit(self, event: str, data: Dict[str, Any]) -> bool:
+    def emit(self, event: str, data: dict[str, Any]) -> bool:
         """Emit an event through the connection pool.
 
         This method provides backward compatibility for the deprecated

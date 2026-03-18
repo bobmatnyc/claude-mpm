@@ -14,7 +14,6 @@ Usage:
 """
 
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_config import UnifiedConfig
@@ -24,7 +23,7 @@ from .deployment_reconciler import DeploymentReconciler, DeploymentResult
 logger = get_logger(__name__)
 
 
-def _extract_agent_id_from_frontmatter(content: str) -> Optional[str]:
+def _extract_agent_id_from_frontmatter(content: str) -> str | None:
     """Extract agent_id from YAML frontmatter.
 
     Args:
@@ -218,8 +217,8 @@ def _detect_and_remove_orphaned_agents(
 
 
 def perform_startup_reconciliation(
-    project_path: Optional[Path] = None,
-    config: Optional[UnifiedConfig] = None,
+    project_path: Path | None = None,
+    config: UnifiedConfig | None = None,
     silent: bool = False,
 ) -> tuple[DeploymentResult, DeploymentResult]:
     """
@@ -295,7 +294,7 @@ def perform_startup_reconciliation(
 
 
 def check_reconciliation_needed(
-    project_path: Optional[Path] = None, config: Optional[UnifiedConfig] = None
+    project_path: Path | None = None, config: UnifiedConfig | None = None
 ) -> bool:
     """
     Check if reconciliation is needed (without performing it).

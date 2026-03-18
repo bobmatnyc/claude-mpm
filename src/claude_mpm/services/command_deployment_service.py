@@ -12,7 +12,7 @@ New command deployment is intentionally disabled - see deploy_commands_on_startu
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -73,7 +73,7 @@ class CommandDeploymentService(BaseService):
     async def _cleanup(self) -> None:
         """Cleanup service resources."""
 
-    def _parse_frontmatter(self, content: str) -> Tuple[Optional[Dict[str, Any]], str]:
+    def _parse_frontmatter(self, content: str) -> tuple[dict[str, Any] | None, str]:
         """Parse YAML frontmatter from command file.
 
         Ticket: 1M-400 Phase 1 - Enhanced Flat Naming with Namespace Metadata
@@ -104,8 +104,8 @@ class CommandDeploymentService(BaseService):
             return None, content
 
     def _validate_frontmatter(
-        self, frontmatter: Dict[str, Any], filepath: Path
-    ) -> List[str]:
+        self, frontmatter: dict[str, Any], filepath: Path
+    ) -> list[str]:
         """Validate frontmatter schema.
 
         Ticket: 1M-400 Phase 1 - Enhanced Flat Naming with Namespace Metadata
@@ -173,7 +173,7 @@ class CommandDeploymentService(BaseService):
         )
         return f"---\n{frontmatter_yaml}---\n{body}"
 
-    def deploy_commands(self, force: bool = False) -> Dict[str, Any]:
+    def deploy_commands(self, force: bool = False) -> dict[str, Any]:
         """Deploy MPM slash commands to user's Claude configuration.
 
         Args:
@@ -272,7 +272,7 @@ class CommandDeploymentService(BaseService):
             result["errors"].append(error_msg)
             return result
 
-    def list_available_commands(self) -> List[str]:
+    def list_available_commands(self) -> list[str]:
         """List available commands in the source directory.
 
         Returns:
@@ -283,7 +283,7 @@ class CommandDeploymentService(BaseService):
 
         return [f.name for f in self.source_dir.glob("*.md")]
 
-    def list_deployed_commands(self) -> List[str]:
+    def list_deployed_commands(self) -> list[str]:
         """List deployed commands in the target directory.
 
         Returns:

@@ -17,7 +17,6 @@ import os
 import subprocess  # nosec B404
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -45,7 +44,7 @@ class PathResolver(IPathResolver):
     a focused, reusable service for path management across the application.
     """
 
-    def __init__(self, cache_manager: Optional[ICacheManager] = None):
+    def __init__(self, cache_manager: ICacheManager | None = None):
         """
         Initialize the PathResolver service.
 
@@ -54,11 +53,11 @@ class PathResolver(IPathResolver):
         """
         self.logger = get_logger("path_resolver")
         self.cache_manager = cache_manager
-        self._framework_path: Optional[Path] = None
-        self._deployment_context: Optional[DeploymentContext] = None
-        self._path_cache: Dict[str, str] = {}  # Internal cache for paths
+        self._framework_path: Path | None = None
+        self._deployment_context: DeploymentContext | None = None
+        self._path_cache: dict[str, str] = {}  # Internal cache for paths
 
-    def resolve_path(self, path: str, base_dir: Optional[Path] = None) -> Path:
+    def resolve_path(self, path: str, base_dir: Path | None = None) -> Path:
         """
         Resolve a path relative to a base directory.
 
@@ -132,7 +131,7 @@ class PathResolver(IPathResolver):
             raise ValueError(f"Path exists but is not a directory: {path}")
         return path
 
-    def find_project_root(self, start_path: Optional[Path] = None) -> Optional[Path]:
+    def find_project_root(self, start_path: Path | None = None) -> Path | None:
         """
         Find the project root directory.
 
@@ -182,7 +181,7 @@ class PathResolver(IPathResolver):
         self.logger.debug(f"No project root found from {start_path}")
         return None
 
-    def detect_framework_path(self) -> Optional[Path]:
+    def detect_framework_path(self) -> Path | None:
         """
         Auto-detect claude-mpm framework using unified path management.
 
@@ -231,7 +230,7 @@ class PathResolver(IPathResolver):
         self.logger.warning("Framework not found, will use minimal instructions")
         return None
 
-    def get_npm_global_path(self) -> Optional[Path]:
+    def get_npm_global_path(self) -> Path | None:
         """
         Get npm global installation path for @bobmatnyc/claude-multiagent-pm.
 
@@ -263,8 +262,8 @@ class PathResolver(IPathResolver):
         return self._deployment_context
 
     def discover_agent_paths(
-        self, agents_dir: Optional[Path] = None, framework_path: Optional[Path] = None
-    ) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
+        self, agents_dir: Path | None = None, framework_path: Path | None = None
+    ) -> tuple[Path | None, Path | None, Path | None]:
         """
         Discover agent directories based on priority.
 
@@ -302,7 +301,7 @@ class PathResolver(IPathResolver):
 
         return discovered_agents_dir, templates_dir, main_dir
 
-    def get_instruction_file_paths(self) -> Dict[str, Optional[Path]]:
+    def get_instruction_file_paths(self) -> dict[str, Path | None]:
         """
         Get paths for instruction files with precedence.
 
@@ -337,7 +336,7 @@ class PathResolver(IPathResolver):
 
     # Private helper methods
 
-    def _detect_via_unified_paths(self) -> Optional[Path]:
+    def _detect_via_unified_paths(self) -> Path | None:
         """Detect framework path using unified path management."""
         try:
             # Import here to avoid circular dependencies
@@ -397,7 +396,7 @@ class PathResolver(IPathResolver):
 
         return None
 
-    def _detect_via_package(self) -> Optional[Path]:
+    def _detect_via_package(self) -> Path | None:
         """Detect framework via package installation."""
         try:
             import claude_mpm
@@ -419,7 +418,7 @@ class PathResolver(IPathResolver):
 
         return None
 
-    def _detect_development_mode(self) -> Optional[Path]:
+    def _detect_development_mode(self) -> Path | None:
         """Detect if running in development mode."""
         current_file = Path(__file__)
 
@@ -435,7 +434,7 @@ class PathResolver(IPathResolver):
 
         return None
 
-    def _check_common_locations(self) -> Optional[Path]:
+    def _check_common_locations(self) -> Path | None:
         """Check common locations for claude-mpm."""
         candidates = [
             # Current directory (if we're already in claude-mpm)
@@ -458,7 +457,7 @@ class PathResolver(IPathResolver):
 
         return None
 
-    def _detect_npm_global(self) -> Optional[Path]:
+    def _detect_npm_global(self) -> Path | None:
         """Detect npm global installation path."""
         try:
             result = subprocess.run(  # nosec B603 B607

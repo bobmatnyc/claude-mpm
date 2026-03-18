@@ -11,9 +11,8 @@ import os
 import subprocess  # nosec B404
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 # Try to import _log from hook_handler, fall back to no-op
 try:
@@ -72,7 +71,7 @@ class StateManagerService:
         self.last_cleanup = time.time()
 
     def track_delegation(
-        self, session_id: str, agent_type: str, request_data: Optional[dict] = None
+        self, session_id: str, agent_type: str, request_data: dict | None = None
     ):
         """Track a new agent delegation with optional request data for response correlation."""
         if DEBUG:
@@ -85,7 +84,7 @@ class StateManagerService:
 
         if session_id and agent_type and agent_type != "unknown":
             self.active_delegations[session_id] = agent_type
-            key = f"{session_id}:{datetime.now(timezone.utc).timestamp()}"
+            key = f"{session_id}:{datetime.now(UTC).timestamp()}"
             self.delegation_history.append((key, agent_type))
 
             # Store request data for response tracking correlation
@@ -93,7 +92,7 @@ class StateManagerService:
                 self.delegation_requests[session_id] = {
                     "agent_type": agent_type,
                     "request": request_data,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
                 if DEBUG:
                     _log(f"  - ✅ Stored in delegation_requests[{session_id[:16]}...]")
@@ -102,7 +101,7 @@ class StateManagerService:
                     )
 
             # Clean up old delegations (older than 5 minutes)
-            cutoff_time = datetime.now(timezone.utc).timestamp() - 300
+            cutoff_time = datetime.now(UTC).timestamp() - 300
             keys_to_remove = []
             for sid in list(self.active_delegations.keys()):
                 # Check if this is an old entry by looking in history
@@ -138,7 +137,7 @@ class StateManagerService:
 
     def cleanup_old_entries(self):
         """Clean up old entries to prevent memory growth."""
-        _cutoff = datetime.now(timezone.utc).timestamp() - self.MAX_CACHE_AGE_SECONDS
+        _cutoff = datetime.now(UTC).timestamp() - self.MAX_CACHE_AGE_SECONDS
 
         # Clean up delegation tracking dictionaries
         for storage in [self.active_delegations, self.delegation_requests]:
@@ -160,14 +159,13 @@ class StateManagerService:
         expired_keys = [
             key
             for key, cache_time in self._git_branch_cache_time.items()
-            if datetime.now(timezone.utc).timestamp() - cache_time
-            > self.MAX_CACHE_AGE_SECONDS
+            if datetime.now(UTC).timestamp() - cache_time > self.MAX_CACHE_AGE_SECONDS
         ]
         for key in expired_keys:
             self._git_branch_cache.pop(key, None)
             self._git_branch_cache_time.pop(key, None)
 
-    def get_git_branch(self, working_dir: Optional[str] = None) -> str:
+    def get_git_branch(self, working_dir: str | None = None) -> str:
         """Get git branch for the given directory with caching.
 
         WHY caching approach:
@@ -181,7 +179,7 @@ class StateManagerService:
             working_dir = str(Path.cwd())
 
         # Check cache first (cache for 30 seconds)
-        current_time = datetime.now(timezone.utc).timestamp()
+        current_time = datetime.now(UTC).timestamp()
         cache_key = working_dir
 
         if (
@@ -231,7 +229,7 @@ class StateManagerService:
             self._git_branch_cache_time[cache_key] = current_time
             return "Unknown"
 
-    def find_matching_request(self, session_id: str) -> Optional[dict]:
+    def find_matching_request(self, session_id: str) -> dict | None:
         """Find matching request data for a session, with fuzzy matching fallback."""
         # First try exact match
         request_info = self.delegation_requests.get(session_id)  # nosec B113

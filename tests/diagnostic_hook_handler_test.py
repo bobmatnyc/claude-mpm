@@ -17,7 +17,7 @@ WHY this diagnostic:
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 try:
     import socketio
@@ -43,7 +43,7 @@ class DiagnosticHookHandler:
 
         print("🔍 DIAGNOSTIC: Hook Handler Test")
         print(f"🌐 Server URL: {server_url}")
-        print(f"📅 Start time: {datetime.now(timezone.utc).isoformat()}")
+        print(f"📅 Start time: {datetime.now(UTC).isoformat()}")
         print("=" * 80)
 
         self._init_socketio_client()
@@ -67,7 +67,7 @@ class DiagnosticHookHandler:
             @self.socketio_client.event
             def connect():
                 self.connected = True
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 print(f"✅ CONNECTED to Socket.IO server at {timestamp}")
                 print(f"   Server URL: {self.server_url}")
                 print(f"   Connection attempts: {self.connection_attempts}")
@@ -75,13 +75,13 @@ class DiagnosticHookHandler:
             @self.socketio_client.event
             def disconnect():
                 self.connected = False
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 print(f"❌ DISCONNECTED from Socket.IO server at {timestamp}")
 
             @self.socketio_client.event
             def connect_error(data):
                 self.connected = False
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 error_msg = f"Connection error: {data}"
                 self.errors.append(error_msg)
                 print(f"🚨 CONNECTION ERROR at {timestamp}: {data}")
@@ -89,22 +89,22 @@ class DiagnosticHookHandler:
             # Setup namespace-specific handlers
             @self.socketio_client.event(namespace="/hook")
             def connect():
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 print(f"✅ CONNECTED to /hook namespace at {timestamp}")
 
             @self.socketio_client.event(namespace="/hook")
             def disconnect():
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 print(f"❌ DISCONNECTED from /hook namespace at {timestamp}")
 
             @self.socketio_client.event(namespace="/system")
             def connect():
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 print(f"✅ CONNECTED to /system namespace at {timestamp}")
 
             @self.socketio_client.event(namespace="/system")
             def disconnect():
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
                 print(f"❌ DISCONNECTED from /system namespace at {timestamp}")
 
             print("✅ Socket.IO client initialized successfully")
@@ -172,7 +172,7 @@ class DiagnosticHookHandler:
                 "data": {
                     "prompt": "Test user prompt for diagnostic",
                     "session_id": "diagnostic-session-123",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             },
             {
@@ -181,7 +181,7 @@ class DiagnosticHookHandler:
                 "data": {
                     "tool_name": "DiagnosticTool",
                     "session_id": "diagnostic-session-123",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             },
             {
@@ -191,7 +191,7 @@ class DiagnosticHookHandler:
                     "tool_name": "DiagnosticTool",
                     "exit_code": 0,
                     "session_id": "diagnostic-session-123",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             },
             {
@@ -199,7 +199,7 @@ class DiagnosticHookHandler:
                 "event": "diagnostic_ping",
                 "data": {
                     "message": "Hook handler diagnostic ping",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             },
         ]
@@ -239,7 +239,7 @@ class DiagnosticHookHandler:
         while time.time() - start_time < duration_seconds:
             try:
                 event_counter += 1
-                timestamp = datetime.now(timezone.utc).isoformat()
+                timestamp = datetime.now(UTC).isoformat()
 
                 # Alternate between different event types
                 if event_counter % 3 == 0:
@@ -306,7 +306,7 @@ class DiagnosticHookHandler:
             for i, error in enumerate(self.errors, 1):
                 print(f"   {i}. {error}")
 
-        print(f"\n⏰ Test completed at: {datetime.now(timezone.utc).isoformat()}")
+        print(f"\n⏰ Test completed at: {datetime.now(UTC).isoformat()}")
 
 
 def main():

@@ -1,7 +1,7 @@
 """Deployment facade for handling async/sync deployment modes."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
@@ -43,13 +43,13 @@ class DeploymentFacade:
         templates_dir: Path,
         base_agent_path: Path,
         working_directory: Path,
-        target_dir: Optional[Path] = None,
+        target_dir: Path | None = None,
         force_rebuild: bool = False,
         deployment_mode: str = "update",
-        config: Optional[Config] = None,
+        config: Config | None = None,
         use_async: bool = False,
-        preferred_executor: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        preferred_executor: str | None = None,
+    ) -> dict[str, Any]:
         """Deploy agents using the appropriate executor.
 
         Args:
@@ -135,7 +135,7 @@ class DeploymentFacade:
             }
 
     def _select_executor(
-        self, use_async: bool, preferred_executor: Optional[str]
+        self, use_async: bool, preferred_executor: str | None
     ) -> DeploymentExecutor:
         """Select the appropriate deployment executor.
 
@@ -169,7 +169,7 @@ class DeploymentFacade:
         # This should never happen, but just in case
         raise RuntimeError("No deployment executors are available")
 
-    def get_available_executors(self) -> List[Dict[str, Any]]:
+    def get_available_executors(self) -> list[dict[str, Any]]:
         """Get information about available executors.
 
         Returns:
@@ -206,12 +206,12 @@ class DeploymentFacade:
         templates_dir: Path,
         base_agent_path: Path,
         working_directory: Path,
-        target_dir: Optional[Path],
+        target_dir: Path | None,
         force_rebuild: bool,
         deployment_mode: str,
-        config: Optional[Config],
+        config: Config | None,
         original_error: Exception,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fallback to sync deployment when async fails.
 
         Args:

@@ -227,9 +227,12 @@ class TestFrameworkLoaderIntegration:
             mock_run.return_value = mock_result
 
             # Patch file operations
-            with patch("pathlib.Path.exists", return_value=True), patch(
-                "pathlib.Path.read_text", return_value="Test content"
-            ), patch("pathlib.Path.write_text"), patch("pathlib.Path.mkdir"):
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch("pathlib.Path.read_text", return_value="Test content"),
+                patch("pathlib.Path.write_text"),
+                patch("pathlib.Path.mkdir"),
+            ):
                 loader = FrameworkLoader()
                 # Force initialization
                 loader._initialize_output_style()
@@ -249,15 +252,19 @@ class TestFrameworkLoaderIntegration:
             test_instructions = "# Test Instructions\n\nTest content"
             test_base_pm = "# Base PM\n\nBase PM content"
 
-            with patch("pathlib.Path.exists", return_value=True), patch(
-                "pathlib.Path.read_text",
-                side_effect=[
-                    test_instructions,  # INSTRUCTIONS.md
-                    test_base_pm,  # BASE_PM.md
-                    "# WORKFLOW",  # WORKFLOW.md
-                    "# MEMORY",  # MEMORY.md
-                ],
-            ), patch("pathlib.Path.glob", return_value=[]):
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch(
+                    "pathlib.Path.read_text",
+                    side_effect=[
+                        test_instructions,  # INSTRUCTIONS.md
+                        test_base_pm,  # BASE_PM.md
+                        "# WORKFLOW",  # WORKFLOW.md
+                        "# MEMORY",  # MEMORY.md
+                    ],
+                ),
+                patch("pathlib.Path.glob", return_value=[]),
+            ):
                 loader = FrameworkLoader()
                 loader.framework_content["framework_instructions"] = test_instructions
                 loader.framework_content["base_pm_instructions"] = test_base_pm
@@ -284,11 +291,13 @@ class TestFrameworkLoaderIntegration:
             # Patch file operations
             test_instructions = "# Test Instructions\n\nTest content"
 
-            with patch("pathlib.Path.exists", return_value=True), patch(
-                "pathlib.Path.read_text", return_value=test_instructions
-            ), patch("pathlib.Path.glob", return_value=[]), patch(
-                "pathlib.Path.write_text"
-            ), patch("pathlib.Path.mkdir"):
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch("pathlib.Path.read_text", return_value=test_instructions),
+                patch("pathlib.Path.glob", return_value=[]),
+                patch("pathlib.Path.write_text"),
+                patch("pathlib.Path.mkdir"),
+            ):
                 loader = FrameworkLoader()
                 loader.framework_content["framework_instructions"] = test_instructions
                 loader.framework_content["loaded"] = True

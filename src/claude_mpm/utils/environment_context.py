@@ -8,7 +8,6 @@ prompting is appropriate for dependency installation.
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Tuple
 
 from ..core.logger import get_logger
 
@@ -53,7 +52,7 @@ class EnvironmentContext:
     ]
 
     @classmethod
-    def detect_execution_context(cls) -> Dict[str, bool]:
+    def detect_execution_context(cls) -> dict[str, bool]:
         """
         Detect the current execution context.
 
@@ -209,7 +208,7 @@ class EnvironmentContext:
     @classmethod
     def should_prompt_for_dependencies(
         cls, force_prompt: bool = False, force_skip: bool = False
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Determine if we should prompt for dependency installation.
 
@@ -285,7 +284,7 @@ class EnvironmentContext:
         return f"Environment: {', '.join(env_types)} (TTY: {context['is_tty']})"
 
 
-def detect_execution_context() -> Dict[str, bool]:
+def detect_execution_context() -> dict[str, bool]:
     """
     Convenience function to detect execution context.
 
@@ -297,7 +296,7 @@ def detect_execution_context() -> Dict[str, bool]:
 
 def should_prompt_for_dependencies(
     force_prompt: bool = False, force_skip: bool = False
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Convenience function to determine if prompting is appropriate.
 

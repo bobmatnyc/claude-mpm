@@ -19,7 +19,7 @@ Scoring:
 """
 
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -100,7 +100,7 @@ class PMVerificationGateMetric(BaseMetric):
         premature_completion = self._has_premature_completion(output)
 
         # Score calculation based on verification gate compliance
-        violations: List[str] = []
+        violations: list[str] = []
         score = 1.0
 
         # CRITICAL: Completion claimed without QA delegation
@@ -313,7 +313,7 @@ class PMVerificationGateMetric(BaseMetric):
 
     def _build_reason(
         self,
-        violations: List[str],
+        violations: list[str],
         qa_delegated: bool,
         completion_claimed: bool,
         qa_evidence_present: bool,

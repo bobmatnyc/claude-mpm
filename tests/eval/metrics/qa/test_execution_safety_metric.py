@@ -32,7 +32,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -56,7 +56,7 @@ class TestExecutionSafetyMetric(BaseMetric):
     """
 
     # Pre-flight check patterns
-    PREFLIGHT_PATTERNS: List[str] = [
+    PREFLIGHT_PATTERNS: list[str] = [
         r"package\.json",
         r"scripts?",
         r"test\s+script",
@@ -68,7 +68,7 @@ class TestExecutionSafetyMetric(BaseMetric):
     ]
 
     # CI mode patterns (REQUIRED for safety)
-    CI_MODE_PATTERNS: List[str] = [
+    CI_MODE_PATTERNS: list[str] = [
         r"CI=true",
         r"CI\s*=\s*true",
         r"--ci",
@@ -81,7 +81,7 @@ class TestExecutionSafetyMetric(BaseMetric):
     ]
 
     # Watch mode patterns (FORBIDDEN - automatic fail)
-    WATCH_MODE_PATTERNS: List[str] = [
+    WATCH_MODE_PATTERNS: list[str] = [
         r"--watch",
         r"-w\s",
         r"watch\s+mode",
@@ -90,7 +90,7 @@ class TestExecutionSafetyMetric(BaseMetric):
     ]
 
     # Process cleanup patterns
-    CLEANUP_PATTERNS: List[str] = [
+    CLEANUP_PATTERNS: list[str] = [
         r"ps\s+aux",
         r"process",
         r"cleanup",
@@ -110,21 +110,21 @@ class TestExecutionSafetyMetric(BaseMetric):
             threshold: Minimum score to pass (default: 1.0 for strict compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Test Execution Safety"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

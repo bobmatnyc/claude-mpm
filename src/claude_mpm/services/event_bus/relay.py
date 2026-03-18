@@ -11,8 +11,8 @@ WHY separate relay component:
 import os
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 # Socket.IO imports
 try:
@@ -44,7 +44,7 @@ class SocketIORelay:
     - Simplifies debugging with centralized logging
     """
 
-    def __init__(self, port: Optional[int] = None):
+    def __init__(self, port: int | None = None):
         """Initialize the Socket.IO relay.
 
         Args:
@@ -52,7 +52,7 @@ class SocketIORelay:
         """
         self.port = port or int(os.environ.get("CLAUDE_MPM_SOCKETIO_PORT", "8765"))
         self.event_bus = EventBus.get_instance()
-        self.client: Optional[Any] = None
+        self.client: Any | None = None
         self.connected = False
         self.enabled = True
         self.debug = os.environ.get("CLAUDE_MPM_RELAY_DEBUG", "false").lower() == "true"
@@ -191,9 +191,7 @@ class SocketIORelay:
                     "subtype": (
                         event_type.split(".", 1)[1] if "." in event_type else "generic"
                     ),
-                    "timestamp": data.get(
-                        "timestamp", datetime.now(timezone.utc).isoformat()
-                    ),
+                    "timestamp": data.get("timestamp", datetime.now(UTC).isoformat()),
                     "data": data,
                     "source": "event_bus",
                 },
@@ -201,7 +199,7 @@ class SocketIORelay:
 
             # Update statistics
             self.stats["events_relayed"] += 1
-            self.stats["last_relay_time"] = datetime.now(timezone.utc).isoformat()
+            self.stats["last_relay_time"] = datetime.now(UTC).isoformat()
 
             if self.debug:
                 logger.debug(f"Relayed event to Socket.IO: {event_type}")
@@ -258,7 +256,7 @@ class SocketIORelay:
         self.client = None
         logger.info("SocketIO relay stopped")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get relay statistics.
 
         Returns:
@@ -273,11 +271,11 @@ class SocketIORelay:
 
 
 # Global relay instance
-_relay_instance: Optional[SocketIORelay] = None
+_relay_instance: SocketIORelay | None = None
 _relay_lock = threading.Lock()
 
 
-def get_relay(port: Optional[int] = None) -> SocketIORelay:
+def get_relay(port: int | None = None) -> SocketIORelay:
     """Get or create the global SocketIO relay instance.
 
     Thread-safe implementation using double-checked locking pattern to
@@ -302,7 +300,7 @@ def get_relay(port: Optional[int] = None) -> SocketIORelay:
         return _relay_instance
 
 
-def start_relay(port: Optional[int] = None) -> SocketIORelay:
+def start_relay(port: int | None = None) -> SocketIORelay:
     """Start the global SocketIO relay.
 
     Args:

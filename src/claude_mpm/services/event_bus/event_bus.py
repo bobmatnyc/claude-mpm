@@ -11,8 +11,9 @@ WHY pyee over alternatives:
 import asyncio
 import logging
 import threading
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, Set
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any, Optional
 
 from pyee.asyncio import AsyncIOEventEmitter
 
@@ -52,7 +53,7 @@ class EventBus:
         self._initialized = True
         self._emitter = AsyncIOEventEmitter()
         self._enabled = True
-        self._event_filters: Set[str] = set()
+        self._event_filters: set[str] = set()
         self._stats = {
             "events_published": 0,
             "events_filtered": 0,
@@ -62,14 +63,14 @@ class EventBus:
         self._debug = False
 
         # Event history for debugging (limited size)
-        self._event_history: List[Dict[str, Any]] = []
+        self._event_history: list[dict[str, Any]] = []
         self._max_history_size = 100
 
         # Track async handler tasks to prevent garbage collection
-        self._handler_tasks: Set[asyncio.Task] = set()
+        self._handler_tasks: set[asyncio.Task] = set()
 
         # Track handler wrappers for removal
-        self._handler_wrappers: Dict[tuple, Callable] = {}
+        self._handler_wrappers: dict[tuple, Callable] = {}
 
         logger.info("EventBus initialized")
 
@@ -222,7 +223,7 @@ class EventBus:
 
             # Update stats
             self._stats["events_published"] += 1
-            self._stats["last_event_time"] = datetime.now(timezone.utc).isoformat()
+            self._stats["last_event_time"] = datetime.now(UTC).isoformat()
 
             if self._debug:
                 logger.debug(f"Published event: {event_type}")
@@ -315,7 +316,7 @@ class EventBus:
             self._emitter.remove_listener(event_type, handler)
         logger.debug(f"Removed handler for: {event_type}")
 
-    def remove_all_listeners(self, event_type: Optional[str] = None) -> None:
+    def remove_all_listeners(self, event_type: str | None = None) -> None:
         """Remove all listeners for an event type, or all listeners.
 
         Args:
@@ -344,7 +345,7 @@ class EventBus:
             data: The event data
         """
         event_record = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "type": event_type,
             "data": data,
         }
@@ -355,7 +356,7 @@ class EventBus:
         if len(self._event_history) > self._max_history_size:
             self._event_history = self._event_history[-self._max_history_size :]
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get event bus statistics.
 
         Returns:
@@ -369,7 +370,7 @@ class EventBus:
             "history_size": len(self._event_history),
         }
 
-    def get_recent_events(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_recent_events(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get recent events from history.
 
         Args:

@@ -10,7 +10,7 @@ the rest of the system from the transport layer.
 import asyncio
 import contextlib
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -66,9 +66,9 @@ class SocketIOConsumer(IEventConsumer):
         # State
         self._initialized = False
         self._connected = False
-        self._reconnect_task: Optional[asyncio.Task] = None
-        self._event_batch: List[Event] = []
-        self._batch_timer: Optional[asyncio.Task] = None
+        self._reconnect_task: asyncio.Task | None = None
+        self._event_batch: list[Event] = []
+        self._batch_timer: asyncio.Task | None = None
 
         # Metrics
         self._metrics = {
@@ -148,7 +148,7 @@ class SocketIOConsumer(IEventConsumer):
 
         return True
 
-    async def consume_batch(self, events: List[Event]) -> int:
+    async def consume_batch(self, events: list[Event]) -> int:
         """Process multiple events in a batch."""
         if not self._initialized:
             return 0
@@ -198,7 +198,7 @@ class SocketIOConsumer(IEventConsumer):
             self._connected or self._reconnect_task is not None
         )
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get consumer metrics."""
         return {
             **self._metrics,
@@ -234,7 +234,7 @@ class SocketIOConsumer(IEventConsumer):
 
         return True
 
-    async def _emit_events(self, events: List[Event]) -> bool:
+    async def _emit_events(self, events: list[Event]) -> bool:
         """
         Emit events via Socket.IO.
 
@@ -295,7 +295,7 @@ class SocketIOConsumer(IEventConsumer):
 
             return False
 
-    def _convert_to_socketio(self, event: Event) -> Dict[str, Any]:
+    def _convert_to_socketio(self, event: Event) -> dict[str, Any]:
         """
         Convert an Event to Socket.IO format.
 

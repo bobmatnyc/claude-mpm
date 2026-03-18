@@ -6,7 +6,8 @@ Validation hooks for claude-mpm operations.
 Inspired by awesome-claude-code's pre-push validation approach.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import yaml
 
@@ -21,9 +22,9 @@ class ValidationHooks:
 
     def __init__(self):
         """Initialize validation hooks."""
-        self.pre_load_hooks: List[Callable] = []
-        self.post_load_hooks: List[Callable] = []
-        self.pre_execute_hooks: List[Callable] = []
+        self.pre_load_hooks: list[Callable] = []
+        self.post_load_hooks: list[Callable] = []
+        self.pre_execute_hooks: list[Callable] = []
         self.validator = AgentValidator()
 
     def register_pre_load_hook(self, hook: Callable) -> None:
@@ -66,7 +67,7 @@ class ValidationHooks:
         return result
 
     async def run_post_load_validation(
-        self, agent_config: Dict[str, Any]
+        self, agent_config: dict[str, Any]
     ) -> ValidationResult:
         """Run validation after loading an agent."""
         result = ValidationResult(is_valid=True)
@@ -162,9 +163,7 @@ async def validate_security_constraints(agent_name: str, task: str) -> Validatio
 class ValidationError(Exception):
     """Raised when validation fails."""
 
-    def __init__(
-        self, message: str, validation_result: Optional[ValidationResult] = None
-    ):
+    def __init__(self, message: str, validation_result: ValidationResult | None = None):
         """Initialize validation error."""
         super().__init__(message)
         self.validation_result = validation_result

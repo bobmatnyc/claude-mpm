@@ -21,7 +21,6 @@ Example:
 import logging
 import subprocess
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +198,7 @@ class GitOperationsService:
 
             raise GitOperationError(f"Failed to create branch: {e}") from e
 
-    def stage_files(self, repo_path: Path, files: List[str]) -> bool:
+    def stage_files(self, repo_path: Path, files: list[str]) -> bool:
         """
         Stage files for commit.
 
@@ -453,7 +452,7 @@ class GitOperationsService:
 
         return True
 
-    def get_remote_url(self, repo_path: Path) -> Optional[str]:
+    def get_remote_url(self, repo_path: Path) -> str | None:
         """
         Get remote origin URL.
 
@@ -477,7 +476,7 @@ class GitOperationsService:
 
         return stdout.strip()
 
-    def validate_repo(self, repo_path: Path) -> Tuple[bool, str]:
+    def validate_repo(self, repo_path: Path) -> tuple[bool, str]:
         """
         Validate repository configuration.
 
@@ -548,7 +547,7 @@ class GitOperationsService:
         if not self.is_git_repo(repo_path):
             raise GitOperationError(f"Not a git repository: {repo_path}")
 
-    def _run_git_command(self, command: List[str], cwd: Path) -> Tuple[int, str, str]:
+    def _run_git_command(self, command: list[str], cwd: Path) -> tuple[int, str, str]:
         """
         Run git command and return result.
 

@@ -15,7 +15,6 @@ import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import questionary
 import questionary.constants
@@ -89,7 +88,7 @@ class ConfigureCommand(BaseCommand):
         self._recommendation_service = None  # Lazy-initialized
         self._unified_config = None  # Lazy-initialized
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         return validate_configure_args(args)
 
@@ -404,7 +403,7 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 break
 
-    def _load_agents_with_spinner(self) -> List[AgentConfig]:
+    def _load_agents_with_spinner(self) -> list[AgentConfig]:
         """Load agents with loading indicator, don't show partial state.
 
         Returns:
@@ -439,7 +438,7 @@ class ConfigureCommand(BaseCommand):
 
         return agents
 
-    def _display_agent_sources_and_list(self, agents: List[AgentConfig]) -> None:
+    def _display_agent_sources_and_list(self, agents: list[AgentConfig]) -> None:
         """Display agent sources and agent list (only after all data loaded).
 
         Args:
@@ -487,15 +486,15 @@ class ConfigureCommand(BaseCommand):
         else:
             self.console.print("[yellow]No agents available[/yellow]")
 
-    def _display_agents_table(self, agents: List[AgentConfig]) -> None:
+    def _display_agents_table(self, agents: list[AgentConfig]) -> None:
         """Display a table of available agents."""
         self.agent_display.display_agents_table(agents)
 
-    def _display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
+    def _display_agents_with_pending_states(self, agents: list[AgentConfig]) -> None:
         """Display agents table with pending state indicators."""
         self.agent_display.display_agents_with_pending_states(agents)
 
-    def _toggle_agents_interactive(self, agents: List[AgentConfig]) -> None:
+    def _toggle_agents_interactive(self, agents: list[AgentConfig]) -> None:
         """Interactive multi-agent enable/disable with batch save."""
         if self.agent_manager is None:
             return
@@ -576,7 +575,7 @@ class ConfigureCommand(BaseCommand):
                             agent.name, not current
                         )
 
-    def _auto_deploy_enabled_agents(self, agents: List[AgentConfig]) -> None:
+    def _auto_deploy_enabled_agents(self, agents: list[AgentConfig]) -> None:
         """Auto-deploy enabled agents after saving configuration.
 
         WHY: When users enable agents, they expect them to be deployed
@@ -632,7 +631,7 @@ class ConfigureCommand(BaseCommand):
             self.logger.error(f"Auto-deployment failed: {e}", exc_info=True)
             self.console.print(f"[red]✗ Auto-deployment error: {e}[/red]")
 
-    def _customize_agent_template(self, agents: List[AgentConfig]) -> None:
+    def _customize_agent_template(self, agents: list[AgentConfig]) -> None:
         """Customize agent JSON template."""
         self.template_editor.customize_agent_template(agents)
 
@@ -644,15 +643,15 @@ class ConfigureCommand(BaseCommand):
         """Get the path to an agent's template file."""
         return self.template_editor.get_agent_template_path(agent_name)
 
-    def _edit_in_external_editor(self, template_path: Path, template: Dict) -> None:
+    def _edit_in_external_editor(self, template_path: Path, template: dict) -> None:
         """Open template in external editor."""
         self.template_editor.edit_in_external_editor(template_path, template)
 
-    def _modify_template_field(self, template: Dict, template_path: Path) -> None:
+    def _modify_template_field(self, template: dict, template_path: Path) -> None:
         """Add or modify a field in the template."""
         self.template_editor.modify_template_field(template, template_path)
 
-    def _remove_template_field(self, template: Dict, template_path: Path) -> None:
+    def _remove_template_field(self, template: dict, template_path: Path) -> None:
         """Remove a field from the template."""
         self.template_editor.remove_template_field(template, template_path)
 
@@ -660,15 +659,15 @@ class ConfigureCommand(BaseCommand):
         """Reset template to defaults."""
         self.template_editor.reset_template(agent, template_path)
 
-    def _create_custom_template_copy(self, agent: AgentConfig, template: Dict) -> None:
+    def _create_custom_template_copy(self, agent: AgentConfig, template: dict) -> None:
         """Create a customized copy of a system template."""
         self.template_editor.create_custom_template_copy(agent, template)
 
-    def _view_full_template(self, template: Dict) -> None:
+    def _view_full_template(self, template: dict) -> None:
         """View the full template without truncation."""
         self.template_editor.view_full_template(template)
 
-    def _reset_agent_defaults(self, agents: List[AgentConfig]) -> None:
+    def _reset_agent_defaults(self, agents: list[AgentConfig]) -> None:
         """Reset an agent to default enabled state and remove custom template."""
         self.template_editor.reset_agent_defaults(agents)
 
@@ -1410,43 +1409,43 @@ class ConfigureCommand(BaseCommand):
         """Manage startup configuration for MCP services and agents."""
         return self.startup_manager.manage_startup_configuration()
 
-    def _load_startup_configuration(self, config: Config) -> Dict:
+    def _load_startup_configuration(self, config: Config) -> dict:
         """Load current startup configuration from config."""
         return self.startup_manager.load_startup_configuration(config)
 
-    def _display_startup_configuration(self, startup_config: Dict) -> None:
+    def _display_startup_configuration(self, startup_config: dict) -> None:
         """Display current startup configuration in a table."""
         self.startup_manager.display_startup_configuration(startup_config)
 
-    def _configure_mcp_services(self, startup_config: Dict, config: Config) -> None:
+    def _configure_mcp_services(self, startup_config: dict, config: Config) -> None:
         """Configure which MCP services to enable at startup."""
         self.startup_manager.configure_mcp_services(startup_config, config)
 
-    def _configure_hook_services(self, startup_config: Dict, config: Config) -> None:
+    def _configure_hook_services(self, startup_config: dict, config: Config) -> None:
         """Configure which hook services to enable at startup."""
         self.startup_manager.configure_hook_services(startup_config, config)
 
-    def _configure_system_agents(self, startup_config: Dict, config: Config) -> None:
+    def _configure_system_agents(self, startup_config: dict, config: Config) -> None:
         """Configure which system agents to deploy at startup."""
         self.startup_manager.configure_system_agents(startup_config, config)
 
-    def _parse_id_selection(self, selection: str, max_id: int) -> List[int]:
+    def _parse_id_selection(self, selection: str, max_id: int) -> list[int]:
         """Parse ID selection string (e.g., '1,3,5' or '1-4')."""
         return parse_id_selection(selection, max_id)
 
-    def _enable_all_services(self, startup_config: Dict, config: Config) -> None:
+    def _enable_all_services(self, startup_config: dict, config: Config) -> None:
         """Enable all services and agents."""
         self.startup_manager.enable_all_services(startup_config, config)
 
-    def _disable_all_services(self, startup_config: Dict, config: Config) -> None:
+    def _disable_all_services(self, startup_config: dict, config: Config) -> None:
         """Disable all services and agents."""
         self.startup_manager.disable_all_services(startup_config, config)
 
-    def _reset_to_defaults(self, startup_config: Dict, config: Config) -> None:
+    def _reset_to_defaults(self, startup_config: dict, config: Config) -> None:
         """Reset startup configuration to defaults."""
         self.startup_manager.reset_to_defaults(startup_config, config)
 
-    def _save_startup_configuration(self, startup_config: Dict, config: Config) -> bool:
+    def _save_startup_configuration(self, startup_config: dict, config: Config) -> bool:
         """Save startup configuration to config file and return whether to proceed to startup."""
         return self.startup_manager.save_startup_configuration(startup_config, config)
 
@@ -1612,7 +1611,7 @@ class ConfigureCommand(BaseCommand):
     # Enhanced Agent Management Methods (Remote Agent Discovery Integration)
     # ========================================================================
 
-    def _get_configured_sources(self) -> List[Dict]:
+    def _get_configured_sources(self) -> list[dict]:
         """Get list of configured agent sources with agent counts."""
         try:
             from claude_mpm.config.agent_sources import AgentSourceConfiguration
@@ -1651,8 +1650,8 @@ class ConfigureCommand(BaseCommand):
             return []
 
     def _filter_agent_configs(
-        self, agents: List[AgentConfig], filter_deployed: bool = False
-    ) -> List[AgentConfig]:
+        self, agents: list[AgentConfig], filter_deployed: bool = False
+    ) -> list[AgentConfig]:
         """Filter AgentConfig objects using agent_filters utilities.
 
         Converts AgentConfig objects to dictionaries for filtering,
@@ -1689,8 +1688,8 @@ class ConfigureCommand(BaseCommand):
 
     @staticmethod
     def _calculate_column_widths(
-        terminal_width: int, columns: Dict[str, int]
-    ) -> Dict[str, int]:
+        terminal_width: int, columns: dict[str, int]
+    ) -> dict[str, int]:
         """Calculate dynamic column widths based on terminal size.
 
         Args:
@@ -1748,7 +1747,7 @@ class ConfigureCommand(BaseCommand):
         """
         return name.replace("_", " ").replace("-", " ").title()
 
-    def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
+    def _display_agents_with_source_info(self, agents: list[AgentConfig]) -> None:
         """Display agents table with source information and installation status."""
         from rich.table import Table
 
@@ -1926,7 +1925,7 @@ class ConfigureCommand(BaseCommand):
         self.console.print("  claude-mpm agent-source list")
         Prompt.ask("\nPress Enter to continue")
 
-    def _deploy_agents_unified(self, agents: List[AgentConfig]) -> None:
+    def _deploy_agents_unified(self, agents: list[AgentConfig]) -> None:
         """Unified agent selection with inline controls for recommended, presets, and collections.
 
         Design:
@@ -2393,7 +2392,7 @@ class ConfigureCommand(BaseCommand):
 
         Prompt.ask("\nPress Enter to continue")
 
-    def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
+    def _deploy_agents_individual(self, agents: list[AgentConfig]) -> None:
         """Manage agent installation state (unified install/remove interface).
 
         DEPRECATED: Use _deploy_agents_unified instead.
@@ -2929,7 +2928,7 @@ class ConfigureCommand(BaseCommand):
             self.logger.error(f"Preset installation failed: {e}", exc_info=True)
             Prompt.ask("\nPress Enter to continue")
 
-    def _select_recommended_agents(self, agents: List[AgentConfig]) -> None:
+    def _select_recommended_agents(self, agents: list[AgentConfig]) -> None:
         """Select and install recommended agents based on toolchain detection."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
@@ -3093,7 +3092,7 @@ class ConfigureCommand(BaseCommand):
 
         Prompt.ask("\nPress Enter to continue")
 
-    def _agent_file_paths(self, agent_name: str) -> List[Path]:
+    def _agent_file_paths(self, agent_name: str) -> list[Path]:
         """Return the list of paths to check for an agent file.
 
         The primary path is the active scope's agents_dir. Legacy locations
@@ -3122,7 +3121,7 @@ class ConfigureCommand(BaseCommand):
 
         # Build paths for all name variants across all locations, deduplicated
         seen: set[Path] = set()
-        paths: List[Path] = []
+        paths: list[Path] = []
         for name in names_to_check:
             for d in dirs_to_check:
                 p = d / f"{name}.md"
@@ -3131,7 +3130,7 @@ class ConfigureCommand(BaseCommand):
                     paths.append(p)
         return paths
 
-    def _deployment_state_paths(self) -> List[Path]:
+    def _deployment_state_paths(self) -> list[Path]:
         """Return the list of deployment state file paths to check.
 
         Includes the active scope path plus legacy locations for cleanup.
@@ -3231,7 +3230,7 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
             return False
 
-    def _remove_agents(self, agents: List[AgentConfig]) -> None:
+    def _remove_agents(self, agents: list[AgentConfig]) -> None:
         """Remove installed agents."""
         # Filter to installed agents only
         installed = [a for a in agents if getattr(a, "is_deployed", False)]
@@ -3290,7 +3289,7 @@ class ConfigureCommand(BaseCommand):
             self.console.print("[red]Invalid selection[/red]")
             Prompt.ask("\nPress Enter to continue")
 
-    def _view_agent_details_enhanced(self, agents: List[AgentConfig]) -> None:
+    def _view_agent_details_enhanced(self, agents: list[AgentConfig]) -> None:
         """View detailed agent information with enhanced remote agent details."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")

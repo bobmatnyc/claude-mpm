@@ -7,15 +7,15 @@ used throughout the claude_mpm codebase.
 
 import importlib
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 
 def safe_import(
     module_name: str,
-    fallback_name: Optional[str] = None,
-    from_list: Optional[List[str]] = None,
-    logger: Optional[logging.Logger] = None,
-) -> Optional[Any]:
+    fallback_name: str | None = None,
+    from_list: list[str] | None = None,
+    logger: logging.Logger | None = None,
+) -> Any | None:
     """
     Safely import a module with fallback support.
 
@@ -116,7 +116,7 @@ def safe_import(
 
 
 def safe_import_multiple(
-    imports: List[Union[tuple, dict]], logger: Optional[logging.Logger] = None
+    imports: list[tuple | dict], logger: logging.Logger | None = None
 ) -> dict:
     """
     Import multiple modules with fallback support.

@@ -12,7 +12,6 @@ DESIGN DECISIONS:
 """
 
 import json
-from typing import List
 
 from rich.box import ROUNDED
 from rich.console import Console
@@ -53,7 +52,7 @@ class AgentDisplay:
         self._get_agent_template_path = get_template_path_fn
         self._display_header = display_header_fn
 
-    def display_agents_table(self, agents: List[AgentConfig]) -> None:
+    def display_agents_table(self, agents: list[AgentConfig]) -> None:
         """Display a table of available agents with status and metadata.
 
         Shows:
@@ -139,7 +138,7 @@ class AgentDisplay:
             f"\n📊 Agents: {installed_count} Installed / {len(agents)} Total"
         )
 
-    def display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
+    def display_agents_with_pending_states(self, agents: list[AgentConfig]) -> None:
         """Display agents table with pending state indicators.
 
         Shows arrows (→) for agents with pending state changes:
@@ -195,7 +194,7 @@ class AgentDisplay:
 
         self.console.print(table)
 
-    def view_agent_details(self, agents: List[AgentConfig]) -> None:
+    def view_agent_details(self, agents: list[AgentConfig]) -> None:
         """View detailed information about a selected agent.
 
         Displays comprehensive agent information in a panel:

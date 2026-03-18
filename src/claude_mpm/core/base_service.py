@@ -26,9 +26,9 @@ import traceback
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .config import Config
 from .enums import HealthStatus
@@ -42,8 +42,8 @@ class ServiceHealth:
     status: HealthStatus  # Type-safe health status using enum
     message: str
     timestamp: str
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    checks: Dict[str, bool] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    checks: dict[str, bool] = field(default_factory=dict)
 
 
 @dataclass
@@ -55,7 +55,7 @@ class ServiceMetrics:
     response_time_avg: float = 0.0
     uptime_seconds: int = 0
     memory_usage_mb: float = 0.0
-    custom_metrics: Dict[str, Any] = field(default_factory=dict)
+    custom_metrics: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -66,7 +66,7 @@ class ServiceContext:
     start_time: float
     service_name: str
     operation: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -74,7 +74,7 @@ class CircuitBreakerState:
     """Circuit breaker state for service resilience (enhanced feature)."""
 
     failure_count: int = 0
-    last_failure_time: Optional[float] = None
+    last_failure_time: float | None = None
     state: str = "closed"  # closed, open, half_open
     failure_threshold: int = 5
     timeout_seconds: int = 60
@@ -104,10 +104,10 @@ class BaseService(LoggerMixin, ABC):
     def __init__(
         self,
         name: str,
-        config: Optional[Dict[str, Any]] = None,
-        config_path: Optional[Path] = None,
+        config: dict[str, Any] | None = None,
+        config_path: Path | None = None,
         enable_enhanced_features: bool = False,
-        container: Optional[Any] = None,
+        container: Any | None = None,
     ):
         """
         Initialize the base service.
@@ -137,7 +137,7 @@ class BaseService(LoggerMixin, ABC):
 
         # Service state
         self._running = False
-        self._start_time: Optional[datetime] = None
+        self._start_time: datetime | None = None
         self._stop_event = asyncio.Event()
         self._shutdown_timeout = timedelta(seconds=30)
 
@@ -145,13 +145,13 @@ class BaseService(LoggerMixin, ABC):
         self._health = ServiceHealth(
             status=HealthStatus.UNKNOWN,
             message="Service not started",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
         self._metrics = ServiceMetrics()
-        self._last_health_check: Optional[float] = None
+        self._last_health_check: float | None = None
 
         # Background tasks
-        self._background_tasks: List[asyncio.Task] = []
+        self._background_tasks: list[asyncio.Task] = []
 
         # Enhanced features (only initialized if enabled)
         if self._enable_enhanced:
@@ -171,21 +171,21 @@ class BaseService(LoggerMixin, ABC):
         self._circuit_breaker = CircuitBreakerState()
 
         # Error tracking
-        self._error_counts: Dict[str, int] = {}
+        self._error_counts: dict[str, int] = {}
 
         # Request tracking
-        self._request_contexts: Dict[str, ServiceContext] = {}
+        self._request_contexts: dict[str, ServiceContext] = {}
 
         # Performance metrics
-        self._performance_metrics: Dict[str, List[float]] = {}
+        self._performance_metrics: dict[str, list[float]] = {}
 
         # Thread safety
         self._lock = threading.RLock()
 
         # Optional service dependencies
-        self._health_monitor: Optional[Any] = None
-        self._error_handler: Optional[Any] = None
-        self._cache: Optional[Any] = None
+        self._health_monitor: Any | None = None
+        self._error_handler: Any | None = None
+        self._cache: Any | None = None
 
         # Register dependencies if container provided
         if self._container:
@@ -197,10 +197,10 @@ class BaseService(LoggerMixin, ABC):
         return self._running
 
     @property
-    def uptime(self) -> Optional[float]:
+    def uptime(self) -> float | None:
         """Get service uptime in seconds."""
         if self._start_time and self._running:
-            return (datetime.now(timezone.utc) - self._start_time).total_seconds()
+            return (datetime.now(UTC) - self._start_time).total_seconds()
         return None
 
     @property
@@ -238,7 +238,7 @@ class BaseService(LoggerMixin, ABC):
             self._health = ServiceHealth(
                 status=HealthStatus.UNHEALTHY,
                 message=f"Startup failed: {e!s}",
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 checks={"startup": False},
             )
 
@@ -269,13 +269,13 @@ class BaseService(LoggerMixin, ABC):
 
         # Mark as running
         self._running = True
-        self._start_time = datetime.now(timezone.utc)
+        self._start_time = datetime.now(UTC)
 
         # Update health status
         self._health = ServiceHealth(
             status=HealthStatus.HEALTHY,
             message="Service started successfully",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             checks={"startup": True},
             metrics=self._get_health_metrics() if self._enable_enhanced else {},
         )
@@ -298,7 +298,7 @@ class BaseService(LoggerMixin, ABC):
 
             self.logger.info(f"Service {self.name} stopped successfully")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.logger.error(f"Service {self.name} shutdown timeout exceeded")
             # Force stop background tasks
             for task in self._background_tasks:
@@ -339,7 +339,7 @@ class BaseService(LoggerMixin, ABC):
         self._health = ServiceHealth(
             status=HealthStatus.UNKNOWN,
             message="Service stopped",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             checks={"running": False},
         )
 
@@ -389,7 +389,7 @@ class BaseService(LoggerMixin, ABC):
             self._health = ServiceHealth(
                 status=status,
                 message=message,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 checks=checks,
                 metrics={
                     "uptime": self.uptime,
@@ -405,7 +405,7 @@ class BaseService(LoggerMixin, ABC):
             self._health = ServiceHealth(
                 status=HealthStatus.UNHEALTHY,
                 message=f"Health check error: {e!s}",
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 checks={"health_check_error": True},
             )
             return self._health
@@ -596,7 +596,7 @@ class BaseService(LoggerMixin, ABC):
                     return ServiceHealth(
                         status=HealthStatus.DEGRADED,
                         message="Service circuit breaker is open",
-                        timestamp=datetime.now(timezone.utc).isoformat(),
+                        timestamp=datetime.now(UTC).isoformat(),
                         checks={"circuit_breaker": False},
                         metrics=self._get_health_metrics(),
                     )
@@ -652,7 +652,7 @@ class BaseService(LoggerMixin, ABC):
                 0, self._circuit_breaker.failure_count - 1
             )
 
-    def _get_health_metrics(self) -> Dict[str, Any]:
+    def _get_health_metrics(self) -> dict[str, Any]:
         """Get metrics for health status."""
         base_metrics = {
             "uptime_seconds": int(self.uptime) if self.uptime else 0,
@@ -671,7 +671,7 @@ class BaseService(LoggerMixin, ABC):
 
         return base_metrics
 
-    async def _handle_error(self, error: Exception, context: Dict[str, Any]) -> None:
+    async def _handle_error(self, error: Exception, context: dict[str, Any]) -> None:
         """Handle service errors with context (enhanced feature)."""
         if not self._enable_enhanced:
             return
@@ -739,7 +739,7 @@ class BaseService(LoggerMixin, ABC):
     async def _cleanup(self) -> None:
         """Cleanup service resources. Must be implemented by subclasses."""
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """
         Perform custom health checks. Override in subclasses.
 
@@ -748,7 +748,7 @@ class BaseService(LoggerMixin, ABC):
         """
         return {}
 
-    async def _start_custom_tasks(self) -> Optional[List[asyncio.Task]]:
+    async def _start_custom_tasks(self) -> list[asyncio.Task] | None:
         """
         Start custom background tasks. Override in subclasses.
 

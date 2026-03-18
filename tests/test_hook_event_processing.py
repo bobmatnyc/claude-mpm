@@ -18,7 +18,7 @@ import os
 import sys
 import time
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import MagicMock, Mock, patch
 
 # Add project root to path for imports
@@ -436,7 +436,7 @@ class TestEventTransformation(unittest.TestCase):
         enriched_event = base_event.copy()
         enriched_event.update(
             {
-                "processed_at": datetime.now(timezone.utc).isoformat(),
+                "processed_at": datetime.now(UTC).isoformat(),
                 "session_id": "test-session",
                 "git_branch": "main",
                 "working_directory": "/test/project",
@@ -474,7 +474,7 @@ class TestEventTransformation(unittest.TestCase):
         # Valid event
         valid_event = {
             "hook_event_name": "Stop",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Invalid events

@@ -5,7 +5,8 @@ This test suite validates that Research Agent discovery protocols are
 properly enforced across all discovery scenarios (DSC-R-001 to DSC-R-005).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -22,7 +23,7 @@ class TestDiscoveryPatterns:
         self.metric = SamplingStrategyMetric(threshold=0.85)
 
     def test_grep_glob_discovery_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that grep/glob usage scores high.
 
@@ -44,7 +45,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_grep_glob_discovery_non_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that sequential file reading fails.
 
@@ -65,7 +66,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_pattern_extraction_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that pattern extraction scores high.
 
@@ -86,7 +87,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_pattern_extraction_non_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that raw enumeration fails.
 
@@ -107,7 +108,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_findings_synthesis_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that findings synthesis scores high.
 
@@ -128,7 +129,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_findings_synthesis_non_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that raw observations fail.
 
@@ -149,7 +150,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_executive_summary_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that executive summary scores high.
 
@@ -170,7 +171,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_executive_summary_non_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing summary fails.
 
@@ -191,7 +192,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_code_examples_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that code examples score high.
 
@@ -212,7 +213,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_code_examples_non_compliant(
-        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, discovery_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that vague descriptions fail.
 

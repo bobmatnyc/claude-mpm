@@ -16,7 +16,7 @@ Created: 2025-07-16
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -41,10 +41,10 @@ class SystemAgentConfig:
     agent_name: str
     description: str
     default_model: str
-    capabilities: List[str] = field(default_factory=list)
-    specializations: List[str] = field(default_factory=list)
-    performance_requirements: Dict[str, Any] = field(default_factory=dict)
-    model_preferences: Dict[str, Any] = field(default_factory=dict)
+    capabilities: list[str] = field(default_factory=list)
+    specializations: list[str] = field(default_factory=list)
+    performance_requirements: dict[str, Any] = field(default_factory=dict)
+    model_preferences: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
     priority: int = 100  # Lower number = higher priority
 
@@ -69,7 +69,7 @@ class SystemAgentConfigManager:
         self.model_config_manager = DefaultModelConfigManager()
         self.model_selector = ModelSelector()
         self.env_loader = ModelEnvironmentLoader()
-        self._agents: Dict[str, SystemAgentConfig] = {}
+        self._agents: dict[str, SystemAgentConfig] = {}
         self._initialize_system_agents()
 
         logger.info("SystemAgentConfigManager initialized with model integration")
@@ -368,15 +368,15 @@ class SystemAgentConfigManager:
                 )
                 agent_config.default_model = default_model
 
-    def get_agent_config(self, agent_type: str) -> Optional[SystemAgentConfig]:
+    def get_agent_config(self, agent_type: str) -> SystemAgentConfig | None:
         """Get configuration for a specific agent type."""
         return self._agents.get(agent_type)
 
-    def get_all_agents(self) -> Dict[str, SystemAgentConfig]:
+    def get_all_agents(self) -> dict[str, SystemAgentConfig]:
         """Get all agent configurations."""
         return self._agents.copy()
 
-    def get_agents_by_model(self, model_id: str) -> List[SystemAgentConfig]:
+    def get_agents_by_model(self, model_id: str) -> list[SystemAgentConfig]:
         """Get all agents configured to use a specific model."""
         return [
             agent
@@ -386,7 +386,7 @@ class SystemAgentConfigManager:
 
     def get_agents_by_specialization(
         self, specialization: str
-    ) -> List[SystemAgentConfig]:
+    ) -> list[SystemAgentConfig]:
         """Get agents with a specific specialization."""
         return [
             agent
@@ -394,7 +394,7 @@ class SystemAgentConfigManager:
             if specialization in agent.specializations
         ]
 
-    def get_model_distribution(self) -> Dict[str, int]:
+    def get_model_distribution(self) -> dict[str, int]:
         """Get distribution of models across agents."""
         distribution = {}
         for agent in self._agents.values():
@@ -403,7 +403,7 @@ class SystemAgentConfigManager:
                 distribution[model] = distribution.get(model, 0) + 1
         return distribution
 
-    def validate_agent_model_assignments(self) -> Dict[str, Any]:
+    def validate_agent_model_assignments(self) -> dict[str, Any]:
         """
         Validate all agent model assignments.
 
@@ -471,7 +471,7 @@ class SystemAgentConfigManager:
 
         return validation
 
-    def get_configuration_summary(self) -> Dict[str, Any]:
+    def get_configuration_summary(self) -> dict[str, Any]:
         """
         Get comprehensive configuration summary.
 
@@ -556,7 +556,7 @@ class SystemAgentConfigManager:
 
     def get_agent_model_recommendation(
         self, agent_type: str, task_description: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get model recommendation for an agent and task.
 
@@ -595,14 +595,14 @@ def get_system_agent_config() -> SystemAgentConfigManager:
     return SystemAgentConfigManager()
 
 
-def get_agent_model_assignment(agent_type: str) -> Optional[str]:
+def get_agent_model_assignment(agent_type: str) -> str | None:
     """Get model assignment for a system agent."""
     manager = get_system_agent_config()
     agent_config = manager.get_agent_config(agent_type)
     return agent_config.get_effective_model() if agent_config else None
 
 
-def validate_system_agent_models() -> Dict[str, Any]:
+def validate_system_agent_models() -> dict[str, Any]:
     """Validate all system agent model assignments."""
     manager = get_system_agent_config()
     return manager.validate_agent_model_assignments()

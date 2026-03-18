@@ -15,7 +15,6 @@ import logging
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class LanguageAnalyzerService:
@@ -83,7 +82,7 @@ class LanguageAnalyzerService:
         self.working_directory = working_directory
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    def detect_languages(self) -> List[str]:
+    def detect_languages(self) -> list[str]:
         """Detect programming languages used in the project.
 
         WHY: Understanding which languages are used helps determine
@@ -112,8 +111,8 @@ class LanguageAnalyzerService:
         return sorted(languages)
 
     def detect_primary_language(
-        self, file_counts: Optional[Dict[str, int]] = None
-    ) -> Optional[str]:
+        self, file_counts: dict[str, int] | None = None
+    ) -> str | None:
         """Detect the primary programming language.
 
         WHY: The primary language determines main analysis strategies
@@ -148,7 +147,7 @@ class LanguageAnalyzerService:
 
         return None
 
-    def detect_frameworks(self, sample_files: Optional[List[Path]] = None) -> List[str]:
+    def detect_frameworks(self, sample_files: list[Path] | None = None) -> list[str]:
         """Detect frameworks used in the project.
 
         WHY: Framework detection helps understand project architecture
@@ -179,9 +178,7 @@ class LanguageAnalyzerService:
         # Return frameworks mentioned in multiple files
         return [fw for fw, count in framework_mentions.items() if count >= 2]
 
-    def analyze_code_style(
-        self, sample_files: Optional[List[Path]] = None
-    ) -> List[str]:
+    def analyze_code_style(self, sample_files: list[Path] | None = None) -> list[str]:
         """Analyze coding style and conventions.
 
         WHY: Understanding code style helps agents generate code that
@@ -225,7 +222,7 @@ class LanguageAnalyzerService:
 
         return conventions
 
-    def _count_files_by_extension(self) -> Dict[str, int]:
+    def _count_files_by_extension(self) -> dict[str, int]:
         """Count files by extension in the project."""
         counts = Counter()
 
@@ -245,7 +242,7 @@ class LanguageAnalyzerService:
 
         return dict(counts)
 
-    def _get_sample_source_files(self, limit: int = 20) -> List[Path]:
+    def _get_sample_source_files(self, limit: int = 20) -> list[Path]:
         """Get a sample of source files for analysis."""
         source_files = []
 

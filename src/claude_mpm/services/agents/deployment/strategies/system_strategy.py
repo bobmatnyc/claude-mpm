@@ -1,7 +1,6 @@
 """System agent deployment strategy."""
 
 from pathlib import Path
-from typing import List
 
 from claude_mpm.core.unified_paths import get_path_manager
 
@@ -92,7 +91,7 @@ class SystemAgentDeploymentStrategy(BaseDeploymentStrategy):
             return context.templates_dir
         return get_path_manager().get_user_agents_dir() / "templates"
 
-    def get_excluded_agents(self, context: DeploymentContext) -> List[str]:
+    def get_excluded_agents(self, context: DeploymentContext) -> list[str]:
         """Get excluded agents for system deployment.
 
         System deployment respects global exclusion configuration.

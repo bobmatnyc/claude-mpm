@@ -15,10 +15,10 @@ Extended with:
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -69,15 +69,15 @@ class SessionManager:
 
             # Generate session ID once during initialization
             self._session_id = self._generate_session_id()
-            self._session_start_time = datetime.now(timezone.utc)
+            self._session_start_time = datetime.now(UTC)
 
             # Token usage tracking
             self._cumulative_tokens = 0
             self._total_budget = 200000  # Default Claude Code budget
-            self._last_stop_reason: Optional[str] = None
+            self._last_stop_reason: str | None = None
 
             # Context metrics storage
-            self._context_metrics: Dict[str, Any] = {
+            self._context_metrics: dict[str, Any] = {
                 "total_budget": self._total_budget,
                 "used_tokens": 0,
                 "remaining_tokens": self._total_budget,
@@ -87,7 +87,7 @@ class SessionManager:
             }
 
             # Resume log reference (loaded on startup if exists)
-            self._resume_log_content: Optional[str] = None
+            self._resume_log_content: str | None = None
 
             # Mark as initialized
             self.__class__._initialized = True
@@ -118,7 +118,7 @@ class SessionManager:
                 return session_id
 
         # Generate timestamp-based session ID
-        session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        session_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         logger.debug(f"Generated new session ID: {session_id}")
         return session_id
 
@@ -166,8 +166,8 @@ class SessionManager:
         self,
         input_tokens: int = 0,
         output_tokens: int = 0,
-        stop_reason: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        stop_reason: str | None = None,
+    ) -> dict[str, Any]:
         """
         Update cumulative token usage for the session.
 
@@ -209,7 +209,7 @@ class SessionManager:
 
             return self._context_metrics.copy()
 
-    def get_context_metrics(self) -> Dict[str, Any]:
+    def get_context_metrics(self) -> dict[str, Any]:
         """
         Get current context metrics.
 
@@ -269,7 +269,7 @@ class SessionManager:
             logger.warning(f"Failed to load resume log: {e}")
             # Non-critical error, continue without resume log
 
-    def get_resume_log_content(self) -> Optional[str]:
+    def get_resume_log_content(self) -> str | None:
         """
         Get resume log content if loaded.
 
@@ -281,8 +281,8 @@ class SessionManager:
 
     def generate_resume_log(
         self,
-        session_state: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Path]:
+        session_state: dict[str, Any] | None = None,
+    ) -> Path | None:
         """
         Generate and save resume log for current session.
 
@@ -352,7 +352,7 @@ class SessionManager:
 
 
 # Global accessor function
-_manager: Optional[SessionManager] = None
+_manager: SessionManager | None = None
 
 
 def get_session_manager() -> SessionManager:

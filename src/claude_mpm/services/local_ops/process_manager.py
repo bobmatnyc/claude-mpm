@@ -35,10 +35,9 @@ import platform
 import signal
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
-from typing import List, Optional
 
 import psutil
 
@@ -202,7 +201,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                 working_directory=str(working_dir),
                 environment=config.environment,
                 port=allocated_port,
-                started_at=datetime.now(tz=timezone.utc),
+                started_at=datetime.now(tz=UTC),
                 status=ServiceState.RUNNING,
                 metadata=config.metadata,
             )
@@ -340,7 +339,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
         # Start new process
         return self.start(config)
 
-    def get_status(self, deployment_id: str) -> Optional[ProcessInfo]:
+    def get_status(self, deployment_id: str) -> ProcessInfo | None:
         """
         Get current status and runtime information for a process.
 
@@ -395,8 +394,8 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             )
 
     def list_processes(
-        self, status_filter: Optional[ServiceState] = None
-    ) -> List[ProcessInfo]:
+        self, status_filter: ServiceState | None = None
+    ) -> list[ProcessInfo]:
         """
         List all managed processes.
 
@@ -441,7 +440,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
 
     def find_available_port(
         self, preferred_port: int, max_attempts: int = 10
-    ) -> Optional[int]:
+    ) -> int | None:
         """
         Find an available port starting from preferred_port.
 
@@ -483,9 +482,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
         """
         return self.state_manager.cleanup_dead_pids()
 
-    def generate_deployment_id(
-        self, project_name: str, port: Optional[int] = None
-    ) -> str:
+    def generate_deployment_id(self, project_name: str, port: int | None = None) -> str:
         """
         Generate a unique deployment ID.
 
@@ -499,7 +496,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             Unique deployment identifier
         """
         # Use timestamp for uniqueness
-        timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(tz=UTC).strftime("%Y%m%d-%H%M%S")
 
         # Generate short hash from project name for readability
         name_hash = sha256(project_name.encode()).hexdigest()[:8]

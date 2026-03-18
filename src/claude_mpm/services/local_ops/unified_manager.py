@@ -41,7 +41,7 @@ USAGE:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -84,8 +84,8 @@ class UnifiedLocalOpsManager(SyncBaseService):
     def __init__(
         self,
         project_root: Path,
-        config_path: Optional[Path] = None,
-        config: Optional[Dict[str, Any]] = None,
+        config_path: Path | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize unified local operations manager.
@@ -106,13 +106,13 @@ class UnifiedLocalOpsManager(SyncBaseService):
         self.config = self._load_config(config)
 
         # Initialize component managers (lazy initialization)
-        self._state_manager: Optional[DeploymentStateManager] = None
-        self._process_manager: Optional[LocalProcessManager] = None
-        self._health_manager: Optional[HealthCheckManager] = None
-        self._restart_manager: Optional[RestartManager] = None
-        self._memory_detector: Optional[MemoryLeakDetector] = None
-        self._log_monitor: Optional[LogMonitor] = None
-        self._resource_monitor: Optional[ResourceMonitor] = None
+        self._state_manager: DeploymentStateManager | None = None
+        self._process_manager: LocalProcessManager | None = None
+        self._health_manager: HealthCheckManager | None = None
+        self._restart_manager: RestartManager | None = None
+        self._memory_detector: MemoryLeakDetector | None = None
+        self._log_monitor: LogMonitor | None = None
+        self._resource_monitor: ResourceMonitor | None = None
 
     def initialize(self) -> bool:
         """
@@ -311,7 +311,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
         self._ensure_initialized()
         return self._process_manager.restart(deployment_id, timeout=timeout)
 
-    def get_deployment_status(self, deployment_id: str) -> Optional[ProcessInfo]:
+    def get_deployment_status(self, deployment_id: str) -> ProcessInfo | None:
         """
         Get current status of a deployment.
 
@@ -324,7 +324,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
         self._ensure_initialized()
         return self._process_manager.get_status(deployment_id)
 
-    def get_health_status(self, deployment_id: str) -> Optional[DeploymentHealth]:
+    def get_health_status(self, deployment_id: str) -> DeploymentHealth | None:
         """
         Get health status for a deployment.
 
@@ -337,7 +337,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
         self._ensure_initialized()
         return self._health_manager.check_health(deployment_id)
 
-    def get_restart_history(self, deployment_id: str) -> Optional[RestartHistory]:
+    def get_restart_history(self, deployment_id: str) -> RestartHistory | None:
         """
         Get restart history for a deployment.
 
@@ -353,7 +353,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
     def enable_auto_restart(
         self,
         deployment_id: str,
-        config: Optional[RestartConfig] = None,
+        config: RestartConfig | None = None,
     ) -> bool:
         """
         Enable auto-restart for a deployment.
@@ -384,8 +384,8 @@ class UnifiedLocalOpsManager(SyncBaseService):
 
     def list_deployments(
         self,
-        status_filter: Optional[ServiceState] = None,
-    ) -> List[DeploymentState]:
+        status_filter: ServiceState | None = None,
+    ) -> list[DeploymentState]:
         """
         List all deployments.
 
@@ -401,7 +401,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
             return self._state_manager.get_deployments_by_status(status_filter)
         return self._state_manager.get_all_deployments()
 
-    def get_full_status(self, deployment_id: str) -> Dict[str, Any]:
+    def get_full_status(self, deployment_id: str) -> dict[str, Any]:
         """
         Get comprehensive status aggregating all monitoring dimensions.
 
@@ -416,7 +416,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
         """
         self._ensure_initialized()
 
-        status: Dict[str, Any] = {
+        status: dict[str, Any] = {
             "deployment_id": deployment_id,
             "process": None,
             "health": None,
@@ -513,7 +513,7 @@ class UnifiedLocalOpsManager(SyncBaseService):
 
         return status
 
-    def _load_config(self, config_override: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    def _load_config(self, config_override: dict[str, Any] | None) -> dict[str, Any]:
         """
         Load configuration from file or use provided config.
 

@@ -59,8 +59,7 @@ import signal
 import subprocess  # nosec B404
 import sys
 import threading
-from datetime import datetime, timezone
-from typing import Optional, Tuple
+from datetime import UTC, datetime
 
 # Import extracted modules with fallback for direct execution
 try:
@@ -134,7 +133,7 @@ def _log(message: str) -> None:
     if DEBUG:
         try:
             with open("/tmp/claude-mpm-hook.log", "a") as f:  # nosec B108
-                f.write(f"[{datetime.now(timezone.utc).isoformat()}] {message}\n")
+                f.write(f"[{datetime.now(UTC).isoformat()}] {message}\n")
         except Exception:  # nosec B110 - intentional silent failure
             pass  # Never disrupt hook execution
 
@@ -183,7 +182,7 @@ MIN_CLAUDE_VERSION = "1.0.92"
 MIN_SKILLS_VERSION = "2.1.3"
 
 
-def check_claude_version() -> Tuple[bool, Optional[str]]:
+def check_claude_version() -> tuple[bool, str | None]:
     """
     Verify Claude Code version compatibility for hook support.
 
@@ -286,7 +285,7 @@ class ClaudeHookHandler:
     - Maintains backward compatibility when no container is provided
     """
 
-    def __init__(self, container: Optional[HookServiceContainer] = None):
+    def __init__(self, container: HookServiceContainer | None = None):
         """Initialize hook handler with optional DI container.
 
         Args:
@@ -396,7 +395,7 @@ class ClaudeHookHandler:
             # Check for duplicate events (same event within 100ms)
             if self.duplicate_detector.is_duplicate(event):
                 _log(
-                    f"[{datetime.now(timezone.utc).isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})"
+                    f"[{datetime.now(UTC).isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})"
                 )
                 # Still need to output continue for this invocation
                 if not _continue_sent:
@@ -407,7 +406,7 @@ class ClaudeHookHandler:
             # Debug: Log that we're processing an event
             hook_type = event.get("hook_event_name", "unknown")
             _log(
-                f"\n[{datetime.now(timezone.utc).isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})"
+                f"\n[{datetime.now(UTC).isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})"
             )
 
             # Perform periodic cleanup if needed
@@ -486,7 +485,7 @@ class ClaudeHookHandler:
             _log(f"Error reading hook event: {e}")
             return None
 
-    def _route_event(self, event: dict) -> Optional[dict]:
+    def _route_event(self, event: dict) -> dict | None:
         """
         Route event to appropriate handler based on type.
 
@@ -590,7 +589,7 @@ class ClaudeHookHandler:
         """Delegate subagent stop processing to the specialized processor."""
         self.subagent_processor.process_subagent_stop(event)
 
-    def _continue_execution(self, modified_input: Optional[dict] = None) -> None:
+    def _continue_execution(self, modified_input: dict | None = None) -> None:
         """
         Send continue action to Claude with optional input modification.
 
@@ -636,7 +635,7 @@ class ClaudeHookHandler:
         event: dict,
         success: bool,
         duration_ms: int,
-        error_message: Optional[str] = None,
+        error_message: str | None = None,
     ):
         """Emit a structured JSON event for hook execution.
 
@@ -667,7 +666,7 @@ class ClaudeHookHandler:
             "success": success,
             "duration_ms": duration_ms,
             "result_summary": summary,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "source": "claude_hook_handler",  # Explicit source identification
         }
 

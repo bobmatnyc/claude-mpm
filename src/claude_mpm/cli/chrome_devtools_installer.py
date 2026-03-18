@@ -15,7 +15,6 @@ Uses the `claude mcp add` command for native Claude Code integration.
 import json
 import subprocess
 from pathlib import Path
-from typing import Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -66,7 +65,7 @@ class ChromeDevToolsInstaller:
             self.logger.debug(f"Error checking Chrome DevTools configuration: {e}")
             return False
 
-    def install_mcp_server(self) -> Tuple[bool, Optional[str]]:
+    def install_mcp_server(self) -> tuple[bool, str | None]:
         """
         Install chrome-devtools-mcp using the claude CLI.
 

@@ -5,7 +5,8 @@ This test suite validates that BASE_AGENT verification protocols are properly
 enforced across all critical verification scenarios (VER-001 to VER-008).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -22,7 +23,7 @@ class TestVerificationPatterns:
         self.metric = VerificationComplianceMetric(threshold=0.9)
 
     def test_file_edit_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant Edit→Read pattern scores high.
 
@@ -44,7 +45,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful(), "Metric should report success"
 
     def test_file_edit_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that non-compliant edit (no verification) fails.
 
@@ -66,7 +67,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_test_execution_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant test execution with results scores high.
 
@@ -88,7 +89,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_test_execution_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that claiming tests pass without running them fails.
 
@@ -110,7 +111,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_api_call_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that API call with response verification scores high.
 
@@ -132,7 +133,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_api_call_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that claiming API success without response data fails.
 
@@ -154,7 +155,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_assertion_evidence_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that assertions with evidence score high.
 
@@ -176,7 +177,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_assertion_evidence_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that assertions without evidence fail.
 
@@ -198,7 +199,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_quality_gate_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that quality gate verification scores high.
 
@@ -220,7 +221,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_quality_gate_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that skipping quality checks fails.
 
@@ -242,7 +243,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_error_handling_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that error handling with verification scores high.
 
@@ -264,7 +265,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_error_handling_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that untested error handling fails.
 
@@ -286,7 +287,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_deployment_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that deployment verification scores high.
 
@@ -308,7 +309,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_deployment_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that unverified deployment claims fail.
 
@@ -330,7 +331,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_code_review_verification_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that code review with verification scores high.
 
@@ -352,7 +353,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_code_review_verification_non_compliant(
-        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, verification_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that code review without reading files fails.
 

@@ -14,7 +14,7 @@ import logging
 import subprocess
 import sys
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 import yaml
 from packaging.requirements import InvalidRequirement, Requirement
@@ -57,24 +57,24 @@ class AgentDependencyLoader:
                          If False, only check and report missing dependencies.
         """
         self.auto_install = auto_install
-        self.deployed_agents: Dict[str, Path] = {}
-        self.agent_dependencies: Dict[str, Dict] = {}
-        self.missing_dependencies: Dict[str, List[str]] = {}
-        self.checked_packages: Set[str] = set()
-        self.optional_failed: Dict[str, str] = {}  # Track optional packages that failed
+        self.deployed_agents: dict[str, Path] = {}
+        self.agent_dependencies: dict[str, dict] = {}
+        self.missing_dependencies: dict[str, list[str]] = {}
+        self.checked_packages: set[str] = set()
+        self.optional_failed: dict[str, str] = {}  # Track optional packages that failed
         self.deployment_state_file = (
             Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state"
         )
         self.is_uv_tool = self._check_uv_tool_installation()
 
-    def discover_deployed_agents(self) -> Dict[str, Path]:
+    def discover_deployed_agents(self) -> dict[str, Path]:
         """
         Discover which agents are currently deployed in .claude/agents/
 
         Returns:
             Dictionary mapping agent IDs to their file paths
         """
-        deployed_agents: Dict[str, Path] = {}
+        deployed_agents: dict[str, Path] = {}
         claude_agents_dir = Path.cwd() / ".claude" / "agents"
 
         if not claude_agents_dir.exists():
@@ -91,7 +91,7 @@ class AgentDependencyLoader:
         self.deployed_agents = deployed_agents
         return deployed_agents
 
-    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _extract_yaml_frontmatter(self, content: str) -> dict[str, Any] | None:
         """
         Extract and parse YAML frontmatter from markdown.
 
@@ -125,7 +125,7 @@ class AgentDependencyLoader:
             logger.warning(f"Failed to parse YAML frontmatter: {e}")
             return None
 
-    def load_agent_dependencies(self) -> Dict[str, Dict]:
+    def load_agent_dependencies(self) -> dict[str, dict]:
         """
         Load dependency information for deployed agents from their source configs.
 
@@ -222,7 +222,7 @@ class AgentDependencyLoader:
 
         return False
 
-    def check_python_dependency(self, package_spec: str) -> Tuple[bool, Optional[str]]:
+    def check_python_dependency(self, package_spec: str) -> tuple[bool, str | None]:
         """
         Check if a Python package dependency is satisfied in the TARGET environment.
 
@@ -566,14 +566,14 @@ class AgentDependencyLoader:
         except Exception:
             return False
 
-    def analyze_dependencies(self) -> Dict[str, Dict]:
+    def analyze_dependencies(self) -> dict[str, dict]:
         """
         Analyze dependencies for all deployed agents.
 
         Returns:
             Analysis results including missing and satisfied dependencies
         """
-        results: Dict[str, Any] = {
+        results: dict[str, Any] = {
             "agents": {},
             "summary": {
                 "total_agents": len(self.deployed_agents),
@@ -586,7 +586,7 @@ class AgentDependencyLoader:
         }
 
         for agent_id, deps in self.agent_dependencies.items():
-            agent_result: Dict[str, Dict[str, List[str]]] = {
+            agent_result: dict[str, dict[str, list[str]]] = {
                 "python": {"satisfied": [], "missing": [], "outdated": []},
                 "system": {"satisfied": [], "missing": []},
             }
@@ -627,8 +627,8 @@ class AgentDependencyLoader:
         return results
 
     def check_python_compatibility(
-        self, dependencies: List[str]
-    ) -> Tuple[List[str], List[str]]:
+        self, dependencies: list[str]
+    ) -> tuple[list[str], list[str]]:
         """
         Check which dependencies are compatible with current Python version.
 
@@ -640,8 +640,8 @@ class AgentDependencyLoader:
         """
         import sys
 
-        compatible: List[str] = []
-        incompatible: List[str] = []
+        compatible: list[str] = []
+        incompatible: list[str] = []
 
         for dep in dependencies:
             try:
@@ -667,7 +667,7 @@ class AgentDependencyLoader:
 
         return compatible, incompatible
 
-    def install_missing_dependencies(self, dependencies: List[str]) -> Tuple[bool, str]:
+    def install_missing_dependencies(self, dependencies: list[str]) -> tuple[bool, str]:
         """
         Install missing Python dependencies using robust retry logic.
 
@@ -831,7 +831,7 @@ class AgentDependencyLoader:
             logger.error(error_msg)
             return False, error_msg
 
-    def load_and_check(self) -> Dict[str, Dict]:
+    def load_and_check(self) -> dict[str, dict]:
         """
         Complete workflow: discover agents, load dependencies, and check them.
 
@@ -866,7 +866,7 @@ class AgentDependencyLoader:
 
         return results
 
-    def format_report(self, results: Dict[str, Dict]) -> str:
+    def format_report(self, results: dict[str, dict]) -> str:
         """
         Format a human-readable dependency report.
 
@@ -1039,7 +1039,7 @@ class AgentDependencyLoader:
 
         return hash_obj.hexdigest()
 
-    def load_deployment_state(self) -> Dict:
+    def load_deployment_state(self) -> dict:
         """
         Load the saved deployment state.
 
@@ -1056,7 +1056,7 @@ class AgentDependencyLoader:
             logger.debug(f"Could not load deployment state: {e}")
             return {}
 
-    def save_deployment_state(self, state: Dict) -> None:
+    def save_deployment_state(self, state: dict) -> None:
         """
         Save the deployment state to disk.
 
@@ -1072,7 +1072,7 @@ class AgentDependencyLoader:
         except Exception as e:
             logger.debug(f"Could not save deployment state: {e}")
 
-    def has_agents_changed(self) -> Tuple[bool, str]:
+    def has_agents_changed(self) -> tuple[bool, str]:
         """
         Check if agents have changed since last dependency check.
 
@@ -1103,7 +1103,7 @@ class AgentDependencyLoader:
         return False, current_hash
 
     def mark_deployment_checked(
-        self, deployment_hash: str, check_results: Dict
+        self, deployment_hash: str, check_results: dict
     ) -> None:
         """
         Mark the current deployment as checked.
@@ -1120,7 +1120,7 @@ class AgentDependencyLoader:
         }
         self.save_deployment_state(state)
 
-    def get_cached_check_results(self) -> Optional[Dict]:
+    def get_cached_check_results(self) -> dict | None:
         """
         Get cached dependency check results if still valid.
 

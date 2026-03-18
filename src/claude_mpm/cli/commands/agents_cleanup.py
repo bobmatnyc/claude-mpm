@@ -17,7 +17,6 @@ Also detects -agent suffix duplicates and content-identical files.
 import hashlib
 import logging
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 from ...config.agent_sources import AgentSourceConfiguration
 from ...services.agents.sources.git_source_sync_service import GitSourceSyncService
@@ -74,8 +73,8 @@ def _get_file_hash(file_path: Path) -> str:
 
 
 def _find_duplicate_agents_by_content(
-    deployed_agents: List[Path],
-) -> Dict[str, List[Path]]:
+    deployed_agents: list[Path],
+) -> dict[str, list[Path]]:
     """Find agents with identical content (byte-for-byte duplicates).
 
     Args:
@@ -85,7 +84,7 @@ def _find_duplicate_agents_by_content(
         Dictionary mapping content hash to list of files with that content
         (only includes hashes with 2+ files)
     """
-    hash_to_files: Dict[str, List[Path]] = {}
+    hash_to_files: dict[str, list[Path]] = {}
 
     for agent_path in deployed_agents:
         try:
@@ -101,8 +100,8 @@ def _find_duplicate_agents_by_content(
 
 
 def _find_old_underscore_agents(
-    deployed_agents: List[Path], new_agents: List[str]
-) -> List[Path]:
+    deployed_agents: list[Path], new_agents: list[str]
+) -> list[Path]:
     """Find old underscore-named agents that have dash-named equivalents.
 
     Args:
@@ -131,8 +130,8 @@ def _find_old_underscore_agents(
 
 
 def _find_agent_suffix_duplicates(
-    deployed_agents: List[Path], new_agents: List[str]
-) -> List[Path]:
+    deployed_agents: list[Path], new_agents: list[str]
+) -> list[Path]:
     """Find agents with -agent suffix that have non-suffixed equivalents.
 
     For example, if both "research.md" and "research-agent.md" exist,
@@ -146,7 +145,7 @@ def _find_agent_suffix_duplicates(
         List of paths to -agent suffixed files that should be removed
     """
     # Build set of base names (without -agent suffix) from new agents
-    new_base_names: Set[str] = set()
+    new_base_names: set[str] = set()
     for agent in new_agents:
         base = agent.replace(".md", "").replace(".json", "")
         new_base_names.add(base.lower())
@@ -156,7 +155,7 @@ def _find_agent_suffix_duplicates(
             new_base_names.add(stripped.lower())
 
     # Build set of deployed agent base names
-    deployed_base_names: Set[str] = set()
+    deployed_base_names: set[str] = set()
     for agent_path in deployed_agents:
         base = agent_path.stem.lower()
         deployed_base_names.add(base)
@@ -180,7 +179,7 @@ def _find_agent_suffix_duplicates(
     return duplicates
 
 
-def _select_preferred_duplicate(files: List[Path]) -> Tuple[Path, List[Path]]:
+def _select_preferred_duplicate(files: list[Path]) -> tuple[Path, list[Path]]:
     """Select which file to keep among content-identical duplicates.
 
     Prefers:
@@ -197,7 +196,7 @@ def _select_preferred_duplicate(files: List[Path]) -> Tuple[Path, List[Path]]:
     if len(files) < 2:
         return files[0], []
 
-    def score(path: Path) -> Tuple[int, int, str]:
+    def score(path: Path) -> tuple[int, int, str]:
         """Lower score is better."""
         name = path.stem.lower()
         # Prefer dash-named (score 0) over underscore-named (score 1)
@@ -306,8 +305,8 @@ def handle_agents_cleanup(args) -> int:
 
         # Find deployed agents
         deployed_agents = list(target_dir.glob("*.md"))
-        agents_to_remove: List[Path] = []
-        removal_reasons: Dict[Path, str] = {}
+        agents_to_remove: list[Path] = []
+        removal_reasons: dict[Path, str] = {}
 
         # 3a. Find old underscore-named agents
         print("  Checking for underscore-named duplicates...")

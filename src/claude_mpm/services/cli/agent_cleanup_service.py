@@ -17,7 +17,7 @@ DESIGN DECISIONS:
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ...core.logger import get_logger
 
@@ -26,34 +26,32 @@ class IAgentCleanupService(ABC):
     """Interface for agent cleanup operations."""
 
     @abstractmethod
-    def clean_deployed_agents(
-        self, agents_dir: Optional[Path] = None
-    ) -> Dict[str, Any]:
+    def clean_deployed_agents(self, agents_dir: Path | None = None) -> dict[str, Any]:
         """Clean up deployed agents while preserving user-created agents."""
 
     @abstractmethod
     def clean_orphaned_agents(
-        self, agents_dir: Optional[Path] = None, dry_run: bool = True
-    ) -> Dict[str, Any]:
+        self, agents_dir: Path | None = None, dry_run: bool = True
+    ) -> dict[str, Any]:
         """Clean up orphaned agents that don't have templates."""
 
     @abstractmethod
     def get_orphaned_agents(
-        self, agents_dir: Optional[Path] = None
-    ) -> List[Dict[str, Any]]:
+        self, agents_dir: Path | None = None
+    ) -> list[dict[str, Any]]:
         """Find orphaned agents (deployed without templates)."""
 
     @abstractmethod
     def perform_cleanup(
         self,
-        agents_dir: Optional[Path] = None,
+        agents_dir: Path | None = None,
         cleanup_type: str = "all",
         dry_run: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute cleanup with specified options."""
 
     @abstractmethod
-    def validate_cleanup(self, agents_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def validate_cleanup(self, agents_dir: Path | None = None) -> dict[str, Any]:
         """Verify cleanup operation safety before execution."""
 
 
@@ -91,7 +89,7 @@ class AgentCleanupService(IAgentCleanupService):
             self._multi_source_service = MultiSourceAgentDeploymentService()
         return self._multi_source_service
 
-    def _determine_agents_dir(self, agents_dir: Optional[Path] = None) -> Path:
+    def _determine_agents_dir(self, agents_dir: Path | None = None) -> Path:
         """
         Determine the agents directory to use.
 
@@ -112,9 +110,7 @@ class AgentCleanupService(IAgentCleanupService):
         # Fall back to user home directory
         return Path.home() / ".claude" / "agents"
 
-    def clean_deployed_agents(
-        self, agents_dir: Optional[Path] = None
-    ) -> Dict[str, Any]:
+    def clean_deployed_agents(self, agents_dir: Path | None = None) -> dict[str, Any]:
         """
         Clean up deployed agents while preserving user-created agents.
 
@@ -161,8 +157,8 @@ class AgentCleanupService(IAgentCleanupService):
             return {"success": False, "error": str(e), "cleaned_count": 0}
 
     def clean_orphaned_agents(
-        self, agents_dir: Optional[Path] = None, dry_run: bool = True
-    ) -> Dict[str, Any]:
+        self, agents_dir: Path | None = None, dry_run: bool = True
+    ) -> dict[str, Any]:
         """
         Clean up orphaned agents that don't have templates.
 
@@ -212,8 +208,8 @@ class AgentCleanupService(IAgentCleanupService):
             }
 
     def get_orphaned_agents(
-        self, agents_dir: Optional[Path] = None
-    ) -> List[Dict[str, Any]]:
+        self, agents_dir: Path | None = None
+    ) -> list[dict[str, Any]]:
         """
         Find orphaned agents (deployed without templates).
 
@@ -246,10 +242,10 @@ class AgentCleanupService(IAgentCleanupService):
 
     def perform_cleanup(
         self,
-        agents_dir: Optional[Path] = None,
+        agents_dir: Path | None = None,
         cleanup_type: str = "all",
         dry_run: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute cleanup with specified options.
 
@@ -320,7 +316,7 @@ class AgentCleanupService(IAgentCleanupService):
                 "operations": [],
             }
 
-    def validate_cleanup(self, agents_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def validate_cleanup(self, agents_dir: Path | None = None) -> dict[str, Any]:
         """
         Verify cleanup operation safety before execution.
 

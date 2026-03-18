@@ -19,7 +19,7 @@ USAGE:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -64,8 +64,8 @@ class NativeAgentConverter:
         self.logger = get_logger(__name__)
 
     def convert_mpm_agent_to_native(
-        self, agent_config: Dict[str, Any], agent_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, agent_config: dict[str, Any], agent_id: str | None = None
+    ) -> dict[str, Any]:
         """Convert a single MPM agent config to Claude native format.
 
         Args:
@@ -120,7 +120,7 @@ class NativeAgentConverter:
                 "model": "sonnet",
             }
 
-    def _build_agent_prompt(self, agent_config: Dict[str, Any]) -> str:
+    def _build_agent_prompt(self, agent_config: dict[str, Any]) -> str:
         """Build agent prompt from instructions and BASE_*.md reference.
 
         OPTIMIZATION: Keep prompts concise for CLI argument length limits.
@@ -156,7 +156,7 @@ class NativeAgentConverter:
 
         return "\n".join(str(part) for part in prompt_parts if part)
 
-    def _extract_and_map_tools(self, agent_config: Dict[str, Any]) -> List[str]:
+    def _extract_and_map_tools(self, agent_config: dict[str, Any]) -> list[str]:
         """Extract and map tools from MPM config to Claude tool names.
 
         Args:
@@ -181,7 +181,7 @@ class NativeAgentConverter:
 
         return tools
 
-    def _map_model_tier(self, agent_config: Dict[str, Any]) -> str:
+    def _map_model_tier(self, agent_config: dict[str, Any]) -> str:
         """Map MPM model tier to Claude model name.
 
         Args:
@@ -206,7 +206,7 @@ class NativeAgentConverter:
         # Default to sonnet
         return "sonnet"
 
-    def generate_agents_json(self, agents: List[Dict[str, Any]]) -> str:
+    def generate_agents_json(self, agents: list[dict[str, Any]]) -> str:
         """Generate complete --agents JSON string from list of agent configs.
 
         Args:
@@ -234,7 +234,7 @@ class NativeAgentConverter:
         return json.dumps(native_agents, separators=(",", ":"))
 
     def build_agents_flag(
-        self, agents: List[Dict[str, Any]], escape_for_shell: bool = True
+        self, agents: list[dict[str, Any]], escape_for_shell: bool = True
     ) -> str:
         """Build complete --agents flag for CLI.
 
@@ -261,8 +261,8 @@ class NativeAgentConverter:
         return f"--agents {agents_json}"
 
     def load_agents_from_templates(
-        self, templates_dir: Optional[Path] = None
-    ) -> List[Dict[str, Any]]:
+        self, templates_dir: Path | None = None
+    ) -> list[dict[str, Any]]:
         """Load all agent configs from templates directory.
 
         Args:
@@ -303,7 +303,7 @@ class NativeAgentConverter:
 
         return agents
 
-    def estimate_json_size(self, agents: List[Dict[str, Any]]) -> int:
+    def estimate_json_size(self, agents: list[dict[str, Any]]) -> int:
         """Estimate the size of --agents JSON output.
 
         Args:
@@ -315,7 +315,7 @@ class NativeAgentConverter:
         agents_json = self.generate_agents_json(agents)
         return len(agents_json.encode("utf-8"))
 
-    def get_conversion_summary(self, agents: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def get_conversion_summary(self, agents: list[dict[str, Any]]) -> dict[str, Any]:
         """Get summary of agent conversion for reporting.
 
         Args:

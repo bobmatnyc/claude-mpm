@@ -13,7 +13,7 @@ DESIGN DECISIONS:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 class SessionResumeStartupHook:
     """Hook for automatic session resume detection on PM startup."""
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize the session resume hook.
 
         Args:
@@ -44,7 +44,7 @@ class SessionResumeStartupHook:
         self._session_displayed = False
         self.sessions_dir = self.project_path / ".claude-mpm" / "sessions"
 
-    def _format_task_list_summary(self, task_list: Dict[str, Any]) -> str:
+    def _format_task_list_summary(self, task_list: dict[str, Any]) -> str:
         """Format task list state for display.
 
         Args:
@@ -60,7 +60,7 @@ class SessionResumeStartupHook:
         if not task_list:
             return ""
 
-        lines: List[str] = []
+        lines: list[str] = []
         pending_tasks = task_list.get("pending_tasks", [])
         in_progress_tasks = task_list.get("in_progress_tasks", [])
 
@@ -89,7 +89,7 @@ class SessionResumeStartupHook:
 
         return "\n".join(lines)
 
-    def check_for_active_pause(self) -> Optional[Dict[str, Any]]:
+    def check_for_active_pause(self) -> dict[str, Any] | None:
         """Check for an active incremental pause session.
 
         Returns:
@@ -134,7 +134,7 @@ class SessionResumeStartupHook:
             logger.error(f"Failed to parse ACTIVE-PAUSE.jsonl: {e}", exc_info=True)
             return None
 
-    def display_active_pause_warning(self, pause_info: Dict[str, Any]) -> None:
+    def display_active_pause_warning(self, pause_info: dict[str, Any]) -> None:
         """Display warning about active incremental pause session.
 
         Args:
@@ -162,7 +162,7 @@ class SessionResumeStartupHook:
         _log("  3. Use /mpm-init pause --discard to abandon")
         _log("=" * 60 + "\n")
 
-    def on_pm_startup(self) -> Optional[Dict[str, Any]]:
+    def on_pm_startup(self) -> dict[str, Any] | None:
         """Execute on PM startup to check for paused sessions.
 
         Checks in priority order:
@@ -211,7 +211,7 @@ class SessionResumeStartupHook:
             logger.error(f"Failed to get session count: {e}")
             return 0
 
-    def clear_displayed_session(self, session_data: Dict[str, Any]) -> bool:
+    def clear_displayed_session(self, session_data: dict[str, Any]) -> bool:
         """Clear a session after it has been displayed and user has acknowledged.
 
         Args:
@@ -228,11 +228,11 @@ class SessionResumeStartupHook:
 
 
 # Global hook instance
-_session_resume_hook: Optional[SessionResumeStartupHook] = None
+_session_resume_hook: SessionResumeStartupHook | None = None
 
 
 def get_session_resume_hook(
-    project_path: Optional[Path] = None,
+    project_path: Path | None = None,
 ) -> SessionResumeStartupHook:
     """Get or create the global session resume hook instance.
 
@@ -251,7 +251,7 @@ def get_session_resume_hook(
     return _session_resume_hook
 
 
-def trigger_session_resume_check() -> Optional[Dict[str, Any]]:
+def trigger_session_resume_check() -> dict[str, Any] | None:
     """Trigger a session resume check (convenience function).
 
     This is the main entry point for PM startup integration.

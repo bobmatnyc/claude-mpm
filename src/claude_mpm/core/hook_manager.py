@@ -19,8 +19,8 @@ import queue
 import subprocess  # nosec B404
 import threading
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from ..core.logger import get_logger
 from ..services.event_bus.event_bus import EventBus
@@ -107,7 +107,7 @@ class HookManager:
         self.logger.debug("Started background hook processor thread")
 
     def _publish_error_event(
-        self, hook_type: str, error_info: Dict[str, str], suggestion: str
+        self, hook_type: str, error_info: dict[str, str], suggestion: str
     ):
         """Publish hook error event to event log and event bus.
 
@@ -145,7 +145,7 @@ class HookManager:
             # Don't let event publishing break hook processing
             self.logger.debug(f"Failed to publish error event: {e}")
 
-    def _execute_hook_sync(self, hook_data: Dict[str, Any]):
+    def _execute_hook_sync(self, hook_data: dict[str, Any]):
         """Execute a single hook synchronously in the background thread with error detection.
 
         WHY error detection:
@@ -175,9 +175,7 @@ class HookManager:
             hook_event = {
                 "hook_event_name": hook_type,
                 "session_id": self.session_id,
-                "timestamp": hook_data.get(
-                    "timestamp", datetime.now(timezone.utc).isoformat()
-                ),
+                "timestamp": hook_data.get("timestamp", datetime.now(UTC).isoformat()),
                 **event_data,
             }
 
@@ -239,7 +237,7 @@ class HookManager:
             self.background_thread.join(timeout=2.0)
             self.logger.debug("Background hook processor shutdown")
 
-    def _find_hook_handler(self) -> Optional[Path]:
+    def _find_hook_handler(self) -> Path | None:
         """Find the hook handler script."""
         try:
             # Look for hook handler in the expected location
@@ -256,7 +254,7 @@ class HookManager:
             return None
 
     def trigger_pre_tool_hook(
-        self, tool_name: str, tool_args: Optional[Dict[str, Any]] = None
+        self, tool_name: str, tool_args: dict[str, Any] | None = None
     ) -> bool:
         """Trigger PreToolUse hook event.
 
@@ -272,7 +270,7 @@ class HookManager:
             {
                 "tool_name": tool_name,
                 "tool_args": tool_args or {},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -295,7 +293,7 @@ class HookManager:
                 "tool_name": tool_name,
                 "exit_code": exit_code,
                 "result": str(result) if result is not None else None,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -310,10 +308,10 @@ class HookManager:
         """
         return self._trigger_hook_event(
             "UserPromptSubmit",
-            {"prompt": prompt, "timestamp": datetime.now(timezone.utc).isoformat()},
+            {"prompt": prompt, "timestamp": datetime.now(UTC).isoformat()},
         )
 
-    def _trigger_hook_event(self, hook_type: str, event_data: Dict[str, Any]) -> bool:
+    def _trigger_hook_event(self, hook_type: str, event_data: dict[str, Any]) -> bool:
         """Trigger a hook event by queuing it for background processing.
 
         This method uses a background queue to process hooks asynchronously,
@@ -340,7 +338,7 @@ class HookManager:
             hook_data = {
                 "hook_type": hook_type,
                 "event_data": event_data,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             # Try to queue without blocking
@@ -359,7 +357,7 @@ class HookManager:
 
 
 # Global instance
-_hook_manager: Optional[HookManager] = None
+_hook_manager: HookManager | None = None
 
 
 def get_hook_manager() -> HookManager:
@@ -384,7 +382,7 @@ def _cleanup_hook_manager():
 
 def trigger_tool_hooks(
     tool_name: str,
-    tool_args: Optional[Dict[str, Any]] = None,
+    tool_args: dict[str, Any] | None = None,
     result: Any = None,
     exit_code: int = 0,
 ):

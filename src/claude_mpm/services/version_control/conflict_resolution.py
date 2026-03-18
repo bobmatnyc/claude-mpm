@@ -15,7 +15,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class ConflictType(Enum):
@@ -46,9 +46,9 @@ class ConflictMarker:
     start_line: int
     conflict_marker: int
     end_line: int
-    ours_content: List[str]
-    theirs_content: List[str]
-    base_content: Optional[List[str]] = None
+    ours_content: list[str]
+    theirs_content: list[str]
+    base_content: list[str] | None = None
 
 
 @dataclass
@@ -57,12 +57,12 @@ class FileConflict:
 
     file_path: str
     conflict_type: ConflictType
-    markers: List[ConflictMarker] = field(default_factory=list)
-    our_version: Optional[str] = None
-    their_version: Optional[str] = None
-    base_version: Optional[str] = None
+    markers: list[ConflictMarker] = field(default_factory=list)
+    our_version: str | None = None
+    their_version: str | None = None
+    base_version: str | None = None
     binary_conflict: bool = False
-    resolution_suggestion: Optional[str] = None
+    resolution_suggestion: str | None = None
     auto_resolvable: bool = False
 
 
@@ -72,7 +72,7 @@ class ConflictResolution:
 
     file_path: str
     strategy: ResolutionStrategy
-    resolved_content: Optional[str] = None
+    resolved_content: str | None = None
     success: bool = False
     message: str = ""
     manual_intervention_required: bool = False
@@ -84,8 +84,8 @@ class ConflictAnalysis:
     """Analysis of merge conflicts."""
 
     total_conflicts: int
-    conflicted_files: List[str]
-    file_conflicts: List[FileConflict]
+    conflicted_files: list[str]
+    file_conflicts: list[FileConflict]
     auto_resolvable_count: int
     manual_resolution_count: int
     conflict_severity: str  # low, medium, high
@@ -230,7 +230,7 @@ class ConflictResolutionManager:
                 estimated_resolution_time=0,
             )
 
-    def _get_conflicted_files(self) -> List[str]:
+    def _get_conflicted_files(self) -> list[str]:
         """Get list of files with merge conflicts."""
         import subprocess
 
@@ -332,7 +332,7 @@ class ConflictResolutionManager:
 
         return False
 
-    def _parse_conflict_markers(self, content: str) -> List[ConflictMarker]:
+    def _parse_conflict_markers(self, content: str) -> list[ConflictMarker]:
         """Parse conflict markers from file content."""
         lines = content.split("\n")
         markers = []
@@ -390,7 +390,7 @@ class ConflictResolutionManager:
         return ConflictType.CONTENT
 
     def _is_auto_resolvable(
-        self, file_path: str, markers: List[ConflictMarker]
+        self, file_path: str, markers: list[ConflictMarker]
     ) -> bool:
         """Determine if conflict can be automatically resolved."""
         file_ext = Path(file_path).suffix.lower()
@@ -422,13 +422,13 @@ class ConflictResolutionManager:
         # Check if differences are only imports
         return bool(self._only_import_differences(ours_lines, theirs_lines))
 
-    def _only_whitespace_differences(self, ours: List[str], theirs: List[str]) -> bool:
+    def _only_whitespace_differences(self, ours: list[str], theirs: list[str]) -> bool:
         """Check if differences are only whitespace."""
         ours_stripped = [line.strip() for line in ours]
         theirs_stripped = [line.strip() for line in theirs]
         return ours_stripped == theirs_stripped
 
-    def _only_comment_differences(self, ours: List[str], theirs: List[str]) -> bool:
+    def _only_comment_differences(self, ours: list[str], theirs: list[str]) -> bool:
         """Check if differences are only in comments."""
         # This is a simplified check
         for line in ours + theirs:
@@ -437,7 +437,7 @@ class ConflictResolutionManager:
                 return False
         return True
 
-    def _only_import_differences(self, ours: List[str], theirs: List[str]) -> bool:
+    def _only_import_differences(self, ours: list[str], theirs: list[str]) -> bool:
         """Check if differences are only in import statements."""
         import_pattern = re.compile(r"^\s*(import|from|#include)")
 
@@ -448,7 +448,7 @@ class ConflictResolutionManager:
         return True
 
     def _generate_resolution_suggestion(
-        self, file_path: str, markers: List[ConflictMarker]
+        self, file_path: str, markers: list[ConflictMarker]
     ) -> str:
         """Generate resolution suggestion for a file."""
         if not markers:
@@ -474,7 +474,7 @@ class ConflictResolutionManager:
 
         return "; ".join(suggestions)
 
-    def _calculate_severity(self, file_conflicts: List[FileConflict]) -> str:
+    def _calculate_severity(self, file_conflicts: list[FileConflict]) -> str:
         """Calculate conflict severity."""
         if not file_conflicts:
             return "none"
@@ -496,7 +496,7 @@ class ConflictResolutionManager:
         # Low severity: mostly auto-resolvable
         return "low"
 
-    def _calculate_complexity(self, file_conflicts: List[FileConflict]) -> str:
+    def _calculate_complexity(self, file_conflicts: list[FileConflict]) -> str:
         """Calculate resolution complexity."""
         if not file_conflicts:
             return "none"
@@ -511,7 +511,7 @@ class ConflictResolutionManager:
             return "moderate"
         return "complex"
 
-    def _estimate_resolution_time(self, file_conflicts: List[FileConflict]) -> int:
+    def _estimate_resolution_time(self, file_conflicts: list[FileConflict]) -> int:
         """Estimate resolution time in minutes."""
         if not file_conflicts:
             return 0
@@ -532,9 +532,9 @@ class ConflictResolutionManager:
 
     def resolve_conflicts_automatically(
         self,
-        file_conflicts: List[FileConflict],
+        file_conflicts: list[FileConflict],
         strategy: ResolutionStrategy = ResolutionStrategy.AUTO_MERGE,
-    ) -> List[ConflictResolution]:
+    ) -> list[ConflictResolution]:
         """
         Automatically resolve conflicts where possible.
 
@@ -635,7 +635,7 @@ class ConflictResolutionManager:
             return False
 
     def _apply_resolution_strategy(
-        self, content: str, markers: List[ConflictMarker], strategy: ResolutionStrategy
+        self, content: str, markers: list[ConflictMarker], strategy: ResolutionStrategy
     ) -> str:
         """Apply resolution strategy to content."""
         lines = content.split("\n")
@@ -660,7 +660,7 @@ class ConflictResolutionManager:
 
         return "\n".join(lines)
 
-    def _smart_merge(self, marker: ConflictMarker) -> List[str]:
+    def _smart_merge(self, marker: ConflictMarker) -> list[str]:
         """Perform smart merge of conflict marker."""
         ours = marker.ours_content
         theirs = marker.theirs_content
@@ -723,7 +723,7 @@ class ConflictResolutionManager:
 
         return "\n".join(report_lines)
 
-    def get_resolution_guidance(self, file_path: str) -> Dict[str, Any]:
+    def get_resolution_guidance(self, file_path: str) -> dict[str, Any]:
         """Get detailed resolution guidance for a specific file."""
         full_path = self.project_root / file_path
 

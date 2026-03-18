@@ -18,9 +18,10 @@ import json
 import pickle
 import threading
 from collections import OrderedDict
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from datetime import UTC, datetime
+from typing import Any, TypeVar
 
 from ..core.logger import get_logger
 
@@ -37,18 +38,18 @@ class CacheEntry:
     created_at: datetime = field(default_factory=datetime.now)
     last_accessed: datetime = field(default_factory=datetime.now)
     access_count: int = 0
-    ttl: Optional[float] = None
+    ttl: float | None = None
 
     def is_expired(self) -> bool:
         """Check if entry has expired based on TTL."""
         if self.ttl is None:
             return False
-        age = (datetime.now(timezone.utc) - self.created_at).total_seconds()
+        age = (datetime.now(UTC) - self.created_at).total_seconds()
         return age > self.ttl
 
     def touch(self):
         """Update last access time and increment counter."""
-        self.last_accessed = datetime.now(timezone.utc)
+        self.last_accessed = datetime.now(UTC)
         self.access_count += 1
 
 
@@ -96,8 +97,8 @@ class FileSystemCache:
         self,
         max_size_mb: float = 100,
         max_entries: int = 10000,
-        default_ttl: Optional[float] = None,
-        persist_path: Optional[Path] = None,
+        default_ttl: float | None = None,
+        persist_path: Path | None = None,
     ):
         """Initialize file system cache.
 
@@ -165,7 +166,7 @@ class FileSystemCache:
                 self._stats.entry_count -= 1
                 self._logger.debug(f"Expired cache entry: {key}")
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get value from cache.
 
         Args:
@@ -196,7 +197,7 @@ class FileSystemCache:
             self._stats.hits += 1
             return entry.value
 
-    def put(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    def put(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Store value in cache.
 
         Args:
@@ -232,7 +233,7 @@ class FileSystemCache:
             self._evict_lru()
 
     def get_or_compute(
-        self, key: str, compute_fn: Callable[[], T], ttl: Optional[float] = None
+        self, key: str, compute_fn: Callable[[], T], ttl: float | None = None
     ) -> T:
         """Get from cache or compute if missing.
 
@@ -259,11 +260,11 @@ class FileSystemCache:
 
     def get_file(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         mode: str = "r",
         encoding: str = "utf-8",
-        ttl: Optional[float] = None,
-    ) -> Optional[Any]:
+        ttl: float | None = None,
+    ) -> Any | None:
         """Get file content from cache or read from disk.
 
         Args:
@@ -300,8 +301,8 @@ class FileSystemCache:
         return self.get_or_compute(cache_key, read_file, ttl)
 
     def get_json(
-        self, file_path: Union[str, Path], ttl: Optional[float] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, file_path: str | Path, ttl: float | None = None
+    ) -> dict[str, Any] | None:
         """Get JSON file content from cache or parse from disk.
 
         Args:
@@ -368,7 +369,7 @@ class FileSystemCache:
             self._stats = CacheStats()
             self._logger.info("Cache cleared")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         with self._lock:
             # Clean up expired entries first
@@ -404,7 +405,7 @@ class FileSystemCache:
 
         try:
             with self.persist_path.open("rb") as f:
-                loaded_cache = pickle.load(f)
+                loaded_cache = pickle.load(f)  # nosec
 
             # Rebuild cache with validation
             for key, entry in loaded_cache.items():
@@ -428,7 +429,7 @@ class AsyncFileSystemCache:
         self,
         max_size_mb: float = 100,
         max_entries: int = 10000,
-        default_ttl: Optional[float] = None,
+        default_ttl: float | None = None,
     ):
         self.sync_cache = FileSystemCache(
             max_size_mb=max_size_mb, max_entries=max_entries, default_ttl=default_ttl
@@ -436,21 +437,21 @@ class AsyncFileSystemCache:
         self._lock = asyncio.Lock()
         self._logger = get_logger("async_fs_cache")
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get value from cache asynchronously."""
         async with self._lock:
             # Run in executor to avoid blocking
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, self.sync_cache.get, key)
 
-    async def put(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
+    async def put(self, key: str, value: Any, ttl: float | None = None) -> None:
         """Store value in cache asynchronously."""
         async with self._lock:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self.sync_cache.put, key, value, ttl)
 
     async def get_or_compute(
-        self, key: str, compute_fn: Callable[[], T], ttl: Optional[float] = None
+        self, key: str, compute_fn: Callable[[], T], ttl: float | None = None
     ) -> T:
         """Get from cache or compute asynchronously."""
         # Try cache first
@@ -472,11 +473,11 @@ class AsyncFileSystemCache:
 
     async def get_file(
         self,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         mode: str = "r",
         encoding: str = "utf-8",
-        ttl: Optional[float] = None,
-    ) -> Optional[Any]:
+        ttl: float | None = None,
+    ) -> Any | None:
         """Get file content asynchronously."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
@@ -485,12 +486,12 @@ class AsyncFileSystemCache:
 
 
 # Global cache instances
-_file_cache: Optional[FileSystemCache] = None
-_async_cache: Optional[AsyncFileSystemCache] = None
+_file_cache: FileSystemCache | None = None
+_async_cache: AsyncFileSystemCache | None = None
 
 
 def get_file_cache(
-    max_size_mb: float = 100, default_ttl: Optional[float] = 300
+    max_size_mb: float = 100, default_ttl: float | None = 300
 ) -> FileSystemCache:
     """Get or create global file cache instance.
 
@@ -516,7 +517,7 @@ def get_file_cache(
 
 
 def get_async_cache(
-    max_size_mb: float = 100, default_ttl: Optional[float] = 300
+    max_size_mb: float = 100, default_ttl: float | None = 300
 ) -> AsyncFileSystemCache:
     """Get or create global async cache instance."""
     global _async_cache
@@ -527,7 +528,7 @@ def get_async_cache(
     return _async_cache
 
 
-def cache_decorator(ttl: Optional[float] = None, key_prefix: str = ""):
+def cache_decorator(ttl: float | None = None, key_prefix: str = ""):
     """Decorator for caching function results.
 
     Args:

@@ -33,7 +33,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -58,7 +58,7 @@ class InfrastructureComplianceMetric(BaseMetric):
     """
 
     # Docker best practices patterns
-    DOCKER_PATTERNS: List[str] = [
+    DOCKER_PATTERNS: list[str] = [
         r"FROM\s+[\w/-]+:[\d\.]+-[\w]+",  # Specific tag (not latest)
         r"FROM\s+node:20\.[\d]+-alpine",  # Example specific tag
         r"FROM.*AS\s+\w+",  # Multi-stage build
@@ -72,7 +72,7 @@ class InfrastructureComplianceMetric(BaseMetric):
     ]
 
     # Kubernetes best practices patterns
-    K8S_PATTERNS: List[str] = [
+    K8S_PATTERNS: list[str] = [
         r"resources:\s*\n\s*(?:limits|requests)",
         r"resource\s+limit",
         r"livenessProbe:",
@@ -87,7 +87,7 @@ class InfrastructureComplianceMetric(BaseMetric):
     ]
 
     # CI/CD pipeline patterns
-    CICD_PATTERNS: List[str] = [
+    CICD_PATTERNS: list[str] = [
         r"(?:npm test|pytest|cargo test)",
         r"automated\s+test",
         r"(?:CodeQL|Snyk|Trivy)",
@@ -102,7 +102,7 @@ class InfrastructureComplianceMetric(BaseMetric):
     ]
 
     # Secrets management patterns
-    SECRETS_PATTERNS: List[str] = [
+    SECRETS_PATTERNS: list[str] = [
         r"(?:aws-secretsmanager|vault|secrets-manager)",
         r"secret\s+manager",
         r"git\s+secrets\s+--scan",
@@ -116,7 +116,7 @@ class InfrastructureComplianceMetric(BaseMetric):
     ]
 
     # Security scanning patterns
-    SECURITY_SCAN_PATTERNS: List[str] = [
+    SECURITY_SCAN_PATTERNS: list[str] = [
         r"(?:npm audit|safety|snyk test)",
         r"dependency\s+scan",
         r"(?:trivy|grype|clair)",
@@ -137,21 +137,21 @@ class InfrastructureComplianceMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.85 for 85% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Infrastructure Compliance"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

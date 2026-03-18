@@ -11,7 +11,8 @@ WHY Protocol-based DI:
 - Supports static type checking with mypy
 """
 
-from typing import Any, Callable, Optional, Protocol, runtime_checkable
+from collections.abc import Callable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -32,7 +33,7 @@ class IStateManager(Protocol):
     events_processed: int
 
     def track_delegation(
-        self, session_id: str, agent_type: str, request_data: Optional[dict] = None
+        self, session_id: str, agent_type: str, request_data: dict | None = None
     ) -> None:
         """Track a new agent delegation with optional request data."""
         ...
@@ -45,11 +46,11 @@ class IStateManager(Protocol):
         """Clean up old entries to prevent memory growth."""
         ...
 
-    def get_git_branch(self, working_dir: Optional[str] = None) -> str:
+    def get_git_branch(self, working_dir: str | None = None) -> str:
         """Get git branch for the given directory with caching."""
         ...
 
-    def find_matching_request(self, session_id: str) -> Optional[dict]:
+    def find_matching_request(self, session_id: str) -> dict | None:
         """Find matching request data for a session, with fuzzy matching fallback."""
         ...
 
@@ -110,9 +111,9 @@ class IResponseTrackingManager(Protocol):
     """
 
     response_tracking_enabled: bool
-    response_tracker: Optional[Any]
+    response_tracker: Any | None
     track_all_interactions: bool
-    auto_pause_handler: Optional[Any]
+    auto_pause_handler: Any | None
 
     def track_agent_response(
         self,
@@ -206,7 +207,7 @@ class IAutoPauseHandler(Protocol):
         """Record an assistant response for auto-pause tracking."""
         ...
 
-    def on_usage_update(self, usage: dict) -> Optional[str]:
+    def on_usage_update(self, usage: dict) -> str | None:
         """Update usage metrics and return threshold crossed if any."""
         ...
 
@@ -214,7 +215,7 @@ class IAutoPauseHandler(Protocol):
         """Emit a warning for a crossed threshold."""
         ...
 
-    def on_session_end(self) -> Optional[Any]:
+    def on_session_end(self) -> Any | None:
         """Finalize the current auto-pause session."""
         ...
 
@@ -239,7 +240,7 @@ class IEventHandlers(Protocol):
         """Handle user prompt with comprehensive data capture."""
         ...
 
-    def handle_pre_tool_fast(self, event: dict) -> Optional[dict]:
+    def handle_pre_tool_fast(self, event: dict) -> dict | None:
         """Handle pre-tool use with comprehensive data capture."""
         ...
 
@@ -283,9 +284,7 @@ class ILogManager(Protocol):
     Used for logging agent prompts and responses.
     """
 
-    async def log_prompt(
-        self, source: str, content: str, metadata: dict
-    ) -> Optional[Any]:
+    async def log_prompt(self, source: str, content: str, metadata: dict) -> Any | None:
         """Log a prompt to the log manager."""
         ...
 

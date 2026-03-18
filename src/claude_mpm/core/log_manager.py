@@ -17,11 +17,11 @@ DESIGN DECISIONS:
 import asyncio
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from queue import Full, Queue
 from threading import Lock, Thread
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -57,7 +57,7 @@ class LogManager:
     DEFAULT_PROMPT_RETENTION_HOURS = 168  # 7 days for prompts
     DEFAULT_SESSION_RETENTION_HOURS = 168  # 7 days for sessions
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         """
         Initialize the LogManager with configuration.
 
@@ -72,13 +72,13 @@ class LogManager:
         self.cleanup_queue: Queue = Queue(maxsize=100)
 
         # Thread management
-        self._write_thread: Optional[Thread] = None
-        self._cleanup_thread: Optional[Thread] = None
+        self._write_thread: Thread | None = None
+        self._cleanup_thread: Thread | None = None
         self._shutdown = False
         self._lock = Lock()
 
         # Cache for directory paths
-        self._dir_cache: Dict[str, Path] = {}
+        self._dir_cache: dict[str, Path] = {}
 
         # Start background threads
         self._start_background_threads()
@@ -304,7 +304,7 @@ class LogManager:
             return 0
 
         # Calculate cutoff time
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=retention_hours)
+        cutoff_time = datetime.now(UTC) - timedelta(hours=retention_hours)
 
         # Schedule async cleanup
         deleted_count = await self._async_cleanup(directory, pattern, cutoff_time)
@@ -346,7 +346,7 @@ class LogManager:
                     try:
                         # Check file modification time
                         mtime = datetime.fromtimestamp(
-                            file_path.stat().st_mtime, tz=timezone.utc
+                            file_path.stat().st_mtime, tz=UTC
                         )
                         if mtime < cutoff_time:
                             file_path.unlink()
@@ -380,7 +380,7 @@ class LogManager:
             return 0
 
         # Calculate cutoff time
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=retention_hours)
+        cutoff_time = datetime.now(UTC) - timedelta(hours=retention_hours)
         deleted_count = 0
 
         try:
@@ -396,9 +396,7 @@ class LogManager:
 
                 try:
                     # Check file modification time
-                    mtime = datetime.fromtimestamp(
-                        file_path.stat().st_mtime, tz=timezone.utc
-                    )
+                    mtime = datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC)
                     if mtime < cutoff_time:
                         file_path.unlink()
                         deleted_count += 1
@@ -462,8 +460,8 @@ class LogManager:
             logger.debug(f"MPM log migration skipped: {e}")
 
     async def log_prompt(
-        self, prompt_type: str, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> Optional[Path]:
+        self, prompt_type: str, content: str, metadata: dict[str, Any] | None = None
+    ) -> Path | None:
         """
         Save prompts to prompts directory.
 
@@ -480,7 +478,7 @@ class LogManager:
             prompts_dir = await self.setup_logging("prompts")
 
             # Generate filename with timestamp
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")[
                 :-3
             ]  # Microseconds to milliseconds
 
@@ -506,7 +504,7 @@ class LogManager:
 
             # Prepare prompt data
             prompt_data = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "type": prompt_type,
                 "content": content,
                 "metadata": metadata or {},
@@ -579,12 +577,12 @@ class LogManager:
             message: Log message to write
             level: Log level (INFO, WARNING, ERROR, DEBUG)
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         log_entry = f"[{timestamp}] [{level}] {message}\n"
 
         # Get appropriate log file based on context
         log_dir = self._get_log_directory("mpm")
-        log_file = log_dir / f"mpm_{datetime.now(timezone.utc).strftime('%Y%m%d')}.log"
+        log_file = log_dir / f"mpm_{datetime.now(UTC).strftime('%Y%m%d')}.log"
 
         def write_task():
             try:
@@ -602,7 +600,7 @@ class LogManager:
             getattr(logger, level.lower(), logger.info)(message)
 
     def cleanup_old_startup_logs(
-        self, project_root: Optional[Path] = None, keep_hours: Optional[int] = None
+        self, project_root: Path | None = None, keep_hours: int | None = None
     ) -> int:
         """
         Replacement for the old cleanup_old_startup_logs function.
@@ -630,7 +628,7 @@ class LogManager:
         return self._sync_cleanup_old_logs(log_dir, "startup-*.log", keep_hours)
 
     def cleanup_old_mpm_logs(
-        self, log_dir: Optional[Path] = None, keep_hours: Optional[int] = None
+        self, log_dir: Path | None = None, keep_hours: int | None = None
     ) -> int:
         """
         Replacement for the old cleanup_old_mpm_logs function.
@@ -686,7 +684,7 @@ class LogManager:
 
 
 # Global singleton instance
-_log_manager_instance: Optional[LogManager] = None
+_log_manager_instance: LogManager | None = None
 _log_manager_lock = Lock()
 
 

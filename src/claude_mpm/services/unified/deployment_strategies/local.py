@@ -13,9 +13,9 @@ Consolidates functionality from:
 import json
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -60,9 +60,9 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         )
         super().__init__(metadata)
         self._logger = get_logger(f"{__name__}.LocalDeploymentStrategy")
-        self._backups: Dict[str, Path] = {}
+        self._backups: dict[str, Path] = {}
 
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """
         Validate local deployment configuration.
 
@@ -108,7 +108,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """
         Prepare deployment artifacts.
 
@@ -142,8 +142,8 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         return artifacts
 
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """
         Execute local deployment.
 
@@ -184,11 +184,11 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             "deployed_path": target_path,
             "deployed_files": deployed_files,
             "artifacts": [str(a) for a in artifacts],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """
         Verify local deployment success.
@@ -260,7 +260,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             self._logger.error(f"Rollback failed: {e!s}")
             return False
 
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """
         Get health status of local deployment.
 
@@ -301,7 +301,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     def _check_write_permission(self, path: Path) -> bool:
         """Check if we have write permission to path."""
         try:
-            test_file = path / f".write_test_{datetime.now(timezone.utc).timestamp()}"
+            test_file = path / f".write_test_{datetime.now(UTC).timestamp()}"
             test_file.touch()
             test_file.unlink()
             return True
@@ -310,9 +310,9 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
-        return f"local_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+        return f"local_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
 
-    def _create_backup(self, context: DeploymentContext) -> Optional[Path]:
+    def _create_backup(self, context: DeploymentContext) -> Path | None:
         """Create backup of target before deployment."""
         target_path = Path(context.target)
 
@@ -323,7 +323,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
             backup_dir = Path(tempfile.gettempdir()) / "claude_mpm_backups"
             backup_dir.mkdir(parents=True, exist_ok=True)
 
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_name = f"{target_path.name}.backup_{timestamp}"
             backup_path = backup_dir / backup_name
 
@@ -342,13 +342,11 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     def _write_version_file(self, target_path: Path, version: str) -> None:
         """Write version file to deployment."""
         version_file = target_path / ".version"
-        version_file.write_text(
-            f"{version}\n{datetime.now(timezone.utc).isoformat()}\n"
-        )
+        version_file.write_text(f"{version}\n{datetime.now(UTC).isoformat()}\n")
 
     # Agent deployment methods (consolidating agent_deployment.py patterns)
 
-    def _validate_agent_deployment(self, context: DeploymentContext) -> List[str]:
+    def _validate_agent_deployment(self, context: DeploymentContext) -> list[str]:
         """Validate agent deployment specifics."""
         errors = []
         source_path = Path(context.source)
@@ -369,7 +367,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def _prepare_agent_artifacts(self, context: DeploymentContext) -> List[Path]:
+    def _prepare_agent_artifacts(self, context: DeploymentContext) -> list[Path]:
         """Prepare agent deployment artifacts."""
         source_path = Path(context.source)
         artifacts = []
@@ -384,8 +382,8 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         return artifacts
 
     def _deploy_agent(
-        self, context: DeploymentContext, artifacts: List[Path], target_path: Path
-    ) -> List[Path]:
+        self, context: DeploymentContext, artifacts: list[Path], target_path: Path
+    ) -> list[Path]:
         """Deploy agent files."""
         deployed = []
 
@@ -437,7 +435,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
     # Config deployment methods
 
-    def _validate_config_deployment(self, context: DeploymentContext) -> List[str]:
+    def _validate_config_deployment(self, context: DeploymentContext) -> list[str]:
         """Validate config deployment."""
         errors = []
         source_path = Path(context.source)
@@ -456,13 +454,13 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def _prepare_config_artifacts(self, context: DeploymentContext) -> List[Path]:
+    def _prepare_config_artifacts(self, context: DeploymentContext) -> list[Path]:
         """Prepare config artifacts."""
         return [Path(context.source)]
 
     def _deploy_config(
-        self, context: DeploymentContext, artifacts: List[Path], target_path: Path
-    ) -> List[Path]:
+        self, context: DeploymentContext, artifacts: list[Path], target_path: Path
+    ) -> list[Path]:
         """Deploy configuration files."""
         deployed = []
 
@@ -491,7 +489,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
     # Template deployment methods
 
-    def _validate_template_deployment(self, context: DeploymentContext) -> List[str]:
+    def _validate_template_deployment(self, context: DeploymentContext) -> list[str]:
         """Validate template deployment."""
         errors = []
 
@@ -501,7 +499,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def _prepare_template_artifacts(self, context: DeploymentContext) -> List[Path]:
+    def _prepare_template_artifacts(self, context: DeploymentContext) -> list[Path]:
         """Prepare template artifacts."""
         source_path = Path(context.source)
         artifacts = []
@@ -524,8 +522,8 @@ class LocalDeploymentStrategy(DeploymentStrategy):
         return artifacts
 
     def _deploy_template(
-        self, context: DeploymentContext, artifacts: List[Path], target_path: Path
-    ) -> List[Path]:
+        self, context: DeploymentContext, artifacts: list[Path], target_path: Path
+    ) -> list[Path]:
         """Deploy template files."""
         deployed = []
 
@@ -565,7 +563,7 @@ class LocalDeploymentStrategy(DeploymentStrategy):
 
         return True
 
-    def _process_template(self, template_path: Path, variables: Dict[str, Any]) -> Path:
+    def _process_template(self, template_path: Path, variables: dict[str, Any]) -> Path:
         """Process template file with variables."""
         content = template_path.read_text()
 
@@ -582,8 +580,8 @@ class LocalDeploymentStrategy(DeploymentStrategy):
     # Resource deployment methods
 
     def _deploy_resources(
-        self, context: DeploymentContext, artifacts: List[Path], target_path: Path
-    ) -> List[Path]:
+        self, context: DeploymentContext, artifacts: list[Path], target_path: Path
+    ) -> list[Path]:
         """Deploy generic resources."""
         deployed = []
 

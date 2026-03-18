@@ -12,7 +12,7 @@ gradual rollout of experimental features while maintaining stability in producti
 
 import json
 import os
-from typing import ClassVar, Dict, Optional
+from typing import ClassVar
 
 
 class ExperimentalFeatures:
@@ -26,7 +26,7 @@ class ExperimentalFeatures:
     """
 
     # Default feature flags
-    DEFAULTS: ClassVar[Dict[str, bool]] = {
+    DEFAULTS: ClassVar[dict[str, bool]] = {
         "enable_mcp_gateway": False,  # MCP Gateway is experimental
         "enable_advanced_aggregation": False,  # Advanced aggregation features
         "show_experimental_warnings": True,  # Show warnings for experimental features
@@ -34,7 +34,7 @@ class ExperimentalFeatures:
     }
 
     # Warning messages for experimental features
-    WARNINGS: ClassVar[Dict[str, str]] = {
+    WARNINGS: ClassVar[dict[str, str]] = {
         "mcp_gateway": (
             "⚠️  EXPERIMENTAL FEATURE: MCP Gateway is in early access.\n"
             "   Tool integration may be unstable. Not recommended for production use."
@@ -45,7 +45,7 @@ class ExperimentalFeatures:
         ),
     }
 
-    def __init__(self, config_file: Optional[Path] = None):
+    def __init__(self, config_file: Path | None = None):
         """Initialize experimental features configuration.
 
         Args:
@@ -98,7 +98,7 @@ class ExperimentalFeatures:
         key = f"enable_{feature}" if not feature.startswith("enable_") else feature
         return self._features.get(key, False)
 
-    def get_warning(self, feature: str) -> Optional[str]:
+    def get_warning(self, feature: str) -> str | None:
         """Get warning message for a feature.
 
         Args:
@@ -173,7 +173,7 @@ class ExperimentalFeatures:
         """
         return self._features.get("require_experimental_acceptance", True)
 
-    def get_all_features(self) -> Dict[str, bool]:
+    def get_all_features(self) -> dict[str, bool]:
         """Get all feature flags and their current values.
 
         Returns:
@@ -187,7 +187,7 @@ _experimental_features = None
 
 
 def get_experimental_features(
-    config_file: Optional[Path] = None,
+    config_file: Path | None = None,
 ) -> ExperimentalFeatures:
     """Get the global experimental features instance.
 

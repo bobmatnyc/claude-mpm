@@ -26,10 +26,9 @@ Integration points:
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.memory.failure_tracker import FailureEvent, get_failure_tracker
@@ -75,12 +74,12 @@ class ErrorAnalysis:
     failure_event: FailureEvent
     category: ErrorCategory
     root_cause: str
-    affected_file: Optional[Path] = None
+    affected_file: Path | None = None
     action_type: ActionType = ActionType.NONE
     fix_suggestion: str = ""
     priority: str = "medium"
     auto_fixable: bool = False
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -102,13 +101,13 @@ class ImprovementAction:
     action_type: ActionType
     error_analysis: ErrorAnalysis
     description: str
-    commands: List[str] = field(default_factory=list)
-    file_changes: Dict[str, str] = field(default_factory=dict)
-    pr_branch: Optional[str] = None
-    pr_title: Optional[str] = None
-    pr_body: Optional[str] = None
+    commands: list[str] = field(default_factory=list)
+    file_changes: dict[str, str] = field(default_factory=dict)
+    pr_branch: str | None = None
+    pr_title: str | None = None
+    pr_body: str | None = None
     status: str = "pending"
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 @dataclass
@@ -129,11 +128,11 @@ class PostmortemReport:
     start_time: datetime
     duration_seconds: float
     total_errors: int
-    analyses: List[ErrorAnalysis] = field(default_factory=list)
-    actions: List[ImprovementAction] = field(default_factory=list)
-    stats: Dict[str, int] = field(default_factory=dict)
+    analyses: list[ErrorAnalysis] = field(default_factory=list)
+    actions: list[ImprovementAction] = field(default_factory=list)
+    stats: dict[str, int] = field(default_factory=dict)
 
-    def get_actions_by_type(self, action_type: ActionType) -> List[ImprovementAction]:
+    def get_actions_by_type(self, action_type: ActionType) -> list[ImprovementAction]:
         """Get all actions of a specific type.
 
         Args:
@@ -144,7 +143,7 @@ class PostmortemReport:
         """
         return [a for a in self.actions if a.action_type == action_type]
 
-    def get_analyses_by_category(self, category: ErrorCategory) -> List[ErrorAnalysis]:
+    def get_analyses_by_category(self, category: ErrorCategory) -> list[ErrorAnalysis]:
         """Get all analyses for a specific category.
 
         Args:
@@ -190,7 +189,7 @@ class PostmortemService:
         self.tracker = get_failure_tracker()
         self.logger = logger
 
-    def analyze_session(self, session_id: Optional[str] = None) -> PostmortemReport:
+    def analyze_session(self, session_id: str | None = None) -> PostmortemReport:
         """Analyze errors from current or specified session.
 
         WHY: Main entry point for postmortem analysis. Collects failures from
@@ -208,7 +207,7 @@ class PostmortemService:
         session_mgr = get_session_manager()
         session_id = session_id or session_mgr.get_session_id()
         start_time = session_mgr._session_start_time
-        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+        duration = (datetime.now(UTC) - start_time).total_seconds()
 
         # Get all failures (both fixed and unfixed)
         failures = self.tracker.failures
@@ -292,7 +291,7 @@ class PostmortemService:
             },
         )
 
-    def _extract_file_path(self, failure: FailureEvent) -> Optional[Path]:
+    def _extract_file_path(self, failure: FailureEvent) -> Path | None:
         """Extract file path from failure context or error message.
 
         Args:
@@ -321,7 +320,7 @@ class PostmortemService:
         return None
 
     def _categorize_error(
-        self, failure: FailureEvent, file_path: Optional[Path]
+        self, failure: FailureEvent, file_path: Path | None
     ) -> ErrorCategory:
         """Categorize error by source (script/skill/agent/user).
 
@@ -538,8 +537,8 @@ class PostmortemService:
         return error_type in auto_fixable_types
 
     def _generate_actions(
-        self, analyses: List[ErrorAnalysis]
-    ) -> List[ImprovementAction]:
+        self, analyses: list[ErrorAnalysis]
+    ) -> list[ImprovementAction]:
         """Generate improvement actions from error analyses.
 
         Args:
@@ -560,7 +559,7 @@ class PostmortemService:
 
         return actions
 
-    def _create_action(self, analysis: ErrorAnalysis) -> Optional[ImprovementAction]:
+    def _create_action(self, analysis: ErrorAnalysis) -> ImprovementAction | None:
         """Create specific action based on analysis.
 
         Args:
@@ -640,7 +639,7 @@ class PostmortemService:
         agent_name = (
             analysis.affected_file.stem if analysis.affected_file else "unknown"
         )
-        branch_name = f"fix/{agent_name}-{datetime.now(timezone.utc):%Y%m%d}"
+        branch_name = f"fix/{agent_name}-{datetime.now(UTC):%Y%m%d}"
 
         pr_title = f"Fix: {agent_name} - {analysis.failure_event.task_type} error"
 
@@ -702,8 +701,8 @@ class PostmortemService:
         )
 
     def _calculate_stats(
-        self, analyses: List[ErrorAnalysis], actions: List[ImprovementAction]
-    ) -> Dict[str, int]:
+        self, analyses: list[ErrorAnalysis], actions: list[ImprovementAction]
+    ) -> dict[str, int]:
         """Calculate summary statistics.
 
         Args:
@@ -763,7 +762,7 @@ class PostmortemService:
 
 
 # Singleton instance
-_service_instance: Optional[PostmortemService] = None
+_service_instance: PostmortemService | None = None
 
 
 def get_postmortem_service() -> PostmortemService:

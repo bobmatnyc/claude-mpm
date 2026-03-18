@@ -282,7 +282,7 @@ class DoctorReporter:
         # Header with timestamp and system info
         print("# Claude MPM Doctor Report")
         print()
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         print(f"**Generated:** {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         print(
             f"**System:** {platform.system()} {platform.release()} ({platform.machine()})"

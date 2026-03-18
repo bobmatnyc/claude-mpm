@@ -9,7 +9,7 @@ without fragile parent.parent.parent patterns.
 """
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -171,7 +171,7 @@ class ClaudeMPMPaths:
         """Ensure src directory is in Python path."""
         self._path_manager.ensure_src_in_path()
 
-    def relative_to_project(self, path: Union[str, Path]) -> Path:
+    def relative_to_project(self, path: str | Path) -> Path:
         """Get a path relative to the project root."""
         abs_path = Path(path).resolve()
         try:

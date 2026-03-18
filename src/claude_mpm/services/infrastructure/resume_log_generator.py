@@ -17,9 +17,9 @@ Design Principles:
 - Integration with existing session state
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.models.resume_log import ContextMetrics, ResumeLog
@@ -33,8 +33,8 @@ class ResumeLogGenerator:
 
     def __init__(
         self,
-        storage_dir: Optional[Path] = None,
-        config: Optional[Dict[str, Any]] = None,
+        storage_dir: Path | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """Initialize resume log generator.
 
@@ -81,8 +81,8 @@ class ResumeLogGenerator:
 
     def should_generate(
         self,
-        stop_reason: Optional[str] = None,
-        token_usage_pct: Optional[float] = None,
+        stop_reason: str | None = None,
+        token_usage_pct: float | None = None,
         manual_trigger: bool = False,
     ) -> bool:
         """Determine if resume log should be generated.
@@ -123,7 +123,7 @@ class ResumeLogGenerator:
 
         return should_gen
 
-    def should_auto_pause(self, token_usage_pct: Optional[float]) -> bool:
+    def should_auto_pause(self, token_usage_pct: float | None) -> bool:
         """Check if auto-pause threshold (90%) has been reached.
 
         This is a convenience method to check specifically for the 90% threshold
@@ -142,9 +142,9 @@ class ResumeLogGenerator:
     def generate_from_session_state(
         self,
         session_id: str,
-        session_state: Dict[str, Any],
-        stop_reason: Optional[str] = None,
-    ) -> Optional[ResumeLog]:
+        session_state: dict[str, Any],
+        stop_reason: str | None = None,
+    ) -> ResumeLog | None:
         """Generate resume log from session state data.
 
         Args:
@@ -211,9 +211,9 @@ class ResumeLogGenerator:
     def generate_from_todo_list(
         self,
         session_id: str,
-        todos: List[Dict[str, Any]],
-        context_metrics: Optional[ContextMetrics] = None,
-    ) -> Optional[ResumeLog]:
+        todos: list[dict[str, Any]],
+        context_metrics: ContextMetrics | None = None,
+    ) -> ResumeLog | None:
         """Generate resume log from TODO list.
 
         Useful when session state is minimal but TODO list has rich information.
@@ -273,7 +273,7 @@ class ResumeLogGenerator:
             )
             return None
 
-    def save_resume_log(self, resume_log: ResumeLog) -> Optional[Path]:
+    def save_resume_log(self, resume_log: ResumeLog) -> Path | None:
         """Save resume log to storage.
 
         Args:
@@ -301,7 +301,7 @@ class ResumeLogGenerator:
             logger.error(f"Failed to save resume log: {e}", exc_info=True)
             return None
 
-    def load_resume_log(self, session_id: str) -> Optional[str]:
+    def load_resume_log(self, session_id: str) -> str | None:
         """Load resume log markdown content.
 
         Args:
@@ -325,7 +325,7 @@ class ResumeLogGenerator:
             logger.error(f"Failed to load resume log: {e}", exc_info=True)
             return None
 
-    def list_resume_logs(self) -> List[Dict[str, Any]]:
+    def list_resume_logs(self) -> list[dict[str, Any]]:
         """List all available resume logs.
 
         Returns:
@@ -361,7 +361,7 @@ class ResumeLogGenerator:
                             "session_id": session_id,
                             "file_path": str(md_file),
                             "modified_at": datetime.fromtimestamp(
-                                md_file.stat().st_mtime, tz=timezone.utc
+                                md_file.stat().st_mtime, tz=UTC
                             ).isoformat(),
                         }
                     )
@@ -421,7 +421,7 @@ class ResumeLogGenerator:
             logger.error(f"Failed to cleanup old logs: {e}", exc_info=True)
             return 0
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get resume log statistics.
 
         Returns:

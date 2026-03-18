@@ -1,7 +1,7 @@
 """Loader for framework instructions and configuration files."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.workflow_loader import load_workflow
@@ -13,7 +13,7 @@ from .packaged_loader import PackagedLoader
 class InstructionLoader:
     """Handles loading of INSTRUCTIONS, WORKFLOW, and MEMORY files."""
 
-    def __init__(self, framework_path: Optional[Path] = None):
+    def __init__(self, framework_path: Path | None = None):
         """Initialize the instruction loader.
 
         Args:
@@ -25,7 +25,7 @@ class InstructionLoader:
         self.packaged_loader = PackagedLoader()
         self.current_dir = Path.cwd()
 
-    def load_all_instructions(self, content: Dict[str, Any]) -> None:
+    def load_all_instructions(self, content: dict[str, Any]) -> None:
         """Load all instruction files into the content dictionary.
 
         Args:
@@ -43,7 +43,7 @@ class InstructionLoader:
         # Load MEMORY.md
         self.load_memory_instructions(content)
 
-    def load_custom_instructions(self, content: Dict[str, Any]) -> None:
+    def load_custom_instructions(self, content: dict[str, Any]) -> None:
         """Load custom INSTRUCTIONS.md from .claude-mpm directories.
 
         Args:
@@ -54,7 +54,7 @@ class InstructionLoader:
             content["custom_instructions"] = instructions
             content["custom_instructions_level"] = level
 
-    def load_framework_instructions(self, content: Dict[str, Any]) -> None:
+    def load_framework_instructions(self, content: dict[str, Any]) -> None:
         """Load framework INSTRUCTIONS.md or PM_INSTRUCTIONS.md.
 
         Args:
@@ -105,7 +105,7 @@ class InstructionLoader:
             return int(match.group(1))
         return 0  # No version = oldest
 
-    def _load_filesystem_framework_instructions(self, content: Dict[str, Any]) -> None:
+    def _load_filesystem_framework_instructions(self, content: dict[str, Any]) -> None:
         """Load framework instructions from filesystem.
 
         Priority order:
@@ -196,7 +196,7 @@ class InstructionLoader:
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
 
-    def load_workflow_instructions(self, content: Dict[str, Any]) -> None:
+    def load_workflow_instructions(self, content: dict[str, Any]) -> None:
         """Load WORKFLOW.md from appropriate location.
 
         Uses the dedicated workflow_loader module for consistent priority handling
@@ -210,7 +210,7 @@ class InstructionLoader:
             content["workflow_instructions"] = workflow
             content["workflow_instructions_level"] = level
 
-    def load_memory_instructions(self, content: Dict[str, Any]) -> None:
+    def load_memory_instructions(self, content: dict[str, Any]) -> None:
         """Load MEMORY.md from appropriate location.
 
         Args:

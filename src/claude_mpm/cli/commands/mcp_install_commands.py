@@ -6,6 +6,7 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 
 import subprocess
 import sys
+from datetime import UTC
 from pathlib import Path
 
 
@@ -262,7 +263,7 @@ class MCPInstallCommands:
             dict or None: Configuration dictionary
         """
         import json
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         config = {}
 
@@ -295,7 +296,7 @@ class MCPInstallCommands:
 
                     # Create backup
                     backup_path = config_path.with_suffix(
-                        f".backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+                        f".backup.{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
                     )
                     try:
                         config_path.rename(backup_path)

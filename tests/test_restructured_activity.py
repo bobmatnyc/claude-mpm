@@ -1,6 +1,6 @@
 # test_restructured_activity.py
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import socketio
 
@@ -46,7 +46,7 @@ def connect():
                 },
             ]
         },
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "session_id": session_id,
     }
     sio.emit("hook_event", todo_event)
@@ -63,7 +63,7 @@ def connect():
             "subtype": "started",
             "agent_name": agent_name,
             "session_id": session_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         sio.emit("hook_event", agent_event)
         print(f"✅ Started {agent_name} agent")
@@ -98,7 +98,7 @@ def connect():
                 "tool_name": tool_name,
                 "tool_parameters": params,
                 "session_id": session_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
             sio.emit("hook_event", tool_event)
             print(f"  🔧 Sent {tool_name} tool for {agent_name}")
@@ -111,7 +111,7 @@ def connect():
         "subtype": "started",
         "agent_name": "research",  # Already exists
         "session_id": session_id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     sio.emit("hook_event", duplicate_event)
     print("✅ Sent duplicate research agent (should NOT create new node)")
@@ -122,7 +122,7 @@ def connect():
         "tool_name": "Read",
         "tool_parameters": {"file_path": "/src/duplicate_test.js"},
         "session_id": session_id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
     sio.emit("hook_event", tool_event)
     print("✅ Sent additional tool for research agent")

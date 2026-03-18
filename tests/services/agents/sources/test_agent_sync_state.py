@@ -12,7 +12,7 @@ Target Coverage: 85%+
 """
 
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -231,7 +231,7 @@ class TestFileTracking:
                         "nonexistent-source",
                         "test.md",
                         "sha",
-                        datetime.now(timezone.utc).isoformat(),
+                        datetime.now(UTC).isoformat(),
                     ),
                 )
 
@@ -296,7 +296,7 @@ class TestSyncHistory:
         sync_state.register_source("test-source", "https://example.com")
 
         # Insert old record directly (mocking timestamp)
-        old_time = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(days=60)).isoformat()
         with sync_state._get_connection() as conn:
             conn.execute(
                 """
@@ -406,12 +406,12 @@ class TestConnectionManagement:
                 # This should succeed
                 conn.execute(
                     "INSERT INTO agent_files (source_id, file_path, content_sha, synced_at) VALUES (?, ?, ?, ?)",
-                    ("test", "file.md", "sha1", datetime.now(timezone.utc).isoformat()),
+                    ("test", "file.md", "sha1", datetime.now(UTC).isoformat()),
                 )
                 # This should fail (duplicate key)
                 conn.execute(
                     "INSERT INTO agent_files (source_id, file_path, content_sha, synced_at) VALUES (?, ?, ?, ?)",
-                    ("test", "file.md", "sha2", datetime.now(timezone.utc).isoformat()),
+                    ("test", "file.md", "sha2", datetime.now(UTC).isoformat()),
                 )
         except sqlite3.IntegrityError:
             pass

@@ -7,7 +7,6 @@ switching between different agent sources.
 
 import argparse
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
@@ -133,7 +132,7 @@ def cleanup_orphaned_agents(args: argparse.Namespace) -> int:
 
 
 # For backward compatibility
-def main(args: Optional[argparse.Namespace] = None) -> int:
+def main(args: argparse.Namespace | None = None) -> int:
     """Main entry point for the command.
 
     Args:

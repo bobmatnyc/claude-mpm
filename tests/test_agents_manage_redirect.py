@@ -39,9 +39,12 @@ class TestAgentsManageRedirect:
         args.agents_command = "manage"
 
         # Mock ConfigureCommand to simulate successful launch
-        with patch("rich.prompt.Confirm") as mock_confirm, patch(
-            "claude_mpm.cli.commands.configure.ConfigureCommand"
-        ) as mock_config_cmd:
+        with (
+            patch("rich.prompt.Confirm") as mock_confirm,
+            patch(
+                "claude_mpm.cli.commands.configure.ConfigureCommand"
+            ) as mock_config_cmd,
+        ):
             mock_confirm.ask.return_value = True  # User confirms
             mock_config_instance = MagicMock()
             mock_config_instance.execute.return_value = CommandResult.success_result(

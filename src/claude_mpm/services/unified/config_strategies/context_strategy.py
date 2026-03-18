@@ -7,12 +7,13 @@ import threading
 import weakref
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -53,11 +54,11 @@ class ContextMetadata:
     lifecycle: ContextLifecycle
     created_at: datetime
     updated_at: datetime
-    parent_id: Optional[str] = None
-    children: List[str] = field(default_factory=list)
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    ttl: Optional[timedelta] = None
-    expires_at: Optional[datetime] = None
+    parent_id: str | None = None
+    children: list[str] = field(default_factory=list)
+    attributes: dict[str, Any] = field(default_factory=dict)
+    ttl: timedelta | None = None
+    expires_at: datetime | None = None
 
 
 @dataclass
@@ -65,11 +66,11 @@ class ContextConfig:
     """Configuration within a context"""
 
     context_id: str
-    data: Dict[str, Any]
-    overrides: Dict[str, Any] = field(default_factory=dict)
-    defaults: Dict[str, Any] = field(default_factory=dict)
-    locked_keys: Set[str] = field(default_factory=set)
-    watchers: Dict[str, List[Callable]] = field(default_factory=dict)
+    data: dict[str, Any]
+    overrides: dict[str, Any] = field(default_factory=dict)
+    defaults: dict[str, Any] = field(default_factory=dict)
+    locked_keys: set[str] = field(default_factory=set)
+    watchers: dict[str, list[Callable]] = field(default_factory=dict)
 
 
 class BaseContextManager(ABC):
@@ -86,8 +87,8 @@ class BaseContextManager(ABC):
         and _lock is a threading.RLock.
         """
         self.logger = get_logger(self.__class__.__name__)
-        self.contexts: Dict[str, ContextMetadata] = {}
-        self.configs: Dict[str, ContextConfig] = {}
+        self.contexts: dict[str, ContextMetadata] = {}
+        self.configs: dict[str, ContextConfig] = {}
         self._lock = threading.RLock()
 
     @abstractmethod
@@ -95,7 +96,7 @@ class BaseContextManager(ABC):
         """Create a new context"""
 
     @abstractmethod
-    def get_context(self, context_id: str) -> Optional[ContextMetadata]:
+    def get_context(self, context_id: str) -> ContextMetadata | None:
         """Get context metadata"""
 
     @abstractmethod
@@ -118,13 +119,13 @@ class HierarchicalContextManager(BaseContextManager):
         """
         super().__init__()
         self.context_stack = threading.local()
-        self.context_hierarchy: Dict[str, List[str]] = {}  # parent -> children
+        self.context_hierarchy: dict[str, list[str]] = {}  # parent -> children
 
     def create_context(
         self,
         scope: ContextScope,
-        parent_id: Optional[str] = None,
-        ttl: Optional[timedelta] = None,
+        parent_id: str | None = None,
+        ttl: timedelta | None = None,
         **kwargs,
     ) -> str:
         """Create a new hierarchical context"""
@@ -142,11 +143,11 @@ class HierarchicalContextManager(BaseContextManager):
                 id=context_id,
                 scope=scope,
                 lifecycle=ContextLifecycle.CREATED,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
                 parent_id=parent_id,
                 ttl=ttl,
-                expires_at=datetime.now(timezone.utc) + ttl if ttl else None,
+                expires_at=datetime.now(UTC) + ttl if ttl else None,
                 attributes=kwargs,
             )
 
@@ -169,14 +170,14 @@ class HierarchicalContextManager(BaseContextManager):
             self.logger.debug(f"Created context: {context_id} (scope={scope.value})")
             return context_id
 
-    def get_context(self, context_id: str) -> Optional[ContextMetadata]:
+    def get_context(self, context_id: str) -> ContextMetadata | None:
         """Get context metadata"""
         with self._lock:
             context = self.contexts.get(context_id)
 
             # Check expiration
             if context and context.expires_at:
-                if datetime.now(timezone.utc) > context.expires_at:
+                if datetime.now(UTC) > context.expires_at:
                     self.close_context(context_id)
                     return None
 
@@ -215,7 +216,7 @@ class HierarchicalContextManager(BaseContextManager):
             context.lifecycle = ContextLifecycle.CLOSED
             self.logger.debug(f"Closed context: {context_id}")
 
-    def get_context_chain(self, context_id: str) -> List[str]:
+    def get_context_chain(self, context_id: str) -> list[str]:
         """Get the chain of contexts from root to specified context"""
         chain = []
         current_id = context_id
@@ -272,7 +273,7 @@ class ScopedConfigManager:
         self._lock = threading.RLock()
 
     def get_config(
-        self, context_id: str, key: Optional[str] = None, inherit: bool = True
+        self, context_id: str, key: str | None = None, inherit: bool = True
     ) -> Any:
         """Get configuration value from context"""
         with self._lock:
@@ -324,11 +325,9 @@ class ScopedConfigManager:
 
             # Update context metadata
             if context_id in self.context_manager.contexts:
-                self.context_manager.contexts[context_id].updated_at = datetime.now(
-                    timezone.utc
-                )
+                self.context_manager.contexts[context_id].updated_at = datetime.now(UTC)
 
-    def _get_inherited_config(self, context_id: str) -> Dict[str, Any]:
+    def _get_inherited_config(self, context_id: str) -> dict[str, Any]:
         """Get merged configuration from context hierarchy"""
         chain = self.context_manager.get_context_chain(context_id)
         merged = {}
@@ -348,7 +347,7 @@ class ScopedConfigManager:
 
         return merged
 
-    def _deep_merge(self, base: Dict, override: Dict) -> Dict:
+    def _deep_merge(self, base: dict, override: dict) -> dict:
         """Deep merge two dictionaries"""
         result = base.copy()
 
@@ -364,7 +363,7 @@ class ScopedConfigManager:
 
         return result
 
-    def _get_nested_value(self, config: Dict, key: str) -> Any:
+    def _get_nested_value(self, config: dict, key: str) -> Any:
         """Get nested value using dot notation"""
         parts = key.split(".")
         current = config
@@ -377,7 +376,7 @@ class ScopedConfigManager:
 
         return current
 
-    def _set_nested_value(self, config: Dict, key: str, value: Any):
+    def _set_nested_value(self, config: dict, key: str, value: Any):
         """Set nested value using dot notation"""
         parts = key.split(".")
         current = config
@@ -427,12 +426,10 @@ class IsolatedContextManager:
         TEST: Instantiate; assert isolated_contexts == {} and _lock is a threading.RLock.
         """
         self.logger = get_logger(self.__class__.__name__)
-        self.isolated_contexts: Dict[str, Dict[str, Any]] = {}
+        self.isolated_contexts: dict[str, dict[str, Any]] = {}
         self._lock = threading.RLock()
 
-    def create_isolated_context(
-        self, base_config: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def create_isolated_context(self, base_config: dict[str, Any] | None = None) -> str:
         """Create an isolated context with no inheritance"""
         import uuid
 
@@ -444,12 +441,12 @@ class IsolatedContextManager:
 
         return context_id
 
-    def get_isolated_config(self, context_id: str) -> Dict[str, Any]:
+    def get_isolated_config(self, context_id: str) -> dict[str, Any]:
         """Get configuration from isolated context"""
         with self._lock:
             return self.isolated_contexts.get(context_id, {}).copy()
 
-    def update_isolated_config(self, context_id: str, updates: Dict[str, Any]):
+    def update_isolated_config(self, context_id: str, updates: dict[str, Any]):
         """Update isolated context configuration"""
         with self._lock:
             if context_id in self.isolated_contexts:
@@ -480,13 +477,13 @@ class ThreadLocalContextManager:
             weakref.WeakValueDictionary()
         )
 
-    def get_thread_context(self) -> Optional[Dict[str, Any]]:
+    def get_thread_context(self) -> dict[str, Any] | None:
         """Get current thread's context"""
         if hasattr(self.thread_contexts, "config"):
             return self.thread_contexts.config
         return None
 
-    def set_thread_context(self, config: Dict[str, Any]):
+    def set_thread_context(self, config: dict[str, Any]):
         """Set current thread's context"""
         self.thread_contexts.config = config
         self._global_registry[threading.current_thread().ident] = config
@@ -497,7 +494,7 @@ class ThreadLocalContextManager:
             delattr(self.thread_contexts, "config")
 
     @contextmanager
-    def thread_context(self, config: Dict[str, Any]):
+    def thread_context(self, config: dict[str, Any]):
         """Context manager for thread-local configuration"""
         old_config = self.get_thread_context()
         self.set_thread_context(config)
@@ -522,7 +519,7 @@ class CachingContextManager:
         self.hit_count = 0
         self.miss_count = 0
 
-    def get_cached(self, context_id: str, key: str) -> Optional[Any]:
+    def get_cached(self, context_id: str, key: str) -> Any | None:
         """Get cached value for context"""
         cache_key = f"{context_id}:{key}"
 
@@ -555,7 +552,7 @@ class CachingContextManager:
             for key in keys_to_remove:
                 del self.cache[key]
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get cache statistics"""
         total_requests = self.hit_count + self.miss_count
 
@@ -587,11 +584,11 @@ class ContextStrategy(IConfigStrategy):
         self.thread_manager = ThreadLocalContextManager()
         self.cache_manager = CachingContextManager()
 
-    def can_handle(self, source: Union[str, Path, Dict]) -> bool:
+    def can_handle(self, source: str | Path | dict) -> bool:
         """Context strategy handles dictionary configurations"""
         return isinstance(source, dict)
 
-    def load(self, source: Any, **kwargs) -> Dict[str, Any]:
+    def load(self, source: Any, **kwargs) -> dict[str, Any]:
         """Load configuration into context"""
         context_scope = kwargs.get("context_scope", ContextScope.TEMPORARY)
         context_id = kwargs.get("context_id")
@@ -609,11 +606,11 @@ class ContextStrategy(IConfigStrategy):
 
         return self.scoped_manager.get_config(context_id)
 
-    def validate(self, config: Dict[str, Any], schema: Optional[Dict] = None) -> bool:
+    def validate(self, config: dict[str, Any], schema: dict | None = None) -> bool:
         """Validate configuration in context"""
         return True
 
-    def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(self, config: dict[str, Any]) -> dict[str, Any]:
         """Transform configuration based on context"""
         # Apply context-specific transformations
         context = self.get_current_context()
@@ -632,7 +629,7 @@ class ContextStrategy(IConfigStrategy):
     def create_context(
         self,
         scope: ContextScope = ContextScope.TEMPORARY,
-        parent: Optional[str] = None,
+        parent: str | None = None,
         isolated: bool = False,
         **kwargs,
     ) -> str:
@@ -643,7 +640,7 @@ class ContextStrategy(IConfigStrategy):
             )
         return self.hierarchy_manager.create_context(scope, parent_id=parent, **kwargs)
 
-    def get_current_context(self) -> Optional[str]:
+    def get_current_context(self) -> str | None:
         """Get current active context"""
         # Check thread-local stack
         if hasattr(self.hierarchy_manager.context_stack, "stack"):
@@ -684,8 +681,8 @@ class ContextStrategy(IConfigStrategy):
 
     def get_config(
         self,
-        key: Optional[str] = None,
-        context: Optional[str] = None,
+        key: str | None = None,
+        context: str | None = None,
         default: Any = None,
     ) -> Any:
         """Get configuration value from context"""
@@ -709,7 +706,7 @@ class ContextStrategy(IConfigStrategy):
 
         return value if value is not None else default
 
-    def set_config(self, key: str, value: Any, context: Optional[str] = None, **kwargs):
+    def set_config(self, key: str, value: Any, context: str | None = None, **kwargs):
         """Set configuration value in context"""
         context_id = context or self.get_current_context()
 
@@ -733,7 +730,7 @@ class ContextStrategy(IConfigStrategy):
         else:
             self.hierarchy_manager.close_context(context_id)
 
-    def _apply_overrides(self, config: Dict, overrides: Dict) -> Dict:
+    def _apply_overrides(self, config: dict, overrides: dict) -> dict:
         """Apply context overrides to configuration"""
         result = config.copy()
 
@@ -749,7 +746,7 @@ class ContextStrategy(IConfigStrategy):
 
         return result
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get context strategy statistics"""
         return {
             "active_contexts": len(self.hierarchy_manager.contexts),
@@ -759,7 +756,7 @@ class ContextStrategy(IConfigStrategy):
             "contexts_by_lifecycle": self._count_by_lifecycle(),
         }
 
-    def _count_by_scope(self) -> Dict[str, int]:
+    def _count_by_scope(self) -> dict[str, int]:
         """Count contexts by scope"""
         counts = {}
         for metadata in self.hierarchy_manager.contexts.values():
@@ -767,7 +764,7 @@ class ContextStrategy(IConfigStrategy):
             counts[scope] = counts.get(scope, 0) + 1
         return counts
 
-    def _count_by_lifecycle(self) -> Dict[str, int]:
+    def _count_by_lifecycle(self) -> dict[str, int]:
         """Count contexts by lifecycle state"""
         counts = {}
         for metadata in self.hierarchy_manager.contexts.values():

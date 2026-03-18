@@ -37,7 +37,7 @@ import platform
 import resource as resource_module
 import shutil
 import threading
-from typing import Callable, Dict, List
+from collections.abc import Callable
 
 import psutil
 
@@ -87,7 +87,7 @@ class ResourceMonitor(SyncBaseService, IResourceMonitor):
         self.is_unix = not self.is_windows
 
         # Critical resource callbacks
-        self._critical_callbacks: List[Callable[[str, ResourceUsage], None]] = []
+        self._critical_callbacks: list[Callable[[str, ResourceUsage], None]] = []
 
         # Thread safety
         self._lock = threading.Lock()
@@ -172,7 +172,7 @@ class ResourceMonitor(SyncBaseService, IResourceMonitor):
                 details["connection_threshold"] = self.connection_threshold
 
                 # Add connection breakdown by state
-                connection_states: Dict[str, int] = {}
+                connection_states: dict[str, int] = {}
                 for conn in connections:
                     state = conn.status
                     connection_states[state] = connection_states.get(state, 0) + 1

@@ -8,8 +8,9 @@ maintainability and testability.
 """
 
 import shutil
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -28,7 +29,7 @@ class AgentFileSystemManager:
         """Initialize the file system manager."""
         self.logger = get_logger(__name__)
 
-    def clean_deployment(self, config_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def clean_deployment(self, config_dir: Path | None = None) -> dict[str, Any]:
         """
         Clean up deployed agents while preserving user-created agents.
 
@@ -82,7 +83,7 @@ class AgentFileSystemManager:
         )
         return results
 
-    def convert_yaml_to_md(self, agents_dir: Path) -> Dict[str, Any]:
+    def convert_yaml_to_md(self, agents_dir: Path) -> dict[str, Any]:
         """
         Convert existing YAML agent files to Markdown format.
 
@@ -157,8 +158,8 @@ class AgentFileSystemManager:
         return results
 
     def backup_agents_directory(
-        self, agents_dir: Path, backup_dir: Optional[Path] = None
-    ) -> Dict[str, Any]:
+        self, agents_dir: Path, backup_dir: Path | None = None
+    ) -> dict[str, Any]:
         """
         Create a backup of the agents directory.
 
@@ -183,9 +184,9 @@ class AgentFileSystemManager:
         try:
             # Generate backup directory name if not provided
             if not backup_dir:
-                from datetime import datetime, timezone
+                from datetime import datetime
 
-                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
                 backup_dir = agents_dir.parent / f"agents_backup_{timestamp}"
 
             # Create backup
@@ -216,7 +217,7 @@ class AgentFileSystemManager:
 
     def restore_agents_from_backup(
         self, backup_dir: Path, agents_dir: Path
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Restore agents from a backup directory.
 
@@ -258,7 +259,7 @@ class AgentFileSystemManager:
 
         return results
 
-    def get_directory_info(self, directory: Path) -> Dict[str, Any]:
+    def get_directory_info(self, directory: Path) -> dict[str, Any]:
         """
         Get information about a directory and its contents.
 
@@ -326,7 +327,7 @@ class AgentFileSystemManager:
 
     def _convert_yaml_to_markdown(self, yaml_content: str, agent_name: str) -> str:
         """Convert YAML agent content to Markdown format with frontmatter."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         # Extract YAML fields (simplified parsing)
         name = self._extract_yaml_field(yaml_content, "name") or agent_name
@@ -358,8 +359,8 @@ name: {name}
 description: "{description}"
 version: "{version}"
 author: "claude-mpm@anthropic.com"
-created: "{datetime.now(timezone.utc).isoformat()}Z"
-updated: "{datetime.now(timezone.utc).isoformat()}Z"
+created: "{datetime.now(UTC).isoformat()}Z"
+updated: "{datetime.now(UTC).isoformat()}Z"
 tags: ["{agent_name}", "mpm-framework"]
 tools: {tools_list}
 model: "sonnet"
@@ -374,7 +375,7 @@ model: "sonnet"
 This agent provides specialized functionality for your tasks.
 """
 
-    def _extract_yaml_field(self, yaml_content: str, field_name: str) -> Optional[str]:
+    def _extract_yaml_field(self, yaml_content: str, field_name: str) -> str | None:
         """Extract a field value from YAML content."""
         import re
 

@@ -5,7 +5,6 @@ to classes throughout the framework.
 """
 
 import logging
-from typing import Optional
 
 
 class LoggerMixin:
@@ -37,8 +36,8 @@ class LoggerMixin:
         _logger_instance: Cached logger instance (internal use)
     """
 
-    _logger_instance: Optional[logging.Logger] = None
-    _logger_name: Optional[str] = None
+    _logger_instance: logging.Logger | None = None
+    _logger_name: str | None = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -82,7 +81,7 @@ class LoggerMixin:
         return self._logger_instance
 
     def set_logger(
-        self, logger: Optional[logging.Logger] = None, name: Optional[str] = None
+        self, logger: logging.Logger | None = None, name: str | None = None
     ) -> None:
         """Set a custom logger instance or name.
 

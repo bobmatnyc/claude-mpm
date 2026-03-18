@@ -9,7 +9,7 @@ maintainability and testability.
 
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -28,7 +28,7 @@ class AgentFormatConverter:
         """Initialize the agent format converter."""
         self.logger = get_logger(__name__)
 
-    def convert_yaml_to_md(self, target_dir: Path) -> Dict[str, Any]:
+    def convert_yaml_to_md(self, target_dir: Path) -> dict[str, Any]:
         """
         Convert existing YAML agent files to MD format with YAML frontmatter.
 
@@ -197,7 +197,7 @@ assistant: "I'll use the {name} agent to provide specialized assistance."
 
         return new_frontmatter + instructions
 
-    def extract_yaml_field(self, yaml_content: str, field_name: str) -> Optional[str]:
+    def extract_yaml_field(self, yaml_content: str, field_name: str) -> str | None:
         """
         Extract a field value from YAML content.
 
@@ -338,7 +338,7 @@ assistant: "I'll use the {name} agent to provide specialized assistance."
             return self._convert_md_to_json(intermediate)
         return intermediate
 
-    def get_conversion_stats(self, target_dir: Path) -> Dict[str, Any]:
+    def get_conversion_stats(self, target_dir: Path) -> dict[str, Any]:
         """
         Get statistics about files that need conversion.
 

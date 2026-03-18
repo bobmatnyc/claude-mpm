@@ -18,8 +18,8 @@ import importlib.metadata
 import socket
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.constants import NetworkConfig, PerformanceConfig, TimeoutConfig
 
@@ -48,7 +48,7 @@ except Exception:
 class ServerInfo:
     """Information about a detected Socket.IO server."""
 
-    def __init__(self, host: str, port: int, response_data: Dict[str, Any]):
+    def __init__(self, host: str, port: int, response_data: dict[str, Any]):
         """Populate ServerInfo from the raw version-endpoint response payload.
 
         WHY: Centralises extraction of server metadata from the HTTP response dict so
@@ -69,7 +69,7 @@ class ServerInfo:
             "supported_client_versions", []
         )
         self.compatibility_matrix = response_data.get("compatibility_matrix", {})
-        self.detected_at = datetime.now(timezone.utc)
+        self.detected_at = datetime.now(UTC)
 
     @property
     def url(self) -> str:
@@ -84,7 +84,7 @@ class ServerInfo:
 
     def is_compatible(
         self, client_version: str = CLAUDE_MPM_VERSION
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """Check if this server is compatible with the client version."""
         warnings = []
 
@@ -119,22 +119,22 @@ class SocketIOClientManager:
         self.logger = get_logger("socketio_client_manager")
 
         # Connection state
-        self.current_server: Optional[ServerInfo] = None
-        self.client: Optional[socketio.AsyncClient] = None
+        self.current_server: ServerInfo | None = None
+        self.client: socketio.AsyncClient | None = None
         self.connected = False
-        self.connection_thread: Optional[threading.Thread] = None
+        self.connection_thread: threading.Thread | None = None
         self.running = False
 
         # Server discovery
-        self.known_servers: Dict[str, ServerInfo] = {}
+        self.known_servers: dict[str, ServerInfo] = {}
         self.last_discovery = None
 
         if not DEPENDENCIES_AVAILABLE:
             self.logger.warning("Socket.IO client dependencies not available")
 
     def discover_servers(
-        self, ports: Optional[List[int]] = None, hosts: Optional[List[str]] = None
-    ) -> List[ServerInfo]:
+        self, ports: list[int] | None = None, hosts: list[str] | None = None
+    ) -> list[ServerInfo]:
         """Discover available Socket.IO servers.
 
         Args:
@@ -188,12 +188,12 @@ class SocketIOClientManager:
                     self.logger.debug(f"Error checking {host}:{port}: {e}")
                     continue
 
-        self.last_discovery = datetime.now(timezone.utc)
+        self.last_discovery = datetime.now(UTC)
         return discovered
 
     def find_best_server(
-        self, discovered_servers: Optional[List[ServerInfo]] = None
-    ) -> Optional[ServerInfo]:
+        self, discovered_servers: list[ServerInfo] | None = None
+    ) -> ServerInfo | None:
         """Find the best compatible server from discovered servers."""
         if discovered_servers is None:
             discovered_servers = self.discover_servers()
@@ -379,7 +379,7 @@ class SocketIOClientManager:
             event_type = data.get("type", "unknown")
             self.logger.debug(f"📥 Received claude_event: {event_type}")
 
-    async def emit_event(self, event_type: str, data: Dict[str, Any]) -> bool:
+    async def emit_event(self, event_type: str, data: dict[str, Any]) -> bool:
         """Emit an event to the connected server."""
         if not self.connected or not self.client:
             return False
@@ -387,7 +387,7 @@ class SocketIOClientManager:
         try:
             event_data = {
                 "type": event_type,
-                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                "timestamp": datetime.now(UTC).isoformat() + "Z",
                 "data": data,
                 "client_version": self.client_version,
             }
@@ -491,7 +491,7 @@ class SocketIOClientManager:
 
     # Compatibility methods for existing WebSocket server interface
 
-    def broadcast_event(self, event_type: str, data: Dict[str, Any]):
+    def broadcast_event(self, event_type: str, data: dict[str, Any]):
         """Legacy compatibility method for broadcasting events."""
         if self.connected:
             # Schedule emit in the connection thread
@@ -518,7 +518,7 @@ class SocketIOClientManager:
         self.broadcast_event("session.end", {})
 
     def claude_status_changed(
-        self, status: str, pid: Optional[int] = None, message: str = ""
+        self, status: str, pid: int | None = None, message: str = ""
     ):
         """Compatibility method for Claude status events."""
         self.broadcast_event(
@@ -531,7 +531,7 @@ class SocketIOClientManager:
             "agent.delegation", {"agent": agent, "task": task, "status": status}
         )
 
-    def todo_updated(self, todos: List[Dict[str, Any]]):
+    def todo_updated(self, todos: list[dict[str, Any]]):
         """Compatibility method for todo update events."""
         self.broadcast_event("todo.update", {"todos": todos})
 
@@ -542,7 +542,7 @@ class SocketIOClientManager:
 
 
 # Global instance for easy access
-_client_manager: Optional[SocketIOClientManager] = None
+_client_manager: SocketIOClientManager | None = None
 
 
 def get_client_manager() -> SocketIOClientManager:

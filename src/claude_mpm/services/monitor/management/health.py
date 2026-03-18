@@ -13,7 +13,6 @@ DESIGN DECISIONS:
 
 import threading
 import time
-from typing import Dict
 
 from ....core.logging_config import get_logger
 
@@ -110,7 +109,7 @@ class HealthMonitor:
             self.logger.debug(f"Service health check failed: {e}")
             return False
 
-    def get_status(self) -> Dict:
+    def get_status(self) -> dict:
         """Get current health status."""
         try:
             return {

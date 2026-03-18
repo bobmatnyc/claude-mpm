@@ -2,7 +2,7 @@
 Claude-PM Init section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class ClaudePmInitGenerator(BaseSectionGenerator):
     """Generates the Claude-PM Init section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the claude-pm init section."""
         return """
 ## C) CLAUDE-PM INIT

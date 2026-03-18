@@ -16,9 +16,9 @@ import threading
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any
 
 try:
     import socketio
@@ -63,8 +63,8 @@ class CircuitState(Enum):
 class ConnectionStats:
     """Connection statistics for monitoring."""
 
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_used: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    last_used: datetime = field(default_factory=lambda: datetime.now(UTC))
     events_sent: int = 0
     errors: int = 0
     consecutive_errors: int = 0
@@ -77,8 +77,8 @@ class BatchEvent:
 
     namespace: str
     event: str
-    data: Dict[str, Any]
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    data: dict[str, Any]
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class CircuitBreaker:
@@ -116,7 +116,7 @@ class CircuitBreaker:
         if self.state == CircuitState.OPEN:
             # Check if recovery timeout has passed
             if self.last_failure_time and datetime.now(
-                timezone.utc
+                UTC
             ) - self.last_failure_time > timedelta(seconds=self.recovery_timeout):
                 self.state = CircuitState.HALF_OPEN
                 self.logger.info(
@@ -143,7 +143,7 @@ class CircuitBreaker:
     def record_failure(self):
         """Record failed execution."""
         self.failure_count += 1
-        self.last_failure_time = datetime.now(timezone.utc)
+        self.last_failure_time = datetime.now(UTC)
 
         if self.state == CircuitState.HALF_OPEN:
             # Test failed, go back to OPEN
@@ -195,16 +195,16 @@ class SocketIOConnectionPool:
         self.logger = get_logger("socketio_pool")
 
         # Connection pool
-        self.available_connections: Deque[socketio.AsyncClient] = deque()
-        self.active_connections: Dict[str, socketio.AsyncClient] = {}
-        self.connection_stats: Dict[str, ConnectionStats] = {}
+        self.available_connections: deque[socketio.AsyncClient] = deque()
+        self.active_connections: dict[str, socketio.AsyncClient] = {}
+        self.connection_stats: dict[str, ConnectionStats] = {}
         self.pool_lock = threading.Lock()
 
         # Circuit breaker
         self.circuit_breaker = CircuitBreaker()
 
         # Batch processing
-        self.batch_queue: Deque[BatchEvent] = deque()
+        self.batch_queue: deque[BatchEvent] = deque()
         self.batch_lock = threading.Lock()
         self.batch_thread = None
         self.batch_running = False
@@ -212,7 +212,7 @@ class SocketIOConnectionPool:
         # Health monitoring
         self.health_thread = None
         self.health_running = False
-        self.last_health_check = datetime.now(timezone.utc)
+        self.last_health_check = datetime.now(UTC)
 
         # Server configuration - use default immediately, update async
         self.server_port = int(
@@ -371,7 +371,7 @@ class SocketIOConnectionPool:
         self._port_detection_complete = True
         self.logger.debug(f"Using default Socket.IO server: {self.server_url}")
 
-    def _create_client(self) -> Optional[socketio.AsyncClient]:
+    def _create_client(self) -> socketio.AsyncClient | None:
         """Create a new Socket.IO client connection."""
         if not SOCKETIO_AVAILABLE or not self.server_url:
             return None
@@ -418,7 +418,7 @@ class SocketIOConnectionPool:
             self.logger.error(f"Failed to create Socket.IO client: {e}")
             return None
 
-    def _get_connection(self) -> Optional[socketio.AsyncClient]:
+    def _get_connection(self) -> socketio.AsyncClient | None:
         """Get an available connection from the pool."""
         with self.pool_lock:
             # Try to get an available connection
@@ -427,7 +427,7 @@ class SocketIOConnectionPool:
                 # Check if connection is still valid
                 for conn_id, stats in self.connection_stats.items():
                     if stats.is_connected:
-                        stats.last_used = datetime.now(timezone.utc)
+                        stats.last_used = datetime.now(UTC)
                         return client
 
             # Create new connection if under limit
@@ -458,7 +458,7 @@ class SocketIOConnectionPool:
                 except Exception as e:
                     self.logger.debug(f"Error closing excess connection: {e}")
 
-    def emit_event(self, namespace: str, event: str, data: Dict[str, Any]):
+    def emit_event(self, namespace: str, event: str, data: dict[str, Any]):
         """Emit event using connection pool with batching.
 
         WHY batching approach:
@@ -508,7 +508,7 @@ class SocketIOConnectionPool:
 
         self.logger.debug("Batch processor stopped")
 
-    def _process_batch(self, batch: List[BatchEvent]):
+    def _process_batch(self, batch: list[BatchEvent]):
         """Process a batch of events."""
         if not batch:
             return
@@ -529,7 +529,7 @@ class SocketIOConnectionPool:
                 self.circuit_breaker.record_failure()
 
     async def _async_emit_batch(
-        self, client: socketio.AsyncClient, namespace: str, events: List[BatchEvent]
+        self, client: socketio.AsyncClient, namespace: str, events: list[BatchEvent]
     ) -> bool:
         """Async version of emit batch."""
         try:
@@ -563,7 +563,7 @@ class SocketIOConnectionPool:
             return False
 
     def _emit_batch_to_namespace(
-        self, namespace: str, events: List[BatchEvent]
+        self, namespace: str, events: list[BatchEvent]
     ) -> bool:
         """Emit a batch of events to a specific namespace."""
         client = self._get_connection()
@@ -652,7 +652,7 @@ class SocketIOConnectionPool:
                 timeout=2.0,
             )
 
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             self.logger.debug("Socket.IO connection timeout")
             raise TimeoutError("Socket.IO connection timeout") from e
         except Exception as e:
@@ -679,7 +679,7 @@ class SocketIOConnectionPool:
                 self._check_connections_health()
 
                 # Update last health check time
-                self.last_health_check = datetime.now(timezone.utc)
+                self.last_health_check = datetime.now(UTC)
 
             except Exception as e:
                 self.logger.error(f"Health monitor error: {e}")
@@ -711,9 +711,7 @@ class SocketIOConnectionPool:
                     continue
 
                 # 3. Connection idle for too long (>5 minutes)
-                idle_time = (
-                    datetime.now(timezone.utc) - stats.last_used
-                ).total_seconds()
+                idle_time = (datetime.now(UTC) - stats.last_used).total_seconds()
                 if idle_time > 300 and conn_id not in [
                     id for id, _ in enumerate(self.available_connections)
                 ]:
@@ -786,10 +784,10 @@ class SocketIOConnectionPool:
                 timeout=1.0,
             )
             return True
-        except (asyncio.TimeoutError, Exception):
+        except (TimeoutError, Exception):
             return False
 
-    def emit(self, event: str, data: Dict[str, Any]) -> bool:
+    def emit(self, event: str, data: dict[str, Any]) -> bool:
         """Emit an event through the connection pool.
 
         This method provides compatibility for the legacy emit() interface.
@@ -813,7 +811,7 @@ class SocketIOConnectionPool:
         self.emit_event("/", event, data)
         return True
 
-    def _emit_direct(self, event: str, data: Dict[str, Any]) -> bool:
+    def _emit_direct(self, event: str, data: dict[str, Any]) -> bool:
         """Emit an event directly without batching.
 
         This is used for critical events that need immediate delivery.
@@ -841,7 +839,7 @@ class SocketIOConnectionPool:
             self.emit_event("/", event, data)
             return True
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get connection pool statistics."""
         with self.pool_lock:
             # Calculate health metrics
@@ -876,7 +874,7 @@ class SocketIOConnectionPool:
 
 
 # Global pool instance
-_connection_pool: Optional[SocketIOConnectionPool] = None
+_connection_pool: SocketIOConnectionPool | None = None
 
 
 def get_connection_pool() -> SocketIOConnectionPool:
@@ -897,7 +895,7 @@ def stop_connection_pool():
 
 
 # Backwards compatibility function
-def emit_hook_event(namespace: str, event: str, data: Dict[str, Any]):
+def emit_hook_event(namespace: str, event: str, data: dict[str, Any]):
     """Emit a hook event using the connection pool."""
     pool = get_connection_pool()
     pool.emit_event(namespace, event, data)

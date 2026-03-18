@@ -5,7 +5,8 @@ This test suite validates that Research Agent output formatting is
 properly enforced across all output scenarios (OUT-R-001 to OUT-R-004).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -22,7 +23,7 @@ class TestOutputRequirements:
         self.metric = SamplingStrategyMetric(threshold=0.85)
 
     def test_file_list_inclusion_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that file list inclusion scores high.
 
@@ -44,7 +45,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_file_list_inclusion_non_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing file list fails.
 
@@ -65,7 +66,7 @@ class TestOutputRequirements:
         assert not self.metric.is_successful()
 
     def test_pattern_analysis_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that pattern analysis scores high.
 
@@ -86,7 +87,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_pattern_analysis_non_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that raw observations fail.
 
@@ -107,7 +108,7 @@ class TestOutputRequirements:
         assert not self.metric.is_successful()
 
     def test_representative_samples_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that representative samples score high.
 
@@ -129,7 +130,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_representative_samples_non_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that vague descriptions fail.
 
@@ -150,7 +151,7 @@ class TestOutputRequirements:
         assert not self.metric.is_successful()
 
     def test_actionable_recommendations_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that actionable recommendations score high.
 
@@ -172,7 +173,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_actionable_recommendations_non_compliant(
-        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, output_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that vague suggestions fail.
 

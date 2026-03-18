@@ -7,7 +7,7 @@ Claude Code hook invocations with file-based persistence.
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -41,7 +41,7 @@ class TestContextUsageState:
 
     def test_custom_initialization(self):
         """Test state initialization with custom values."""
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         state = ContextUsageState(
             session_id="custom-session",
             cumulative_input_tokens=50000,

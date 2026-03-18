@@ -13,9 +13,9 @@ This module provides:
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -30,7 +30,7 @@ class MemoryContentManager:
     manipulation logic for simple list-based memories.
     """
 
-    def __init__(self, memory_limits: Dict[str, Any]):
+    def __init__(self, memory_limits: dict[str, Any]):
         """Initialize the content manager.
 
         Args:
@@ -123,7 +123,7 @@ class MemoryContentManager:
         return self.add_item_to_list(content, new_item)
 
     def exceeds_limits(
-        self, content: str, agent_limits: Optional[Dict[str, Any]] = None
+        self, content: str, agent_limits: dict[str, Any] | None = None
     ) -> bool:
         """Check if content exceeds size limits.
 
@@ -140,7 +140,7 @@ class MemoryContentManager:
         return size_kb > limits["max_file_size_kb"]
 
     def truncate_simple_list(
-        self, content: str, agent_limits: Optional[Dict[str, Any]] = None
+        self, content: str, agent_limits: dict[str, Any] | None = None
     ) -> str:
         """Truncate simple list content to fit within limits.
 
@@ -192,7 +192,7 @@ class MemoryContentManager:
         return "\n".join(lines)
 
     def truncate_to_limits(
-        self, content: str, agent_limits: Optional[Dict[str, Any]] = None
+        self, content: str, agent_limits: dict[str, Any] | None = None
     ) -> str:
         """Legacy method for backward compatibility - delegates to truncate_simple_list."""
         return self.truncate_simple_list(content, agent_limits)
@@ -206,7 +206,7 @@ class MemoryContentManager:
         Returns:
             str: Content with updated timestamp
         """
-        timestamp = datetime.now(timezone.utc).isoformat() + "Z"
+        timestamp = datetime.now(UTC).isoformat() + "Z"
         # Handle both old and new timestamp formats
         content = re.sub(
             r"<!-- Last Updated: .+? -->",
@@ -263,7 +263,7 @@ class MemoryContentManager:
 
             if not has_timestamp:
                 new_lines.append(
-                    f"<!-- Last Updated: {datetime.now(timezone.utc).isoformat()}Z -->"
+                    f"<!-- Last Updated: {datetime.now(UTC).isoformat()}Z -->"
                 )
                 new_lines.append("")
             else:
@@ -285,7 +285,7 @@ class MemoryContentManager:
 
         return "\n".join(lines)
 
-    def parse_memory_content_to_list(self, content: str) -> List[str]:
+    def parse_memory_content_to_list(self, content: str) -> list[str]:
         """Parse memory content into a simple list format.
 
         WHY: Provides consistent parsing of memory content as a simple list
@@ -314,7 +314,7 @@ class MemoryContentManager:
 
         return items
 
-    def parse_memory_content_to_dict(self, content: str) -> Dict[str, List[str]]:
+    def parse_memory_content_to_dict(self, content: str) -> dict[str, list[str]]:
         """Legacy method for backward compatibility.
 
         Returns a dict with single key 'memories' containing all items.
@@ -375,7 +375,7 @@ class MemoryContentManager:
 
         return similarity
 
-    def deduplicate_list(self, content: str) -> Tuple[str, int]:
+    def deduplicate_list(self, content: str) -> tuple[str, int]:
         """Deduplicate items in the memory list using NLP similarity.
 
         WHY: Over time, memory lists can accumulate similar or duplicate items from
@@ -423,7 +423,7 @@ class MemoryContentManager:
 
         return "\n".join(lines), removed_count
 
-    def deduplicate_section(self, content: str, section: str) -> Tuple[str, int]:
+    def deduplicate_section(self, content: str, section: str) -> tuple[str, int]:
         """Legacy method for backward compatibility - delegates to deduplicate_list.
 
         Args:
@@ -435,7 +435,7 @@ class MemoryContentManager:
         """
         return self.deduplicate_list(content)
 
-    def validate_memory_size(self, content: str) -> tuple[bool, Optional[str]]:
+    def validate_memory_size(self, content: str) -> tuple[bool, str | None]:
         """Validate memory content size and structure.
 
         Args:

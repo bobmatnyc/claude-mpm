@@ -14,7 +14,7 @@ handle multiple package managers and provide detailed dependency insights.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class DependencyAnalyzerService:
@@ -76,7 +76,7 @@ class DependencyAnalyzerService:
         self.working_directory = working_directory
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    def detect_package_manager(self) -> Optional[str]:
+    def detect_package_manager(self) -> str | None:
         """Detect the primary package manager used in the project.
 
         WHY: Knowing the package manager helps understand the project's
@@ -107,7 +107,7 @@ class DependencyAnalyzerService:
 
         return None
 
-    def analyze_dependencies(self) -> Dict[str, List[str]]:
+    def analyze_dependencies(self) -> dict[str, list[str]]:
         """Analyze all project dependencies.
 
         WHY: Understanding dependencies helps identify the project's
@@ -147,7 +147,7 @@ class DependencyAnalyzerService:
 
         return dependencies
 
-    def detect_databases(self, dependencies: Optional[List[str]] = None) -> List[str]:
+    def detect_databases(self, dependencies: list[str] | None = None) -> list[str]:
         """Detect database systems from dependencies.
 
         WHY: Database detection helps understand data persistence patterns
@@ -174,8 +174,8 @@ class DependencyAnalyzerService:
         return sorted(databases)
 
     def detect_testing_frameworks(
-        self, dependencies: Optional[List[str]] = None
-    ) -> List[str]:
+        self, dependencies: list[str] | None = None
+    ) -> list[str]:
         """Detect testing frameworks from dependencies.
 
         WHY: Understanding testing tools helps maintain and extend
@@ -203,7 +203,7 @@ class DependencyAnalyzerService:
 
         return sorted(testing_frameworks)
 
-    def detect_web_frameworks(self, dependencies: List[str]) -> List[str]:
+    def detect_web_frameworks(self, dependencies: list[str]) -> list[str]:
         """Detect web frameworks from dependencies.
 
         WHY: Web frameworks indicate the project type and determine
@@ -258,9 +258,7 @@ class DependencyAnalyzerService:
 
         return list(set(web_frameworks))
 
-    def get_build_tools(
-        self, package_data: Optional[Dict[str, Any]] = None
-    ) -> List[str]:
+    def get_build_tools(self, package_data: dict[str, Any] | None = None) -> list[str]:
         """Extract build tools from package configuration.
 
         WHY: Build tools determine how the project is compiled, bundled,
@@ -320,7 +318,7 @@ class DependencyAnalyzerService:
         return list(set(build_tools))
 
     def _analyze_package_json(
-        self, path: Path, dependencies: Dict[str, List[str]]
+        self, path: Path, dependencies: dict[str, list[str]]
     ) -> None:
         """Parse package.json for dependencies."""
         try:
@@ -360,7 +358,7 @@ class DependencyAnalyzerService:
             self.logger.warning(f"Error parsing package.json: {e}")
 
     def _analyze_python_deps(
-        self, path: Path, dependencies: Dict[str, List[str]]
+        self, path: Path, dependencies: dict[str, list[str]]
     ) -> None:
         """Parse Python dependency files."""
         try:
@@ -421,7 +419,7 @@ class DependencyAnalyzerService:
             self.logger.warning(f"Error parsing Python dependencies: {e}")
 
     def _analyze_cargo_toml(
-        self, path: Path, dependencies: Dict[str, List[str]]
+        self, path: Path, dependencies: dict[str, list[str]]
     ) -> None:
         """Parse Cargo.toml for Rust dependencies."""
         try:
@@ -447,7 +445,7 @@ class DependencyAnalyzerService:
         except Exception as e:
             self.logger.warning(f"Error parsing Cargo.toml: {e}")
 
-    def _analyze_go_mod(self, path: Path, dependencies: Dict[str, List[str]]) -> None:
+    def _analyze_go_mod(self, path: Path, dependencies: dict[str, list[str]]) -> None:
         """Parse go.mod for Go dependencies."""
         try:
             content = path.read_text()

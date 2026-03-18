@@ -10,8 +10,7 @@ This service handles:
 import json
 import os
 import re
-from datetime import datetime, timezone
-from typing import Optional, Tuple
+from datetime import UTC, datetime
 
 # Try to import _log from hook_handler, fall back to no-op
 try:
@@ -126,7 +125,7 @@ class SubagentResponseProcessor:
 
     def _extract_basic_info(
         self, event: dict, session_id: str
-    ) -> Tuple[str, str, str, bool]:
+    ) -> tuple[str, str, str, bool]:
         """Extract basic info from the event.
 
         Returns:
@@ -168,9 +167,7 @@ class SubagentResponseProcessor:
 
         return agent_type, agent_id, reason, agent_type_inferred
 
-    def _extract_structured_response(
-        self, output: str, agent_type: str
-    ) -> Optional[dict]:
+    def _extract_structured_response(self, output: str, agent_type: str) -> dict | None:
         """Extract structured JSON response from output."""
         if not output:
             return None
@@ -206,7 +203,7 @@ class SubagentResponseProcessor:
         working_dir: str,
         git_branch: str,
         output: str,
-        structured_response: Optional[dict],
+        structured_response: dict | None,
     ):
         """Track the agent response if response tracking is enabled."""
         if DEBUG:
@@ -274,7 +271,7 @@ class SubagentResponseProcessor:
                         "duration_ms": event.get("duration_ms"),
                         "working_directory": working_dir,
                         "git_branch": git_branch,
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "event_type": "subagent_stop",
                         "reason": reason,
                         "original_request_timestamp": request_info.get("timestamp"),
@@ -333,7 +330,7 @@ class SubagentResponseProcessor:
         reason: str,
         working_dir: str,
         git_branch: str,
-        structured_response: Optional[dict],
+        structured_response: dict | None,
         agent_type_inferred: bool,
     ) -> dict:
         """Build the subagent stop data for event emission."""
@@ -345,7 +342,7 @@ class SubagentResponseProcessor:
             "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "is_successful_completion": reason in ["completed", "finished", "done"],
             "is_error_termination": reason in ["error", "timeout", "failed", "blocked"],
             "is_delegation_related": agent_type

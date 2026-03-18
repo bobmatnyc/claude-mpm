@@ -10,7 +10,6 @@ import re
 import shutil
 import subprocess  # nosec B404 - required for git operations
 from pathlib import Path
-from typing import List
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.utils.git_analyzer import is_git_repository
@@ -51,7 +50,7 @@ def _get_username() -> str:
     return os.environ.get("USER") or os.environ.get("USERNAME") or "User"
 
 
-def _get_recent_commits(max_commits: int = 3) -> List[str]:
+def _get_recent_commits(max_commits: int = 3) -> list[str]:
     """
     Get recent git commits for display in startup banner.
 
@@ -119,7 +118,7 @@ def _get_display_width(text: str) -> int:
     return width
 
 
-def _parse_changelog_highlights(max_items: int = 3, max_width: int = 130) -> List[str]:
+def _parse_changelog_highlights(max_items: int = 3, max_width: int = 130) -> list[str]:
     """
     Parse CHANGELOG.md to extract highlights from latest version.
 
@@ -191,7 +190,7 @@ def _parse_changelog_highlights(max_items: int = 3, max_width: int = 130) -> Lis
         return ["See CHANGELOG.md for details"]
 
 
-def _get_alien_art() -> List[str]:
+def _get_alien_art() -> list[str]:
     """Return multi-alien ASCII art with teal/cyan highlighting."""
     return [
         f"{CYAN}▐▛███▜▌ ▐▛███▜▌{RESET}",  # Two aliens - Width: 15 chars
@@ -426,7 +425,7 @@ def _format_two_column_line(
 def display_startup_banner(
     version: str,
     logging_level: str,
-    applied_migrations: List[str] | None = None,
+    applied_migrations: list[str] | None = None,
 ) -> None:
     """
     Display startup banner with welcome message and info.

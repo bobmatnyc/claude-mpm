@@ -41,7 +41,6 @@ import json
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Set
 
 from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
@@ -71,7 +70,7 @@ class RestartManager(SyncBaseService, IRestartManager):
         health_manager: IHealthCheckManager,
         crash_detector: ICrashDetector,
         restart_policy: IRestartPolicy,
-        state_dir: Optional[Path] = None,
+        state_dir: Path | None = None,
     ):
         """
         Initialize restart manager.
@@ -98,10 +97,10 @@ class RestartManager(SyncBaseService, IRestartManager):
 
         # Auto-restart tracking
         self._lock = threading.Lock()
-        self._auto_restart_enabled: Set[str] = set()
+        self._auto_restart_enabled: set[str] = set()
 
         # In-progress restart tracking (prevent concurrent restarts)
-        self._restart_in_progress: Set[str] = set()
+        self._restart_in_progress: set[str] = set()
 
     def initialize(self) -> bool:
         """
@@ -279,7 +278,7 @@ class RestartManager(SyncBaseService, IRestartManager):
             with self._lock:
                 self._restart_in_progress.discard(deployment_id)
 
-    def get_restart_history(self, deployment_id: str) -> Optional[RestartHistory]:
+    def get_restart_history(self, deployment_id: str) -> RestartHistory | None:
         """
         Get restart history for a deployment.
 

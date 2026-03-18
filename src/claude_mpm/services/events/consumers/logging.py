@@ -6,7 +6,7 @@ Logs events for debugging and monitoring purposes.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -28,7 +28,7 @@ class LoggingConsumer(IEventConsumer):
     def __init__(
         self,
         log_level: str = "INFO",
-        topics: Optional[List[str]] = None,
+        topics: list[str] | None = None,
         format_json: bool = True,
         include_data: bool = True,
         max_data_length: int = 1000,
@@ -100,7 +100,7 @@ class LoggingConsumer(IEventConsumer):
             self._metrics["errors"] += 1
             return False
 
-    async def consume_batch(self, events: List[Event]) -> int:
+    async def consume_batch(self, events: list[Event]) -> int:
         """Log multiple events."""
         successful = 0
         for event in events:
@@ -125,7 +125,7 @@ class LoggingConsumer(IEventConsumer):
         """Check if consumer is healthy."""
         return self._initialized
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get consumer metrics."""
         return self._metrics
 

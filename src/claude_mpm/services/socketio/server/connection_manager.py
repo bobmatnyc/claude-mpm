@@ -14,9 +14,9 @@ import contextlib
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from ....core.logging_config import get_logger
@@ -58,18 +58,18 @@ class ClientConnection:
     client_id: str  # Persistent client ID across reconnections
     state: ConnectionState
     connected_at: float
-    disconnected_at: Optional[float] = None
-    last_ping: Optional[float] = None
-    last_pong: Optional[float] = None
-    last_event: Optional[float] = None
-    event_buffer: Deque[Dict[str, Any]] = field(
+    disconnected_at: float | None = None
+    last_ping: float | None = None
+    last_pong: float | None = None
+    last_event: float | None = None
+    event_buffer: deque[dict[str, Any]] = field(
         default_factory=lambda: deque(maxlen=1000)
     )
     event_sequence: int = 0
     last_acked_sequence: int = 0
-    pending_acks: Dict[int, Dict[str, Any]] = field(default_factory=dict)
+    pending_acks: dict[int, dict[str, Any]] = field(default_factory=dict)
     metrics: ConnectionMetrics = field(default_factory=ConnectionMetrics)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def is_healthy(self, timeout: float = 90.0) -> bool:
         """Check if connection is healthy based on activity.
@@ -150,7 +150,7 @@ class ConnectionManager:
     """
 
     def __init__(
-        self, max_buffer_size: Optional[int] = None, event_ttl: Optional[int] = None
+        self, max_buffer_size: int | None = None, event_ttl: int | None = None
     ):
         """
         Initialize connection manager with centralized configuration.
@@ -162,8 +162,8 @@ class ConnectionManager:
         from ....config.socketio_config import CONNECTION_CONFIG
 
         self.logger = get_logger(__name__)
-        self.connections: Dict[str, ClientConnection] = {}
-        self.client_mapping: Dict[str, str] = {}  # client_id -> current sid
+        self.connections: dict[str, ClientConnection] = {}
+        self.client_mapping: dict[str, str] = {}  # client_id -> current sid
 
         # Use centralized configuration with optional overrides
         self.max_buffer_size = max_buffer_size or CONNECTION_CONFIG["max_events_buffer"]
@@ -177,7 +177,7 @@ class ConnectionManager:
         self._lock = asyncio.Lock()
 
     async def register_connection(
-        self, sid: str, client_id: Optional[str] = None
+        self, sid: str, client_id: str | None = None
     ) -> ClientConnection:
         """
         Register a new connection or reconnection with retry logic.
@@ -314,7 +314,7 @@ class ConnectionManager:
             # Keep connection for potential reconnection
             # It will be cleaned up by health check if not reconnected
 
-    async def buffer_event(self, sid: str, event: Dict[str, Any]) -> bool:
+    async def buffer_event(self, sid: str, event: dict[str, Any]) -> bool:
         """
         Buffer an event for a client.
 
@@ -349,7 +349,7 @@ class ConnectionManager:
 
     async def get_replay_events(
         self, sid: str, last_sequence: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get events to replay for a client after reconnection.
 
@@ -454,7 +454,7 @@ class ConnectionManager:
             except Exception as e:
                 self.logger.error(f"Error in health check loop: {e}")
 
-    async def check_connection_health(self) -> Dict[str, Any]:
+    async def check_connection_health(self) -> dict[str, Any]:
         """
         Check health of all connections and clean up stale ones.
 
@@ -464,7 +464,7 @@ class ConnectionManager:
         async with self._lock:
             now = time.time()
             report = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "total_connections": len(self.connections),
                 "healthy": 0,
                 "stale": 0,
@@ -537,15 +537,15 @@ class ConnectionManager:
 
             return report
 
-    def get_connection(self, sid: str) -> Optional[ClientConnection]:
+    def get_connection(self, sid: str) -> ClientConnection | None:
         """Get connection by socket ID."""
         return self.connections.get(sid)
 
-    def get_all_connections(self) -> Dict[str, ClientConnection]:
+    def get_all_connections(self) -> dict[str, ClientConnection]:
         """Get all connections."""
         return self.connections.copy()
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get overall connection metrics."""
         total_events_sent = sum(
             c.metrics.events_sent for c in self.connections.values()

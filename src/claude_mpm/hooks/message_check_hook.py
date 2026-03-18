@@ -16,9 +16,8 @@ DESIGN:
 """
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from ..core.logging_utils import get_logger
 from ..services.communication.message_service import MessageService
@@ -40,7 +39,7 @@ class MessageCheckState:
         self.state_file = state_file
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
 
-    def load(self) -> Dict:
+    def load(self) -> dict:
         """
         Load state from file.
 
@@ -51,7 +50,7 @@ class MessageCheckState:
             return {
                 "last_check": None,
                 "command_count": 0,
-                "session_start": datetime.now(timezone.utc).isoformat(),
+                "session_start": datetime.now(UTC).isoformat(),
             }
 
         try:
@@ -61,10 +60,10 @@ class MessageCheckState:
             return {
                 "last_check": None,
                 "command_count": 0,
-                "session_start": datetime.now(timezone.utc).isoformat(),
+                "session_start": datetime.now(UTC).isoformat(),
             }
 
-    def save(self, state: Dict) -> None:
+    def save(self, state: dict) -> None:
         """
         Save state to file.
 
@@ -91,14 +90,14 @@ class MessageCheckState:
     def reset(self) -> None:
         """Reset state after check."""
         state = self.load()
-        state["last_check"] = datetime.now(timezone.utc).isoformat()
+        state["last_check"] = datetime.now(UTC).isoformat()
         state["command_count"] = 0
         self.save(state)
 
 
 def should_check_messages(
-    state: Dict, command_threshold: int = 10, time_threshold_minutes: int = 30
-) -> Tuple[bool, Optional[str]]:
+    state: dict, command_threshold: int = 10, time_threshold_minutes: int = 30
+) -> tuple[bool, str | None]:
     """
     Determine if we should check messages now.
 
@@ -122,9 +121,7 @@ def should_check_messages(
     # Check time elapsed
     try:
         last_check = datetime.fromisoformat(state["last_check"])
-        if datetime.now(timezone.utc) - last_check > timedelta(
-            minutes=time_threshold_minutes
-        ):
+        if datetime.now(UTC) - last_check > timedelta(minutes=time_threshold_minutes):
             return (True, "time_threshold")
     except (ValueError, KeyError) as e:
         logger.warning(f"Invalid last_check timestamp: {e}")
@@ -133,7 +130,7 @@ def should_check_messages(
     return (False, None)
 
 
-def format_message_for_pm(msg) -> Dict:
+def format_message_for_pm(msg) -> dict:
     """
     Format a message for PM context.
 
@@ -159,7 +156,7 @@ def format_message_for_pm(msg) -> Dict:
     }
 
 
-def get_config() -> Dict:
+def get_config() -> dict:
     """
     Get messaging configuration from config.
 
@@ -199,7 +196,7 @@ def get_message_check_hook():
     return message_check_hook
 
 
-def message_check_hook() -> Optional[str]:
+def message_check_hook() -> str | None:
     """
     Hook that checks for unread messages and injects into PM context.
 

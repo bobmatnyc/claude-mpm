@@ -14,7 +14,6 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -48,9 +47,9 @@ class WorkflowConfig:
 
 
 def get_workflow_path(
-    current_dir: Optional[Path] = None,
-    framework_path: Optional[Path] = None,
-) -> tuple[Optional[Path], str]:
+    current_dir: Path | None = None,
+    framework_path: Path | None = None,
+) -> tuple[Path | None, str]:
     """Get the path to the active workflow file based on priority.
 
     Args:
@@ -94,9 +93,9 @@ def get_workflow_path(
 
 
 def load_workflow(
-    current_dir: Optional[Path] = None,
-    framework_path: Optional[Path] = None,
-) -> tuple[Optional[str], Optional[str]]:
+    current_dir: Path | None = None,
+    framework_path: Path | None = None,
+) -> tuple[str | None, str | None]:
     """Load workflow content from the appropriate location.
 
     This is the main entry point for loading workflow configurations.
@@ -124,9 +123,9 @@ def load_workflow(
 
 
 def get_workflow_config(
-    current_dir: Optional[Path] = None,
-    framework_path: Optional[Path] = None,
-) -> Optional[WorkflowConfig]:
+    current_dir: Path | None = None,
+    framework_path: Path | None = None,
+) -> WorkflowConfig | None:
     """Get detailed workflow configuration with metadata.
 
     Args:
@@ -169,8 +168,8 @@ def get_workflow_config(
 
 
 def init_local_workflow(
-    current_dir: Optional[Path] = None,
-    framework_path: Optional[Path] = None,
+    current_dir: Path | None = None,
+    framework_path: Path | None = None,
     minimal: bool = False,
 ) -> tuple[bool, str]:
     """Initialize a local workflow configuration file.
@@ -222,7 +221,7 @@ def init_local_workflow(
 
 
 def reset_local_workflow(
-    current_dir: Optional[Path] = None,
+    current_dir: Path | None = None,
 ) -> tuple[bool, str]:
     """Reset to default workflow by removing local override.
 
@@ -249,9 +248,9 @@ def reset_local_workflow(
 
 
 def validate_workflow(
-    content: Optional[str] = None,
-    current_dir: Optional[Path] = None,
-    framework_path: Optional[Path] = None,
+    content: str | None = None,
+    current_dir: Path | None = None,
+    framework_path: Path | None = None,
 ) -> list[dict]:
     """Validate workflow configuration.
 

@@ -4,7 +4,7 @@ This module provides performance metrics tracking functionality for the AgentLif
 Extracted to reduce complexity and improve maintainability.
 """
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .agent_lifecycle_manager import LifecycleOperationResult
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 class LifecyclePerformanceTracker:
     """Handles performance metrics tracking for the lifecycle manager."""
 
-    def __init__(self, performance_metrics: Dict[str, Any]):
+    def __init__(self, performance_metrics: dict[str, Any]):
         """Initialize the performance tracker."""
         self.performance_metrics = performance_metrics
 

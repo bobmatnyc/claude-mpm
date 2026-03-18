@@ -8,7 +8,7 @@ maintainability and testability.
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -43,7 +43,7 @@ class AgentMetricsCollector:
         }
 
     def update_deployment_metrics(
-        self, duration_ms: float, results: Dict[str, Any]
+        self, duration_ms: float, results: dict[str, Any]
     ) -> None:
         """
         Update internal deployment metrics with results from a deployment.
@@ -103,7 +103,7 @@ class AgentMetricsCollector:
                 self._deployment_metrics["deployment_times"]
             ) / len(self._deployment_metrics["deployment_times"])
 
-    def get_deployment_metrics(self) -> Dict[str, Any]:
+    def get_deployment_metrics(self) -> dict[str, Any]:
         """
         Get current deployment metrics.
 
@@ -139,7 +139,7 @@ class AgentMetricsCollector:
             ],  # Last 10
         }
 
-    def get_deployment_status(self) -> Dict[str, Any]:
+    def get_deployment_status(self) -> dict[str, Any]:
         """
         Get comprehensive deployment status including metrics.
 
@@ -180,7 +180,7 @@ class AgentMetricsCollector:
             validation_time_ms
         )
 
-    def get_performance_summary(self) -> Dict[str, Any]:
+    def get_performance_summary(self) -> dict[str, Any]:
         """
         Get performance summary with key metrics.
 

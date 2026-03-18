@@ -9,7 +9,7 @@ This script will:
 
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import socketio
 
@@ -66,10 +66,10 @@ async def on_hook_event(data):
 async def emit_test_browser_log():
     """Emit a valid browser log"""
     browser_log = {
-        "browser_id": f"test-browser-{datetime.now(timezone.utc).timestamp()}",
+        "browser_id": f"test-browser-{datetime.now(UTC).timestamp()}",
         "level": "INFO",
         "message": "Test browser console log - should appear in Browser Logs",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "url": "http://test.example.com",
     }
 
@@ -85,7 +85,7 @@ async def emit_fake_hook_as_browser_log():
         "source": "hook",
         "tool_name": "TestTool",
         "message": "Fake hook event - should NOT appear in Browser Logs",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     print("\n📤 Emitting fake hook event on browser_log channel...")

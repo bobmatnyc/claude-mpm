@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -60,9 +60,9 @@ class StrategyContext:
 
     target_type: str
     operation: str
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    constraints: List[str] = field(default_factory=list)
-    preferences: Dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
+    constraints: list[str] = field(default_factory=list)
+    preferences: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -82,10 +82,10 @@ class StrategyMetadata:
 
     name: str
     description: str = ""
-    supported_types: List[str] = field(default_factory=list)
-    supported_operations: List[str] = field(default_factory=list)
+    supported_types: list[str] = field(default_factory=list)
+    supported_operations: list[str] = field(default_factory=list)
     priority: StrategyPriority = StrategyPriority.NORMAL
-    tags: Set[str] = field(default_factory=set)
+    tags: set[str] = field(default_factory=set)
     version: str = "1.0.0"
 
 
@@ -97,7 +97,7 @@ class BaseStrategy(ABC):
     while inheriting common functionality like validation and logging.
     """
 
-    def __init__(self, metadata: Optional[StrategyMetadata] = None):
+    def __init__(self, metadata: StrategyMetadata | None = None):
         """
         Initialize base strategy.
 
@@ -120,7 +120,7 @@ class BaseStrategy(ABC):
         """
 
     @abstractmethod
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """
         Validate input data for strategy.
 
@@ -167,10 +167,10 @@ class DeploymentStrategy(BaseStrategy):
     @abstractmethod
     def deploy(
         self,
-        source: Union[str, Path],
-        target: Union[str, Path],
-        config: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        source: str | Path,
+        target: str | Path,
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Execute deployment strategy.
 
@@ -184,7 +184,7 @@ class DeploymentStrategy(BaseStrategy):
         """
 
     @abstractmethod
-    def prepare_rollback(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_rollback(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """
         Prepare rollback information for deployment.
 
@@ -196,7 +196,7 @@ class DeploymentStrategy(BaseStrategy):
         """
 
     @abstractmethod
-    def cleanup(self, target: Union[str, Path]) -> bool:
+    def cleanup(self, target: str | Path) -> bool:
         """
         Clean up deployment artifacts.
 
@@ -218,8 +218,8 @@ class AnalyzerStrategy(BaseStrategy):
 
     @abstractmethod
     def analyze(
-        self, target: Any, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, target: Any, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Execute analysis strategy.
 
@@ -232,7 +232,7 @@ class AnalyzerStrategy(BaseStrategy):
         """
 
     @abstractmethod
-    def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metrics(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """
         Extract metrics from analysis results.
 
@@ -245,8 +245,8 @@ class AnalyzerStrategy(BaseStrategy):
 
     @abstractmethod
     def generate_report(
-        self, analysis_result: Dict[str, Any], format: str = "json"
-    ) -> Union[str, Dict[str, Any]]:
+        self, analysis_result: dict[str, Any], format: str = "json"
+    ) -> str | dict[str, Any]:
         """
         Generate report from analysis results.
 
@@ -268,7 +268,7 @@ class ConfigStrategy(BaseStrategy):
     """
 
     @abstractmethod
-    def load(self, source: Union[str, Path, Dict[str, Any]]) -> Dict[str, Any]:
+    def load(self, source: str | Path | dict[str, Any]) -> dict[str, Any]:
         """
         Load configuration using strategy.
 
@@ -280,7 +280,7 @@ class ConfigStrategy(BaseStrategy):
         """
 
     @abstractmethod
-    def validate(self, config: Dict[str, Any]) -> List[str]:
+    def validate(self, config: dict[str, Any]) -> list[str]:
         """
         Validate configuration using strategy schema.
 
@@ -292,7 +292,7 @@ class ConfigStrategy(BaseStrategy):
         """
 
     @abstractmethod
-    def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Transform configuration to required format.
 
@@ -304,7 +304,7 @@ class ConfigStrategy(BaseStrategy):
         """
 
     @abstractmethod
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         """
         Get configuration schema for this strategy.
 
@@ -323,13 +323,13 @@ class StrategyRegistry:
 
     def __init__(self):
         """Initialize strategy registry."""
-        self._strategies: Dict[Type[BaseStrategy], List[BaseStrategy]] = {}
-        self._strategy_metadata: Dict[str, StrategyMetadata] = {}
+        self._strategies: dict[type[BaseStrategy], list[BaseStrategy]] = {}
+        self._strategy_metadata: dict[str, StrategyMetadata] = {}
         self._logger = get_logger(f"{__name__}.StrategyRegistry")
 
     def register(
         self,
-        strategy_class: Type[StrategyType],
+        strategy_class: type[StrategyType],
         strategy: StrategyType,
         override: bool = False,
     ) -> None:
@@ -397,9 +397,9 @@ class StrategyRegistry:
 
     def select_strategy(
         self,
-        strategy_class: Type[StrategyType],
+        strategy_class: type[StrategyType],
         context: StrategyContext,
-    ) -> Optional[StrategyType]:
+    ) -> StrategyType | None:
         """
         Select best strategy for given context.
 
@@ -439,9 +439,9 @@ class StrategyRegistry:
 
     def get_strategy(
         self,
-        strategy_class: Type[StrategyType],
+        strategy_class: type[StrategyType],
         name: str,
-    ) -> Optional[StrategyType]:
+    ) -> StrategyType | None:
         """
         Get specific strategy by name.
 
@@ -462,8 +462,8 @@ class StrategyRegistry:
         return None
 
     def list_strategies(
-        self, strategy_class: Optional[Type[BaseStrategy]] = None
-    ) -> List[StrategyMetadata]:
+        self, strategy_class: type[BaseStrategy] | None = None
+    ) -> list[StrategyMetadata]:
         """
         List registered strategies.
 
@@ -502,7 +502,7 @@ def get_strategy_registry() -> StrategyRegistry:
 
 
 def register_strategy(
-    strategy_class: Type[BaseStrategy],
+    strategy_class: type[BaseStrategy],
     strategy: BaseStrategy,
     override: bool = False,
 ) -> None:
@@ -518,9 +518,9 @@ def register_strategy(
 
 
 def select_strategy(
-    strategy_class: Type[BaseStrategy],
+    strategy_class: type[BaseStrategy],
     context: StrategyContext,
-) -> Optional[BaseStrategy]:
+) -> BaseStrategy | None:
     """
     Select best strategy from global registry.
 

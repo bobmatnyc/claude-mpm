@@ -22,7 +22,6 @@ DESIGN DECISIONS:
 import logging
 import os
 from pathlib import Path
-from typing import Dict
 
 from rich.box import ROUNDED
 from rich.console import Console
@@ -145,7 +144,7 @@ class StartupManager:
 
         return proceed_to_startup
 
-    def load_startup_configuration(self, config: Config) -> Dict:
+    def load_startup_configuration(self, config: Config) -> dict:
         """Load current startup configuration from config."""
         startup_config = config.get("startup", {})
 
@@ -172,7 +171,7 @@ class StartupManager:
 
         return startup_config
 
-    def display_startup_configuration(self, startup_config: Dict) -> None:
+    def display_startup_configuration(self, startup_config: dict) -> None:
         """Display current startup configuration in a table."""
         table = Table(
             title="Current Startup Configuration", box=ROUNDED, show_lines=True
@@ -222,7 +221,7 @@ class StartupManager:
 
         self.console.print(table)
 
-    def configure_mcp_services(self, startup_config: Dict, config: Config) -> None:
+    def configure_mcp_services(self, startup_config: dict, config: Config) -> None:
         """Configure which MCP services to enable at startup."""
         self.console.clear()
         self.display_header()
@@ -305,7 +304,7 @@ class StartupManager:
 
         Prompt.ask("Press Enter to continue")
 
-    def configure_hook_services(self, startup_config: Dict, config: Config) -> None:
+    def configure_hook_services(self, startup_config: dict, config: Config) -> None:
         """Configure which hook services to enable at startup."""
         self.console.clear()
         self.display_header()
@@ -385,7 +384,7 @@ class StartupManager:
 
         Prompt.ask("Press Enter to continue")
 
-    def configure_system_agents(self, startup_config: Dict, config: Config) -> None:
+    def configure_system_agents(self, startup_config: dict, config: Config) -> None:
         """Configure which system agents to deploy at startup.
 
         NEW LOGIC: Uses disabled_agents list. All agents from templates are enabled by default.
@@ -469,7 +468,7 @@ class StartupManager:
                     self.console.print(f"[red]Invalid selection: {e}[/red]")
                     Prompt.ask("Press Enter to continue")
 
-    def enable_all_services(self, startup_config: Dict, config: Config) -> None:
+    def enable_all_services(self, startup_config: dict, config: Config) -> None:
         """Enable all services and agents."""
         if Confirm.ask("[yellow]Enable ALL services and agents?[/yellow]"):
             # Enable all MCP services
@@ -492,7 +491,7 @@ class StartupManager:
             self.console.print("[green]All services and agents enabled![/green]")
             Prompt.ask("Press Enter to continue")
 
-    def disable_all_services(self, startup_config: Dict, config: Config) -> None:
+    def disable_all_services(self, startup_config: dict, config: Config) -> None:
         """Disable all services and agents."""
         if Confirm.ask("[yellow]Disable ALL services and agents?[/yellow]"):
             startup_config["enabled_mcp_services"] = []
@@ -507,7 +506,7 @@ class StartupManager:
             )
             Prompt.ask("Press Enter to continue")
 
-    def reset_to_defaults(self, startup_config: Dict, config: Config) -> None:
+    def reset_to_defaults(self, startup_config: dict, config: Config) -> None:
         """Reset startup configuration to defaults."""
         if Confirm.ask("[yellow]Reset startup configuration to defaults?[/yellow]"):
             # Reset to default values
@@ -529,7 +528,7 @@ class StartupManager:
             )
             Prompt.ask("Press Enter to continue")
 
-    def save_startup_configuration(self, startup_config: Dict, config: Config) -> bool:
+    def save_startup_configuration(self, startup_config: dict, config: Config) -> bool:
         """Save startup configuration to config file and return whether to proceed to startup.
 
         Returns:

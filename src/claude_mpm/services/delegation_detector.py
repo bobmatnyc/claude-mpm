@@ -21,14 +21,14 @@ Examples of patterns to detect:
 """
 
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from ..core.logger import get_logger
 
 # Delegation anti-patterns with capture groups for action extraction
 # Each pattern is (regex_pattern, todo_template)
 # {match} in template will be replaced with captured text
-USER_DELEGATION_PATTERNS: List[Tuple[str, str]] = [
+USER_DELEGATION_PATTERNS: list[tuple[str, str]] = [
     # "Make sure (to) X" → "Verify: X"
     (r"(?i)make sure (?:to |that |you )?(.+)", "Verify: {match}"),
     # "You'll/will need to X" → "Task: X"
@@ -65,7 +65,7 @@ class DelegationDetector:
     def __init__(self):
         self.logger = get_logger("delegation_detector")
 
-    def detect_user_delegation(self, text: str) -> List[Dict[str, Any]]:
+    def detect_user_delegation(self, text: str) -> list[dict[str, Any]]:
         """Detect delegation anti-patterns in text.
 
         Scans text for patterns where PM is asking user to do something
@@ -127,7 +127,7 @@ class DelegationDetector:
 
         return detections
 
-    def format_as_autotodo(self, detection: Dict[str, Any]) -> Dict[str, str]:
+    def format_as_autotodo(self, detection: dict[str, Any]) -> dict[str, str]:
         """Format a detection as an autotodo.
 
         Args:

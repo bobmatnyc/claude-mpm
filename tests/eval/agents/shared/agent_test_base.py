@@ -28,7 +28,7 @@ Example:
             self.assert_net_loc_delta_reported(response)
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -86,7 +86,7 @@ class AgentTestBase:
         """Cleanup after each test method."""
         self.teardown_agent_context()
 
-    def setup_agent_context(self) -> Dict[str, Any]:
+    def setup_agent_context(self) -> dict[str, Any]:
         """
         Setup agent-specific context.
 
@@ -108,7 +108,7 @@ class AgentTestBase:
         Override in subclasses for agent-specific cleanup.
         """
 
-    def get_default_tools(self) -> List[str]:
+    def get_default_tools(self) -> list[str]:
         """Get default tools available to all agents."""
         return [
             "Read",
@@ -124,7 +124,7 @@ class AgentTestBase:
             "SlashCommand",
         ]
 
-    def get_default_constraints(self) -> Dict[str, Any]:
+    def get_default_constraints(self) -> dict[str, Any]:
         """Get default constraints for all agents."""
         return {
             "must_verify": True,
@@ -140,7 +140,7 @@ class AgentTestBase:
         self,
         mock_agent: Any,
         input_text: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> AgentResponseAnalysis:
         """
         Invoke agent and parse response.
@@ -182,7 +182,7 @@ class AgentTestBase:
         return self.parser.parse(response_text, self.agent_type)
 
     def create_test_case(
-        self, input_text: str, actual_output: str, expected_output: Optional[str] = None
+        self, input_text: str, actual_output: str, expected_output: str | None = None
     ) -> LLMTestCase:
         """
         Create DeepEval LLMTestCase for metric evaluation.
@@ -304,7 +304,7 @@ class AgentTestBase:
         )
 
     def assert_tools_used(
-        self, analysis: AgentResponseAnalysis, required_tools: List[str]
+        self, analysis: AgentResponseAnalysis, required_tools: list[str]
     ):
         """
         Assert specific tools were used.
@@ -324,7 +324,7 @@ class AgentTestBase:
             )
 
     def assert_tools_not_used(
-        self, analysis: AgentResponseAnalysis, forbidden_tools: List[str]
+        self, analysis: AgentResponseAnalysis, forbidden_tools: list[str]
     ):
         """
         Assert specific tools were NOT used.

@@ -26,7 +26,6 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
 
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def normalize_deployment_filename(
-    source_filename: str, agent_id: Optional[str] = None
+    source_filename: str, agent_id: str | None = None
 ) -> str:
     """Normalize filename for deployment.
 
@@ -132,7 +131,7 @@ def ensure_agent_id_in_frontmatter(content: str, filename: str) -> str:
     return f"---\n{new_yaml_content}\n---{frontmatter_match.group(2)}{rest_of_content}"
 
 
-def get_underscore_variant_filename(normalized_filename: str) -> Optional[str]:
+def get_underscore_variant_filename(normalized_filename: str) -> str | None:
     """Get underscore variant of a dash-based filename.
 
     Used to detect and clean up duplicate files where the same agent
@@ -179,9 +178,9 @@ class ValidationResult:
     """
 
     valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    agent_id: Optional[str] = None
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    agent_id: str | None = None
     has_frontmatter: bool = False
 
 
@@ -198,10 +197,10 @@ class DeploymentResult:
     """
 
     success: bool
-    deployed_path: Optional[Path] = None
+    deployed_path: Path | None = None
     action: str = "failed"
-    error: Optional[str] = None
-    cleaned_legacy: List[str] = field(default_factory=list)
+    error: str | None = None
+    cleaned_legacy: list[str] = field(default_factory=list)
 
 
 def validate_agent_file(source_file: Path) -> ValidationResult:
@@ -226,9 +225,9 @@ def validate_agent_file(source_file: Path) -> ValidationResult:
         >>> else:
         ...     print(f"Errors: {result.errors}")
     """
-    errors: List[str] = []
-    warnings: List[str] = []
-    agent_id: Optional[str] = None
+    errors: list[str] = []
+    warnings: list[str] = []
+    agent_id: str | None = None
     has_frontmatter = False
 
     # Check file exists
@@ -350,7 +349,7 @@ def deploy_agent_file(
         - PermissionError: Returns failed result with error
         - IOError: Returns failed result with error
     """
-    cleaned_legacy: List[str] = []
+    cleaned_legacy: list[str] = []
 
     # Step 1: Validate source file exists
     if not source_file.exists():

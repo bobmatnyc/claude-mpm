@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from claude_mpm.services.core.base import SyncBaseService
 
@@ -36,7 +36,7 @@ class DiagramType(Enum):
 class DiagramConfig:
     """Configuration for diagram generation."""
 
-    title: Optional[str] = None
+    title: str | None = None
     direction: str = "TB"  # Top-Bottom by default
     theme: str = "default"
     max_depth: int = 5
@@ -54,11 +54,11 @@ class MermaidGeneratorService(SyncBaseService):
     call graphs.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the Mermaid generator service."""
         super().__init__(service_name="MermaidGeneratorService", config=config)
         self._node_id_counter = 0
-        self._node_id_cache: Dict[str, str] = {}
+        self._node_id_cache: dict[str, str] = {}
         self._reserved_keywords = {
             "graph",
             "subgraph",
@@ -112,8 +112,8 @@ class MermaidGeneratorService(SyncBaseService):
     def generate_diagram(
         self,
         diagram_type: DiagramType,
-        analysis_results: Dict[str, Any],
-        config: Optional[DiagramConfig] = None,
+        analysis_results: dict[str, Any],
+        config: DiagramConfig | None = None,
     ) -> str:
         """
         Generate a Mermaid diagram based on analysis results.
@@ -159,7 +159,7 @@ class MermaidGeneratorService(SyncBaseService):
             raise
 
     def _generate_entry_points_diagram(
-        self, analysis_results: Dict[str, Any], config: DiagramConfig
+        self, analysis_results: dict[str, Any], config: DiagramConfig
     ) -> str:
         """Generate entry points flow diagram."""
         lines = []
@@ -248,7 +248,7 @@ class MermaidGeneratorService(SyncBaseService):
         return "\n".join(lines)
 
     def _generate_module_deps_diagram(
-        self, analysis_results: Dict[str, Any], config: DiagramConfig
+        self, analysis_results: dict[str, Any], config: DiagramConfig
     ) -> str:
         """Generate module dependency diagram."""
         lines = []
@@ -278,8 +278,8 @@ class MermaidGeneratorService(SyncBaseService):
             return "\n".join(lines)
 
         # Track all modules and their relationships
-        modules: Set[str] = set()
-        edges: List[Tuple[str, str, str]] = []  # (from, to, label)
+        modules: set[str] = set()
+        edges: list[tuple[str, str, str]] = []  # (from, to, label)
 
         # Process dependencies
         for module, deps in dependencies.items():
@@ -354,7 +354,7 @@ class MermaidGeneratorService(SyncBaseService):
         return "\n".join(lines)
 
     def _generate_class_hierarchy_diagram(
-        self, analysis_results: Dict[str, Any], config: DiagramConfig
+        self, analysis_results: dict[str, Any], config: DiagramConfig
     ) -> str:
         """Generate class hierarchy diagram."""
         lines = []
@@ -481,7 +481,7 @@ class MermaidGeneratorService(SyncBaseService):
         return "\n".join(lines)
 
     def _generate_call_graph_diagram(
-        self, analysis_results: Dict[str, Any], config: DiagramConfig
+        self, analysis_results: dict[str, Any], config: DiagramConfig
     ) -> str:
         """Generate function call graph diagram."""
         lines = []
@@ -501,8 +501,8 @@ class MermaidGeneratorService(SyncBaseService):
             return "\n".join(lines)
 
         # Track all functions and their calls
-        all_functions: Set[str] = set()
-        calls: List[Tuple[str, str, Optional[str]]] = []  # (caller, callee, label)
+        all_functions: set[str] = set()
+        calls: list[tuple[str, str, str | None]] = []  # (caller, callee, label)
 
         # Process call graph
         for caller, callees in call_graph.items():
@@ -800,7 +800,7 @@ class MermaidGeneratorService(SyncBaseService):
 
         return False
 
-    def validate_mermaid_syntax(self, diagram: str) -> Tuple[bool, Optional[str]]:
+    def validate_mermaid_syntax(self, diagram: str) -> tuple[bool, str | None]:
         """
         Validate that the generated Mermaid syntax is correct.
 
@@ -903,7 +903,7 @@ class MermaidGeneratorService(SyncBaseService):
             return False, f"Validation error: {e!s}"
 
     def format_diagram_with_metadata(
-        self, diagram: str, metadata: Optional[Dict[str, Any]] = None
+        self, diagram: str, metadata: dict[str, Any] | None = None
     ) -> str:
         """
         Format a diagram with metadata comments.

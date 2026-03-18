@@ -46,7 +46,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -71,7 +71,7 @@ class AudienceAwarenessMetric(BaseMetric):
     """
 
     # Audience targeting patterns (35% weight)
-    AUDIENCE_STATEMENT_PATTERNS: List[str] = [
+    AUDIENCE_STATEMENT_PATTERNS: list[str] = [
         r"\*\*Audience\*\*:",
         r"This (?:guide|documentation|doc) is for",
         r"Intended for",
@@ -81,7 +81,7 @@ class AudienceAwarenessMetric(BaseMetric):
     ]
 
     # Technical depth indicators - developer-focused
-    DEVELOPER_DEPTH_PATTERNS: List[str] = [
+    DEVELOPER_DEPTH_PATTERNS: list[str] = [
         r"## Architecture",
         r"Design Decision",
         r"Trade-offs?:",
@@ -96,7 +96,7 @@ class AudienceAwarenessMetric(BaseMetric):
     ]
 
     # Technical depth indicators - user-focused
-    USER_DEPTH_PATTERNS: List[str] = [
+    USER_DEPTH_PATTERNS: list[str] = [
         r"Step \d+:",
         r"Click (?:the|on)",
         r"Navigate to",
@@ -110,7 +110,7 @@ class AudienceAwarenessMetric(BaseMetric):
     ]
 
     # Context adaptation - internal references (negative for public docs)
-    INTERNAL_CONTEXT_PATTERNS: List[str] = [
+    INTERNAL_CONTEXT_PATTERNS: list[str] = [
         r"k8s-(?:prod|staging)",
         r"#oncall-",
         r"#team-",
@@ -125,7 +125,7 @@ class AudienceAwarenessMetric(BaseMetric):
     ]
 
     # Context adaptation - public references (positive for public docs)
-    PUBLIC_CONTEXT_PATTERNS: List[str] = [
+    PUBLIC_CONTEXT_PATTERNS: list[str] = [
         r"Contact (?:support|sales)@",
         r"https://(?:docs|api|developer)\.example\.com",
         r"GitHub Issues:",
@@ -136,7 +136,7 @@ class AudienceAwarenessMetric(BaseMetric):
     ]
 
     # Prerequisite patterns (15% weight)
-    PREREQUISITE_PATTERNS: List[str] = [
+    PREREQUISITE_PATTERNS: list[str] = [
         r"\*\*Prerequisites\*\*:",
         r"## Prerequisites",
         r"Required Knowledge:",
@@ -147,7 +147,7 @@ class AudienceAwarenessMetric(BaseMetric):
         r"This guide assumes",
     ]
 
-    PREREQUISITE_LINKS_PATTERNS: List[str] = [
+    PREREQUISITE_LINKS_PATTERNS: list[str] = [
         r"\[.*\]\(http.*\)",  # Markdown links
         r"See \[.*\]",
         r"Learn more:",
@@ -155,7 +155,7 @@ class AudienceAwarenessMetric(BaseMetric):
     ]
 
     # Maintenance patterns (bonus +10%)
-    VERSION_INFO_PATTERNS: List[str] = [
+    VERSION_INFO_PATTERNS: list[str] = [
         r"\*\*Version\*\*:",
         r"## Version",
         r"Last Updated:",
@@ -166,7 +166,7 @@ class AudienceAwarenessMetric(BaseMetric):
         r"v\d+\.\d+\.\d+",
     ]
 
-    DEPRECATION_PATTERNS: List[str] = [
+    DEPRECATION_PATTERNS: list[str] = [
         r"⚠️\s*Deprecated",
         r"DEPRECATED",
         r"Removed in v\d+",
@@ -183,21 +183,21 @@ class AudienceAwarenessMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.80 for 80% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Audience Awareness"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

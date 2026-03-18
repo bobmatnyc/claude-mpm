@@ -3,7 +3,7 @@
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.services.agents.deployment_utils import (
@@ -24,7 +24,7 @@ class SingleAgentDeployer:
         template_builder,
         version_manager,
         results_manager,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """Initialize the single agent deployer.
 
@@ -47,7 +47,7 @@ class SingleAgentDeployer:
         base_agent_version: tuple,
         force_rebuild: bool,
         deployment_mode: str,
-        results: Dict[str, Any],
+        results: dict[str, Any],
         source_info: str = "unknown",
     ) -> None:
         """Deploy a single agent template.
@@ -139,7 +139,7 @@ class SingleAgentDeployer:
         base_agent_version: tuple,
         force_rebuild: bool,
         deployment_mode: str,
-    ) -> Tuple[bool, bool, str]:
+    ) -> tuple[bool, bool, str]:
         """Check if agent needs update and determine status.
 
         WHY: Centralized update checking logic ensures consistent
@@ -192,7 +192,7 @@ class SingleAgentDeployer:
         target_dir: Path,
         base_agent_path: Path,
         force_rebuild: bool = False,
-        working_directory: Optional[Path] = None,
+        working_directory: Path | None = None,
     ) -> bool:
         """Deploy a single agent to the specified directory.
 
@@ -310,8 +310,8 @@ class SingleAgentDeployer:
         self,
         agent_name: str,
         templates_dir: Path,
-        working_directory: Optional[Path] = None,
-    ) -> Optional[Path]:
+        working_directory: Path | None = None,
+    ) -> Path | None:
         """Find agent template across all source tiers.
 
         Searches for the agent template in this priority order:

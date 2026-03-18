@@ -21,7 +21,6 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 from ....core.enums import OperationResult
 from ....core.logging_config import get_logger
@@ -34,7 +33,7 @@ class DaemonLifecycle:
     handling, and graceful shutdown capabilities.
     """
 
-    def __init__(self, pid_file: str, log_file: Optional[str] = None, port: int = 8765):
+    def __init__(self, pid_file: str, log_file: str | None = None, port: int = 8765):
         """Initialize daemon lifecycle manager.
 
         Args:
@@ -194,7 +193,7 @@ class DaemonLifecycle:
             self._cleanup_stale_pid_file()
             return False
 
-    def get_pid(self) -> Optional[int]:
+    def get_pid(self) -> int | None:
         """Get PID from PID file.
 
         Returns:
@@ -506,9 +505,7 @@ class DaemonLifecycle:
             # If we can't set up logging, at least try to report the error
             self._report_startup_error(f"Failed to setup error logging: {e}")
 
-    def verify_port_available(
-        self, host: str = "localhost"
-    ) -> Tuple[bool, Optional[str]]:
+    def verify_port_available(self, host: str = "localhost") -> tuple[bool, str | None]:
         """Verify that the port is available for binding.
 
         Args:
@@ -527,7 +524,7 @@ class DaemonLifecycle:
             error_msg = f"Port {self.port} is already in use or cannot be bound: {e}"
             return False, error_msg
 
-    def is_our_service(self, host: str = "localhost") -> Tuple[bool, Optional[int]]:
+    def is_our_service(self, host: str = "localhost") -> tuple[bool, int | None]:
         """Check if the service on the port is our Socket.IO service.
 
         This uses multiple detection methods:
@@ -555,7 +552,7 @@ class DaemonLifecycle:
                 req = urllib.request.Request(health_url)
                 req.add_header("User-Agent", "claude-mpm-monitor")
 
-                with urllib.request.urlopen(req, timeout=3) as response:
+                with urllib.request.urlopen(req, timeout=3) as response:  # nosec
                     if response.status == 200:
                         data = json.loads(response.read().decode())
                         self.logger.debug(f"Health endpoint response: {data}")

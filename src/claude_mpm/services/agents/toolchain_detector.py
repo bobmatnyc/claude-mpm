@@ -31,7 +31,6 @@ Performance:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Set
 
 from claude_mpm.core.agent_name_registry import CORE_AGENT_IDS
 
@@ -195,7 +194,7 @@ class ToolchainDetector:
         self.max_scan_depth = max_scan_depth
         logger.debug(f"ToolchainDetector initialized (max_depth={max_scan_depth})")
 
-    def detect_toolchain(self, project_path: Path) -> Dict[str, List[str]]:
+    def detect_toolchain(self, project_path: Path) -> dict[str, list[str]]:
         """Detect complete project toolchain.
 
         Scans project directory to identify languages, frameworks, and build tools.
@@ -254,8 +253,8 @@ class ToolchainDetector:
         return toolchain
 
     def detect_languages(
-        self, scanned_files: List[Path], project_path: Path
-    ) -> List[str]:
+        self, scanned_files: list[Path], project_path: Path
+    ) -> list[str]:
         """Detect programming languages from file extensions and config files.
 
         Args:
@@ -265,7 +264,7 @@ class ToolchainDetector:
         Returns:
             List of detected language names (e.g., ["python", "javascript"])
         """
-        detected_languages: Set[str] = set()
+        detected_languages: set[str] = set()
 
         # Check each language pattern
         for language, patterns in self.LANGUAGE_PATTERNS.items():
@@ -288,8 +287,8 @@ class ToolchainDetector:
         return sorted(detected_languages)
 
     def detect_frameworks(
-        self, scanned_files: List[Path], project_path: Path
-    ) -> List[str]:
+        self, scanned_files: list[Path], project_path: Path
+    ) -> list[str]:
         """Detect frameworks from config files and content markers.
 
         Args:
@@ -299,7 +298,7 @@ class ToolchainDetector:
         Returns:
             List of detected framework names (e.g., ["fastapi", "react"])
         """
-        detected_frameworks: Set[str] = set()
+        detected_frameworks: set[str] = set()
 
         for framework, patterns in self.FRAMEWORK_PATTERNS.items():
             # Check if required files exist
@@ -336,8 +335,8 @@ class ToolchainDetector:
         return sorted(detected_frameworks)
 
     def detect_build_tools(
-        self, scanned_files: List[Path], project_path: Path
-    ) -> List[str]:
+        self, scanned_files: list[Path], project_path: Path
+    ) -> list[str]:
         """Detect build tools from config files.
 
         Args:
@@ -347,7 +346,7 @@ class ToolchainDetector:
         Returns:
             List of detected build tool names (e.g., ["docker", "make"])
         """
-        detected_tools: Set[str] = set()
+        detected_tools: set[str] = set()
 
         for tool, config_files in self.BUILD_TOOL_PATTERNS.items():
             for config_file in config_files:
@@ -358,7 +357,7 @@ class ToolchainDetector:
 
         return sorted(detected_tools)
 
-    def recommend_agents(self, toolchain: Dict[str, List[str]]) -> List[str]:
+    def recommend_agents(self, toolchain: dict[str, list[str]]) -> list[str]:
         """Map detected toolchain to recommended agents.
 
         Combines language-specific, framework-specific, and ops agents with
@@ -382,7 +381,7 @@ class ToolchainDetector:
             ['python-engineer', 'ops', 'local-ops-agent', 'qa', 'research',
              'documentation', 'ticketing']
         """
-        recommended: Set[str] = set()
+        recommended: set[str] = set()
 
         # Add core agents (always included)
         recommended.update(self.CORE_AGENTS)
@@ -425,7 +424,7 @@ class ToolchainDetector:
         logger.info(f"Recommended {len(agents_list)} agents: {agents_list}")
         return agents_list
 
-    def _scan_files(self, project_path: Path) -> List[Path]:
+    def _scan_files(self, project_path: Path) -> list[Path]:
         """Scan project files up to max_scan_depth.
 
         Excludes common non-source directories (.git/, venv/, node_modules/, etc.)
@@ -441,8 +440,8 @@ class ToolchainDetector:
         - Early termination on depth limit
         - Directory exclusion to skip irrelevant paths
         """
-        files: List[Path] = []
-        to_scan: List[tuple[Path, int]] = [(project_path, 0)]  # (path, depth)
+        files: list[Path] = []
+        to_scan: list[tuple[Path, int]] = [(project_path, 0)]  # (path, depth)
 
         while to_scan:
             current_path, depth = to_scan.pop(0)

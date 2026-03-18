@@ -10,8 +10,8 @@ CRITICAL: Claude sends events with `hook_event_name` field, NOT `event` or `type
 import asyncio
 import sys
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timezone
+from typing import Any
 
 try:
     import aiohttp
@@ -31,7 +31,7 @@ class ClaudeEventTester:
         self.events_sent = 0
         self.events_failed = 0
 
-    def create_claude_event(self, event_name: str, **kwargs) -> Dict[str, Any]:
+    def create_claude_event(self, event_name: str, **kwargs) -> dict[str, Any]:
         """Create a properly formatted Claude event.
 
         This matches the EXACT format that Claude sends to the hook handler.
@@ -41,7 +41,7 @@ class ClaudeEventTester:
             "hook_event_name": event_name,  # THIS IS THE CRITICAL FIELD!
             "hook_event_type": event_name,  # Also included by Claude
             "sessionId": self.session_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_run_id": f"run-{uuid.uuid4().hex[:8]}",
         }
 
@@ -118,7 +118,7 @@ class ClaudeEventTester:
 
         return base_event
 
-    async def send_event(self, event: Dict[str, Any]) -> bool:
+    async def send_event(self, event: dict[str, Any]) -> bool:
         """Send event to the dashboard HTTP endpoint."""
         try:
             async with aiohttp.ClientSession() as session:

@@ -21,7 +21,7 @@ MIGRATION: To use this refactored version, simply replace imports:
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import ProjectAnalyzerInterface
@@ -92,13 +92,13 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
 
     def __init__(
         self,
-        config: Optional[Config] = None,
-        working_directory: Optional[Path] = None,
+        config: Config | None = None,
+        working_directory: Path | None = None,
         # Dependency injection for services (optional)
-        language_analyzer: Optional[LanguageAnalyzerService] = None,
-        dependency_analyzer: Optional[DependencyAnalyzerService] = None,
-        architecture_analyzer: Optional[ArchitectureAnalyzerService] = None,
-        metrics_collector: Optional[MetricsCollectorService] = None,
+        language_analyzer: LanguageAnalyzerService | None = None,
+        dependency_analyzer: DependencyAnalyzerService | None = None,
+        architecture_analyzer: ArchitectureAnalyzerService | None = None,
+        metrics_collector: MetricsCollectorService | None = None,
     ):
         """Initialize the refactored project analyzer.
 
@@ -129,8 +129,8 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
         )
 
         # Cache for analysis results
-        self._analysis_cache: Optional[ProjectCharacteristics] = None
-        self._cache_timestamp: Optional[float] = None
+        self._analysis_cache: ProjectCharacteristics | None = None
+        self._cache_timestamp: float | None = None
         self._cache_ttl = 300  # 5 minutes
 
     def analyze_project(self, force_refresh: bool = False) -> ProjectCharacteristics:
@@ -393,7 +393,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
         deps = self.dependency_analyzer.analyze_dependencies()
         characteristics.key_dependencies.extend(deps["production"][:10])
 
-    def _get_subdirectories(self, path: Path, max_depth: int = 2) -> List[str]:
+    def _get_subdirectories(self, path: Path, max_depth: int = 2) -> list[str]:
         """Backward compatibility method - get subdirectory names."""
         subdirs = []
         try:
@@ -412,7 +412,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
     # Interface Methods
     # ================================================================================
 
-    def detect_technology_stack(self) -> List[str]:
+    def detect_technology_stack(self) -> list[str]:
         """Detect technologies used in the project."""
         characteristics = self.analyze_project()
 
@@ -428,7 +428,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
 
         return list(set(technologies))
 
-    def analyze_code_patterns(self) -> Dict[str, Any]:
+    def analyze_code_patterns(self) -> dict[str, Any]:
         """Analyze code patterns and conventions."""
         characteristics = self.analyze_project()
 
@@ -440,7 +440,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             "architecture_type": characteristics.architecture_type,
         }
 
-    def get_project_structure(self) -> Dict[str, Any]:
+    def get_project_structure(self) -> dict[str, Any]:
         """Get project directory structure analysis."""
         characteristics = self.analyze_project()
 
@@ -454,7 +454,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             "architecture_type": characteristics.architecture_type,
         }
 
-    def identify_entry_points(self) -> List[Path]:
+    def identify_entry_points(self) -> list[Path]:
         """Identify project entry points."""
         characteristics = self.analyze_project()
 
@@ -501,7 +501,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
 
         return "\n".join(summary_parts)
 
-    def get_important_files_for_context(self) -> List[str]:
+    def get_important_files_for_context(self) -> list[str]:
         """Get list of important files for memory context."""
         characteristics = self.analyze_project()
         important_files = []

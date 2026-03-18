@@ -7,7 +7,7 @@ functions with no external dependencies.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 __all__ = [
     "build_enhanced_update_prompt",
@@ -20,8 +20,8 @@ __all__ = [
 
 def build_initialization_prompt(
     project_path: Path,
-    project_type: Optional[str] = None,
-    framework: Optional[str] = None,
+    project_type: str | None = None,
+    framework: str | None = None,
     ast_analysis: bool = True,
 ) -> str:
     """
@@ -218,9 +218,9 @@ The final CLAUDE.md should be a comprehensive, well-organized guide that any AI 
 
 def build_update_prompt(
     project_path: Path,
-    doc_analysis: Dict[str, Any],
-    project_type: Optional[str] = None,
-    framework: Optional[str] = None,
+    doc_analysis: dict[str, Any],
+    project_type: str | None = None,
+    framework: str | None = None,
     ast_analysis: bool = True,
     preserve_custom: bool = True,
 ) -> str:
@@ -309,12 +309,12 @@ preserving valuable project-specific information while refreshing standard secti
 
 def build_enhanced_update_prompt(
     project_path: Path,
-    doc_analysis: Dict[str, Any],
-    git_insights: Dict[str, Any],
-    log_insights: Dict[str, Any],
-    memory_insights: Dict[str, Any],
-    project_type: Optional[str] = None,
-    framework: Optional[str] = None,
+    doc_analysis: dict[str, Any],
+    git_insights: dict[str, Any],
+    log_insights: dict[str, Any],
+    memory_insights: dict[str, Any],
+    project_type: str | None = None,
+    framework: str | None = None,
     ast_analysis: bool = True,
     preserve_custom: bool = True,
 ) -> str:
@@ -509,7 +509,7 @@ The goal is to create a living document that reflects actual project evolution.
     return prompt
 
 
-def build_research_context_prompt(git_analysis: Dict[str, Any], days: int) -> str:
+def build_research_context_prompt(git_analysis: dict[str, Any], days: int) -> str:
     """
     Build structured Research agent delegation prompt from git analysis.
 

@@ -18,9 +18,8 @@ Created: 2025-01-26
 
 import os
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from rich.console import Console
 
@@ -33,7 +32,7 @@ console = Console()
 class EnhancedProjectAnalyzer:
     """Enhanced project analyzer with git history support."""
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """
         Initialize the enhanced analyzer.
 
@@ -64,7 +63,7 @@ class EnhancedProjectAnalyzer:
         if not self.is_git_repo:
             logger.debug(f"Directory is not a git repository: {self.project_path}")
 
-    def analyze_git_history(self, days_back: int = 30) -> Dict:
+    def analyze_git_history(self, days_back: int = 30) -> dict:
         """Analyze git history for recent changes and patterns."""
         if not self.is_git_repo:
             return {"git_available": False, "message": "Not a git repository"}
@@ -84,7 +83,7 @@ class EnhancedProjectAnalyzer:
 
         return analysis
 
-    def _run_git_command(self, args: List[str]) -> Optional[str]:
+    def _run_git_command(self, args: list[str]) -> str | None:
         """Run a git command and return output."""
         try:
             result = subprocess.run(
@@ -99,11 +98,9 @@ class EnhancedProjectAnalyzer:
             logger.debug(f"Git command failed: {e}")
             return None
 
-    def _get_recent_commits(self, days: int) -> List[Dict]:
+    def _get_recent_commits(self, days: int) -> list[dict]:
         """Get recent commits within specified days."""
-        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
-            "%Y-%m-%d"
-        )
+        since_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # Get commit log with structured format
         output = self._run_git_command(
@@ -134,11 +131,9 @@ class EnhancedProjectAnalyzer:
 
         return commits[:50]  # Limit to 50 most recent
 
-    def _get_changed_files(self, days: int) -> Dict:
+    def _get_changed_files(self, days: int) -> dict:
         """Get files changed in recent commits."""
-        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
-            "%Y-%m-%d"
-        )
+        since_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         output = self._run_git_command(
             [
@@ -167,11 +162,9 @@ class EnhancedProjectAnalyzer:
             "recently_added": self._get_recently_added_files(days),
         }
 
-    def _get_recently_added_files(self, days: int) -> List[str]:
+    def _get_recently_added_files(self, days: int) -> list[str]:
         """Get files added in recent commits."""
-        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
-            "%Y-%m-%d"
-        )
+        since_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         output = self._run_git_command(
             [
@@ -193,11 +186,9 @@ class EnhancedProjectAnalyzer:
 
         return list(set(added_files))[:20]  # Unique files, max 20
 
-    def _get_author_stats(self, days: int) -> Dict:
+    def _get_author_stats(self, days: int) -> dict:
         """Get author contribution statistics."""
-        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
-            "%Y-%m-%d"
-        )
+        since_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         output = self._run_git_command(
             [
@@ -224,7 +215,7 @@ class EnhancedProjectAnalyzer:
             "contributors": dict(list(authors.items())[:10]),  # Top 10 contributors
         }
 
-    def _get_branch_info(self) -> Dict:
+    def _get_branch_info(self) -> dict:
         """Get current branch and remote information."""
         info = {}
 
@@ -261,11 +252,9 @@ class EnhancedProjectAnalyzer:
 
         return info
 
-    def _get_documentation_changes(self, days: int) -> Dict:
+    def _get_documentation_changes(self, days: int) -> dict:
         """Track changes to documentation files."""
-        since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
-            "%Y-%m-%d"
-        )
+        since_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # Get changes to documentation files
         doc_patterns = ["*.md", "*.rst", "*.txt", "docs/*", "README*", "CLAUDE*"]
@@ -327,7 +316,7 @@ class EnhancedProjectAnalyzer:
             "has_recent_doc_changes": bool(doc_changes or claude_updates),
         }
 
-    def _analyze_commit_patterns(self, commits: List[Dict]) -> Dict:
+    def _analyze_commit_patterns(self, commits: list[dict]) -> dict:
         """Analyze patterns in commit messages."""
         patterns = {
             "features": [],
@@ -373,7 +362,7 @@ class EnhancedProjectAnalyzer:
 
         return patterns
 
-    def _identify_hot_spots(self, changed_files: Dict) -> List[Dict]:
+    def _identify_hot_spots(self, changed_files: dict) -> list[dict]:
         """Identify hot spots (frequently changed files)."""
         if not changed_files.get("most_changed"):
             return []
@@ -411,7 +400,7 @@ class EnhancedProjectAnalyzer:
             return "documentation"
         return "other"
 
-    def detect_project_state(self) -> Dict:
+    def detect_project_state(self) -> dict:
         """Detect the current state and lifecycle phase of the project."""
         state = {
             "phase": "unknown",
@@ -485,8 +474,7 @@ class EnhancedProjectAnalyzer:
             )
             if first_commit:
                 age_days = (
-                    datetime.now(timezone.utc)
-                    - datetime.fromtimestamp(int(first_commit))
+                    datetime.now(UTC) - datetime.fromtimestamp(int(first_commit))
                 ).days
                 indicators.append(f"{age_days} days old")
 
@@ -504,11 +492,11 @@ class EnhancedProjectAnalyzer:
 
         return state
 
-    def generate_analysis_report(self, include_git: bool = True) -> Dict:
+    def generate_analysis_report(self, include_git: bool = True) -> dict:
         """Generate comprehensive project analysis report."""
         report = {
             "project_path": str(self.project_path),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Basic project info
@@ -529,7 +517,7 @@ class EnhancedProjectAnalyzer:
 
         return report
 
-    def _get_project_statistics(self) -> Dict:
+    def _get_project_statistics(self) -> dict:
         """Get basic project statistics."""
         stats = {
             "total_files": 0,

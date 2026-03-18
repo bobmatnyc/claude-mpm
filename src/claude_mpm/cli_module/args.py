@@ -2,7 +2,7 @@
 
 import argparse
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ArgumentRegistry:
@@ -14,8 +14,8 @@ class ArgumentRegistry:
 
     def __init__(self):
         """Initialize the registry with common argument groups."""
-        self._arguments: Dict[str, Dict[str, Any]] = {}
-        self._groups: Dict[str, list] = {
+        self._arguments: dict[str, dict[str, Any]] = {}
+        self._groups: dict[str, list] = {
             "global": [],
             "run": [],
             "logging": [],
@@ -174,7 +174,7 @@ class ArgumentRegistry:
             },
         )
 
-    def register(self, name: str, definition: Dict[str, Any]):
+    def register(self, name: str, definition: dict[str, Any]):
         """Register a new argument definition.
 
         Args:
@@ -195,8 +195,8 @@ class ArgumentRegistry:
     def apply_arguments(
         self,
         parser: argparse.ArgumentParser,
-        groups: Optional[list] = None,
-        exclude: Optional[list] = None,
+        groups: list | None = None,
+        exclude: list | None = None,
     ):
         """Apply argument definitions to a parser.
 
@@ -232,11 +232,11 @@ class ArgumentRegistry:
 
             parser.add_argument(*flags, **definition)
 
-    def get_argument_groups(self) -> Dict[str, list]:
+    def get_argument_groups(self) -> dict[str, list]:
         """Get all argument groups and their members."""
         return self._groups.copy()
 
-    def get_argument_definition(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_argument_definition(self, name: str) -> dict[str, Any] | None:
         """Get the definition for a specific argument."""
         return self._arguments.get(name, {}).copy()
 
@@ -245,7 +245,7 @@ class ArgumentRegistry:
         parser: argparse.ArgumentParser,
         group_name: str,
         title: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         """Create an argument group and add arguments from a named group.
 

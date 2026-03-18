@@ -18,7 +18,7 @@ Usage:
     cache_size = ConfigConstants.get_cache_setting('max_size_mb')
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from .unified_config import ConfigurationService
 
@@ -31,7 +31,7 @@ class ConfigConstants:
     that were previously hardcoded, while maintaining backward compatibility.
     """
 
-    _config_service: Optional[ConfigurationService] = None
+    _config_service: ConfigurationService | None = None
 
     # Default values for backward compatibility
     DEFAULT_VALUES = {

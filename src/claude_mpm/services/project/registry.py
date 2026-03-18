@@ -21,9 +21,9 @@ import platform
 import subprocess
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -71,7 +71,7 @@ class ProjectRegistry:
             self.logger.error(f"Failed to create registry directory: {e}")
             raise ProjectRegistryError(f"Cannot create registry directory: {e}") from e
 
-    def get_or_create_project_entry(self) -> Dict[str, Any]:
+    def get_or_create_project_entry(self) -> dict[str, Any]:
         """
         Get existing project registry entry or create a new one.
 
@@ -106,7 +106,7 @@ class ProjectRegistry:
             self.logger.error(f"Failed to get or create project entry: {e}")
             raise ProjectRegistryError(f"Registry operation failed: {e}") from e
 
-    def _find_existing_entry(self) -> Optional[Dict[str, Any]]:
+    def _find_existing_entry(self) -> dict[str, Any] | None:
         """
         Search for existing registry entry matching current project path.
 
@@ -146,7 +146,7 @@ class ProjectRegistry:
             self.logger.error(f"Error searching for existing entry: {e}")
             return None
 
-    def _create_new_entry(self) -> Dict[str, Any]:
+    def _create_new_entry(self) -> dict[str, Any]:
         """
         Create a new project registry entry.
 
@@ -180,7 +180,7 @@ class ProjectRegistry:
         self.logger.info(f"Created new project registry entry: {project_id}")
         return project_data
 
-    def _update_existing_entry(self, existing_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _update_existing_entry(self, existing_data: dict[str, Any]) -> dict[str, Any]:
         """
         Update existing project registry entry with current session information.
 
@@ -203,7 +203,7 @@ class ProjectRegistry:
         # Update timestamps and counters
         metadata = existing_data.get("metadata", {})
         access_count = metadata.get("access_count", 0) + 1
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         existing_data["metadata"].update(
             {"updated_at": now, "last_accessed": now, "access_count": access_count}
@@ -227,14 +227,14 @@ class ProjectRegistry:
         self.logger.debug(f"Updated project registry entry (access #{access_count})")
         return existing_data
 
-    def _build_metadata(self, is_new: bool = False) -> Dict[str, Any]:
+    def _build_metadata(self, is_new: bool = False) -> dict[str, Any]:
         """
         Build metadata section for registry entry.
 
         WHY: Metadata tracks creation, modification, and access patterns for
         analytics and project lifecycle management.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         metadata = {"updated_at": now, "last_accessed": now, "access_count": 1}
 
@@ -243,7 +243,7 @@ class ProjectRegistry:
 
         return metadata
 
-    def _build_runtime_info(self) -> Dict[str, Any]:
+    def _build_runtime_info(self) -> dict[str, Any]:
         """
         Build runtime information section.
 
@@ -258,7 +258,7 @@ class ProjectRegistry:
             claude_mpm_version = "unknown"
 
         return {
-            "startup_time": datetime.now(timezone.utc).isoformat(),
+            "startup_time": datetime.now(UTC).isoformat(),
             "pid": os.getpid(),
             "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             "claude_mpm_version": claude_mpm_version,
@@ -266,7 +266,7 @@ class ProjectRegistry:
             "launch_method": "subprocess",  # Default, could be detected based on parent process
         }
 
-    def _build_environment_info(self) -> Dict[str, Any]:
+    def _build_environment_info(self) -> dict[str, Any]:
         """
         Build environment information section.
 
@@ -284,7 +284,7 @@ class ProjectRegistry:
             "cwd": str(Path.cwd()),
         }
 
-    def _build_git_info(self) -> Dict[str, Any]:
+    def _build_git_info(self) -> dict[str, Any]:
         """
         Build git repository information.
 
@@ -379,7 +379,7 @@ class ProjectRegistry:
 
         return git_info
 
-    def _build_session_info(self) -> Dict[str, Any]:
+    def _build_session_info(self) -> dict[str, Any]:
         """
         Build session information.
 
@@ -397,7 +397,7 @@ class ProjectRegistry:
             "monitor_enabled": False,  # Could be detected from process state
         }
 
-    def _build_project_info(self) -> Dict[str, Any]:
+    def _build_project_info(self) -> dict[str, Any]:
         """
         Build project information section.
 
@@ -477,7 +477,7 @@ class ProjectRegistry:
 
         return project_info
 
-    def _save_registry_data(self, registry_file: Path, data: Dict[str, Any]) -> None:
+    def _save_registry_data(self, registry_file: Path, data: dict[str, Any]) -> None:
         """
         Save registry data to YAML file.
 
@@ -504,7 +504,7 @@ class ProjectRegistry:
             self.logger.error(f"Failed to save registry data: {e}")
             raise ProjectRegistryError(f"Failed to save registry: {e}") from e
 
-    def list_projects(self) -> List[Dict[str, Any]]:
+    def list_projects(self) -> list[dict[str, Any]]:
         """
         List all registered projects.
 
@@ -552,7 +552,7 @@ class ProjectRegistry:
             return 0
 
         cleaned_count = 0
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+        cutoff_date = datetime.now(UTC) - timedelta(days=max_age_days)
 
         try:
             for registry_file in self.registry_dir.glob("*.yaml"):
@@ -589,7 +589,7 @@ class ProjectRegistry:
 
         return cleaned_count
 
-    def update_session_info(self, session_updates: Dict[str, Any]) -> bool:
+    def update_session_info(self, session_updates: dict[str, Any]) -> bool:
         """
         Update session information for the current project.
 
@@ -622,7 +622,7 @@ class ProjectRegistry:
             existing_entry["session"].update(session_updates)
 
             # Update metadata timestamp
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             existing_entry["metadata"]["updated_at"] = now
 
             # Save updated data

@@ -6,11 +6,12 @@ Part of Phase 3 Configuration Consolidation
 import json
 import traceback
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Type, Union
+from typing import Any, ClassVar
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -49,11 +50,11 @@ class ErrorContext:
     error: Exception
     category: ErrorCategory
     severity: ErrorSeverity
-    source: Optional[str] = None
-    operation: Optional[str] = None
+    source: str | None = None
+    operation: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
-    traceback: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    traceback: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
     recovery_attempted: bool = False
     recovery_successful: bool = False
 
@@ -66,10 +67,10 @@ class ErrorHandlingResult:
     recovered: bool = False
     fallback_value: Any = None
     should_retry: bool = False
-    retry_after: Optional[int] = None  # seconds
+    retry_after: int | None = None  # seconds
     should_escalate: bool = False
-    message: Optional[str] = None
-    actions_taken: List[str] = field(default_factory=list)
+    message: str | None = None
+    actions_taken: list[str] = field(default_factory=list)
 
 
 class BaseErrorHandler(ABC):
@@ -86,7 +87,7 @@ class BaseErrorHandler(ABC):
     def handle(self, context: ErrorContext) -> ErrorHandlingResult:
         """Handle the error"""
 
-    def log_error(self, context: ErrorContext, message: Optional[str] = None):
+    def log_error(self, context: ErrorContext, message: str | None = None):
         """Log error with appropriate level"""
         log_message = message or str(context.error)
 
@@ -416,13 +417,13 @@ class ParsingErrorHandler(BaseErrorHandler):
 
         return result
 
-    def _try_yaml(self, content: str) -> Dict:
+    def _try_yaml(self, content: str) -> dict:
         """Try parsing as YAML"""
         import yaml
 
         return yaml.safe_load(content)
 
-    def _try_ini(self, content: str) -> Dict:
+    def _try_ini(self, content: str) -> dict:
         """Try parsing as INI"""
         import configparser
 
@@ -430,7 +431,7 @@ class ParsingErrorHandler(BaseErrorHandler):
         parser.read_string(content)
         return {s: dict(parser.items(s)) for s in parser.sections()}
 
-    def _try_properties(self, content: str) -> Dict:
+    def _try_properties(self, content: str) -> dict:
         """Try parsing as properties file"""
         result = {}
         for line in content.splitlines():
@@ -471,7 +472,7 @@ class ValidationErrorHandler(BaseErrorHandler):
         return result
 
     def _fix_validation_error(
-        self, field: str, value: Any, schema: Dict, result: ErrorHandlingResult
+        self, field: str, value: Any, schema: dict, result: ErrorHandlingResult
     ) -> ErrorHandlingResult:
         """Try to fix validation error"""
         field_schema = schema.get("properties", {}).get(field, {})
@@ -646,7 +647,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
 
         return result
 
-    def _smart_convert(self, value: Any, target_type: Type) -> Any:
+    def _smart_convert(self, value: Any, target_type: type) -> Any:
         """Smart type conversion with fallbacks"""
         converters = {
             str: self._to_string,
@@ -733,7 +734,7 @@ class TypeConversionErrorHandler(BaseErrorHandler):
             return vars(value)
         return {}
 
-    def _get_type_default(self, target_type: Type) -> Any:
+    def _get_type_default(self, target_type: type) -> Any:
         """Get default value for type"""
         defaults = {
             str: "",
@@ -811,30 +812,30 @@ class ErrorHandlingStrategy(IConfigStrategy):
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
         self.composite_handler = CompositeErrorHandler()
-        self.error_history: List[ErrorContext] = []
-        self.recovery_strategies: Dict[str, Callable] = {}
+        self.error_history: list[ErrorContext] = []
+        self.recovery_strategies: dict[str, Callable] = {}
 
-    def can_handle(self, source: Union[str, Path, Dict]) -> bool:
+    def can_handle(self, source: str | Path | dict) -> bool:
         """Error handler can handle any source"""
         return True
 
-    def load(self, source: Any, **kwargs) -> Dict[str, Any]:
+    def load(self, source: Any, **kwargs) -> dict[str, Any]:
         """Not used for error handling"""
         return {}
 
-    def validate(self, config: Dict[str, Any], schema: Optional[Dict] = None) -> bool:
+    def validate(self, config: dict[str, Any], schema: dict | None = None) -> bool:
         """Validate with error handling"""
         return True
 
-    def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(self, config: dict[str, Any]) -> dict[str, Any]:
         """Transform config with error handling"""
         return config
 
     def handle_error(
         self,
         error: Exception,
-        source: Optional[str] = None,
-        operation: Optional[str] = None,
+        source: str | None = None,
+        operation: str | None = None,
         **metadata,
     ) -> ErrorHandlingResult:
         """Main error handling entry point"""
@@ -951,7 +952,7 @@ class ErrorHandlingStrategy(IConfigStrategy):
         self.recovery_strategies[name] = strategy
         self.logger.debug(f"Registered recovery strategy: {name}")
 
-    def get_error_statistics(self) -> Dict[str, Any]:
+    def get_error_statistics(self) -> dict[str, Any]:
         """Get error handling statistics"""
         if not self.error_history:
             return {

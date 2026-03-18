@@ -54,15 +54,20 @@ class TestAgentsDeployPreset:
         from unittest.mock import MagicMock, patch
 
         # Mock services using context managers
-        with patch(
-            "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
-        ) as mock_config_class, patch(
-            "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
-        ) as mock_git_manager_class, patch(
-            "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
-        ) as mock_deployment_class, patch(
-            "src.claude_mpm.services.agents.agent_preset_service.AgentPresetService"
-        ) as mock_preset_service_class:
+        with (
+            patch(
+                "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
+            ) as mock_config_class,
+            patch(
+                "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
+            ) as mock_git_manager_class,
+            patch(
+                "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
+            ) as mock_deployment_class,
+            patch(
+                "src.claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+            ) as mock_preset_service_class,
+        ):
             # Setup mocks
             mock_config_class.load.return_value = MagicMock()
 
@@ -183,13 +188,17 @@ class TestAgentsDeployPreset:
         """Test dry-run mode shows preview without deploying."""
         from unittest.mock import MagicMock, patch
 
-        with patch(
-            "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
-        ) as mock_config_class, patch(
-            "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
-        ) as mock_git_manager_class, patch(
-            "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
-        ) as mock_deployment_class:
+        with (
+            patch(
+                "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
+            ) as mock_config_class,
+            patch(
+                "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
+            ) as mock_git_manager_class,
+            patch(
+                "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
+            ) as mock_deployment_class,
+        ):
             # Setup mocks
             mock_config_class.load.return_value = MagicMock()
 
@@ -228,13 +237,17 @@ class TestAgentsDeployPreset:
         """Test deployment handles missing agents gracefully."""
         from unittest.mock import MagicMock, patch
 
-        with patch(
-            "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
-        ) as mock_config_class, patch(
-            "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
-        ) as mock_git_manager_class, patch(
-            "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
-        ) as mock_deployment_class:
+        with (
+            patch(
+                "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
+            ) as mock_config_class,
+            patch(
+                "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
+            ) as mock_git_manager_class,
+            patch(
+                "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
+            ) as mock_deployment_class,
+        ):
             # Setup mocks
             mock_config_class.load.return_value = MagicMock()
 
@@ -279,15 +292,20 @@ class TestAgentsDeployPreset:
         """Test deployment shows warnings for source conflicts."""
         from unittest.mock import MagicMock, patch
 
-        with patch(
-            "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
-        ) as mock_config_class, patch(
-            "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
-        ) as mock_git_manager_class, patch(
-            "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
-        ) as mock_deployment_class, patch(
-            "src.claude_mpm.services.agents.agent_preset_service.AgentPresetService"
-        ) as mock_preset_service_class:
+        with (
+            patch(
+                "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
+            ) as mock_config_class,
+            patch(
+                "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
+            ) as mock_git_manager_class,
+            patch(
+                "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
+            ) as mock_deployment_class,
+            patch(
+                "src.claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+            ) as mock_preset_service_class,
+        ):
             # Setup mocks
             mock_config_class.load.return_value = MagicMock()
 
@@ -341,15 +359,20 @@ class TestAgentsDeployPreset:
         """Test handling of deployment failures."""
         from unittest.mock import MagicMock, patch
 
-        with patch(
-            "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
-        ) as mock_config_class, patch(
-            "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
-        ) as mock_git_manager_class, patch(
-            "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
-        ) as mock_deployment_class, patch(
-            "src.claude_mpm.services.agents.agent_preset_service.AgentPresetService"
-        ) as mock_preset_service_class:
+        with (
+            patch(
+                "src.claude_mpm.config.agent_sources.AgentSourceConfiguration"
+            ) as mock_config_class,
+            patch(
+                "src.claude_mpm.services.agents.git_source_manager.GitSourceManager"
+            ) as mock_git_manager_class,
+            patch(
+                "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
+            ) as mock_deployment_class,
+            patch(
+                "src.claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+            ) as mock_preset_service_class,
+        ):
             # Setup mocks
             mock_config_class.load.return_value = MagicMock()
 

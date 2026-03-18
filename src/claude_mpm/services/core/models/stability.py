@@ -16,7 +16,7 @@ ARCHITECTURE:
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -38,14 +38,14 @@ class MemoryTrend:
     """
 
     deployment_id: str
-    timestamps: List[datetime] = field(default_factory=list)
-    memory_mb: List[float] = field(default_factory=list)
+    timestamps: list[datetime] = field(default_factory=list)
+    memory_mb: list[float] = field(default_factory=list)
     slope_mb_per_minute: float = 0.0
     is_leaking: bool = False
     window_size: int = 0
     threshold_mb_per_minute: float = 10.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -57,7 +57,7 @@ class MemoryTrend:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MemoryTrend":
+    def from_dict(cls, data: dict[str, Any]) -> "MemoryTrend":
         """
         Create MemoryTrend from dictionary.
 
@@ -119,9 +119,9 @@ class LogPatternMatch:
     timestamp: datetime = field(default_factory=datetime.now)
     severity: str = "ERROR"
     line_number: int = 0
-    context: List[str] = field(default_factory=list)
+    context: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -133,7 +133,7 @@ class LogPatternMatch:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "LogPatternMatch":
+    def from_dict(cls, data: dict[str, Any]) -> "LogPatternMatch":
         """
         Create LogPatternMatch from dictionary.
 
@@ -183,9 +183,9 @@ class ResourceUsage:
     disk_free_mb: float = 0.0
     is_critical: bool = False
     timestamp: datetime = field(default_factory=datetime.now)
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -197,7 +197,7 @@ class ResourceUsage:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ResourceUsage":
+    def from_dict(cls, data: dict[str, Any]) -> "ResourceUsage":
         """
         Create ResourceUsage from dictionary.
 
@@ -225,7 +225,7 @@ class ResourceUsage:
         """Check if file descriptor usage is critical (>80%)."""
         return self.fd_usage_percent >= 80.0  # >= instead of > for 80% exactly
 
-    def get_critical_resources(self) -> List[str]:
+    def get_critical_resources(self) -> list[str]:
         """
         Get list of resources at critical levels.
 

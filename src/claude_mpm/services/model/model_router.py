@@ -24,7 +24,7 @@ ARCHITECTURE:
 """
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.core.base import BaseService
@@ -86,7 +86,7 @@ class ModelRouter(BaseService, IModelRouter):
         PRIVACY_FIRST: Like OLLAMA_ONLY but with privacy-focused messages
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize model router.
 
@@ -120,9 +120,9 @@ class ModelRouter(BaseService, IModelRouter):
         self.claude_provider = ClaudeProvider(config=claude_config)
 
         # Routing metrics
-        self._route_count: Dict[str, int] = {"ollama": 0, "claude": 0}
+        self._route_count: dict[str, int] = {"ollama": 0, "claude": 0}
         self._fallback_count = 0
-        self._active_provider: Optional[str] = None
+        self._active_provider: str | None = None
 
     async def initialize(self) -> bool:
         """
@@ -176,7 +176,7 @@ class ModelRouter(BaseService, IModelRouter):
 
         self._shutdown = True
 
-    def get_active_provider(self) -> Optional[str]:
+    def get_active_provider(self) -> str | None:
         """
         Get name of currently active provider.
 
@@ -185,7 +185,7 @@ class ModelRouter(BaseService, IModelRouter):
         """
         return self._active_provider
 
-    async def get_provider_status(self) -> Dict[str, Dict[str, Any]]:
+    async def get_provider_status(self) -> dict[str, dict[str, Any]]:
         """
         Get status of all configured providers.
 
@@ -239,7 +239,7 @@ class ModelRouter(BaseService, IModelRouter):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -287,7 +287,7 @@ class ModelRouter(BaseService, IModelRouter):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str],
+        model: str | None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -336,7 +336,7 @@ class ModelRouter(BaseService, IModelRouter):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str],
+        model: str | None,
         require_success: bool = False,
         **kwargs,
     ) -> ModelResponse:
@@ -374,7 +374,7 @@ class ModelRouter(BaseService, IModelRouter):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str],
+        model: str | None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -399,7 +399,7 @@ class ModelRouter(BaseService, IModelRouter):
     def _create_error_response(
         self,
         task: ModelCapability,
-        model: Optional[str],
+        model: str | None,
         error: str,
     ) -> ModelResponse:
         """
@@ -422,7 +422,7 @@ class ModelRouter(BaseService, IModelRouter):
             error=error,
         )
 
-    def get_routing_metrics(self) -> Dict[str, Any]:
+    def get_routing_metrics(self) -> dict[str, Any]:
         """
         Get routing performance metrics.
 

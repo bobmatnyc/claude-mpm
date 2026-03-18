@@ -109,7 +109,7 @@ async def test_mcp_server():
         print("\n" + "=" * 50)
         print("All tests completed successfully!")
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         print("ERROR: Timeout waiting for server response")
         # Read any stderr output
         stderr_output = await proc.stderr.read()

@@ -8,7 +8,7 @@ are emitted with proper timing, success/failure status, and summaries.
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add src to path for imports
@@ -96,7 +96,7 @@ def test_hook_event_emission():
                 "namespace": namespace,
                 "event_type": event_type,
                 "data": data,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
         # Also call original to maintain normal flow
@@ -198,7 +198,7 @@ def test_event_normalizer():
         "success": True,
         "duration_ms": 42,
         "result_summary": "Pre-processing tool call: Bash",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "tool_name": "Bash",
     }
 

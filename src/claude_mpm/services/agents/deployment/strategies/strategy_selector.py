@@ -1,7 +1,5 @@
 """Strategy selector for choosing the appropriate deployment strategy."""
 
-from typing import List, Optional
-
 from claude_mpm.core.logger import get_logger
 
 from .base_strategy import BaseDeploymentStrategy, DeploymentContext
@@ -20,7 +18,7 @@ class DeploymentStrategySelector:
     def __init__(self):
         """Initialize the strategy selector with all available strategies."""
         self.logger = get_logger(__name__)
-        self._strategies: List[BaseDeploymentStrategy] = [
+        self._strategies: list[BaseDeploymentStrategy] = [
             UserAgentDeploymentStrategy(),
             ProjectAgentDeploymentStrategy(),
             SystemAgentDeploymentStrategy(),
@@ -61,7 +59,7 @@ class DeploymentStrategySelector:
         # should handle any context as a fallback
         raise RuntimeError(f"No deployment strategy can handle context: {context}")
 
-    def get_available_strategies(self) -> List[BaseDeploymentStrategy]:
+    def get_available_strategies(self) -> list[BaseDeploymentStrategy]:
         """Get list of all available strategies.
 
         Returns:
@@ -102,7 +100,7 @@ class DeploymentStrategySelector:
 
     def get_strategy_for_context(
         self, context: DeploymentContext
-    ) -> Optional[BaseDeploymentStrategy]:
+    ) -> BaseDeploymentStrategy | None:
         """Get strategy for context without raising exceptions.
 
         Args:

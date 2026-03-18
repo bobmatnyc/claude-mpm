@@ -8,7 +8,7 @@ maintainability and testability.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -36,8 +36,8 @@ class AgentDiscoveryService:
         self.templates_dir = templates_dir
 
     def discover_git_cached_agents(
-        self, cache_dir: Optional[Path] = None, log_discovery: bool = True
-    ) -> List[Dict[str, Any]]:
+        self, cache_dir: Path | None = None, log_discovery: bool = True
+    ) -> list[dict[str, Any]]:
         """Discover agents from git cache directory.
 
         This method is shared by both list_available_agents() and deployment
@@ -98,7 +98,7 @@ class AgentDiscoveryService:
 
         return agents
 
-    def list_available_agents(self, log_discovery: bool = True) -> List[Dict[str, Any]]:
+    def list_available_agents(self, log_discovery: bool = True) -> list[dict[str, Any]]:
         """
         List all available agent templates with their metadata.
 
@@ -159,10 +159,10 @@ class AgentDiscoveryService:
 
     def get_filtered_templates(
         self,
-        excluded_agents: List[str],
-        config: Optional[Config] = None,
+        excluded_agents: list[str],
+        config: Config | None = None,
         filter_non_mpm: bool = False,
-    ) -> List[Path]:
+    ) -> list[Path]:
         """
         Get filtered list of template files based on configuration.
 
@@ -220,7 +220,7 @@ class AgentDiscoveryService:
         )
         return filtered_files
 
-    def find_agent_template(self, agent_name: str) -> Optional[Path]:
+    def find_agent_template(self, agent_name: str) -> Path | None:
         """
         Find template file for a specific agent.
 
@@ -241,7 +241,7 @@ class AgentDiscoveryService:
         self.logger.error(f"Template not found for agent: {agent_name}")
         return None
 
-    def get_agent_categories(self) -> Dict[str, List[str]]:
+    def get_agent_categories(self) -> dict[str, list[str]]:
         """
         Categorize available agents by type/specialization.
 
@@ -270,7 +270,7 @@ class AgentDiscoveryService:
 
         return categories
 
-    def _extract_agent_metadata(self, template_file: Path) -> Optional[Dict[str, Any]]:
+    def _extract_agent_metadata(self, template_file: Path) -> dict[str, Any] | None:
         """
         Extract metadata from an agent template file with YAML frontmatter.
 
@@ -349,7 +349,7 @@ class AgentDiscoveryService:
             )
             return None
 
-    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _extract_yaml_frontmatter(self, content: str) -> dict[str, Any] | None:
         """
         Extract and parse YAML frontmatter from markdown.
 
@@ -428,8 +428,8 @@ class AgentDiscoveryService:
     def _is_agent_excluded(
         self,
         agent_name: str,
-        excluded_agents: List[str],
-        config: Optional[Config] = None,
+        excluded_agents: list[str],
+        config: Config | None = None,
     ) -> bool:
         """
         Check if an agent should be excluded from deployment.
@@ -553,7 +553,7 @@ class AgentDiscoveryService:
         return bool(re.match(pattern, agent_name))
 
     def _is_mpm_agent_with_config(
-        self, template_file: Path, config: Optional[Config] = None
+        self, template_file: Path, config: Config | None = None
     ) -> bool:
         """Check if agent is authored by Claude MPM team with configurable patterns.
 
@@ -599,7 +599,7 @@ class AgentDiscoveryService:
             self.logger.debug(f"Error checking if {template_file} is MPM agent: {e}")
             return False  # Treat invalid templates as non-MPM
 
-    def get_discovery_stats(self) -> Dict[str, Any]:
+    def get_discovery_stats(self) -> dict[str, Any]:
         """
         Get statistics about agent discovery.
 

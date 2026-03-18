@@ -17,15 +17,15 @@ DESIGN DECISION: Using dataclasses for models because:
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
 
 from claude_mpm.core.unified_agent_registry import AgentSourceType
 
 # AgentType class removed in Phase 4.  Alias defined after AgentRole below.
 
 
-class AgentRole(str, Enum):
+class AgentRole(StrEnum):
     """Agent classification by functional role.
 
     Classifies agents by WHAT they do, not WHERE they come from.
@@ -118,7 +118,7 @@ class AgentRole(str, Enum):
 AgentType = AgentRole
 
 
-class AgentSection(str, Enum):
+class AgentSection(StrEnum):
     """Agent markdown section identifiers.
 
     WHY: Standardizes section names across the codebase, making it easier
@@ -146,9 +146,9 @@ class AgentPermissions:
     - Future extension without modifying the main agent definition
     """
 
-    exclusive_write_access: List[str] = field(default_factory=list)
-    forbidden_operations: List[str] = field(default_factory=list)
-    read_access: List[str] = field(default_factory=list)
+    exclusive_write_access: list[str] = field(default_factory=list)
+    forbidden_operations: list[str] = field(default_factory=list)
+    read_access: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -163,9 +163,9 @@ class AgentWorkflow:
 
     name: str
     trigger: str
-    process: List[str]
+    process: list[str]
     output: str
-    raw_yaml: Optional[str] = None
+    raw_yaml: str | None = None
 
 
 @dataclass
@@ -179,17 +179,17 @@ class AgentMetadata:
     """
 
     role: AgentRole  # Primary: what the agent does
-    source: Optional[AgentSourceType] = None  # Primary: where it comes from
+    source: AgentSourceType | None = None  # Primary: where it comes from
     model_preference: str = "claude-3-sonnet"
     version: str = "1.0.0"
-    last_updated: Optional[datetime] = None
-    author: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
-    specializations: List[str] = field(default_factory=list)
+    last_updated: datetime | None = None
+    author: str | None = None
+    tags: list[str] = field(default_factory=list)
+    specializations: list[str] = field(default_factory=list)
     # Collection metadata for enhanced agent matching
-    collection_id: Optional[str] = None  # Format: owner/repo-name
-    source_path: Optional[str] = None  # Relative path in repository
-    canonical_id: Optional[str] = None  # Format: collection_id:agent_id
+    collection_id: str | None = None  # Format: owner/repo-name
+    source_path: str | None = None  # Relative path in repository
+    canonical_id: str | None = None  # Format: collection_id:agent_id
 
     @property
     def type(self) -> AgentRole:
@@ -236,20 +236,20 @@ class AgentDefinition:
 
     # Agent behavior definition
     primary_role: str
-    when_to_use: Dict[str, List[str]]  # {"select": [...], "do_not_select": [...]}
-    capabilities: List[str]
+    when_to_use: dict[str, list[str]]  # {"select": [...], "do_not_select": [...]}
+    capabilities: list[str]
     authority: AgentPermissions
-    workflows: List[AgentWorkflow]
-    escalation_triggers: List[str]
-    kpis: List[str]
-    dependencies: List[str]
+    workflows: list[AgentWorkflow]
+    escalation_triggers: list[str]
+    kpis: list[str]
+    dependencies: list[str]
     tools_commands: str
 
     # Raw content for preservation
     raw_content: str = ""
-    raw_sections: Dict[str, str] = field(default_factory=dict)
+    raw_sections: dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses.
 
         WHY: Many parts of the system need agent data as dictionaries:

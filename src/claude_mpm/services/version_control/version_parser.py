@@ -17,10 +17,10 @@ import contextlib
 import json
 import re
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -55,21 +55,21 @@ class VersionMetadata:
         self,
         version: str,
         source: str,
-        release_date: Optional[datetime] = None,
-        commit_hash: Optional[str] = None,
-        author: Optional[str] = None,
-        message: Optional[str] = None,
-        changes: Optional[List[str]] = None,
+        release_date: datetime | None = None,
+        commit_hash: str | None = None,
+        author: str | None = None,
+        message: str | None = None,
+        changes: list[str] | None = None,
     ):
         self.version = version
         self.source = source
-        self.release_date = release_date or datetime.now(timezone.utc)
+        self.release_date = release_date or datetime.now(UTC)
         self.commit_hash = commit_hash
         self.author = author
         self.message = message
         self.changes = changes or []
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert metadata to dictionary format."""
         return {
             "version": self.version,
@@ -96,7 +96,7 @@ class EnhancedVersionParser:
     - Comprehensive version history retrieval
     """
 
-    def __init__(self, project_root: Optional[Path] = None, cache_ttl: int = 300):
+    def __init__(self, project_root: Path | None = None, cache_ttl: int = 300):
         """
         Initialize the enhanced version parser.
 
@@ -106,7 +106,7 @@ class EnhancedVersionParser:
         """
         self.project_root = project_root or Path.cwd()
         self.cache_ttl = cache_ttl
-        self._cache: Dict[str, Tuple[datetime, any]] = {}
+        self._cache: dict[str, tuple[datetime, any]] = {}
         self.logger = get_logger(__name__)
 
         # Compile regex patterns once for efficiency
@@ -117,25 +117,23 @@ class EnhancedVersionParser:
             r"##\s*\[?([0-9]+\.[0-9]+\.[0-9]+[^\]]*)\]?\s*[--]\s*(\d{4}-\d{2}-\d{2})?"
         )
 
-    def _get_cached(self, key: str) -> Optional[any]:
+    def _get_cached(self, key: str) -> Any | None:
         """Get cached value if still valid."""
         if key in self._cache:
             timestamp, value = self._cache[key]
-            if datetime.now(timezone.utc) - timestamp < timedelta(
-                seconds=self.cache_ttl
-            ):
+            if datetime.now(UTC) - timestamp < timedelta(seconds=self.cache_ttl):
                 return value
             del self._cache[key]
         return None
 
-    def _set_cached(self, key: str, value: any) -> any:
+    def _set_cached(self, key: str, value: Any) -> Any:
         """Set cached value with timestamp."""
-        self._cache[key] = (datetime.now(timezone.utc), value)
+        self._cache[key] = (datetime.now(UTC), value)
         return value
 
     def get_current_version(
-        self, prefer_source: Optional[str] = None
-    ) -> Optional[VersionMetadata]:
+        self, prefer_source: str | None = None
+    ) -> VersionMetadata | None:
         """
         Get the current version from the most reliable available source.
 
@@ -166,8 +164,8 @@ class EnhancedVersionParser:
         return None
 
     def get_version_history(
-        self, include_prereleases: bool = False, limit: Optional[int] = None
-    ) -> List[VersionMetadata]:
+        self, include_prereleases: bool = False, limit: int | None = None
+    ) -> list[VersionMetadata]:
         """
         Get complete version history from all available sources.
 
@@ -183,7 +181,7 @@ class EnhancedVersionParser:
         if cached:
             return cached
 
-        all_versions: Dict[str, VersionMetadata] = {}
+        all_versions: dict[str, VersionMetadata] = {}
 
         # Try each source and merge results
         for source in VersionSource.PRIORITY_ORDER:
@@ -212,7 +210,7 @@ class EnhancedVersionParser:
 
     def _get_version_from_source(
         self, source: str, latest_only: bool = False
-    ) -> Optional[VersionMetadata]:
+    ) -> VersionMetadata | None:
         """Get version(s) from a specific source."""
         if source == VersionSource.GIT_TAGS:
             return self._get_version_from_git(latest_only)
@@ -227,7 +225,7 @@ class EnhancedVersionParser:
             return versions[0] if versions else None
         return None
 
-    def _get_versions_from_source(self, source: str) -> List[VersionMetadata]:
+    def _get_versions_from_source(self, source: str) -> list[VersionMetadata]:
         """Get all versions from a specific source."""
         if source == VersionSource.GIT_TAGS:
             return self._get_all_versions_from_git()
@@ -243,9 +241,7 @@ class EnhancedVersionParser:
             return [version] if version else []
         return []
 
-    def _get_version_from_git(
-        self, latest_only: bool = True
-    ) -> Optional[VersionMetadata]:
+    def _get_version_from_git(self, latest_only: bool = True) -> VersionMetadata | None:
         """Get version information from git tags."""
         try:
             if latest_only:
@@ -270,7 +266,7 @@ class EnhancedVersionParser:
             self.logger.debug(f"Failed to get git version: {e}")
         return None
 
-    def _get_all_versions_from_git(self) -> List[VersionMetadata]:
+    def _get_all_versions_from_git(self) -> list[VersionMetadata]:
         """Get all versions from git tags with metadata."""
         versions = []
         try:
@@ -308,8 +304,8 @@ class EnhancedVersionParser:
         return versions
 
     def _parse_git_tag(
-        self, tag: str, date_str: Optional[str] = None, message: Optional[str] = None
-    ) -> Optional[VersionMetadata]:
+        self, tag: str, date_str: str | None = None, message: str | None = None
+    ) -> VersionMetadata | None:
         """Parse a git tag into VersionMetadata."""
         # Remove 'v' prefix if present
         version = tag[1:] if tag.startswith("v") else tag
@@ -347,7 +343,7 @@ class EnhancedVersionParser:
             message=message,
         )
 
-    def _get_version_from_file(self) -> Optional[VersionMetadata]:
+    def _get_version_from_file(self) -> VersionMetadata | None:
         """Get version from VERSION file."""
         version_file = self.project_root / "VERSION"
         if version_file.exists():
@@ -361,7 +357,7 @@ class EnhancedVersionParser:
                 self.logger.debug(f"Failed to read VERSION file: {e}")
         return None
 
-    def _get_version_from_package_json(self) -> Optional[VersionMetadata]:
+    def _get_version_from_package_json(self) -> VersionMetadata | None:
         """Get version from package.json."""
         package_file = self.project_root / "package.json"
         if package_file.exists():
@@ -377,7 +373,7 @@ class EnhancedVersionParser:
                 self.logger.debug(f"Failed to read package.json: {e}")
         return None
 
-    def _get_version_from_pyproject(self) -> Optional[VersionMetadata]:
+    def _get_version_from_pyproject(self) -> VersionMetadata | None:
         """Get version from pyproject.toml."""
         pyproject_file = self.project_root / "pyproject.toml"
         if pyproject_file.exists():
@@ -401,7 +397,7 @@ class EnhancedVersionParser:
                 self.logger.debug(f"Failed to read pyproject.toml: {e}")
         return None
 
-    def _get_versions_from_changelog(self) -> List[VersionMetadata]:
+    def _get_versions_from_changelog(self) -> list[VersionMetadata]:
         """Parse version history from CHANGELOG.md."""
         versions = []
         changelog_paths = [
@@ -447,7 +443,7 @@ class EnhancedVersionParser:
 
         return versions
 
-    def _extract_changelog_changes(self, content: str, start_pos: int) -> List[str]:
+    def _extract_changelog_changes(self, content: str, start_pos: int) -> list[str]:
         """Extract change entries for a specific version from changelog."""
         changes = []
         lines = content[start_pos:].split("\n")
@@ -482,7 +478,7 @@ class EnhancedVersionParser:
                 return True
         return False
 
-    def _parse_semver(self, version: str) -> Tuple[int, int, int, str, str]:
+    def _parse_semver(self, version: str) -> tuple[int, int, int, str, str]:
         """
         Parse semantic version for sorting.
 
@@ -498,7 +494,7 @@ class EnhancedVersionParser:
             return (major, minor, patch, prerelease, build)
         return (0, 0, 0, "", "")
 
-    def validate_version_consistency(self) -> Dict[str, str]:
+    def validate_version_consistency(self) -> dict[str, str]:
         """
         Validate version consistency across all sources.
 
@@ -517,7 +513,7 @@ class EnhancedVersionParser:
 
         return versions
 
-    def get_version_for_release(self) -> Optional[str]:
+    def get_version_for_release(self) -> str | None:
         """
         Get the version that should be used for the next release.
 
@@ -542,6 +538,6 @@ class EnhancedVersionParser:
 
 # Convenience function for backward compatibility
 @lru_cache(maxsize=1)
-def get_version_parser(project_root: Optional[Path] = None) -> EnhancedVersionParser:
+def get_version_parser(project_root: Path | None = None) -> EnhancedVersionParser:
     """Get a singleton instance of the version parser."""
     return EnhancedVersionParser(project_root)

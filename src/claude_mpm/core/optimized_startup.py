@@ -21,7 +21,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..core.logger import get_logger
 from .cache import get_file_cache
@@ -37,8 +37,8 @@ class StartupMetrics:
     config_time: float = 0.0
     service_time: float = 0.0
     agent_time: float = 0.0
-    phases: Dict[str, float] = field(default_factory=dict)
-    deferred_services: List[str] = field(default_factory=list)
+    phases: dict[str, float] = field(default_factory=dict)
+    deferred_services: list[str] = field(default_factory=list)
 
 
 class OptimizedStartup:
@@ -89,9 +89,9 @@ class OptimizedStartup:
     def __init__(self):
         self.metrics = StartupMetrics()
         self.logger = get_logger("startup")
-        self.initialized_services: Set[str] = set()
-        self.lazy_services: Dict[str, LazyService] = {}
-        self.import_cache: Dict[str, Any] = {}
+        self.initialized_services: set[str] = set()
+        self.lazy_services: dict[str, LazyService] = {}
+        self.import_cache: dict[str, Any] = {}
         self.executor = ThreadPoolExecutor(max_workers=4)
 
         # Start timer
@@ -298,14 +298,14 @@ class OptimizedStartup:
         except Exception as e:
             self.logger.warning(f"Failed to load config: {e}")
 
-    def _parse_config(self, path: Path) -> Dict[str, Any]:
+    def _parse_config(self, path: Path) -> dict[str, Any]:
         """Parse configuration file."""
         import yaml
 
         with path.open() as f:
             return yaml.safe_load(f) or {}
 
-    def _store_config(self, config: Dict[str, Any]):
+    def _store_config(self, config: dict[str, Any]):
         """Store configuration for later use."""
         # Simple storage without heavy Config class
         sys.modules["__claude_mpm_config__"] = type("Config", (), config)()
@@ -437,7 +437,7 @@ class OptimizedStartup:
         if agent_paths:
             await loader.load_agents_async(agent_paths)
 
-    def _discover_agent_paths(self) -> List[Path]:
+    def _discover_agent_paths(self) -> list[Path]:
         """Discover agent file paths."""
         paths = []
         agent_dirs = [
@@ -453,7 +453,7 @@ class OptimizedStartup:
 
         return paths
 
-    def defer_import(self, module_name: str) -> Optional[Any]:
+    def defer_import(self, module_name: str) -> Any | None:
         """Defer heavy imports until actually needed.
 
         Args:
@@ -502,7 +502,7 @@ class OptimizedStartup:
 
         return None
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get startup performance metrics."""
         self.metrics.total_time = time.time() - self.start_time
 
@@ -557,7 +557,7 @@ def optimize_startup(mode: str = "lazy") -> OptimizedStartup:
 
 
 # Global startup manager
-_startup_manager: Optional[OptimizedStartup] = None
+_startup_manager: OptimizedStartup | None = None
 
 
 def get_startup_manager() -> OptimizedStartup:

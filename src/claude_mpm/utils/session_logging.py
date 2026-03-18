@@ -7,7 +7,7 @@ Convenience functions for session-based response logging.
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.claude_session_logger import get_session_logger
@@ -39,8 +39,8 @@ def log_agent_response(
     agent_name: str,
     request: str,
     response: str,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Optional[Path]:
+    metadata: dict[str, Any] | None = None,
+) -> Path | None:
     """
     Log an agent response to the current session.
 
@@ -75,7 +75,7 @@ def log_agent_response(
     )
 
 
-def get_current_session_id() -> Optional[str]:
+def get_current_session_id() -> str | None:
     """
     Get the current session ID.
 
@@ -86,7 +86,7 @@ def get_current_session_id() -> Optional[str]:
     return session_logger.session_id
 
 
-def get_session_directory() -> Optional[Path]:
+def get_session_directory() -> Path | None:
     """
     Get the directory for the current session.
 

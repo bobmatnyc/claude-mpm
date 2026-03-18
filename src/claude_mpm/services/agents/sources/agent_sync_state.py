@@ -14,9 +14,9 @@ Performance: Optimized with indexes; expected <10ms per operation
 import logging
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class AgentSyncState:
     # Schema version for migrations
     SCHEMA_VERSION = 1
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         """Initialize sync state service.
 
         Args:
@@ -234,15 +234,15 @@ class AgentSyncState:
                     enabled = excluded.enabled,
                     updated_at = excluded.updated_at
                 """,
-                (source_id, url, int(enabled), datetime.now(timezone.utc).isoformat()),
+                (source_id, url, int(enabled), datetime.now(UTC).isoformat()),
             )
         logger.debug(f"Registered source: {source_id} -> {url}")
 
     def update_source_sync_metadata(
         self,
         source_id: str,
-        last_sha: Optional[str] = None,
-        etag: Optional[str] = None,
+        last_sha: str | None = None,
+        etag: str | None = None,
     ) -> None:
         """Update source sync metadata (commit SHA, ETag).
 
@@ -268,14 +268,14 @@ class AgentSyncState:
                 (
                     last_sha,
                     etag,
-                    datetime.now(timezone.utc).isoformat(),
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     source_id,
                 ),
             )
         logger.debug(f"Updated source metadata: {source_id}")
 
-    def get_source_info(self, source_id: str) -> Optional[Dict[str, Any]]:
+    def get_source_info(self, source_id: str) -> dict[str, Any] | None:
         """Get source metadata.
 
         Args:
@@ -294,7 +294,7 @@ class AgentSyncState:
             row = cursor.fetchone()
             return dict(row) if row else None
 
-    def get_all_sources(self, enabled_only: bool = False) -> List[Dict[str, Any]]:
+    def get_all_sources(self, enabled_only: bool = False) -> list[dict[str, Any]]:
         """Get all registered sources.
 
         Args:
@@ -319,8 +319,8 @@ class AgentSyncState:
         source_id: str,
         file_path: str,
         content_sha: str,
-        local_path: Optional[str] = None,
-        file_size: Optional[int] = None,
+        local_path: str | None = None,
+        file_size: int | None = None,
     ) -> None:
         """Track agent file with content hash.
 
@@ -356,13 +356,13 @@ class AgentSyncState:
                     file_path,
                     content_sha,
                     local_path,
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     file_size,
                 ),
             )
         logger.debug(f"Tracked file: {source_id}/{file_path} -> {content_sha[:8]}...")
 
-    def get_file_hash(self, source_id: str, file_path: str) -> Optional[str]:
+    def get_file_hash(self, source_id: str, file_path: str) -> str | None:
         """Get stored content hash for file.
 
         Args:
@@ -416,8 +416,8 @@ class AgentSyncState:
         files_synced: int = 0,
         files_cached: int = 0,
         files_failed: int = 0,
-        error_message: Optional[str] = None,
-        duration_ms: Optional[int] = None,
+        error_message: str | None = None,
+        duration_ms: int | None = None,
     ) -> int:
         """Record sync operation result.
 
@@ -453,7 +453,7 @@ class AgentSyncState:
                 """,
                 (
                     source_id,
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     status,
                     files_synced,
                     files_cached,
@@ -464,7 +464,7 @@ class AgentSyncState:
             )
             return cursor.lastrowid
 
-    def get_sync_history(self, source_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_sync_history(self, source_id: str, limit: int = 10) -> list[dict[str, Any]]:
         """Get recent sync history for source.
 
         Args:
@@ -504,7 +504,7 @@ class AgentSyncState:
             deleted = sync_state.cleanup_old_history(days=30)
             print(f"Cleaned up {deleted} old sync records")
         """
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
         with self._get_connection() as conn:
             cursor = conn.execute(

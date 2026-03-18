@@ -14,9 +14,9 @@ This module provides:
 import contextlib
 import warnings
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import yaml
 
@@ -58,7 +58,7 @@ class AgentMetadata:
     path: str
     tier: str = "system"
     last_modified: float = 0.0
-    specializations: List[str] = None
+    specializations: list[str] = None
     description: str = ""
 
     def __post_init__(self):
@@ -86,7 +86,7 @@ class SimpleAgentRegistry:
     This class now delegates to the UnifiedAgentRegistry system.
     """
 
-    def __init__(self, framework_path: Optional[Path] = None):
+    def __init__(self, framework_path: Path | None = None):
         """Initialize with optional framework path (ignored in new implementation)."""
         self.framework_path = framework_path
         self._unified_registry = get_agent_registry()
@@ -123,7 +123,7 @@ class SimpleAgentRegistry:
             return "user"
         return "system"
 
-    def _extract_specializations(self, agent_id: str) -> List[str]:
+    def _extract_specializations(self, agent_id: str) -> list[str]:
         """Extract specializations based on agent type (compatibility method)."""
         specialization_map = {
             "engineer": ["coding", "architecture", "implementation"],
@@ -151,11 +151,11 @@ class SimpleAgentRegistry:
         }
         return descriptions.get(agent_id, f"{agent_id.title()} agent")
 
-    def list_agents(self, **kwargs) -> Dict[str, Any]:
+    def list_agents(self, **kwargs) -> dict[str, Any]:
         """List all agents (compatibility method)."""
         return self.agents
 
-    def listAgents(self, **kwargs) -> Dict[str, Any]:
+    def listAgents(self, **kwargs) -> dict[str, Any]:
         """DEPRECATED: Use list_agents() instead. Kept for backward compatibility."""
         warnings.warn(
             "listAgents() is deprecated, use list_agents() instead",
@@ -165,8 +165,8 @@ class SimpleAgentRegistry:
         return self.list_agents(**kwargs)
 
     def list_agents_filtered(
-        self, agent_type: Optional[str] = None, tier: Optional[str] = None
-    ) -> List[AgentMetadata]:
+        self, agent_type: str | None = None, tier: str | None = None
+    ) -> list[AgentMetadata]:
         """List agents with optional filtering (compatibility method)."""
         # Use unified registry for filtering
         unified_tier = None
@@ -187,14 +187,14 @@ class SimpleAgentRegistry:
 
         return [AgentMetadata.from_unified(agent) for agent in unified_agents]
 
-    def get_agent(self, agent_name: str) -> Optional[AgentMetadata]:
+    def get_agent(self, agent_name: str) -> AgentMetadata | None:
         """Get a specific agent (compatibility method)."""
         unified_agent = self._unified_registry.get_agent(agent_name)
         if unified_agent:
             return AgentMetadata.from_unified(unified_agent)
         return None
 
-    def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+    def discover_agents(self, force_refresh: bool = False) -> dict[str, AgentMetadata]:
         """Discover agents (compatibility method)."""
         unified_agents = self._unified_registry.discover_agents(
             force_refresh=force_refresh
@@ -220,7 +220,7 @@ class SimpleAgentRegistry:
         }
 
     @property
-    def core_agent_types(self) -> Set[str]:
+    def core_agent_types(self) -> set[str]:
         """Get core agent types (compatibility property)."""
         return {
             "documentation",
@@ -234,7 +234,7 @@ class SimpleAgentRegistry:
         }
 
     @property
-    def specialized_agent_types(self) -> Set[str]:
+    def specialized_agent_types(self) -> set[str]:
         """Get specialized agent types beyond core (compatibility property)."""
         all_types = {metadata["type"] for metadata in self.agents.values()}
         return all_types - self.core_agent_types
@@ -247,14 +247,14 @@ class AgentRegistryAdapter:
     This adapter now delegates to the UnifiedAgentRegistry system.
     """
 
-    def __init__(self, framework_path: Optional[Path] = None):
+    def __init__(self, framework_path: Path | None = None):
         """Initialize the agent registry adapter (framework_path ignored in new implementation)."""
         self.logger = get_logger("agent_registry")
         self.framework_path = framework_path  # Kept for compatibility
         self._unified_registry = get_agent_registry()
         self.registry = SimpleAgentRegistry(framework_path)
 
-    def _find_framework(self) -> Optional[Path]:
+    def _find_framework(self) -> Path | None:
         """Find claude-mpm installation (compatibility method)."""
         # Delegate to unified path manager
         from .unified_paths import get_path_manager
@@ -269,7 +269,7 @@ class AgentRegistryAdapter:
         """Initialize the agent registry (compatibility method)."""
         # Registry is already initialized in __init__
 
-    def list_agents(self, **kwargs) -> Dict[str, Any]:
+    def list_agents(self, **kwargs) -> dict[str, Any]:
         """List available agents (compatibility method)."""
         try:
             return self.registry.list_agents(**kwargs)
@@ -277,7 +277,7 @@ class AgentRegistryAdapter:
             self.logger.error(f"Error listing agents: {e}")
             return {}
 
-    def get_agent_definition(self, agent_name: str) -> Optional[str]:
+    def get_agent_definition(self, agent_name: str) -> str | None:
         """Get agent definition by name (compatibility method)."""
         try:
             unified_agent = self._unified_registry.get_agent(agent_name)
@@ -293,8 +293,8 @@ class AgentRegistryAdapter:
     def select_agent_for_task(
         self,
         task_description: str,
-        required_specializations: Optional[List[str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        required_specializations: list[str] | None = None,
+    ) -> dict[str, Any] | None:
         """Select optimal agent for a task (compatibility method)."""
         try:
             # Get all agents from unified registry
@@ -330,7 +330,7 @@ class AgentRegistryAdapter:
             self.logger.error(f"Error selecting agent: {e}")
             return None
 
-    def get_agent_hierarchy(self) -> Dict[str, List[str]]:
+    def get_agent_hierarchy(self) -> dict[str, list[str]]:
         """Get agent hierarchy (compatibility method)."""
         try:
             hierarchy = {"project": [], "user": [], "system": []}
@@ -346,7 +346,7 @@ class AgentRegistryAdapter:
             self.logger.error(f"Error getting hierarchy: {e}")
             return {"project": [], "user": [], "system": []}
 
-    def get_core_agents(self) -> List[str]:
+    def get_core_agents(self) -> list[str]:
         """Get list of core system agents (compatibility method)."""
         try:
             core_agents = self._unified_registry.get_core_agents()
@@ -381,7 +381,7 @@ class AgentRegistryAdapter:
         }
 
         nickname = nicknames.get(agent_name, agent_name.title())
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
 
         return f"""**{nickname}**: {task}
 
@@ -424,7 +424,7 @@ class DynamicAgentRegistry:
 
     # Known agent name aliases (maps variants to canonical names)
     # This handles common naming inconsistencies across repositories
-    AGENT_ALIASES: Dict[str, str] = {
+    AGENT_ALIASES: dict[str, str] = {
         # Underscore variants
         "python_engineer": "python-engineer",
         "qa_engineer": "qa-engineer",
@@ -448,7 +448,7 @@ class DynamicAgentRegistry:
         "po": "product-owner",
     }
 
-    def __init__(self, deployment_dirs: Optional[List[Path]] = None):
+    def __init__(self, deployment_dirs: list[Path] | None = None):
         """Initialize dynamic agent registry.
 
         Args:
@@ -474,10 +474,10 @@ class DynamicAgentRegistry:
             self.deployment_dirs = deployment_dirs
 
         # Cache for discovered agents
-        self._agent_cache: Dict[str, Dict[str, Any]] = {}
+        self._agent_cache: dict[str, dict[str, Any]] = {}
         self._cache_valid = False
 
-    def discover_agents(self, force_refresh: bool = False) -> Dict[str, Dict[str, Any]]:
+    def discover_agents(self, force_refresh: bool = False) -> dict[str, dict[str, Any]]:
         """Discover all deployed agents from configured directories.
 
         Scans deployment directories for .md files and extracts agent metadata
@@ -502,7 +502,7 @@ class DynamicAgentRegistry:
         if self._cache_valid and not force_refresh:
             return self._agent_cache
 
-        agents: Dict[str, Dict[str, Any]] = {}
+        agents: dict[str, dict[str, Any]] = {}
 
         for idx, deployment_dir in enumerate(self.deployment_dirs):
             if not deployment_dir.exists():
@@ -638,7 +638,7 @@ class DynamicAgentRegistry:
 
         return normalized
 
-    def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def get_agent(self, agent_id: str) -> dict[str, Any] | None:
         """Get agent metadata by ID or alias.
 
         Args:
@@ -662,7 +662,7 @@ class DynamicAgentRegistry:
 
         return None
 
-    def _extract_metadata(self, content: str, file_path: Path) -> Dict[str, Any]:
+    def _extract_metadata(self, content: str, file_path: Path) -> dict[str, Any]:
         """Extract agent metadata from file content.
 
         Args:
@@ -674,7 +674,7 @@ class DynamicAgentRegistry:
         """
         import re
 
-        metadata: Dict[str, Any] = {
+        metadata: dict[str, Any] = {
             "name": file_path.stem.replace("-", " ").title(),
             "agent_id": self.normalize_agent_id(file_path.stem),
             "path": str(file_path),
@@ -714,31 +714,31 @@ AgentRegistry = SimpleAgentRegistry
 
 
 def create_agent_registry(
-    cache_service: Any = None, framework_path: Optional[Path] = None
+    cache_service: Any = None, framework_path: Path | None = None
 ) -> AgentRegistry:
     """Create a new AgentRegistry instance (compatibility function)."""
     # Ignore parameters and use unified registry
     return AgentRegistry(framework_path)
 
 
-def discover_agents(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+def discover_agents(force_refresh: bool = False) -> dict[str, AgentMetadata]:
     """Convenience function for synchronous agent discovery (compatibility function)."""
     return unified_discover_agents()
 
 
-def get_core_agent_types() -> Set[str]:
+def get_core_agent_types() -> set[str]:
     """Get the set of core agent types (compatibility function)."""
     core_agents = unified_get_core_agents()
     return {agent.name for agent in core_agents}
 
 
-def get_specialized_agent_types() -> Set[str]:
+def get_specialized_agent_types() -> set[str]:
     """Get the set of specialized agent types (compatibility function)."""
     specialized_agents = unified_get_specialized_agents()
     return {agent.name for agent in specialized_agents}
 
 
-def list_agents_all() -> Dict[str, Dict[str, Any]]:
+def list_agents_all() -> dict[str, dict[str, Any]]:
     """Synchronous function for listing all agents (compatibility function)."""
     unified_agents = unified_discover_agents()
     return {
@@ -755,7 +755,7 @@ def list_agents_all() -> Dict[str, Dict[str, Any]]:
     }
 
 
-def listAgents() -> Dict[str, Dict[str, Any]]:
+def listAgents() -> dict[str, dict[str, Any]]:
     """DEPRECATED: Use list_agents_all() instead (compatibility function)."""
     warnings.warn(
         "listAgents() is deprecated, use list_agents_all() instead",
@@ -766,8 +766,8 @@ def listAgents() -> Dict[str, Dict[str, Any]]:
 
 
 def list_agents(
-    agent_type: Optional[str] = None, tier: Optional[str] = None
-) -> List[AgentMetadata]:
+    agent_type: str | None = None, tier: str | None = None
+) -> list[AgentMetadata]:
     """Synchronous function to list agents with optional filtering (compatibility function)."""
     # Convert parameters to unified types
     unified_tier = None
@@ -787,12 +787,12 @@ def list_agents(
     return [AgentMetadata.from_unified(agent) for agent in unified_agents]
 
 
-def discover_agents_sync(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+def discover_agents_sync(force_refresh: bool = False) -> dict[str, AgentMetadata]:
     """Synchronous function for agent discovery (compatibility function)."""
     return discover_agents(force_refresh)
 
 
-def get_agent(agent_name: str) -> Optional[Dict[str, Any]]:
+def get_agent(agent_name: str) -> dict[str, Any] | None:
     """Synchronous function to get a specific agent (compatibility function)."""
     unified_agent = unified_get_agent(agent_name)
     if unified_agent:
@@ -808,7 +808,7 @@ def get_agent(agent_name: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def get_registry_stats() -> Dict[str, Any]:
+def get_registry_stats() -> dict[str, Any]:
     """Synchronous function to get registry statistics (compatibility function)."""
     return unified_get_registry_stats()
 

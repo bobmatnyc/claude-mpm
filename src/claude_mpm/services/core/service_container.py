@@ -23,8 +23,10 @@ FEATURES:
 
 import inspect
 import threading
+import types
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 from claude_mpm.core.logger import get_logger
 
@@ -45,10 +47,10 @@ class ServiceDescriptor:
 
     def __init__(
         self,
-        service_type: Type,
-        implementation: Optional[Type] = None,
-        instance: Optional[Any] = None,
-        factory: Optional[Callable] = None,
+        service_type: type,
+        implementation: type | None = None,
+        instance: Any | None = None,
+        factory: Callable | None = None,
         lifetime: ServiceLifetime = ServiceLifetime.SINGLETON,
     ):
         """
@@ -78,7 +80,7 @@ class ServiceDescriptor:
 class CircularDependencyError(Exception):
     """Raised when circular dependencies are detected."""
 
-    def __init__(self, resolution_chain: List[Type]):
+    def __init__(self, resolution_chain: list[type]):
         self.resolution_chain = resolution_chain
         chain_str = " -> ".join(t.__name__ for t in resolution_chain)
         super().__init__(f"Circular dependency detected: {chain_str}")
@@ -87,7 +89,7 @@ class CircularDependencyError(Exception):
 class ServiceNotFoundError(Exception):
     """Raised when a required service is not registered."""
 
-    def __init__(self, service_type: Type):
+    def __init__(self, service_type: type):
         self.service_type = service_type
         super().__init__(f"Service not registered: {service_type.__name__}")
 
@@ -107,7 +109,7 @@ class ServiceContainer:
     def __init__(self):
         """Initialize the service container."""
         self.logger = get_logger("service_container")
-        self._services: Dict[Type, ServiceDescriptor] = {}
+        self._services: dict[type, ServiceDescriptor] = {}
         self._lock = threading.RLock()
         self._resolution_stack: threading.local = threading.local()
 
@@ -118,9 +120,9 @@ class ServiceContainer:
 
     def register(
         self,
-        service_type: Type[T],
-        implementation: Type[T],
-        lifetime: Union[ServiceLifetime, bool] = ServiceLifetime.SINGLETON,
+        service_type: type[T],
+        implementation: type[T],
+        lifetime: ServiceLifetime | bool = ServiceLifetime.SINGLETON,
     ) -> None:
         """
         Register a service implementation.
@@ -163,7 +165,7 @@ class ServiceContainer:
                 f"with {lifetime.value} lifetime"
             )
 
-    def register_instance(self, service_type: Type[T], instance: T) -> None:
+    def register_instance(self, service_type: type[T], instance: T) -> None:
         """
         Register a pre-created service instance (always singleton).
 
@@ -191,7 +193,7 @@ class ServiceContainer:
 
     def register_factory(
         self,
-        service_type: Type[T],
+        service_type: type[T],
         factory: Callable[[], T],
         lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
     ) -> None:
@@ -221,7 +223,7 @@ class ServiceContainer:
                 f"with {lifetime.value} lifetime"
             )
 
-    def resolve(self, service_type: Type[T]) -> T:
+    def resolve(self, service_type: type[T]) -> T:
         """
         Resolve a service by type with automatic dependency injection.
 
@@ -271,7 +273,7 @@ class ServiceContainer:
             # Remove from resolution stack
             self._resolution_stack.stack.pop()
 
-    def resolve_all(self, service_type: Type[T]) -> List[T]:
+    def resolve_all(self, service_type: type[T]) -> list[T]:
         """
         Resolve all implementations of a service type.
 
@@ -300,7 +302,7 @@ class ServiceContainer:
 
         return results
 
-    def is_registered(self, service_type: Type) -> bool:
+    def is_registered(self, service_type: type) -> bool:
         """
         Check if a service type is registered.
 
@@ -366,7 +368,7 @@ class ServiceContainer:
             return self._create_instance(descriptor.implementation)
         raise ValueError("No way to create service instance")
 
-    def _create_instance(self, implementation: Type) -> Any:
+    def _create_instance(self, implementation: type) -> Any:
         """
         Create an instance with automatic dependency injection.
 
@@ -402,8 +404,8 @@ class ServiceContainer:
 
             # Handle Optional types
             origin = getattr(param_type, "__origin__", None)
-            if origin is Union:
-                # Get the non-None type from Optional[T]
+            if origin is Union or isinstance(param_type, types.UnionType):
+                # Get the non-None type from Optional[T] or T | None
                 args = getattr(param_type, "__args__", ())
                 non_none_types = [t for t in args if t != type(None)]
                 if non_none_types:
@@ -440,7 +442,7 @@ class ServiceContainer:
         return implementation(**kwargs)
 
     def _is_valid_implementation(
-        self, service_type: Type, implementation: Type
+        self, service_type: type, implementation: type
     ) -> bool:
         """Check if implementation properly implements the service type."""
         # If service_type is ABC, check if implementation has all abstract methods
@@ -460,14 +462,14 @@ class ServiceContainer:
 
         return True  # Assume valid if we can't determine otherwise
 
-    def _is_assignable(self, from_type: Type, to_type: Type) -> bool:
+    def _is_assignable(self, from_type: type, to_type: type) -> bool:
         """Check if from_type can be assigned to to_type."""
         try:
             return issubclass(from_type, to_type)
         except TypeError:
             return from_type == to_type
 
-    def get_registration_info(self) -> Dict[str, Any]:
+    def get_registration_info(self) -> dict[str, Any]:
         """
         Get information about all registered services.
 
@@ -495,7 +497,7 @@ class ServiceContainer:
 
 
 # Global container instance (optional, for convenience)
-_global_container: Optional[ServiceContainer] = None
+_global_container: ServiceContainer | None = None
 _global_lock = threading.Lock()
 
 

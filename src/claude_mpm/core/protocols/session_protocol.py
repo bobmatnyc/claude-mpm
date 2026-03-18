@@ -4,7 +4,7 @@ These protocols use Python's typing.Protocol for structural subtyping,
 allowing dependency injection without circular imports.
 """
 
-from typing import Any, Dict, Optional, Protocol, Tuple
+from typing import Any, Protocol
 
 
 class InteractiveSessionProtocol(Protocol):
@@ -14,7 +14,7 @@ class InteractiveSessionProtocol(Protocol):
     needs from InteractiveSession without requiring a full import.
     """
 
-    def initialize_interactive_session(self) -> Tuple[bool, Optional[str]]:
+    def initialize_interactive_session(self) -> tuple[bool, str | None]:
         """Initialize the interactive session environment.
 
         Returns:
@@ -22,7 +22,7 @@ class InteractiveSessionProtocol(Protocol):
         """
         ...
 
-    def setup_interactive_environment(self) -> Tuple[bool, Dict[str, Any]]:
+    def setup_interactive_environment(self) -> tuple[bool, dict[str, Any]]:
         """Set up the interactive environment including agents and commands.
 
         Returns:
@@ -30,7 +30,7 @@ class InteractiveSessionProtocol(Protocol):
         """
         ...
 
-    def handle_interactive_input(self, environment: Dict[str, Any]) -> bool:
+    def handle_interactive_input(self, environment: dict[str, Any]) -> bool:
         """Handle the interactive input/output loop.
 
         Args:
@@ -53,7 +53,7 @@ class OneshotSessionProtocol(Protocol):
     needs from OneshotSession without requiring a full import.
     """
 
-    def initialize_session(self, prompt: str) -> Tuple[bool, Optional[str]]:
+    def initialize_session(self, prompt: str) -> tuple[bool, str | None]:
         """Initialize the oneshot session.
 
         Args:
@@ -72,7 +72,7 @@ class OneshotSessionProtocol(Protocol):
         """
         ...
 
-    def setup_infrastructure(self) -> Dict[str, Any]:
+    def setup_infrastructure(self) -> dict[str, Any]:
         """Set up session infrastructure.
 
         Returns:
@@ -81,8 +81,8 @@ class OneshotSessionProtocol(Protocol):
         ...
 
     def execute_command(
-        self, prompt: str, context: Optional[str], infrastructure: Dict[str, Any]
-    ) -> Tuple[bool, Optional[str]]:
+        self, prompt: str, context: str | None, infrastructure: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """Execute the command with given context and infrastructure.
 
         Args:
@@ -107,7 +107,7 @@ class SessionManagementProtocol(Protocol):
     SessionManagementService without requiring a full import.
     """
 
-    def run_interactive_session(self, initial_context: Optional[str] = None) -> bool:
+    def run_interactive_session(self, initial_context: str | None = None) -> bool:
         """Run Claude in interactive mode.
 
         Args:
@@ -118,7 +118,7 @@ class SessionManagementProtocol(Protocol):
         """
         ...
 
-    def run_oneshot_session(self, prompt: str, context: Optional[str] = None) -> bool:
+    def run_oneshot_session(self, prompt: str, context: str | None = None) -> bool:
         """Run Claude with a single prompt.
 
         Args:

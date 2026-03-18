@@ -11,12 +11,11 @@ that's running claude-mpm, respecting virtual environments and user setups.
 
 import subprocess
 import sys
-from typing import List, Optional, Tuple
 
 from ..core.logger import get_logger
 
 
-def check_dependency(package_name: str, import_name: Optional[str] = None) -> bool:
+def check_dependency(package_name: str, import_name: str | None = None) -> bool:
     """
     Check if a Python package is installed and importable.
 
@@ -45,7 +44,7 @@ def check_dependency(package_name: str, import_name: Optional[str] = None) -> bo
         return False
 
 
-def install_packages(packages: List[str], logger=None) -> Tuple[bool, str]:
+def install_packages(packages: list[str], logger=None) -> tuple[bool, str]:
     """
     Install Python packages using pip in the current environment.
 
@@ -102,7 +101,7 @@ def install_packages(packages: List[str], logger=None) -> Tuple[bool, str]:
         return False, error_msg
 
 
-def ensure_socketio_dependencies(logger=None) -> Tuple[bool, str]:
+def ensure_socketio_dependencies(logger=None) -> tuple[bool, str]:
     """
     Ensure Socket.IO dependencies are installed for monitoring features.
 
@@ -165,7 +164,7 @@ def ensure_socketio_dependencies(logger=None) -> Tuple[bool, str]:
     return False, error_msg
 
 
-def get_pip_freeze_output() -> List[str]:
+def get_pip_freeze_output() -> list[str]:
     """
     Get the output of 'pip freeze' for debugging dependency issues.
 
@@ -192,7 +191,7 @@ def get_pip_freeze_output() -> List[str]:
         return [f"Failed to get pip freeze output: {e}"]
 
 
-def check_virtual_environment() -> Tuple[bool, str]:
+def check_virtual_environment() -> tuple[bool, str]:
     """
     Check if we're running in a virtual environment.
 

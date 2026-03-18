@@ -14,8 +14,9 @@ import asyncio
 import json
 import os
 import tempfile
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.logger import get_logger
@@ -43,7 +44,7 @@ class MonitorBuildService(BaseService):
         self._build_file_path = self._get_build_file_path()
 
         # Cache for build info to reduce file I/O
-        self._cached_build_info: Optional[Dict[str, Any]] = None
+        self._cached_build_info: dict[str, Any] | None = None
         self._cache_lock = asyncio.Lock()
 
     def _get_build_file_path(self) -> Path:
@@ -97,7 +98,7 @@ class MonitorBuildService(BaseService):
             await self._write_build_info(default_info)
             self.logger.info(f"Created MONITOR_BUILD file at {self._build_file_path}")
 
-    async def _load_build_info(self) -> Dict[str, Any]:
+    async def _load_build_info(self) -> dict[str, Any]:
         """Load build information from file.
 
         WHY: Centralizes file reading with error handling and caching
@@ -146,7 +147,7 @@ class MonitorBuildService(BaseService):
 
             return self._cached_build_info
 
-    async def _write_build_info(self, info: Dict[str, Any]) -> None:
+    async def _write_build_info(self, info: dict[str, Any]) -> None:
         """Write build information to file atomically.
 
         WHY: Atomic writes prevent file corruption if the process is
@@ -156,9 +157,9 @@ class MonitorBuildService(BaseService):
             info: Build information dictionary
         """
         # Add timestamp
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        info["last_updated"] = datetime.now(timezone.utc).isoformat()
+        info["last_updated"] = datetime.now(UTC).isoformat()
 
         # Write atomically using temp file and rename
         temp_fd, temp_path = tempfile.mkstemp(
@@ -253,7 +254,7 @@ class MonitorBuildService(BaseService):
         build = await self.get_formatted_build_number()
         return f"v{version}-{build}"
 
-    async def get_build_info(self) -> Dict[str, Any]:
+    async def get_build_info(self) -> dict[str, Any]:
         """Get complete build information.
 
         WHY: Provides all build metadata in a single call for
@@ -314,7 +315,7 @@ class MonitorBuildService(BaseService):
         finally:
             loop.close()
 
-    def get_build_info_sync(self) -> Dict[str, Any]:
+    def get_build_info_sync(self) -> dict[str, Any]:
         """Synchronous version of get_build_info.
 
         WHY: SocketIO connection handlers often need synchronous
@@ -331,7 +332,7 @@ class MonitorBuildService(BaseService):
 
 
 # Global instance for singleton pattern
-_monitor_build_service: Optional[MonitorBuildService] = None
+_monitor_build_service: MonitorBuildService | None = None
 
 
 def get_monitor_build_service() -> MonitorBuildService:

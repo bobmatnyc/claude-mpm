@@ -13,7 +13,7 @@ import socket
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import NamedTuple
 
 import psutil
 
@@ -38,7 +38,7 @@ class PortManager:
     PORT_RANGE = range(8765, 8786)  # 8765-8785 (21 ports)
     DEFAULT_PORT = 8765
 
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         self.logger = get_logger(__name__ + ".PortManager")
         self.project_root = project_root or Path.cwd()
         self.state_dir = self.project_root / ".claude-mpm"
@@ -55,7 +55,7 @@ class PortManager:
         except OSError:
             return False
 
-    def get_process_on_port(self, port: int) -> Optional[ProcessInfo]:
+    def get_process_on_port(self, port: int) -> ProcessInfo | None:
         """Get information about the process using a specific port.
 
         WHY: We need to identify what process is using a port to make intelligent
@@ -161,7 +161,7 @@ class PortManager:
 
         return None
 
-    def _is_our_process(self, pid: int, cmdline: Optional[str] = None) -> bool:
+    def _is_our_process(self, pid: int, cmdline: str | None = None) -> bool:
         """Check if a process belongs to claude-mpm.
 
         WHY: We need to distinguish our processes from external ones to know
@@ -314,7 +314,7 @@ class PortManager:
 
         return False
 
-    def is_claude_mpm_instance(self, port: int) -> Tuple[bool, Optional[Dict]]:
+    def is_claude_mpm_instance(self, port: int) -> tuple[bool, dict | None]:
         """Check if a port is being used by a claude-mpm SocketIO instance."""
         instances = self.load_instances()
 
@@ -353,8 +353,8 @@ class PortManager:
             return False
 
     def find_available_port(
-        self, preferred_port: Optional[int] = None, reclaim: bool = True
-    ) -> Optional[int]:
+        self, preferred_port: int | None = None, reclaim: bool = True
+    ) -> int | None:
         """Find an available port, preferring the specified port if given.
 
         WHY: Enhanced to intelligently reclaim ports from our debug processes
@@ -470,7 +470,7 @@ class PortManager:
 
         return False
 
-    def load_instances(self) -> Dict:
+    def load_instances(self) -> dict:
         """Load registered instances from file."""
         try:
             if self.instances_file.exists():
@@ -481,7 +481,7 @@ class PortManager:
 
         return {}
 
-    def save_instances(self, instances: Dict) -> None:
+    def save_instances(self, instances: dict) -> None:
         """Save registered instances to file."""
         try:
             with self.instances_file.open("w") as f:
@@ -507,7 +507,7 @@ class PortManager:
 
         return len(dead_instances)
 
-    def list_active_instances(self) -> List[Dict]:
+    def list_active_instances(self) -> list[dict]:
         """List all active SocketIO instances."""
         instances = self.load_instances()
         active_instances = []
@@ -521,7 +521,7 @@ class PortManager:
 
         return active_instances
 
-    def get_instance_by_port(self, port: int) -> Optional[Dict]:
+    def get_instance_by_port(self, port: int) -> dict | None:
         """Get instance information for a specific port."""
         instances = self.load_instances()
 
@@ -535,7 +535,7 @@ class PortManager:
 
         return None
 
-    def get_port_status(self, port: int) -> Dict[str, any]:
+    def get_port_status(self, port: int) -> dict[str, any]:
         """Get detailed status of a port including what's using it.
 
         WHY: Provides comprehensive information for users to understand

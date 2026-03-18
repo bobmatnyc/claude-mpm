@@ -72,14 +72,14 @@ class HookServiceContainer:
             return
 
         # Service instances (lazily initialized)
-        self._state_manager: Optional[IStateManager] = None
-        self._connection_manager: Optional[IConnectionManager] = None
-        self._duplicate_detector: Optional[IDuplicateDetector] = None
-        self._response_tracking_manager: Optional[IResponseTrackingManager] = None
-        self._memory_hook_manager: Optional[IMemoryHookManager] = None
-        self._subagent_processor: Optional[ISubagentProcessor] = None
-        self._auto_pause_handler: Optional[IAutoPauseHandler] = None
-        self._event_handlers: Optional[IEventHandlers] = None
+        self._state_manager: IStateManager | None = None
+        self._connection_manager: IConnectionManager | None = None
+        self._duplicate_detector: IDuplicateDetector | None = None
+        self._response_tracking_manager: IResponseTrackingManager | None = None
+        self._memory_hook_manager: IMemoryHookManager | None = None
+        self._subagent_processor: ISubagentProcessor | None = None
+        self._auto_pause_handler: IAutoPauseHandler | None = None
+        self._event_handlers: IEventHandlers | None = None
 
         # Override factories for testing
         self._overrides: dict[str, Any] = {}
@@ -168,7 +168,7 @@ class HookServiceContainer:
                     self._memory_hook_manager = MemoryHookManager()
         return self._memory_hook_manager
 
-    def get_auto_pause_handler(self) -> Optional[IAutoPauseHandler]:
+    def get_auto_pause_handler(self) -> IAutoPauseHandler | None:
         """Get or create AutoPauseHandler instance.
 
         Returns None if initialization fails (auto-pause is optional).
@@ -192,9 +192,9 @@ class HookServiceContainer:
 
     def get_subagent_processor(
         self,
-        state_manager: Optional[IStateManager] = None,
-        response_tracking_manager: Optional[IResponseTrackingManager] = None,
-        connection_manager: Optional[IConnectionManager] = None,
+        state_manager: IStateManager | None = None,
+        response_tracking_manager: IResponseTrackingManager | None = None,
+        connection_manager: IConnectionManager | None = None,
     ) -> ISubagentProcessor:
         """Get or create SubagentResponseProcessor instance.
 
@@ -278,7 +278,7 @@ class HookServiceContainer:
         """Override subagent processor with a mock or custom implementation."""
         self._overrides["subagent_processor"] = service
 
-    def override_auto_pause_handler(self, service: Optional[IAutoPauseHandler]) -> None:
+    def override_auto_pause_handler(self, service: IAutoPauseHandler | None) -> None:
         """Override auto-pause handler with a mock or custom implementation."""
         self._overrides["auto_pause_handler"] = service
 

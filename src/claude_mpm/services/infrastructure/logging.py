@@ -11,8 +11,8 @@ Part of TSK-0046: Service Layer Architecture Reorganization
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.core import IStructuredLogger, SyncBaseService
@@ -29,7 +29,7 @@ class LoggingService(SyncBaseService, IStructuredLogger):
     - Audit trail capabilities
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize logging service.
 
@@ -92,7 +92,7 @@ class LoggingService(SyncBaseService, IStructuredLogger):
 
         if self.structured_logging:
             log_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "level": level,
                 "message": message,
                 "context": context,
@@ -139,10 +139,10 @@ class LoggingService(SyncBaseService, IStructuredLogger):
 
     def get_logs(
         self,
-        level: Optional[str] = None,
-        component: Optional[str] = None,
+        level: str | None = None,
+        component: str | None = None,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieve recent logs.
 

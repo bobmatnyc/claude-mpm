@@ -16,9 +16,9 @@ ARCHITECTURE:
 """
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class CircuitBreakerState(Enum):
@@ -63,13 +63,13 @@ class RestartAttempt:
 
     attempt_number: int
     deployment_id: str
-    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    completed_at: Optional[datetime] = None
+    started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    completed_at: datetime | None = None
     success: bool = False
-    failure_reason: Optional[str] = None
+    failure_reason: str | None = None
     backoff_seconds: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -89,7 +89,7 @@ class RestartAttempt:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RestartAttempt":
+    def from_dict(cls, data: dict[str, Any]) -> "RestartAttempt":
         """
         Create RestartAttempt from dictionary.
 
@@ -126,12 +126,12 @@ class RestartHistory:
     """
 
     deployment_id: str
-    attempts: List[RestartAttempt] = field(default_factory=list)
+    attempts: list[RestartAttempt] = field(default_factory=list)
     circuit_breaker_state: CircuitBreakerState = CircuitBreakerState.CLOSED
-    last_failure_window_start: Optional[datetime] = None
+    last_failure_window_start: datetime | None = None
     failure_count_in_window: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -151,7 +151,7 @@ class RestartHistory:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RestartHistory":
+    def from_dict(cls, data: dict[str, Any]) -> "RestartHistory":
         """
         Create RestartHistory from dictionary.
 
@@ -188,7 +188,7 @@ class RestartHistory:
 
         return cls(**data)
 
-    def get_latest_attempt(self) -> Optional[RestartAttempt]:
+    def get_latest_attempt(self) -> RestartAttempt | None:
         """
         Get the most recent restart attempt.
 
@@ -276,12 +276,12 @@ class RestartConfig:
         if self.health_check_timeout_seconds < 1:
             raise ValueError("health_check_timeout_seconds must be >= 1")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RestartConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "RestartConfig":
         """
         Create RestartConfig from dictionary.
 

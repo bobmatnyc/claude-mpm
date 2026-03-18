@@ -8,9 +8,8 @@ import json
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
 
 from claude_mpm.core.config_scope import (
     ConfigScope,
@@ -44,7 +43,7 @@ class RestoreResult:
     success: bool
     backup_id: str
     files_restored: int
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -77,10 +76,10 @@ class BackupManager:
 
     def __init__(
         self,
-        backup_root: Optional[Path] = None,
-        agents_dir: Optional[Path] = None,
-        skills_dir: Optional[Path] = None,
-        config_dir: Optional[Path] = None,
+        backup_root: Path | None = None,
+        agents_dir: Path | None = None,
+        skills_dir: Path | None = None,
+        config_dir: Path | None = None,
     ) -> None:
         """Initialize BackupManager with configurable paths.
 
@@ -118,7 +117,7 @@ class BackupManager:
         Raises:
             OSError: If backup directory cannot be created or files cannot be copied.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         backup_id = now.strftime("%Y-%m-%dT%H-%M-%S")
         backup_dir = self.backup_root / backup_id
 
@@ -228,7 +227,7 @@ class BackupManager:
             RestoreResult with restore details.
         """
         backup_dir = self.backup_root / backup_id
-        errors: List[str] = []
+        errors: list[str] = []
         total_restored = 0
 
         if not backup_dir.exists():
@@ -298,7 +297,7 @@ class BackupManager:
             errors=errors,
         )
 
-    def list_backups(self) -> List[BackupMetadata]:
+    def list_backups(self) -> list[BackupMetadata]:
         """List available backups sorted by date (newest first).
 
         Returns:
@@ -307,7 +306,7 @@ class BackupManager:
         if not self.backup_root.exists():
             return []
 
-        backups: List[BackupMetadata] = []
+        backups: list[BackupMetadata] = []
 
         for entry in self.backup_root.iterdir():
             if not entry.is_dir():

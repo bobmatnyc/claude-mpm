@@ -17,9 +17,9 @@ DESIGN DECISIONS:
 import json
 import shutil
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from ..shared import BaseCommand, CommandResult
 
@@ -121,7 +121,7 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes:.1f}TB"
 
 
-def analyze_claude_json(file_path: Path) -> Tuple[Dict[str, Any], List[str]]:
+def analyze_claude_json(file_path: Path) -> tuple[dict[str, Any], list[str]]:
     """Analyze .claude.json file for cleanup opportunities.
 
     WHY: We need to understand the structure of the conversation history
@@ -208,7 +208,7 @@ def create_archive(source_path: Path, archive_dir: Path) -> Path:
     archive_dir.mkdir(parents=True, exist_ok=True)
 
     # Create timestamped archive name
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     archive_name = f"claude_archive_{timestamp}.json"
     archive_path = archive_dir / archive_name
 
@@ -231,7 +231,7 @@ def create_archive(source_path: Path, archive_dir: Path) -> Path:
 
 def clean_claude_json(
     file_path: Path, keep_days: int, dry_run: bool = False
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Clean up old conversations from .claude.json file.
 
     WHY: This function removes old conversation data while preserving recent
@@ -319,7 +319,7 @@ class CleanupCommand(BaseCommand):
             self.logger.error(f"Error during cleanup: {e}", exc_info=True)
             return CommandResult.error_result(f"Error during cleanup: {e}")
 
-    def _analyze_cleanup_needs(self, args) -> Dict[str, Any]:
+    def _analyze_cleanup_needs(self, args) -> dict[str, Any]:
         """Analyze what needs to be cleaned up."""
         claude_json = Path.home() / ".claude.json"
         archive_dir = Path.home() / ".claude-mpm" / "archives"
@@ -357,7 +357,7 @@ class CleanupCommand(BaseCommand):
             },
         }
 
-    def _perform_cleanup(self, args, cleanup_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _perform_cleanup(self, args, cleanup_data: dict[str, Any]) -> dict[str, Any]:
         """Perform the actual cleanup operation."""
         claude_json = Path(cleanup_data["file_path"])
         archive_dir = Path(cleanup_data["archive_dir"])
@@ -557,7 +557,7 @@ def _cleanup_memory_original(args):
     print("💡 You can now use 'claude-mpm run --resume' without memory issues")
 
 
-def clean_old_archives(archive_dir: Path, keep_days: int = 90) -> List[Path]:
+def clean_old_archives(archive_dir: Path, keep_days: int = 90) -> list[Path]:
     """Clean up old archive files.
 
     WHY: Archive files can accumulate over time. We keep them for a reasonable
@@ -574,12 +574,12 @@ def clean_old_archives(archive_dir: Path, keep_days: int = 90) -> List[Path]:
         return []
 
     removed = []
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=keep_days)
+    cutoff_date = datetime.now(UTC) - timedelta(days=keep_days)
 
     for archive_file in archive_dir.glob("claude_archive_*.json*"):
         # Check file age
         file_stat = archive_file.stat()
-        file_time = datetime.fromtimestamp(file_stat.st_mtime, tz=timezone.utc)
+        file_time = datetime.fromtimestamp(file_stat.st_mtime, tz=UTC)
 
         if file_time < cutoff_date:
             archive_file.unlink()

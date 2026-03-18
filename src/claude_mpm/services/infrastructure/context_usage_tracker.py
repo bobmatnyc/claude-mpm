@@ -19,9 +19,8 @@ USAGE:
 """
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.storage.state_storage import StateStorage
@@ -51,11 +50,9 @@ class ContextUsageState:
     cache_creation_tokens: int = 0
     cache_read_tokens: int = 0
     percentage_used: float = 0.0
-    threshold_reached: Optional[str] = None
+    threshold_reached: str | None = None
     auto_pause_active: bool = False
-    last_updated: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class ContextUsageTracker:
@@ -81,7 +78,7 @@ class ContextUsageTracker:
         "critical": 0.95,  # Red critical alert
     }
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize context usage tracker.
 
         Args:
@@ -144,7 +141,7 @@ class ContextUsageTracker:
             state.auto_pause_active = True
 
         # Update timestamp
-        state.last_updated = datetime.now(timezone.utc).isoformat()
+        state.last_updated = datetime.now(UTC).isoformat()
 
         # Persist state atomically
         self._save_state(state)
@@ -156,9 +153,7 @@ class ContextUsageTracker:
 
         return state
 
-    def check_thresholds(
-        self, state: Optional[ContextUsageState] = None
-    ) -> Optional[str]:
+    def check_thresholds(self, state: ContextUsageState | None = None) -> str | None:
         """Check which threshold (if any) has been exceeded.
 
         Args:
@@ -216,9 +211,7 @@ class ContextUsageTracker:
         try:
             if not self.state_file.exists():
                 # Generate initial session ID
-                session_id = (
-                    f"session-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-                )
+                session_id = f"session-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
                 logger.debug("No state file found, creating default state")
                 return ContextUsageState(session_id=session_id)
 
@@ -227,9 +220,7 @@ class ContextUsageTracker:
 
             if data is None:
                 logger.warning("Failed to read state file, using default state")
-                session_id = (
-                    f"session-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-                )
+                session_id = f"session-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
                 return ContextUsageState(session_id=session_id)
 
             # Reconstruct ContextUsageState from dict
@@ -237,9 +228,7 @@ class ContextUsageTracker:
 
         except Exception as e:
             logger.error(f"Error loading state, using default: {e}")
-            session_id = (
-                f"session-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-            )
+            session_id = f"session-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
             return ContextUsageState(session_id=session_id)
 
     def _save_state(self, state: ContextUsageState) -> None:

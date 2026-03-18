@@ -4,10 +4,11 @@ Part of Phase 3 Configuration Consolidation
 """
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -50,51 +51,51 @@ class SchemaFormat(Enum):
 class SchemaProperty:
     """Schema property definition"""
 
-    type: Union[SchemaType, List[SchemaType]]
-    description: Optional[str] = None
+    type: SchemaType | list[SchemaType]
+    description: str | None = None
     default: Any = None
     required: bool = False
     nullable: bool = False
 
     # Constraints
-    minimum: Optional[Union[int, float]] = None
-    maximum: Optional[Union[int, float]] = None
-    exclusive_minimum: Optional[Union[int, float]] = None
-    exclusive_maximum: Optional[Union[int, float]] = None
+    minimum: int | float | None = None
+    maximum: int | float | None = None
+    exclusive_minimum: int | float | None = None
+    exclusive_maximum: int | float | None = None
 
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    pattern: Optional[str] = None
-    format: Optional[SchemaFormat] = None
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None
+    format: SchemaFormat | None = None
 
-    enum: Optional[List[Any]] = None
-    const: Optional[Any] = None
+    enum: list[Any] | None = None
+    const: Any | None = None
 
     # Array constraints
-    min_items: Optional[int] = None
-    max_items: Optional[int] = None
+    min_items: int | None = None
+    max_items: int | None = None
     unique_items: bool = False
     items: Optional["SchemaProperty"] = None
 
     # Object constraints
-    properties: Optional[Dict[str, "SchemaProperty"]] = None
+    properties: dict[str, "SchemaProperty"] | None = None
     additional_properties: Union[bool, "SchemaProperty"] = True
-    required_properties: Optional[List[str]] = None
+    required_properties: list[str] | None = None
 
     # Advanced
-    dependencies: Optional[Dict[str, Union[List[str], "SchemaProperty"]]] = None
-    one_of: Optional[List["SchemaProperty"]] = None
-    any_of: Optional[List["SchemaProperty"]] = None
-    all_of: Optional[List["SchemaProperty"]] = None
+    dependencies: dict[str, Union[list[str], "SchemaProperty"]] | None = None
+    one_of: list["SchemaProperty"] | None = None
+    any_of: list["SchemaProperty"] | None = None
+    all_of: list["SchemaProperty"] | None = None
     not_schema: Optional["SchemaProperty"] = None
 
     # Custom validation
-    validator: Optional[Callable[[Any], bool]] = None
-    transformer: Optional[Callable[[Any], Any]] = None
+    validator: Callable[[Any], bool] | None = None
+    transformer: Callable[[Any], Any] | None = None
 
     # Metadata
     deprecated: bool = False
-    examples: Optional[List[Any]] = None
+    examples: list[Any] | None = None
     read_only: bool = False
     write_only: bool = False
 
@@ -104,22 +105,22 @@ class ConfigSchema:
     """Complete configuration schema"""
 
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     version: str = "1.0.0"
-    properties: Dict[str, SchemaProperty] = field(default_factory=dict)
-    required: List[str] = field(default_factory=list)
-    additional_properties: Union[bool, SchemaProperty] = True
+    properties: dict[str, SchemaProperty] = field(default_factory=dict)
+    required: list[str] = field(default_factory=list)
+    additional_properties: bool | SchemaProperty = True
 
     # Schema metadata
-    schema_id: Optional[str] = None
-    schema_uri: Optional[str] = None
+    schema_id: str | None = None
+    schema_uri: str | None = None
 
     # Defaults
-    defaults: Dict[str, Any] = field(default_factory=dict)
+    defaults: dict[str, Any] = field(default_factory=dict)
 
     # Validation rules
-    dependencies: Optional[Dict[str, Union[List[str], SchemaProperty]]] = None
-    pattern_properties: Optional[Dict[str, SchemaProperty]] = None
+    dependencies: dict[str, list[str] | SchemaProperty] | None = None
+    pattern_properties: dict[str, SchemaProperty] | None = None
 
     # Conditional schemas
     if_schema: Optional["ConfigSchema"] = None
@@ -127,15 +128,15 @@ class ConfigSchema:
     else_schema: Optional["ConfigSchema"] = None
 
     # Composition
-    all_of: Optional[List["ConfigSchema"]] = None
-    any_of: Optional[List["ConfigSchema"]] = None
-    one_of: Optional[List["ConfigSchema"]] = None
+    all_of: list["ConfigSchema"] | None = None
+    any_of: list["ConfigSchema"] | None = None
+    one_of: list["ConfigSchema"] | None = None
     not_schema: Optional["ConfigSchema"] = None
 
     # Custom handlers
-    pre_validators: List[Callable] = field(default_factory=list)
-    post_validators: List[Callable] = field(default_factory=list)
-    transformers: List[Callable] = field(default_factory=list)
+    pre_validators: list[Callable] = field(default_factory=list)
+    post_validators: list[Callable] = field(default_factory=list)
+    transformers: list[Callable] = field(default_factory=list)
 
 
 class SchemaBuilder:
@@ -155,9 +156,7 @@ class SchemaBuilder:
         self.schema.version = ver
         return self
 
-    def property(
-        self, name: str, type: Union[SchemaType, str], **kwargs
-    ) -> "SchemaBuilder":
+    def property(self, name: str, type: SchemaType | str, **kwargs) -> "SchemaBuilder":
         """Add a property to the schema"""
         if isinstance(type, str):
             type = SchemaType(type)
@@ -187,7 +186,7 @@ class SchemaBuilder:
         return self.property(name, SchemaType.BOOLEAN, **kwargs)
 
     def array(
-        self, name: str, items: Optional[SchemaProperty] = None, **kwargs
+        self, name: str, items: SchemaProperty | None = None, **kwargs
     ) -> "SchemaBuilder":
         """Add array property"""
         return self.property(name, SchemaType.ARRAY, items=items, **kwargs)
@@ -195,13 +194,13 @@ class SchemaBuilder:
     def object(
         self,
         name: str,
-        properties: Optional[Dict[str, SchemaProperty]] = None,
+        properties: dict[str, SchemaProperty] | None = None,
         **kwargs,
     ) -> "SchemaBuilder":
         """Add object property"""
         return self.property(name, SchemaType.OBJECT, properties=properties, **kwargs)
 
-    def enum(self, name: str, values: List[Any], **kwargs) -> "SchemaBuilder":
+    def enum(self, name: str, values: list[Any], **kwargs) -> "SchemaBuilder":
         """Add enum property"""
         return self.property(name, SchemaType.STRING, enum=values, **kwargs)
 
@@ -219,9 +218,7 @@ class SchemaBuilder:
         self.schema.defaults[name] = value
         return self
 
-    def dependency(
-        self, field: str, depends_on: Union[str, List[str]]
-    ) -> "SchemaBuilder":
+    def dependency(self, field: str, depends_on: str | list[str]) -> "SchemaBuilder":
         """Add field dependency"""
         if self.schema.dependencies is None:
             self.schema.dependencies = {}
@@ -252,10 +249,10 @@ class SchemaValidator:
 
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
-    def validate(self, config: Dict[str, Any], schema: ConfigSchema) -> bool:
+    def validate(self, config: dict[str, Any], schema: ConfigSchema) -> bool:
         """Validate configuration against schema"""
         self.errors = []
         self.warnings = []
@@ -327,9 +324,7 @@ class SchemaValidator:
         if prop.validator and not prop.validator(value):
             self.errors.append(f"{path}: custom validation failed")
 
-    def _check_type(
-        self, value: Any, expected: Union[SchemaType, List[SchemaType]]
-    ) -> bool:
+    def _check_type(self, value: Any, expected: SchemaType | list[SchemaType]) -> bool:
         """Check if value matches expected type"""
         if isinstance(expected, list):
             return any(self._check_type(value, t) for t in expected)
@@ -348,9 +343,7 @@ class SchemaValidator:
         expected_type = type_map.get(expected, object)
         return isinstance(value, expected_type)
 
-    def _validate_numeric(
-        self, value: Union[int, float], prop: SchemaProperty, path: str
-    ):
+    def _validate_numeric(self, value: int | float, prop: SchemaProperty, path: str):
         """Validate numeric constraints"""
         if prop.minimum is not None and value < prop.minimum:
             self.errors.append(f"{path}: value {value} is below minimum {prop.minimum}")
@@ -389,7 +382,7 @@ class SchemaValidator:
         if prop.format and not self._validate_format(value, prop.format):
             self.errors.append(f"{path}: invalid format {prop.format.value}")
 
-    def _validate_array(self, value: List, prop: SchemaProperty, path: str):
+    def _validate_array(self, value: list, prop: SchemaProperty, path: str):
         """Validate array constraints"""
         if prop.min_items is not None and len(value) < prop.min_items:
             self.errors.append(
@@ -418,7 +411,7 @@ class SchemaValidator:
             for i, item in enumerate(value):
                 self._validate_property(item, prop.items, f"{path}[{i}]")
 
-    def _validate_object(self, value: Dict, prop: SchemaProperty, path: str):
+    def _validate_object(self, value: dict, prop: SchemaProperty, path: str):
         """Validate object constraints"""
         if prop.properties:
             for name, sub_prop in prop.properties.items():
@@ -437,7 +430,7 @@ class SchemaValidator:
                     f"{path}: additional properties not allowed: {extra}"
                 )
 
-    def _validate_dependencies(self, config: Dict, dependencies: Dict):
+    def _validate_dependencies(self, config: dict, dependencies: dict):
         """Validate field dependencies"""
         for field, deps in dependencies.items():
             if field in config and isinstance(deps, list):
@@ -517,10 +510,10 @@ class SchemaRegistry:
 
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
-        self.schemas: Dict[str, ConfigSchema] = {}
-        self.versions: Dict[str, Dict[str, ConfigSchema]] = {}
+        self.schemas: dict[str, ConfigSchema] = {}
+        self.versions: dict[str, dict[str, ConfigSchema]] = {}
 
-    def register(self, schema: ConfigSchema, name: Optional[str] = None):
+    def register(self, schema: ConfigSchema, name: str | None = None):
         """Register a schema"""
         name = name or schema.title
 
@@ -534,17 +527,17 @@ class SchemaRegistry:
 
         self.logger.info(f"Registered schema: {name} v{schema.version}")
 
-    def get(self, name: str, version: Optional[str] = None) -> Optional[ConfigSchema]:
+    def get(self, name: str, version: str | None = None) -> ConfigSchema | None:
         """Get schema by name and optionally version"""
         if version:
             return self.versions.get(name, {}).get(version)
         return self.schemas.get(name)
 
-    def list_schemas(self) -> List[str]:
+    def list_schemas(self) -> list[str]:
         """List all registered schemas"""
         return list(self.schemas.keys())
 
-    def list_versions(self, name: str) -> List[str]:
+    def list_versions(self, name: str) -> list[str]:
         """List all versions of a schema"""
         return list(self.versions.get(name, {}).keys())
 
@@ -554,10 +547,10 @@ class ConfigMigration:
 
     def __init__(self):
         self.logger = get_logger(self.__class__.__name__)
-        self.migrations: Dict[tuple, Callable] = {}
+        self.migrations: dict[tuple, Callable] = {}
 
     def register_migration(
-        self, from_version: str, to_version: str, migration_func: Callable[[Dict], Dict]
+        self, from_version: str, to_version: str, migration_func: Callable[[dict], dict]
     ):
         """Register a migration function"""
         key = (from_version, to_version)
@@ -565,8 +558,8 @@ class ConfigMigration:
         self.logger.info(f"Registered migration: {from_version} -> {to_version}")
 
     def migrate(
-        self, config: Dict[str, Any], from_version: str, to_version: str
-    ) -> Dict[str, Any]:
+        self, config: dict[str, Any], from_version: str, to_version: str
+    ) -> dict[str, Any]:
         """Migrate configuration between versions"""
         key = (from_version, to_version)
 
@@ -592,7 +585,7 @@ class ConfigMigration:
 
     def _find_migration_path(
         self, from_version: str, to_version: str
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """Find migration path between versions using BFS"""
         from collections import deque
 
@@ -621,10 +614,10 @@ class ConfigMigration:
         return None
 
 
-class TypedConfig(Generic[T]):
+class TypedConfig[T]:
     """Type-safe configuration wrapper"""
 
-    def __init__(self, schema: ConfigSchema, data: Dict[str, Any]):
+    def __init__(self, schema: ConfigSchema, data: dict[str, Any]):
         self.schema = schema
         self._data = data
         self._validator = SchemaValidator()
@@ -649,7 +642,7 @@ class TypedConfig(Generic[T]):
 
         self._data[key] = value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary"""
         return self._data.copy()
 

@@ -7,7 +7,6 @@ Tests all 7 verification points for the skills system
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Set
 
 # Add project to path
 project_root = Path(__file__).parent
@@ -219,7 +218,7 @@ def test_4_agent_version_bumps() -> bool:
 
         # Sample specific agents
         sample_agents = ["engineer", "python_engineer", "qa", "ops", "product_owner"]
-        versions: Dict[str, str] = {}
+        versions: dict[str, str] = {}
 
         for agent_name in sample_agents:
             agent_file = agents_dir / f"{agent_name}.json"
@@ -260,7 +259,7 @@ def test_5_skills_field_in_templates() -> bool:
 
         agents_with_skills = 0
         agents_without_skills = []
-        skill_counts: Dict[str, int] = {}
+        skill_counts: dict[str, int] = {}
 
         for agent_file in agent_files:
             agent_name = agent_file.stem

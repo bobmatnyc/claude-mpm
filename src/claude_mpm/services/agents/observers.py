@@ -14,7 +14,6 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 4
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from ..core.models.agent_config import AgentRecommendation
 from ..core.models.toolchain import ToolchainAnalysis
@@ -60,7 +59,7 @@ class IDeploymentObserver(ABC):
 
     @abstractmethod
     def on_recommendation_completed(
-        self, recommendations: List[AgentRecommendation], duration_ms: float
+        self, recommendations: list[AgentRecommendation], duration_ms: float
     ) -> None:
         """
         Called when agent recommendation completes.
@@ -125,7 +124,7 @@ class IDeploymentObserver(ABC):
 
     @abstractmethod
     def on_agent_deployment_completed(
-        self, agent_id: str, agent_name: str, success: bool, error: Optional[str] = None
+        self, agent_id: str, agent_name: str, success: bool, error: str | None = None
     ) -> None:
         """
         Called when deployment of a specific agent completes.
@@ -151,7 +150,7 @@ class IDeploymentObserver(ABC):
         """
 
     @abstractmethod
-    def on_rollback_started(self, agent_ids: List[str]) -> None:
+    def on_rollback_started(self, agent_ids: list[str]) -> None:
         """
         Called when rollback of failed deployments starts.
 
@@ -170,7 +169,7 @@ class IDeploymentObserver(ABC):
 
     @abstractmethod
     def on_error(
-        self, phase: str, error_message: str, exception: Optional[Exception] = None
+        self, phase: str, error_message: str, exception: Exception | None = None
     ) -> None:
         """
         Called when an error occurs during auto-configuration.
@@ -219,7 +218,7 @@ class NullObserver(IDeploymentObserver):
         """
 
     def on_recommendation_completed(
-        self, recommendations: List[AgentRecommendation], duration_ms: float
+        self, recommendations: list[AgentRecommendation], duration_ms: float
     ) -> None:
         """No-op: discards recommendation completion notification.
 
@@ -275,7 +274,7 @@ class NullObserver(IDeploymentObserver):
         """
 
     def on_agent_deployment_completed(
-        self, agent_id: str, agent_name: str, success: bool, error: Optional[str] = None
+        self, agent_id: str, agent_name: str, success: bool, error: str | None = None
     ) -> None:
         """No-op: discards per-agent deployment completion notification.
 
@@ -294,7 +293,7 @@ class NullObserver(IDeploymentObserver):
         TEST: Call with (3, 0, 1500.0); assert no exception.
         """
 
-    def on_rollback_started(self, agent_ids: List[str]) -> None:
+    def on_rollback_started(self, agent_ids: list[str]) -> None:
         """No-op: discards rollback start notification.
 
         WHY: Null Object pattern — absorbs rollback events without output.
@@ -311,7 +310,7 @@ class NullObserver(IDeploymentObserver):
         """
 
     def on_error(
-        self, phase: str, error_message: str, exception: Optional[Exception] = None
+        self, phase: str, error_message: str, exception: Exception | None = None
     ) -> None:
         """No-op: discards error notification.
 
@@ -400,7 +399,7 @@ class ConsoleProgressObserver(IDeploymentObserver):
         self._print("\n🤖 Generating agent recommendations...", "bold cyan")
 
     def on_recommendation_completed(
-        self, recommendations: List[AgentRecommendation], duration_ms: float
+        self, recommendations: list[AgentRecommendation], duration_ms: float
     ) -> None:
         """Called when agent recommendation completes."""
         high_conf = sum(1 for r in recommendations if r.is_high_confidence)
@@ -446,7 +445,7 @@ class ConsoleProgressObserver(IDeploymentObserver):
         # Progress updates are too noisy for console, skip them
 
     def on_agent_deployment_completed(
-        self, agent_id: str, agent_name: str, success: bool, error: Optional[str] = None
+        self, agent_id: str, agent_name: str, success: bool, error: str | None = None
     ) -> None:
         """Called when deployment of a specific agent completes."""
         if success:
@@ -471,7 +470,7 @@ class ConsoleProgressObserver(IDeploymentObserver):
                 "bold yellow",
             )
 
-    def on_rollback_started(self, agent_ids: List[str]) -> None:
+    def on_rollback_started(self, agent_ids: list[str]) -> None:
         """Called when rollback of failed deployments starts."""
         self._print(f"\n⏪ Rolling back {len(agent_ids)} agents...", "bold yellow")
 
@@ -483,7 +482,7 @@ class ConsoleProgressObserver(IDeploymentObserver):
             self._print("✗ Rollback failed", "red")
 
     def on_error(
-        self, phase: str, error_message: str, exception: Optional[Exception] = None
+        self, phase: str, error_message: str, exception: Exception | None = None
     ) -> None:
         """Called when an error occurs during auto-configuration."""
         self._print(f"\n✗ Error in {phase}: {error_message}", "bold red")
@@ -503,14 +502,14 @@ class CompositeObserver(IDeploymentObserver):
     to prevent one failing observer from breaking others.
     """
 
-    def __init__(self, observers: Optional[List[IDeploymentObserver]] = None):
+    def __init__(self, observers: list[IDeploymentObserver] | None = None):
         """
         Initialize composite observer.
 
         Args:
             observers: List of observers to notify
         """
-        self._observers: List[IDeploymentObserver] = observers or []
+        self._observers: list[IDeploymentObserver] = observers or []
 
     def add_observer(self, observer: IDeploymentObserver) -> None:
         """
@@ -581,7 +580,7 @@ class CompositeObserver(IDeploymentObserver):
         self._notify_all("on_recommendation_started")
 
     def on_recommendation_completed(
-        self, recommendations: List[AgentRecommendation], duration_ms: float
+        self, recommendations: list[AgentRecommendation], duration_ms: float
     ) -> None:
         """Broadcast recommendation-completed event to all registered observers.
 
@@ -647,7 +646,7 @@ class CompositeObserver(IDeploymentObserver):
         self._notify_all("on_agent_deployment_progress", agent_id, progress, message)
 
     def on_agent_deployment_completed(
-        self, agent_id: str, agent_name: str, success: bool, error: Optional[str] = None
+        self, agent_id: str, agent_name: str, success: bool, error: str | None = None
     ) -> None:
         """Broadcast per-agent deployment completion to all registered observers.
 
@@ -672,7 +671,7 @@ class CompositeObserver(IDeploymentObserver):
             "on_deployment_completed", success_count, failure_count, duration_ms
         )
 
-    def on_rollback_started(self, agent_ids: List[str]) -> None:
+    def on_rollback_started(self, agent_ids: list[str]) -> None:
         """Broadcast rollback-started event to all registered observers.
 
         WHY: Fans out rollback notification so observers can update status indicators.
@@ -691,7 +690,7 @@ class CompositeObserver(IDeploymentObserver):
         self._notify_all("on_rollback_completed", success)
 
     def on_error(
-        self, phase: str, error_message: str, exception: Optional[Exception] = None
+        self, phase: str, error_message: str, exception: Exception | None = None
     ) -> None:
         """Broadcast error event to all registered observers.
 

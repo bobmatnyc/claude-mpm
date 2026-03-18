@@ -10,7 +10,7 @@ ConfigFileLock is used for all configuration file writes.
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from aiohttp import web
@@ -126,7 +126,7 @@ def _error_response(status: int, error: str, code: str) -> web.Response:
     )
 
 
-def _verification_to_dict(result) -> Dict[str, Any]:
+def _verification_to_dict(result) -> dict[str, Any]:
     """Convert a VerificationResult object to a JSON-serialisable dict.
 
     WHY: VerificationResult is a domain object that cannot be directly serialised to
@@ -155,7 +155,7 @@ def _get_config_path() -> Path:
     return Path.cwd() / ".claude-mpm" / "configuration.yaml"
 
 
-def _load_config(config_path: Path) -> Dict:
+def _load_config(config_path: Path) -> dict:
     """Load configuration.yaml safely."""
     if not config_path.exists():
         return {}

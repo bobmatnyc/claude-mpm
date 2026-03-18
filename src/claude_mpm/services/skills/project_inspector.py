@@ -15,7 +15,6 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -26,12 +25,12 @@ logger = get_logger(__name__)
 class TechnologyStack:
     """Detected technology stack with confidence scores."""
 
-    languages: Dict[str, float] = field(default_factory=dict)
-    frameworks: Dict[str, float] = field(default_factory=dict)
-    tools: Dict[str, float] = field(default_factory=dict)
-    databases: Dict[str, float] = field(default_factory=dict)
+    languages: dict[str, float] = field(default_factory=dict)
+    frameworks: dict[str, float] = field(default_factory=dict)
+    tools: dict[str, float] = field(default_factory=dict)
+    databases: dict[str, float] = field(default_factory=dict)
 
-    def all_technologies(self) -> Set[str]:
+    def all_technologies(self) -> set[str]:
         """Get all detected technologies as a flat set."""
         return (
             set(self.languages.keys())
@@ -138,7 +137,7 @@ class ProjectInspector:
         },
     }
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize inspector with project path."""
         self.project_path = project_path or Path.cwd()
         if not self.project_path.is_absolute():
@@ -169,7 +168,7 @@ class ProjectInspector:
 
         return stack
 
-    def _detect_languages(self) -> Dict[str, float]:
+    def _detect_languages(self) -> dict[str, float]:
         """Detect programming languages with confidence scores."""
         detected = {}
 
@@ -216,7 +215,7 @@ class ProjectInspector:
 
         return detected
 
-    def _detect_frameworks(self, languages: Dict[str, float]) -> Dict[str, float]:
+    def _detect_frameworks(self, languages: dict[str, float]) -> dict[str, float]:
         """Detect frameworks based on dependency files."""
         detected = {}
 
@@ -260,7 +259,7 @@ class ProjectInspector:
 
         return detected
 
-    def _check_npm_dependencies(self, package_json: Path, packages: List[str]) -> float:
+    def _check_npm_dependencies(self, package_json: Path, packages: list[str]) -> float:
         """Check if packages are in package.json dependencies."""
         try:
             with open(package_json) as f:
@@ -281,7 +280,7 @@ class ProjectInspector:
             logger.debug(f"Error reading {package_json}: {e}")
             return 0.0
 
-    def _check_python_dependencies(self, dep_file: Path, packages: List[str]) -> float:
+    def _check_python_dependencies(self, dep_file: Path, packages: list[str]) -> float:
         """Check if packages are in Python dependency files."""
         try:
             content = dep_file.read_text().lower()
@@ -298,7 +297,7 @@ class ProjectInspector:
             logger.debug(f"Error reading {dep_file}: {e}")
             return 0.0
 
-    def _check_rust_dependencies(self, cargo_toml: Path, packages: List[str]) -> float:
+    def _check_rust_dependencies(self, cargo_toml: Path, packages: list[str]) -> float:
         """Check if packages are in Cargo.toml dependencies."""
         try:
             content = cargo_toml.read_text()
@@ -313,7 +312,7 @@ class ProjectInspector:
             logger.debug(f"Error reading {cargo_toml}: {e}")
             return 0.0
 
-    def _check_go_dependencies(self, go_mod: Path, packages: List[str]) -> float:
+    def _check_go_dependencies(self, go_mod: Path, packages: list[str]) -> float:
         """Check if packages are in go.mod require statements."""
         try:
             content = go_mod.read_text()
@@ -328,7 +327,7 @@ class ProjectInspector:
             logger.debug(f"Error reading {go_mod}: {e}")
             return 0.0
 
-    def _detect_tools(self) -> Dict[str, float]:
+    def _detect_tools(self) -> dict[str, float]:
         """Detect development tools and infrastructure."""
         detected = {}
 
@@ -356,7 +355,7 @@ class ProjectInspector:
 
         return detected
 
-    def _detect_databases(self, languages: Dict[str, float]) -> Dict[str, float]:
+    def _detect_databases(self, languages: dict[str, float]) -> dict[str, float]:
         """Detect database usage from dependencies and env files."""
         detected = {}
 

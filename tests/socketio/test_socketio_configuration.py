@@ -303,8 +303,9 @@ class TestSocketIOConfiguration:
         manager = ConfigManager()
 
         # With no special indicators, should default to development
-        with patch("os.path.exists", return_value=False), patch.dict(
-            os.environ, {}, clear=True
+        with (
+            patch("os.path.exists", return_value=False),
+            patch.dict(os.environ, {}, clear=True),
         ):
             assert manager.detect_environment() == "development"
 

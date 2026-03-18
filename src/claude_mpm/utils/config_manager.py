@@ -7,7 +7,7 @@ configurations across different file formats (JSON, YAML, TOML).
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 # Handle optional imports
 try:
@@ -39,15 +39,15 @@ class ConfigurationManager:
             cache_enabled: Whether to enable configuration caching
         """
         self.cache_enabled = cache_enabled
-        self._cache: Dict[str, Any] = {}
+        self._cache: dict[str, Any] = {}
 
-    def _get_cache_key(self, file_path: Union[str, Path]) -> str:
+    def _get_cache_key(self, file_path: str | Path) -> str:
         """Generate a cache key for a configuration file."""
         path = Path(file_path)
         stat = path.stat()
         return f"{path.absolute()}:{stat.st_mtime}:{stat.st_size}"
 
-    def _check_cache(self, file_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    def _check_cache(self, file_path: str | Path) -> dict[str, Any] | None:
         """Check if configuration is cached and still valid."""
         if not self.cache_enabled:
             return None
@@ -58,7 +58,7 @@ class ConfigurationManager:
         except OSError:
             return None
 
-    def _update_cache(self, file_path: Union[str, Path], config: Dict[str, Any]):
+    def _update_cache(self, file_path: str | Path, config: dict[str, Any]):
         """Update the configuration cache."""
         if not self.cache_enabled:
             return
@@ -73,7 +73,7 @@ class ConfigurationManager:
         """Clear the configuration cache."""
         self._cache.clear()
 
-    def load_json(self, file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_json(self, file_path: str | Path) -> dict[str, Any]:
         """Load JSON configuration file.
 
         Args:
@@ -112,7 +112,7 @@ class ConfigurationManager:
             logger.error(f"Error loading JSON from {file_path}: {e}")
             raise
 
-    def load_yaml(self, file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_yaml(self, file_path: str | Path) -> dict[str, Any]:
         """Load YAML configuration file.
 
         Args:
@@ -157,7 +157,7 @@ class ConfigurationManager:
             logger.error(f"Error loading YAML from {file_path}: {e}")
             raise
 
-    def load_toml(self, file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_toml(self, file_path: str | Path) -> dict[str, Any]:
         """Load TOML configuration file.
 
         Args:
@@ -202,7 +202,7 @@ class ConfigurationManager:
             logger.error(f"Error loading TOML from {file_path}: {e}")
             raise
 
-    def load_auto(self, file_path: Union[str, Path]) -> Dict[str, Any]:
+    def load_auto(self, file_path: str | Path) -> dict[str, Any]:
         """Auto-detect format and load configuration file.
 
         Args:
@@ -228,8 +228,8 @@ class ConfigurationManager:
 
     def save_json(
         self,
-        config: Dict[str, Any],
-        file_path: Union[str, Path],
+        config: dict[str, Any],
+        file_path: str | Path,
         indent: int = 2,
         sort_keys: bool = True,
     ):
@@ -257,8 +257,8 @@ class ConfigurationManager:
 
     def save_yaml(
         self,
-        config: Dict[str, Any],
-        file_path: Union[str, Path],
+        config: dict[str, Any],
+        file_path: str | Path,
         default_flow_style: bool = False,
         sort_keys: bool = True,
     ):
@@ -297,7 +297,7 @@ class ConfigurationManager:
             logger.error(f"Error saving YAML to {file_path}: {e}")
             raise
 
-    def save_toml(self, config: Dict[str, Any], file_path: Union[str, Path]):
+    def save_toml(self, config: dict[str, Any], file_path: str | Path):
         """Save configuration as TOML.
 
         Args:
@@ -326,7 +326,7 @@ class ConfigurationManager:
             logger.error(f"Error saving TOML to {file_path}: {e}")
             raise
 
-    def merge_configs(self, *configs: Dict[str, Any]) -> Dict[str, Any]:
+    def merge_configs(self, *configs: dict[str, Any]) -> dict[str, Any]:
         """Merge multiple configurations.
 
         Later configurations override earlier ones. Nested dictionaries
@@ -345,7 +345,7 @@ class ConfigurationManager:
 
         return result
 
-    def _deep_merge(self, target: Dict[str, Any], source: Dict[str, Any]):
+    def _deep_merge(self, target: dict[str, Any], source: dict[str, Any]):
         """Deep merge source into target dictionary."""
         for key, value in source.items():
             if (
@@ -358,8 +358,8 @@ class ConfigurationManager:
                 target[key] = value
 
     def validate_schema(
-        self, config: Dict[str, Any], schema: Dict[str, Any]
-    ) -> List[str]:
+        self, config: dict[str, Any], schema: dict[str, Any]
+    ) -> list[str]:
         """Validate configuration against a schema.
 
         Args:
@@ -402,7 +402,7 @@ class ConfigurationManager:
 
     def get_with_default(
         self,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         key: str,
         default: Any = None,
         separator: str = ".",
@@ -435,8 +435,8 @@ class ConfigurationManager:
         return value
 
     def interpolate_env(
-        self, config: Dict[str, Any], pattern: str = "${%s}"
-    ) -> Dict[str, Any]:
+        self, config: dict[str, Any], pattern: str = "${%s}"
+    ) -> dict[str, Any]:
         """Interpolate environment variables in configuration.
 
         Args:
@@ -478,7 +478,7 @@ class ConfigurationManager:
 _default_manager = ConfigurationManager()
 
 
-def load_config(file_path: Union[str, Path]) -> Dict[str, Any]:
+def load_config(file_path: str | Path) -> dict[str, Any]:
     """Load configuration file with auto-detection.
 
     Args:
@@ -490,7 +490,7 @@ def load_config(file_path: Union[str, Path]) -> Dict[str, Any]:
     return _default_manager.load_auto(file_path)
 
 
-def save_config(config: Dict[str, Any], file_path: Union[str, Path]):
+def save_config(config: dict[str, Any], file_path: str | Path):
     """Save configuration file with auto-detection.
 
     Args:

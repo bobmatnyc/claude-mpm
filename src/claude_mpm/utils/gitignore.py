@@ -16,7 +16,6 @@ Trade-offs:
 """
 
 from pathlib import Path
-from typing import List, Set, Tuple
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -51,7 +50,7 @@ class GitIgnoreManager:
         self.project_dir = Path(project_dir)
         self.gitignore_path = self.project_dir / ".gitignore"
 
-    def ensure_entries(self, entries: List[str]) -> Tuple[List[str], List[str]]:
+    def ensure_entries(self, entries: list[str]) -> tuple[list[str], list[str]]:
         """Ensure specified entries exist in .gitignore.
 
         Non-destructive operation that:
@@ -90,7 +89,7 @@ class GitIgnoreManager:
 
         return to_add, already_present
 
-    def _read_existing_entries(self) -> Set[str]:
+    def _read_existing_entries(self) -> set[str]:
         """Read existing .gitignore entries.
 
         Parses .gitignore file and extracts all non-comment, non-blank patterns.
@@ -127,7 +126,7 @@ class GitIgnoreManager:
             logger.error(f"Error reading .gitignore: {e}")
             raise
 
-    def _append_entries(self, entries: List[str]) -> None:
+    def _append_entries(self, entries: list[str]) -> None:
         """Append entries to .gitignore with proper formatting.
 
         Handles formatting edge cases:

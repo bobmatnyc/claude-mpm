@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Memory Limits Service - Manages memory size limits and configuration."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
@@ -19,7 +19,7 @@ class MemoryLimitsService:
         "max_line_length": 120,
     }
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         """Initialize the memory limits service.
 
         Args:
@@ -29,7 +29,7 @@ class MemoryLimitsService:
         self.logger = logger  # Use the module-level logger
         self.memory_limits = self._init_memory_limits()
 
-    def _init_memory_limits(self) -> Dict[str, Any]:
+    def _init_memory_limits(self) -> dict[str, Any]:
         """Initialize memory limits from configuration.
 
         Returns:
@@ -51,7 +51,7 @@ class MemoryLimitsService:
             self.logger.warning(f"Failed to load memory limits from config: {e}")
             return self.DEFAULT_MEMORY_LIMITS.copy()
 
-    def get_agent_limits(self, agent_id: str) -> Dict[str, Any]:
+    def get_agent_limits(self, agent_id: str) -> dict[str, Any]:
         """Get memory limits for a specific agent.
 
         Args:

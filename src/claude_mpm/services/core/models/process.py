@@ -21,7 +21,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.enums import ServiceState
 
@@ -51,15 +51,15 @@ class DeploymentState:
 
     deployment_id: str
     process_id: int
-    command: List[str]
+    command: list[str]
     working_directory: str
-    environment: Dict[str, str] = field(default_factory=dict)
-    port: Optional[int] = None
+    environment: dict[str, str] = field(default_factory=dict)
+    port: int | None = None
     started_at: datetime = field(default_factory=datetime.now)
     status: ServiceState = ServiceState.STARTING
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -72,7 +72,7 @@ class DeploymentState:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DeploymentState":
+    def from_dict(cls, data: dict[str, Any]) -> "DeploymentState":
         """
         Create DeploymentState from dictionary.
 
@@ -146,14 +146,14 @@ class ProcessInfo:
     deployment_id: str
     process_id: int
     status: ServiceState
-    port: Optional[int] = None
+    port: int | None = None
     uptime_seconds: float = 0.0
     memory_mb: float = 0.0
     cpu_percent: float = 0.0
     is_responding: bool = False
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         data = asdict(self)
         data["status"] = self.status.value
@@ -178,13 +178,13 @@ class StartConfig:
         deployment_id: Optional explicit deployment ID (generated if not provided)
     """
 
-    command: List[str]
+    command: list[str]
     working_directory: str
-    environment: Dict[str, str] = field(default_factory=dict)
-    port: Optional[int] = None
+    environment: dict[str, str] = field(default_factory=dict)
+    port: int | None = None
     auto_find_port: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    deployment_id: Optional[str] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    deployment_id: str | None = None
 
     def __post_init__(self):
         """Validate configuration after initialization."""
@@ -202,7 +202,7 @@ class StartConfig:
             if not (1024 <= self.port <= 65535):
                 raise ValueError(f"Port must be between 1024-65535, got {self.port}")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 

@@ -17,9 +17,9 @@ DESIGN DECISIONS:
 
 import os
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
@@ -33,7 +33,7 @@ class IMemoryCRUDService(ABC):
     @abstractmethod
     def create_memory(
         self, agent_id: str, template_type: str = "default"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create new memory file for an agent.
 
@@ -46,7 +46,7 @@ class IMemoryCRUDService(ABC):
         """
 
     @abstractmethod
-    def read_memory(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+    def read_memory(self, agent_id: str | None = None) -> dict[str, Any]:
         """
         Read memory content for one or all agents.
 
@@ -60,7 +60,7 @@ class IMemoryCRUDService(ABC):
     @abstractmethod
     def update_memory(
         self, agent_id: str, section: str, content: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Add learning entry to agent memory.
 
@@ -74,7 +74,7 @@ class IMemoryCRUDService(ABC):
         """
 
     @abstractmethod
-    def delete_memory(self, agent_id: str, confirm: bool = False) -> Dict[str, Any]:
+    def delete_memory(self, agent_id: str, confirm: bool = False) -> dict[str, Any]:
         """
         Delete memory file for an agent.
 
@@ -87,7 +87,7 @@ class IMemoryCRUDService(ABC):
         """
 
     @abstractmethod
-    def list_memories(self, include_stats: bool = True) -> Dict[str, Any]:
+    def list_memories(self, include_stats: bool = True) -> dict[str, Any]:
         """
         List all memory files with optional statistics.
 
@@ -100,8 +100,8 @@ class IMemoryCRUDService(ABC):
 
     @abstractmethod
     def clean_memory(
-        self, agent_id: Optional[str] = None, dry_run: bool = True
-    ) -> Dict[str, Any]:
+        self, agent_id: str | None = None, dry_run: bool = True
+    ) -> dict[str, Any]:
         """
         Clean up memory files (remove old/unused).
 
@@ -114,7 +114,7 @@ class IMemoryCRUDService(ABC):
         """
 
     @abstractmethod
-    def init_project_memories(self) -> Dict[str, Any]:
+    def init_project_memories(self) -> dict[str, Any]:
         """
         Initialize project-specific memories task.
 
@@ -126,7 +126,7 @@ class IMemoryCRUDService(ABC):
 class MemoryCRUDService(IMemoryCRUDService):
     """Service for managing memory CRUD operations with robust error handling."""
 
-    def __init__(self, memory_manager: Optional[AgentMemoryManager] = None):
+    def __init__(self, memory_manager: AgentMemoryManager | None = None):
         """
         Initialize the memory CRUD service.
 
@@ -151,7 +151,7 @@ class MemoryCRUDService(IMemoryCRUDService):
 
     def create_memory(
         self, agent_id: str, template_type: str = "default"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create new memory file for an agent.
 
@@ -202,7 +202,7 @@ class MemoryCRUDService(IMemoryCRUDService):
             )
             return {"success": False, "error": str(e), "agent_id": agent_id}
 
-    def read_memory(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+    def read_memory(self, agent_id: str | None = None) -> dict[str, Any]:
         """
         Read memory content for one or all agents.
 
@@ -233,7 +233,7 @@ class MemoryCRUDService(IMemoryCRUDService):
                     file_stats = {
                         "size_kb": stat.st_size / 1024,
                         "modified": datetime.fromtimestamp(
-                            stat.st_mtime, tz=timezone.utc
+                            stat.st_mtime, tz=UTC
                         ).isoformat(),
                         "path": str(memory_file),
                     }
@@ -267,7 +267,7 @@ class MemoryCRUDService(IMemoryCRUDService):
                             "file_stats": {
                                 "size_kb": stat.st_size / 1024,
                                 "modified": datetime.fromtimestamp(
-                                    stat.st_mtime, tz=timezone.utc
+                                    stat.st_mtime, tz=UTC
                                 ).isoformat(),
                                 "path": str(memory_file),
                             },
@@ -289,7 +289,7 @@ class MemoryCRUDService(IMemoryCRUDService):
 
     def update_memory(
         self, agent_id: str, section: str, content: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Add learning entry to agent memory.
 
@@ -345,7 +345,7 @@ class MemoryCRUDService(IMemoryCRUDService):
                 "section": section,
             }
 
-    def delete_memory(self, agent_id: str, confirm: bool = False) -> Dict[str, Any]:
+    def delete_memory(self, agent_id: str, confirm: bool = False) -> dict[str, Any]:
         """
         Delete memory file for an agent.
 
@@ -407,7 +407,7 @@ class MemoryCRUDService(IMemoryCRUDService):
             )
             return {"success": False, "error": str(e), "agent_id": agent_id}
 
-    def list_memories(self, include_stats: bool = True) -> Dict[str, Any]:
+    def list_memories(self, include_stats: bool = True) -> dict[str, Any]:
         """
         List all memory files with optional statistics.
 
@@ -446,10 +446,10 @@ class MemoryCRUDService(IMemoryCRUDService):
                         {
                             "size_kb": stat.st_size / 1024,
                             "modified": datetime.fromtimestamp(
-                                stat.st_mtime, tz=timezone.utc
+                                stat.st_mtime, tz=UTC
                             ).isoformat(),
                             "created": datetime.fromtimestamp(
-                                stat.st_ctime, tz=timezone.utc
+                                stat.st_ctime, tz=UTC
                             ).isoformat(),
                         }
                     )
@@ -471,8 +471,8 @@ class MemoryCRUDService(IMemoryCRUDService):
             return {"success": False, "error": str(e)}
 
     def clean_memory(
-        self, agent_id: Optional[str] = None, dry_run: bool = True
-    ) -> Dict[str, Any]:
+        self, agent_id: str | None = None, dry_run: bool = True
+    ) -> dict[str, Any]:
         """
         Clean up memory files (remove old/unused).
 
@@ -515,8 +515,7 @@ class MemoryCRUDService(IMemoryCRUDService):
 
                 stat = memory_file.stat()
                 age_days = (
-                    datetime.now(timezone.utc)
-                    - datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+                    datetime.now(UTC) - datetime.fromtimestamp(stat.st_mtime, tz=UTC)
                 ).days
 
                 # Identify files older than 30 days as candidates
@@ -553,7 +552,7 @@ class MemoryCRUDService(IMemoryCRUDService):
             self.logger.error(f"Error cleaning memory: {e}", exc_info=True)
             return {"success": False, "error": str(e), "agent_id": agent_id}
 
-    def init_project_memories(self) -> Dict[str, Any]:
+    def init_project_memories(self) -> dict[str, Any]:
         """
         Initialize project-specific memories task.
 
@@ -605,7 +604,7 @@ class MemoryCRUDService(IMemoryCRUDService):
             return {"success": False, "error": str(e)}
 
     # Helper methods
-    def _get_memory_files(self, memory_dir: Path) -> List[Path]:
+    def _get_memory_files(self, memory_dir: Path) -> list[Path]:
         """Get all memory files supporting various formats."""
         memory_files = []
 

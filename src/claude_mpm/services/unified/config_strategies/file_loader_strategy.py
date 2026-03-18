@@ -9,10 +9,11 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -40,10 +41,10 @@ class FileLoadContext:
     encoding: str = "utf-8"
     strict: bool = True
     interpolate: bool = False
-    includes: List[str] = None
-    excludes: List[str] = None
-    transformations: List[Callable] = None
-    fallback_paths: List[Path] = None
+    includes: list[str] = None
+    excludes: list[str] = None
+    transformations: list[Callable] = None
+    fallback_paths: list[Path] = None
 
 
 class BaseFileLoader(ABC):
@@ -61,7 +62,7 @@ class BaseFileLoader(ABC):
         self._cache = {}
 
     @abstractmethod
-    def load(self, context: FileLoadContext) -> Dict[str, Any]:
+    def load(self, context: FileLoadContext) -> dict[str, Any]:
         """Load configuration from file"""
 
     @abstractmethod
@@ -91,8 +92,8 @@ class BaseFileLoader(ABC):
             raise
 
     def _apply_transformations(
-        self, config: Dict[str, Any], transformations: List[Callable]
-    ) -> Dict[str, Any]:
+        self, config: dict[str, Any], transformations: list[Callable]
+    ) -> dict[str, Any]:
         """Apply transformation pipeline"""
         if not transformations:
             return config
@@ -122,7 +123,7 @@ class StructuredFileLoader(BaseFileLoader):
         """
         return format in [ConfigFormat.JSON, ConfigFormat.YAML, ConfigFormat.TOML]
 
-    def load(self, context: FileLoadContext) -> Dict[str, Any]:
+    def load(self, context: FileLoadContext) -> dict[str, Any]:
         """Load structured configuration files"""
         if context.path in self._cache:
             self.logger.debug(f"Using cached config: {context.path}")
@@ -156,7 +157,7 @@ class StructuredFileLoader(BaseFileLoader):
 
         return config
 
-    def _load_json(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_json(self, content: str, context: FileLoadContext) -> dict[str, Any]:
         """Load JSON with comments support"""
         # Remove comments if present
         if "//" in content or "/*" in content:
@@ -170,7 +171,7 @@ class StructuredFileLoader(BaseFileLoader):
             self.logger.warning(f"JSON parse error, attempting recovery: {e}")
             return self._recover_json(content)
 
-    def _load_yaml(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_yaml(self, content: str, context: FileLoadContext) -> dict[str, Any]:
         """Load YAML with advanced features"""
         try:
             # Support multiple documents
@@ -191,7 +192,7 @@ class StructuredFileLoader(BaseFileLoader):
             self.logger.warning(f"YAML parse error: {e}")
             return {}
 
-    def _load_toml(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_toml(self, content: str, context: FileLoadContext) -> dict[str, Any]:
         """Load TOML configuration"""
         try:
             import toml
@@ -218,7 +219,7 @@ class StructuredFileLoader(BaseFileLoader):
         # Remove multi-line comments
         return re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
 
-    def _recover_json(self, content: str) -> Dict[str, Any]:
+    def _recover_json(self, content: str) -> dict[str, Any]:
         """Attempt to recover from malformed JSON"""
         # Try to fix common issues
         content = content.replace("'", '"')  # Single to double quotes
@@ -231,8 +232,8 @@ class StructuredFileLoader(BaseFileLoader):
             return {}
 
     def _process_includes(
-        self, config: Dict[str, Any], context: FileLoadContext
-    ) -> Dict[str, Any]:
+        self, config: dict[str, Any], context: FileLoadContext
+    ) -> dict[str, Any]:
         """Process include directives"""
         for include_key in context.includes:
             if include_key in config:
@@ -258,14 +259,14 @@ class StructuredFileLoader(BaseFileLoader):
         return config
 
     def _process_excludes(
-        self, config: Dict[str, Any], context: FileLoadContext
-    ) -> Dict[str, Any]:
+        self, config: dict[str, Any], context: FileLoadContext
+    ) -> dict[str, Any]:
         """Process exclude patterns"""
         for pattern in context.excludes:
             config = self._exclude_keys(config, pattern)
         return config
 
-    def _exclude_keys(self, config: Dict[str, Any], pattern: str) -> Dict[str, Any]:
+    def _exclude_keys(self, config: dict[str, Any], pattern: str) -> dict[str, Any]:
         """Exclude keys matching pattern"""
         if "*" in pattern or "?" in pattern:
             # Glob pattern
@@ -277,8 +278,8 @@ class StructuredFileLoader(BaseFileLoader):
         return config
 
     def _merge_configs(
-        self, base: Dict[str, Any], override: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, base: dict[str, Any], override: dict[str, Any]
+    ) -> dict[str, Any]:
         """Deep merge configurations"""
         result = base.copy()
 
@@ -329,7 +330,7 @@ class EnvironmentFileLoader(BaseFileLoader):
         """
         return format == ConfigFormat.ENV
 
-    def load(self, context: FileLoadContext) -> Dict[str, Any]:
+    def load(self, context: FileLoadContext) -> dict[str, Any]:
         """Load environment configuration"""
         config = {}
 
@@ -350,7 +351,7 @@ class EnvironmentFileLoader(BaseFileLoader):
 
         return config
 
-    def _load_env_file(self, path: Path, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_env_file(self, path: Path, context: FileLoadContext) -> dict[str, Any]:
         """Load .env file format"""
         config = {}
         content = self._read_file(path, context.encoding)
@@ -379,7 +380,7 @@ class EnvironmentFileLoader(BaseFileLoader):
 
         return config
 
-    def _load_env_vars(self, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_env_vars(self, context: FileLoadContext) -> dict[str, Any]:
         """Load from environment variables"""
         config = {}
         prefix = context.path.stem.upper() if context.path else ""
@@ -445,7 +446,7 @@ class EnvironmentFileLoader(BaseFileLoader):
 
         return value
 
-    def _interpolate_variables(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _interpolate_variables(self, config: dict[str, Any]) -> dict[str, Any]:
         """Interpolate variables in configuration values"""
 
         def interpolate_value(value: Any) -> Any:
@@ -508,7 +509,7 @@ class ProgrammaticFileLoader(BaseFileLoader):
         """
         return format == ConfigFormat.PYTHON
 
-    def load(self, context: FileLoadContext) -> Dict[str, Any]:
+    def load(self, context: FileLoadContext) -> dict[str, Any]:
         """Load Python module as configuration"""
         if not context.path.exists():
             raise FileNotFoundError(f"Python config not found: {context.path}")
@@ -530,7 +531,7 @@ class ProgrammaticFileLoader(BaseFileLoader):
 
         return config
 
-    def _extract_config(self, module: Any, context: FileLoadContext) -> Dict[str, Any]:
+    def _extract_config(self, module: Any, context: FileLoadContext) -> dict[str, Any]:
         """Extract configuration from Python module"""
         config = {}
 
@@ -578,7 +579,7 @@ class LegacyFileLoader(BaseFileLoader):
         """
         return format == ConfigFormat.INI
 
-    def load(self, context: FileLoadContext) -> Dict[str, Any]:
+    def load(self, context: FileLoadContext) -> dict[str, Any]:
         """Load legacy configuration formats"""
         content = self._read_file(context.path, context.encoding)
 
@@ -599,7 +600,7 @@ class LegacyFileLoader(BaseFileLoader):
         # Properties files don't have sections
         return not any(line.strip().startswith("[") for line in content.splitlines())
 
-    def _load_ini(self, content: str, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_ini(self, content: str, context: FileLoadContext) -> dict[str, Any]:
         """Load INI format configuration"""
         parser = configparser.ConfigParser(
             interpolation=(
@@ -638,7 +639,7 @@ class LegacyFileLoader(BaseFileLoader):
 
     def _load_properties(
         self, content: str, context: FileLoadContext
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Load Java properties format"""
         config = {}
 
@@ -718,7 +719,7 @@ class LegacyFileLoader(BaseFileLoader):
 
         return value
 
-    def _set_nested_value(self, config: Dict[str, Any], key: str, value: Any):
+    def _set_nested_value(self, config: dict[str, Any], key: str, value: Any):
         """Set value in nested dict structure based on dot notation"""
         parts = key.split(".")
         current = config
@@ -760,7 +761,7 @@ class CompositeFileLoader(BaseFileLoader):
         """Composite loader supports all formats"""
         return True
 
-    def load(self, context: FileLoadContext) -> Dict[str, Any]:
+    def load(self, context: FileLoadContext) -> dict[str, Any]:
         """Load configuration from multiple sources"""
         configs = []
 
@@ -799,7 +800,7 @@ class CompositeFileLoader(BaseFileLoader):
 
         return result
 
-    def _load_directory(self, context: FileLoadContext) -> List[Dict[str, Any]]:
+    def _load_directory(self, context: FileLoadContext) -> list[dict[str, Any]]:
         """Load all config files from directory"""
         configs = []
 
@@ -824,7 +825,7 @@ class CompositeFileLoader(BaseFileLoader):
 
         return configs
 
-    def _load_single(self, context: FileLoadContext) -> Dict[str, Any]:
+    def _load_single(self, context: FileLoadContext) -> dict[str, Any]:
         """Load single configuration file"""
         # Find appropriate loader
         for _loader_type, loader in self.loaders.items():
@@ -853,8 +854,8 @@ class CompositeFileLoader(BaseFileLoader):
         return format_map.get(suffix, ConfigFormat.JSON)
 
     def _deep_merge(
-        self, base: Dict[str, Any], override: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, base: dict[str, Any], override: dict[str, Any]
+    ) -> dict[str, Any]:
         """Deep merge two configurations"""
         result = base.copy()
 
@@ -890,7 +891,7 @@ class FileLoaderStrategy(IConfigStrategy):
         self.logger = get_logger(self.__class__.__name__)
         self.composite_loader = CompositeFileLoader()
 
-    def can_handle(self, source: Union[str, Path, Dict]) -> bool:
+    def can_handle(self, source: str | Path | dict) -> bool:
         """Check if source is a file or directory"""
         if isinstance(source, dict):
             return False
@@ -898,7 +899,7 @@ class FileLoaderStrategy(IConfigStrategy):
         path = Path(source)
         return path.exists() or path.parent.exists()
 
-    def load(self, source: Any, **kwargs) -> Dict[str, Any]:
+    def load(self, source: Any, **kwargs) -> dict[str, Any]:
         """Load configuration from file source"""
         path = Path(source)
 
@@ -917,12 +918,12 @@ class FileLoaderStrategy(IConfigStrategy):
 
         return self.composite_loader.load(context)
 
-    def validate(self, config: Dict[str, Any], schema: Optional[Dict] = None) -> bool:
+    def validate(self, config: dict[str, Any], schema: dict | None = None) -> bool:
         """Validate loaded configuration"""
         # Basic validation - can be extended
         return config is not None and isinstance(config, dict)
 
-    def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(self, config: dict[str, Any]) -> dict[str, Any]:
         """Transform configuration to standard format"""
         # Apply standard transformations
         return self._normalize_config(config)
@@ -931,7 +932,7 @@ class FileLoaderStrategy(IConfigStrategy):
         """Detect configuration format"""
         return self.composite_loader._detect_format(path)
 
-    def _normalize_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """Normalize configuration structure"""
         # Convert all keys to lowercase
         normalized = {}

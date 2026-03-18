@@ -14,9 +14,9 @@ This module provides comprehensive branch strategy management including:
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.unified_paths import get_path_manager
 
@@ -50,8 +50,8 @@ class BranchNamingRule:
     branch_type: BranchType
     prefix: str
     pattern: str
-    required_fields: List[str] = field(default_factory=list)
-    max_length: Optional[int] = None
+    required_fields: list[str] = field(default_factory=list)
+    max_length: int | None = None
     description: str = ""
 
 
@@ -61,12 +61,12 @@ class BranchLifecycleRule:
 
     branch_type: BranchType
     auto_create: bool = False
-    auto_merge_target: Optional[str] = None
+    auto_merge_target: str | None = None
     auto_merge_strategy: str = "merge"
     auto_delete_after_merge: bool = False
     requires_qa_approval: bool = False
     requires_review: bool = False
-    merge_message_template: Optional[str] = None
+    merge_message_template: str | None = None
 
 
 @dataclass
@@ -75,11 +75,11 @@ class BranchWorkflow:
 
     strategy_type: BranchStrategyType
     main_branch: str
-    development_branch: Optional[str] = None
-    naming_rules: List[BranchNamingRule] = field(default_factory=list)
-    lifecycle_rules: List[BranchLifecycleRule] = field(default_factory=list)
-    merge_targets: Dict[str, str] = field(default_factory=dict)
-    quality_gates: List[str] = field(default_factory=list)
+    development_branch: str | None = None
+    naming_rules: list[BranchNamingRule] = field(default_factory=list)
+    lifecycle_rules: list[BranchLifecycleRule] = field(default_factory=list)
+    merge_targets: dict[str, str] = field(default_factory=dict)
+    quality_gates: list[str] = field(default_factory=list)
 
 
 class BranchStrategyManager:
@@ -109,7 +109,7 @@ class BranchStrategyManager:
         }
 
         # Current strategy
-        self.current_strategy: Optional[BranchWorkflow] = None
+        self.current_strategy: BranchWorkflow | None = None
 
         # Load strategy from configuration
         self._load_strategy_configuration()
@@ -332,7 +332,7 @@ class BranchStrategyManager:
         self.current_strategy = self.strategies[BranchStrategyType.ISSUE_DRIVEN]
         self.logger.info("Using default issue-driven branch strategy")
 
-    def _parse_strategy_config(self, config_path: Path) -> Optional[BranchWorkflow]:
+    def _parse_strategy_config(self, config_path: Path) -> BranchWorkflow | None:
         """Parse strategy configuration from file."""
         # This would implement parsing logic for different config file formats
         # For now, return None to use defaults
@@ -364,8 +364,8 @@ class BranchStrategyManager:
     def generate_branch_name(
         self,
         branch_type: BranchType,
-        ticket_id: Optional[str] = None,
-        description: Optional[str] = None,
+        ticket_id: str | None = None,
+        description: str | None = None,
         **kwargs,
     ) -> str:
         """
@@ -396,7 +396,7 @@ class BranchStrategyManager:
                 return f"{prefix}{ticket_id}"
             if description:
                 return f"{prefix}{self._sanitize_branch_name(description)}"
-            return f"{prefix}{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+            return f"{prefix}{datetime.now(UTC).strftime('%Y%m%d')}"
 
         # Generate name based on rule
         if strategy.strategy_type == BranchStrategyType.ISSUE_DRIVEN:
@@ -421,7 +421,7 @@ class BranchStrategyManager:
         # Limit length
         return sanitized[:50]
 
-    def validate_branch_name(self, branch_name: str) -> Tuple[bool, str]:
+    def validate_branch_name(self, branch_name: str) -> tuple[bool, str]:
         """
         Validate a branch name against current strategy rules.
 
@@ -459,7 +459,7 @@ class BranchStrategyManager:
 
         return True, "Valid branch name"
 
-    def get_merge_target(self, branch_name: str) -> Optional[str]:
+    def get_merge_target(self, branch_name: str) -> str | None:
         """
         Get the merge target for a branch based on current strategy.
 
@@ -479,7 +479,7 @@ class BranchStrategyManager:
         # Default to main branch
         return strategy.main_branch
 
-    def get_lifecycle_rule(self, branch_name: str) -> Optional[BranchLifecycleRule]:
+    def get_lifecycle_rule(self, branch_name: str) -> BranchLifecycleRule | None:
         """
         Get the lifecycle rule for a branch.
 
@@ -579,7 +579,7 @@ class BranchStrategyManager:
         return rule.auto_merge_strategy if rule else "merge"
 
     def generate_merge_message(
-        self, branch_name: str, ticket_title: Optional[str] = None, **kwargs
+        self, branch_name: str, ticket_title: str | None = None, **kwargs
     ) -> str:
         """
         Generate merge commit message based on strategy.
@@ -614,13 +614,13 @@ class BranchStrategyManager:
             return f"Merge {branch_name}: {ticket_title}"
         return f"Merge {branch_name}"
 
-    def get_quality_gates(self) -> List[str]:
+    def get_quality_gates(self) -> list[str]:
         """Get quality gates for the current strategy."""
         strategy = self.get_current_strategy()
         return strategy.quality_gates
 
     def create_custom_strategy(
-        self, name: str, config: Dict[str, Any]
+        self, name: str, config: dict[str, Any]
     ) -> BranchWorkflow:
         """
         Create a custom branch strategy.
@@ -643,7 +643,7 @@ class BranchStrategyManager:
             quality_gates=[],
         )
 
-    def export_strategy_config(self) -> Dict[str, Any]:
+    def export_strategy_config(self) -> dict[str, Any]:
         """Export current strategy as configuration."""
         strategy = self.get_current_strategy()
 

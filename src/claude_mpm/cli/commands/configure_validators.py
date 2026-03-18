@@ -7,10 +7,9 @@ DESIGN: Pure validation functions without side effects.
 """
 
 from argparse import Namespace
-from typing import List, Optional
 
 
-def validate_args(args: Namespace) -> Optional[str]:
+def validate_args(args: Namespace) -> str | None:
     """Validate command arguments.
 
     Args:
@@ -42,7 +41,7 @@ def validate_args(args: Namespace) -> Optional[str]:
     return None
 
 
-def parse_id_selection(selection: str, max_id: int) -> List[int]:
+def parse_id_selection(selection: str, max_id: int) -> list[int]:
     """Parse ID selection string (e.g., '1,3,5' or '1-4').
 
     Args:

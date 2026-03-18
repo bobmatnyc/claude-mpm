@@ -20,7 +20,6 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 from ...core.logging_config import get_logger
 from ..hook_installer_service import HookInstallerService
@@ -42,8 +41,8 @@ class UnifiedMonitorDaemon:
         host: str = "localhost",
         port: int = 8765,
         daemon_mode: bool = False,
-        pid_file: Optional[str] = None,
-        log_file: Optional[str] = None,
+        pid_file: str | None = None,
+        log_file: str | None = None,
         enable_hot_reload: bool = False,
     ):
         """Initialize the unified monitor daemon.

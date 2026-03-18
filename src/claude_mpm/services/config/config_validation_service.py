@@ -17,7 +17,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 import yaml
@@ -37,7 +37,7 @@ class ValidationIssue:
     message: str
     suggestion: str
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "severity": self.severity,
             "category": self.category,
@@ -52,9 +52,9 @@ class ValidationResult:
     """Aggregated validation result."""
 
     valid: bool
-    issues: List[ValidationIssue] = field(default_factory=list)
+    issues: list[ValidationIssue] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         errors = sum(1 for i in self.issues if i.severity == "error")
         warnings = sum(1 for i in self.issues if i.severity == "warning")
         info = sum(1 for i in self.issues if i.severity == "info")
@@ -83,12 +83,12 @@ class ConfigValidationService:
     """
 
     def __init__(self) -> None:
-        self._cache: Optional[Dict[str, Any]] = None
+        self._cache: dict[str, Any] | None = None
         self._cache_time: float = 0.0
 
     def validate(self) -> ValidationResult:
         """Run all validation checks and return aggregated results."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
 
         issues.extend(self._validate_deployed_agents())
         issues.extend(self._validate_agent_sources())
@@ -100,7 +100,7 @@ class ConfigValidationService:
         has_errors = any(i.severity == "error" for i in issues)
         return ValidationResult(valid=not has_errors, issues=issues)
 
-    def validate_cached(self) -> Dict[str, Any]:
+    def validate_cached(self) -> dict[str, Any]:
         """Return cached validation results (60s TTL).
 
         Returns:
@@ -122,9 +122,9 @@ class ConfigValidationService:
 
     # --- Individual Validators ---
 
-    def _validate_deployed_agents(self) -> List[ValidationIssue]:
+    def _validate_deployed_agents(self) -> list[ValidationIssue]:
         """Check deployed agents for proper configuration."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
         agents_dir = Path.cwd() / ".claude" / "agents"
 
         if not agents_dir.exists():
@@ -235,9 +235,9 @@ class ConfigValidationService:
 
         return issues
 
-    def _validate_agent_sources(self) -> List[ValidationIssue]:
+    def _validate_agent_sources(self) -> list[ValidationIssue]:
         """Validate agent source repository configurations."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
 
         try:
             from claude_mpm.config.agent_sources import AgentSourceConfiguration
@@ -299,9 +299,9 @@ class ConfigValidationService:
 
         return issues
 
-    def _validate_skill_sources(self) -> List[ValidationIssue]:
+    def _validate_skill_sources(self) -> list[ValidationIssue]:
         """Validate skill source configurations."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
 
         try:
             from claude_mpm.config.skill_sources import SkillSourceConfiguration
@@ -364,12 +364,12 @@ class ConfigValidationService:
 
         return issues
 
-    def _validate_deployed_skills(self) -> List[ValidationIssue]:
+    def _validate_deployed_skills(self) -> list[ValidationIssue]:
         """Check deployed skills for orphans (not referenced by any agent)."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
 
         # Get deployed skills
-        deployed_skills: List[str] = []
+        deployed_skills: list[str] = []
         try:
             from claude_mpm.services.skills_deployer import SkillsDeployerService
 
@@ -415,9 +415,9 @@ class ConfigValidationService:
 
         return issues
 
-    def _validate_env_overrides(self) -> List[ValidationIssue]:
+    def _validate_env_overrides(self) -> list[ValidationIssue]:
         """Flag CLAUDE_MPM_ environment variables that override config values."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
         prefix = "CLAUDE_MPM_"
 
         for key, value in os.environ.items():
@@ -486,9 +486,9 @@ class ConfigValidationService:
 
         return False
 
-    def _validate_cross_references(self) -> List[ValidationIssue]:
+    def _validate_cross_references(self) -> list[ValidationIssue]:
         """Check for skills referenced by agents but not deployed."""
-        issues: List[ValidationIssue] = []
+        issues: list[ValidationIssue] = []
 
         agents_dir = Path.cwd() / ".claude" / "agents"
         if not agents_dir.exists():

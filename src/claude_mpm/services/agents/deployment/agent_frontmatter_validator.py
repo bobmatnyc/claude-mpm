@@ -7,7 +7,7 @@ Extracted from AgentDeploymentService to reduce complexity and improve maintaina
 import contextlib
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 class AgentFrontmatterValidator:
@@ -17,7 +17,7 @@ class AgentFrontmatterValidator:
         """Initialize the validator with a logger."""
         self.logger = logger
 
-    def validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
+    def validate_and_repair_existing_agents(self, agents_dir: Path) -> dict[str, Any]:
         """
         Validate and repair broken frontmatter in existing agent files.
 

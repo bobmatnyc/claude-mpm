@@ -1,7 +1,7 @@
 """Validation result classes for deployment validation."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.enums import ValidationSeverity
 
@@ -12,10 +12,10 @@ class ValidationIssue:
 
     severity: ValidationSeverity
     message: str
-    field_name: Optional[str] = None
-    line_number: Optional[int] = None
-    suggestion: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    field_name: str | None = None
+    line_number: int | None = None
+    suggestion: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
         """String representation of the issue."""
@@ -37,11 +37,11 @@ class ValidationResult:
     """Result of a validation operation."""
 
     is_valid: bool
-    issues: List[ValidationIssue] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    issues: list[ValidationIssue] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def errors(self) -> List[ValidationIssue]:
+    def errors(self) -> list[ValidationIssue]:
         """Get all error-level issues."""
         return [
             issue
@@ -50,7 +50,7 @@ class ValidationResult:
         ]
 
     @property
-    def warnings(self) -> List[ValidationIssue]:
+    def warnings(self) -> list[ValidationIssue]:
         """Get all warning-level issues."""
         return [
             issue
@@ -59,7 +59,7 @@ class ValidationResult:
         ]
 
     @property
-    def infos(self) -> List[ValidationIssue]:
+    def infos(self) -> list[ValidationIssue]:
         """Get all info-level issues."""
         return [
             issue for issue in self.issues if issue.severity == ValidationSeverity.INFO
@@ -88,9 +88,9 @@ class ValidationResult:
     def add_error(
         self,
         message: str,
-        field_name: Optional[str] = None,
-        line_number: Optional[int] = None,
-        suggestion: Optional[str] = None,
+        field_name: str | None = None,
+        line_number: int | None = None,
+        suggestion: str | None = None,
     ) -> None:
         """Add an error to the validation result.
 
@@ -114,9 +114,9 @@ class ValidationResult:
     def add_warning(
         self,
         message: str,
-        field_name: Optional[str] = None,
-        line_number: Optional[int] = None,
-        suggestion: Optional[str] = None,
+        field_name: str | None = None,
+        line_number: int | None = None,
+        suggestion: str | None = None,
     ) -> None:
         """Add a warning to the validation result.
 
@@ -139,8 +139,8 @@ class ValidationResult:
     def add_info(
         self,
         message: str,
-        field_name: Optional[str] = None,
-        line_number: Optional[int] = None,
+        field_name: str | None = None,
+        line_number: int | None = None,
     ) -> None:
         """Add an info message to the validation result.
 
@@ -173,7 +173,7 @@ class ValidationResult:
             metadata={**self.metadata, **other.metadata},
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert validation result to dictionary.
 
         Returns:

@@ -55,8 +55,9 @@ class TestUnifiedPathManager:
         env_without_user_pwd = {
             k: v for k, v in os.environ.items() if k != "CLAUDE_MPM_USER_PWD"
         }
-        with patch("pathlib.Path.cwd", return_value=subdir), patch.dict(
-            "os.environ", env_without_user_pwd, clear=True
+        with (
+            patch("pathlib.Path.cwd", return_value=subdir),
+            patch.dict("os.environ", env_without_user_pwd, clear=True),
         ):
             get_path_manager().clear_cache()
             root = get_path_manager().project_root
@@ -75,8 +76,9 @@ class TestUnifiedPathManager:
         env_without_user_pwd = {
             k: v for k, v in os.environ.items() if k != "CLAUDE_MPM_USER_PWD"
         }
-        with patch("pathlib.Path.cwd", return_value=subdir), patch.dict(
-            "os.environ", env_without_user_pwd, clear=True
+        with (
+            patch("pathlib.Path.cwd", return_value=subdir),
+            patch.dict("os.environ", env_without_user_pwd, clear=True),
         ):
             get_path_manager().clear_cache()
             root = get_path_manager().project_root
@@ -89,8 +91,9 @@ class TestUnifiedPathManager:
         env_without_user_pwd = {
             k: v for k, v in os.environ.items() if k != "CLAUDE_MPM_USER_PWD"
         }
-        with patch("pathlib.Path.cwd", return_value=tmp_path), patch.dict(
-            "os.environ", env_without_user_pwd, clear=True
+        with (
+            patch("pathlib.Path.cwd", return_value=tmp_path),
+            patch.dict("os.environ", env_without_user_pwd, clear=True),
         ):
             get_path_manager().clear_cache()
             root = get_path_manager().project_root

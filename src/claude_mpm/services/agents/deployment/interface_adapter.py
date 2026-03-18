@@ -1,7 +1,7 @@
 """Interface adapter for AgentDeploymentService compliance."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.interfaces import AgentDeploymentInterface
@@ -27,7 +27,7 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
 
     def deploy_agents(
         self, force: bool = False, include_all: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy agents to target environment.
 
         This method adapts the interface signature to the actual implementation.
@@ -89,7 +89,7 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
                 "adapter_used": True,
             }
 
-    def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
+    def validate_agent(self, agent_path: Path) -> tuple[bool, list[str]]:
         """Validate agent configuration and structure.
 
         Args:
@@ -183,7 +183,7 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
             self.logger.error(f"Basic cleanup failed: {e}", exc_info=True)
             return False
 
-    def get_deployment_status(self) -> Dict[str, Any]:
+    def get_deployment_status(self) -> dict[str, Any]:
         """Get current deployment status and metrics.
 
         Returns:

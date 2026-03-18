@@ -21,7 +21,6 @@ REFACTORING NOTE: The original 961-line create_parser function has been split in
 
 import argparse
 import sys
-from typing import List, Optional
 
 # Try to import from the new modular structure with helpful error handling
 try:
@@ -83,7 +82,7 @@ Please reinstall using one of the methods shown above.
     def add_common_arguments(parser: argparse.ArgumentParser) -> None:
         """Emergency fallback - no common arguments available."""
 
-    def preprocess_args(args: Optional[List[str]] = None) -> List[str]:
+    def preprocess_args(args: list[str] | None = None) -> list[str]:
         """Emergency fallback - return args unchanged."""
         return args if args is not None else sys.argv[1:]
 

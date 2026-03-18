@@ -22,8 +22,9 @@ class TestVersionService:
 
     def test_get_version_with_package_import(self, service):
         """Test version retrieval via package import."""
-        with patch("claude_mpm.__version__", "1.2.3"), patch.object(
-            service, "_get_build_number", return_value=None
+        with (
+            patch("claude_mpm.__version__", "1.2.3"),
+            patch.object(service, "_get_build_number", return_value=None),
         ):
             version = service.get_version()
             assert version == "v1.2.3"
@@ -92,16 +93,18 @@ class TestVersionService:
 
     def test_get_pep440_version_with_build(self, service):
         """Test PEP 440 version format with build number."""
-        with patch("claude_mpm.__version__", "1.2.3"), patch.object(
-            service, "get_build_number", return_value=456
+        with (
+            patch("claude_mpm.__version__", "1.2.3"),
+            patch.object(service, "get_build_number", return_value=456),
         ):
             pep440_version = service.get_pep440_version()
             assert pep440_version == "1.2.3+build.456"
 
     def test_get_pep440_version_without_build(self, service):
         """Test PEP 440 version format without build number."""
-        with patch("claude_mpm.__version__", "1.2.3"), patch.object(
-            service, "get_build_number", return_value=None
+        with (
+            patch("claude_mpm.__version__", "1.2.3"),
+            patch.object(service, "get_build_number", return_value=None),
         ):
             pep440_version = service.get_pep440_version()
             assert pep440_version == "1.2.3"
@@ -118,9 +121,10 @@ class TestVersionService:
 
     def test_version_with_build_file(self, service):
         """Test complete version flow with build file."""
-        with patch("claude_mpm.__version__", "1.2.3"), patch(
-            "claude_mpm.config.paths.paths"
-        ) as mock_paths:
+        with (
+            patch("claude_mpm.__version__", "1.2.3"),
+            patch("claude_mpm.config.paths.paths") as mock_paths,
+        ):
             # Mock build file
             mock_build_file = Mock()
             mock_build_file.exists.return_value = True
@@ -380,13 +384,14 @@ class TestVersionService:
             name="test-skill", version="0.1.0", description="Test", source="bundled"
         )
 
-        with patch(
-            "claude_mpm.core.unified_agent_registry.get_agent_registry"
-        ) as mock_agent_registry, patch(
-            "claude_mpm.skills.registry.get_registry"
-        ) as mock_skill_registry, patch.object(
-            service, "get_base_version", return_value="4.16.3"
-        ), patch.object(service, "get_build_number", return_value=481):
+        with (
+            patch(
+                "claude_mpm.core.unified_agent_registry.get_agent_registry"
+            ) as mock_agent_registry,
+            patch("claude_mpm.skills.registry.get_registry") as mock_skill_registry,
+            patch.object(service, "get_base_version", return_value="4.16.3"),
+            patch.object(service, "get_build_number", return_value=481),
+        ):
             mock_agent_registry.return_value.list_agents.return_value = [mock_agent]
             mock_skill_registry.return_value.list_skills.return_value = [mock_skill]
 
@@ -415,13 +420,14 @@ class TestVersionService:
             for i, source in enumerate(["bundled", "bundled", "bundled", "user"])
         ]
 
-        with patch(
-            "claude_mpm.core.unified_agent_registry.get_agent_registry"
-        ) as mock_agent_registry, patch(
-            "claude_mpm.skills.registry.get_registry"
-        ) as mock_skill_registry, patch.object(
-            service, "get_base_version", return_value="4.16.3"
-        ), patch.object(service, "get_build_number", return_value=481):
+        with (
+            patch(
+                "claude_mpm.core.unified_agent_registry.get_agent_registry"
+            ) as mock_agent_registry,
+            patch("claude_mpm.skills.registry.get_registry") as mock_skill_registry,
+            patch.object(service, "get_base_version", return_value="4.16.3"),
+            patch.object(service, "get_build_number", return_value=481),
+        ):
             mock_agent_registry.return_value.list_agents.return_value = agents
             mock_skill_registry.return_value.list_skills.return_value = skills
 

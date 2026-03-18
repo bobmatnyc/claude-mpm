@@ -10,7 +10,7 @@ import json as json_module
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 from aiohttp import web
@@ -26,7 +26,7 @@ from claude_mpm.services.monitor.pagination import (
 logger = logging.getLogger(__name__)
 
 # Lazy-initialized service singletons (per-process, not per-request)
-_agent_managers: Dict[str, Any] = {}
+_agent_managers: dict[str, Any] = {}
 _git_source_manager = None
 _skills_deployer_service = None
 _skill_to_agent_mapper = None
@@ -205,7 +205,7 @@ def _build_manifest_lookup(skills_svc) -> dict:
     return manifest_lookup
 
 
-def _find_manifest_entry(skill_name: str, manifest_lookup: dict) -> Optional[dict]:
+def _find_manifest_entry(skill_name: str, manifest_lookup: dict) -> dict | None:
     """Find a manifest entry for a skill, using exact match then suffix match.
 
     Deployed names are path-normalized (e.g., 'universal-testing-tdd') while
@@ -812,7 +812,7 @@ async def handle_agent_detail(request: web.Request) -> web.Response:
                 status=400,
             )
 
-        def _get_detail() -> Optional[Dict[str, Any]]:
+        def _get_detail() -> dict[str, Any] | None:
             """Read and parse agent YAML + frontmatter detail in a thread pool.
 
             WHY: read_agent performs file I/O; running in a thread keeps the event loop
@@ -937,7 +937,7 @@ async def handle_skill_detail(request: web.Request) -> web.Response:
                 status=400,
             )
 
-        def _get_skill_detail() -> Dict[str, Any]:
+        def _get_skill_detail() -> dict[str, Any]:
             """Read and parse a deployed skill's SKILL.md frontmatter in a thread pool.
 
             WHY: Reading the skill directory and parsing frontmatter involves file I/O;
@@ -952,7 +952,7 @@ async def handle_skill_detail(request: web.Request) -> web.Response:
             skill_dir = project_skills_dir / skill_name
             skill_md = skill_dir / "SKILL.md"
 
-            result: Dict[str, Any] = {"name": skill_name}
+            result: dict[str, Any] = {"name": skill_name}
 
             # Parse SKILL.md frontmatter if deployed
             if skill_md.exists():

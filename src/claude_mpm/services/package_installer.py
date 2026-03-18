@@ -12,7 +12,7 @@ import shutil
 import subprocess  # nosec B404
 import sys
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 console = Console()
 
 
-class InstallerType(str, Enum):
+class InstallerType(StrEnum):
     """Supported package installers."""
 
     PIPX = "pipx"
@@ -34,7 +34,7 @@ class InstallerType(str, Enum):
         return self.value
 
 
-class InstallAction(str, Enum):
+class InstallAction(StrEnum):
     """Package installation actions."""
 
     INSTALL = "install"

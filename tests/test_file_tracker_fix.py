@@ -9,8 +9,8 @@ error handling properly deals with events that have undefined or missing subtype
 """
 
 import asyncio
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timezone
+from typing import Any
 
 import socketio
 
@@ -34,7 +34,7 @@ class DashboardEventTester:
             print(f"✗ Failed to connect: {e}")
             return False
 
-    async def send_event(self, event: Dict[str, Any]) -> None:
+    async def send_event(self, event: dict[str, Any]) -> None:
         """Send an event to the dashboard."""
         if not self.connected:
             print("Not connected to dashboard")
@@ -61,7 +61,7 @@ class DashboardEventTester:
                 "subtype": "pre_tool",
                 "tool_name": "Read",
                 "tool_parameters": {"file_path": "/test/file1.txt"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-1",
             }
         )
@@ -75,7 +75,7 @@ class DashboardEventTester:
                 # 'subtype' is intentionally missing
                 "tool_name": "Write",
                 "tool_parameters": {"file_path": "/test/file2.txt"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-1",
             }
         )
@@ -89,7 +89,7 @@ class DashboardEventTester:
                 "subtype": None,
                 "tool_name": "Edit",
                 "tool_parameters": {"file_path": "/test/file3.txt"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-1",
             }
         )
@@ -103,7 +103,7 @@ class DashboardEventTester:
                 "subtype": "",
                 "tool_name": "Grep",
                 "tool_parameters": {"pattern": "test", "path": "/test"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-1",
             }
         )
@@ -117,7 +117,7 @@ class DashboardEventTester:
                 "subtype": 123,  # Wrong type - should be string
                 "tool_name": "Bash",
                 "tool_parameters": {"command": "ls -la"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-1",
             }
         )
@@ -131,7 +131,7 @@ class DashboardEventTester:
                 "subtype": "post_tool",
                 "tool_name": "Read",
                 "tool_parameters": {"file_path": "/test/file1.txt"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-1",
                 "success": True,
                 "duration_ms": 150,
@@ -155,7 +155,7 @@ class DashboardEventTester:
                         ],
                     },
                 },
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test-session-2",
             }
         )

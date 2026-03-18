@@ -7,14 +7,14 @@ visualization in the monitor dashboard.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 
 def create_test_events():
     """Create test events that simulate PM delegating to subagents."""
     events = []
-    base_time = datetime.now(timezone.utc).isoformat()
+    base_time = datetime.now(UTC).isoformat()
 
     # PM starts
     events.append(

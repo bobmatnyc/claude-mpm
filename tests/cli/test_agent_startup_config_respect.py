@@ -35,15 +35,19 @@ class TestAgentStartupConfigRespect:
             (cache_dir / "security.md").write_text("# Security")
             (cache_dir / "ops.md").write_text("# Ops")
 
-            with patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync, patch(
-                "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
-            ) as mock_reconcile, patch(
-                "claude_mpm.core.unified_config.UnifiedConfig"
-            ) as mock_config_class, patch(
-                "pathlib.Path.home", return_value=tmp_path
-            ), patch("pathlib.Path.cwd", return_value=tmp_path):
+            with (
+                patch(
+                    "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
+                ) as mock_sync,
+                patch(
+                    "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
+                ) as mock_reconcile,
+                patch(
+                    "claude_mpm.core.unified_config.UnifiedConfig"
+                ) as mock_config_class,
+                patch("pathlib.Path.home", return_value=tmp_path),
+                patch("pathlib.Path.cwd", return_value=tmp_path),
+            ):
                 # Mock sync success
                 mock_sync.return_value = {
                     "enabled": True,
@@ -98,15 +102,19 @@ class TestAgentStartupConfigRespect:
                 "---\ntoolchain: universal\n---\n# Universal Testing"
             )
 
-            with patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync, patch(
-                "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
-            ) as mock_reconcile, patch(
-                "claude_mpm.core.unified_config.UnifiedConfig"
-            ) as mock_config_class, patch(
-                "pathlib.Path.home", return_value=tmp_path
-            ), patch("pathlib.Path.cwd", return_value=tmp_path):
+            with (
+                patch(
+                    "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
+                ) as mock_sync,
+                patch(
+                    "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
+                ) as mock_reconcile,
+                patch(
+                    "claude_mpm.core.unified_config.UnifiedConfig"
+                ) as mock_config_class,
+                patch("pathlib.Path.home", return_value=tmp_path),
+                patch("pathlib.Path.cwd", return_value=tmp_path),
+            ):
                 # Mock sync success
                 mock_sync.return_value = {
                     "enabled": True,
@@ -150,19 +158,24 @@ class TestAgentStartupConfigRespect:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
 
-            with patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync, patch(
-                "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
-            ) as mock_reconcile, patch(
-                "claude_mpm.core.unified_config.UnifiedConfig"
-            ) as mock_config_class, patch(
-                "claude_mpm.services.profile_manager.ProfileManager"
-            ) as mock_profile_manager_class, patch(
-                "pathlib.Path.cwd", return_value=tmp_path
-            ), patch(
-                "claude_mpm.core.shared.config_loader.ConfigLoader"
-            ) as mock_config_loader_class:
+            with (
+                patch(
+                    "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
+                ) as mock_sync,
+                patch(
+                    "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
+                ) as mock_reconcile,
+                patch(
+                    "claude_mpm.core.unified_config.UnifiedConfig"
+                ) as mock_config_class,
+                patch(
+                    "claude_mpm.services.profile_manager.ProfileManager"
+                ) as mock_profile_manager_class,
+                patch("pathlib.Path.cwd", return_value=tmp_path),
+                patch(
+                    "claude_mpm.core.shared.config_loader.ConfigLoader"
+                ) as mock_config_loader_class,
+            ):
                 # Mock profile manager with active profile
                 mock_profile_manager = MagicMock()
                 mock_profile = MagicMock()
@@ -224,13 +237,18 @@ class TestAgentStartupConfigRespect:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
 
-            with patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync, patch(
-                "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
-            ) as mock_reconcile, patch(
-                "claude_mpm.core.unified_config.UnifiedConfig"
-            ) as mock_config_class, patch("pathlib.Path.cwd", return_value=tmp_path):
+            with (
+                patch(
+                    "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
+                ) as mock_sync,
+                patch(
+                    "claude_mpm.services.agents.deployment.startup_reconciliation.perform_startup_reconciliation"
+                ) as mock_reconcile,
+                patch(
+                    "claude_mpm.core.unified_config.UnifiedConfig"
+                ) as mock_config_class,
+                patch("pathlib.Path.cwd", return_value=tmp_path),
+            ):
                 # Mock sync success
                 mock_sync.return_value = {
                     "enabled": True,

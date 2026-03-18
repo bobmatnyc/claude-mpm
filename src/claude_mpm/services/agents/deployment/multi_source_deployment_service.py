@@ -14,7 +14,7 @@ Key Features:
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -70,7 +70,7 @@ class MultiSourceAgentDeploymentService:
         self.logger = get_logger(__name__)
         self.version_manager = AgentVersionManager()
 
-    def _read_template_version(self, template_path: Path) -> Optional[str]:
+    def _read_template_version(self, template_path: Path) -> str | None:
         """Read version from template file (supports both .md and .json formats).
 
         For .md files: Extract version from YAML frontmatter
@@ -134,7 +134,7 @@ class MultiSourceAgentDeploymentService:
             )
             return None
 
-    def _build_canonical_id_for_agent(self, agent_info: Dict[str, Any]) -> str:
+    def _build_canonical_id_for_agent(self, agent_info: dict[str, Any]) -> str:
         """Build or retrieve canonical_id for an agent.
 
         NEW: Supports enhanced agent matching via canonical_id.
@@ -193,12 +193,12 @@ class MultiSourceAgentDeploymentService:
 
     def discover_agents_from_all_sources(
         self,
-        system_templates_dir: Optional[Path] = None,
-        project_agents_dir: Optional[Path] = None,
-        user_agents_dir: Optional[Path] = None,
-        agents_cache_dir: Optional[Path] = None,
-        working_directory: Optional[Path] = None,
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        system_templates_dir: Path | None = None,
+        project_agents_dir: Path | None = None,
+        user_agents_dir: Path | None = None,
+        agents_cache_dir: Path | None = None,
+        working_directory: Path | None = None,
+    ) -> dict[str, list[dict[str, Any]]]:
         """Discover agents from all 4 tiers (system, user, cache, project).
 
         Priority hierarchy (highest to lowest):
@@ -341,8 +341,8 @@ class MultiSourceAgentDeploymentService:
     def get_agents_by_collection(
         self,
         collection_id: str,
-        agents_cache_dir: Optional[Path] = None,
-    ) -> List[Dict[str, Any]]:
+        agents_cache_dir: Path | None = None,
+    ) -> list[dict[str, Any]]:
         """Get all agents from a specific collection.
 
         NEW: Enables collection-based agent selection.
@@ -379,8 +379,8 @@ class MultiSourceAgentDeploymentService:
         return collection_agents
 
     def select_highest_version_agents(
-        self, agents_by_name: Dict[str, List[Dict[str, Any]]]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, agents_by_name: dict[str, list[dict[str, Any]]]
+    ) -> dict[str, dict[str, Any]]:
         """Select the highest version agent from multiple sources.
 
         Args:
@@ -483,15 +483,15 @@ class MultiSourceAgentDeploymentService:
 
     def get_agents_for_deployment(
         self,
-        system_templates_dir: Optional[Path] = None,
-        project_agents_dir: Optional[Path] = None,
-        user_agents_dir: Optional[Path] = None,
-        agents_cache_dir: Optional[Path] = None,
-        working_directory: Optional[Path] = None,
-        excluded_agents: Optional[List[str]] = None,
-        config: Optional[Config] = None,
+        system_templates_dir: Path | None = None,
+        project_agents_dir: Path | None = None,
+        user_agents_dir: Path | None = None,
+        agents_cache_dir: Path | None = None,
+        working_directory: Path | None = None,
+        excluded_agents: list[str] | None = None,
+        config: Config | None = None,
         cleanup_outdated: bool = True,
-    ) -> Tuple[Dict[str, Path], Dict[str, str], Dict[str, Any]]:
+    ) -> tuple[dict[str, Path], dict[str, str], dict[str, Any]]:
         """Get the highest version agents from all 4 tiers for deployment.
 
         Args:
@@ -639,8 +639,8 @@ class MultiSourceAgentDeploymentService:
     def cleanup_excluded_agents(
         self,
         deployed_agents_dir: Path,
-        agents_to_deploy: Dict[str, Path],
-    ) -> Dict[str, Any]:
+        agents_to_deploy: dict[str, Path],
+    ) -> dict[str, Any]:
         """Remove agents from deployed directory that aren't in the deployment list.
 
         Similar to skill cleanup logic, this removes agents that were previously
@@ -739,9 +739,9 @@ class MultiSourceAgentDeploymentService:
 
     def cleanup_outdated_user_agents(
         self,
-        agents_by_name: Dict[str, List[Dict[str, Any]]],
-        selected_agents: Dict[str, Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        agents_by_name: dict[str, list[dict[str, Any]]],
+        selected_agents: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
         """Remove outdated user agents when project or system agents have higher versions.
 
         WHY: When project agents are updated to newer versions, outdated user agent
@@ -925,8 +925,8 @@ class MultiSourceAgentDeploymentService:
         return not is_mpm_managed_file(agent_file)
 
     def _apply_config_filters(
-        self, selected_agents: Dict[str, Dict[str, Any]], config: Config
-    ) -> Dict[str, Dict[str, Any]]:
+        self, selected_agents: dict[str, dict[str, Any]], config: Config
+    ) -> dict[str, dict[str, Any]]:
         """Apply configuration-based filtering to selected agents.
 
         Args:
@@ -972,9 +972,9 @@ class MultiSourceAgentDeploymentService:
     def compare_deployed_versions(
         self,
         deployed_agents_dir: Path,
-        agents_to_deploy: Dict[str, Path],
-        agent_sources: Dict[str, str],
-    ) -> Dict[str, Any]:
+        agents_to_deploy: dict[str, Path],
+        agent_sources: dict[str, str],
+    ) -> dict[str, Any]:
         """Compare deployed agent versions with candidates for deployment.
 
         Args:
@@ -1272,8 +1272,8 @@ class MultiSourceAgentDeploymentService:
         return "user"
 
     def detect_orphaned_agents(
-        self, deployed_agents_dir: Path, available_agents: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, deployed_agents_dir: Path, available_agents: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Detect deployed agents that don't have corresponding templates.
 
         DEPRECATED: This method is retained only for backward compatibility.
@@ -1343,8 +1343,8 @@ class MultiSourceAgentDeploymentService:
         return orphaned
 
     def _detect_orphaned_agents_simple(
-        self, deployed_agents_dir: Path, agents_to_deploy: Dict[str, Path]
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        self, deployed_agents_dir: Path, agents_to_deploy: dict[str, Path]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Simple orphan detection that works with agents_to_deploy structure.
 
         Args:
@@ -1400,7 +1400,7 @@ class MultiSourceAgentDeploymentService:
 
     def cleanup_orphaned_agents(
         self, deployed_agents_dir: Path, dry_run: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Clean up orphaned agents that don't have templates.
 
         DEPRECATED: This method is retained for backward compatibility with
@@ -1419,7 +1419,7 @@ class MultiSourceAgentDeploymentService:
         Returns:
             Dictionary with cleanup results
         """
-        results: Dict[str, Any] = {"orphaned": [], "removed": [], "errors": []}
+        results: dict[str, Any] = {"orphaned": [], "removed": [], "errors": []}
 
         # First, discover all available agents from all sources
         all_agents = self.discover_agents_from_all_sources()

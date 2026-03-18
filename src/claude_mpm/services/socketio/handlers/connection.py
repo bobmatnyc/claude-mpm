@@ -8,8 +8,9 @@ from other handlers makes connection management more maintainable.
 import asyncio
 import functools
 import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -50,7 +51,7 @@ def timeout_handler(timeout_seconds: float = 5.0):
 
                 return result
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 elapsed = time.time() - start_time
                 logger.error(
                     f"❌ Handler {handler_name} timed out after {elapsed:.2f}s"
@@ -307,7 +308,7 @@ class ConnectionEventHandler(BaseEventHandler):
             status_data = {
                 "type": "connection",
                 "subtype": "status",
-                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                "timestamp": datetime.now(UTC).isoformat() + "Z",
                 "source": "server",
                 "session_id": self.server.session_id,
                 "data": {
@@ -329,13 +330,13 @@ class ConnectionEventHandler(BaseEventHandler):
                     {
                         "type": "connection",
                         "subtype": "welcome",
-                        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                        "timestamp": datetime.now(UTC).isoformat() + "Z",
                         "source": "server",
                         "session_id": self.server.session_id,
                         "data": {
                             "message": "Connected to Claude MPM Socket.IO server",
                             "client_id": sid,
-                            "server_time": datetime.now(timezone.utc).isoformat() + "Z",
+                            "server_time": datetime.now(UTC).isoformat() + "Z",
                             "build_info": monitor_build_info,
                         },
                     },
@@ -382,7 +383,7 @@ class ConnectionEventHandler(BaseEventHandler):
             status_data = {
                 "type": "connection",
                 "subtype": "status",
-                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                "timestamp": datetime.now(UTC).isoformat() + "Z",
                 "source": "server",
                 "session_id": self.server.session_id,
                 "data": {
@@ -437,7 +438,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 {
                     "type": "connection",
                     "subtype": "subscribed",
-                    "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                    "timestamp": datetime.now(UTC).isoformat() + "Z",
                     "source": "server",
                     "data": {"channels": channels},
                 },
@@ -541,7 +542,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 if rtt < 10:  # Reasonable RTT
                     self.logger.debug(f"🏓 Pong from {sid}, RTT: {rtt * 1000:.1f}ms")
 
-    def _normalize_event(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_event(self, event_data: dict[str, Any]) -> dict[str, Any]:
         """Normalize event format to ensure consistency.
 
         WHY: Different clients may send events in different formats.
@@ -587,7 +588,7 @@ class ConnectionEventHandler(BaseEventHandler):
         return normalized
 
     async def _send_event_history(
-        self, sid: str, event_types: Optional[List[str]] = None, limit: int = 50
+        self, sid: str, event_types: list[str] | None = None, limit: int = 50
     ):
         """Send event history to a specific client.
 

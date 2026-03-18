@@ -20,10 +20,11 @@ Trade-offs:
 import hashlib
 import json
 import os
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -44,11 +45,11 @@ class PMResponse:
 
     scenario_id: str
     input: str
-    response: Dict[str, Any]
+    response: dict[str, Any]
     metadata: PMResponseMetadata
-    metrics: Optional[Dict[str, float]] = None
+    metrics: dict[str, float] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "scenario_id": self.scenario_id,
@@ -59,7 +60,7 @@ class PMResponse:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PMResponse":
+    def from_dict(cls, data: dict[str, Any]) -> "PMResponse":
         """Create from dictionary loaded from JSON."""
         metadata_dict = data["metadata"]
         metadata = PMResponseMetadata(**metadata_dict)
@@ -123,10 +124,10 @@ class PMResponseCapture:
         self,
         scenario_id: str,
         input_text: str,
-        pm_response: Dict[str, Any],
+        pm_response: dict[str, Any],
         category: str = "general",
-        metrics: Optional[Dict[str, float]] = None,
-        redact_fn: Optional[Callable[[str], str]] = None,
+        metrics: dict[str, float] | None = None,
+        redact_fn: Callable[[str], str] | None = None,
     ) -> PMResponse:
         """
         Capture PM response with metadata.
@@ -157,7 +158,7 @@ class PMResponseCapture:
         # Create metadata
         metadata = PMResponseMetadata(
             scenario_id=scenario_id,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             pm_version=self.pm_version,
             test_category=category,
             input_hash=input_hash,
@@ -193,8 +194,8 @@ class PMResponseCapture:
         self,
         scenario_id: str,
         category: str = "general",
-        input_hash: Optional[str] = None,
-    ) -> Optional[PMResponse]:
+        input_hash: str | None = None,
+    ) -> PMResponse | None:
         """
         Load captured response from storage.
 
@@ -237,9 +238,9 @@ class PMResponseCapture:
 
     def list_responses(
         self,
-        category: Optional[str] = None,
-        scenario_id: Optional[str] = None,
-    ) -> List[PMResponse]:
+        category: str | None = None,
+        scenario_id: str | None = None,
+    ) -> list[PMResponse]:
         """
         List all captured responses with optional filtering.
 
@@ -312,8 +313,8 @@ class PMResponseCapture:
         return text
 
     def _redact_dict(
-        self, data: Dict[str, Any], redact_fn: Callable[[str], str]
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], redact_fn: Callable[[str], str]
+    ) -> dict[str, Any]:
         """Recursively redact strings in dictionary."""
         result = {}
 
@@ -359,7 +360,7 @@ class AsyncPMResponseCapture(PMResponseCapture):
         input_text: str,
         pm_response_coro,
         category: str = "general",
-        metrics: Optional[Dict[str, float]] = None,
+        metrics: dict[str, float] | None = None,
     ) -> PMResponse:
         """
         Capture PM response from async coroutine.
@@ -401,7 +402,7 @@ def get_golden_responses_dir() -> Path:
 def capture_pm_response(
     scenario_id: str,
     input_text: str,
-    pm_response: Dict[str, Any],
+    pm_response: dict[str, Any],
     category: str = "general",
     **kwargs,
 ) -> PMResponse:
@@ -427,7 +428,7 @@ def capture_pm_response(
 
 def load_pm_response(
     scenario_id: str, category: str = "general", **kwargs
-) -> Optional[PMResponse]:
+) -> PMResponse | None:
     """
     Convenience function to load captured PM response.
 

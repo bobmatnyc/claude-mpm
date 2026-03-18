@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, ClassVar
 
 from ....core.enums import OperationResult, ValidationSeverity
 from ..models import DiagnosticResult
@@ -159,7 +159,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
                 details={"error": str(e)},
             )
 
-    def _find_latest_log(self) -> Optional[Path]:
+    def _find_latest_log(self) -> Path | None:
         """Find the most recent startup log file."""
         log_dir = Path.cwd() / ".claude-mpm" / "logs" / "startup"
 
@@ -172,7 +172,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
 
         return log_files[0] if log_files else None
 
-    def _analyze_log_file(self, log_file: Path) -> Dict[str, Any]:
+    def _analyze_log_file(self, log_file: Path) -> dict[str, Any]:
         """Analyze the contents of a startup log file."""
         analysis = {
             "timestamp": None,
@@ -229,7 +229,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
 
         return analysis
 
-    def _check_error_patterns(self, line: str, analysis: Dict[str, Any]) -> None:
+    def _check_error_patterns(self, line: str, analysis: dict[str, Any]) -> None:
         """Check line for known error patterns."""
         for pattern, (error_type, fix) in self.ERROR_PATTERNS.items():
             if re.search(pattern, line, re.IGNORECASE):
@@ -238,7 +238,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
                     analysis["errors_found"].append((error_type, fix))
                 break
 
-    def _check_warning_patterns(self, line: str, analysis: Dict[str, Any]) -> None:
+    def _check_warning_patterns(self, line: str, analysis: dict[str, Any]) -> None:
         """Check line for known warning patterns."""
         for pattern, warning_type in self.WARNING_PATTERNS.items():
             if re.search(pattern, line, re.IGNORECASE):
@@ -247,7 +247,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
                     analysis["warnings_found"].append(warning_type)
                 break
 
-    def _generate_recommendations(self, analysis: Dict[str, Any]) -> None:
+    def _generate_recommendations(self, analysis: dict[str, Any]) -> None:
         """Generate recommendations based on analysis."""
         recommendations = []
 
@@ -281,7 +281,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
 
         analysis["recommendations"] = recommendations
 
-    def _determine_status(self, analysis: Dict[str, Any]):
+    def _determine_status(self, analysis: dict[str, Any]):
         """Determine overall status based on analysis."""
         if analysis["error_count"] > 0:
             return ValidationSeverity.ERROR
@@ -289,7 +289,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
             return ValidationSeverity.WARNING
         return OperationResult.SUCCESS
 
-    def _create_message(self, analysis: Dict[str, Any]) -> str:
+    def _create_message(self, analysis: dict[str, Any]) -> str:
         """Create summary message based on analysis."""
         if analysis["error_count"] > 0:
             return f"Startup has {analysis['error_count']} error(s)"
@@ -299,7 +299,7 @@ class StartupLogCheck(BaseDiagnosticCheck):
             return "Last startup was successful"
         return "Startup log is clean"
 
-    def _get_fix_command(self, analysis: Dict[str, Any]) -> Optional[str]:
+    def _get_fix_command(self, analysis: dict[str, Any]) -> str | None:
         """Get the most relevant fix command based on errors found."""
         if not analysis["errors_found"]:
             return None

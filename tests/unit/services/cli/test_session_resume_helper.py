@@ -13,7 +13,7 @@ Coverage targets:
 import json
 import shutil
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, PropertyMock, mock_open, patch
 
@@ -449,7 +449,7 @@ class TestGetTimeElapsed:
 
     def test_formats_days_correctly(self, helper):
         """Test formats days elapsed correctly."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(days=3)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -457,7 +457,7 @@ class TestGetTimeElapsed:
 
     def test_formats_single_day(self, helper):
         """Test formats single day correctly."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(days=1)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -465,7 +465,7 @@ class TestGetTimeElapsed:
 
     def test_formats_hours_correctly(self, helper):
         """Test formats hours elapsed correctly."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(hours=5)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -473,7 +473,7 @@ class TestGetTimeElapsed:
 
     def test_formats_single_hour(self, helper):
         """Test formats single hour correctly."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(hours=1)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -481,7 +481,7 @@ class TestGetTimeElapsed:
 
     def test_formats_minutes_correctly(self, helper):
         """Test formats minutes elapsed correctly."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(minutes=30)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -489,7 +489,7 @@ class TestGetTimeElapsed:
 
     def test_formats_single_minute(self, helper):
         """Test formats single minute correctly."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(minutes=1)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -497,7 +497,7 @@ class TestGetTimeElapsed:
 
     def test_formats_just_now(self, helper):
         """Test formats very recent time as 'just now'."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(seconds=30)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -505,7 +505,7 @@ class TestGetTimeElapsed:
 
     def test_handles_naive_datetime(self, helper):
         """Test handles timezone-naive datetime by adding UTC."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(hours=2)).replace(tzinfo=None).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -513,7 +513,7 @@ class TestGetTimeElapsed:
 
     def test_handles_different_timezones(self, helper):
         """Test handles different timezone formats."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(hours=3)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -533,7 +533,7 @@ class TestGetTimeElapsed:
 
     def test_handles_very_old_sessions(self, helper):
         """Test handles very old sessions (>30 days)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now - timedelta(days=45)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)
@@ -541,7 +541,7 @@ class TestGetTimeElapsed:
 
     def test_handles_future_timestamp(self, helper):
         """Test handles future timestamp (edge case)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         paused_at = (now + timedelta(hours=1)).isoformat()
 
         result = helper.get_time_elapsed(paused_at)

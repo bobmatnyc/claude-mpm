@@ -6,9 +6,11 @@ Defines the contracts for event producers and consumers in the event bus system.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Pattern
+from re import Pattern
+from typing import Any
 
 from .core import Event
 
@@ -28,16 +30,16 @@ class ConsumerConfig:
     """Configuration for an event consumer."""
 
     name: str  # Consumer identifier
-    topics: Optional[List[str]] = None  # Topics to subscribe to (None = all)
-    topic_pattern: Optional[Pattern] = None  # Regex pattern for topics
+    topics: list[str] | None = None  # Topics to subscribe to (None = all)
+    topic_pattern: Pattern | None = None  # Regex pattern for topics
     priority: ConsumerPriority = ConsumerPriority.NORMAL
     batch_size: int = 1  # Process events in batches
     batch_timeout: float = 0.0  # Max time to wait for batch
     max_retries: int = 3  # Retry failed events
     retry_backoff: float = 1.0  # Backoff multiplier
-    error_handler: Optional[Callable] = None  # Custom error handler
-    filter_func: Optional[Callable] = None  # Event filter function
-    transform_func: Optional[Callable] = None  # Event transformation
+    error_handler: Callable | None = None  # Custom error handler
+    filter_func: Callable | None = None  # Event filter function
+    transform_func: Callable | None = None  # Event transformation
 
 
 class IEventProducer(ABC):
@@ -61,7 +63,7 @@ class IEventProducer(ABC):
         """
 
     @abstractmethod
-    async def publish_batch(self, events: List[Event]) -> int:
+    async def publish_batch(self, events: list[Event]) -> int:
         """
         Publish multiple events efficiently.
 
@@ -108,7 +110,7 @@ class IEventConsumer(ABC):
         """
 
     @abstractmethod
-    async def consume_batch(self, events: List[Event]) -> int:
+    async def consume_batch(self, events: list[Event]) -> int:
         """
         Process multiple events in a batch.
 
@@ -134,7 +136,7 @@ class IEventConsumer(ABC):
         """Check if consumer is healthy."""
 
     @abstractmethod
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get consumer metrics.
 
@@ -196,11 +198,11 @@ class IEventBus(ABC):
         """
 
     @abstractmethod
-    def get_consumers(self) -> List[IEventConsumer]:
+    def get_consumers(self) -> list[IEventConsumer]:
         """Get list of active consumers."""
 
     @abstractmethod
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get event bus metrics.
 

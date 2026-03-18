@@ -34,9 +34,9 @@ USAGE:
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.cli.incremental_pause_manager import IncrementalPauseManager
@@ -87,7 +87,7 @@ class AutoPauseHandler:
     - Summarizes long content to prevent memory bloat
     """
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize auto-pause handler.
 
         Args:
@@ -100,7 +100,7 @@ class AutoPauseHandler:
         self.pause_manager = IncrementalPauseManager(self.project_path)
 
         # Track previous threshold to detect NEW crossings
-        self._previous_threshold: Optional[str] = None
+        self._previous_threshold: str | None = None
 
         # Load initial state
         try:
@@ -117,7 +117,7 @@ class AutoPauseHandler:
             logger.error(f"Failed to initialize AutoPauseHandler: {e}")
             # Continue with None - will initialize on first update
 
-    def on_usage_update(self, usage: Dict[str, Any]) -> Optional[str]:
+    def on_usage_update(self, usage: dict[str, Any]) -> str | None:
         """Process token usage from a Claude API response.
 
         Args:
@@ -194,7 +194,7 @@ class AutoPauseHandler:
             # Don't propagate error - auto-pause is optional
             return None
 
-    def on_tool_call(self, tool_name: str, tool_args: Dict[str, Any]) -> None:
+    def on_tool_call(self, tool_name: str, tool_args: dict[str, Any]) -> None:
         """Record a tool call if auto-pause is active.
 
         Args:
@@ -220,7 +220,7 @@ class AutoPauseHandler:
                 action_data={
                     "tool": tool_name,
                     "args_summary": args_summary,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
                 context_percentage=state.percentage_used / 100,
             )
@@ -257,7 +257,7 @@ class AutoPauseHandler:
                 action_type="assistant_response",
                 action_data={
                     "summary": summary,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
                 context_percentage=state.percentage_used / 100,
             )
@@ -296,7 +296,7 @@ class AutoPauseHandler:
                 action_type="user_message",
                 action_data={
                     "summary": summary,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
                 context_percentage=state.percentage_used / 100,
             )
@@ -309,7 +309,7 @@ class AutoPauseHandler:
             if DEBUG:
                 _log(f"❌ Failed to record user message: {e}")
 
-    def on_session_end(self) -> Optional[Path]:
+    def on_session_end(self) -> Path | None:
         """Called when session ends. Finalizes any active pause.
 
         Returns:
@@ -346,7 +346,7 @@ class AutoPauseHandler:
         """
         return self.pause_manager.is_pause_active()
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get current status for display/logging.
 
         Returns:
@@ -441,8 +441,8 @@ class AutoPauseHandler:
             # Don't propagate - auto-pause is optional
 
     def _summarize_dict(
-        self, data: Dict[str, Any], max_items: int = 10
-    ) -> Dict[str, Any]:
+        self, data: dict[str, Any], max_items: int = 10
+    ) -> dict[str, Any]:
         """Create a summary of a dictionary by limiting items and truncating values.
 
         Args:

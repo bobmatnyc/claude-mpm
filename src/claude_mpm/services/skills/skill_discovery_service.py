@@ -37,7 +37,7 @@ Example Skill File:
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -74,10 +74,10 @@ class SkillMetadata:
     name: str
     description: str
     skill_version: str
-    tags: List[str]
-    agent_types: Optional[List[str]]
+    tags: list[str]
+    agent_types: list[str] | None
     source_file: Path
-    resources: Optional[List[Path]]
+    resources: list[Path] | None
 
 
 class SkillDiscoveryService:
@@ -110,7 +110,7 @@ class SkillDiscoveryService:
         self.skills_dir = skills_dir
         self.logger = get_logger(__name__)
 
-    def discover_skills(self) -> List[Dict[str, Any]]:
+    def discover_skills(self) -> list[dict[str, Any]]:
         """Discover all skills in directory.
 
         Scans directory RECURSIVELY for SKILL.md files and parses each as a skill.
@@ -245,7 +245,7 @@ class SkillDiscoveryService:
 
         return skills
 
-    def _parse_skill_file(self, skill_file: Path) -> Optional[Dict[str, Any]]:
+    def _parse_skill_file(self, skill_file: Path) -> dict[str, Any] | None:
         """Parse a skill Markdown file with YAML frontmatter.
 
         Expected Format:
@@ -369,7 +369,7 @@ class SkillDiscoveryService:
 
         return skill_dict
 
-    def _extract_frontmatter(self, content: str) -> Tuple[Dict[str, Any], str]:
+    def _extract_frontmatter(self, content: str) -> tuple[dict[str, Any], str]:
         """Extract YAML frontmatter and body from Markdown.
 
         Frontmatter must be at the start of the file, delimited by "---".
@@ -549,7 +549,7 @@ class SkillDiscoveryService:
         # 5. Remove leading/trailing hyphens
         return skill_id.strip("-")
 
-    def _find_bundled_resources(self, skill_file: Path) -> List[Path]:
+    def _find_bundled_resources(self, skill_file: Path) -> list[Path]:
         """Find bundled resources for a skill.
 
         Resources are in parallel directories:
@@ -604,7 +604,7 @@ class SkillDiscoveryService:
 
         return resources
 
-    def get_skill_metadata(self, skill_name: str) -> Optional[SkillMetadata]:
+    def get_skill_metadata(self, skill_name: str) -> SkillMetadata | None:
         """Get metadata for a specific skill.
 
         Args:

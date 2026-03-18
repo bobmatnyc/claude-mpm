@@ -3,8 +3,9 @@ Common error handling patterns for CLI commands.
 """
 
 import traceback
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any
 
 from ...core.logger import get_logger
 
@@ -22,7 +23,7 @@ class CLIErrorHandler:
         self.command_name = command_name
         self.logger = get_logger(f"cli.{command_name}")
 
-    def handle_error(self, error: Exception, context: Optional[str] = None) -> int:
+    def handle_error(self, error: Exception, context: str | None = None) -> int:
         """
         Handle an error with appropriate logging and user feedback.
 

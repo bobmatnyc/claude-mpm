@@ -5,7 +5,7 @@ Gmail, Calendar, Drive, Docs, and Sheets with PKCE support.
 """
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import aiohttp
@@ -184,7 +184,7 @@ class GoogleOAuthProvider(OAuthProvider):
 
                 # Calculate expiration time
                 expires_in = result.get("expires_in", 3600)
-                expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+                expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
 
                 return OAuthToken(
                     access_token=result["access_token"],
@@ -232,7 +232,7 @@ class GoogleOAuthProvider(OAuthProvider):
 
                 # Calculate expiration time
                 expires_in = result.get("expires_in", 3600)
-                expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+                expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
 
                 return OAuthToken(
                     access_token=result["access_token"],

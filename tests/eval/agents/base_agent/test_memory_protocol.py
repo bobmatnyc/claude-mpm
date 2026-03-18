@@ -5,7 +5,8 @@ This test suite validates that BASE_AGENT memory management protocols are
 properly enforced across all memory scenarios (MEM-001 to MEM-006).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -22,7 +23,7 @@ class TestMemoryProtocol:
         self.metric = MemoryProtocolMetric(threshold=0.9)
 
     def test_json_response_format_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant JSON response format scores high.
 
@@ -44,7 +45,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_json_response_format_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing JSON response format fails.
 
@@ -66,7 +67,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_trigger_detection_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory trigger detection works correctly.
 
@@ -88,7 +89,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_trigger_detection_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing memory trigger detection fails.
 
@@ -110,7 +111,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_avoidance_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that obvious facts are not stored in memory.
 
@@ -132,7 +133,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_avoidance_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that storing obvious facts fails.
 
@@ -154,7 +155,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_consolidation_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory consolidation works correctly.
 
@@ -176,7 +177,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_consolidation_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that fragmented memories fail.
 
@@ -198,7 +199,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_update_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory updates work correctly.
 
@@ -219,7 +220,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_update_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that creating duplicates instead of updating fails.
 
@@ -240,7 +241,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_size_limits_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory size limits are respected.
 
@@ -262,7 +263,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_size_limits_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that overly verbose memories fail.
 

@@ -12,7 +12,7 @@ This file contains various Python constructs to test AST parsing:
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 @dataclass
@@ -21,7 +21,7 @@ class TestDataClass:
 
     name: str
     value: int
-    metadata: Optional[Dict] = None
+    metadata: dict | None = None
 
 
 class TestClass:
@@ -71,7 +71,7 @@ def simple_function(a: int, b: int) -> int:
     return a + b
 
 
-def complex_function(data: List[Dict[str, any]]) -> Dict[str, List[str]]:
+def complex_function(data: list[dict[str, any]]) -> dict[str, list[str]]:
     """A more complex function with nested types."""
     result = {}
 

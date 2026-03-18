@@ -9,7 +9,7 @@ DESIGN DECISION: Provide both transformation and validation utilities
 to help identify and fix inconsistent event formats across the codebase.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from ...core.logging_config import get_logger
 
@@ -64,7 +64,7 @@ class EventMigrationHelper:
 
         return False
 
-    def transform_to_new_format(self, event_data: Any) -> Dict[str, Any]:
+    def transform_to_new_format(self, event_data: Any) -> dict[str, Any]:
         """Transform an old format event to the new schema.
 
         WHY: Provides a migration path from old to new format.
@@ -79,8 +79,8 @@ class EventMigrationHelper:
         return normalized.to_dict()
 
     def validate_event_schema(
-        self, event_data: Dict[str, Any]
-    ) -> Tuple[bool, List[str]]:
+        self, event_data: dict[str, Any]
+    ) -> tuple[bool, list[str]]:
         """Validate an event against the new schema.
 
         WHY: Ensures events conform to the expected structure
@@ -223,7 +223,7 @@ class EventTypeMapper:
     }
 
     @classmethod
-    def map_event_type(cls, old_type: str) -> Tuple[str, str]:
+    def map_event_type(cls, old_type: str) -> tuple[str, str]:
         """Map an old event type to new type/subtype.
 
         WHY: Provides consistent categorization for all events.
@@ -298,8 +298,8 @@ class EventTypeMapper:
 
 
 def create_backward_compatible_event(
-    normalized_event: Dict[str, Any],
-) -> Dict[str, Any]:
+    normalized_event: dict[str, Any],
+) -> dict[str, Any]:
     """Create a backward-compatible version of a normalized event.
 
     WHY: During migration, some clients may still expect the old format.

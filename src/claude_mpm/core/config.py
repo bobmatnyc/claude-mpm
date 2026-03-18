@@ -10,7 +10,7 @@ import logging
 import os
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -66,8 +66,8 @@ class Config:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        config_file: Optional[Union[str, Path]] = None,
+        config: dict[str, Any] | None = None,
+        config_file: str | Path | None = None,
         env_prefix: str = "CLAUDE_PM_",
     ):
         """
@@ -107,7 +107,7 @@ class Config:
             from ..utils.config_manager import ConfigurationManager
 
             # Initialize instance variables inside the lock to ensure thread safety
-            self._config: Dict[str, Any] = {}
+            self._config: dict[str, Any] = {}
             self._env_prefix = env_prefix
             self._config_mgr = ConfigurationManager(cache_enabled=True)
 
@@ -145,9 +145,7 @@ class Config:
             # Apply defaults
             self._apply_defaults()
 
-    def load_file(
-        self, file_path: Union[str, Path], is_initial_load: bool = True
-    ) -> None:
+    def load_file(self, file_path: str | Path, is_initial_load: bool = True) -> None:
         """Load configuration from file with enhanced error handling.
 
         WHY: Configuration loading failures can cause silent issues. We need
@@ -308,7 +306,7 @@ class Config:
                 "Please migrate to CLAUDE_MULTIAGENT_PM_ prefix for future compatibility."
             )
 
-    def _convert_env_value(self, value: str) -> Union[str, int, float, bool]:
+    def _convert_env_value(self, value: str) -> str | int | float | bool:
         """Convert environment variable string to appropriate type."""
         # Boolean conversion
         if value.lower() in ("true", "yes", "1", "on"):
@@ -657,15 +655,15 @@ class Config:
 
         config[keys[-1]] = value
 
-    def update(self, config: Dict[str, Any]) -> None:
+    def update(self, config: dict[str, Any]) -> None:
         """Update configuration with new values."""
         self._config = self._config_mgr.merge_configs(self._config, config)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Get configuration as dictionary."""
         return self._config.copy()
 
-    def save(self, file_path: Union[str, Path], format: str = "json") -> None:
+    def save(self, file_path: str | Path, format: str = "json") -> None:
         """Save configuration to file."""
         file_path = Path(file_path)
 
@@ -708,7 +706,7 @@ class Config:
                 },
             ) from e
 
-    def validate(self, schema: Dict[str, Any]) -> bool:
+    def validate(self, schema: dict[str, Any]) -> bool:
         """
         Validate configuration against a schema.
 
@@ -841,7 +839,7 @@ class Config:
         except Exception as e:
             logger.error(f"Error validating session configuration: {e}")
 
-    def get_health_monitoring_config(self) -> Dict[str, Any]:
+    def get_health_monitoring_config(self) -> dict[str, Any]:
         """Get health monitoring configuration with defaults."""
         base_config = {
             "enabled": self.get("enable_health_monitoring", True),
@@ -868,7 +866,7 @@ class Config:
 
         return base_config
 
-    def get_recovery_config(self) -> Dict[str, Any]:
+    def get_recovery_config(self) -> dict[str, Any]:
         """Get recovery configuration with defaults."""
         base_config = self.get(
             "recovery",
@@ -898,7 +896,7 @@ class Config:
 
         return base_config
 
-    def validate_configuration(self) -> Tuple[bool, List[str], List[str]]:
+    def validate_configuration(self) -> tuple[bool, list[str], list[str]]:
         """Validate the loaded configuration programmatically.
 
         WHY: Provide a programmatic way to validate configuration that can be
@@ -978,7 +976,7 @@ class Config:
         is_valid = len(errors) == 0
         return is_valid, errors, warnings
 
-    def get_configuration_status(self) -> Dict[str, Any]:
+    def get_configuration_status(self) -> dict[str, Any]:
         """Get detailed configuration status for debugging.
 
         WHY: Provide a comprehensive view of configuration state for

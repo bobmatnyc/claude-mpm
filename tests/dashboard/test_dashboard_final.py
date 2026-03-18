@@ -6,7 +6,7 @@ Final comprehensive test to verify dashboard is receiving and displaying events.
 import asyncio
 import time
 import webbrowser
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import socketio
 
@@ -59,7 +59,7 @@ async def main():
             {
                 "event": "Start",
                 "message": "🚀 Dashboard test session started",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": "test_" + str(int(time.time())),
             },
             {
@@ -67,62 +67,62 @@ async def main():
                 "agent": "Engineer",
                 "task": "Implementing new feature",
                 "priority": "high",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "ToolCall",
                 "tool": "Read",
                 "args": {"file": "/src/main.py"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "ToolResult",
                 "tool": "Read",
                 "result": "File read successfully (500 lines)",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "SubagentMessage",
                 "agent": "Engineer",
                 "message": "Found the issue - fixing now...",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "ToolCall",
                 "tool": "Edit",
                 "args": {"file": "/src/main.py", "changes": "Applied fix"},
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "SubagentStop",
                 "agent": "Engineer",
                 "result": "✅ Feature implemented successfully",
                 "duration": 1234,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "SubagentStart",
                 "agent": "QA",
                 "task": "Running test suite",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "TestResult",
                 "status": "passed",
                 "tests_run": 42,
                 "tests_passed": 42,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "SubagentStop",
                 "agent": "QA",
                 "result": "✅ All tests passed",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
             {
                 "event": "Stop",
                 "message": "🎉 Session completed successfully",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         ]
 

@@ -16,9 +16,9 @@ Module-specific types should remain in their respective modules.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from .enums import HealthStatus
 
@@ -30,10 +30,10 @@ class ServiceResult:
 
     success: bool
     message: str
-    data: Optional[Dict[str, Any]] = None
-    errors: Optional[List[str]] = None
+    data: dict[str, Any] | None = None
+    errors: list[str] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "success": self.success,
@@ -48,12 +48,12 @@ class ServiceResult:
 class DeploymentResult:
     """Result of an agent deployment operation."""
 
-    deployed: List[str]
-    updated: List[str]
-    failed: List[str]
-    skipped: List[str]
-    errors: Dict[str, str]
-    metadata: Dict[str, Any]
+    deployed: list[str]
+    updated: list[str]
+    failed: list[str]
+    skipped: list[str]
+    errors: dict[str, str]
+    metadata: dict[str, Any]
 
     @property
     def total_processed(self) -> int:
@@ -100,10 +100,10 @@ class AgentInfo:
     name: str
     tier: AgentTier
     path: Path
-    version: Optional[str] = None
-    description: Optional[str] = None
-    capabilities: Optional[List[str]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    version: str | None = None
+    description: str | None = None
+    capabilities: list[str] | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -122,8 +122,8 @@ class MemoryEntry:
     content: str
     category: str
     agent_id: str
-    session_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    session_id: str | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -148,11 +148,11 @@ class HookContext:
     """Context passed to hook handlers."""
 
     event_type: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     timestamp: datetime
-    source: Optional[str] = None
-    session_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    source: str | None = None
+    session_id: str | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -166,10 +166,10 @@ class ConfigSection:
     """Configuration section with validation."""
 
     name: str
-    values: Dict[str, Any]
-    schema: Optional[Dict[str, Any]] = None
+    values: dict[str, Any]
+    schema: dict[str, Any] | None = None
     is_valid: bool = True
-    validation_errors: Optional[List[str]] = None
+    validation_errors: list[str] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -196,19 +196,19 @@ class TaskInfo:
     task_id: str
     title: str
     status: TaskStatus
-    description: Optional[str] = None
-    assignee: Optional[str] = None
-    priority: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    description: str | None = None
+    assignee: str | None = None
+    priority: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:
             self.metadata = {}
         if self.created_at is None:
-            self.created_at = datetime.now(timezone.utc)
+            self.created_at = datetime.now(UTC)
         if self.updated_at is None:
             self.updated_at = self.created_at
 
@@ -220,10 +220,10 @@ class SocketMessage:
 
     event: str
     data: Any
-    room: Optional[str] = None
-    namespace: Optional[str] = None
-    sid: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    room: str | None = None
+    namespace: str | None = None
+    sid: str | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -240,8 +240,8 @@ class HealthCheck:
     status: HealthStatus
     message: str
     timestamp: datetime
-    metrics: Optional[Dict[str, Any]] = None
-    checks: Optional[Dict[str, bool]] = None
+    metrics: dict[str, Any] | None = None
+    checks: dict[str, bool] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -259,10 +259,10 @@ class ProjectCharacteristics:
     path: Path
     name: str
     type: str  # e.g., "python", "node", "mixed"
-    technologies: List[str]
-    entry_points: List[Path]
-    structure: Dict[str, Any]
-    metadata: Optional[Dict[str, Any]] = None
+    technologies: list[str]
+    entry_points: list[Path]
+    structure: dict[str, Any]
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -290,9 +290,9 @@ class ErrorContext:
     component: str
     operation: str
     timestamp: datetime
-    traceback: Optional[str] = None
+    traceback: str | None = None
     recovery_attempted: bool = False
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -301,7 +301,7 @@ class ErrorContext:
 
 
 # Type aliases for common patterns
-ConfigDict = Dict[str, Any]
-ErrorDict = Dict[str, str]
-MetricsDict = Dict[str, Union[int, float, str]]
-ValidationResult = Tuple[bool, Optional[List[str]]]
+ConfigDict = dict[str, Any]
+ErrorDict = dict[str, str]
+MetricsDict = dict[str, int | float | str]
+ValidationResult = tuple[bool, list[str] | None]

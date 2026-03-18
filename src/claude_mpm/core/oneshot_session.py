@@ -16,7 +16,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
@@ -53,7 +53,7 @@ class OneshotSession:
         self.original_cwd = None
         self.temp_system_prompt_file = None
 
-    def initialize_session(self, prompt: str) -> Tuple[bool, Optional[str]]:
+    def initialize_session(self, prompt: str) -> tuple[bool, str | None]:
         """Initialize the oneshot session.
 
         Returns:
@@ -97,7 +97,7 @@ class OneshotSession:
 
         return True
 
-    def setup_infrastructure(self) -> Dict[str, Any]:
+    def setup_infrastructure(self) -> dict[str, Any]:
         """Set up the execution environment and build the command.
 
         Returns:
@@ -126,8 +126,8 @@ class OneshotSession:
         return infrastructure
 
     def execute_command(
-        self, prompt: str, context: Optional[str], infrastructure: Dict[str, Any]
-    ) -> Tuple[bool, Optional[str]]:
+        self, prompt: str, context: str | None, infrastructure: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """Execute the Claude command with the given prompt.
 
         Args:
@@ -148,7 +148,7 @@ class OneshotSession:
         return self._run_subprocess(cmd, infrastructure["env"], prompt)
 
     def _build_final_command(
-        self, prompt: str, context: Optional[str], infrastructure: Dict[str, Any]
+        self, prompt: str, context: str | None, infrastructure: dict[str, Any]
     ) -> list:
         """Build the final command with prompt and system instructions.
 
@@ -219,7 +219,7 @@ class OneshotSession:
 
     def _run_subprocess(
         self, cmd: list, env: dict, prompt: str
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Run the subprocess and handle all exception types."""
         try:
             # Debug: log the command being run
@@ -315,7 +315,7 @@ class OneshotSession:
             self.logger.warning(f"Socket.IO connection failed: {e}")
             self.runner.websocket_server = None
 
-    def _prepare_environment(self) -> Dict[str, str]:
+    def _prepare_environment(self) -> dict[str, str]:
         """Prepare the execution environment."""
         env = os.environ.copy()
 
@@ -345,7 +345,7 @@ class OneshotSession:
 
         return cmd
 
-    def _build_agents_flag(self) -> Optional[list]:
+    def _build_agents_flag(self) -> list | None:
         """Build --agents flag with all MPM agents.
 
         Returns:
@@ -465,7 +465,7 @@ class OneshotSession:
                 }
             )
 
-    def _handle_timeout(self, e: subprocess.TimeoutExpired) -> Tuple[bool, str]:
+    def _handle_timeout(self, e: subprocess.TimeoutExpired) -> tuple[bool, str]:
         """Handle command timeout."""
         error_msg = f"Command timed out after {e.timeout} seconds"
         print(f"⏱️  {error_msg}")
@@ -485,7 +485,7 @@ class OneshotSession:
 
         return (False, error_msg)
 
-    def _handle_claude_not_found(self) -> Tuple[bool, str]:
+    def _handle_claude_not_found(self) -> tuple[bool, str]:
         """Handle Claude CLI not found error."""
         error_msg = (
             "Claude CLI not found. Please ensure 'claude' is installed and in your PATH"
@@ -510,7 +510,7 @@ class OneshotSession:
 
         return (False, error_msg)
 
-    def _handle_permission_error(self, e: PermissionError) -> Tuple[bool, str]:
+    def _handle_permission_error(self, e: PermissionError) -> tuple[bool, str]:
         """Handle permission denied error."""
         error_msg = f"Permission denied executing Claude CLI: {e}"
         print(f"❌ {error_msg}")
@@ -530,7 +530,7 @@ class OneshotSession:
 
         return (False, error_msg)
 
-    def _handle_keyboard_interrupt(self) -> Tuple[bool, str]:
+    def _handle_keyboard_interrupt(self) -> tuple[bool, str]:
         """Handle keyboard interrupt."""
         print("\n⚠️  Command interrupted by user")
 
@@ -548,7 +548,7 @@ class OneshotSession:
 
         return (False, "User interrupted")
 
-    def _handle_memory_error(self, e: MemoryError) -> Tuple[bool, str]:
+    def _handle_memory_error(self, e: MemoryError) -> tuple[bool, str]:
         """Handle out of memory error."""
         error_msg = "Out of memory while processing command"
         print(f"❌ {error_msg}")
@@ -568,7 +568,7 @@ class OneshotSession:
 
         return (False, error_msg)
 
-    def _handle_unexpected_error(self, e: Exception) -> Tuple[bool, str]:
+    def _handle_unexpected_error(self, e: Exception) -> tuple[bool, str]:
         """Handle unexpected errors."""
         error_msg = f"Unexpected error: {e}"
         print(f"❌ {error_msg}")

@@ -18,17 +18,18 @@ Trade-offs:
 - Discoverability: Presets shown in CLI help and error messages
 """
 
-from typing import Any, Callable, Dict, List, Union
+from collections.abc import Callable
+from typing import Any
 
 # Type for preset resolver (can be static list or dynamic function)
-PresetResolver = Union[List[str], Callable[[], List[str]]]
+PresetResolver = list[str] | Callable[[], list[str]]
 
 # Core skills included in ALL presets (MIN and MAX)
 CORE_SKILLS = [
     "universal-main-skill-creator",  # Skill creation and management
 ]
 
-PRESETS: Dict[str, Dict[str, Any]] = {
+PRESETS: dict[str, dict[str, Any]] = {
     # ========================================
     # Universal Minimal Preset
     # ========================================
@@ -320,7 +321,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def get_preset_names() -> List[str]:
+def get_preset_names() -> list[str]:
     """Get list of all available preset names.
 
     Returns:
@@ -334,7 +335,7 @@ def get_preset_names() -> List[str]:
     return list(PRESETS.keys())
 
 
-def get_preset_info(preset_name: str) -> Dict[str, Any]:
+def get_preset_info(preset_name: str) -> dict[str, Any]:
     """Get preset metadata (description, use cases, skill count).
 
     Args:
@@ -367,7 +368,7 @@ def get_preset_info(preset_name: str) -> Dict[str, Any]:
     }
 
 
-def get_preset_skills(preset_name: str) -> List[str]:
+def get_preset_skills(preset_name: str) -> list[str]:
     """Get skill list for preset.
 
     Args:

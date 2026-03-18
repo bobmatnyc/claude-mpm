@@ -6,7 +6,6 @@ that were previously scattered throughout the codebase.
 
 import os
 from pathlib import Path
-from typing import Tuple
 
 
 class SystemLimits:
@@ -48,7 +47,7 @@ class NetworkConfig:
     # Import from network_config for single source of truth
     # Lazy import to avoid circular dependencies
     @property
-    def SOCKETIO_PORT_RANGE(self) -> Tuple[int, int]:
+    def SOCKETIO_PORT_RANGE(self) -> tuple[int, int]:
         """Return the (start, end) port range for Socket.IO servers.
 
         WHY: Delegates to NetworkPorts in network_config.py so there is a single source
@@ -87,7 +86,7 @@ class NetworkConfig:
         return NetworkPorts.DASHBOARD_DEFAULT
 
     # Port ranges (module-level for backward compatibility)
-    SOCKETIO_PORT_RANGE: Tuple[int, int] = (8765, 8785)  # Will be updated at runtime
+    SOCKETIO_PORT_RANGE: tuple[int, int] = (8765, 8785)  # Will be updated at runtime
     DEFAULT_SOCKETIO_PORT = 8768  # Updated to match new default
     DEFAULT_DASHBOARD_PORT = 8767  # Updated to match new default
 

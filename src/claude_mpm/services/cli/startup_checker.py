@@ -15,7 +15,7 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from claude_mpm.core.logger import get_logger
 
@@ -25,7 +25,7 @@ class IStartupChecker(ABC):
     """Interface for startup checking service."""
 
     @abstractmethod
-    def check_configuration(self) -> List["StartupWarning"]:
+    def check_configuration(self) -> list["StartupWarning"]:
         """Validate configuration and return warnings."""
 
     @abstractmethod
@@ -33,13 +33,13 @@ class IStartupChecker(ABC):
         """Check Claude.json memory usage."""
 
     @abstractmethod
-    def check_environment(self) -> List["StartupWarning"]:
+    def check_environment(self) -> list["StartupWarning"]:
         """Validate environment and paths."""
 
     @abstractmethod
     def get_startup_warnings(
         self, resume_enabled: bool = False
-    ) -> List["StartupWarning"]:
+    ) -> list["StartupWarning"]:
         """Collect all startup warnings."""
 
 
@@ -49,7 +49,7 @@ class StartupWarning:
 
     category: str  # 'config', 'memory', 'environment'
     message: str
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
     severity: str = "warning"  # 'info', 'warning', 'error'
 
 
@@ -65,7 +65,7 @@ class StartupCheckerService(IStartupChecker):
         self.config_service = config_service
         self.logger = get_logger("StartupChecker")
 
-    def check_configuration(self) -> List[StartupWarning]:
+    def check_configuration(self) -> list[StartupWarning]:
         """Validate configuration and return warnings.
 
         Checks:
@@ -119,7 +119,7 @@ class StartupCheckerService(IStartupChecker):
 
         return warnings
 
-    def check_memory(self, resume_enabled: bool = False) -> Optional[StartupWarning]:
+    def check_memory(self, resume_enabled: bool = False) -> StartupWarning | None:
         """Check .claude.json memory usage.
 
         WHY: Large .claude.json files (>500KB) cause significant memory issues
@@ -160,7 +160,7 @@ class StartupCheckerService(IStartupChecker):
 
         return None
 
-    def check_environment(self) -> List[StartupWarning]:
+    def check_environment(self) -> list[StartupWarning]:
         """Validate environment and paths.
 
         Checks:
@@ -194,7 +194,7 @@ class StartupCheckerService(IStartupChecker):
 
     def get_startup_warnings(
         self, resume_enabled: bool = False
-    ) -> List[StartupWarning]:
+    ) -> list[StartupWarning]:
         """Collect all startup warnings.
 
         Args:
@@ -218,7 +218,7 @@ class StartupCheckerService(IStartupChecker):
 
         return all_warnings
 
-    def display_warnings(self, warnings: List[StartupWarning]) -> None:
+    def display_warnings(self, warnings: list[StartupWarning]) -> None:
         """Display warnings to the user.
 
         Args:
@@ -255,7 +255,7 @@ class StartupCheckerService(IStartupChecker):
 
     # Private helper methods
 
-    def _check_log_directory(self, log_dir: str) -> List[StartupWarning]:
+    def _check_log_directory(self, log_dir: str) -> list[StartupWarning]:
         """Check if log directory exists and is writable."""
         warnings = []
         log_path = Path(log_dir)
@@ -289,7 +289,7 @@ class StartupCheckerService(IStartupChecker):
 
         return warnings
 
-    def _check_deprecated_keys(self) -> List[StartupWarning]:
+    def _check_deprecated_keys(self) -> list[StartupWarning]:
         """Check for deprecated configuration keys."""
         warnings = []
         deprecated_keys = ["legacy_mode", "old_agent_format", "deprecated_logging"]
@@ -307,7 +307,7 @@ class StartupCheckerService(IStartupChecker):
 
         return warnings
 
-    def _check_config_file_access(self) -> List[StartupWarning]:
+    def _check_config_file_access(self) -> list[StartupWarning]:
         """Check configuration file accessibility."""
         warnings = []
 
@@ -332,7 +332,7 @@ class StartupCheckerService(IStartupChecker):
 
         return warnings
 
-    def _check_required_directories(self) -> List[StartupWarning]:
+    def _check_required_directories(self) -> list[StartupWarning]:
         """Check for required directories."""
         warnings = []
 

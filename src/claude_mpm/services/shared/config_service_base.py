@@ -6,7 +6,7 @@ UPDATED: Migrated to use shared ConfigLoader pattern (TSK-0141)
 
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ...core.config import Config
 from ...core.mixins import LoggerMixin
@@ -27,9 +27,9 @@ class ConfigServiceBase(LoggerMixin, ABC):
     def __init__(
         self,
         service_name: str,
-        config: Optional[Union[Dict[str, Any], Config]] = None,
-        config_section: Optional[str] = None,
-        config_dir: Optional[Union[str, Path]] = None,
+        config: dict[str, Any] | Config | None = None,
+        config_section: str | None = None,
+        config_dir: str | Path | None = None,
     ):
         """
         Initialize config service.
@@ -57,14 +57,14 @@ class ConfigServiceBase(LoggerMixin, ABC):
             )
 
         # Cache for processed config values
-        self._config_cache: Dict[str, Any] = {}
+        self._config_cache: dict[str, Any] = {}
 
     def get_config_value(
         self,
         key: str,
         default: Any = None,
         required: bool = False,
-        config_type: Optional[type] = None,
+        config_type: type | None = None,
     ) -> Any:
         """
         Get configuration value with validation and caching.
@@ -121,7 +121,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
         self._config_cache[full_key] = value
         return value
 
-    def get_config_section(self, section: Optional[str] = None) -> Dict[str, Any]:
+    def get_config_section(self, section: str | None = None) -> dict[str, Any]:
         """
         Get entire configuration section.
 
@@ -134,7 +134,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
         section_name = section or self.config_section
         return self._config.get(section_name, {})
 
-    def validate_config(self, schema: Dict[str, Any]) -> List[str]:
+    def validate_config(self, schema: dict[str, Any]) -> list[str]:
         """
         Validate configuration against a schema.
 
@@ -183,7 +183,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
 
         return errors
 
-    def load_config_file(self, config_path: Union[str, Path]) -> bool:
+    def load_config_file(self, config_path: str | Path) -> bool:
         """
         Load additional configuration from file.
 
@@ -204,8 +204,8 @@ class ConfigServiceBase(LoggerMixin, ABC):
             return False
 
     def find_config_file(
-        self, filename: str, search_paths: Optional[List[Union[str, Path]]] = None
-    ) -> Optional[Path]:
+        self, filename: str, search_paths: list[str | Path] | None = None
+    ) -> Path | None:
         """
         Find configuration file in standard locations.
 
@@ -235,7 +235,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
 
         return None
 
-    def get_env_config(self, prefix: Optional[str] = None) -> Dict[str, Any]:
+    def get_env_config(self, prefix: str | None = None) -> dict[str, Any]:
         """
         Get configuration from environment variables.
 
@@ -250,7 +250,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
         # Use shared ConfigLoader for consistent environment variable handling
         return self._config_loader._load_env_config(env_prefix)
 
-    def merge_env_config(self, prefix: Optional[str] = None) -> None:
+    def merge_env_config(self, prefix: str | None = None) -> None:
         """
         Merge environment configuration into main config.
 
@@ -267,7 +267,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
             self._config_cache.clear()
             self.logger.debug(f"Merged {len(env_config)} environment variables")
 
-    def reload_config(self, config_dir: Optional[Union[str, Path]] = None) -> None:
+    def reload_config(self, config_dir: str | Path | None = None) -> None:
         """
         Reload configuration using ConfigLoader pattern.
 
@@ -283,7 +283,7 @@ class ConfigServiceBase(LoggerMixin, ABC):
 
         self.logger.info(f"Configuration reloaded for service: {self.service_name}")
 
-    def get_config_summary(self) -> Dict[str, Any]:
+    def get_config_summary(self) -> dict[str, Any]:
         """
         Get summary of current configuration.
 

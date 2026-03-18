@@ -10,12 +10,12 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from ..core.exceptions import FileOperationError
 
 
-def ensure_directory(path: Union[str, Path]) -> Path:
+def ensure_directory(path: str | Path) -> Path:
     """
     Ensure a directory exists, creating it if necessary.
 
@@ -43,7 +43,7 @@ def ensure_directory(path: Union[str, Path]) -> Path:
         ) from e
 
 
-def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
+def safe_read_file(path: str | Path, encoding: str = "utf-8") -> str:
     """
     Safely read a file with error handling.
 
@@ -83,7 +83,7 @@ def safe_read_file(path: Union[str, Path], encoding: str = "utf-8") -> str:
 
 
 def safe_write_file(
-    path: Union[str, Path],
+    path: str | Path,
     content: str,
     encoding: str = "utf-8",
     create_dirs: bool = True,
@@ -110,7 +110,7 @@ def safe_write_file(
 
 
 def atomic_write(
-    path: Union[str, Path],
+    path: str | Path,
     content: str,
     encoding: str = "utf-8",
     create_dirs: bool = True,
@@ -154,7 +154,7 @@ def atomic_write(
         raise FileOperationError(f"Failed to atomically write file {path}: {e}") from e
 
 
-def get_file_info(path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+def get_file_info(path: str | Path) -> dict[str, Any] | None:
     """
     Get file metadata safely.
 
@@ -183,9 +183,7 @@ def get_file_info(path: Union[str, Path]) -> Optional[Dict[str, Any]]:
         return None
 
 
-def safe_copy_file(
-    src: Union[str, Path], dst: Union[str, Path], create_dirs: bool = True
-) -> None:
+def safe_copy_file(src: str | Path, dst: str | Path, create_dirs: bool = True) -> None:
     """
     Safely copy a file with error handling.
 
@@ -213,7 +211,7 @@ def safe_copy_file(
         raise FileOperationError(f"Failed to copy {src} to {dst}: {e}") from e
 
 
-def safe_remove_file(path: Union[str, Path]) -> bool:
+def safe_remove_file(path: str | Path) -> bool:
     """
     Safely remove a file.
 
@@ -236,7 +234,7 @@ def safe_remove_file(path: Union[str, Path]) -> bool:
         raise FileOperationError(f"Failed to remove file {path}: {e}") from e
 
 
-def read_json_file(path: Union[str, Path]) -> Any:
+def read_json_file(path: str | Path) -> Any:
     """
     Read and parse a JSON file safely.
 
@@ -257,7 +255,7 @@ def read_json_file(path: Union[str, Path]) -> Any:
 
 
 def write_json_file(
-    path: Union[str, Path], data: Any, indent: int = 2, atomic: bool = True
+    path: str | Path, data: Any, indent: int = 2, atomic: bool = True
 ) -> None:
     """
     Write data to a JSON file safely.
@@ -281,7 +279,7 @@ def write_json_file(
         raise FileOperationError(f"Failed to write JSON file {path}: {e}") from e
 
 
-def backup_file(path: Union[str, Path], backup_suffix: str = ".backup") -> Path:
+def backup_file(path: str | Path, backup_suffix: str = ".backup") -> Path:
     """
     Create a backup copy of a file.
 

@@ -5,7 +5,7 @@ This is the largest section generator, containing all agent definitions,
 hierarchy, delegation patterns, and registry integration documentation.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -13,7 +13,7 @@ from . import BaseSectionGenerator
 class AgentsGenerator(BaseSectionGenerator):
     """Generates the comprehensive Agents section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the agents section."""
         return """
 ## A) AGENTS

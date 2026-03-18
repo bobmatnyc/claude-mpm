@@ -15,7 +15,7 @@ Note: This implementation returns mock responses for Phase 1. Phase 2 will
 add actual Claude API integration.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
 from claude_mpm.services.model.base_provider import BaseModelProvider
@@ -57,7 +57,7 @@ class ClaudeProvider(BaseModelProvider):
         "claude-3-haiku-20240307",
     ]
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize Claude provider.
 
@@ -130,7 +130,7 @@ class ClaudeProvider(BaseModelProvider):
         # Phase 2: Check API key and test connection
         return True
 
-    async def get_available_models(self) -> List[str]:
+    async def get_available_models(self) -> list[str]:
         """
         List available Claude models.
 
@@ -139,7 +139,7 @@ class ClaudeProvider(BaseModelProvider):
         """
         return self.AVAILABLE_MODELS
 
-    def get_supported_capabilities(self) -> List[ModelCapability]:
+    def get_supported_capabilities(self) -> list[ModelCapability]:
         """
         Return all supported capabilities.
 
@@ -154,7 +154,7 @@ class ClaudeProvider(BaseModelProvider):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -359,7 +359,7 @@ Suggested additions: performance, effectiveness, improvement""",
             "Mock analysis completed. Phase 2 will provide detailed results.",
         )
 
-    async def get_model_info(self, model: str) -> Dict[str, Any]:
+    async def get_model_info(self, model: str) -> dict[str, Any]:
         """
         Get detailed information about a Claude model.
 

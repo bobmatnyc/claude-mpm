@@ -17,8 +17,8 @@ It accepts a ClaudeRunnerProtocol instead of importing ClaudeRunner directly.
 
 import time
 import uuid
-from datetime import timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from datetime import UTC
+from typing import TYPE_CHECKING, Any, Optional
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.enums import OperationResult, ServiceState
@@ -43,7 +43,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
                     for delegation
         """
         super().__init__(name="session_management_service")
-        self.runner: Optional[ClaudeRunnerProtocol] = runner
+        self.runner: ClaudeRunnerProtocol | None = runner
         self.active_sessions = {}  # Track active sessions
 
     async def _initialize(self) -> None:
@@ -52,7 +52,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
 
-    def run_interactive_session(self, initial_context: Optional[str] = None) -> bool:
+    def run_interactive_session(self, initial_context: str | None = None) -> bool:
         """Run Claude in interactive mode using session delegation.
 
         WHY: This method delegates to InteractiveSession class for better
@@ -97,7 +97,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             if "session" in locals():
                 session.cleanup_interactive_session()
 
-    def run_oneshot_session(self, prompt: str, context: Optional[str] = None) -> bool:
+    def run_oneshot_session(self, prompt: str, context: str | None = None) -> bool:
         """Run Claude with a single prompt using session delegation.
 
         WHY: This method delegates to OneshotSession class for better
@@ -150,7 +150,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             if "session" in locals():
                 session.cleanup_session()
 
-    def create_session_log_file(self) -> Optional[Path]:
+    def create_session_log_file(self) -> Path | None:
         """Create a session log file for the current session.
 
         Returns:
@@ -167,7 +167,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             session_logs_dir.mkdir(parents=True, exist_ok=True)
 
             # Generate unique session log filename
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             session_id = str(uuid.uuid4())[:8]
             log_filename = f"session_{timestamp}_{session_id}.jsonl"
             log_file = session_logs_dir / log_filename
@@ -197,7 +197,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             from datetime import datetime
 
             # Add timestamp to event data
-            event_data["timestamp"] = datetime.now(timezone.utc).isoformat()
+            event_data["timestamp"] = datetime.now(UTC).isoformat()
 
             # Append to log file as JSONL
             with log_file.open("a") as f:
@@ -222,7 +222,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
 
     # Implementation of abstract methods from SessionManagementInterface
 
-    def start_session(self, session_config: Dict[str, Any]) -> str:
+    def start_session(self, session_config: dict[str, Any]) -> str:
         """Start a new session.
 
         Args:
@@ -267,7 +267,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
         self.logger.warning(f"Session {session_id} not found")
         return False
 
-    def get_session_status(self, session_id: str) -> Dict[str, Any]:
+    def get_session_status(self, session_id: str) -> dict[str, Any]:
         """Get status of a session.
 
         Args:
@@ -284,7 +284,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             "error": "Session not found",
         }
 
-    def list_active_sessions(self) -> List[str]:
+    def list_active_sessions(self) -> list[str]:
         """List all active session IDs.
 
         Returns:

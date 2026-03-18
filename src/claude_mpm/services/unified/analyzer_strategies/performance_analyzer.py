@@ -12,7 +12,7 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -146,7 +146,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             and context.operation in self.metadata.supported_operations
         )
 
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """Validate input data for strategy."""
         errors = []
 
@@ -164,8 +164,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         return errors
 
     def analyze(
-        self, target: Any, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, target: Any, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Execute performance analysis on target.
 
@@ -193,7 +193,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
-    def _analyze_file(self, file_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_file(self, file_path: Path, options: dict[str, Any]) -> dict[str, Any]:
         """Analyze a single file for performance issues."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -247,8 +247,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         return results
 
     def _analyze_directory(
-        self, dir_path: Path, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, dir_path: Path, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze all files in a directory for performance issues."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -319,7 +319,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
     def _scan_performance_patterns(
         self, content: str, file_path: Path
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Scan for performance anti-patterns."""
         issues = []
 
@@ -345,7 +345,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
     def _scan_memory_patterns(
         self, content: str, file_path: Path
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Scan for memory usage issues."""
         issues = []
 
@@ -371,7 +371,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
     def _analyze_python_performance(
         self, content: str, file_path: Path
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Perform Python-specific performance analysis."""
         results = {
             "complexity": {},
@@ -514,7 +514,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         return results
 
     def _check_python_optimizations(
-        self, tree: ast.AST, results: Dict, file_path: Path
+        self, tree: ast.AST, results: dict, file_path: Path
     ):
         """Check for Python-specific optimization opportunities."""
 
@@ -576,7 +576,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
     def _analyze_javascript_performance(
         self, content: str, file_path: Path
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Perform JavaScript-specific performance analysis."""
         results = {
             "issues": [],
@@ -648,8 +648,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         return results
 
     def _analyze_ast_performance(
-        self, node: ast.AST, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, node: ast.AST, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze performance of an AST node."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -685,7 +685,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _calculate_performance_score(self, results: Dict[str, Any]) -> float:
+    def _calculate_performance_score(self, results: dict[str, Any]) -> float:
         """Calculate performance score based on issues found."""
         score = 100.0
 
@@ -704,8 +704,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         return max(0, score)
 
     def _generate_optimizations(
-        self, issues: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, issues: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Generate optimization recommendations based on issues."""
         optimizations = []
         categories = set()
@@ -752,7 +752,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return optimizations
 
-    def _generate_performance_summary(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_performance_summary(self, results: dict[str, Any]) -> dict[str, Any]:
         """Generate summary of performance analysis."""
         return {
             "files_analyzed": results["files_analyzed"],
@@ -763,7 +763,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
             )[:3],
         }
 
-    def _generate_directory_recommendations(self, results: Dict[str, Any]) -> List[str]:
+    def _generate_directory_recommendations(self, results: dict[str, Any]) -> list[str]:
         """Generate recommendations for directory-level performance."""
         recommendations = []
 
@@ -796,7 +796,7 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
 
         return recommendations
 
-    def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metrics(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """Extract key metrics from analysis results."""
         metrics = {}
 
@@ -837,8 +837,8 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
         return metrics
 
     def compare_results(
-        self, baseline: Dict[str, Any], current: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, baseline: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare two performance analysis results."""
         comparison = {
             "score_change": 0,

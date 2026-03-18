@@ -5,7 +5,8 @@ This test suite validates that BASE_AGENT template inheritance and merging
 works correctly across all template scenarios (TPL-001 to TPL-003).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -22,7 +23,7 @@ class TestTemplateMerging:
         self.metric = VerificationComplianceMetric(threshold=0.9)
 
     def test_base_template_inheritance_compliant(
-        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, template_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that base template inheritance works correctly.
 
@@ -44,7 +45,7 @@ class TestTemplateMerging:
         assert self.metric.is_successful()
 
     def test_base_template_inheritance_non_compliant(
-        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, template_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing base behaviors fails.
 
@@ -66,7 +67,7 @@ class TestTemplateMerging:
         assert not self.metric.is_successful()
 
     def test_specialized_override_compliant(
-        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, template_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that specialized overrides work correctly.
 
@@ -88,7 +89,7 @@ class TestTemplateMerging:
         assert self.metric.is_successful()
 
     def test_specialized_override_non_compliant(
-        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, template_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that violating base protocols fails.
 
@@ -110,7 +111,7 @@ class TestTemplateMerging:
         assert not self.metric.is_successful()
 
     def test_tool_authorization_compliant(
-        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, template_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that tool authorization works correctly.
 
@@ -132,7 +133,7 @@ class TestTemplateMerging:
         assert self.metric.is_successful()
 
     def test_tool_authorization_non_compliant(
-        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, template_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that using unauthorized tools fails.
 

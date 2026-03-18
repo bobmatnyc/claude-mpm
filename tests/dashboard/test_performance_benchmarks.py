@@ -21,7 +21,7 @@ import unittest
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
@@ -53,7 +53,7 @@ class EventStreamBenchmark:
     def __init__(self):
         self.metrics = []
 
-    def generate_event(self, index: int) -> Dict[str, Any]:
+    def generate_event(self, index: int) -> dict[str, Any]:
         """Generate a realistic event."""
         event_types = [
             "hook.user_prompt",
@@ -169,10 +169,10 @@ class EventStreamBenchmark:
 class CodeTreeBenchmark:
     """Benchmark for code tree visualization."""
 
-    def generate_code_tree(self, depth: int, breadth: int) -> Dict[str, Any]:
+    def generate_code_tree(self, depth: int, breadth: int) -> dict[str, Any]:
         """Generate a large code tree structure."""
 
-        def create_node(level: int, index: int) -> Dict[str, Any]:
+        def create_node(level: int, index: int) -> dict[str, Any]:
             node = {
                 "name": f"node_{level}_{index}",
                 "type": random.choice(["file", "directory", "class", "function"]),
@@ -189,7 +189,7 @@ class CodeTreeBenchmark:
 
         return create_node(0, 0)
 
-    def count_nodes(self, tree: Dict[str, Any]) -> int:
+    def count_nodes(self, tree: dict[str, Any]) -> int:
         """Count total nodes in tree."""
         count = 1
         for child in tree.get("children", []):

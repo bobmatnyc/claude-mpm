@@ -21,8 +21,8 @@ users understand why content was assigned to specific agents.
 """
 
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.framework_loader import FrameworkLoader
@@ -460,7 +460,7 @@ class MemoryRouter(LoggerMixin):
     # Default agent for unmatched content
     DEFAULT_AGENT = "pm"
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         """Initialize the memory router.
 
         Args:
@@ -547,7 +547,7 @@ class MemoryRouter(LoggerMixin):
             self.logger.warning(f"Could not load dynamic memory routing patterns: {e}")
             self._dynamic_patterns_loaded = True  # Don't retry
 
-    def get_supported_agents(self) -> List[str]:
+    def get_supported_agents(self) -> list[str]:
         """Get list of supported agent types.
 
         WHY: Other components need to know which agent types are supported
@@ -579,8 +579,8 @@ class MemoryRouter(LoggerMixin):
         return agent_type in self.AGENT_PATTERNS or agent_type in self._dynamic_patterns
 
     def analyze_and_route(
-        self, content: str, context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        self, content: str, context: dict | None = None
+    ) -> dict[str, Any]:
         """Analyze content and determine target agent for memory storage.
 
         WHY: Different types of information belong to different agents. This method
@@ -622,7 +622,7 @@ class MemoryRouter(LoggerMixin):
                 "confidence": confidence,
                 "reasoning": reasoning,
                 "agent_scores": agent_scores,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "content_length": len(content),
             }
 
@@ -639,13 +639,13 @@ class MemoryRouter(LoggerMixin):
                 "confidence": 0.1,
                 "reasoning": f"Error during analysis, defaulting to {self.DEFAULT_AGENT}",
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "content_length": len(content) if content else 0,
             }
 
     def test_routing_patterns(
-        self, test_cases: List[Dict[str, str]]
-    ) -> List[Dict[str, Any]]:
+        self, test_cases: list[dict[str, str]]
+    ) -> list[dict[str, Any]]:
         """Test routing logic with provided test cases.
 
         WHY: Routing patterns need validation to ensure they work correctly.
@@ -681,7 +681,7 @@ class MemoryRouter(LoggerMixin):
 
         return results
 
-    def get_routing_patterns(self) -> Dict[str, Any]:
+    def get_routing_patterns(self) -> dict[str, Any]:
         """Get current routing patterns and statistics.
 
         WHY: Users and developers need to understand how routing works and
@@ -748,7 +748,7 @@ class MemoryRouter(LoggerMixin):
 
         return " ".join(filtered_words)
 
-    def _calculate_agent_scores(self, content: str) -> Dict[str, float]:
+    def _calculate_agent_scores(self, content: str) -> dict[str, float]:
         """Calculate relevance scores for each agent.
 
         Args:
@@ -794,8 +794,8 @@ class MemoryRouter(LoggerMixin):
         return scores
 
     def _apply_context_adjustments(
-        self, agent_scores: Dict[str, Any], context: Dict
-    ) -> Dict[str, Any]:
+        self, agent_scores: dict[str, Any], context: dict
+    ) -> dict[str, Any]:
         """Apply context-based adjustments to agent scores.
 
         Args:
@@ -833,7 +833,7 @@ class MemoryRouter(LoggerMixin):
 
         return agent_scores
 
-    def _select_target_agent(self, agent_scores: Dict[str, Any]) -> Tuple[str, float]:
+    def _select_target_agent(self, agent_scores: dict[str, Any]) -> tuple[str, float]:
         """Select target agent based on scores.
 
         Args:
@@ -901,9 +901,9 @@ class MemoryRouter(LoggerMixin):
     def _build_reasoning(
         self,
         target_agent: str,
-        agent_scores: Dict[str, Any],
+        agent_scores: dict[str, Any],
         section: str,
-        context: Optional[Dict],
+        context: dict | None,
     ) -> str:
         """Build human-readable reasoning for routing decision.
 

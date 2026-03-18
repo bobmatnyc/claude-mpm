@@ -10,7 +10,7 @@ DESIGN:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from claude_mpm.auth import OAuthManager, TokenStorage
 
@@ -23,8 +23,8 @@ class ToolResult:
         success: bool,
         action: str,
         data: Any = None,
-        error: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        error: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ):
         self.success = success
         self.action = action
@@ -62,8 +62,8 @@ class BaseToolModule(ABC):
 
     def __init__(
         self,
-        storage: Optional[TokenStorage] = None,
-        manager: Optional[OAuthManager] = None,
+        storage: TokenStorage | None = None,
+        manager: OAuthManager | None = None,
     ):
         """Initialize tool module with auth components.
 

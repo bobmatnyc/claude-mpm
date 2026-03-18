@@ -11,7 +11,7 @@ DESIGN DECISIONS:
 - Provides consistent formatting patterns
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TicketFormatterService:
@@ -33,7 +33,7 @@ class TicketFormatterService:
 
     def format_ticket_created(
         self, ticket_id: str, verbose: bool = False, **metadata
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Format output for created ticket.
 
@@ -58,11 +58,11 @@ class TicketFormatterService:
 
     def format_ticket_list(
         self,
-        tickets: List[Dict[str, Any]],
+        tickets: list[dict[str, Any]],
         page: int = 1,
         page_size: int = 20,
         verbose: bool = False,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Format a list of tickets for display.
 
@@ -112,8 +112,8 @@ class TicketFormatterService:
         return lines
 
     def format_ticket_detail(
-        self, ticket: Dict[str, Any], verbose: bool = False
-    ) -> List[str]:
+        self, ticket: dict[str, Any], verbose: bool = False
+    ) -> list[str]:
         """
         Format a single ticket's details for display.
 
@@ -166,8 +166,8 @@ class TicketFormatterService:
         return lines
 
     def format_search_results(
-        self, tickets: List[Dict[str, Any]], query: str, show_snippets: bool = True
-    ) -> List[str]:
+        self, tickets: list[dict[str, Any]], query: str, show_snippets: bool = True
+    ) -> list[str]:
         """
         Format search results with optional context snippets.
 
@@ -227,7 +227,7 @@ class TicketFormatterService:
         operation: str,
         ticket_id: str,
         success: bool,
-        message: Optional[str] = None,
+        message: str | None = None,
     ) -> str:
         """
         Format the result of a ticket operation.

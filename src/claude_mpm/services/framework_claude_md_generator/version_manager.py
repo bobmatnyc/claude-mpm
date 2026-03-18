@@ -7,7 +7,6 @@ Handles version parsing, incrementing, and comparison operations.
 """
 
 import re
-from typing import Optional
 
 
 class VersionManager:
@@ -72,7 +71,7 @@ class VersionManager:
 
         return self.framework_version
 
-    def auto_increment_version(self, current_content: Optional[str] = None) -> str:
+    def auto_increment_version(self, current_content: str | None = None) -> str:
         """
         Get the current framework version (no auto-increment for simple serial numbers).
 

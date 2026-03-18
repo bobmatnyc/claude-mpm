@@ -16,8 +16,8 @@ DESIGN DECISIONS:
 - Maintains backward compatibility with existing dashboard clients
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     import aiohttp
@@ -51,10 +51,10 @@ class DashboardServer(SocketIOServiceInterface):
 
     def __init__(
         self,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        monitor_host: Optional[str] = None,
-        monitor_port: Optional[int] = None,
+        host: str | None = None,
+        port: int | None = None,
+        monitor_host: str | None = None,
+        monitor_port: int | None = None,
     ):
         # Load configuration
         config = Config()
@@ -125,7 +125,7 @@ class DashboardServer(SocketIOServiceInterface):
         # Update state
         self.running = self.dashboard_server.is_running()
         if self.running:
-            self.stats["start_time"] = datetime.now(timezone.utc).isoformat()
+            self.stats["start_time"] = datetime.now(UTC).isoformat()
             self.stats["monitor_connected"] = monitor_connected
 
         self.logger.info(
@@ -190,12 +190,12 @@ class DashboardServer(SocketIOServiceInterface):
         return relay_handler
 
     # Delegate SocketIOServiceInterface methods to dashboard server
-    def broadcast_event(self, event_type: str, data: Dict[str, Any]):
+    def broadcast_event(self, event_type: str, data: dict[str, Any]):
         """Broadcast an event to all connected dashboard clients."""
         self.dashboard_server.broadcast_event(event_type, data)
 
     def send_to_client(
-        self, client_id: str, event_type: str, data: Dict[str, Any]
+        self, client_id: str, event_type: str, data: dict[str, Any]
     ) -> bool:
         """Send an event to a specific dashboard client."""
         return self.dashboard_server.send_to_client(client_id, event_type, data)
@@ -208,7 +208,7 @@ class DashboardServer(SocketIOServiceInterface):
         """Check if dashboard server is running."""
         return self.running
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get dashboard server statistics."""
         dashboard_stats = (
             self.dashboard_server.get_stats()
@@ -225,8 +225,7 @@ class DashboardServer(SocketIOServiceInterface):
             "monitor_stats": monitor_stats,
             "uptime": (
                 (
-                    datetime.now(timezone.utc)
-                    - datetime.fromisoformat(self.stats["start_time"])
+                    datetime.now(UTC) - datetime.fromisoformat(self.stats["start_time"])
                 ).total_seconds()
                 if self.stats["start_time"]
                 else 0
@@ -255,7 +254,7 @@ class DashboardServer(SocketIOServiceInterface):
         self.dashboard_server.session_ended()
 
     def claude_status_changed(
-        self, status: str, pid: Optional[int] = None, message: str = ""
+        self, status: str, pid: int | None = None, message: str = ""
     ):
         """Track Claude status changes - send to monitor server."""
         self.monitor_client.send_to_monitor(
@@ -277,7 +276,7 @@ class DashboardServer(SocketIOServiceInterface):
         )
         self.dashboard_server.agent_delegated(agent, task, status)
 
-    def todo_updated(self, todos: List[Dict[str, Any]]):
+    def todo_updated(self, todos: list[dict[str, Any]]):
         """Relay todo updates - send to monitor server."""
         self.monitor_client.send_to_monitor("todos_updated", {"todos": todos})
         self.dashboard_server.todo_updated(todos)
@@ -331,7 +330,7 @@ class DashboardServer(SocketIOServiceInterface):
         )
         self.dashboard_server.memory_injected(agent_id, context_size)
 
-    def get_active_sessions(self) -> List[Dict[str, Any]]:
+    def get_active_sessions(self) -> list[dict[str, Any]]:
         """Get list of active sessions from dashboard server."""
         return self.dashboard_server.get_active_sessions()
 

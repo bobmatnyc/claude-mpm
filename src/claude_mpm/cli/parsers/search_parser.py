@@ -5,7 +5,6 @@ This module provides argument parsing for the /mpm-search command.
 """
 
 import argparse
-from typing import Optional
 
 
 def add_search_subparser(
@@ -190,7 +189,7 @@ Examples:
     return search_parser
 
 
-def validate_search_args(args: argparse.Namespace) -> Optional[str]:
+def validate_search_args(args: argparse.Namespace) -> str | None:
     """
     Validate search command arguments.
 

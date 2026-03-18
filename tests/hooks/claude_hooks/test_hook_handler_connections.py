@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -105,9 +105,7 @@ class TestStateManagement:
 
         # Add an old delegation
         old_session = "old-session"
-        old_timestamp = (
-            datetime.now(timezone.utc).timestamp() - 400
-        )  # More than 5 minutes old
+        old_timestamp = datetime.now(UTC).timestamp() - 400  # More than 5 minutes old
         handler.active_delegations[old_session] = "engineer"
         handler.delegation_history.append(
             (f"{old_session}:{old_timestamp}", "engineer")
@@ -140,7 +138,7 @@ class TestStateManagement:
         handler = ClaudeHookHandler()
 
         session_id = "test-session-456"
-        timestamp = datetime.now(timezone.utc).timestamp()
+        timestamp = datetime.now(UTC).timestamp()
         handler.delegation_history.append((f"{session_id}:{timestamp}", "engineer"))
 
         result = handler._get_delegation_agent_type(session_id)
@@ -184,7 +182,7 @@ class TestStateManagement:
 
         # Expire the cache - it lives in state_manager now
         handler.state_manager._git_branch_cache_time["/test/path"] = (
-            datetime.now(timezone.utc).timestamp() - 400
+            datetime.now(UTC).timestamp() - 400
         )
 
         # Third call should execute git command again

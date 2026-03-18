@@ -29,7 +29,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import aiofiles
 
@@ -71,8 +71,8 @@ class AsyncAgentLoader:
         """Initialize async agent loader."""
         self.validator = AgentValidator()
         self.cache = SharedPromptCache.get_instance()
-        self._agent_registry: Dict[str, Dict[str, Any]] = {}
-        self._agent_tiers: Dict[str, AgentTier] = {}
+        self._agent_registry: dict[str, dict[str, Any]] = {}
+        self._agent_tiers: dict[str, AgentTier] = {}
         self.frontmatter_validator = FrontmatterValidator()
 
         # Thread pool for CPU-bound operations
@@ -88,7 +88,7 @@ class AsyncAgentLoader:
             "cache_misses": 0,
         }
 
-    async def discover_agent_dirs_async(self) -> Dict[AgentTier, Optional[Path]]:
+    async def discover_agent_dirs_async(self) -> dict[AgentTier, Path | None]:
         """Discover agent directories across all tiers in parallel.
 
         WHY: Checking directory existence across PROJECT/USER/SYSTEM tiers
@@ -101,7 +101,7 @@ class AsyncAgentLoader:
 
         async def check_tier_dir(
             tier: AgentTier, path: Path
-        ) -> Tuple[AgentTier, Optional[Path]]:
+        ) -> tuple[AgentTier, Path | None]:
             """Check if a tier directory exists."""
             if path.exists():
                 logger.debug(f"Found {tier.value.upper()} agents at: {path}")
@@ -142,7 +142,7 @@ class AsyncAgentLoader:
 
     async def load_agents_from_dir_async(
         self, directory: Path, tier: AgentTier
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Load all agents from a directory asynchronously.
 
         WHY: Loading multiple agent files sequentially is slow.
@@ -177,7 +177,7 @@ class AsyncAgentLoader:
             return []
 
         # Load all files in parallel
-        async def load_file(file_path: Path) -> Optional[Dict[str, Any]]:
+        async def load_file(file_path: Path) -> dict[str, Any] | None:
             """Load a single agent file."""
             try:
                 if file_path.suffix == ".json":
@@ -211,7 +211,7 @@ class AsyncAgentLoader:
 
         return valid_agents
 
-    async def load_json_agent_async(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    async def load_json_agent_async(self, file_path: Path) -> dict[str, Any] | None:
         """Load a JSON agent file asynchronously.
 
         WHY: JSON files require file I/O (async) and parsing (CPU-bound).
@@ -244,7 +244,7 @@ class AsyncAgentLoader:
             logger.error(f"Failed to load JSON agent {file_path}: {e}")
             return None
 
-    async def load_md_agent_async(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    async def load_md_agent_async(self, file_path: Path) -> dict[str, Any] | None:
         """Load a Markdown agent file with YAML frontmatter asynchronously.
 
         WHY: MD files with frontmatter require parsing both YAML and markdown.
@@ -281,7 +281,7 @@ class AsyncAgentLoader:
             logger.error(f"Failed to load MD agent {file_path}: {e}")
             return None
 
-    def _parse_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _parse_frontmatter(self, content: str) -> dict[str, Any] | None:
         """Parse YAML frontmatter from markdown content.
 
         This is a CPU-bound operation run in the thread pool.
@@ -324,7 +324,7 @@ class AsyncAgentLoader:
             logger.error(f"Failed to parse frontmatter: {e}")
             return None
 
-    async def load_all_agents_async(self) -> Dict[str, Dict[str, Any]]:
+    async def load_all_agents_async(self) -> dict[str, dict[str, Any]]:
         """Load all agents from all tiers in parallel.
 
         WHY: This is the main performance optimization - loading agents
@@ -387,13 +387,13 @@ class AsyncAgentLoader:
         """Clean up resources."""
         self.executor.shutdown(wait=False)
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics."""
         return self._metrics.copy()
 
 
 # Convenience function to load agents asynchronously from sync code
-def load_agents_async() -> Dict[str, Dict[str, Any]]:
+def load_agents_async() -> dict[str, dict[str, Any]]:
     """Load all agents using async operations.
 
     WHY: This wrapper allows async agent loading from synchronous code,

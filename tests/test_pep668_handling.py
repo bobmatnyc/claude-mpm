@@ -20,8 +20,11 @@ class TestPEP668Handling(unittest.TestCase):
 
     def test_pep668_detection_with_marker_file(self):
         """Test that PEP 668 is detected when EXTERNALLY-MANAGED file exists (not in venv)."""
-        with patch("pathlib.Path.exists") as mock_exists, patch.object(
-            RobustPackageInstaller, "_check_virtualenv", return_value=False
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch.object(
+                RobustPackageInstaller, "_check_virtualenv", return_value=False
+            ),
         ):
             # Simulate EXTERNALLY-MANAGED file exists
             mock_exists.return_value = True
@@ -40,8 +43,11 @@ class TestPEP668Handling(unittest.TestCase):
 
     def test_pep668_flags_added_to_commands(self):
         """Test that PEP 668 flags are added to pip commands when needed (not in venv)."""
-        with patch("pathlib.Path.exists") as mock_exists, patch.object(
-            RobustPackageInstaller, "_check_virtualenv", return_value=False
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch.object(
+                RobustPackageInstaller, "_check_virtualenv", return_value=False
+            ),
         ):
             mock_exists.return_value = True  # Simulate PEP 668 environment
 
@@ -64,8 +70,11 @@ class TestPEP668Handling(unittest.TestCase):
 
     def test_pep668_flags_not_added_when_not_managed(self):
         """Test that --user flag is used in normal system Python (not PEP 668, not venv)."""
-        with patch("pathlib.Path.exists") as mock_exists, patch.object(
-            RobustPackageInstaller, "_check_virtualenv", return_value=False
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch.object(
+                RobustPackageInstaller, "_check_virtualenv", return_value=False
+            ),
         ):
             mock_exists.return_value = False  # Not a PEP 668 environment
 
@@ -78,8 +87,11 @@ class TestPEP668Handling(unittest.TestCase):
 
     def test_pep668_warning_shown_once(self):
         """Test that PEP 668 warning is only shown once."""
-        with patch("pathlib.Path.exists") as mock_exists, patch.object(
-            RobustPackageInstaller, "_check_virtualenv", return_value=False
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch.object(
+                RobustPackageInstaller, "_check_virtualenv", return_value=False
+            ),
         ):
             mock_exists.return_value = True  # Simulate PEP 668 environment
 
@@ -104,8 +116,11 @@ class TestPEP668Handling(unittest.TestCase):
 
     def test_batch_install_with_pep668(self):
         """Test that batch installation also handles PEP 668 (not in venv)."""
-        with patch("pathlib.Path.exists") as mock_exists, patch.object(
-            RobustPackageInstaller, "_check_virtualenv", return_value=False
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch.object(
+                RobustPackageInstaller, "_check_virtualenv", return_value=False
+            ),
         ):
             mock_exists.return_value = True  # Simulate PEP 668 environment
 
@@ -123,8 +138,11 @@ class TestPEP668Handling(unittest.TestCase):
 
     def test_report_includes_pep668_status(self):
         """Test that installation report includes PEP 668 status."""
-        with patch("pathlib.Path.exists") as mock_exists, patch.object(
-            RobustPackageInstaller, "_check_virtualenv", return_value=False
+        with (
+            patch("pathlib.Path.exists") as mock_exists,
+            patch.object(
+                RobustPackageInstaller, "_check_virtualenv", return_value=False
+            ),
         ):
             mock_exists.return_value = True  # Simulate PEP 668 environment
 

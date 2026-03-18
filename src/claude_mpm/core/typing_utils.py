@@ -15,22 +15,17 @@ strict type safety.
 """
 
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import (
     Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
     Literal,
-    Optional,
+    NotRequired,
     Protocol,
-    Tuple,
     TypeVar,
-    Union,
 )
 
-from typing_extensions import NotRequired, TypeAlias, TypedDict
+from typing_extensions import TypedDict
 
 from claude_mpm.core.enums import OperationResult, ServiceState
 
@@ -41,18 +36,18 @@ TAgent = TypeVar("TAgent")  # Generic agent type
 TService = TypeVar("TService")  # Generic service type
 
 # Basic type aliases
-PathLike: TypeAlias = Union[str, Path]
-JSONValue: TypeAlias = Union[str, int, float, bool, None, Dict[str, Any], List[Any]]
-JSONDict: TypeAlias = Dict[str, JSONValue]
+type PathLike = str | Path
+type JSONValue = str | int | float | bool | None | dict[str, Any] | list[Any]
+type JSONDict = dict[str, JSONValue]
 
-Headers: TypeAlias = Dict[str, str]
-ErrorCode: TypeAlias = Union[int, str]
-LogLevel: TypeAlias = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+type Headers = dict[str, str]
+type ErrorCode = int | str
+type LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 # Session types
-SessionId: TypeAlias = str
-SessionStatus: TypeAlias = ServiceState  # Replaced Literal with ServiceState enum
-LaunchMethod: TypeAlias = Literal["exec", "subprocess", "oneshot"]
+type SessionId = str
+type SessionStatus = ServiceState  # Replaced Literal with ServiceState enum
+type LaunchMethod = Literal["exec", "subprocess", "oneshot"]
 
 
 class SessionConfig(TypedDict):
@@ -64,7 +59,7 @@ class SessionConfig(TypedDict):
     enable_websocket: NotRequired[bool]
     websocket_port: NotRequired[int]
     enable_tickets: NotRequired[bool]
-    claude_args: NotRequired[List[str]]
+    claude_args: NotRequired[list[str]]
     context: NotRequired[str]
     system_prompt: NotRequired[str]
 
@@ -78,7 +73,7 @@ class SessionResult(TypedDict):
     error: NotRequired[str]
     execution_time: NotRequired[float]
     exit_code: NotRequired[int]
-    metadata: NotRequired[Dict[str, Any]]
+    metadata: NotRequired[dict[str, Any]]
 
 
 class SessionEvent(TypedDict):
@@ -90,22 +85,22 @@ class SessionEvent(TypedDict):
     success: NotRequired[bool]
     error: NotRequired[str]
     exception_type: NotRequired[str]
-    metadata: NotRequired[Dict[str, Any]]
+    metadata: NotRequired[dict[str, Any]]
 
 
 # Agent types
-AgentId: TypeAlias = str
-AgentVersion: TypeAlias = str
-AgentTier: TypeAlias = Literal["SYSTEM", "USER", "PROJECT"]
-ModelName: TypeAlias = str
-ResourceTier: TypeAlias = Literal["standard", "premium", "enterprise"]
+type AgentId = str
+type AgentVersion = str
+type AgentTier = Literal["SYSTEM", "USER", "PROJECT"]
+type ModelName = str
+type ResourceTier = Literal["standard", "premium", "enterprise"]
 
 
 class AgentCapabilities(TypedDict):
     """Capabilities of an agent."""
 
     model: ModelName
-    tools: NotRequired[List[str]]
+    tools: NotRequired[list[str]]
     resource_tier: NotRequired[ResourceTier]
     max_tokens: NotRequired[int]
     temperature: NotRequired[float]
@@ -117,7 +112,7 @@ class AgentMetadata(TypedDict):
 
     name: str
     description: str
-    tags: NotRequired[List[str]]
+    tags: NotRequired[list[str]]
     author: NotRequired[str]
     created_at: NotRequired[str]
     updated_at: NotRequired[str]
@@ -136,9 +131,9 @@ class AgentDefinition(TypedDict):
 
 
 # WebSocket/SocketIO types
-EventName: TypeAlias = str
-EventData: TypeAlias = Dict[str, Any]
-SocketId: TypeAlias = str
+type EventName = str
+type EventData = dict[str, Any]
+type SocketId = str
 
 
 class WebSocketMessage(TypedDict):
@@ -170,9 +165,9 @@ class DelegationInfo(TypedDict):
 
 
 # Hook types
-HookName: TypeAlias = str
-HookPriority: TypeAlias = int
-HookResult: TypeAlias = Any
+type HookName = str
+type HookPriority = int
+type HookResult = Any
 
 
 class HookConfig(TypedDict):
@@ -181,7 +176,7 @@ class HookConfig(TypedDict):
     name: HookName
     enabled: NotRequired[bool]
     priority: NotRequired[HookPriority]
-    config: NotRequired[Dict[str, Any]]
+    config: NotRequired[dict[str, Any]]
 
 
 class HookContext(TypedDict):
@@ -190,12 +185,12 @@ class HookContext(TypedDict):
     hook_name: HookName
     session_id: NotRequired[SessionId]
     agent_id: NotRequired[AgentId]
-    data: NotRequired[Dict[str, Any]]
+    data: NotRequired[dict[str, Any]]
 
 
 # Service types
-ServiceName: TypeAlias = str
-ServiceStatus: TypeAlias = ServiceState  # Replaced Literal with ServiceState enum
+type ServiceName = str
+type ServiceStatus = ServiceState  # Replaced Literal with ServiceState enum
 
 
 class ServiceConfig(TypedDict):
@@ -205,7 +200,7 @@ class ServiceConfig(TypedDict):
     enabled: NotRequired[bool]
     port: NotRequired[int]
     host: NotRequired[str]
-    config: NotRequired[Dict[str, Any]]
+    config: NotRequired[dict[str, Any]]
 
 
 class ServiceInfo(TypedDict):
@@ -220,7 +215,7 @@ class ServiceInfo(TypedDict):
 
 
 # Memory types
-MemoryType: TypeAlias = Literal[
+type MemoryType = Literal[
     "pattern",
     "architecture",
     "guideline",
@@ -230,7 +225,7 @@ MemoryType: TypeAlias = Literal[
     "performance",
     "context",
 ]
-MemoryId: TypeAlias = str
+type MemoryId = str
 
 
 class Memory(TypedDict):
@@ -243,7 +238,7 @@ class Memory(TypedDict):
     timestamp: datetime
     relevance_score: NotRequired[float]
     usage_count: NotRequired[int]
-    tags: NotRequired[List[str]]
+    tags: NotRequired[list[str]]
 
 
 class MemorySearchResult(TypedDict):
@@ -251,7 +246,7 @@ class MemorySearchResult(TypedDict):
 
     memory: Memory
     score: float
-    matches: NotRequired[List[str]]
+    matches: NotRequired[list[str]]
 
 
 # Project and deployment types
@@ -259,9 +254,9 @@ class ProjectConfig(TypedDict):
     """Project-specific configuration."""
 
     project_name: NotRequired[str]
-    agent_deployment: NotRequired[Dict[str, Any]]
-    excluded_agents: NotRequired[List[AgentId]]
-    included_agents: NotRequired[List[AgentId]]
+    agent_deployment: NotRequired[dict[str, Any]]
+    excluded_agents: NotRequired[list[AgentId]]
+    included_agents: NotRequired[list[AgentId]]
     custom_agents_path: NotRequired[PathLike]
     memory_enabled: NotRequired[bool]
     websocket_enabled: NotRequired[bool]
@@ -270,9 +265,9 @@ class ProjectConfig(TypedDict):
 class DeploymentResult(TypedDict):
     """Result from agent deployment."""
 
-    deployed: List[AgentId]
-    failed: List[Tuple[AgentId, str]]
-    skipped: List[AgentId]
+    deployed: list[AgentId]
+    failed: list[tuple[AgentId, str]]
+    skipped: list[AgentId]
     total_time: float
 
 
@@ -283,15 +278,15 @@ class ResponseLogEntry(TypedDict):
     timestamp: datetime
     request_summary: str
     response_content: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     agent: AgentId
     session_id: NotRequired[SessionId]
     execution_time: NotRequired[float]
 
 
 # Command/CLI types
-CommandName: TypeAlias = str
-CommandArgs: TypeAlias = List[str]
+type CommandName = str
+type CommandArgs = list[str]
 
 
 class CommandResult(TypedDict):
@@ -309,13 +304,13 @@ class CommandResult(TypedDict):
 class SessionProtocol(Protocol):
     """Protocol for session handlers."""
 
-    def initialize_session(self, prompt: str) -> Tuple[bool, Optional[str]]:
+    def initialize_session(self, prompt: str) -> tuple[bool, str | None]:
         """Initialize the session."""
         ...
 
     def execute_command(
-        self, prompt: str, context: Optional[str], infrastructure: Dict[str, Any]
-    ) -> Tuple[bool, Optional[str]]:
+        self, prompt: str, context: str | None, infrastructure: dict[str, Any]
+    ) -> tuple[bool, str | None]:
         """Execute a command."""
         ...
 
@@ -328,7 +323,7 @@ class LoggerProtocol(Protocol):
     """Protocol for loggers."""
 
     def log_system(
-        self, message: str, level: LogLevel = "INFO", component: Optional[str] = None
+        self, message: str, level: LogLevel = "INFO", component: str | None = None
     ) -> None:
         """Log a system message."""
         ...
@@ -337,7 +332,7 @@ class LoggerProtocol(Protocol):
         """Log an agent message."""
         ...
 
-    def get_session_summary(self) -> Dict[str, Any]:
+    def get_session_summary(self) -> dict[str, Any]:
         """Get session summary."""
         ...
 
@@ -376,18 +371,18 @@ class AgentServiceProtocol(Protocol):
     """Protocol for agent service."""
 
     def deploy_agents(
-        self, agents: List[AgentDefinition], target_dir: PathLike
+        self, agents: list[AgentDefinition], target_dir: PathLike
     ) -> DeploymentResult:
         """Deploy agents to target directory."""
         ...
 
-    def discover_agents(self, tier: AgentTier) -> List[AgentDefinition]:
+    def discover_agents(self, tier: AgentTier) -> list[AgentDefinition]:
         """Discover agents at specified tier."""
         ...
 
     def get_agent(
-        self, agent_id: AgentId, tier: Optional[AgentTier] = None
-    ) -> Optional[AgentDefinition]:
+        self, agent_id: AgentId, tier: AgentTier | None = None
+    ) -> AgentDefinition | None:
         """Get specific agent."""
         ...
 
@@ -402,16 +397,16 @@ class MemoryServiceProtocol(Protocol):
     def search_memories(
         self,
         query: str,
-        agent_id: Optional[AgentId] = None,
-        memory_type: Optional[MemoryType] = None,
+        agent_id: AgentId | None = None,
+        memory_type: MemoryType | None = None,
         limit: int = 10,
-    ) -> List[MemorySearchResult]:
+    ) -> list[MemorySearchResult]:
         """Search memories."""
         ...
 
     def get_relevant_memories(
         self, context: str, agent_id: AgentId, limit: int = 5
-    ) -> List[Memory]:
+    ) -> list[Memory]:
         """Get relevant memories for context."""
         ...
 
@@ -474,10 +469,10 @@ class TestFixture(TypedDict):
 
 
 # Export commonly used type combinations
-CommonTypes = Union[str, int, float, bool, None, List[Any], Dict[str, Any]]
-ConfigDict = Dict[str, CommonTypes]
-ErrorResult = Tuple[bool, Optional[str]]
-SuccessResult = Tuple[bool, Any]
+CommonTypes = str | int | float | bool | None | list[Any] | dict[str, Any]
+ConfigDict = dict[str, CommonTypes]
+ErrorResult = tuple[bool, str | None]
+SuccessResult = tuple[bool, Any]
 
 __all__ = [
     "AgentCapabilities",

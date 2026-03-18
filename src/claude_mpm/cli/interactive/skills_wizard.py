@@ -4,8 +4,6 @@ This module provides a step-by-step interactive wizard for selecting and configu
 skills for agents with user-friendly prompts and intelligent auto-linking.
 """
 
-from typing import Dict, List, Optional, Tuple
-
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.skills.registry import get_registry
 from claude_mpm.skills.skill_manager import get_manager
@@ -84,8 +82,8 @@ class SkillsWizard:
         self.logger = logger
 
     def run_interactive_selection(
-        self, selected_agents: Optional[List[str]] = None
-    ) -> Tuple[bool, Dict[str, List[str]]]:
+        self, selected_agents: list[str] | None = None
+    ) -> tuple[bool, dict[str, list[str]]]:
         """Run interactive skills selection wizard.
 
         Args:
@@ -147,7 +145,7 @@ class SkillsWizard:
             print(f"\n❌ {error_msg}")
             return False, {}
 
-    def _auto_link_skills(self, agent_ids: List[str]) -> Dict[str, List[str]]:
+    def _auto_link_skills(self, agent_ids: list[str]) -> dict[str, list[str]]:
         """Auto-link skills to agents based on agent types.
 
         Args:
@@ -168,7 +166,7 @@ class SkillsWizard:
 
         return mapping
 
-    def _get_recommended_skills_for_agent(self, agent_id: str) -> List[str]:
+    def _get_recommended_skills_for_agent(self, agent_id: str) -> list[str]:
         """Get recommended skills for an agent based on its ID.
 
         Args:
@@ -208,7 +206,7 @@ class SkillsWizard:
         # Default
         return []
 
-    def _display_auto_linked_skills(self, mapping: Dict[str, List[str]]):
+    def _display_auto_linked_skills(self, mapping: dict[str, list[str]]):
         """Display auto-linked skills configuration.
 
         Args:
@@ -221,8 +219,8 @@ class SkillsWizard:
         print()
 
     def _run_custom_selection(
-        self, agent_ids: Optional[List[str]], initial_mapping: Dict[str, List[str]]
-    ) -> Dict[str, List[str]]:
+        self, agent_ids: list[str] | None, initial_mapping: dict[str, list[str]]
+    ) -> dict[str, list[str]]:
         """Run custom skills selection for each agent.
 
         Args:
@@ -300,7 +298,7 @@ class SkillsWizard:
 
         return mapping
 
-    def _get_agents_to_configure(self) -> List[str]:
+    def _get_agents_to_configure(self) -> list[str]:
         """Ask user which agents to configure.
 
         Returns:
@@ -309,7 +307,7 @@ class SkillsWizard:
         agent_ids_input = input("\nEnter agent IDs (comma-separated): ").strip()
         return [aid.strip() for aid in agent_ids_input.split(",") if aid.strip()]
 
-    def _preview_final_configuration(self, mapping: Dict[str, List[str]]):
+    def _preview_final_configuration(self, mapping: dict[str, list[str]]):
         """Display final skills configuration preview.
 
         Args:
@@ -331,7 +329,7 @@ class SkillsWizard:
             else:
                 print("    (no skills)")
 
-    def _apply_skills_configuration(self, mapping: Dict[str, List[str]]):
+    def _apply_skills_configuration(self, mapping: dict[str, list[str]]):
         """Apply skills configuration to skill manager.
 
         Args:
@@ -435,7 +433,7 @@ def discover_and_link_runtime_skills():
         logger.error(f"Error during runtime skills discovery: {e}", exc_info=True)
 
 
-def _infer_agents_for_skill(skill) -> List[str]:
+def _infer_agents_for_skill(skill) -> list[str]:
     """Infer which agents should have this skill based on tags/name.
 
     Args:

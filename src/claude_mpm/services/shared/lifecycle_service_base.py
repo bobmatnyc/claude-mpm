@@ -4,7 +4,7 @@ Base class for services with complex lifecycle management.
 
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ...core.enums import ServiceState
 from ...core.mixins import LoggerMixin
@@ -21,7 +21,7 @@ class LifecycleServiceBase(LoggerMixin, ABC):
     - Dependency management
     """
 
-    def __init__(self, service_name: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, service_name: str, config: dict[str, Any] | None = None):
         """
         Initialize lifecycle service.
 
@@ -36,19 +36,19 @@ class LifecycleServiceBase(LoggerMixin, ABC):
         # State management
         self._state = ServiceState.UNINITIALIZED
         self._previous_state = None
-        self._state_history: List[tuple] = []
+        self._state_history: list[tuple] = []
 
         # Lifecycle tracking
-        self._start_time: Optional[float] = None
-        self._last_health_check: Optional[float] = None
-        self._health_status: Dict[str, Any] = {}
+        self._start_time: float | None = None
+        self._last_health_check: float | None = None
+        self._health_status: dict[str, Any] = {}
 
         # Dependencies
-        self._dependencies: List[str] = []
-        self._dependents: List[str] = []
+        self._dependencies: list[str] = []
+        self._dependents: list[str] = []
 
         # Error tracking
-        self._errors: List[Dict[str, Any]] = []
+        self._errors: list[dict[str, Any]] = []
         self._max_errors = 10
 
     @property
@@ -71,7 +71,7 @@ class LifecycleServiceBase(LoggerMixin, ABC):
         )
 
     @property
-    def uptime(self) -> Optional[float]:
+    def uptime(self) -> float | None:
         """Get service uptime in seconds."""
         if self._start_time and self.is_running:
             return time.time() - self._start_time
@@ -213,7 +213,7 @@ class LifecycleServiceBase(LoggerMixin, ABC):
 
         return self.start()
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform health check.
 
@@ -299,7 +299,7 @@ class LifecycleServiceBase(LoggerMixin, ABC):
     def _do_stop(self) -> bool:
         """Service-specific stop logic."""
 
-    def _do_health_check(self) -> Dict[str, Any]:
+    def _do_health_check(self) -> dict[str, Any]:
         """Service-specific health check logic."""
         return {"healthy": True}
 

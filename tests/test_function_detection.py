@@ -5,7 +5,6 @@ This file should show multiple functions in the AST tree.
 """
 
 import os
-from typing import Dict, List
 
 # Module-level constants
 VERSION = "1.0.0"

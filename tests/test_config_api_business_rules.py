@@ -159,18 +159,24 @@ class TestImmutableSkillProtection(AioHTTPTestCase):
         mock_verification.timestamp = "2026-02-13T00:00:00"
         mock_verification.checks = []
 
-        with patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_immutable_skills",
-            return_value={"mpm-delegation-patterns"},
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
-        ) as mock_svc:
+        with (
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_immutable_skills",
+                return_value={"mpm-delegation-patterns"},
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
+            ) as mock_svc,
+        ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-1"
             mock_svc.return_value.remove_skills.return_value = {"errors": []}
@@ -196,24 +202,29 @@ class TestModeBusinessRules(AioHTTPTestCase):
 
     async def test_empty_user_defined_blocked(self):
         """Cannot switch to selective with empty allowed skill lists."""
-        with patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_config_path",
-            return_value=Path("/tmp/config.yaml"),
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._load_config",
-            return_value={
-                "skills": {
-                    "deployment_mode": "full",
-                    "agent_referenced": [],
-                    "user_defined": [],
+        with (
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_config_path",
+                return_value=Path("/tmp/config.yaml"),
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._load_config",
+                return_value={
+                    "skills": {
+                        "deployment_mode": "full",
+                        "agent_referenced": [],
+                        "user_defined": [],
+                    },
                 },
-            },
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_immutable_skills",
-            return_value=set(),  # Empty immutable set for this test
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
-        ) as mock_svc:
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_immutable_skills",
+                return_value=set(),  # Empty immutable set for this test
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
+            ) as mock_svc,
+        ):
             mock_svc.return_value.check_deployed_skills.return_value = {
                 "skills": [{"name": "skill-a"}],
             }
@@ -229,14 +240,17 @@ class TestModeBusinessRules(AioHTTPTestCase):
 
     async def test_already_in_mode_returns_409(self):
         """Switching to current mode returns 409 ALREADY_IN_MODE."""
-        with patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_config_path",
-            return_value=Path("/tmp/config.yaml"),
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._load_config",
-            return_value={
-                "skills": {"deployment_mode": "selective"},
-            },
+        with (
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_config_path",
+                return_value=Path("/tmp/config.yaml"),
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._load_config",
+                return_value={
+                    "skills": {"deployment_mode": "selective"},
+                },
+            ),
         ):
             resp = await self.client.request(
                 "PUT",

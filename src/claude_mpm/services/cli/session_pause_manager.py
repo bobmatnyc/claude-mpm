@@ -13,9 +13,9 @@ DESIGN DECISIONS:
 
 import json
 import subprocess  # nosec B404 - required for git operations
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 class SessionPauseManager:
     """Manages creating pause sessions and capturing state."""
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize session pause manager.
 
         Args:
@@ -42,9 +42,9 @@ class SessionPauseManager:
 
     def create_pause_session(
         self,
-        message: Optional[str] = None,
+        message: str | None = None,
         skip_commit: bool = False,
-        export_path: Optional[str] = None,
+        export_path: str | None = None,
     ) -> str:
         """Create a pause session with captured state.
 
@@ -62,7 +62,7 @@ class SessionPauseManager:
         logger.info("Creating pause session")
 
         # Generate session ID
-        session_id = f"session-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        session_id = f"session-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 
         # Capture state
         state = self._capture_state(session_id, message)
@@ -102,7 +102,7 @@ class SessionPauseManager:
         logger.info(f"Pause session created: {session_id}")
         return session_id
 
-    def _capture_state(self, session_id: str, message: Optional[str]) -> Dict[str, Any]:
+    def _capture_state(self, session_id: str, message: str | None) -> dict[str, Any]:
         """Capture current session state.
 
         Args:
@@ -121,7 +121,7 @@ class SessionPauseManager:
         # Build state dictionary
         return {
             "session_id": session_id,
-            "paused_at": datetime.now(timezone.utc).isoformat(),
+            "paused_at": datetime.now(UTC).isoformat(),
             "duration_hours": 0,  # Can be calculated if session start time known
             "context_usage": {
                 "tokens_used": 0,  # Would need Claude API integration
@@ -161,7 +161,7 @@ class SessionPauseManager:
             "project_path": str(self.project_path),
         }
 
-    def _capture_task_list_state(self) -> Dict[str, Any]:
+    def _capture_task_list_state(self) -> dict[str, Any]:
         """Capture task list state from ~/.claude/tasks/ directory.
 
         Reads task files and categorizes them by status.
@@ -171,7 +171,7 @@ class SessionPauseManager:
         """
         tasks_dir = Path.home() / ".claude" / "tasks"
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "pending_tasks": [],
             "in_progress_tasks": [],
             "completed_count": 0,
@@ -226,7 +226,7 @@ class SessionPauseManager:
 
         return result
 
-    def _get_git_context(self) -> Dict[str, Any]:
+    def _get_git_context(self) -> dict[str, Any]:
         """Get git repository context.
 
         Returns:
@@ -320,7 +320,7 @@ class SessionPauseManager:
         """
         return (self.project_path / ".git").exists()
 
-    def _save_yaml(self, state: Dict[str, Any], yaml_path: Path) -> None:
+    def _save_yaml(self, state: dict[str, Any], yaml_path: Path) -> None:
         """Save state as YAML format.
 
         Args:
@@ -340,7 +340,7 @@ class SessionPauseManager:
             logger.error(f"Failed to write YAML to {yaml_path}: {e}")
             raise
 
-    def _generate_markdown(self, state: Dict[str, Any]) -> str:
+    def _generate_markdown(self, state: dict[str, Any]) -> str:
         """Generate human-readable markdown format.
 
         Args:
@@ -490,7 +490,7 @@ class SessionPauseManager:
         try:
             latest_file = self.pause_dir / "LATEST-SESSION.txt"
             content = f"""Latest Session: {session_id}
-Paused At: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")}
+Paused At: {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z")}
 Project: {self.project_path}
 
 Files:
@@ -512,7 +512,7 @@ Validation:
         except Exception as e:
             logger.warning(f"Failed to update LATEST-SESSION.txt: {e}")
 
-    def _commit_pause_session(self, session_id: str, message: Optional[str]) -> None:
+    def _commit_pause_session(self, session_id: str, message: str | None) -> None:
         """Create git commit for pause session.
 
         Args:
@@ -529,7 +529,7 @@ Validation:
             )
 
             # Build commit message
-            commit_msg = f"session: pause at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\nSession ID: {session_id}"
+            commit_msg = f"session: pause at {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}\n\nSession ID: {session_id}"
             if message:
                 commit_msg += f"\nContext: {message}"
 

@@ -16,7 +16,7 @@ DESIGN DECISIONS:
 import argparse
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..services.diagnostics import DiagnosticRunner, DoctorReporter
 
@@ -24,11 +24,11 @@ from ..services.diagnostics import DiagnosticRunner, DoctorReporter
 def run_diagnostics(
     verbose: bool = False,
     fix: bool = False,
-    checks: Optional[List[str]] = None,
+    checks: list[str] | None = None,
     parallel: bool = False,
     output_format: str = "terminal",
     no_color: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Execute MPM diagnostics with the specified configuration.
 
@@ -140,7 +140,7 @@ def format_output(
     return ""
 
 
-def run_doctor_slash_command(args: List[str]) -> bool:
+def run_doctor_slash_command(args: list[str]) -> bool:
     """
     Execute the /mpm-doctor slash command.
 

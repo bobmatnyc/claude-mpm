@@ -24,7 +24,6 @@ Example:
 
 import shutil
 import subprocess
-from typing import Optional, Tuple
 
 
 # Custom Exceptions
@@ -169,7 +168,7 @@ After authentication, you'll be able to create PRs directly.
         title: str,
         body: str,
         base: str = "main",
-        head: Optional[str] = None,
+        head: str | None = None,
         draft: bool = False,
     ) -> str:
         """
@@ -253,9 +252,7 @@ After authentication, you'll be able to create PRs directly.
         except Exception as e:
             raise GitHubCLIError(f"Failed to create PR: {e}") from e
 
-    def check_pr_exists(
-        self, repo: str, head: str, base: str = "main"
-    ) -> Optional[str]:
+    def check_pr_exists(self, repo: str, head: str, base: str = "main") -> str | None:
         """
         Check if a PR already exists for the given head branch.
 
@@ -302,7 +299,7 @@ After authentication, you'll be able to create PRs directly.
         except Exception:
             return None
 
-    def get_pr_status(self, pr_url: str) -> Optional[dict]:
+    def get_pr_status(self, pr_url: str) -> dict | None:
         """
         Get PR status information.
 
@@ -340,7 +337,7 @@ After authentication, you'll be able to create PRs directly.
         except Exception:
             return None
 
-    def _run_gh_command(self, command: list) -> Tuple[int, str, str]:
+    def _run_gh_command(self, command: list) -> tuple[int, str, str]:
         """
         Run gh command and return result.
 
@@ -369,7 +366,7 @@ After authentication, you'll be able to create PRs directly.
         except Exception as e:
             raise GitHubCLIError(f"Failed to run gh command: {e}") from e
 
-    def validate_environment(self) -> Tuple[bool, str]:
+    def validate_environment(self) -> tuple[bool, str]:
         """
         Validate GitHub CLI environment is ready for operations.
 

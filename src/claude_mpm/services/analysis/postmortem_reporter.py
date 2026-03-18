@@ -14,7 +14,7 @@ DESIGN DECISION: Follows the same pattern as DoctorReporter for consistency.
 
 import json
 import sys
-from typing import Optional, TextIO
+from typing import TextIO
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -66,7 +66,7 @@ class PostmortemReporter:
         self,
         use_color: bool = True,
         verbose: bool = False,
-        output: Optional[TextIO] = None,
+        output: TextIO | None = None,
     ):
         """Initialize reporter.
 

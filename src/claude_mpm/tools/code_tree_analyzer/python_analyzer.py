@@ -11,7 +11,6 @@ that we can leverage for detailed analysis.
 
 import ast
 from pathlib import Path
-from typing import List, Optional
 
 from ...core.logging_config import get_logger
 from ..code_tree_events import CodeNodeEvent, CodeTreeEventEmitter
@@ -21,11 +20,11 @@ from .models import CodeNode
 class PythonAnalyzer:
     """Analyzes Python source code using AST."""
 
-    def __init__(self, emitter: Optional[CodeTreeEventEmitter] = None):
+    def __init__(self, emitter: CodeTreeEventEmitter | None = None):
         self.logger = get_logger(__name__)
         self.emitter = emitter
 
-    def analyze_file(self, file_path: Path) -> List[CodeNode]:
+    def analyze_file(self, file_path: Path) -> list[CodeNode]:
         """Analyze a Python file and extract code structure.
 
         Args:
@@ -58,7 +57,7 @@ class PythonAnalyzer:
 
     def _extract_nodes(
         self, tree: ast.AST, file_path: Path, source: str
-    ) -> List[CodeNode]:
+    ) -> list[CodeNode]:
         """Extract code nodes from AST tree.
 
         Args:
@@ -73,7 +72,7 @@ class PythonAnalyzer:
         source.splitlines()
 
         class NodeVisitor(ast.NodeVisitor):
-            def __init__(self, parent_name: Optional[str] = None):
+            def __init__(self, parent_name: str | None = None):
                 self.parent_name = parent_name
                 self.current_class = None
 

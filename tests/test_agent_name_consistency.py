@@ -14,7 +14,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
@@ -176,7 +176,7 @@ def demonstrate_hook_behavior():
                 "parameters": {"todos": [{"content": todo_content}]},
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = hook.execute(context)
@@ -203,7 +203,7 @@ def demonstrate_hook_behavior():
                 "parameters": {"todos": [{"content": todo_content}]},
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = hook.execute(context)
@@ -274,7 +274,7 @@ def demonstrate_error_cases():
                 "parameters": {"todos": [{"content": todo_content}]},
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = validator.execute(context)

@@ -213,7 +213,7 @@ class AutoConfigureCommand(BaseCommand):
             self._skills_deployer = SkillsDeployerService()
         return self._skills_deployer
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         # Validate project path
         project_path = (
@@ -310,7 +310,7 @@ class AutoConfigureCommand(BaseCommand):
         json_output: bool,
         configure_agents: bool = True,
         configure_skills: bool = True,
-        role: Optional[str] = None,
+        role: str | None = None,
     ) -> CommandResult:
         """Run configuration preview without deploying."""
         # Show role banner when a role preset is active
@@ -391,7 +391,7 @@ class AutoConfigureCommand(BaseCommand):
         json_output: bool,
         configure_agents: bool = True,
         configure_skills: bool = True,
-        role: Optional[str] = None,
+        role: str | None = None,
     ) -> CommandResult:
         """Run full auto-configuration with deployment."""
         # Show role banner when a role preset is active
@@ -720,8 +720,8 @@ class AutoConfigureCommand(BaseCommand):
     def _display_result(
         self,
         agent_result: Optional = None,
-        skills_result: Optional[dict] = None,
-        archive_result: Optional[dict] = None,
+        skills_result: dict | None = None,
+        archive_result: dict | None = None,
     ) -> CommandResult:
         """Display configuration result."""
         if not self.console:
@@ -807,8 +807,8 @@ class AutoConfigureCommand(BaseCommand):
     def _display_result_plain(
         self,
         agent_result: Optional = None,
-        skills_result: Optional[dict] = None,
-        archive_result: Optional[dict] = None,
+        skills_result: dict | None = None,
+        archive_result: dict | None = None,
     ) -> CommandResult:
         """Display result in plain text (fallback)."""
         # Determine overall success
@@ -947,8 +947,8 @@ class AutoConfigureCommand(BaseCommand):
     def _output_result_json(
         self,
         agent_result: Optional = None,
-        skills_result: Optional[dict] = None,
-        archive_result: Optional[dict] = None,
+        skills_result: dict | None = None,
+        archive_result: dict | None = None,
     ) -> CommandResult:
         """Output result as JSON."""
         output = {}
@@ -1092,7 +1092,7 @@ class AutoConfigureCommand(BaseCommand):
                 message=f"Role deployment error: {exc}",
             )
 
-    def _recommend_skills(self, agent_preview, role: Optional[str] = None):
+    def _recommend_skills(self, agent_preview, role: str | None = None):
         """Recommend skills based on deployed/recommended agents.
 
         Args:
@@ -1141,9 +1141,7 @@ class AutoConfigureCommand(BaseCommand):
             self.logger.error(f"Failed to deploy skills: {e}")
             return {"deployed": [], "errors": [str(e)]}
 
-    def _review_project_agents(
-        self, agent_preview, project_path: Path
-    ) -> Optional[dict]:
+    def _review_project_agents(self, agent_preview, project_path: Path) -> dict | None:
         """Review existing project agents and categorize them.
 
         Args:

@@ -23,9 +23,9 @@ while preserving essential information.
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
@@ -101,7 +101,7 @@ class MemoryBuilder(LoggerMixin):
     }
 
     def __init__(
-        self, config: Optional[Config] = None, working_directory: Optional[Path] = None
+        self, config: Config | None = None, working_directory: Path | None = None
     ):
         """Initialize the memory builder.
 
@@ -122,7 +122,7 @@ class MemoryBuilder(LoggerMixin):
         self.router = MemoryRouter(config)
         self.project_analyzer = ProjectAnalyzer(config, self.working_directory)
 
-    def _get_dynamic_doc_files(self) -> Dict[str, Dict[str, Any]]:
+    def _get_dynamic_doc_files(self) -> dict[str, dict[str, Any]]:
         """Get documentation files to process based on project analysis.
 
         WHY: Instead of hardcoded file list, dynamically discover important files
@@ -218,7 +218,7 @@ class MemoryBuilder(LoggerMixin):
         )
         return all_files
 
-    def build_from_documentation(self, force_rebuild: bool = False) -> Dict[str, Any]:
+    def build_from_documentation(self, force_rebuild: bool = False) -> dict[str, Any]:
         """Build agent memories from project documentation.
 
         WHY: Documentation contains project-specific knowledge that agents need.
@@ -233,7 +233,7 @@ class MemoryBuilder(LoggerMixin):
         try:
             results = {
                 "success": True,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "files_processed": 0,
                 "memories_created": 0,
                 "memories_updated": 0,
@@ -292,10 +292,10 @@ class MemoryBuilder(LoggerMixin):
             return {
                 "success": False,
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
-    def extract_from_text(self, text: str, source: str) -> List[Dict[str, Any]]:
+    def extract_from_text(self, text: str, source: str) -> list[dict[str, Any]]:
         """Extract memory-worthy content from text.
 
         WHY: Provides reusable text extraction logic that can be used for
@@ -354,8 +354,8 @@ class MemoryBuilder(LoggerMixin):
             return []
 
     def build_agent_memory_from_items(
-        self, agent_id: str, items: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, agent_id: str, items: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Build or update agent memory from extracted items.
 
         WHY: Extracted items need to be properly integrated into agent memory
@@ -421,8 +421,8 @@ class MemoryBuilder(LoggerMixin):
             return {"success": False, "agent_id": agent_id, "error": str(e)}
 
     def _extract_from_config_file(
-        self, content: str, file_path: Path, doc_config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, content: str, file_path: Path, doc_config: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Extract memory-worthy information from configuration files.
 
         WHY: Configuration files contain important setup patterns, dependencies,
@@ -482,7 +482,7 @@ class MemoryBuilder(LoggerMixin):
 
     def _extract_from_json_config(
         self, config_data: dict, source: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract patterns from JSON configuration."""
         items = []
 
@@ -525,7 +525,7 @@ class MemoryBuilder(LoggerMixin):
 
     def _extract_from_toml_config(
         self, config_data: dict, source: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract patterns from TOML configuration."""
         items = []
 
@@ -565,8 +565,8 @@ class MemoryBuilder(LoggerMixin):
         return items
 
     def _extract_from_source_file(
-        self, content: str, file_path: Path, doc_config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, content: str, file_path: Path, doc_config: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Extract patterns from source code files.
 
         WHY: Source files contain implementation patterns and architectural
@@ -602,7 +602,7 @@ class MemoryBuilder(LoggerMixin):
 
     def _extract_python_patterns(
         self, content: str, source: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract high-level patterns from Python source."""
         items = []
 
@@ -649,7 +649,7 @@ class MemoryBuilder(LoggerMixin):
 
     def _extract_javascript_patterns(
         self, content: str, source: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Extract high-level patterns from JavaScript/TypeScript source."""
         items = []
 
@@ -682,8 +682,8 @@ class MemoryBuilder(LoggerMixin):
         return items
 
     def _process_documentation_file(
-        self, file_path: Path, doc_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, file_path: Path, doc_config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Process a single documentation file with enhanced file type support.
 
         Args:
@@ -777,7 +777,7 @@ class MemoryBuilder(LoggerMixin):
 
             last_processed_time = datetime.fromisoformat(last_processed[file_key])
             file_modified_time = datetime.fromtimestamp(
-                file_path.stat().st_mtime, tz=timezone.utc
+                file_path.stat().st_mtime, tz=UTC
             )
 
             return file_modified_time > last_processed_time
@@ -806,7 +806,7 @@ class MemoryBuilder(LoggerMixin):
 
             # Update timestamp
             file_key = str(file_path.relative_to(self.project_root))
-            last_processed[file_key] = datetime.now(timezone.utc).isoformat()
+            last_processed[file_key] = datetime.now(UTC).isoformat()
 
             # Save back
             import json
@@ -882,8 +882,8 @@ class MemoryBuilder(LoggerMixin):
         return not any(phrase in content.lower() for phrase in generic_phrases)
 
     def _deduplicate_extracted_items(
-        self, items: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, items: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Remove near-duplicate extracted items.
 
         Args:

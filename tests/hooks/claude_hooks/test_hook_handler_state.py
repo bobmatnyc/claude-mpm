@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -103,7 +103,7 @@ class TestSubagentStopProcessing:
         handler.delegation_requests[session_id] = {
             "agent_type": "research",
             "request": {"prompt": "Research AI trends"},
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Create event with structured response

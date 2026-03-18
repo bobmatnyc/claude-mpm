@@ -9,7 +9,7 @@ maintainability and testability.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -24,7 +24,7 @@ class AgentConfigurationManager:
     - Source tier determination and configuration
     """
 
-    def __init__(self, base_agent_path: Optional[Path] = None):
+    def __init__(self, base_agent_path: Path | None = None):
         """Initialize the agent configuration manager.
 
         Args:
@@ -34,7 +34,7 @@ class AgentConfigurationManager:
         self.base_agent_path = base_agent_path
         self._base_agent_cache = None  # Cache for base agent data
 
-    def load_base_agent(self) -> Tuple[dict, tuple]:
+    def load_base_agent(self) -> tuple[dict, tuple]:
         """
         Load base agent configuration and version.
 
@@ -87,7 +87,7 @@ class AgentConfigurationManager:
             self._base_agent_cache = (default_base_agent, (1, 0, 0))
             return self._base_agent_cache
 
-    def get_agent_tools(self, agent_name: str, metadata: Dict[str, Any]) -> List[str]:
+    def get_agent_tools(self, agent_name: str, metadata: dict[str, Any]) -> list[str]:
         """
         Get appropriate tools for an agent based on its type and metadata.
 
@@ -151,7 +151,7 @@ class AgentConfigurationManager:
         # Return default tools with web search and bash
         return [*base_tools, "Bash", "WebSearch"]
 
-    def get_agent_specific_config(self, agent_name: str) -> Dict[str, Any]:
+    def get_agent_specific_config(self, agent_name: str) -> dict[str, Any]:
         """
         Get agent-specific configuration based on agent type.
 
@@ -337,7 +337,7 @@ class AgentConfigurationManager:
         self._base_agent_cache = None
         self.logger.debug("Base agent cache cleared")
 
-    def get_configuration_summary(self) -> Dict[str, Any]:
+    def get_configuration_summary(self) -> dict[str, Any]:
         """
         Get a summary of the current configuration.
 

@@ -14,7 +14,7 @@ DESIGN DECISIONS:
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ...core.enums import OutputFormat
 from ...core.shared.config_loader import ConfigLoader
@@ -172,7 +172,7 @@ class MemoryManagementCommand(MemoryCommand):
             self.logger.error(f"Error showing memory status: {e}", exc_info=True)
             return CommandResult.error_result(f"Error showing memory status: {e}")
 
-    def _get_status_data(self) -> Dict[str, Any]:
+    def _get_status_data(self) -> dict[str, Any]:
         """Get memory status as structured data."""
         # Use CRUD service to list memories with stats
         result = self.crud_service.list_memories(include_stats=True)

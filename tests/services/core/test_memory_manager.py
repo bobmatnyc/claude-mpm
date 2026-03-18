@@ -389,12 +389,15 @@ class TestMemoryManager:
             project_pm.write_text("# PM Memory\n- Project task 1\n- Common task")
 
             # Mock paths
-            with patch(
-                "claude_mpm.services.core.memory_manager.Path.home",
-                return_value=Path(tmpdir) / "user",
-            ), patch(
-                "claude_mpm.services.core.memory_manager.Path.cwd",
-                return_value=Path(tmpdir) / "project",
+            with (
+                patch(
+                    "claude_mpm.services.core.memory_manager.Path.home",
+                    return_value=Path(tmpdir) / "user",
+                ),
+                patch(
+                    "claude_mpm.services.core.memory_manager.Path.cwd",
+                    return_value=Path(tmpdir) / "project",
+                ),
             ):
                 # Load memories
                 result = memory_manager.load_memories()
@@ -588,12 +591,15 @@ class TestGetDeployedAgentsNormalization:
                 "# Agent Memory: dart-engineer\n- Dart test memory"
             )
 
-            with patch(
-                "claude_mpm.services.core.memory_manager.Path.cwd",
-                return_value=Path(tmpdir),
-            ), patch(
-                "claude_mpm.utils.agent_filters.Path.cwd",
-                return_value=Path(tmpdir),
+            with (
+                patch(
+                    "claude_mpm.services.core.memory_manager.Path.cwd",
+                    return_value=Path(tmpdir),
+                ),
+                patch(
+                    "claude_mpm.utils.agent_filters.Path.cwd",
+                    return_value=Path(tmpdir),
+                ),
             ):
                 result = memory_manager.load_memories()
 

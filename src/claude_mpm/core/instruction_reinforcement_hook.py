@@ -18,8 +18,8 @@ The hook works by:
 """
 
 import threading
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from ..core.enums import OperationResult
 from ..core.logger import get_logger
@@ -39,7 +39,7 @@ class InstructionReinforcementHook:
     - Test mode support
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the instruction reinforcement hook.
 
         Args:
@@ -89,7 +89,7 @@ class InstructionReinforcementHook:
             f"interval={self.injection_interval}"
         )
 
-    def intercept_todowrite(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def intercept_todowrite(self, params: dict[str, Any]) -> dict[str, Any]:
         """Intercept TodoWrite parameters and potentially inject reminders.
 
         Args:
@@ -140,7 +140,7 @@ class InstructionReinforcementHook:
 
         return self.call_count % self.injection_interval == 0
 
-    def inject_reminders(self, todos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def inject_reminders(self, todos: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Inject reminder message into todos list.
 
         Args:
@@ -171,7 +171,7 @@ class InstructionReinforcementHook:
 
         return modified_todos
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get current hook metrics.
 
         Returns:
@@ -198,7 +198,7 @@ class InstructionReinforcementHook:
                 "enabled": self.enabled,
                 "test_mode": self.test_mode,
                 "injection_interval": self.injection_interval,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
     def reset_counters(self):
@@ -213,7 +213,7 @@ class InstructionReinforcementHook:
 
         self.logger.info("Reset instruction reinforcement counters")
 
-    def update_config(self, config: Dict[str, Any]):
+    def update_config(self, config: dict[str, Any]):
         """Update hook configuration.
 
         Args:
@@ -232,12 +232,12 @@ class InstructionReinforcementHook:
 
 
 # Global instance for singleton pattern
-_instruction_reinforcement_hook: Optional[InstructionReinforcementHook] = None
+_instruction_reinforcement_hook: InstructionReinforcementHook | None = None
 _hook_lock = threading.Lock()
 
 
 def get_instruction_reinforcement_hook(
-    config: Optional[Dict[str, Any]] = None,
+    config: dict[str, Any] | None = None,
 ) -> InstructionReinforcementHook:
     """Get the global instruction reinforcement hook instance.
 

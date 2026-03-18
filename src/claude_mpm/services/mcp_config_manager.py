@@ -14,7 +14,6 @@ import subprocess  # nosec B404 - Required for MCP service management
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -151,8 +150,8 @@ class MCPConfigManager:
         return is_enabled
 
     def get_registry_service_config(
-        self, service_name: str, env_overrides: Optional[Dict[str, str]] = None
-    ) -> Optional[Dict]:
+        self, service_name: str, env_overrides: dict[str, str] | None = None
+    ) -> dict | None:
         """
         Get configuration for a service from the MCP Service Registry.
 
@@ -176,8 +175,8 @@ class MCPConfigManager:
             return None
 
     def filter_services_by_mcp_flag(
-        self, mcp_flag: Optional[str], all_services: Dict[str, Dict]
-    ) -> Dict[str, Dict]:
+        self, mcp_flag: str | None, all_services: dict[str, dict]
+    ) -> dict[str, dict]:
         """
         Filter MCP services based on the --mcp command line flag.
 
@@ -230,7 +229,7 @@ class MCPConfigManager:
 
         return sorted(services)
 
-    def detect_service_path(self, service_name: str) -> Optional[str]:
+    def detect_service_path(self, service_name: str) -> str | None:
         """
         Detect the best path for an MCP service.
 
@@ -326,7 +325,7 @@ class MCPConfigManager:
         )
         return None
 
-    def _check_pipx_installation(self, service_name: str) -> Optional[str]:
+    def _check_pipx_installation(self, service_name: str) -> str | None:
         """Check if service is installed via pipx."""
         pipx_venv = self.pipx_base / service_name
 
@@ -346,7 +345,7 @@ class MCPConfigManager:
 
         return None
 
-    def _check_uv_tool_installation(self, service_name: str) -> Optional[str]:
+    def _check_uv_tool_installation(self, service_name: str) -> str | None:
         """Check if service is installed via uv tool.
 
         Args:
@@ -374,7 +373,7 @@ class MCPConfigManager:
 
         return None
 
-    def _check_system_path(self, service_name: str) -> Optional[str]:
+    def _check_system_path(self, service_name: str) -> str | None:
         """Check if service is available in system PATH."""
         try:
             result = subprocess.run(  # nosec B603 B607 - Controlled which command
@@ -393,7 +392,7 @@ class MCPConfigManager:
 
         return None
 
-    def _check_local_venv(self, service_name: str) -> Optional[str]:
+    def _check_local_venv(self, service_name: str) -> str | None:
         """Check for local virtual environment installation (fallback)."""
         # Common local development paths
         possible_paths = [
@@ -414,7 +413,7 @@ class MCPConfigManager:
 
         return None
 
-    def test_service_command(self, service_name: str, config: Dict) -> bool:
+    def test_service_command(self, service_name: str, config: dict) -> bool:
         """
         Test if a service configuration actually works.
 
@@ -504,8 +503,8 @@ class MCPConfigManager:
         return False
 
     def get_static_service_config(
-        self, service_name: str, project_path: Optional[str] = None
-    ) -> Optional[Dict]:
+        self, service_name: str, project_path: str | None = None
+    ) -> dict | None:
         """
         Get the static, known-good configuration for an MCP service.
 
@@ -643,7 +642,7 @@ class MCPConfigManager:
 
         return config
 
-    def generate_service_config(self, service_name: str) -> Optional[Dict]:
+    def generate_service_config(self, service_name: str) -> dict | None:
         """
         Generate configuration for a specific MCP service.
 
@@ -816,7 +815,7 @@ class MCPConfigManager:
 
         return config
 
-    def check_mcp_services_available(self) -> Tuple[bool, str]:
+    def check_mcp_services_available(self) -> tuple[bool, str]:
         """
         Check if required MCP services are available in ~/.claude.json (READ-ONLY).
 
@@ -873,7 +872,7 @@ class MCPConfigManager:
             f"All required MCP services available ({len(expected_services)} services)",
         )
 
-    def ensure_mcp_services_configured(self) -> Tuple[bool, str]:
+    def ensure_mcp_services_configured(self) -> tuple[bool, str]:
         """
         DEPRECATED: Auto-configuring ~/.claude.json is no longer supported.
 
@@ -901,7 +900,7 @@ class MCPConfigManager:
         # Delegate to read-only check
         return self.check_mcp_services_available()
 
-    def update_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
+    def update_mcp_config(self, force_pipx: bool = True) -> tuple[bool, str]:
         """
         DEPRECATED: Check MCP configuration in ~/.claude.json (READ-ONLY).
 
@@ -917,7 +916,7 @@ class MCPConfigManager:
         # Delegate to read-only check
         return self.check_mcp_services_available()
 
-    def update_project_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
+    def update_project_mcp_config(self, force_pipx: bool = True) -> tuple[bool, str]:
         """
         Update the .mcp.json configuration file (legacy method).
 
@@ -971,7 +970,7 @@ class MCPConfigManager:
         except Exception as e:
             return False, f"Failed to update .mcp.json: {e}"
 
-    def validate_configuration(self) -> Dict[str, bool]:
+    def validate_configuration(self) -> dict[str, bool]:
         """
         Validate that all configured MCP services are accessible.
 
@@ -1018,7 +1017,7 @@ class MCPConfigManager:
 
         return {}
 
-    def install_missing_services(self) -> Tuple[bool, str]:
+    def install_missing_services(self) -> tuple[bool, str]:
         """
         Install missing MCP services via pipx with verification and fallbacks.
 
@@ -1052,7 +1051,7 @@ class MCPConfigManager:
             return True, f"Successfully installed: {', '.join(installed)}"
         return True, "No services needed installation"
 
-    def _install_service_with_fallback(self, service_name: str) -> Tuple[bool, str]:
+    def _install_service_with_fallback(self, service_name: str) -> tuple[bool, str]:
         """
         Install a service with multiple fallback methods.
 
@@ -1175,7 +1174,7 @@ class MCPConfigManager:
     #     """
     #     return False
 
-    def fix_mcp_service_issues(self) -> Tuple[bool, str]:
+    def fix_mcp_service_issues(self) -> tuple[bool, str]:
         """
         Detect and fix corrupted MCP service installations.
 
@@ -1189,7 +1188,7 @@ class MCPConfigManager:
         # Services should stand on their own - no proactive health checking
         return True, "MCP services managing their own health"
 
-    def _detect_service_issue(self, service_name: str) -> Optional[str]:
+    def _detect_service_issue(self, service_name: str) -> str | None:
         """
         Detect what type of issue a service has.
 
@@ -1609,9 +1608,7 @@ class MCPConfigManager:
 
         return False
 
-    def _get_fallback_config(
-        self, service_name: str, project_path: str
-    ) -> Optional[Dict]:
+    def _get_fallback_config(self, service_name: str, project_path: str) -> dict | None:
         """
         Get a fallback configuration for a service if the primary config fails.
 
@@ -1642,7 +1639,7 @@ class MCPConfigManager:
         # For other services, try pipx run
         return None
 
-    def get_filtered_services(self) -> Dict[str, Dict]:
+    def get_filtered_services(self) -> dict[str, dict]:
         """Get all MCP service configurations filtered by startup configuration.
 
         Returns:

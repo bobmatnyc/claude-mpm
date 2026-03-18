@@ -19,7 +19,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..core.models.toolchain import (
     ConfidenceLevel,
@@ -37,10 +37,10 @@ class DetectionEvidence:
     technologies were detected and builds trust in recommendations.
     """
 
-    indicators_found: List[str] = field(default_factory=list)
-    confidence_contributors: Dict[str, float] = field(default_factory=dict)
-    version_sources: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    indicators_found: list[str] = field(default_factory=list)
+    confidence_contributors: dict[str, float] = field(default_factory=dict)
+    version_sources: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_indicator(self, indicator: str, confidence_boost: float = 0.15) -> None:
         """Add an indicator and its confidence contribution."""
@@ -73,7 +73,7 @@ class IToolchainDetectionStrategy(ABC):
         """
 
     @abstractmethod
-    def detect_language(self, project_path: Path) -> Optional[LanguageDetection]:
+    def detect_language(self, project_path: Path) -> LanguageDetection | None:
         """Detect language with confidence and evidence.
 
         Args:
@@ -84,7 +84,7 @@ class IToolchainDetectionStrategy(ABC):
         """
 
     @abstractmethod
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect frameworks used in the project.
 
         Args:
@@ -122,7 +122,7 @@ class BaseDetectionStrategy(IToolchainDetectionStrategy):
         """Check if file exists in project."""
         return any((project_path / rel_path).exists() for rel_path in relative_paths)
 
-    def _read_file(self, file_path: Path) -> Optional[str]:
+    def _read_file(self, file_path: Path) -> str | None:
         """Safely read file contents."""
         try:
             return file_path.read_text(encoding="utf-8", errors="ignore")
@@ -131,8 +131,8 @@ class BaseDetectionStrategy(IToolchainDetectionStrategy):
             return None
 
     def _extract_version_from_file(
-        self, file_path: Path, patterns: List[str]
-    ) -> Optional[str]:
+        self, file_path: Path, patterns: list[str]
+    ) -> str | None:
         """Extract version using regex patterns."""
         content = self._read_file(file_path)
         if not content:
@@ -155,7 +155,7 @@ class BaseDetectionStrategy(IToolchainDetectionStrategy):
         return ConfidenceLevel.VERY_LOW
 
     def _count_source_files(
-        self, project_path: Path, extensions: Set[str], max_depth: int = 5
+        self, project_path: Path, extensions: set[str], max_depth: int = 5
     ) -> int:
         """Count source files with given extensions."""
         count = 0
@@ -221,7 +221,7 @@ class NodeJSDetectionStrategy(BaseDetectionStrategy):
         """Check for Node.js indicators."""
         return self._file_exists(project_path, *self.MARKER_FILES)
 
-    def detect_language(self, project_path: Path) -> Optional[LanguageDetection]:
+    def detect_language(self, project_path: Path) -> LanguageDetection | None:
         """Detect Node.js with confidence scoring."""
         if not self.can_detect(project_path):
             return None
@@ -298,7 +298,7 @@ class NodeJSDetectionStrategy(BaseDetectionStrategy):
             language_percentages=language_percentages,
         )
 
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect Node.js frameworks from package.json."""
         frameworks = []
 
@@ -396,7 +396,7 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
         """Check for Python indicators."""
         return self._file_exists(project_path, *self.MARKER_FILES)
 
-    def detect_language(self, project_path: Path) -> Optional[LanguageDetection]:
+    def detect_language(self, project_path: Path) -> LanguageDetection | None:
         """Detect Python with confidence scoring."""
         if not self.can_detect(project_path):
             return None
@@ -454,7 +454,7 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
             language_percentages={"Python": 100.0},
         )
 
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect Python frameworks from dependency files."""
         frameworks = []
         dependencies = self._extract_dependencies(project_path)
@@ -478,7 +478,7 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
 
         return frameworks
 
-    def _extract_dependencies(self, project_path: Path) -> Dict[str, Optional[str]]:
+    def _extract_dependencies(self, project_path: Path) -> dict[str, str | None]:
         """Extract dependencies from various Python dependency files."""
         dependencies = {}
 
@@ -574,7 +574,7 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
         return content[start_pos + 1 :]
 
     def _parse_pep621_dependencies(
-        self, content: str, dependencies: Dict[str, Optional[str]]
+        self, content: str, dependencies: dict[str, str | None]
     ) -> None:
         """Parse PEP 621 dependency arrays from pyproject.toml.
 
@@ -617,7 +617,7 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
                 self._extract_pep621_packages(array_content, dependencies)
 
     def _extract_pep621_packages(
-        self, array_content: str, dependencies: Dict[str, Optional[str]]
+        self, array_content: str, dependencies: dict[str, str | None]
     ) -> None:
         """Extract package names and versions from a PEP 621 dependency array string.
 
@@ -680,7 +680,7 @@ class RustDetectionStrategy(BaseDetectionStrategy):
         """Check for Rust indicators."""
         return self._file_exists(project_path, *self.MARKER_FILES)
 
-    def detect_language(self, project_path: Path) -> Optional[LanguageDetection]:
+    def detect_language(self, project_path: Path) -> LanguageDetection | None:
         """Detect Rust with confidence scoring."""
         if not self.can_detect(project_path):
             return None
@@ -723,7 +723,7 @@ class RustDetectionStrategy(BaseDetectionStrategy):
             language_percentages={"Rust": 100.0},
         )
 
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect Rust frameworks from Cargo.toml."""
         frameworks = []
 
@@ -805,7 +805,7 @@ class GoDetectionStrategy(BaseDetectionStrategy):
         """Check for Go indicators."""
         return self._file_exists(project_path, *self.MARKER_FILES)
 
-    def detect_language(self, project_path: Path) -> Optional[LanguageDetection]:
+    def detect_language(self, project_path: Path) -> LanguageDetection | None:
         """Detect Go with confidence scoring."""
         if not self.can_detect(project_path):
             return None
@@ -846,7 +846,7 @@ class GoDetectionStrategy(BaseDetectionStrategy):
             language_percentages={"Go": 100.0},
         )
 
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect Go frameworks from go.mod."""
         frameworks = []
 

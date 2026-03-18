@@ -16,7 +16,7 @@ ARCHITECTURE:
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from ....core.enums import HealthStatus
 
@@ -40,10 +40,10 @@ class HealthCheckResult:
     status: HealthStatus
     check_type: str
     message: str
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
     checked_at: datetime = field(default_factory=datetime.now)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -56,7 +56,7 @@ class HealthCheckResult:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "HealthCheckResult":
+    def from_dict(cls, data: dict[str, Any]) -> "HealthCheckResult":
         """
         Create HealthCheckResult from dictionary.
 
@@ -94,10 +94,10 @@ class DeploymentHealth:
 
     deployment_id: str
     overall_status: HealthStatus
-    checks: List[HealthCheckResult] = field(default_factory=list)
+    checks: list[HealthCheckResult] = field(default_factory=list)
     last_check: datetime = field(default_factory=datetime.now)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Convert to dictionary for JSON serialization.
 
@@ -112,7 +112,7 @@ class DeploymentHealth:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DeploymentHealth":
+    def from_dict(cls, data: dict[str, Any]) -> "DeploymentHealth":
         """
         Create DeploymentHealth from dictionary.
 

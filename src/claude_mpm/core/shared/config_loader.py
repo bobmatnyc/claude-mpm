@@ -5,7 +5,7 @@ Shared configuration loading utilities to reduce duplication.
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from ..config import Config
 from ..logger import get_logger
@@ -16,22 +16,22 @@ class ConfigPattern:
     """Configuration loading pattern definition."""
 
     # File patterns to search for
-    filenames: List[str]
+    filenames: list[str]
 
     # Search paths (relative to working directory)
-    search_paths: List[str]
+    search_paths: list[str]
 
     # Environment variable prefix
-    env_prefix: Optional[str] = None
+    env_prefix: str | None = None
 
     # Default values
-    defaults: Optional[Dict[str, Any]] = None
+    defaults: dict[str, Any] | None = None
 
     # Required configuration keys
-    required_keys: Optional[List[str]] = None
+    required_keys: list[str] | None = None
 
     # Configuration section name
-    section: Optional[str] = None
+    section: str | None = None
 
 
 class ConfigLoader:
@@ -70,7 +70,7 @@ class ConfigLoader:
         defaults={"enabled": True, "auto_start": False, "health_check_interval": 60},
     )
 
-    def __init__(self, working_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, working_dir: str | Path | None = None):
         """
         Initialize config loader.
 
@@ -79,12 +79,12 @@ class ConfigLoader:
         """
         self.working_dir = Path(working_dir) if working_dir else Path.cwd()
         self.logger = get_logger("config_loader")
-        self._cache: Dict[str, Config] = {}
+        self._cache: dict[str, Config] = {}
 
     def load_config(
         self,
         pattern: ConfigPattern,
-        cache_key: Optional[str] = None,
+        cache_key: str | None = None,
         force_reload: bool = False,
     ) -> Config:
         """
@@ -140,7 +140,7 @@ class ConfigLoader:
 
         return config
 
-    def load_agent_config(self, agent_dir: Optional[Union[str, Path]] = None) -> Config:
+    def load_agent_config(self, agent_dir: str | Path | None = None) -> Config:
         """Load agent configuration."""
         pattern = self.AGENT_CONFIG
         if agent_dir:
@@ -172,9 +172,7 @@ class ConfigLoader:
         )
         return self.load_config(pattern, cache_key="main_config")
 
-    def load_memory_config(
-        self, memory_dir: Optional[Union[str, Path]] = None
-    ) -> Config:
+    def load_memory_config(self, memory_dir: str | Path | None = None) -> Config:
         """Load memory configuration."""
         pattern = self.MEMORY_CONFIG
         if memory_dir:
@@ -188,7 +186,7 @@ class ConfigLoader:
         return self.load_config(pattern, cache_key=f"memory_{memory_dir}")
 
     def load_service_config(
-        self, service_name: str, config_dir: Optional[Union[str, Path]] = None
+        self, service_name: str, config_dir: str | Path | None = None
     ) -> Config:
         """Load service configuration."""
         pattern = self.SERVICE_CONFIG
@@ -211,7 +209,7 @@ class ConfigLoader:
 
         return self.load_config(pattern, cache_key=f"service_{service_name}")
 
-    def _find_config_file(self, pattern: ConfigPattern) -> Optional[Path]:
+    def _find_config_file(self, pattern: ConfigPattern) -> Path | None:
         """Find configuration file using pattern."""
         for search_path in pattern.search_paths:
             search_dir = self.working_dir / search_path
@@ -225,7 +223,7 @@ class ConfigLoader:
 
         return None
 
-    def _load_config_file(self, config_file: Path) -> Dict[str, Any]:
+    def _load_config_file(self, config_file: Path) -> dict[str, Any]:
         """Load configuration from file."""
         try:
             import yaml
@@ -243,7 +241,7 @@ class ConfigLoader:
             self.logger.error(f"Failed to load config file {config_file}: {e}")
             return {}
 
-    def _load_env_config(self, prefix: str) -> Dict[str, Any]:
+    def _load_env_config(self, prefix: str) -> dict[str, Any]:
         """Load configuration from environment variables."""
         config = {}
 
@@ -287,7 +285,7 @@ class ConfigLoader:
         # Return as string
         return value
 
-    def _validate_required_keys(self, config: Config, required_keys: List[str]) -> None:
+    def _validate_required_keys(self, config: Config, required_keys: list[str]) -> None:
         """Validate that required keys are present."""
         missing_keys = []
 
@@ -306,9 +304,9 @@ class ConfigLoader:
         pattern_str = f"{pattern.filenames}_{pattern.search_paths}_{pattern.env_prefix}"
 
         # Generate hash
-        return hashlib.md5(pattern_str.encode()).hexdigest()[:8]
+        return hashlib.md5(pattern_str.encode()).hexdigest()[:8]  # nosec
 
-    def clear_cache(self, cache_key: Optional[str] = None) -> None:
+    def clear_cache(self, cache_key: str | None = None) -> None:
         """Clear configuration cache."""
         if cache_key:
             self._cache.pop(cache_key, None)
@@ -317,7 +315,7 @@ class ConfigLoader:
             self._cache.clear()
             self.logger.debug("Cleared all config cache")
 
-    def get_cache_info(self) -> Dict[str, Any]:
+    def get_cache_info(self) -> dict[str, Any]:
         """Get cache information."""
         return {
             "cached_configs": len(self._cache),

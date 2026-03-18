@@ -12,7 +12,7 @@ import asyncio
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from aiohttp import web
 
@@ -36,7 +36,7 @@ _backup_manager = None
 _skills_deployer = None
 
 # In-flight auto-configure jobs
-_active_jobs: Dict[str, asyncio.Task] = {}
+_active_jobs: dict[str, asyncio.Task] = {}
 
 
 def _get_toolchain_analyzer():
@@ -160,9 +160,9 @@ def _error_response(status: int, error: str, code: str) -> web.Response:
     )
 
 
-def _toolchain_to_dict(analysis) -> Dict[str, Any]:
+def _toolchain_to_dict(analysis) -> dict[str, Any]:
     """Serialise a ToolchainAnalysis to a JSON-safe dict."""
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "primary_language": getattr(
             analysis.language_detection, "primary_language", "Unknown"
         ),
@@ -216,9 +216,9 @@ def _toolchain_to_dict(analysis) -> Dict[str, Any]:
     return result
 
 
-def _preview_to_dict(preview) -> Dict[str, Any]:
+def _preview_to_dict(preview) -> dict[str, Any]:
     """Serialise a ConfigurationPreview to a JSON-safe dict."""
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "would_deploy": preview.would_deploy,
         "would_skip": preview.would_skip,
         "deployment_count": preview.deployment_count,
@@ -517,7 +517,7 @@ async def _run_auto_configure(
     """Background task that runs the full auto-configure workflow."""
     start_time = time.time()
     total_phases = 6
-    backup_id: Optional[str] = None
+    backup_id: str | None = None
 
     try:
         # Phase 1: Detecting

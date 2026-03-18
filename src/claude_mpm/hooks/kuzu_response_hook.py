@@ -18,7 +18,7 @@ DESIGN DECISIONS:
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from claude_mpm.hooks.base_hook import HookContext, HookResult, PostDelegationHook
 from claude_mpm.hooks.kuzu_memory_hook import get_kuzu_memory_hook
@@ -122,7 +122,7 @@ class KuzuResponseHook(PostDelegationHook):
                 error=f"Learning extraction failed: {e}",
             )
 
-    def _extract_response_content(self, result_data: Any) -> Optional[str]:
+    def _extract_response_content(self, result_data: Any) -> str | None:
         """
         Extract response content from various result formats.
 

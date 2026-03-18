@@ -23,7 +23,7 @@ Migration Strategy:
 import inspect
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, TypeVar
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -75,9 +75,9 @@ class ServiceMapping:
     legacy_path: str
     legacy_class: str
     unified_service: str
-    unified_strategy: Optional[str] = None
+    unified_strategy: str | None = None
     status: MigrationStatus = MigrationStatus.NOT_STARTED
-    compatibility_wrapper: Optional[str] = None
+    compatibility_wrapper: str | None = None
     notes: str = ""
 
 
@@ -129,8 +129,8 @@ class ServiceMapper:
 
     def __init__(self):
         """Initialize service mapper."""
-        self._mappings: Dict[str, ServiceMapping] = {}
-        self._feature_flags: Dict[FeatureFlag, bool] = dict.fromkeys(FeatureFlag, False)
+        self._mappings: dict[str, ServiceMapping] = {}
+        self._feature_flags: dict[FeatureFlag, bool] = dict.fromkeys(FeatureFlag, False)
         self._metrics = MigrationMetrics()
         self._logger = get_logger(f"{__name__}.ServiceMapper")
         self._initialize_mappings()
@@ -184,7 +184,7 @@ class ServiceMapper:
         self._mappings[key] = mapping
         self._logger.debug(f"Added mapping for {key}")
 
-    def get_mapping(self, legacy_service: str) -> Optional[ServiceMapping]:
+    def get_mapping(self, legacy_service: str) -> ServiceMapping | None:
         """
         Get mapping for a legacy service.
 
@@ -196,7 +196,7 @@ class ServiceMapper:
         """
         return self._mappings.get(legacy_service)
 
-    def get_unified_service(self, legacy_path: str, legacy_class: str) -> Optional[str]:
+    def get_unified_service(self, legacy_path: str, legacy_class: str) -> str | None:
         """
         Get unified service for a legacy service.
 
@@ -276,8 +276,8 @@ class ServiceMapper:
         return self._metrics
 
     def list_mappings(
-        self, status_filter: Optional[MigrationStatus] = None
-    ) -> List[ServiceMapping]:
+        self, status_filter: MigrationStatus | None = None
+    ) -> list[ServiceMapping]:
         """
         List all service mappings.
 
@@ -295,11 +295,11 @@ class ServiceMapper:
         return mappings
 
 
-def create_compatibility_wrapper(
-    legacy_class: Type[T],
+def create_compatibility_wrapper[T](
+    legacy_class: type[T],
     unified_service: Any,
-    method_mappings: Optional[Dict[str, str]] = None,
-) -> Type[T]:
+    method_mappings: dict[str, str] | None = None,
+) -> type[T]:
     """
     Create a compatibility wrapper for a legacy service.
 
@@ -405,8 +405,8 @@ class MigrationValidator:
         self._logger = get_logger(f"{__name__}.MigrationValidator")
 
     def validate_interface_compatibility(
-        self, legacy_class: Type, unified_class: Type
-    ) -> List[str]:
+        self, legacy_class: type, unified_class: type
+    ) -> list[str]:
         """
         Validate that unified service implements legacy interface.
 
@@ -455,8 +455,8 @@ class MigrationValidator:
         self,
         legacy_instance: Any,
         unified_instance: Any,
-        test_cases: List[Dict[str, Any]],
-    ) -> List[str]:
+        test_cases: list[dict[str, Any]],
+    ) -> list[str]:
         """
         Validate that unified service behavior matches legacy.
 

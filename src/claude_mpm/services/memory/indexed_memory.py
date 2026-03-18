@@ -23,8 +23,8 @@ import re
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from ...core.cache import get_file_cache
 from ...core.logger import get_logger
@@ -39,8 +39,8 @@ class MemoryEntry:
     content: str
     category: str
     timestamp: datetime
-    tags: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
     relevance_score: float = 0.0
 
 
@@ -48,7 +48,7 @@ class MemoryEntry:
 class QueryResult:
     """Result from a memory query."""
 
-    entries: List[MemoryEntry]
+    entries: list[MemoryEntry]
     total_count: int
     query_time: float
     index_used: str
@@ -67,9 +67,9 @@ class InvertedIndex:
 
     def __init__(self):
         # Word -> Set of memory IDs
-        self.index: Dict[str, Set[str]] = defaultdict(set)
+        self.index: dict[str, set[str]] = defaultdict(set)
         # Memory ID -> word frequencies
-        self.doc_freqs: Dict[str, Counter] = {}
+        self.doc_freqs: dict[str, Counter] = {}
         # Total documents
         self.doc_count = 0
 
@@ -105,7 +105,7 @@ class InvertedIndex:
         del self.doc_freqs[entry_id]
         self.doc_count -= 1
 
-    def search(self, query: str, operator: str = "AND") -> Set[str]:
+    def search(self, query: str, operator: str = "AND") -> set[str]:
         """Search index for matching entries.
 
         Args:
@@ -184,7 +184,7 @@ class InvertedIndex:
         # Normalize score
         return min(1.0, score / len(query_words))
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str) -> list[str]:
         """Tokenize text into words."""
         # Convert to lowercase and split on non-alphanumeric
         text = text.lower()
@@ -222,7 +222,7 @@ class InvertedIndex:
             return
 
         with path.open("rb") as f:
-            data = pickle.load(f)
+            data = pickle.load(f)  # nosec
 
         self.index = defaultdict(set, {k: set(v) for k, v in data["index"].items()})
         self.doc_freqs = data["doc_freqs"]
@@ -241,7 +241,7 @@ class BTreeIndex:
 
     def __init__(self, key_func=None):
         # Sorted list of (key, entry_id) tuples
-        self.index: List[Tuple[Any, str]] = []
+        self.index: list[tuple[Any, str]] = []
         self.key_func = key_func or (lambda x: x)
         self.logger = get_logger("btree_index")
 
@@ -254,8 +254,8 @@ class BTreeIndex:
         self.index = [(k, id) for k, id in self.index if id != entry_id]
 
     def range_search(
-        self, min_key: Any = None, max_key: Any = None, limit: Optional[int] = None
-    ) -> List[str]:
+        self, min_key: Any = None, max_key: Any = None, limit: int | None = None
+    ) -> list[str]:
         """Search for entries in key range.
 
         Args:
@@ -287,11 +287,11 @@ class BTreeIndex:
 
         return results
 
-    def get_recent(self, n: int = 10) -> List[str]:
+    def get_recent(self, n: int = 10) -> list[str]:
         """Get n most recent entries."""
         return [entry_id for _, entry_id in self.index[-n:]]
 
-    def get_oldest(self, n: int = 10) -> List[str]:
+    def get_oldest(self, n: int = 10) -> list[str]:
         """Get n oldest entries."""
         return [entry_id for _, entry_id in self.index[:n]]
 
@@ -324,7 +324,7 @@ class IndexedMemoryService:
 
     def __init__(
         self,
-        data_dir: Optional[Path] = None,
+        data_dir: Path | None = None,
         cache_size_mb: int = 50,
         enable_mmap: bool = False,
     ):
@@ -341,14 +341,14 @@ class IndexedMemoryService:
         self.enable_mmap = enable_mmap
 
         # Memory storage
-        self.memories: Dict[str, MemoryEntry] = {}
+        self.memories: dict[str, MemoryEntry] = {}
 
         # Indexes
         self.text_index = InvertedIndex()
         self.time_index = BTreeIndex(key_func=lambda dt: dt.timestamp())
-        self.agent_index: Dict[str, Set[str]] = defaultdict(set)
-        self.category_index: Dict[str, Set[str]] = defaultdict(set)
-        self.tag_index: Dict[str, Set[str]] = defaultdict(set)
+        self.agent_index: dict[str, set[str]] = defaultdict(set)
+        self.category_index: dict[str, set[str]] = defaultdict(set)
+        self.tag_index: dict[str, set[str]] = defaultdict(set)
 
         # Query cache
         self.cache = get_file_cache(max_size_mb=cache_size_mb, default_ttl=300)
@@ -364,8 +364,8 @@ class IndexedMemoryService:
         agent_id: str,
         content: str,
         category: str = "general",
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """Add a new memory entry.
 
@@ -388,7 +388,7 @@ class IndexedMemoryService:
             agent_id=agent_id,
             content=content,
             category=category,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             tags=tags or [],
             metadata=metadata or {},
         )
@@ -413,9 +413,9 @@ class IndexedMemoryService:
     def search(
         self,
         query: str,
-        agent_id: Optional[str] = None,
-        category: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        agent_id: str | None = None,
+        category: str | None = None,
+        tags: list[str] | None = None,
         limit: int = 50,
         operator: str = "AND",
     ) -> QueryResult:
@@ -435,7 +435,7 @@ class IndexedMemoryService:
         start_time = time.time()
 
         # Generate cache key
-        cache_key = f"query:{hashlib.md5(f'{query}:{agent_id}:{category}:{tags}:{limit}:{operator}'.encode()).hexdigest()}"
+        cache_key = f"query:{hashlib.md5(f'{query}:{agent_id}:{category}:{tags}:{limit}:{operator}'.encode()).hexdigest()}"  # nosec
 
         # Check cache
         cached = self.cache.get(cache_key)
@@ -495,7 +495,7 @@ class IndexedMemoryService:
         )
 
     def get_recent_memories(
-        self, hours: Optional[int] = None, days: Optional[int] = None, limit: int = 50
+        self, hours: int | None = None, days: int | None = None, limit: int = 50
     ) -> QueryResult:
         """Get recent memories within time range.
 
@@ -510,7 +510,7 @@ class IndexedMemoryService:
         start_time = time.time()
 
         # Calculate time range
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if hours:
             min_time = now - timedelta(hours=hours)
         elif days:
@@ -563,9 +563,9 @@ class IndexedMemoryService:
 
     def _generate_id(self, agent_id: str, content: str) -> str:
         """Generate unique ID for memory entry."""
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         hash_input = f"{agent_id}:{content[:100]}:{timestamp}"
-        return hashlib.md5(hash_input.encode()).hexdigest()[:12]
+        return hashlib.md5(hash_input.encode()).hexdigest()[:12]  # nosec
 
     def _save_indexes(self):
         """Persist all indexes to disk."""
@@ -598,7 +598,7 @@ class IndexedMemoryService:
         indexes_path = self.data_dir / "indexes.pkl"
         if indexes_path.exists():
             with indexes_path.open("rb") as f:
-                data = pickle.load(f)
+                data = pickle.load(f)  # nosec
 
             self.memories = data.get("memories", {})
             self.time_index.index = data.get("time_index", [])
@@ -614,7 +614,7 @@ class IndexedMemoryService:
 
             self.logger.info(f"Loaded {len(self.memories)} memories from disk")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get memory service statistics."""
         return {
             "total_memories": len(self.memories),
@@ -637,7 +637,7 @@ class IndexedMemoryService:
 
 
 # Global memory service instance
-_memory_service: Optional[IndexedMemoryService] = None
+_memory_service: IndexedMemoryService | None = None
 
 
 def get_indexed_memory() -> IndexedMemoryService:

@@ -89,12 +89,15 @@ class TestMCPInstallConfig(unittest.TestCase):
         tmpdir = Path(tempfile.mkdtemp())
         config_path = tmpdir / "settings.local.json"
 
-        with patch.object(
-            self.installer, "_get_claude_config_path", return_value=config_path
-        ), patch.object(
-            self.installer,
-            "_find_claude_mpm_executable",
-            return_value="/usr/local/bin/claude-mpm",
+        with (
+            patch.object(
+                self.installer, "_get_claude_config_path", return_value=config_path
+            ),
+            patch.object(
+                self.installer,
+                "_find_claude_mpm_executable",
+                return_value="/usr/local/bin/claude-mpm",
+            ),
         ):
             success = self.installer._configure_claude_desktop(force=True)
 
@@ -115,12 +118,15 @@ class TestMCPInstallConfig(unittest.TestCase):
         tmpdir = Path(tempfile.mkdtemp())
         config_path = tmpdir / "settings.local.json"
 
-        with patch.object(
-            self.installer, "_get_claude_config_path", return_value=config_path
-        ), patch.object(
-            self.installer,
-            "_find_claude_mpm_executable",
-            return_value=sys.executable,
+        with (
+            patch.object(
+                self.installer, "_get_claude_config_path", return_value=config_path
+            ),
+            patch.object(
+                self.installer,
+                "_find_claude_mpm_executable",
+                return_value=sys.executable,
+            ),
         ):
             success = self.installer._configure_claude_desktop(force=True)
 
@@ -149,12 +155,15 @@ class TestMCPInstallConfig(unittest.TestCase):
         ]
 
         for test_path in test_paths:
-            with patch.object(
-                self.installer, "_get_claude_config_path", return_value=config_path
-            ), patch.object(
-                self.installer,
-                "_find_claude_mpm_executable",
-                return_value=test_path,
+            with (
+                patch.object(
+                    self.installer, "_get_claude_config_path", return_value=config_path
+                ),
+                patch.object(
+                    self.installer,
+                    "_find_claude_mpm_executable",
+                    return_value=test_path,
+                ),
             ):
                 success = self.installer._configure_claude_desktop(force=True)
                 self.assertTrue(success)

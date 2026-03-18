@@ -11,8 +11,6 @@ DESIGN DECISIONS:
 - Allow selective uninstallation of components
 """
 
-from typing import Optional
-
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
@@ -25,7 +23,7 @@ from ..shared import BaseCommand, CommandResult
 class UninstallCommand(BaseCommand):
     """Handle uninstallation of Claude MPM components."""
 
-    def __init__(self, console: Optional[Console] = None):
+    def __init__(self, console: Console | None = None):
         """Initialize the uninstall command.
 
         Args:

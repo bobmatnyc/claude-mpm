@@ -4,7 +4,7 @@
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -85,9 +85,7 @@ def test_response_logging():
             print("   ✅ ResponseTracker initialized and enabled")
 
             # Test tracking a response
-            test_session_id = (
-                f"test_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
-            )
+            test_session_id = f"test_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             test_file = tracker.track_response(
                 agent_name="test_agent",
                 request="Test request for response logging verification",
@@ -95,7 +93,7 @@ def test_response_logging():
                 session_id=test_session_id,
                 metadata={
                     "test": True,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 

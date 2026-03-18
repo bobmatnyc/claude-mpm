@@ -113,6 +113,8 @@ ignore = [
     "SIM117", # Use single with statement - sometimes less readable
     "SIM401", # Use dict.get - stylistic preference
     "UP031",  # Use format specifiers - legacy code compatibility
+    "UP046",  # PEP 695 generic class syntax (requires manual rewrite, Python 3.12+)
+    "UP049",  # PEP 695 private type parameters (requires manual rewrite)
 ]
 
 # Exclude paths

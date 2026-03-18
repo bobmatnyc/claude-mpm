@@ -18,7 +18,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ...core.agent_registry import AgentRegistryAdapter
 from ...core.logger import get_logger
@@ -34,21 +34,21 @@ class AgentInfo:
     type: str
     tier: str
     path: str
-    description: Optional[str] = None
-    specializations: Optional[List[str]] = None
-    version: Optional[str] = None
+    description: str | None = None
+    specializations: list[str] | None = None
+    version: str | None = None
     deployed: bool = False
     active: bool = True
-    overridden_by: Optional[List[str]] = None
+    overridden_by: list[str] | None = None
 
 
 @dataclass
 class AgentTierInfo:
     """Information about agents grouped by tier."""
 
-    project: List[AgentInfo]
-    user: List[AgentInfo]
-    system: List[AgentInfo]
+    project: list[AgentInfo]
+    user: list[AgentInfo]
+    system: list[AgentInfo]
 
     @property
     def total_count(self) -> int:
@@ -68,7 +68,7 @@ class IAgentListingService(ABC):
     """Interface for agent listing service."""
 
     @abstractmethod
-    def list_system_agents(self, verbose: bool = False) -> List[AgentInfo]:
+    def list_system_agents(self, verbose: bool = False) -> list[AgentInfo]:
         """
         List available system agent templates.
 
@@ -82,7 +82,7 @@ class IAgentListingService(ABC):
     @abstractmethod
     def list_deployed_agents(
         self, verbose: bool = False
-    ) -> Tuple[List[AgentInfo], List[str]]:
+    ) -> tuple[list[AgentInfo], list[str]]:
         """
         List currently deployed agents.
 
@@ -103,7 +103,7 @@ class IAgentListingService(ABC):
         """
 
     @abstractmethod
-    def get_agent_details(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_details(self, agent_name: str) -> dict[str, Any] | None:
         """
         Get detailed information for a specific agent.
 
@@ -115,7 +115,7 @@ class IAgentListingService(ABC):
         """
 
     @abstractmethod
-    def compare_versions(self, agent_name: str) -> Dict[str, Any]:
+    def compare_versions(self, agent_name: str) -> dict[str, Any]:
         """
         Compare versions of an agent across tiers.
 
@@ -127,7 +127,7 @@ class IAgentListingService(ABC):
         """
 
     @abstractmethod
-    def find_agent(self, agent_name: str) -> Optional[AgentInfo]:
+    def find_agent(self, agent_name: str) -> AgentInfo | None:
         """
         Find an agent by name across all sources.
 
@@ -146,7 +146,7 @@ class IAgentListingService(ABC):
 class AgentListingService(IAgentListingService):
     """Implementation of agent listing service."""
 
-    def __init__(self, deployment_service: Optional[AgentDeploymentService] = None):
+    def __init__(self, deployment_service: AgentDeploymentService | None = None):
         """
         Initialize agent listing service.
 
@@ -186,7 +186,7 @@ class AgentListingService(IAgentListingService):
             return False
         return (time.time() - self._cache_times[key]) < self._cache_ttl
 
-    def _get_from_cache(self, key: str) -> Optional[Any]:
+    def _get_from_cache(self, key: str) -> Any | None:
         """Get value from cache if valid."""
         if self._is_cache_valid(key):
             return self._cache.get(key)
@@ -197,7 +197,7 @@ class AgentListingService(IAgentListingService):
         self._cache[key] = value
         self._cache_times[key] = time.time()
 
-    def list_system_agents(self, verbose: bool = False) -> List[AgentInfo]:
+    def list_system_agents(self, verbose: bool = False) -> list[AgentInfo]:
         """List available system agent templates."""
         cache_key = f"system_agents_{verbose}"
         cached = self._get_from_cache(cache_key)
@@ -231,7 +231,7 @@ class AgentListingService(IAgentListingService):
 
     def list_deployed_agents(
         self, verbose: bool = False
-    ) -> Tuple[List[AgentInfo], List[str]]:
+    ) -> tuple[list[AgentInfo], list[str]]:
         """List currently deployed agents."""
         cache_key = f"deployed_agents_{verbose}"
         cached = self._get_from_cache(cache_key)
@@ -336,7 +336,7 @@ class AgentListingService(IAgentListingService):
             self.logger.error(f"Error listing agents by tier: {e}", exc_info=True)
             return AgentTierInfo(project=[], user=[], system=[])
 
-    def get_agent_details(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_details(self, agent_name: str) -> dict[str, Any] | None:
         """Get detailed information for a specific agent."""
         cache_key = f"agent_details_{agent_name}"
         cached = self._get_from_cache(cache_key)
@@ -387,7 +387,7 @@ class AgentListingService(IAgentListingService):
             self.logger.error(f"Error getting agent details: {e}", exc_info=True)
             return None
 
-    def compare_versions(self, agent_name: str) -> Dict[str, Any]:
+    def compare_versions(self, agent_name: str) -> dict[str, Any]:
         """Compare versions of an agent across tiers."""
         cache_key = f"version_compare_{agent_name}"
         cached = self._get_from_cache(cache_key)
@@ -428,7 +428,7 @@ class AgentListingService(IAgentListingService):
             self.logger.error(f"Error comparing versions: {e}", exc_info=True)
             return {"agent_name": agent_name, "versions": {}, "error": str(e)}
 
-    def find_agent(self, agent_name: str) -> Optional[AgentInfo]:
+    def find_agent(self, agent_name: str) -> AgentInfo | None:
         """Find an agent by name across all sources."""
         cache_key = f"find_agent_{agent_name}"
         cached = self._get_from_cache(cache_key)

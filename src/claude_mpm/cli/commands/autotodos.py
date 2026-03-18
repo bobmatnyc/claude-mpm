@@ -14,9 +14,9 @@ DESIGN DECISION: Event-driven architecture
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import click
 
@@ -24,7 +24,7 @@ from claude_mpm.services.delegation_detector import get_delegation_detector
 from claude_mpm.services.event_log import get_event_log
 
 
-def format_error_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
+def format_error_event_as_todo(event: dict[str, Any]) -> dict[str, str]:
     """Convert event log error event to todo format compatible with PM TodoWrite.
 
     Args:
@@ -64,7 +64,7 @@ def format_error_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def format_delegation_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
+def format_delegation_event_as_todo(event: dict[str, Any]) -> dict[str, str]:
     """Convert event log delegation event to todo format compatible with PM TodoWrite.
 
     Args:
@@ -101,7 +101,7 @@ def format_delegation_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def get_autotodos(max_todos: int = 100) -> List[Dict[str, Any]]:
+def get_autotodos(max_todos: int = 100) -> list[dict[str, Any]]:
     """Get all pending hook error events formatted as todos.
 
     DESIGN DECISION: Only autotodo.error events are returned
@@ -130,8 +130,8 @@ def get_autotodos(max_todos: int = 100) -> List[Dict[str, Any]]:
 
 
 def get_pending_todos(
-    max_todos: int = 10, working_dir: Optional[Path] = None
-) -> List[Dict[str, Any]]:
+    max_todos: int = 10, working_dir: Path | None = None
+) -> list[dict[str, Any]]:
     """Get pending autotodo errors for injection.
 
     WHY this function exists:
@@ -302,7 +302,7 @@ def inject_autotodos(output):
     # Format as system reminder for PM
     pm_message = {
         "type": "autotodos",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "todos": todos,
         "message": f"Found {len(todos)} hook error(s) requiring attention. "
         "Consider delegating to appropriate agents for resolution.",

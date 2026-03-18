@@ -6,7 +6,7 @@ local metadata and ensuring proper priority handling.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 class LocalTemplateDeploymentService:
     """Service for deploying local JSON templates to Claude Code."""
 
-    def __init__(self, working_directory: Optional[Path] = None):
+    def __init__(self, working_directory: Path | None = None):
         """Initialize the local template deployment service.
 
         Args:
@@ -39,8 +39,8 @@ class LocalTemplateDeploymentService:
         )
 
     def deploy_local_templates(
-        self, force_rebuild: bool = False, tier_filter: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, force_rebuild: bool = False, tier_filter: str | None = None
+    ) -> dict[str, Any]:
         """Deploy all local JSON templates to Claude Code.
 
         Args:
@@ -200,7 +200,7 @@ class LocalTemplateDeploymentService:
 
         return content
 
-    def _get_existing_version(self, agent_file: Path) -> Optional[str]:
+    def _get_existing_version(self, agent_file: Path) -> str | None:
         """Get version from existing agent file.
 
         Args:
@@ -249,7 +249,7 @@ class LocalTemplateDeploymentService:
             logger.error(f"Failed to deploy local template {agent_id}: {e}")
             return False
 
-    def list_deployed_local_agents(self) -> List[Dict[str, Any]]:
+    def list_deployed_local_agents(self) -> list[dict[str, Any]]:
         """List all deployed local agents.
 
         Returns:
@@ -314,7 +314,7 @@ class LocalTemplateDeploymentService:
 
         return count
 
-    def sync_local_templates(self) -> Dict[str, Any]:
+    def sync_local_templates(self) -> dict[str, Any]:
         """Synchronize local templates with deployed agents.
 
         This ensures deployed agents match their source templates.

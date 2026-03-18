@@ -644,12 +644,15 @@ class TestIntegration:
         )
 
         # Add process checker
-        with patch(
-            "claude_mpm.services.infrastructure.monitoring.process.PSUTIL_AVAILABLE",
-            True,
-        ), patch(
-            "claude_mpm.services.infrastructure.monitoring.process.psutil"
-        ) as mock_psutil:
+        with (
+            patch(
+                "claude_mpm.services.infrastructure.monitoring.process.PSUTIL_AVAILABLE",
+                True,
+            ),
+            patch(
+                "claude_mpm.services.infrastructure.monitoring.process.psutil"
+            ) as mock_psutil,
+        ):
             mock_process = MagicMock()
             mock_process.is_running.return_value = True
             mock_process.status.return_value = "running"

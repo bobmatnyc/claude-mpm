@@ -1,7 +1,8 @@
 """Command registry for managing CLI subcommands."""
 
 import argparse
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from .args import ArgumentRegistry
 
@@ -14,8 +15,8 @@ class CommandDefinition:
         name: str,
         help_text: str,
         handler: Callable,
-        argument_groups: Optional[List[str]] = None,
-        extra_args: Optional[Dict[str, Dict[str, Any]]] = None,
+        argument_groups: list[str] | None = None,
+        extra_args: dict[str, dict[str, Any]] | None = None,
     ):
         """Initialize command definition.
 
@@ -40,23 +41,23 @@ class CommandRegistry:
     complexity in the main CLI function.
     """
 
-    def __init__(self, arg_registry: Optional[ArgumentRegistry] = None):
+    def __init__(self, arg_registry: ArgumentRegistry | None = None):
         """Initialize the command registry.
 
         Args:
             arg_registry: ArgumentRegistry instance for applying arguments
         """
-        self._commands: Dict[str, CommandDefinition] = {}
+        self._commands: dict[str, CommandDefinition] = {}
         self._arg_registry = arg_registry or ArgumentRegistry()
-        self._default_command: Optional[str] = None
+        self._default_command: str | None = None
 
     def register(
         self,
         name: str,
         help_text: str,
         handler: Callable,
-        argument_groups: Optional[List[str]] = None,
-        extra_args: Optional[Dict[str, Dict[str, Any]]] = None,
+        argument_groups: list[str] | None = None,
+        extra_args: dict[str, dict[str, Any]] | None = None,
         is_default: bool = False,
     ):
         """Register a new command.
@@ -161,11 +162,11 @@ class CommandRegistry:
         # Execute handler
         return handler(args, **kwargs)
 
-    def get_command_names(self) -> List[str]:
+    def get_command_names(self) -> list[str]:
         """Get list of all registered command names."""
         return list(self._commands.keys())
 
-    def get_default_command(self) -> Optional[str]:
+    def get_default_command(self) -> str | None:
         """Get the default command name."""
         return self._default_command
 

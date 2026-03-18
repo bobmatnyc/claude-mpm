@@ -23,7 +23,7 @@ Example Usage:
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
 
@@ -35,8 +35,8 @@ console = Console()
 
 
 def _group_agents_by_category(
-    agents: List[Dict[str, Any]],
-) -> Dict[str, List[Dict[str, Any]]]:
+    agents: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
     """Group agents by their category for organized display.
 
     Args:
@@ -54,7 +54,7 @@ def _group_agents_by_category(
         >>> grouped.keys()
         dict_keys(['engineer/backend', 'qa'])
     """
-    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    grouped: dict[str, list[dict[str, Any]]] = {}
 
     for agent in agents:
         # Extract category from agent_id if not present
@@ -109,7 +109,7 @@ def _format_category_name(category: str) -> str:
     return "/".join(formatted_parts)
 
 
-def _output_table_format(agents: List[Dict[str, Any]], verbose: bool = False) -> None:
+def _output_table_format(agents: list[dict[str, Any]], verbose: bool = False) -> None:
     """Output agents in rich table format (default).
 
     Design Decision: Group by category for better organization
@@ -175,7 +175,7 @@ def _output_table_format(agents: List[Dict[str, Any]], verbose: bool = False) ->
 
 
 def _output_json_format(
-    agents: List[Dict[str, Any]], filters_applied: Dict[str, str]
+    agents: list[dict[str, Any]], filters_applied: dict[str, str]
 ) -> None:
     """Output agents in JSON format for scripting.
 
@@ -206,7 +206,7 @@ def _output_json_format(
     console.print(json.dumps(output, indent=2))
 
 
-def _output_simple_format(agents: List[Dict[str, Any]]) -> None:
+def _output_simple_format(agents: list[dict[str, Any]]) -> None:
     """Output agents in simple format (agent IDs only).
 
     Args:

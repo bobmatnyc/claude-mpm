@@ -16,8 +16,8 @@ import gzip
 import json
 import shutil
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import ijson  # For streaming JSON parsing
 
@@ -32,9 +32,9 @@ class ConversationContext:
     title: str
     message_count: int
     last_message_time: float
-    file_references: List[str] = field(default_factory=list)
-    open_tabs: List[str] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
+    file_references: list[str] = field(default_factory=list)
+    open_tabs: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     is_active: bool = False
 
 
@@ -42,21 +42,21 @@ class ConversationContext:
 class ConversationState:
     """Claude conversation state and context."""
 
-    active_conversation_id: Optional[str]
-    active_conversation: Optional[ConversationContext]
-    recent_conversations: List[ConversationContext]
+    active_conversation_id: str | None
+    active_conversation: ConversationContext | None
+    recent_conversations: list[ConversationContext]
     total_conversations: int
     total_storage_mb: float
-    preferences: Dict[str, Any]
-    open_files: List[str]
-    recent_files: List[str]
-    pinned_files: List[str]
+    preferences: dict[str, Any]
+    open_files: list[str]
+    recent_files: list[str]
+    pinned_files: list[str]
 
 
 class ContextPreservationService(BaseService):
     """Service for preserving and managing Claude conversation context."""
 
-    def __init__(self, claude_dir: Optional[Path] = None):
+    def __init__(self, claude_dir: Path | None = None):
         """Initialize Context Preservation service.
 
         Args:
@@ -113,7 +113,7 @@ class ContextPreservationService(BaseService):
 
     async def parse_claude_json(
         self, extract_full: bool = False
-    ) -> Optional[ConversationState]:
+    ) -> ConversationState | None:
         """Parse Claude's .claude.json file safely.
 
         Args:
@@ -140,7 +140,7 @@ class ContextPreservationService(BaseService):
             self.log_error(f"Failed to parse Claude JSON: {e}")
             return None
 
-    async def extract_active_conversation(self) -> Optional[ConversationContext]:
+    async def extract_active_conversation(self) -> ConversationContext | None:
         """Extract only the active conversation context.
 
         Returns:
@@ -203,9 +203,7 @@ class ContextPreservationService(BaseService):
             await self._create_backup()
 
             # Load and filter conversations
-            cutoff_time = datetime.now(timezone.utc).timestamp() - (
-                keep_recent_days * 86400
-            )
+            cutoff_time = datetime.now(UTC).timestamp() - (keep_recent_days * 86400)
 
             with self.claude_json_path.open() as f:
                 data = json.load(f)
@@ -260,7 +258,7 @@ class ContextPreservationService(BaseService):
             self.log_error(f"Failed to compress conversation history: {e}")
             return False
 
-    async def handle_file_references(self, conversation: Dict[str, Any]) -> List[str]:
+    async def handle_file_references(self, conversation: dict[str, Any]) -> list[str]:
         """Extract and validate file references from conversation.
 
         Args:
@@ -303,7 +301,7 @@ class ContextPreservationService(BaseService):
             self.log_error(f"Failed to handle file references: {e}")
             return []
 
-    async def preserve_user_preferences(self) -> Dict[str, Any]:
+    async def preserve_user_preferences(self) -> dict[str, Any]:
         """Extract and preserve user preferences and settings.
 
         Returns:
@@ -423,7 +421,7 @@ class ContextPreservationService(BaseService):
             return self._empty_conversation_state()
 
     async def _extract_conversation_state(
-        self, data: Dict[str, Any], extract_full: bool
+        self, data: dict[str, Any], extract_full: bool
     ) -> ConversationState:
         """Extract conversation state from parsed data."""
         try:
@@ -467,7 +465,7 @@ class ContextPreservationService(BaseService):
             self.log_error(f"Failed to extract conversation state: {e}")
             return self._empty_conversation_state()
 
-    def _create_conversation_context(self, conv: Dict[str, Any]) -> ConversationContext:
+    def _create_conversation_context(self, conv: dict[str, Any]) -> ConversationContext:
         """Create ConversationContext from conversation data."""
         return ConversationContext(
             conversation_id=conv.get("id", ""),
@@ -497,7 +495,7 @@ class ContextPreservationService(BaseService):
             pinned_files=[],
         )
 
-    def _extract_file_paths(self, content: str) -> List[str]:
+    def _extract_file_paths(self, content: str) -> list[str]:
         """Extract file paths from message content."""
         import re
 
@@ -518,7 +516,7 @@ class ContextPreservationService(BaseService):
     async def _create_backup(self) -> Path:
         """Create backup of Claude configuration."""
         try:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_name = f"claude_backup_{timestamp}.json"
 
             # Compress if large
@@ -541,7 +539,7 @@ class ContextPreservationService(BaseService):
             self.log_error(f"Failed to create backup: {e}")
             raise
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get context preservation statistics.
 
         Returns:

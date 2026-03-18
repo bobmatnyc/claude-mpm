@@ -13,7 +13,6 @@ Security Features:
 import asyncio
 import secrets
 from dataclasses import dataclass, field
-from typing import Optional
 
 from aiohttp import web
 
@@ -124,10 +123,10 @@ class CallbackResult:
     """
 
     success: bool
-    code: Optional[str] = None
-    state: Optional[str] = None
-    error: Optional[str] = None
-    error_description: Optional[str] = None
+    code: str | None = None
+    state: str | None = None
+    error: str | None = None
+    error_description: str | None = None
 
 
 @dataclass
@@ -165,8 +164,8 @@ class OAuthCallbackServer:
 
     port: int = DEFAULT_PORT
     host: str = field(default="127.0.0.1", init=False)
-    _state: Optional[str] = field(default=None, init=False, repr=False)
-    _result: Optional[CallbackResult] = field(default=None, init=False, repr=False)
+    _state: str | None = field(default=None, init=False, repr=False)
+    _result: CallbackResult | None = field(default=None, init=False, repr=False)
     _callback_received: asyncio.Event = field(
         default_factory=asyncio.Event, init=False, repr=False
     )
@@ -261,7 +260,7 @@ class OAuthCallbackServer:
 
     async def wait_for_callback(
         self,
-        expected_state: Optional[str] = None,
+        expected_state: str | None = None,
         timeout: float = 300.0,
     ) -> CallbackResult:
         """Start the server and wait for an OAuth callback.
@@ -316,7 +315,7 @@ class OAuthCallbackServer:
 
             return self._result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return CallbackResult(
                 success=False,
                 error="timeout",

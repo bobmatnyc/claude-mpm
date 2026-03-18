@@ -9,9 +9,8 @@ import os
 import platform
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +41,12 @@ class EnvironmentDetector:
             return True
         try:
             mtime = self.environment_file.stat().st_mtime
-            age_seconds = datetime.now(timezone.utc).timestamp() - mtime
+            age_seconds = datetime.now(UTC).timestamp() - mtime
             return age_seconds > self.STALENESS_DAYS * 86400
         except Exception:
             return True
 
-    def detect_and_write(self, force: bool = False) -> Optional[Path]:
+    def detect_and_write(self, force: bool = False) -> Path | None:
         """Run detection and write environment.md.
 
         Args:
@@ -77,7 +76,7 @@ class EnvironmentDetector:
 
     def _generate_content(self) -> str:
         """Generate the environment.md markdown content."""
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         python_info = self._detect_python_info()
         pkg_mgr = self._detect_package_manager()
         installation = self._detect_installation_method()

@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -49,7 +49,7 @@ def test_event_flow():
             "data": {
                 "tool_name": "Bash",
                 "session_id": "test-session-123",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "working_directory": "/test/dir",
                 "git_branch": "main",
                 "hook_event_name": "PreToolUse",
@@ -60,7 +60,7 @@ def test_event_flow():
             "data": {
                 "agent_type": "research",
                 "session_id": "test-session-123",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "prompt": "Test research task",
                 "hook_event_name": "SubagentStart",
             },
@@ -71,7 +71,7 @@ def test_event_flow():
                 "agent_type": "research",
                 "session_id": "test-session-123",
                 "reason": "completed",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "hook_event_name": "SubagentStop",
             },
         },
@@ -81,7 +81,7 @@ def test_event_flow():
                 "tool_name": "Bash",
                 "exit_code": 0,
                 "session_id": "test-session-123",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "hook_event_name": "PostToolUse",
             },
         },

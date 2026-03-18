@@ -9,7 +9,7 @@ for the comprehensive test suite created for TSK-0142.
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 
@@ -70,7 +70,7 @@ def generate_test_report():
     cli_test_dir / "test-results.xml"
 
     report = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "test_suite": "CLI Commands - BaseCommand Pattern",
         "description": "Comprehensive test suite for migrated CLI commands (TSK-0142)",
         "test_files": [

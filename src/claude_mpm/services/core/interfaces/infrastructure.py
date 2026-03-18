@@ -19,7 +19,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar
+from typing import Any, Generic, TypeVar
 
 # Type variables for generic interfaces
 T = TypeVar("T")
@@ -45,7 +45,7 @@ class IServiceContainer(ABC):
         """Resolve a service by type"""
 
     @abstractmethod
-    def resolve_all(self, service_type: type) -> List[Any]:
+    def resolve_all(self, service_type: type) -> list[Any]:
         """Resolve all implementations of a service type"""
 
     @abstractmethod
@@ -86,7 +86,7 @@ class IConfigurationManager(ABC):
         """Set configuration value"""
 
     @abstractmethod
-    def validate_config(self, config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_config(self, config: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate configuration structure and values"""
 
     @abstractmethod
@@ -111,7 +111,7 @@ class ICacheService(ABC):
         """Get value from cache"""
 
     @abstractmethod
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set value in cache with optional TTL"""
 
     @abstractmethod
@@ -127,7 +127,7 @@ class ICacheService(ABC):
         """Clear all cache entries"""
 
     @abstractmethod
-    def get_cache_metrics(self) -> Dict[str, Any]:
+    def get_cache_metrics(self) -> dict[str, Any]:
         """Get cache performance metrics"""
 
 
@@ -139,8 +139,8 @@ class HealthStatus:
     status: str  # healthy, degraded, unhealthy, unknown
     message: str
     timestamp: datetime
-    checks: Dict[str, bool]
-    metrics: Dict[str, Any]
+    checks: dict[str, bool]
+    metrics: dict[str, Any]
 
 
 class IHealthMonitor(ABC):
@@ -151,7 +151,7 @@ class IHealthMonitor(ABC):
         """Check health of a specific service"""
 
     @abstractmethod
-    async def check_all_services(self) -> Dict[str, HealthStatus]:
+    async def check_all_services(self) -> dict[str, HealthStatus]:
         """Check health of all registered services"""
 
     @abstractmethod
@@ -159,7 +159,7 @@ class IHealthMonitor(ABC):
         """Register a health check function for a service"""
 
     @abstractmethod
-    def get_health_summary(self) -> Dict[str, Any]:
+    def get_health_summary(self) -> dict[str, Any]:
         """Get overall health summary"""
 
 
@@ -171,9 +171,9 @@ class CacheEntry:
     key: str
     value: Any
     created_at: float
-    ttl: Optional[float] = None
+    ttl: float | None = None
     access_count: int = 0
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -184,11 +184,11 @@ class IPromptCache(ABC):
     """Interface for high-performance prompt caching"""
 
     @abstractmethod
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get cached value by key"""
 
     @abstractmethod
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set cached value with optional TTL"""
 
     @abstractmethod
@@ -196,7 +196,7 @@ class IPromptCache(ABC):
         """Invalidate cache entries matching pattern"""
 
     @abstractmethod
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics"""
 
     @abstractmethod
@@ -209,10 +209,10 @@ class IPromptCache(ABC):
 class TemplateRenderContext:
     """Context for template rendering"""
 
-    variables: Dict[str, Any]
-    metadata: Dict[str, Any]
-    target_path: Optional[Path] = None
-    template_id: Optional[str] = None
+    variables: dict[str, Any]
+    metadata: dict[str, Any]
+    target_path: Path | None = None
+    template_id: str | None = None
 
 
 class ITemplateManager(ABC):
@@ -305,11 +305,11 @@ class IErrorHandler(ABC):
     """Interface for centralized error handling"""
 
     @abstractmethod
-    def handle_error(self, error: Exception, context: Dict[str, Any]) -> None:
+    def handle_error(self, error: Exception, context: dict[str, Any]) -> None:
         """Handle error with context"""
 
     @abstractmethod
-    def get_error_stats(self) -> Dict[str, Any]:
+    def get_error_stats(self) -> dict[str, Any]:
         """Get error statistics"""
 
 
@@ -327,12 +327,12 @@ class IPerformanceMonitor(ABC):
 
     @abstractmethod
     def record_metric(
-        self, name: str, value: float, tags: Optional[Dict[str, str]] = None
+        self, name: str, value: float, tags: dict[str, str] | None = None
     ) -> None:
         """Record a performance metric"""
 
     @abstractmethod
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics"""
 
 

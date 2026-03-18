@@ -6,7 +6,7 @@ as required by TSK-0063.
 """
 
 import sys
-from typing import Any, List
+from typing import Any
 
 from claude_mpm.core.container import DIContainer
 from claude_mpm.services.core.interfaces import IServiceContainer
@@ -221,7 +221,7 @@ class TestDIContainerInterfaceCompliance:
 
         # Check resolve_all return type
         sig = inspect.signature(DIContainer.resolve_all)
-        assert sig.return_annotation == List[Any]
+        assert sig.return_annotation == list[Any]
 
 
 if __name__ == "__main__":

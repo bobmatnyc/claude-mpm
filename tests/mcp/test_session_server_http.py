@@ -21,11 +21,12 @@ class TestSessionServerHTTPInit:
 
     def test_default_initialization(self):
         """Should initialize with default values."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ) as MockSSE:
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport") as MockSSE,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             server = SessionServerHTTP()
@@ -42,11 +43,12 @@ class TestSessionServerHTTPInit:
 
     def test_custom_initialization(self):
         """Should accept custom parameters."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ) as MockSSE:
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport") as MockSSE,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             server = SessionServerHTTP(
@@ -71,9 +73,10 @@ class TestSessionServerHTTPInit:
 
     def test_creates_sse_transport(self):
         """Should create SSE transport with correct path."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ) as MockSSE:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport") as MockSSE,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             server = SessionServerHTTP()
@@ -82,9 +85,11 @@ class TestSessionServerHTTPInit:
 
     def test_creates_ngrok_tunnel_manager(self):
         """Should create NgrokTunnel manager."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             server = SessionServerHTTP()
@@ -93,8 +98,9 @@ class TestSessionServerHTTPInit:
 
     def test_creates_starlette_app(self):
         """Should create Starlette app on init."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -110,8 +116,9 @@ class TestSessionServerHTTPCreateApp:
 
     def test_creates_app_with_required_routes(self):
         """Should create app with all required route endpoints."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -128,8 +135,9 @@ class TestSessionServerHTTPCreateApp:
 
     def test_creates_app_with_lifecycle_hooks(self):
         """Should configure startup and shutdown hooks."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -167,8 +175,9 @@ class TestSessionServerHTTPHandleRoot:
     @pytest.mark.asyncio
     async def test_returns_server_info(self):
         """Should return server information as JSON."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -198,8 +207,9 @@ class TestSessionServerHTTPHandleRoot:
     @pytest.mark.asyncio
     async def test_includes_tunnel_info_when_disabled(self):
         """Should include tunnel info showing disabled state."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -219,9 +229,11 @@ class TestSessionServerHTTPHandleRoot:
     @pytest.mark.asyncio
     async def test_includes_tunnel_url_when_active(self):
         """Should include tunnel URL when ngrok is active."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             # Configure mock tunnel
@@ -250,10 +262,11 @@ class TestSessionServerHTTPHandleHealth:
     @pytest.mark.asyncio
     async def test_returns_healthy_status(self):
         """Should return healthy status."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -282,11 +295,13 @@ class TestSessionServerHTTPHandleHealth:
     @pytest.mark.asyncio
     async def test_includes_tunnel_status(self):
         """Should include tunnel active status in health check."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             # Configure mocks
@@ -318,9 +333,11 @@ class TestSessionServerHTTPOnStartup:
     @pytest.mark.asyncio
     async def test_startup_without_ngrok(self):
         """Should start without ngrok when disabled."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             mock_tunnel_instance = MagicMock()
@@ -338,9 +355,11 @@ class TestSessionServerHTTPOnStartup:
     @pytest.mark.asyncio
     async def test_startup_with_ngrok_enabled(self):
         """Should start ngrok tunnel when enabled."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             mock_tunnel_instance = MagicMock()
@@ -371,9 +390,11 @@ class TestSessionServerHTTPOnStartup:
     @pytest.mark.asyncio
     async def test_startup_handles_ngrok_failure(self):
         """Should handle ngrok startup failure gracefully."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             mock_tunnel_instance = MagicMock()
@@ -394,11 +415,13 @@ class TestSessionServerHTTPOnShutdown:
     @pytest.mark.asyncio
     async def test_shutdown_stops_ngrok(self):
         """Should stop ngrok tunnel on shutdown."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             # Configure mocks
@@ -422,11 +445,13 @@ class TestSessionServerHTTPOnShutdown:
     @pytest.mark.asyncio
     async def test_shutdown_calls_manager_shutdown(self):
         """Should shutdown session manager on shutdown."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             # Configure mocks
@@ -449,11 +474,13 @@ class TestSessionServerHTTPOnShutdown:
     @pytest.mark.asyncio
     async def test_shutdown_skips_ngrok_when_not_active(self):
         """Should skip ngrok stop when tunnel not active."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             # Configure mocks
@@ -480,9 +507,11 @@ class TestSessionServerHTTPGetTunnelInfo:
 
     def test_returns_none_when_no_tunnel(self):
         """Should return None when no tunnel info available."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             mock_tunnel_instance = MagicMock()
@@ -495,9 +524,11 @@ class TestSessionServerHTTPGetTunnelInfo:
 
     def test_returns_tunnel_info_when_active(self):
         """Should return TunnelInfo when tunnel is active."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.NgrokTunnel") as MockTunnel,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             expected_info = TunnelInfo(
@@ -520,9 +551,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_default_arguments(self):
         """Should use default values when no arguments provided."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             # Simulate no command line arguments
@@ -541,9 +573,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_custom_host_and_port(self):
         """Should accept custom host and port arguments."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch(
@@ -559,9 +592,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_ngrok_flag(self):
         """Should enable ngrok when --ngrok flag provided."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch("sys.argv", ["session_server_http", "--ngrok"]):
@@ -573,9 +607,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_ngrok_authtoken_argument(self):
         """Should accept ngrok authtoken argument."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch(
@@ -590,9 +625,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_ngrok_domain_argument(self):
         """Should accept ngrok domain argument."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch(
@@ -607,9 +643,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_max_concurrent_argument(self):
         """Should accept max-concurrent argument."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch("sys.argv", ["session_server_http", "--max-concurrent", "20"]):
@@ -621,9 +658,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_timeout_argument(self):
         """Should accept timeout argument."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch("sys.argv", ["session_server_http", "--timeout", "60.0"]):
@@ -635,9 +673,10 @@ class TestSessionServerHTTPCLIParsing:
 
     def test_all_arguments_combined(self):
         """Should accept all arguments combined."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServerHTTP"
-        ) as MockServer, patch("claude_mpm.mcp.session_server_http.asyncio.run"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServerHTTP") as MockServer,
+            patch("claude_mpm.mcp.session_server_http.asyncio.run"),
+        ):
             from claude_mpm.mcp.session_server_http import main
 
             with patch(
@@ -678,15 +717,18 @@ class TestSessionServerHTTPRun:
     @pytest.mark.asyncio
     async def test_run_creates_uvicorn_config(self):
         """Should create uvicorn config with correct parameters."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch(
-            "claude_mpm.mcp.session_server_http.uvicorn.Config"
-        ) as MockConfig, patch(
-            "claude_mpm.mcp.session_server_http.uvicorn.Server"
-        ) as MockUvicornServer, patch(
-            "claude_mpm.mcp.session_server_http.asyncio.get_event_loop"
-        ) as mock_loop, patch("claude_mpm.mcp.session_server_http.signal"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.uvicorn.Config") as MockConfig,
+            patch(
+                "claude_mpm.mcp.session_server_http.uvicorn.Server"
+            ) as MockUvicornServer,
+            patch(
+                "claude_mpm.mcp.session_server_http.asyncio.get_event_loop"
+            ) as mock_loop,
+            patch("claude_mpm.mcp.session_server_http.signal"),
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             # Configure mocks
@@ -710,13 +752,18 @@ class TestSessionServerHTTPRun:
     @pytest.mark.asyncio
     async def test_run_calls_server_serve(self):
         """Should call uvicorn server.serve()."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.uvicorn.Config"), patch(
-            "claude_mpm.mcp.session_server_http.uvicorn.Server"
-        ) as MockUvicornServer, patch(
-            "claude_mpm.mcp.session_server_http.asyncio.get_event_loop"
-        ) as mock_loop, patch("claude_mpm.mcp.session_server_http.signal"):
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.uvicorn.Config"),
+            patch(
+                "claude_mpm.mcp.session_server_http.uvicorn.Server"
+            ) as MockUvicornServer,
+            patch(
+                "claude_mpm.mcp.session_server_http.asyncio.get_event_loop"
+            ) as mock_loop,
+            patch("claude_mpm.mcp.session_server_http.signal"),
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             mock_server_instance = MagicMock()
@@ -735,15 +782,18 @@ class TestSessionServerHTTPRun:
     @pytest.mark.asyncio
     async def test_run_sets_up_signal_handlers(self):
         """Should set up signal handlers for graceful shutdown."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
-        ), patch("claude_mpm.mcp.session_server_http.uvicorn.Config"), patch(
-            "claude_mpm.mcp.session_server_http.uvicorn.Server"
-        ) as MockUvicornServer, patch(
-            "claude_mpm.mcp.session_server_http.asyncio.get_event_loop"
-        ) as mock_loop, patch(
-            "claude_mpm.mcp.session_server_http.signal"
-        ) as mock_signal:
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
+            patch("claude_mpm.mcp.session_server_http.uvicorn.Config"),
+            patch(
+                "claude_mpm.mcp.session_server_http.uvicorn.Server"
+            ) as MockUvicornServer,
+            patch(
+                "claude_mpm.mcp.session_server_http.asyncio.get_event_loop"
+            ) as mock_loop,
+            patch("claude_mpm.mcp.session_server_http.signal") as mock_signal,
+        ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
             mock_server_instance = MagicMock()
@@ -766,8 +816,9 @@ class TestSessionServerHTTPIntegration:
 
     def test_app_routes_have_correct_methods(self):
         """App routes should have correct HTTP methods."""
-        with patch("claude_mpm.mcp.session_server_http.SessionServer"), patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch("claude_mpm.mcp.session_server_http.SessionServer"),
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 
@@ -788,10 +839,11 @@ class TestSessionServerHTTPIntegration:
     @pytest.mark.asyncio
     async def test_full_endpoint_responses(self):
         """Test that all endpoints return valid responses."""
-        with patch(
-            "claude_mpm.mcp.session_server_http.SessionServer"
-        ) as MockSessionServer, patch(
-            "claude_mpm.mcp.session_server_http.SseServerTransport"
+        with (
+            patch(
+                "claude_mpm.mcp.session_server_http.SessionServer"
+            ) as MockSessionServer,
+            patch("claude_mpm.mcp.session_server_http.SseServerTransport"),
         ):
             from claude_mpm.mcp.session_server_http import SessionServerHTTP
 

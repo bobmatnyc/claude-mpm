@@ -444,7 +444,7 @@ class TestWaitForCompletion:
         mock_process.stdout = AsyncMock()
         mock_process.stdout.readline = AsyncMock(return_value=b"")
         mock_process.stderr = AsyncMock()
-        mock_process.wait = AsyncMock(side_effect=asyncio.TimeoutError())
+        mock_process.wait = AsyncMock(side_effect=TimeoutError())
         mock_process.terminate = MagicMock()
         mock_process.returncode = None  # Simulate running process
         wrapper.process = mock_process
@@ -514,7 +514,7 @@ class TestTerminate:
         mock_process = MagicMock()
         mock_process.terminate = MagicMock()
         mock_process.kill = MagicMock()
-        mock_process.wait = AsyncMock(side_effect=[asyncio.TimeoutError(), None])
+        mock_process.wait = AsyncMock(side_effect=[TimeoutError(), None])
         mock_process.returncode = None  # Simulate running process
         wrapper.process = mock_process
 

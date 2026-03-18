@@ -9,9 +9,9 @@ WHY: Separates file system operations from analysis logic,
 providing efficient directory scanning with proper filtering.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Set
+from typing import ClassVar
 
 from ...core.logging_config import get_logger
 from ..code_tree_events import CodeTreeEventEmitter
@@ -22,7 +22,7 @@ class DiscoveryManager:
     """Manages file and directory discovery for code analysis."""
 
     # Define code file extensions at class level for directory filtering
-    CODE_EXTENSIONS: ClassVar[Set[str]] = {
+    CODE_EXTENSIONS: ClassVar[set[str]] = {
         ".py",
         ".js",
         ".jsx",
@@ -73,7 +73,7 @@ class DiscoveryManager:
     }
 
     # File extensions to language mapping
-    LANGUAGE_MAP: ClassVar[Dict[str, str]] = {
+    LANGUAGE_MAP: ClassVar[dict[str, str]] = {
         ".py": "python",
         ".js": "javascript",
         ".jsx": "javascript",
@@ -86,7 +86,7 @@ class DiscoveryManager:
     def __init__(
         self,
         gitignore_manager: GitignoreManager,
-        emitter: Optional[CodeTreeEventEmitter] = None,
+        emitter: CodeTreeEventEmitter | None = None,
     ):
         """Initialize discovery manager.
 
@@ -164,8 +164,8 @@ class DiscoveryManager:
         return False
 
     def discover_top_level(
-        self, directory: Path, ignore_patterns: Optional[List[str]] = None
-    ) -> Dict[str, any]:
+        self, directory: Path, ignore_patterns: list[str] | None = None
+    ) -> dict[str, any]:
         """Discover only top-level directories and files for lazy loading.
 
         Args:
@@ -189,7 +189,7 @@ class DiscoveryManager:
                     "action": "scanning_directory",
                     "path": str(directory),
                     "message": f"Starting discovery of {directory.name}",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -222,7 +222,7 @@ class DiscoveryManager:
                                 "path": str(item),
                                 "reason": "gitignore pattern",
                                 "message": f"Ignored by gitignore: {item.name}",
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "timestamp": datetime.now(UTC).isoformat(),
                             },
                         )
                     ignored_count += 1
@@ -238,7 +238,7 @@ class DiscoveryManager:
                                 "path": str(item),
                                 "reason": "custom pattern",
                                 "message": f"Ignored by pattern: {item.name}",
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "timestamp": datetime.now(UTC).isoformat(),
                             },
                         )
                     ignored_count += 1
@@ -257,7 +257,7 @@ class DiscoveryManager:
                                     "path": str(item.name),
                                     "reason": "no code files",
                                     "message": f"Skipped directory without code: {item.name}",
-                                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                                    "timestamp": datetime.now(UTC).isoformat(),
                                 },
                             )
                         ignored_count += 1
@@ -275,7 +275,7 @@ class DiscoveryManager:
                                 "type": "discovery.directory",
                                 "path": str(item),
                                 "message": f"Found directory: {item.name}",
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "timestamp": datetime.now(UTC).isoformat(),
                             },
                         )
                     dirs_count += 1
@@ -322,7 +322,7 @@ class DiscoveryManager:
                                     "language": language,
                                     "size": item.stat().st_size,
                                     "message": f"Found file: {item.name} ({language})",
-                                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                                    "timestamp": datetime.now(UTC).isoformat(),
                                 },
                             )
                         files_count += 1
@@ -360,15 +360,15 @@ class DiscoveryManager:
                         "ignored": ignored_count,
                     },
                     "message": f"Discovery complete: {files_count} files, {dirs_count} directories, {ignored_count} ignored",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
         return result
 
     def discover_directory(
-        self, dir_path: str, ignore_patterns: Optional[List[str]] = None
-    ) -> Dict[str, any]:
+        self, dir_path: str, ignore_patterns: list[str] | None = None
+    ) -> dict[str, any]:
         """Discover contents of a specific directory for lazy loading.
 
         Args:

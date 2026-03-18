@@ -11,7 +11,6 @@ Part of Priority 2 refactoring: Thread safety audit for singleton implementation
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Set
 
 import pytest
 
@@ -42,7 +41,7 @@ class TestSingletonManagerThreadSafety:
                 self.created_at = time.time()
                 time.sleep(0.01)  # Simulate initialization work
 
-        instances: List[TestClass] = []
+        instances: list[TestClass] = []
         lock = threading.Lock()
 
         def create_instance():
@@ -82,7 +81,7 @@ class TestSingletonManagerThreadSafety:
                 time.sleep(0.01)  # Simulate initialization
                 self.value = value
 
-        instances: List[ConfigurableClass] = []
+        instances: list[ConfigurableClass] = []
         lock = threading.Lock()
 
         def create_with_value(value: int):
@@ -154,7 +153,7 @@ class TestSingletonMixinThreadSafety:
                 time.sleep(0.01)
                 self.created_at = time.time()
 
-        instances: List[MixinTestClass] = []
+        instances: list[MixinTestClass] = []
         lock = threading.Lock()
 
         def create_instance():
@@ -195,7 +194,7 @@ class TestDecoratorThreadSafety:
                 time.sleep(0.01)
                 self.value = 42
 
-        instances: List[DecoratedClass] = []
+        instances: list[DecoratedClass] = []
         lock = threading.Lock()
 
         def create_instance():
@@ -229,7 +228,7 @@ class TestConfigThreadSafety:
 
     def test_config_concurrent_instantiation(self):
         """Test that Config can be safely instantiated from multiple threads."""
-        instances: List[Config] = []
+        instances: list[Config] = []
         lock = threading.Lock()
 
         def create_config():
@@ -300,7 +299,7 @@ class TestSessionManagerThreadSafety:
 
     def test_session_manager_concurrent_instantiation(self):
         """Test that SessionManager can be safely instantiated from multiple threads."""
-        instances: List[SessionManager] = []
+        instances: list[SessionManager] = []
         lock = threading.Lock()
 
         def create_session_manager():
@@ -335,7 +334,7 @@ class TestEventBusThreadSafety:
 
     def test_eventbus_concurrent_instantiation(self):
         """Test that EventBus can be safely instantiated from multiple threads."""
-        instances: List[EventBus] = []
+        instances: list[EventBus] = []
         lock = threading.Lock()
 
         def create_eventbus():
@@ -370,7 +369,7 @@ class TestFailureTrackerThreadSafety:
 
     def test_failure_tracker_concurrent_access(self):
         """Test that get_failure_tracker is thread-safe."""
-        instances: List = []
+        instances: list = []
         lock = threading.Lock()
 
         def get_tracker():
@@ -453,7 +452,7 @@ class TestSocketIORelayThreadSafety:
 
     def test_relay_concurrent_access(self):
         """Test that get_relay is thread-safe."""
-        instances: List = []
+        instances: list = []
         lock = threading.Lock()
 
         def get_relay_instance():
@@ -497,7 +496,7 @@ class TestSingletonServiceThreadSafety:
             def shutdown(self) -> None:
                 pass
 
-        instances: List[TestService] = []
+        instances: list[TestService] = []
         lock = threading.Lock()
 
         def create_service():
@@ -539,7 +538,7 @@ class TestSingletonServiceThreadSafety:
             def shutdown(self) -> None:
                 pass
 
-        instances: List[AnotherService] = []
+        instances: list[AnotherService] = []
         lock = threading.Lock()
 
         def get_service():
