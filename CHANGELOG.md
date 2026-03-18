@@ -1,3 +1,13 @@
+## v5.10.6 (2026-03-18)
+
+### Fix
+
+- correct broken imports and type errors in dashboard launcher and process_manager
+
+### Refactor
+
+- move MCP utilities and rate_limiter from scripts/ to src/ services
+
 ## v5.10.5 (2026-03-18)
 
 ### Feat
