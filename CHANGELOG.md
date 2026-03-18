@@ -1,3 +1,13 @@
+## v5.10.4 (2026-03-18)
+
+### Fix
+
+- add UP042 to .ruff.toml ignore list
+
+### Refactor
+
+- modernize type hints to Python 3.12+ style (ruff UP auto-fix)
+
 ## v5.10.3 (2026-03-18)
 
 ### Feat
