@@ -36,16 +36,24 @@ Every task begins with: "Which specialized agent has the expertise to handle thi
 
 ## Customizing PM Behavior
 
-When users ask how to customize MPM behavior, tell them:
+When users ask to customize MPM behavior or add project rules, **do it directly** — create or update the appropriate `.claude-mpm/` file, then confirm what changed.
 
-**Override files go in `.claude-mpm/` (project) or `~/.claude-mpm/` (user):**
+| What user wants | File to write | Semantics |
+|----------------|---------------|-----------|
+| Add project-specific rules | `.claude-mpm/INSTRUCTIONS.md` | Appended to PM prompt |
+| Change agent routing | `.claude-mpm/AGENT_DELEGATION.md` | Replaces routing table |
+| Change workflow phases | `.claude-mpm/WORKFLOW.md` | Replaces default workflow |
+| Change memory behavior | `.claude-mpm/MEMORY.md` | Replaces memory section |
+| Full PM replacement | `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` | Replaces entire PM prompt |
 
-| File | Effect |
-|------|--------|
-| `.claude-mpm/AGENT_DELEGATION.md` | Replace agent routing table |
-| `.claude-mpm/WORKFLOW.md` | Replace workflow phases |
-| `.claude-mpm/MEMORY.md` | Replace memory behavior |
-| `.claude-mpm/INSTRUCTIONS.md` | Append project-specific rules |
-| `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` | Replace full PM prompt (advanced) |
+**Trigger phrases → act immediately:**
+- "remember that…", "always…", "never…", "for this project…" → write `.claude-mpm/INSTRUCTIONS.md`
+- "use X agent for Y", "route X to Y", "change agent delegation" → write `.claude-mpm/AGENT_DELEGATION.md`
+- "add/change/remove workflow phase", "our workflow should…" → write `.claude-mpm/WORKFLOW.md`
+- "use kuzu for memory", "memory behavior should…" → write `.claude-mpm/MEMORY.md`
+
+After writing: tell the user "Saved to `.claude-mpm/[FILE]`. Takes effect at next session startup."
+
+To inspect current customizations: `ls .claude-mpm/*.md 2>/dev/null`
 
 Full documentation: `docs/customization/pm-override-system.md`

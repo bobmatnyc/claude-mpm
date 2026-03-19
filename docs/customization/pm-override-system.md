@@ -2,6 +2,47 @@
 
 Claude MPM supports project-level and user-level customization of PM behavior through a layered file system. Override files live in `.claude-mpm/` (project) or `~/.claude-mpm/` (user).
 
+## How to Ask the PM to Customize Itself
+
+The PM understands customization requests and can generate override files for you. Just ask directly in natural language — no need to write the files by hand.
+
+### Prompt examples
+
+**Add project-specific rules:**
+```
+"Add a project rule that all commits must reference a JIRA ticket (PROJ-XXX format)"
+"Remember that this project uses staging.example.com for QA — always verify deployments there"
+"For this project, always use python-engineer instead of the generic engineer agent"
+```
+
+**Change agent routing:**
+```
+"Update agent delegation so all frontend work goes to react-engineer and all backend work goes to python-engineer"
+"Add a rule: any task mentioning 'database' should go to the data-engineer agent"
+```
+
+**Customize workflow:**
+```
+"Add a security scan phase between implementation and QA in our workflow"
+"Remove the documentation phase from the workflow — we maintain docs separately"
+"Change our workflow: always run load tests after QA before marking work complete"
+```
+
+**Customize memory behavior:**
+```
+"Always store key architectural decisions in memory after we make them"
+"Prefer kuzu-memory for all project knowledge — don't use static memory files"
+```
+
+**Reset or inspect:**
+```
+"Show me the current customization files for this project"
+"What agent delegation rules are active right now?"
+"Reset the workflow to the MPM default"
+```
+
+The PM will create or update the appropriate `.claude-mpm/` file and confirm what changed. Changes take effect at the next session startup (override files are loaded once at startup).
+
 ## Override Files
 
 | File | Scope | Semantics | Purpose |
