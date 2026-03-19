@@ -990,8 +990,11 @@ class TestHashMismatchHandling:
 
         mock_get.side_effect = [mock_response_304, mock_response_200]
 
-        # Sync should detect mismatch and re-download
-        result = git_sync_service.sync_agents()
+        # Patch _get_agent_list to return only our test file so the two mocked
+        # HTTP responses map 1:1 to the sync calls (304 then 200).
+        with patch.object(git_sync_service, "_get_agent_list", return_value=[filename]):
+            # Sync should detect mismatch and re-download
+            result = git_sync_service.sync_agents()
 
         # Verify re-download occurred
         assert filename in result["synced"]
