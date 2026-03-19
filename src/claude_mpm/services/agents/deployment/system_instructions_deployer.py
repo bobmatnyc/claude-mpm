@@ -18,6 +18,32 @@ class SystemInstructionsDeployer:
         self.logger = logger
         self.working_directory = working_directory
 
+    def _resolve_block(self, block_name: str, agents_path: Path) -> str:
+        """Resolve a block file with additive project+user override semantics.
+
+        Priority: user_override + project_override (additive, together replace system)
+        Fallback: system default from agents_path
+
+        Args:
+            block_name: Filename of the block (e.g. "PM_INSTRUCTIONS.md")
+            agents_path: Path to the system agents directory
+
+        Returns:
+            Resolved content string (may be empty if no sources found)
+        """
+        system_path = agents_path / block_name
+        user_path = Path.home() / ".claude-mpm" / block_name
+        project_path = self.working_directory / ".claude-mpm" / block_name
+
+        parts = []
+        if user_path.exists():
+            parts.append(user_path.read_text(encoding="utf-8"))
+        if project_path.exists():
+            parts.append(project_path.read_text(encoding="utf-8"))
+        if not parts and system_path.exists():
+            parts.append(system_path.read_text(encoding="utf-8"))
+        return "\n\n".join(parts)
+
     def deploy_system_instructions(
         self,
         target_dir: Path,
@@ -28,7 +54,12 @@ class SystemInstructionsDeployer:
         Deploy system instructions and framework files for PM framework.
 
         Deploys to project .claude-mpm directory as merged PM_INSTRUCTIONS_DEPLOYED.md
-        containing PM_INSTRUCTIONS.md + WORKFLOW.md + MEMORY.md.
+        containing PM_INSTRUCTIONS.md + AGENT_DELEGATION.md + WORKFLOW.md + MEMORY.md.
+
+        Each block is resolved with additive override semantics:
+          - user override (~/.claude-mpm/<BLOCK>.md) + project override
+            (.claude-mpm/<BLOCK>.md) concatenated together replace the system default.
+          - If neither override exists, the system default is used.
 
         Args:
             target_dir: Target directory for deployment (not used - always uses project .claude-mpm)
@@ -48,31 +79,37 @@ class SystemInstructionsDeployer:
 
             agents_path = paths.agents_dir
 
-            # Read and merge PM_INSTRUCTIONS.md + WORKFLOW.md + MEMORY.md
-            pm_instructions_path = agents_path / "PM_INSTRUCTIONS.md"
-            workflow_path = agents_path / "WORKFLOW.md"
-            memory_path = agents_path / "MEMORY.md"
+            # Blocks that compose PM_INSTRUCTIONS_DEPLOYED.md (in order)
+            BLOCKS = [
+                "PM_INSTRUCTIONS.md",
+                "AGENT_DELEGATION.md",
+                "WORKFLOW.md",
+                "MEMORY.md",
+            ]
 
-            merged_content = []
-            source_files = []
-
-            for path in [pm_instructions_path, workflow_path, memory_path]:
-                if path.exists():
-                    merged_content.append(path.read_text())
-                    source_files.append(str(path))
-                else:
-                    self.logger.warning(f"Framework file not found: {path}")
+            # Resolve each block with additive override semantics
+            merged_content = [self._resolve_block(b, agents_path) for b in BLOCKS]
+            merged_content = [c for c in merged_content if c]  # drop empty blocks
 
             if not merged_content:
                 self.logger.error("No framework files found to merge")
                 results["errors"].append("No framework files found to merge")
                 return
 
-            # Determine the most recent modification time of source files
-            latest_mtime = max(
-                path.stat().st_mtime
-                for path in [pm_instructions_path, workflow_path, memory_path]
-                if path.exists()
+            # Collect all paths that should trigger a rebuild when modified
+            watched_paths: list[Path] = []
+            for block in BLOCKS:
+                for base in [
+                    agents_path,
+                    Path.home() / ".claude-mpm",
+                    self.working_directory / ".claude-mpm",
+                ]:
+                    p = base / block
+                    if p.exists():
+                        watched_paths.append(p)
+
+            latest_mtime = (
+                max(p.stat().st_mtime for p in watched_paths) if watched_paths else 0
             )
 
             # Write merged content to PM_INSTRUCTIONS_DEPLOYED.md
@@ -95,9 +132,10 @@ class SystemInstructionsDeployer:
                 target_file.write_text("\n\n".join(merged_content))
 
                 # Track deployment
+                source_desc = ", ".join(str(p) for p in watched_paths if p.exists())
                 deployment_info = {
                     "name": "PM_INSTRUCTIONS_DEPLOYED.md",
-                    "template": ", ".join(source_files),
+                    "template": source_desc,
                     "target": str(target_file),
                 }
 
