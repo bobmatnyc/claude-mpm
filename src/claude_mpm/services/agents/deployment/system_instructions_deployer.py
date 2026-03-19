@@ -66,10 +66,10 @@ class SystemInstructionsDeployer:
             force_rebuild: Force rebuild even if exists
             results: Results dictionary to update
         """
-        try:
-            # Deploy to project's .claude-mpm directory (project-local)
-            claude_mpm_dir = self.working_directory / ".claude-mpm"
+        # Initialize before try so it's always bound for deploy_templates below
+        claude_mpm_dir = self.working_directory / ".claude-mpm"
 
+        try:
             # Ensure .claude-mpm directory exists
             claude_mpm_dir.mkdir(parents=True, exist_ok=True)
 
