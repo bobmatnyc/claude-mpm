@@ -71,6 +71,19 @@ class ContentFormatter:
                 )
                 instructions += "\n"
 
+            # Add AGENT_DELEGATION.md after framework instructions, before workflow
+            if framework_content.get("agent_delegation"):
+                delegation_content = self.strip_metadata_comments(
+                    framework_content["agent_delegation"]
+                )
+                level = framework_content.get("agent_delegation_level", "system")
+                if level != "system":
+                    instructions += (
+                        f"\n\n## Agent Delegation Routing ({level} level)\n\n"
+                    )
+                    instructions += "**The following agent delegation rules override system defaults:**\n\n"
+                instructions += f"{delegation_content}\n"
+
             # Add WORKFLOW.md after instructions
             if framework_content.get("workflow_instructions"):
                 workflow_content = self.strip_metadata_comments(

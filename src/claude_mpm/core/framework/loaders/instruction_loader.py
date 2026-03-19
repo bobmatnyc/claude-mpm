@@ -37,10 +37,13 @@ class InstructionLoader:
         # Load framework instructions
         self.load_framework_instructions(content)
 
+        # Load AGENT_DELEGATION.md (after framework, before workflow)
+        self.load_agent_delegation_instructions(content)
+
         # Load WORKFLOW.md
         self.load_workflow_instructions(content)
 
-        # Load MEMORY.md
+        # Load MEMORY.md (with kuzu-memory auto-injection if applicable)
         self.load_memory_instructions(content)
 
     def load_custom_instructions(self, content: dict[str, Any]) -> None:
@@ -113,11 +116,15 @@ class InstructionLoader:
         2. Source file (development): src/claude_mpm/agents/PM_INSTRUCTIONS.md
         3. Legacy file (backward compat): src/claude_mpm/agents/INSTRUCTIONS.md
 
+        Returns early if framework_path is not available.
         Version validation ensures deployed file is never stale compared to source.
 
         Args:
             content: Dictionary to update with framework instructions
         """
+        if not self.framework_path:
+            return
+
         # Define source path for version checking
         pm_instructions_path = (
             self.framework_path / "src" / "claude_mpm" / "agents" / "PM_INSTRUCTIONS.md"
@@ -196,6 +203,23 @@ class InstructionLoader:
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
 
+    def load_agent_delegation_instructions(self, content: dict[str, Any]) -> None:
+        """Load AGENT_DELEGATION.md from appropriate location.
+
+        Precedence: project .claude-mpm/ > user ~/.claude-mpm/ > system agents/
+
+        Args:
+            content: Dictionary to update with agent delegation instructions
+        """
+        if not self.framework_path:
+            return
+        delegation, level = self.file_loader.load_agent_delegation_file(
+            self.current_dir, self.framework_path
+        )
+        if delegation:
+            content["agent_delegation"] = delegation
+            content["agent_delegation_level"] = level
+
     def load_workflow_instructions(self, content: dict[str, Any]) -> None:
         """Load WORKFLOW.md from appropriate location.
 
@@ -210,15 +234,55 @@ class InstructionLoader:
             content["workflow_instructions"] = workflow
             content["workflow_instructions_level"] = level
 
+    def _detect_kuzu_memory(self) -> bool:
+        """Check if kuzu-memory CLI is available.
+
+        Returns:
+            True if kuzu-memory is installed and accessible, False otherwise
+        """
+        import shutil
+
+        pipx_path = (
+            Path.home()
+            / ".local"
+            / "pipx"
+            / "venvs"
+            / "kuzu-memory"
+            / "bin"
+            / "kuzu-memory"
+        )
+        return pipx_path.exists() or shutil.which("kuzu-memory") is not None
+
     def load_memory_instructions(self, content: dict[str, Any]) -> None:
         """Load MEMORY.md from appropriate location.
+
+        If kuzu-memory is detected AND no project-level .claude-mpm/MEMORY.md exists,
+        prepends kuzu-memory active instructions to the memory content.
 
         Args:
             content: Dictionary to update with memory instructions
         """
         memory, level = self.file_loader.load_memory_file(
-            self.current_dir, self.framework_path
+            self.current_dir, self.framework_path or Path()
         )
+
+        # Auto-inject kuzu-memory instructions when detected and no project override
+        if level != "project" and self._detect_kuzu_memory():
+            kuzu_prefix = (
+                "## Memory: kuzu-memory Active\n\n"
+                "kuzu-memory is installed. Use MCP tools for all memory operations:\n"
+                "- `mcp__kuzu-memory__kuzu_recall` — query memories before delegating research\n"
+                "- `mcp__kuzu-memory__kuzu_learn` — store important decisions asynchronously\n"
+                "- `mcp__kuzu-memory__kuzu_remember` — store facts immediately\n"
+                "- `mcp__kuzu-memory__kuzu_enhance` — enhance prompts with project context\n\n"
+                "Prefer kuzu-memory over static PM_memories.md for project knowledge.\n\n"
+            )
+            if memory:
+                memory = kuzu_prefix + memory
+            else:
+                memory = kuzu_prefix
+                level = "system"
+
         if memory:
             content["memory_instructions"] = memory
             content["memory_instructions_level"] = level

@@ -150,6 +150,12 @@ class PackagedLoader:
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
 
+            # Load AGENT_DELEGATION.md
+            agent_delegation_content = self.load_packaged_file("AGENT_DELEGATION.md")
+            if agent_delegation_content:
+                content["agent_delegation"] = agent_delegation_content
+                content["agent_delegation_level"] = "system"
+
             # Load WORKFLOW.md
             workflow_content = self.load_packaged_file("WORKFLOW.md")
             if workflow_content:
@@ -211,6 +217,14 @@ class PackagedLoader:
             base_pm_content = self.load_packaged_file_fallback("BASE_PM.md", resources)
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
+
+            # Load AGENT_DELEGATION.md
+            agent_delegation_content = self.load_packaged_file_fallback(
+                "AGENT_DELEGATION.md", resources
+            )
+            if agent_delegation_content:
+                content["agent_delegation"] = agent_delegation_content
+                content["agent_delegation_level"] = "system"
 
             # Load WORKFLOW.md
             workflow_content = self.load_packaged_file_fallback(
