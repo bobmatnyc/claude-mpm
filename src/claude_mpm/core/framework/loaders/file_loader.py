@@ -65,6 +65,60 @@ class FileLoader:
             if "INSTRUCTIONS.md" in str(file_path):
                 self.framework_last_modified = timestamp
 
+    def _load_tier_file_additive(
+        self,
+        filename: str,
+        current_dir: Path,
+        framework_path: Path | None = None,
+        include_system: bool = True,
+    ) -> tuple[str | None, str | None]:
+        """Load a block file with additive project+user override semantics.
+
+        Returns concatenated user+project overrides (or system default if neither
+        exists).  Level reported: 'project' if project override exists, 'user' if
+        only user override exists, 'system' otherwise.
+
+        Args:
+            filename: Name of file to load (e.g., "WORKFLOW.md")
+            current_dir: Current working directory for project-level override
+            framework_path: Path to framework installation for system-level fallback
+            include_system: Whether to fall back to the system-level path
+
+        Returns:
+            Tuple of (content, level) where level is 'project', 'user', 'system',
+            or None if nothing was found.
+        """
+        user_path = Path.home() / ".claude-mpm" / filename
+        project_path = current_dir / ".claude-mpm" / filename
+
+        parts: list[str] = []
+        level: str | None = None
+
+        if user_path.exists():
+            content = self.try_load_file(user_path, f"user {filename}")
+            if content:
+                parts.append(content)
+                level = "user"
+
+        if project_path.exists():
+            content = self.try_load_file(project_path, f"project {filename}")
+            if content:
+                parts.append(content)
+                level = "project"  # project takes precedence for level label
+
+        if parts:
+            return "\n\n".join(parts), level
+
+        # System fallback
+        if include_system and framework_path and framework_path != Path("__PACKAGED__"):
+            system_path = framework_path / "src" / "claude_mpm" / "agents" / filename
+            if system_path.exists():
+                content = self.try_load_file(system_path, f"system {filename}")
+                if content:
+                    return content, "system"
+
+        return None, None
+
     def _load_tier_file(
         self,
         filename: str,
@@ -134,12 +188,12 @@ class FileLoader:
         self, current_dir: Path, framework_path: Path
     ) -> tuple[str | None, str | None]:
         """
-        Load WORKFLOW.md from various locations.
+        Load WORKFLOW.md with additive override semantics.
 
-        Precedence (highest to lowest):
-        1. Project-specific: ./.claude-mpm/WORKFLOW.md
-        2. User-specific: ~/.claude-mpm/WORKFLOW.md
-        3. System default: framework/agents/WORKFLOW.md
+        Resolution order (additive):
+        - user override (~/.claude-mpm/WORKFLOW.md) + project override
+          (.claude-mpm/WORKFLOW.md) are concatenated and replace the system default.
+        - If neither override exists, fall back to the system default.
 
         Args:
             current_dir: Current working directory
@@ -148,7 +202,7 @@ class FileLoader:
         Returns:
             Tuple of (content, level) where level is 'project', 'user', 'system', or None
         """
-        return self._load_tier_file(
+        return self._load_tier_file_additive(
             "WORKFLOW.md", current_dir, framework_path, include_system=True
         )
 
@@ -156,12 +210,12 @@ class FileLoader:
         self, current_dir: Path, framework_path: Path
     ) -> tuple[str | None, str | None]:
         """
-        Load MEMORY.md from various locations.
+        Load MEMORY.md with additive override semantics.
 
-        Precedence (highest to lowest):
-        1. Project-specific: ./.claude-mpm/MEMORY.md
-        2. User-specific: ~/.claude-mpm/MEMORY.md
-        3. System default: framework/agents/MEMORY.md
+        Resolution order (additive):
+        - user override (~/.claude-mpm/MEMORY.md) + project override
+          (.claude-mpm/MEMORY.md) are concatenated and replace the system default.
+        - If neither override exists, fall back to the system default.
 
         Args:
             current_dir: Current working directory
@@ -170,7 +224,7 @@ class FileLoader:
         Returns:
             Tuple of (content, level) where level is 'project', 'user', 'system', or None
         """
-        return self._load_tier_file(
+        return self._load_tier_file_additive(
             "MEMORY.md", current_dir, framework_path, include_system=True
         )
 
@@ -178,12 +232,12 @@ class FileLoader:
         self, current_dir: Path, framework_path: Path
     ) -> tuple[str | None, str | None]:
         """
-        Load AGENT_DELEGATION.md from various locations.
+        Load AGENT_DELEGATION.md with additive override semantics.
 
-        Precedence (highest to lowest):
-        1. Project-specific: ./.claude-mpm/AGENT_DELEGATION.md
-        2. User-specific: ~/.claude-mpm/AGENT_DELEGATION.md
-        3. System default: framework/agents/AGENT_DELEGATION.md
+        Resolution order (additive):
+        - user override (~/.claude-mpm/AGENT_DELEGATION.md) + project override
+          (.claude-mpm/AGENT_DELEGATION.md) are concatenated and replace the system default.
+        - If neither override exists, fall back to the system default.
 
         Args:
             current_dir: Current working directory
@@ -192,6 +246,6 @@ class FileLoader:
         Returns:
             Tuple of (content, level) where level is 'project', 'user', 'system', or None
         """
-        return self._load_tier_file(
+        return self._load_tier_file_additive(
             "AGENT_DELEGATION.md", current_dir, framework_path, include_system=True
         )
