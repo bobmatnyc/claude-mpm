@@ -1,3 +1,10 @@
+## v5.10.10 (2026-03-19)
+
+### Fix
+
+- implement additive block override semantics and include AGENT_DELEGATION in deployer
+- implement additive block override semantics and include AGENT_DELEGATION in deployer
+
 ## v5.10.9 (2026-03-19)
 
 ## v5.10.8 (2026-03-19)
