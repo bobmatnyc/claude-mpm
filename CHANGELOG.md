@@ -1,3 +1,9 @@
+## v5.10.8 (2026-03-19)
+
+### Fix
+
+- **tests**: patch _get_agent_list in hash mismatch test to isolate mock responses
+
 ## v5.10.7 (2026-03-19)
 
 ### Feat
