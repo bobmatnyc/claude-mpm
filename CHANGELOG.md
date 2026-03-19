@@ -1,3 +1,9 @@
+## v5.10.7 (2026-03-19)
+
+### Feat
+
+- implement PM instruction override system with self-awareness
+
 ## v5.10.6 (2026-03-18)
 
 ### Fix
