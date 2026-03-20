@@ -61,8 +61,6 @@ def sync_agents_on_startup(
     - First run: 5-10 seconds (download all agents)
     - All cached: <1 second (ETag checks only)
     """
-    import time
-
     if config is not None:
         import warnings
 
@@ -74,75 +72,22 @@ def sync_agents_on_startup(
             stacklevel=2,
         )
 
-    start_time = time.time()
+    # Delegate to AgentSyncOrchestrator (Phase 3 unification)
+    from claude_mpm.services.agents.sync_orchestrator import AgentSyncOrchestrator
 
-    result: dict[str, Any] = {
-        "enabled": False,
-        "sources_synced": 0,
-        "total_downloaded": 0,
-        "cache_hits": 0,
-        "errors": [],
-        "duration_ms": 0,
+    orchestrator = AgentSyncOrchestrator(show_progress=True)
+    sync_result = orchestrator.sync(force=force_refresh)
+
+    # Return backward-compatible dict for existing callers
+    return {
+        "enabled": sync_result.enabled,
+        "sources_synced": sync_result.sources_synced,
+        "sources_failed": sync_result.sources_failed,
+        "total_downloaded": sync_result.total_downloaded,
+        "cache_hits": sync_result.cache_hits,
+        "errors": sync_result.errors,
+        "duration_ms": sync_result.duration_ms,
     }
-
-    try:
-        from claude_mpm.config.agent_sources import AgentSourceConfiguration
-        from claude_mpm.services.agents.git_source_manager import GitSourceManager
-
-        agent_config = AgentSourceConfiguration.load()
-        enabled_repos = agent_config.get_enabled_repositories()
-
-        if not enabled_repos:
-            logger.debug("No enabled agent sources configured, skipping sync")
-            return result
-
-        result["enabled"] = True
-        logger.info(f"Syncing {len(enabled_repos)} agent source(s)")
-
-        manager = GitSourceManager()
-        sync_results = manager.sync_all_repositories(
-            repos=enabled_repos,
-            force=force_refresh,
-            show_progress=True,
-        )
-
-        # Aggregate per-repo results into return format
-        for source_id, source_result in sync_results.items():
-            if source_result.get("synced"):
-                result["sources_synced"] += 1
-                result["total_downloaded"] += source_result.get("files_updated", 0)
-                result["cache_hits"] += source_result.get("files_cached", 0)
-                logger.info(
-                    f"Source {source_id}: "
-                    f"{source_result.get('files_updated', 0)} downloaded, "
-                    f"{source_result.get('files_cached', 0)} cached"
-                )
-            else:
-                error = source_result.get("error", "Unknown error")
-                result["errors"].append(f"Source {source_id}: {error}")
-                logger.warning(f"Source {source_id}: sync failed - {error}")
-
-    except Exception as e:
-        error_msg = f"Agent sync failed: {e}"
-        logger.error(error_msg)
-        result["errors"].append(error_msg)
-
-    finally:
-        duration_ms = int((time.time() - start_time) * 1000)
-        result["duration_ms"] = duration_ms
-
-        if result["enabled"]:
-            if result["sources_synced"] > 0:
-                logger.info(
-                    f"Agent sync complete: {result['total_downloaded']} downloaded, "
-                    f"{result['cache_hits']} cached in {duration_ms}ms"
-                )
-                if result["errors"]:
-                    logger.warning(f"Agent sync had {len(result['errors'])} errors")
-            else:
-                logger.debug("No agent sources synced")
-
-    return result
 
 
 def get_sync_status() -> dict[str, Any]:

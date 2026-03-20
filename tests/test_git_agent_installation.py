@@ -438,12 +438,12 @@ class TestGitSourceSyncServiceAgentSync:
         # The Git Tree API returns full paths; fallback returns just filenames
         all_items = " ".join(agent_list)
         for expected_agent in [
-            "research-agent.md",
+            "research.md",
             "engineer.md",
-            "qa-agent.md",
-            "documentation-agent.md",
+            "qa.md",
+            "documentation.md",
             "security.md",
-            "ops.md",
+            "local-ops.md",
         ]:
             assert expected_agent in all_items, (
                 f"Expected agent '{expected_agent}' not found in agent list"
@@ -1033,7 +1033,13 @@ class TestHashMismatchHandling:
             requests.RequestException("Network error"),
         ]
 
-        result = git_sync_service.sync_agents()
+        # Patch _get_agent_list to avoid Tree API consuming mock responses,
+        # and skip manifest check which also consumes a mock response
+        with (
+            patch.object(git_sync_service, "_get_agent_list", return_value=[filename]),
+            patch.object(git_sync_service, "_check_manifest_compatibility"),
+        ):
+            result = git_sync_service.sync_agents()
 
         # Should be marked as failed
         assert filename in result["failed"]
@@ -1071,7 +1077,13 @@ class TestCacheFileMissing:
 
         mock_get.side_effect = [mock_response_304, mock_response_200]
 
-        result = git_sync_service.sync_agents()
+        # Patch _get_agent_list to avoid Tree API consuming mock responses,
+        # and skip manifest check which also consumes a mock response
+        with (
+            patch.object(git_sync_service, "_get_agent_list", return_value=[filename]),
+            patch.object(git_sync_service, "_check_manifest_compatibility"),
+        ):
+            result = git_sync_service.sync_agents()
 
         # Should re-download
         assert filename in result["synced"]
@@ -1104,7 +1116,13 @@ class TestCacheFileMissing:
             requests.RequestException("Network timeout"),
         ]
 
-        result = git_sync_service.sync_agents()
+        # Patch _get_agent_list to avoid Tree API consuming mock responses,
+        # and skip manifest check which also consumes a mock response
+        with (
+            patch.object(git_sync_service, "_get_agent_list", return_value=[filename]),
+            patch.object(git_sync_service, "_check_manifest_compatibility"),
+        ):
+            result = git_sync_service.sync_agents()
 
         # Should be in failed list
         assert filename in result["failed"]

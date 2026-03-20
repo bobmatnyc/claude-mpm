@@ -280,6 +280,29 @@ def mock_git_sync_service():
 
 
 @pytest.fixture
+def mock_sync_orchestrator():
+    """Create a mock AgentSyncOrchestrator (Phase 3 unification).
+
+    The orchestrator handles the sync step in _deploy_agents.  Its sync()
+    method returns a SyncResult dataclass with consistent attributes.
+    """
+    from claude_mpm.services.agents.sync_orchestrator import SyncResult
+
+    orch = MagicMock()
+    orch.sync.return_value = SyncResult(
+        enabled=True,
+        sources_synced=1,
+        sources_failed=0,
+        total_downloaded=5,
+        cache_hits=5,
+        errors=[],
+        duration_ms=100,
+        raw_results={},
+    )
+    return orch
+
+
+@pytest.fixture
 def mock_dependency_service():
     """Create a mock dependency service."""
     service = MagicMock()
@@ -573,47 +596,87 @@ class TestListingOperations(TestAgentsCommand):
 class TestDeploymentOperations(TestAgentsCommand):
     """Test deployment operations for agents."""
 
-    def test_deploy_agents_success(self, command, mock_args, mock_git_sync_service):
-        """Test successful agent deployment using GitSourceSyncService."""
+    def test_deploy_agents_success(
+        self, command, mock_args, mock_git_sync_service, mock_sync_orchestrator
+    ):
+        """Test successful agent deployment using orchestrator + GitSourceSyncService."""
         mock_args.agents_command = "deploy"
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+            ) as mock_config_load,
+            patch("builtins.print"),
         ):
-            with patch("builtins.print") as mock_print:
-                result = command.run(mock_args)
+            # Provide a deterministic default repo list via mocked config
+            mock_config = MagicMock()
+            mock_repo = MagicMock()
+            mock_repo.identifier = "bobmatnyc/claude-mpm-agents/main/agents"
+            mock_config.get_enabled_repositories.return_value = [mock_repo]
+            mock_config_load.return_value = mock_config
+
+            result = command.run(mock_args)
 
         assert result.success
         # Default mock returns 2 deployed + 1 updated = 3 total
         assert "Deployed 3 agents from cache" in result.message
         assert result.data["total_deployed"] == 3
 
-        # Verify GitSourceSyncService methods were called
-        mock_git_sync_service.sync_agents.assert_called_once_with(
-            force_refresh=False, show_progress=True
-        )
+        # Verify orchestrator sync was called with force=False and scoped repos
+        mock_sync_orchestrator.sync.assert_called_once()
+        call_kwargs = mock_sync_orchestrator.sync.call_args[1]
+        assert call_kwargs["force"] is False
+        assert "repos" in call_kwargs and len(call_kwargs["repos"]) == 1
+        # Verify deploy still goes through GitSourceSyncService
         mock_git_sync_service.deploy_agents_to_project.assert_called_once()
 
-    def test_deploy_agents_force(self, command, mock_args, mock_git_sync_service):
+    def test_deploy_agents_force(
+        self, command, mock_args, mock_git_sync_service, mock_sync_orchestrator
+    ):
         """Test force deployment of agents."""
         mock_args.agents_command = "force-deploy"
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
+            patch(
+                "claude_mpm.config.agent_sources.AgentSourceConfiguration.load",
+            ) as mock_config_load,
         ):
+            mock_config = MagicMock()
+            mock_repo = MagicMock()
+            mock_repo.identifier = "bobmatnyc/claude-mpm-agents/main/agents"
+            mock_config.get_enabled_repositories.return_value = [mock_repo]
+            mock_config_load.return_value = mock_config
+
             result = command.run(mock_args)
 
         assert result.success
-        # Verify force=True was passed
-        mock_git_sync_service.sync_agents.assert_called_once_with(
-            force_refresh=True, show_progress=True
-        )
+        # Verify force=True was passed to orchestrator with scoped repos
+        mock_sync_orchestrator.sync.assert_called_once()
+        call_kwargs = mock_sync_orchestrator.sync.call_args[1]
+        assert call_kwargs["force"] is True
+        assert "repos" in call_kwargs and len(call_kwargs["repos"]) == 1
         call_args = mock_git_sync_service.deploy_agents_to_project.call_args
         assert call_args[1]["force"] is True
 
-    def test_deploy_agents_no_changes(self, command, mock_args, mock_git_sync_service):
+    def test_deploy_agents_no_changes(
+        self, command, mock_args, mock_git_sync_service, mock_sync_orchestrator
+    ):
         """Test deployment when all agents are up to date."""
         # Configure mock to return no deployments
         mock_git_sync_service.deploy_agents_to_project.return_value = {
@@ -626,24 +689,38 @@ class TestDeploymentOperations(TestAgentsCommand):
 
         mock_args.agents_command = "deploy"
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
+            patch("builtins.print"),
         ):
-            with patch("builtins.print") as mock_print:
-                result = command.run(mock_args)
+            result = command.run(mock_args)
 
         assert result.success
         assert "Deployed 0 agents from cache" in result.message
 
-    def test_deploy_agents_json_format(self, command, mock_args, mock_git_sync_service):
+    def test_deploy_agents_json_format(
+        self, command, mock_args, mock_git_sync_service, mock_sync_orchestrator
+    ):
         """Test deployment with JSON output format."""
         mock_args.agents_command = "deploy"
         mock_args.format = "json"
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
         ):
             result = command.run(mock_args)
 
@@ -652,22 +729,34 @@ class TestDeploymentOperations(TestAgentsCommand):
         assert "sync_result" in result.data
         assert "deploy_result" in result.data
 
-    def test_deploy_agents_with_errors(self, command, mock_args, mock_git_sync_service):
+    def test_deploy_agents_with_errors(
+        self, command, mock_args, mock_git_sync_service, mock_sync_orchestrator
+    ):
         """Test deployment with sync errors."""
-        # Configure mock to return sync failure (empty synced/cached lists)
-        mock_git_sync_service.sync_agents.return_value = {
-            "synced": [],
-            "cached": [],
-            "failed": ["agent1.md"],
-            "total_downloaded": 0,
-            "cache_hits": 0,
-        }
+        from claude_mpm.services.agents.sync_orchestrator import SyncResult
+
+        # Configure orchestrator to return sync failure
+        mock_sync_orchestrator.sync.return_value = SyncResult(
+            enabled=True,
+            sources_synced=0,
+            sources_failed=1,
+            total_downloaded=0,
+            cache_hits=0,
+            errors=["Source org/repo: 404 Not Found"],
+            duration_ms=50,
+        )
 
         mock_args.agents_command = "deploy"
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
         ):
             result = command.run(mock_args)
 
@@ -1275,7 +1364,11 @@ class TestOutputFormats:
 
     @pytest.mark.parametrize("format_type", ["json", "yaml", "text"])
     def test_deploy_agents_formats(
-        self, command_with_service, format_type, mock_git_sync_service
+        self,
+        command_with_service,
+        format_type,
+        mock_git_sync_service,
+        mock_sync_orchestrator,
     ):
         """Test deploy agents with different output formats."""
         mock_args = MagicMock()
@@ -1285,9 +1378,15 @@ class TestOutputFormats:
         mock_args.force = False
         mock_args.verbose = False  # Explicitly set to False to avoid verbose mode
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
         ):
             result = command_with_service.run(mock_args)
 
@@ -1458,7 +1557,11 @@ class TestIntegrationScenarios:
         # Don't mock the deployment service to test full integration
 
     def test_deploy_then_list_workflow(
-        self, mock_deployment_service, mock_listing_service, mock_git_sync_service
+        self,
+        mock_deployment_service,
+        mock_listing_service,
+        mock_git_sync_service,
+        mock_sync_orchestrator,
     ):
         """Test deploy followed by list workflow."""
         cmd = AgentsCommand()
@@ -1473,9 +1576,15 @@ class TestIntegrationScenarios:
         deploy_args.force = False
         deploy_args.verbose = False
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
-            return_value=mock_git_sync_service,
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_sync_orchestrator,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+                return_value=mock_git_sync_service,
+            ),
         ):
             deploy_result = cmd.run(deploy_args)
         assert deploy_result.success
@@ -1709,26 +1818,36 @@ class TestCommandRouting:
             assert len(result.data["agents"]) == 2
 
     def test_deploy_agents_with_error(self):
-        """Test deploy agents with error from GitSourceSyncService mock.
+        """Test deploy agents with error from sync orchestrator.
 
-        IMPORTANT: _deploy_agents() instantiates GitSourceSyncService() directly
-        (not via self._deployment_service), so we must mock GitSourceSyncService
-        at the import site to prevent real network calls and real filesystem writes
-        to .claude/agents/.
+        IMPORTANT: _deploy_agents() now uses AgentSyncOrchestrator for sync
+        (Phase 3 unification). When sync fails completely, we expect an error result.
         """
         from unittest.mock import patch
 
-        with patch(
-            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService"
-        ) as mock_git_sync_class:
-            mock_git_sync = MagicMock()
-            mock_git_sync.sync_agents.side_effect = Exception("Sync failed")
-            mock_git_sync_class.return_value = mock_git_sync
+        from claude_mpm.services.agents.sync_orchestrator import SyncResult
 
+        mock_orch = MagicMock()
+        mock_orch.sync.return_value = SyncResult(
+            enabled=True,
+            sources_synced=0,
+            sources_failed=1,
+            errors=["Source org/repo: Sync failed"],
+        )
+
+        with (
+            patch(
+                "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+                return_value=mock_orch,
+            ),
+            patch(
+                "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService"
+            ),
+        ):
             args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
 
             result = self.command.run(args)
 
             assert isinstance(result, CommandResult)
             assert result.success is False
-            assert "Error" in result.message or "error" in result.message
+            assert "Sync failed" in result.message or "error" in result.message.lower()

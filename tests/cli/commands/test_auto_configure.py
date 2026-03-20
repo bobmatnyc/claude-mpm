@@ -467,3 +467,77 @@ class TestProjectPathPropagation:
 
         # And the original must be gone
         assert not agent_file.exists(), "Original agent file should have been moved"
+
+
+class TestDeployRoleAgentsOrchestrator:
+    """Verify that _deploy_role_agents uses AgentSyncOrchestrator for cache sync.
+
+    The bug fix replaced a nonexistent `git_sync.sync_repository()` call with
+    the Phase 3 AgentSyncOrchestrator.  These tests ensure the orchestrator is
+    instantiated and its `.sync()` method is called during role deployment.
+    """
+
+    @pytest.fixture
+    def command(self):
+        return AutoConfigureCommand()
+
+    @patch(
+        "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+    )
+    @patch(
+        "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+    )
+    def test_deploy_role_agents_calls_orchestrator_sync(
+        self, mock_orch_cls, mock_git_cls, command, tmp_path
+    ):
+        """_deploy_role_agents must create an AgentSyncOrchestrator and call
+        .sync() to populate the cache before deploying via GitSourceSyncService.
+        """
+        # Arrange: mock orchestrator instance
+        mock_orch_instance = MagicMock()
+        mock_orch_cls.return_value = mock_orch_instance
+
+        # Arrange: mock GitSourceSyncService deploy result
+        mock_git_instance = MagicMock()
+        mock_git_instance.deploy_agents_to_project.return_value = {
+            "deployed": ["engineer"],
+            "updated": [],
+            "failed": [],
+        }
+        mock_git_cls.return_value = mock_git_instance
+
+        # Act
+        result = command._deploy_role_agents("developer", tmp_path)
+
+        # Assert: orchestrator was created with show_progress=False
+        mock_orch_cls.assert_called_once_with(show_progress=False)
+
+        # Assert: orchestrator.sync() was called with force=False
+        mock_orch_instance.sync.assert_called_once_with(force=False)
+
+        # Assert: GitSourceSyncService was used for the deploy phase
+        mock_git_instance.deploy_agents_to_project.assert_called_once()
+
+        # Assert: result indicates success
+        assert result.status == OperationResult.SUCCESS
+
+    @patch(
+        "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+    )
+    @patch(
+        "claude_mpm.services.agents.sync_orchestrator.AgentSyncOrchestrator",
+    )
+    def test_deploy_role_agents_handles_sync_failure_gracefully(
+        self, mock_orch_cls, mock_git_cls, command, tmp_path
+    ):
+        """If the orchestrator sync raises, _deploy_role_agents should return
+        a FAILED ConfigurationResult rather than propagating the exception.
+        """
+        mock_orch_instance = MagicMock()
+        mock_orch_instance.sync.side_effect = RuntimeError("network down")
+        mock_orch_cls.return_value = mock_orch_instance
+
+        result = command._deploy_role_agents("developer", tmp_path)
+
+        assert result.status == OperationResult.FAILED
+        assert "network down" in result.message

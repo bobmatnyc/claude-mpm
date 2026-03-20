@@ -444,7 +444,9 @@ class DeploymentReconciler:
 
         # Deploy using unified deployment function (handles normalization,
         # frontmatter injection, and legacy cleanup)
-        deploy_agent_file(agent_file, deploy_dir)
+        result = deploy_agent_file(agent_file, deploy_dir)
+        if not result.success:
+            raise RuntimeError(f"Failed to deploy {agent_id}: {result.error}")
 
     def _deploy_skill(self, skill_id: str, cache_dir: Path, deploy_dir: Path) -> None:
         """Deploy skill from cache to project directory."""
@@ -455,7 +457,9 @@ class DeploymentReconciler:
 
         # Deploy using unified deployment function (handles normalization,
         # frontmatter injection, and legacy cleanup)
-        deploy_agent_file(skill_file, deploy_dir)
+        result = deploy_agent_file(skill_file, deploy_dir)
+        if not result.success:
+            raise RuntimeError(f"Failed to deploy skill {skill_id}: {result.error}")
 
     def _remove_agent(self, agent_id: str, deploy_dir: Path) -> None:
         """Remove deployed agent."""

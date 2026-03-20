@@ -458,3 +458,90 @@ class TestValidationResultDataclass:
 
         assert result.valid is False
         assert "File not found" in result.errors
+
+
+# ============================================================================
+# Phase 1c Tests: Content Validation
+# ============================================================================
+
+
+class TestPhase1cContentValidation:
+    """Phase 1c: deploy_agent_file rejects empty/whitespace-only files."""
+
+    def test_deploy_agent_file_rejects_empty_file(self, tmp_path):
+        """Phase 1c: Empty agent files are rejected with success=False."""
+        source = tmp_path / "cache" / "empty-agent.md"
+        source.parent.mkdir(parents=True)
+        source.write_text("", encoding="utf-8")
+        deploy_dir = tmp_path / "deploy" / ".claude" / "agents"
+
+        result = deploy_agent_file(
+            source_file=source,
+            deployment_dir=deploy_dir,
+            cleanup_legacy=True,
+            ensure_frontmatter=True,
+            force=True,
+        )
+
+        assert not result.success
+        assert result.error is not None
+        assert "empty" in result.error.lower()
+        assert not deploy_dir.exists() or not list(deploy_dir.glob("*.md"))
+
+    def test_deploy_agent_file_rejects_whitespace_only_file(self, tmp_path):
+        """Phase 1c: Whitespace-only agent files are rejected."""
+        source = tmp_path / "cache" / "whitespace-agent.md"
+        source.parent.mkdir(parents=True)
+        source.write_text("   \n\n  \t  \n", encoding="utf-8")
+        deploy_dir = tmp_path / "deploy" / ".claude" / "agents"
+
+        result = deploy_agent_file(
+            source_file=source,
+            deployment_dir=deploy_dir,
+            cleanup_legacy=True,
+            ensure_frontmatter=True,
+            force=True,
+        )
+
+        assert not result.success
+        assert result.error is not None
+        assert "empty" in result.error.lower()
+
+    def test_reconciler_reports_deploy_failure(self, tmp_path, monkeypatch):
+        """Phase 1c: Reconciler captures RuntimeError from failed deploy and adds to errors."""
+        from claude_mpm.core.unified_config import UnifiedConfig
+        from claude_mpm.services.agents.deployment.deployment_reconciler import (
+            DeploymentReconciler,
+        )
+
+        # Skip the manifest compatibility gate so the reconciler reaches the deploy step
+        monkeypatch.setenv("CLAUDE_MPM_SKIP_COMPAT_CHECK", "1")
+
+        # Build a minimal config that enables one agent
+        config = UnifiedConfig()
+        config.agents.enabled = ["broken-agent"]
+        config.agents.required = []
+        config.agents.include_universal = False
+        config.agents.auto_discover = False
+
+        reconciler = DeploymentReconciler(config=config)
+
+        # Create an empty cache file so the reconciler finds it but deploy fails
+        cache_dir = tmp_path / "agents"
+        cache_dir.mkdir(parents=True)
+        empty_agent = cache_dir / "broken-agent.md"
+        empty_agent.write_text("", encoding="utf-8")
+
+        deploy_dir = tmp_path / ".claude" / "agents"
+
+        # Patch path manager to point at our tmp dirs
+        monkeypatch.setattr(
+            reconciler.path_manager,
+            "get_cache_dir",
+            lambda: tmp_path,
+        )
+
+        agent_result = reconciler.reconcile_agents(project_path=tmp_path)
+
+        assert not agent_result.success
+        assert any("broken-agent" in e for e in agent_result.errors)

@@ -246,56 +246,6 @@ class ClaudeRunner:
 
         return hash_obj.hexdigest()
 
-    def _check_deployment_state(self) -> bool:
-        """Check if agents are already deployed and up-to-date.
-
-        Returns:
-            True if agents are already deployed and match current version, False otherwise
-        """
-        state_file = self._get_deployment_state_path()
-        agents_dir = Path.cwd() / ".claude" / "agents"
-
-        # If state file doesn't exist, need to deploy
-        if not state_file.exists():
-            return False
-
-        # If agents directory doesn't exist, need to deploy
-        if not agents_dir.exists():
-            return False
-
-        try:
-            # Load deployment state
-            state_data = json.loads(state_file.read_text())
-
-            # Get current version from package
-            from claude_mpm import __version__
-
-            # Check if version matches
-            if state_data.get("version") != __version__:
-                self.logger.debug(
-                    f"Version mismatch: {state_data.get('version')} != {__version__}"
-                )
-                return False
-
-            # Check if agent count and hash match
-            current_hash = self._calculate_deployment_hash(agents_dir)
-            stored_hash = state_data.get("deployment_hash", "")
-
-            if current_hash != stored_hash:
-                self.logger.debug("Agent deployment hash mismatch")
-                return False
-
-            # All checks passed - agents are already deployed
-            agent_count = state_data.get("agent_count", 0)
-            self.logger.debug(
-                f"Agents already deployed: {agent_count} agents (v{__version__})"
-            )
-            return True
-
-        except Exception as e:
-            self.logger.debug(f"Error checking deployment state: {e}")
-            return False
-
     def _save_deployment_state(self, agent_count: int) -> None:
         """Save current deployment state.
 

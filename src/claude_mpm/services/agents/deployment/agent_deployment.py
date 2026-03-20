@@ -197,11 +197,8 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
     def _sync_remote_agent_sources(self, timeout_seconds: int = 30) -> dict[str, Any]:
         """Sync git-based agent sources before deployment.
 
-        This method follows the skills system pattern: sync configured git repositories
-        to cache before discovery. Network failures are logged but don't block deployment.
-
-        Args:
-            timeout_seconds: Timeout for git operations (default: 30 seconds)
+        Delegates to AgentSyncOrchestrator (Phase 3 unification) and returns
+        a backward-compatible dict for existing callers.
 
         Returns:
             Dictionary with sync results:
@@ -218,78 +215,18 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             - Timeout: Individual repo timeouts don't stop overall sync
             - Missing cache dir: Created automatically
         """
-        import time
+        from claude_mpm.services.agents.sync_orchestrator import AgentSyncOrchestrator
 
-        start_time = time.time()
+        orchestrator = AgentSyncOrchestrator(show_progress=False)
+        sync_result = orchestrator.sync(force=False)
 
-        results = {
-            "synced_count": 0,
-            "failed_count": 0,
-            "repositories": {},
-            "duration_ms": 0,
+        # Return backward-compatible dict for existing callers
+        return {
+            "synced_count": sync_result.sources_synced,
+            "failed_count": sync_result.sources_failed,
+            "repositories": sync_result.raw_results,
+            "duration_ms": sync_result.duration_ms,
         }
-
-        # Load agent sources configuration
-        try:
-            config = AgentSourceConfiguration.load()
-            enabled_repos = [r for r in config.repositories if r.enabled]
-
-            if not enabled_repos:
-                self.logger.debug("No enabled agent sources configured")
-                return results
-
-            self.logger.info(f"Syncing {len(enabled_repos)} agent git sources...")
-
-            # Sync each enabled repository
-            for repo in enabled_repos:
-                repo_id = repo.identifier
-                try:
-                    # Sync with timeout (individual repo sync)
-                    # NOTE: show_progress=False to avoid duplicate progress bars
-                    # (startup sync already showed progress to user)
-                    sync_result = self.git_source_manager.sync_repository(
-                        repo,
-                        force=False,  # Use ETag-based caching
-                        show_progress=False,  # Suppress progress (startup already synced)
-                    )
-
-                    results["repositories"][repo_id] = sync_result
-
-                    if sync_result.get("synced"):
-                        results["synced_count"] += 1
-                        agents_discovered = sync_result.get("agents_discovered", [])
-                        self.logger.info(
-                            f"Synced {repo_id}: {sync_result.get('files_updated', 0)} files, "
-                            f"{len(agents_discovered)} agents"
-                        )
-                    else:
-                        results["failed_count"] += 1
-                        error = sync_result.get("error", "Unknown error")
-                        self.logger.warning(f"Failed to sync {repo_id}: {error}")
-
-                except Exception as e:
-                    # Don't let individual repo failures stop deployment
-                    results["failed_count"] += 1
-                    results["repositories"][repo_id] = {
-                        "synced": False,
-                        "error": str(e),
-                    }
-                    self.logger.warning(f"Exception syncing {repo_id}: {e}")
-
-        except Exception as e:
-            # Configuration loading failure - log but don't crash
-            self.logger.warning(f"Failed to load agent sources config: {e}")
-            results["failed_count"] = -1  # Indicates config failure
-
-        results["duration_ms"] = (time.time() - start_time) * 1000
-
-        if results["synced_count"] > 0:
-            self.logger.info(
-                f"Agent source sync complete: {results['synced_count']} succeeded, "
-                f"{results['failed_count']} failed ({results['duration_ms']:.0f}ms)"
-            )
-
-        return results
 
     def deploy_agents(
         self,

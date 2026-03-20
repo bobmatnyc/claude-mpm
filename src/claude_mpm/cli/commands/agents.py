@@ -472,12 +472,21 @@ class AgentsCommand(AgentCommand):
         try:
             from ...config.agent_sources import AgentSourceConfiguration
             from ...services.agents.git_source_manager import GitSourceManager
+            from ...services.agents.sync_orchestrator import AgentSyncOrchestrator
 
-            # Load agent sources configuration
-            config = AgentSourceConfiguration.load()
-            enabled_repos = [r for r in config.repositories if r.enabled]
+            # Sync default source via orchestrator (Phase 3 unification).
+            # Scope to default repo only to preserve pre-refactor behaviour
+            # where GitSourceSyncService() only synced bobmatnyc/claude-mpm-agents.
+            source_config = AgentSourceConfiguration.load()
+            default_repos = [
+                r
+                for r in source_config.get_enabled_repositories()
+                if "claude-mpm-agents" in r.identifier
+            ][:1]
+            orchestrator = AgentSyncOrchestrator(show_progress=False)
+            orch_result = orchestrator.sync(force=False, repos=default_repos)
 
-            if not enabled_repos:
+            if not orch_result.enabled:
                 message = (
                     "No agent sources configured.\n\n"
                     "Configure sources with:\n"
@@ -488,25 +497,13 @@ class AgentsCommand(AgentCommand):
                 print(message)
                 return CommandResult.error_result("No agent sources configured")
 
-            # Initialize git source manager
-            manager = GitSourceManager()
-
-            # Sync all configured sources (with timeout)
-            self.logger.info(f"Syncing {len(enabled_repos)} agent sources...")
-            sync_results = {}
-
-            for repo in enabled_repos:
-                try:
-                    result = manager.sync_repository(repo, force=False)
-                    sync_results[repo.identifier] = result
-                except Exception as e:
-                    self.logger.warning(f"Failed to sync {repo.identifier}: {e}")
-                    sync_results[repo.identifier] = {"synced": False, "error": str(e)}
+            sync_results = orch_result.raw_results
 
             # Get source filter from args
             source_filter = getattr(args, "source", None)
 
-            # List all cached agents
+            # List all cached agents (need GitSourceManager for discovery)
+            manager = GitSourceManager()
             all_agents = manager.list_cached_agents(repo_identifier=source_filter)
 
             if not all_agents:
@@ -618,44 +615,50 @@ class AgentsCommand(AgentCommand):
             if hasattr(args, "preset") and args.preset:
                 return self._deploy_preset(args)
 
+            from ...config.agent_sources import AgentSourceConfiguration
             from ...services.agents.sources.git_source_sync_service import (
                 GitSourceSyncService,
             )
+            from ...services.agents.sync_orchestrator import AgentSyncOrchestrator
 
-            # Initialize git sync service
-            git_sync = GitSourceSyncService()
             project_dir = Path.cwd()
 
             self.logger.info("Phase 1: Syncing agents to cache...")
 
-            # Sync to cache (downloads from GitHub if needed)
-            # Bug fix: sync_repository does not exist on GitSourceSyncService;
-            # the correct method is sync_agents which returns:
-            #   {"synced": [list], "cached": [list], "failed": [list],
-            #    "total_downloaded": int, "cache_hits": int}
-            sync_result = git_sync.sync_agents(force_refresh=force, show_progress=True)
+            # Phase 3 unification: use orchestrator for sync step.
+            # INVARIANT: `agents deploy` is NEVER TTL-gated -- always pass
+            # force=True when the user specifies --force.
+            # Scope to default repo only -- the old GitSourceSyncService()
+            # constructor only knew about bobmatnyc/claude-mpm-agents.
+            source_config = AgentSourceConfiguration.load()
+            default_repos = [
+                r
+                for r in source_config.get_enabled_repositories()
+                if "claude-mpm-agents" in r.identifier
+            ][:1]
+            orchestrator = AgentSyncOrchestrator(show_progress=True)
+            orch_result = orchestrator.sync(force=force, repos=default_repos)
 
-            # sync_agents returns lists; check for failures
-            synced_files = sync_result.get("synced", [])
-            cached_files = sync_result.get("cached", [])
-            failed_files = sync_result.get("failed", [])
-            agent_count = len(synced_files) + len(cached_files)
-
-            if not synced_files and not cached_files:
+            if not orch_result.enabled or (
+                orch_result.sources_synced == 0 and orch_result.sources_failed > 0
+            ):
                 error_msg = (
-                    f"No agents synced or cached"
-                    f"{f'; {len(failed_files)} failed' if failed_files else ''}"
+                    f"No agents synced"
+                    f"{f'; {orch_result.sources_failed} source(s) failed' if orch_result.sources_failed else ''}"
                 )
+                if orch_result.errors:
+                    error_msg += f": {orch_result.errors[0]}"
                 self.logger.error(f"Sync failed: {error_msg}")
                 return CommandResult.error_result(f"Sync failed: {error_msg}")
 
             self.logger.info(
-                f"Phase 1 complete: {agent_count} agents in cache"
-                f" ({len(synced_files)} downloaded, {len(cached_files)} cached)"
+                f"Phase 1 complete: {orch_result.total_downloaded + orch_result.cache_hits} agents in cache"
+                f" ({orch_result.total_downloaded} downloaded, {orch_result.cache_hits} cached)"
             )
             self.logger.info(f"Phase 2: Deploying agents to {project_dir}...")
 
-            # Deploy from cache to project directory
+            # Deploy from cache to project directory (deploy stays with GitSourceSyncService)
+            git_sync = GitSourceSyncService()
             deploy_result = git_sync.deploy_agents_to_project(
                 project_dir=project_dir,
                 agent_list=None,  # Deploy all cached agents
@@ -663,6 +666,7 @@ class AgentsCommand(AgentCommand):
             )
 
             # Format combined results for output
+            agent_count = orch_result.total_downloaded + orch_result.cache_hits
             combined_result = {
                 "deployed_count": len(deploy_result.get("deployed", []))
                 + len(deploy_result.get("updated", [])),
@@ -691,7 +695,11 @@ class AgentsCommand(AgentCommand):
             return CommandResult.success_result(
                 f"Deployed {success_count} agents from cache",
                 data={
-                    "sync_result": sync_result,
+                    "sync_result": {
+                        "sources_synced": orch_result.sources_synced,
+                        "total_downloaded": orch_result.total_downloaded,
+                        "cache_hits": orch_result.cache_hits,
+                    },
                     "deploy_result": deploy_result,
                     "total_deployed": success_count,
                 },

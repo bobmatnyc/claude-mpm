@@ -1037,6 +1037,7 @@ class AutoConfigureCommand(BaseCommand):
         from ...services.agents.sources.git_source_sync_service import (
             GitSourceSyncService,
         )
+        from ...services.agents.sync_orchestrator import AgentSyncOrchestrator
         from ...services.core.models.agent_config import ConfigurationResult
 
         role_agents = ROLE_AGENT_PRESETS.get(role, [])
@@ -1047,13 +1048,15 @@ class AutoConfigureCommand(BaseCommand):
             )
 
         try:
-            git_sync = GitSourceSyncService()
-
-            # Phase 1: ensure cache is up to date
+            # Phase 1: ensure cache is up to date (Phase 3 unification)
+            # BUG FIX: Previously called git_sync.sync_repository() which
+            # does not exist on GitSourceSyncService.  Use orchestrator instead.
             self.logger.info("Syncing agent cache for role deployment...")
-            git_sync.sync_repository(force=False)
+            orchestrator = AgentSyncOrchestrator(show_progress=False)
+            orchestrator.sync(force=False)
 
-            # Phase 2: deploy role agents to project
+            # Phase 2: deploy role agents to project (deploy stays with GitSourceSyncService)
+            git_sync = GitSourceSyncService()
             self.logger.info(
                 f"Deploying {len(role_agents)} agents for role '{role}'..."
             )

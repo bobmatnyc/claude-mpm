@@ -19,6 +19,7 @@ from ...services.agents.deployment.deployment_reconciler import (
     DeploymentReconciler,
     ReconciliationState,
 )
+from ...services.agents.pipeline_config import AgentPipelineConfig
 from ..shared import BaseCommand, CommandResult
 
 
@@ -31,8 +32,22 @@ class AgentsReconcileCommand(BaseCommand):
 
     def run(self, args) -> CommandResult:
         """Execute reconciliation."""
-        # Load config
+        # Resolve pipeline config (fail-safe) then build UnifiedConfig
+        pipeline_config = AgentPipelineConfig.resolve(
+            mode="reconcile",
+            project_dir=Path.cwd(),
+        )
+
+        # Transitional bridge: overlay resolved agent list onto UnifiedConfig
+        # so that DeploymentReconciler sees the same resolved config.
         config = UnifiedConfig()
+        # Compute effective enabled set: enabled + required - excluded
+        effective_agents = pipeline_config.get_agents_to_deploy()
+        if effective_agents and pipeline_config.has_explicit_agent_selection:
+            config.agents.enabled = list(effective_agents)
+        else:
+            config.agents.auto_discover = True
+
         reconciler = DeploymentReconciler(config)
 
         # Get project path

@@ -58,10 +58,10 @@ class TestAgentStartupConfigRespect:
                     "duration_ms": 1000,
                 }
 
-                # Mock config to have specific enabled agents
+                # Mock config to have specific enabled agents (no required, testing enabled list only)
                 mock_config = MagicMock()
                 mock_config.agents.enabled = ["engineer", "qa"]
-                mock_config.agents.required = ["research"]
+                mock_config.agents.required = []
                 mock_config.agents.include_universal = False
                 mock_config_class.return_value = mock_config
 
@@ -83,7 +83,8 @@ class TestAgentStartupConfigRespect:
                 mock_reconcile.assert_called_once()
                 call_kwargs = mock_reconcile.call_args[1]
                 assert "config" in call_kwargs
-                assert call_kwargs["config"].agents.enabled == ["engineer", "qa"]
+                # Use set comparison — order is not guaranteed when converting from set
+                assert set(call_kwargs["config"].agents.enabled) == {"engineer", "qa"}
 
     def test_deployment_respects_include_universal_setting(self):
         """Verify include_universal setting is respected."""
@@ -181,6 +182,11 @@ class TestAgentStartupConfigRespect:
                 mock_profile = MagicMock()
                 mock_profile.get_enabled_agents.return_value = {"qa", "security"}
                 mock_profile_manager.active_profile = mock_profile
+                # get_enabled_agents is called directly on the PM instance (Phase 2)
+                mock_profile_manager.get_enabled_agents.return_value = {
+                    "qa",
+                    "security",
+                }
                 mock_profile_manager_class.return_value = mock_profile_manager
 
                 # Mock config loader
