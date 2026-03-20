@@ -1850,6 +1850,44 @@ def auto_install_chrome_devtools_on_startup():
         # Continue execution - chrome-devtools installation failure shouldn't block startup
 
 
+def _rebuild_pm_instructions_deployed() -> None:
+    """Rebuild PM_INSTRUCTIONS_DEPLOYED.md from framework blocks and project overrides.
+
+    Instantiates SystemInstructionsDeployer with the current working directory
+    and runs deploy_system_instructions() so that any user/project overrides
+    are merged into .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md on every startup.
+
+    Errors are non-fatal: a warning is logged and startup continues.
+    """
+    try:
+        from ..core.logger import get_logger
+        from ..services.agents.deployment.system_instructions_deployer import (
+            SystemInstructionsDeployer,
+        )
+
+        logger = get_logger("cli")
+        working_directory = Path.cwd()
+        deployer = SystemInstructionsDeployer(logger, working_directory)
+        results: dict = {"deployed": [], "updated": [], "skipped": [], "errors": []}
+        deployer.deploy_system_instructions(
+            target_dir=working_directory / ".claude-mpm",
+            force_rebuild=False,
+            results=results,
+        )
+        if results["errors"]:
+            for err in results["errors"]:
+                logger.warning("PM instructions deployment issue: %s", err)
+    except Exception as e:
+        try:
+            from ..core.logger import get_logger
+
+            get_logger("cli").warning(
+                "Could not rebuild PM_INSTRUCTIONS_DEPLOYED.md: %s", e
+            )
+        except Exception:
+            pass
+
+
 def sync_deployment_on_startup(force_sync: bool = False, no_sync: bool = False) -> None:
     """Consolidated deployment block: hooks + agents.
 
@@ -1865,6 +1903,10 @@ def sync_deployment_on_startup(force_sync: bool = False, no_sync: bool = False) 
         force_sync: Force download even if cache is fresh (bypasses ETag).
         no_sync: Skip remote agent/skills sync entirely (use existing cache).
     """
+    # Step 0: Rebuild PM_INSTRUCTIONS_DEPLOYED.md from 4 blocks + overrides.
+    # Always rebuilt so override changes take effect without manual deploy.
+    _rebuild_pm_instructions_deployed()
+
     # Step 1-2: Hooks (cleanup + reinstall handled by sync_hooks_on_startup)
     sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
 

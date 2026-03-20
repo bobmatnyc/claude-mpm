@@ -108,43 +108,26 @@ class SystemInstructionsDeployer:
                     if p.exists():
                         watched_paths.append(p)
 
-            latest_mtime = (
-                max(p.stat().st_mtime for p in watched_paths) if watched_paths else 0
-            )
-
-            # Write merged content to PM_INSTRUCTIONS_DEPLOYED.md
+            # Always (re)build PM_INSTRUCTIONS_DEPLOYED.md — freshness is ensured
+            # by rebuilding on every startup, so no staleness check is needed.
             target_file = claude_mpm_dir / "PM_INSTRUCTIONS_DEPLOYED.md"
+            file_existed = target_file.exists()
 
-            # Check if update needed
-            if (
-                not force_rebuild
-                and target_file.exists()
-                and target_file.stat().st_mtime >= latest_mtime
-            ):
-                # File is up to date based on modification time
-                results["skipped"].append("PM_INSTRUCTIONS_DEPLOYED.md")
-                self.logger.debug("PM_INSTRUCTIONS_DEPLOYED.md up to date")
+            target_file.write_text("\n\n".join(merged_content))
+
+            source_desc = ", ".join(str(p) for p in watched_paths if p.exists())
+            deployment_info = {
+                "name": "PM_INSTRUCTIONS_DEPLOYED.md",
+                "template": source_desc,
+                "target": str(target_file),
+            }
+
+            if file_existed:
+                results["updated"].append(deployment_info)
+                self.logger.info("Rebuilt PM_INSTRUCTIONS_DEPLOYED.md")
             else:
-                # Check if file exists before writing (for proper tracking)
-                file_existed = target_file.exists()
-
-                # Write merged content
-                target_file.write_text("\n\n".join(merged_content))
-
-                # Track deployment
-                source_desc = ", ".join(str(p) for p in watched_paths if p.exists())
-                deployment_info = {
-                    "name": "PM_INSTRUCTIONS_DEPLOYED.md",
-                    "template": source_desc,
-                    "target": str(target_file),
-                }
-
-                if file_existed:
-                    results["updated"].append(deployment_info)
-                    self.logger.info("Updated merged PM_INSTRUCTIONS_DEPLOYED.md")
-                else:
-                    results["deployed"].append(deployment_info)
-                    self.logger.info("Deployed merged PM_INSTRUCTIONS_DEPLOYED.md")
+                results["deployed"].append(deployment_info)
+                self.logger.info("Built PM_INSTRUCTIONS_DEPLOYED.md")
 
         except Exception as e:
             error_msg = f"Failed to deploy system instructions: {e}"
