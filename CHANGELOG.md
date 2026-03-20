@@ -1,3 +1,9 @@
+## v5.10.14 (2026-03-20)
+
+### Fix
+
+- SkillSourceConfiguration.load() called on class without instance (#345)
+
 ## v5.10.13 (2026-03-20)
 
 ## v5.10.12 (2026-03-20)
