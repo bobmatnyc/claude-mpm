@@ -47,7 +47,6 @@ Extracted from AgentDeploymentService to reduce complexity.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class AgentsDirectoryResolver:
@@ -65,7 +64,7 @@ class AgentsDirectoryResolver:
         """
         self.working_directory = working_directory
 
-    def determine_agents_directory(self, target_dir: Optional[Path]) -> Path:
+    def determine_agents_directory(self, target_dir: Path | None) -> Path:
         """
         Determine the correct agents directory based on input.
 

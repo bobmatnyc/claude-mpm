@@ -42,9 +42,8 @@ Change Analysis:
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
 
 from ...utils.config_manager import ConfigurationManager
 
@@ -81,8 +80,8 @@ class SemanticVersion:
     major: int
     minor: int
     patch: int
-    prerelease: Optional[str] = None
-    build: Optional[str] = None
+    prerelease: str | None = None
+    build: str | None = None
 
     def __str__(self) -> str:
         """String representation of version in semver format.
@@ -199,12 +198,12 @@ class VersionMetadata:
 
     version: SemanticVersion
     release_date: datetime
-    commit_hash: Optional[str] = None
-    tag_name: Optional[str] = None
-    changes: List[str] = field(default_factory=list)
-    breaking_changes: List[str] = field(default_factory=list)
-    contributors: List[str] = field(default_factory=list)
-    notes: Optional[str] = None
+    commit_hash: str | None = None
+    tag_name: str | None = None
+    changes: list[str] = field(default_factory=list)
+    breaking_changes: list[str] = field(default_factory=list)
+    contributors: list[str] = field(default_factory=list)
+    notes: str | None = None
 
 
 @dataclass
@@ -214,7 +213,7 @@ class ChangeAnalysis:
     has_breaking_changes: bool = False
     has_new_features: bool = False
     has_bug_fixes: bool = False
-    change_descriptions: List[str] = field(default_factory=list)
+    change_descriptions: list[str] = field(default_factory=list)
     suggested_bump: VersionBumpType = VersionBumpType.PATCH
     confidence: float = 0.0
 
@@ -278,7 +277,7 @@ class SemanticVersionManager:
             r"\bhotfix\b",
         ]
 
-    def parse_version(self, version_string: str) -> Optional[SemanticVersion]:
+    def parse_version(self, version_string: str) -> SemanticVersion | None:
         """
         Parse a version string into a SemanticVersion object.
 
@@ -334,7 +333,7 @@ class SemanticVersionManager:
             self.logger.error(f"Error parsing version '{version_string}': {e}")
             return None
 
-    def get_current_version(self) -> Optional[SemanticVersion]:
+    def get_current_version(self) -> SemanticVersion | None:
         """
         Get the current version from multiple sources with intelligent fallback.
 
@@ -396,7 +395,7 @@ class SemanticVersionManager:
         self.logger.warning("No version found in project files")
         return None
 
-    def _parse_package_json_version(self, file_path: Path) -> Optional[str]:
+    def _parse_package_json_version(self, file_path: Path) -> str | None:
         """Parse version from package.json."""
         try:
             data = self.config_mgr.load_json(file_path)
@@ -404,7 +403,7 @@ class SemanticVersionManager:
         except Exception:
             return None
 
-    def _parse_pyproject_toml_version(self, file_path: Path) -> Optional[str]:
+    def _parse_pyproject_toml_version(self, file_path: Path) -> str | None:
         """Parse version from pyproject.toml."""
         try:
             import tomllib
@@ -434,7 +433,7 @@ class SemanticVersionManager:
         except Exception:
             return self._parse_toml_version_regex(file_path)
 
-    def _parse_toml_version_regex(self, file_path: Path) -> Optional[str]:
+    def _parse_toml_version_regex(self, file_path: Path) -> str | None:
         """Parse version from TOML file using regex."""
         try:
             with file_path.open() as f:
@@ -456,11 +455,11 @@ class SemanticVersionManager:
         except Exception:
             return None
 
-    def _parse_cargo_toml_version(self, file_path: Path) -> Optional[str]:
+    def _parse_cargo_toml_version(self, file_path: Path) -> str | None:
         """Parse version from Cargo.toml."""
         return self._parse_toml_version_regex(file_path)
 
-    def _parse_version_file(self, file_path: Path) -> Optional[str]:
+    def _parse_version_file(self, file_path: Path) -> str | None:
         """Parse version from simple version file."""
         try:
             with file_path.open() as f:
@@ -468,7 +467,7 @@ class SemanticVersionManager:
         except Exception:
             return None
 
-    def _parse_pom_xml_version(self, file_path: Path) -> Optional[str]:
+    def _parse_pom_xml_version(self, file_path: Path) -> str | None:
         """Parse version from Maven pom.xml."""
         try:
             with file_path.open() as f:
@@ -486,7 +485,7 @@ class SemanticVersionManager:
         except Exception:
             return None
 
-    def analyze_changes(self, changes: List[str]) -> ChangeAnalysis:
+    def analyze_changes(self, changes: list[str]) -> ChangeAnalysis:
         """
         Analyze changes to suggest version bump type.
 
@@ -584,8 +583,8 @@ class SemanticVersionManager:
         return current_version.bump(bump_type)
 
     def suggest_version_bump(
-        self, commit_messages: List[str]
-    ) -> Tuple[VersionBumpType, float]:
+        self, commit_messages: list[str]
+    ) -> tuple[VersionBumpType, float]:
         """
         Suggest version bump based on commit messages.
 
@@ -599,8 +598,8 @@ class SemanticVersionManager:
         return analysis.suggested_bump, analysis.confidence
 
     def update_version_files(
-        self, new_version: SemanticVersion, files_to_update: Optional[List[str]] = None
-    ) -> Dict[str, bool]:
+        self, new_version: SemanticVersion, files_to_update: list[str] | None = None
+    ) -> dict[str, bool]:
         """
         Update version in project files.
 
@@ -734,8 +733,8 @@ class SemanticVersionManager:
     def generate_changelog_entry(
         self,
         version: SemanticVersion,
-        changes: List[str],
-        metadata: Optional[VersionMetadata] = None,
+        changes: list[str],
+        metadata: VersionMetadata | None = None,
     ) -> str:
         """
         Generate changelog entry for a version.
@@ -748,7 +747,7 @@ class SemanticVersionManager:
         Returns:
             Formatted changelog entry
         """
-        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date_str = datetime.now(UTC).strftime("%Y-%m-%d")
         if metadata and metadata.release_date:
             date_str = metadata.release_date.strftime("%Y-%m-%d")
 
@@ -819,7 +818,7 @@ class SemanticVersionManager:
     def update_changelog(
         self,
         version: SemanticVersion,
-        changes: List[str],
+        changes: list[str],
         changelog_file: str = "docs/CHANGELOG.md",
     ) -> bool:
         """
@@ -874,7 +873,7 @@ class SemanticVersionManager:
             self.logger.error(f"Error updating changelog: {e}")
             return False
 
-    def get_version_history(self) -> List[SemanticVersion]:
+    def get_version_history(self) -> list[SemanticVersion]:
         """
         Get version history from multiple sources with intelligent fallback.
 
@@ -921,7 +920,7 @@ class SemanticVersionManager:
             # Fallback to original implementation
             return self._parse_changelog_versions_fallback()
 
-    def _parse_changelog_versions_fallback(self) -> List[SemanticVersion]:
+    def _parse_changelog_versions_fallback(self) -> list[SemanticVersion]:
         """Fallback method: Parse versions from changelog file only."""
         versions = []
 
@@ -940,7 +939,7 @@ class SemanticVersionManager:
         versions.sort(reverse=True)
         return versions
 
-    def _parse_changelog_versions(self, changelog_path: Path) -> List[SemanticVersion]:
+    def _parse_changelog_versions(self, changelog_path: Path) -> list[SemanticVersion]:
         """Parse versions from changelog file."""
         versions = []
 

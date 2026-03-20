@@ -9,7 +9,7 @@ Tests the HTTP event endpoint to verify event flow without Socket.IO complexity.
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import requests
 
@@ -22,7 +22,7 @@ def test_http_event_endpoint():
     test_event = {
         "type": "hook",
         "subtype": "test_http",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "data": {"test_id": "http_test_001", "message": "Testing HTTP event endpoint"},
         "source": "test_script",
     }

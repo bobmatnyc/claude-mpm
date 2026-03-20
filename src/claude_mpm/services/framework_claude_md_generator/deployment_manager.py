@@ -6,8 +6,7 @@ Deployment management for framework CLAUDE.md templates.
 Handles deployment operations to parent directories.
 """
 
-from datetime import datetime, timezone
-from typing import Optional, Tuple
+from datetime import UTC, datetime
 
 # Import framework detection utilities
 from ...utils.framework_detection import is_framework_source_directory
@@ -39,7 +38,7 @@ class DeploymentManager:
 
     def deploy_to_parent(
         self, content: str, parent_path: Path, force: bool = False
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Deploy generated content to a parent directory.
 
@@ -121,7 +120,7 @@ class DeploymentManager:
         except Exception as e:
             return False, f"Deployment failed: {e!s}"
 
-    def check_deployment_needed(self, parent_path: Path) -> Tuple[bool, str]:
+    def check_deployment_needed(self, parent_path: Path) -> tuple[bool, str]:
         """
         Check if deployment is needed for a parent directory.
 
@@ -153,7 +152,7 @@ class DeploymentManager:
         except Exception as e:
             return True, f"Error checking existing file: {e!s}"
 
-    def backup_existing(self, parent_path: Path) -> Optional[Path]:
+    def backup_existing(self, parent_path: Path) -> Path | None:
         """
         Create a backup of existing target file before deployment.
 
@@ -169,7 +168,7 @@ class DeploymentManager:
             return None
 
         # Create backup filename with timestamp
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         backup_file = parent_path / f"{self.target_filename}.backup.{timestamp}"
 
         try:

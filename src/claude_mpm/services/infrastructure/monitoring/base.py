@@ -6,8 +6,8 @@ This module defines the core types and interfaces used across all monitoring ser
 import time
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from datetime import UTC, datetime
+from typing import Any
 
 from ....core.enums import HealthStatus
 
@@ -17,23 +17,23 @@ class HealthMetric:
     """Individual health metric data structure."""
 
     name: str
-    value: Union[int, float, str, bool]
+    value: int | float | str | bool
     status: HealthStatus
-    threshold: Optional[Union[int, float]] = None
-    unit: Optional[str] = None
+    threshold: int | float | None = None
+    unit: str | None = None
     timestamp: float = None
-    message: Optional[str] = None
+    message: str | None = None
 
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = time.time()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metric to dictionary format."""
         result = asdict(self)
         result["status"] = self.status.value
         result["timestamp_iso"] = datetime.fromtimestamp(
-            self.timestamp, timezone.utc
+            self.timestamp, UTC
         ).isoformat()
         return result
 
@@ -43,24 +43,22 @@ class HealthCheckResult:
     """Result of a health check operation."""
 
     overall_status: HealthStatus
-    metrics: List[HealthMetric]
+    metrics: list[HealthMetric]
     timestamp: float
     duration_ms: float
-    errors: List[str]
+    errors: list[str]
 
     def __post_init__(self):
         if not hasattr(self, "timestamp") or self.timestamp is None:
             self.timestamp = time.time()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert health check result to dictionary format."""
         return {
             "overall_status": self.overall_status.value,
             "metrics": [metric.to_dict() for metric in self.metrics],
             "timestamp": self.timestamp,
-            "timestamp_iso": datetime.fromtimestamp(
-                self.timestamp, timezone.utc
-            ).isoformat(),
+            "timestamp_iso": datetime.fromtimestamp(self.timestamp, UTC).isoformat(),
             "duration_ms": self.duration_ms,
             "errors": self.errors,
             "metric_count": len(self.metrics),
@@ -88,7 +86,7 @@ class HealthChecker(ABC):
         """Get the name of this health checker."""
 
     @abstractmethod
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Perform health check and return metrics."""
 
 
@@ -114,7 +112,7 @@ class BaseMonitoringService(ABC):
         return self._logger
 
     @abstractmethod
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Perform health check and return metrics."""
 
     def get_name(self) -> str:

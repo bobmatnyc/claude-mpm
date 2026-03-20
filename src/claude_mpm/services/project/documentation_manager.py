@@ -19,9 +19,8 @@ Created: 2025-01-26
 import difflib
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from rich.console import Console
 
@@ -69,7 +68,7 @@ class DocumentationManager:
         """Load existing CLAUDE.md content if it exists."""
         if self.claude_md_path.exists():
             self.existing_content = self.claude_md_path.read_text(encoding="utf-8")
-            self.content_hash = hashlib.md5(self.existing_content.encode()).hexdigest()
+            self.content_hash = hashlib.md5(self.existing_content.encode()).hexdigest()  # nosec
             logger.info(
                 f"Loaded existing CLAUDE.md ({len(self.existing_content)} chars)"
             )
@@ -78,7 +77,7 @@ class DocumentationManager:
         """Check if project has existing CLAUDE.md."""
         return self.claude_md_path.exists()
 
-    def analyze_existing_content(self) -> Dict:
+    def analyze_existing_content(self) -> dict:
         """Analyze existing CLAUDE.md structure and content."""
         if not self.existing_content:
             return {"exists": False}
@@ -107,7 +106,7 @@ class DocumentationManager:
 
         return analysis
 
-    def _extract_sections(self, content: str) -> List[Dict]:
+    def _extract_sections(self, content: str) -> list[dict]:
         """Extract section headers and their content from markdown."""
         sections = []
         lines = content.split("\n")
@@ -153,14 +152,14 @@ class DocumentationManager:
 
         return sections
 
-    def _get_content_preview(self, lines: List[str], max_length: int = 100) -> str:
+    def _get_content_preview(self, lines: list[str], max_length: int = 100) -> str:
         """Get a preview of section content."""
         content = " ".join(line.strip() for line in lines[1:6] if line.strip())
         if len(content) > max_length:
             content = content[:max_length] + "..."
         return content
 
-    def _check_outdated_patterns(self) -> List[str]:
+    def _check_outdated_patterns(self) -> list[str]:
         """Check for outdated documentation patterns."""
         patterns = []
 
@@ -185,7 +184,7 @@ class DocumentationManager:
 
         return patterns
 
-    def _find_custom_sections(self, sections: List[Dict]) -> List[str]:
+    def _find_custom_sections(self, sections: list[dict]) -> list[str]:
         """Find sections that don't match standard template."""
         standard_patterns = [
             r"priority.?index",
@@ -233,7 +232,7 @@ class DocumentationManager:
         # Add metadata
         return self._add_metadata(merged)
 
-    def _parse_into_sections(self, content: str) -> Dict[str, str]:
+    def _parse_into_sections(self, content: str) -> dict[str, str]:
         """Parse markdown content into a dictionary of sections."""
         sections = {}
         current_section = None
@@ -258,8 +257,8 @@ class DocumentationManager:
         return sections
 
     def _merge_sections(
-        self, existing: Dict[str, str], new: Dict[str, str], preserve_custom: bool
-    ) -> Dict[str, str]:
+        self, existing: dict[str, str], new: dict[str, str], preserve_custom: bool
+    ) -> dict[str, str]:
         """Merge existing and new sections intelligently."""
         merged = {}
 
@@ -342,7 +341,7 @@ class DocumentationManager:
             return f"{new}\n\n<!-- Preserved from previous version -->\n{existing}"
         return new
 
-    def _extract_bullet_points(self, content: str) -> List[str]:
+    def _extract_bullet_points(self, content: str) -> list[str]:
         """Extract bullet points from content."""
         points = []
         for line in content.split("\n"):
@@ -350,7 +349,7 @@ class DocumentationManager:
                 points.append(line.strip())
         return points
 
-    def _is_duplicate_item(self, item: str, items: List[str]) -> bool:
+    def _is_duplicate_item(self, item: str, items: list[str]) -> bool:
         """Check if item is duplicate of any in list."""
         item_clean = re.sub(r"[^a-zA-Z0-9\s]", "", item.lower())
         for existing in items:
@@ -363,7 +362,7 @@ class DocumentationManager:
                 return True
         return False
 
-    def _reorganize_by_priority(self, sections: Dict[str, str]) -> str:
+    def _reorganize_by_priority(self, sections: dict[str, str]) -> str:
         """Reorganize sections by priority order."""
         # Sort sections by priority
         sorted_sections = sorted(
@@ -385,7 +384,7 @@ class DocumentationManager:
 
     def _add_metadata(self, content: str) -> str:
         """Add metadata to the document."""
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         # Check if meta section exists
         if "## 📝 Meta:" not in content and "## Meta:" not in content:
@@ -415,10 +414,10 @@ class DocumentationManager:
 
         return content
 
-    def generate_update_report(self, old_content: str, new_content: str) -> Dict:
+    def generate_update_report(self, old_content: str, new_content: str) -> dict:
         """Generate a report of changes between old and new content."""
         report = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "changes": [],
             "additions": [],
             "deletions": [],
@@ -455,7 +454,7 @@ class DocumentationManager:
 
         return report
 
-    def _extract_section_titles(self, content: str) -> List[str]:
+    def _extract_section_titles(self, content: str) -> list[str]:
         """Extract section titles from content."""
         titles = []
         for line in content.splitlines():
@@ -463,7 +462,7 @@ class DocumentationManager:
                 titles.append(line.lstrip("#").strip())
         return titles
 
-    def validate_content(self, content: str) -> Tuple[bool, List[str]]:
+    def validate_content(self, content: str) -> tuple[bool, list[str]]:
         """Validate CLAUDE.md content for completeness and correctness."""
         issues = []
 
@@ -548,7 +547,7 @@ class DocumentationManager:
 
 ## 📝 Meta: Maintaining This Document
 
-- **Last Updated**: {datetime.now(timezone.utc).isoformat()}
+- **Last Updated**: {datetime.now(UTC).isoformat()}
 - **Created By**: Claude MPM /mpm-init
 - **Update Frequency**: As needed when requirements change
 """

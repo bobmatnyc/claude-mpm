@@ -4,7 +4,7 @@ This service generates markdown content for agent capabilities section
 from discovered deployed agents.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from jinja2 import Template
 
@@ -22,7 +22,7 @@ class AgentCapabilitiesGenerator:
         logger.debug("Initialized AgentCapabilitiesGenerator")
 
     def generate_capabilities_section(
-        self, deployed_agents: List[Dict[str, Any]]
+        self, deployed_agents: list[dict[str, Any]]
     ) -> str:
         """Generate the complete agent capabilities markdown section.
 
@@ -58,8 +58,8 @@ class AgentCapabilitiesGenerator:
             return self._generate_fallback_content()
 
     def _group_by_tier(
-        self, agents: List[Dict[str, Any]]
-    ) -> Dict[str, List[Dict[str, Any]]]:
+        self, agents: list[dict[str, Any]]
+    ) -> dict[str, list[dict[str, Any]]]:
         """Group agents by their source tier.
 
         Args:
@@ -83,7 +83,7 @@ class AgentCapabilitiesGenerator:
 
         return tiers
 
-    def _generate_core_agent_list(self, agents: List[Dict[str, Any]]) -> str:
+    def _generate_core_agent_list(self, agents: list[dict[str, Any]]) -> str:
         """Generate comma-separated list of core agent IDs.
 
         Args:
@@ -96,8 +96,8 @@ class AgentCapabilitiesGenerator:
         return ", ".join(sorted(agent_ids))
 
     def _generate_detailed_capabilities(
-        self, agents: List[Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
+        self, agents: list[dict[str, Any]]
+    ) -> list[dict[str, str]]:
         """Generate detailed capability descriptions for each agent.
 
         Args:

@@ -20,9 +20,9 @@ import json
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from claude_mpm.core.logger import get_logger
 
@@ -33,7 +33,7 @@ class ISessionManager(ABC):
 
     @abstractmethod
     def create_session(
-        self, context: str = "default", options: Optional[Dict[str, Any]] = None
+        self, context: str = "default", options: dict[str, Any] | None = None
     ) -> "SessionInfo":
         """Create a new session with options.
 
@@ -68,7 +68,7 @@ class ISessionManager(ABC):
         """
 
     @abstractmethod
-    def get_session_info(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_session_info(self, session_id: str) -> dict[str, Any] | None:
         """Get session metadata.
 
         Args:
@@ -91,8 +91,8 @@ class ISessionManager(ABC):
 
     @abstractmethod
     def get_recent_sessions(
-        self, limit: int = 10, context: Optional[str] = None
-    ) -> List["SessionInfo"]:
+        self, limit: int = 10, context: str | None = None
+    ) -> list["SessionInfo"]:
         """Get recent sessions sorted by last used.
 
         Args:
@@ -104,7 +104,7 @@ class ISessionManager(ABC):
         """
 
     @abstractmethod
-    def get_last_interactive_session(self) -> Optional[str]:
+    def get_last_interactive_session(self) -> str | None:
         """Get the most recently used interactive session ID.
 
         Returns:
@@ -136,7 +136,7 @@ class ISessionManager(ABC):
         """
 
     @abstractmethod
-    def archive_sessions(self, session_ids: List[str]) -> bool:
+    def archive_sessions(self, session_ids: list[str]) -> bool:
         """Archive specific sessions.
 
         Args:
@@ -153,17 +153,13 @@ class SessionInfo:
 
     id: str
     context: str = "default"
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    last_used: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    last_used: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     use_count: int = 0
-    agents_run: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    agents_run: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "id": self.id,
@@ -176,13 +172,13 @@ class SessionInfo:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SessionInfo":
+    def from_dict(cls, data: dict[str, Any]) -> "SessionInfo":
         """Create from dictionary."""
         return cls(
             id=data["id"],
             context=data.get("context", "default"),
-            created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
-            last_used=data.get("last_used", datetime.now(timezone.utc).isoformat()),
+            created_at=data.get("created_at", datetime.now(UTC).isoformat()),
+            last_used=data.get("last_used", datetime.now(UTC).isoformat()),
             use_count=data.get("use_count", 0),
             agents_run=data.get("agents_run", []),
             metadata=data.get("metadata", {}),
@@ -195,8 +191,8 @@ class SessionValidation:
 
     valid: bool
     session_id: str
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def has_issues(self) -> bool:
@@ -207,7 +203,7 @@ class SessionValidation:
 class SessionManager(ISessionManager):
     """Service for managing Claude session lifecycle."""
 
-    def __init__(self, session_dir: Optional[Path] = None, config_service=None):
+    def __init__(self, session_dir: Path | None = None, config_service=None):
         """Initialize session manager.
 
         Args:
@@ -218,8 +214,8 @@ class SessionManager(ISessionManager):
         self.session_dir.mkdir(parents=True, exist_ok=True)
         self.config_service = config_service
         self.logger = get_logger("SessionManager")
-        self._sessions_cache: Dict[str, SessionInfo] = {}
-        self._auto_save_task: Optional[asyncio.Task] = None
+        self._sessions_cache: dict[str, SessionInfo] = {}
+        self._auto_save_task: asyncio.Task | None = None
         self._running = False
         self._load_sessions()
 
@@ -253,7 +249,7 @@ class SessionManager(ISessionManager):
             self._running = True
 
     def create_session(
-        self, context: str = "default", options: Optional[Dict[str, Any]] = None
+        self, context: str = "default", options: dict[str, Any] | None = None
     ) -> SessionInfo:
         """Create a new session with options.
 
@@ -270,7 +266,7 @@ class SessionManager(ISessionManager):
         self.logger.info(f"Created session {session_id} for context: {context}")
         return session
 
-    def load_session(self, session_id: str) -> Optional[SessionInfo]:
+    def load_session(self, session_id: str) -> SessionInfo | None:
         """Load an existing session by ID.
 
         WHY: Retrieves session state from cache or disk for resumption.
@@ -296,7 +292,7 @@ class SessionManager(ISessionManager):
             self.logger.error(f"Failed to save session {session_info.id}: {e}")
             return False
 
-    def get_session_info(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_session_info(self, session_id: str) -> dict[str, Any] | None:
         """Get session metadata.
 
         WHY: Provides session details for display and decision-making.
@@ -321,7 +317,7 @@ class SessionManager(ISessionManager):
         # Check session age
         try:
             created = datetime.fromisoformat(session.created_at)
-            age = datetime.now(timezone.utc) - created
+            age = datetime.now(UTC) - created
 
             if age > timedelta(days=7):
                 validation.warnings.append(f"Session is {age.days} days old")
@@ -349,8 +345,8 @@ class SessionManager(ISessionManager):
         return validation
 
     def get_recent_sessions(
-        self, limit: int = 10, context: Optional[str] = None
-    ) -> List[SessionInfo]:
+        self, limit: int = 10, context: str | None = None
+    ) -> list[SessionInfo]:
         """Get recent sessions sorted by last used.
 
         WHY: Enables users to easily resume recent sessions.
@@ -366,7 +362,7 @@ class SessionManager(ISessionManager):
 
         return sessions[:limit]
 
-    def get_last_interactive_session(self) -> Optional[str]:
+    def get_last_interactive_session(self) -> str | None:
         """Get the most recently used interactive session ID.
 
         WHY: For --resume without arguments, we want to resume the last
@@ -392,10 +388,10 @@ class SessionManager(ISessionManager):
             {
                 "agent": agent,
                 "task": task[:100],  # Truncate long tasks
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
-        session.last_used = datetime.now(timezone.utc).isoformat()
+        session.last_used = datetime.now(UTC).isoformat()
         session.use_count += 1
 
         self.save_session(session)
@@ -407,7 +403,7 @@ class SessionManager(ISessionManager):
 
         WHY: Prevents unbounded growth of session data and improves performance.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         max_age = timedelta(hours=max_age_hours)
 
         expired_ids = []
@@ -433,7 +429,7 @@ class SessionManager(ISessionManager):
 
         return len(expired_ids)
 
-    def archive_sessions(self, session_ids: List[str]) -> bool:
+    def archive_sessions(self, session_ids: list[str]) -> bool:
         """Archive specific sessions.
 
         WHY: Preserves session history while reducing active memory usage.
@@ -455,7 +451,7 @@ class SessionManager(ISessionManager):
             return True
 
         # Create timestamped archive file
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         archive_name = f"sessions_archive_{timestamp}.json.gz"
         archive_path = archive_dir / archive_name
 
@@ -577,7 +573,7 @@ class ManagedSession:
         self,
         manager: ISessionManager,
         context: str = "default",
-        options: Optional[Dict[str, Any]] = None,
+        options: dict[str, Any] | None = None,
     ):
         """Initialize managed session.
 
@@ -589,7 +585,7 @@ class ManagedSession:
         self.manager = manager
         self.context = context
         self.options = options
-        self.session: Optional[SessionInfo] = None
+        self.session: SessionInfo | None = None
 
     def __enter__(self) -> SessionInfo:
         """Enter session context, return session info."""
@@ -600,5 +596,5 @@ class ManagedSession:
         """Exit session context with cleanup."""
         if self.session:
             # Update last used time
-            self.session.last_used = datetime.now(timezone.utc).isoformat()
+            self.session.last_used = datetime.now(UTC).isoformat()
             self.manager.save_session(self.session)

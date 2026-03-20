@@ -15,7 +15,6 @@ DESIGN DECISIONS:
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 from rich.live import Live
@@ -35,9 +34,9 @@ class LocalDeployCommand(BaseCommand):
     def __init__(self):
         super().__init__("local-deploy")
         self.console = Console()
-        self.manager: Optional[UnifiedLocalOpsManager] = None
+        self.manager: UnifiedLocalOpsManager | None = None
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         if not hasattr(args, "local_deploy_command") or not args.local_deploy_command:
             return "No subcommand specified. Use: start, stop, restart, status, list, monitor, history"

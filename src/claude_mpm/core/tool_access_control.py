@@ -1,7 +1,5 @@
 """Tool access control system for managing which tools agents can use."""
 
-from typing import Dict, List, Set
-
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -39,7 +37,7 @@ class ToolAccessControl:
     }
 
     # Tool restrictions by agent type
-    AGENT_RESTRICTIONS: Dict[str, Set[str]] = {
+    AGENT_RESTRICTIONS: dict[str, set[str]] = {
         # PM has very limited tools - delegation only
         "pm": PM_TOOLS,
         # All other agents get standard tools WITHOUT TodoWrite
@@ -56,10 +54,10 @@ class ToolAccessControl:
 
     def __init__(self):
         """Initialize the tool access control system."""
-        self.custom_restrictions: Dict[str, Set[str]] = {}
+        self.custom_restrictions: dict[str, set[str]] = {}
         logger.info("Tool access control system initialized")
 
-    def get_allowed_tools(self, agent_type: str, is_parent: bool = False) -> List[str]:
+    def get_allowed_tools(self, agent_type: str, is_parent: bool = False) -> list[str]:
         """
         Get the list of allowed tools for an agent type.
 
@@ -111,7 +109,7 @@ class ToolAccessControl:
         allowed_tools = self.get_allowed_tools(agent_type, is_parent)
         return ",".join(allowed_tools)
 
-    def set_custom_restrictions(self, agent_type: str, allowed_tools: Set[str]):
+    def set_custom_restrictions(self, agent_type: str, allowed_tools: set[str]):
         """
         Set custom tool restrictions for a specific agent type.
 

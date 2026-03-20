@@ -13,7 +13,7 @@ DESIGN DECISIONS:
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import socketio
 
@@ -106,9 +106,9 @@ class FileHandler:
     async def _read_file_safely(
         self,
         file_path: str,
-        working_dir: Optional[str] = None,
+        working_dir: str | None = None,
         max_size: int = 1024 * 1024,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Safely read file content with security checks.
 
         WHY: File reading must be secure to prevent directory traversal attacks
@@ -218,7 +218,7 @@ class FileHandler:
 
     def _read_binary_file(
         self, real_path: Path, file_path: str, file_size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle binary or non-UTF8 files.
 
         WHY: Not all files are UTF-8 encoded. We need to handle other

@@ -13,7 +13,7 @@ import shutil
 import tempfile
 from contextlib import contextmanager, suppress
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 # ==============================================================================
 
 
-def ensure_directory(path: Union[str, Path], mode: int = 0o755) -> Path:
+def ensure_directory(path: str | Path, mode: int = 0o755) -> Path:
     """Ensure a directory exists, creating it if necessary.
 
     Replaces the common pattern:
@@ -45,7 +45,7 @@ def ensure_directory(path: Union[str, Path], mode: int = 0o755) -> Path:
     return path
 
 
-def ensure_parent_directory(filepath: Union[str, Path]) -> Path:
+def ensure_parent_directory(filepath: str | Path) -> Path:
     """Ensure the parent directory of a file exists.
 
     Args:
@@ -58,7 +58,7 @@ def ensure_parent_directory(filepath: Union[str, Path]) -> Path:
     return ensure_directory(filepath.parent)
 
 
-def safe_path_join(*parts: Union[str, Path]) -> Path:
+def safe_path_join(*parts: str | Path) -> Path:
     """Safely join path components, preventing path traversal.
 
     Args:
@@ -86,7 +86,7 @@ def safe_path_join(*parts: Union[str, Path]) -> Path:
     return resolved
 
 
-def is_safe_path(path: Union[str, Path], base_dir: Union[str, Path]) -> bool:
+def is_safe_path(path: str | Path, base_dir: str | Path) -> bool:
     """Check if a path is safe (no traversal outside base directory).
 
     Args:
@@ -105,9 +105,7 @@ def is_safe_path(path: Union[str, Path], base_dir: Union[str, Path]) -> bool:
         return False
 
 
-def get_relative_path(
-    path: Union[str, Path], base: Optional[Union[str, Path]] = None
-) -> Path:
+def get_relative_path(path: str | Path, base: str | Path | None = None) -> Path:
     """Get relative path from base directory.
 
     Args:
@@ -133,12 +131,12 @@ def get_relative_path(
 
 
 def safe_read(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     mode: str = "r",
     encoding: str = "utf-8",
     default: Any = None,
-    max_size: Optional[int] = None,
-) -> Union[str, bytes, Any]:
+    max_size: int | None = None,
+) -> str | bytes | Any:
     """Safely read a file with error handling.
 
     Replaces the common pattern:
@@ -184,11 +182,11 @@ def safe_read(
 
 
 def safe_read_lines(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     encoding: str = "utf-8",
-    max_lines: Optional[int] = None,
+    max_lines: int | None = None,
     skip_empty: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Safely read lines from a file.
 
     Args:
@@ -227,7 +225,7 @@ def safe_read_lines(
 
 
 def safe_read_json(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     default: Any = None,
     encoding: str = "utf-8",
 ) -> Any:
@@ -254,7 +252,7 @@ def safe_read_json(
 
 
 def safe_read_yaml(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     default: Any = None,
     encoding: str = "utf-8",
 ) -> Any:
@@ -286,8 +284,8 @@ def safe_read_yaml(
 
 
 def safe_write(
-    filepath: Union[str, Path],
-    content: Union[str, bytes],
+    filepath: str | Path,
+    content: str | bytes,
     mode: str = "w",
     encoding: str = "utf-8",
     create_dirs: bool = True,
@@ -334,8 +332,8 @@ def safe_write(
 
 
 def atomic_write(
-    filepath: Union[str, Path],
-    content: Union[str, bytes],
+    filepath: str | Path,
+    content: str | bytes,
     mode: str = "w",
     encoding: str = "utf-8",
 ) -> bool:
@@ -382,7 +380,7 @@ def atomic_write(
 
 
 def safe_write_json(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     data: Any,
     indent: int = 2,
     encoding: str = "utf-8",
@@ -411,7 +409,7 @@ def safe_write_json(
 
 
 def safe_write_yaml(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     data: Any,
     encoding: str = "utf-8",
     atomic: bool = False,
@@ -438,7 +436,7 @@ def safe_write_yaml(
 
 
 def append_to_file(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     content: str,
     encoding: str = "utf-8",
     create: bool = True,
@@ -468,8 +466,8 @@ def append_to_file(
 
 
 def safe_copy(
-    source: Union[str, Path],
-    destination: Union[str, Path],
+    source: str | Path,
+    destination: str | Path,
     overwrite: bool = False,
     preserve_metadata: bool = True,
 ) -> bool:
@@ -510,8 +508,8 @@ def safe_copy(
 
 
 def safe_move(
-    source: Union[str, Path],
-    destination: Union[str, Path],
+    source: str | Path,
+    destination: str | Path,
     overwrite: bool = False,
 ) -> bool:
     """Safely move a file.
@@ -545,7 +543,7 @@ def safe_move(
 
 
 def safe_delete(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     missing_ok: bool = True,
 ) -> bool:
     """Safely delete a file.
@@ -574,8 +572,8 @@ def safe_delete(
 
 
 def safe_rename(
-    old_path: Union[str, Path],
-    new_path: Union[str, Path],
+    old_path: str | Path,
+    new_path: str | Path,
     overwrite: bool = False,
 ) -> bool:
     """Safely rename a file or directory.
@@ -613,7 +611,7 @@ def safe_rename(
 
 
 @contextmanager
-def file_lock(filepath: Union[str, Path], timeout: float = 5.0):
+def file_lock(filepath: str | Path, timeout: float = 5.0):
     """Context manager for file locking.
 
     Args:
@@ -664,11 +662,11 @@ def file_lock(filepath: Union[str, Path], timeout: float = 5.0):
 
 
 def validate_file(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     must_exist: bool = True,
-    min_size: Optional[int] = None,
-    max_size: Optional[int] = None,
-    extensions: Optional[List[str]] = None,
+    min_size: int | None = None,
+    max_size: int | None = None,
+    extensions: list[str] | None = None,
 ) -> bool:
     """Validate a file meets specified criteria.
 
@@ -707,9 +705,9 @@ def validate_file(
 
 
 def get_file_hash(
-    filepath: Union[str, Path],
+    filepath: str | Path,
     algorithm: str = "sha256",
-) -> Optional[str]:
+) -> str | None:
     """Calculate hash of a file.
 
     Args:
@@ -736,11 +734,11 @@ def get_file_hash(
 
 
 def find_files(
-    directory: Union[str, Path],
+    directory: str | Path,
     pattern: str = "*",
     recursive: bool = True,
     file_only: bool = True,
-) -> List[Path]:
+) -> list[Path]:
     """Find files matching a pattern.
 
     Args:

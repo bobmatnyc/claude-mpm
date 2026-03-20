@@ -7,7 +7,8 @@ import asyncio
 import contextlib
 import time
 from collections import deque
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from ....core.enums import HealthStatus
 from .base import BaseMonitoringService, HealthChecker, HealthCheckResult, HealthMetric
@@ -24,7 +25,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
     - Integration with recovery systems via callbacks
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize monitoring aggregator service.
 
         Args:
@@ -39,19 +40,19 @@ class MonitoringAggregatorService(BaseMonitoringService):
         self.aggregation_window = self.config.get("aggregation_window", 300)
 
         # Registered monitoring services
-        self.services: List[BaseMonitoringService] = []
-        self.checkers: List[HealthChecker] = []  # For backward compatibility
+        self.services: list[BaseMonitoringService] = []
+        self.checkers: list[HealthChecker] = []  # For backward compatibility
 
         # Health history
         self.health_history: deque = deque(maxlen=self.history_size)
 
         # Monitoring state
         self.monitoring = False
-        self.monitor_task: Optional[asyncio.Task] = None
-        self.last_check_result: Optional[HealthCheckResult] = None
+        self.monitor_task: asyncio.Task | None = None
+        self.last_check_result: HealthCheckResult | None = None
 
         # Health callbacks for recovery integration
-        self.health_callbacks: List[Callable[[HealthCheckResult], None]] = []
+        self.health_callbacks: list[Callable[[HealthCheckResult], None]] = []
 
         # Statistics
         self.monitoring_stats = {
@@ -92,7 +93,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
         self.health_callbacks.append(callback)
         self.logger.debug(f"Added health callback: {callback.__name__}")
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Perform health check across all services.
 
         Returns:
@@ -188,7 +189,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
 
         return result
 
-    def _determine_overall_status(self, metrics: List[HealthMetric]) -> HealthStatus:
+    def _determine_overall_status(self, metrics: list[HealthMetric]) -> HealthStatus:
         """Determine overall health status from individual metrics.
 
         Args:
@@ -300,7 +301,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
         except Exception as e:
             self.logger.error(f"Health monitoring loop error: {e}")
 
-    def get_current_status(self) -> Optional[HealthCheckResult]:
+    def get_current_status(self) -> HealthCheckResult | None:
         """Get the most recent health check result.
 
         Returns:
@@ -308,9 +309,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
         """
         return self.last_check_result
 
-    def get_health_history(
-        self, limit: Optional[int] = None
-    ) -> List[HealthCheckResult]:
+    def get_health_history(self, limit: int | None = None) -> list[HealthCheckResult]:
         """Get health check history.
 
         Args:
@@ -328,8 +327,8 @@ class MonitoringAggregatorService(BaseMonitoringService):
         return history
 
     def get_aggregated_status(
-        self, window_seconds: Optional[int] = None
-    ) -> Dict[str, Any]:
+        self, window_seconds: int | None = None
+    ) -> dict[str, Any]:
         """Get aggregated health status over a time window.
 
         Args:
@@ -397,7 +396,7 @@ class MonitoringAggregatorService(BaseMonitoringService):
             "monitoring_stats": dict(self.monitoring_stats),
         }
 
-    def export_diagnostics(self) -> Dict[str, Any]:
+    def export_diagnostics(self) -> dict[str, Any]:
         """Export comprehensive diagnostics information.
 
         Returns:

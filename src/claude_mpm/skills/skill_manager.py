@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -20,7 +20,7 @@ class SkillManager:
     def __init__(self):
         """Initialize the skill manager."""
         self.registry = get_registry()
-        self.agent_skill_mapping: Dict[str, List[str]] = {}
+        self.agent_skill_mapping: dict[str, list[str]] = {}
         self._load_agent_mappings()
 
     def _load_agent_mappings(self):
@@ -62,9 +62,7 @@ class SkillManager:
         if mapping_count > 0:
             logger.info(f"Loaded skill mappings for {mapping_count} agents")
 
-    def _get_pm_skills(
-        self, project_dir: Optional[Path] = None
-    ) -> List[Dict[str, Any]]:
+    def _get_pm_skills(self, project_dir: Path | None = None) -> list[dict[str, Any]]:
         """Load PM skills from project's .claude/skills/ directory.
 
         PM skills are special framework management skills (mpm-*) deployed
@@ -99,7 +97,7 @@ class SkillManager:
 
         return skills
 
-    def _load_pm_skill(self, skill_file: Path) -> Optional[Dict[str, Any]]:
+    def _load_pm_skill(self, skill_file: Path) -> dict[str, Any] | None:
         """Load a single PM skill from SKILL.md file.
 
         Args:
@@ -131,7 +129,7 @@ class SkillManager:
 
         return None
 
-    def get_agent_skills(self, agent_type: str) -> List[Skill]:
+    def get_agent_skills(self, agent_type: str) -> list[Skill]:
         """
         Get all skills for an agent (bundled + discovered + PM skills if PM agent).
 
@@ -230,7 +228,7 @@ class SkillManager:
 
         return base_prompt + skills_section
 
-    def list_agent_skill_mappings(self) -> Dict[str, List[str]]:
+    def list_agent_skill_mappings(self) -> dict[str, list[str]]:
         """
         Get all agent-to-skill mappings.
 
@@ -293,7 +291,7 @@ class SkillManager:
         self._load_agent_mappings()
         logger.info("Skill manager reloaded")
 
-    def infer_agents_for_skill(self, skill) -> List[str]:
+    def infer_agents_for_skill(self, skill) -> list[str]:
         """Infer which agents should have this skill based on tags/name.
 
         Args:
@@ -348,7 +346,7 @@ class SkillManager:
         # Remove duplicates
         return list(set(agents))
 
-    def save_mappings_to_config(self, config_path: Optional[Path] = None):
+    def save_mappings_to_config(self, config_path: Path | None = None):
         """Save current agent-skill mappings to configuration file.
 
         Args:
@@ -368,7 +366,7 @@ class SkillManager:
 
         logger.info(f"Saved skill mappings to {config_path}")
 
-    def load_mappings_from_config(self, config_path: Optional[Path] = None):
+    def load_mappings_from_config(self, config_path: Path | None = None):
         """Load agent-skill mappings from configuration file.
 
         Args:
@@ -401,7 +399,7 @@ class SkillManager:
 
 
 # Global manager instance (singleton pattern)
-_manager: Optional[SkillManager] = None
+_manager: SkillManager | None = None
 
 
 def get_manager() -> SkillManager:

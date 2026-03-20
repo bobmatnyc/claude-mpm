@@ -16,9 +16,9 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 4
 
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -66,12 +66,12 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
 
     def __init__(
         self,
-        toolchain_analyzer: Optional[Any] = None,
-        agent_recommender: Optional[AgentRecommenderService] = None,
-        agent_registry: Optional[IAgentRegistry] = None,
-        agent_deployment: Optional[Any] = None,
-        config: Optional[Dict[str, Any]] = None,
-        container: Optional[Any] = None,
+        toolchain_analyzer: Any | None = None,
+        agent_recommender: AgentRecommenderService | None = None,
+        agent_registry: IAgentRegistry | None = None,
+        agent_deployment: Any | None = None,
+        config: dict[str, Any] | None = None,
+        container: Any | None = None,
     ):
         """
         Initialize the Auto-Configuration Manager Service.
@@ -138,7 +138,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         confirmation_required: bool = True,
         dry_run: bool = False,
         min_confidence: float = 0.5,
-        observer: Optional[IDeploymentObserver] = None,
+        observer: IDeploymentObserver | None = None,
     ) -> ConfigurationResult:
         """
         Perform automated agent configuration.
@@ -375,7 +375,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             )
 
     def validate_configuration(
-        self, recommendations: List[AgentRecommendation]
+        self, recommendations: list[AgentRecommendation]
     ) -> ValidationResult:
         """
         Validate proposed configuration before deployment.
@@ -399,11 +399,11 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         if not recommendations:
             raise ValueError("Cannot validate empty recommendations list")
 
-        issues: List[ValidationIssue] = []
-        validated_agents: List[str] = []
+        issues: list[ValidationIssue] = []
+        validated_agents: list[str] = []
 
         # Track agent roles to detect conflicts
-        role_agents: Dict[str, List[str]] = {}
+        role_agents: dict[str, list[str]] = {}
 
         for recommendation in recommendations:
             agent_id = recommendation.agent_id
@@ -497,7 +497,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             is_valid=is_valid,
             issues=issues,
             validated_agents=validated_agents,
-            metadata={"validation_timestamp": datetime.now(timezone.utc).isoformat()},
+            metadata={"validation_timestamp": datetime.now(UTC).isoformat()},
         )
 
     def preview_configuration(
@@ -575,7 +575,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                 would_skip=would_skip,
                 requires_confirmation=True,
                 metadata={
-                    "preview_timestamp": datetime.now(timezone.utc).isoformat(),
+                    "preview_timestamp": datetime.now(UTC).isoformat(),
                     "toolchain_summary": {
                         "primary_language": toolchain.primary_language,
                         "frameworks": [fw.name for fw in toolchain.frameworks],
@@ -608,7 +608,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
 
     async def _generate_recommendations(
         self, toolchain: ToolchainAnalysis, min_confidence: float
-    ) -> List[AgentRecommendation]:
+    ) -> list[AgentRecommendation]:
         """Generate agent recommendations."""
         if self._agent_recommender is None:
             raise RuntimeError("AgentRecommender not initialized")
@@ -617,7 +617,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         return self._agent_recommender.recommend_agents(toolchain, constraints)
 
     async def _request_confirmation(
-        self, recommendations: List[AgentRecommendation], validation: ValidationResult
+        self, recommendations: list[AgentRecommendation], validation: ValidationResult
     ) -> bool:
         """
         Request user confirmation before deployment.
@@ -639,9 +639,9 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
     async def _deploy_agents(
         self,
         project_path: Path,
-        recommendations: List[AgentRecommendation],
+        recommendations: list[AgentRecommendation],
         observer: IDeploymentObserver,
-    ) -> tuple[List[str], List[str]]:
+    ) -> tuple[list[str], list[str]]:
         """
         Deploy recommended agents.
 
@@ -712,7 +712,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         self.logger.debug(f"Deployed agent {agent_id} to {project_path}")
 
     async def _rollback_deployment(
-        self, project_path: Path, deployed_agents: List[str]
+        self, project_path: Path, deployed_agents: list[str]
     ) -> bool:
         """
         Rollback deployed agents after failure.
@@ -742,7 +742,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         self,
         project_path: Path,
         toolchain: ToolchainAnalysis,
-        recommendations: List[AgentRecommendation],
+        recommendations: list[AgentRecommendation],
     ) -> None:
         """
         Save auto-configuration metadata to project.
@@ -760,7 +760,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         config_data = {
             "auto_config": {
                 "enabled": True,
-                "last_run": datetime.now(timezone.utc).isoformat(),
+                "last_run": datetime.now(UTC).isoformat(),
                 "toolchain_snapshot": {
                     "primary_language": toolchain.primary_language,
                     "frameworks": [fw.name for fw in toolchain.frameworks],
@@ -775,7 +775,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                         "agent_id": rec.agent_id,
                         "agent_name": rec.agent_name,
                         "confidence": rec.confidence_score,
-                        "deployed_at": datetime.now(timezone.utc).isoformat(),
+                        "deployed_at": datetime.now(UTC).isoformat(),
                     }
                     for rec in recommendations
                 ],

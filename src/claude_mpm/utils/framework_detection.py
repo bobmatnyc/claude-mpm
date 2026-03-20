@@ -6,10 +6,8 @@ WHY: This module provides utilities to detect if we're in the framework source d
 to prevent accidental overwrites of the template files during deployment.
 """
 
-from typing import List, Tuple
 
-
-def is_framework_source_directory(path: Path) -> Tuple[bool, List[str]]:
+def is_framework_source_directory(path: Path) -> tuple[bool, list[str]]:
     """
     Check if the given path is the framework source directory.
 

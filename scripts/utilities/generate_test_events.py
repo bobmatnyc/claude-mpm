@@ -13,7 +13,7 @@ import argparse
 import asyncio
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -75,7 +75,7 @@ class TestEventGenerator:
                 "id": f"test_event_{i}_{int(time.time())}",
                 "type": "test",
                 "subtype": "generated",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "source": "test_generator",
                 "data": {
                     "test_number": i + 1,
@@ -175,7 +175,7 @@ class TestEventGenerator:
         for i, event_template in enumerate(hook_events[:count]):
             event = {
                 "id": f"hook_event_{i}_{int(time.time())}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "source": "hook_generator",
                 **event_template,
             }

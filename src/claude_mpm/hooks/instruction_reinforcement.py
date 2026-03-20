@@ -8,7 +8,6 @@ escalating warnings when the PM attempts to implement instead of delegate.
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -47,7 +46,7 @@ class InstructionReinforcementHook:
 
     def __init__(self):
         self.violation_count = 0
-        self.violations: List[Violation] = []
+        self.violations: list[Violation] = []
 
         # Patterns that indicate PM is attempting forbidden actions
         self.forbidden_patterns = [
@@ -134,9 +133,7 @@ class InstructionReinforcementHook:
             r"the\s+\w+\s+agent\s+(will|can|should)",
         ]
 
-    def detect_violation_intent(
-        self, message: str
-    ) -> Optional[Tuple[ViolationType, str]]:
+    def detect_violation_intent(self, message: str) -> tuple[ViolationType, str] | None:
         """
         Check message for patterns indicating PM violation intent.
 
@@ -196,7 +193,7 @@ class InstructionReinforcementHook:
             "Current session may need to be terminated and restarted."
         )
 
-    def check_message(self, message: str) -> Optional[Dict[str, any]]:
+    def check_message(self, message: str) -> dict[str, any] | None:
         """
         Check a PM message for violations and return feedback if needed.
 
@@ -258,7 +255,7 @@ class InstructionReinforcementHook:
 
         return None
 
-    def get_violation_summary(self) -> Dict[str, any]:
+    def get_violation_summary(self) -> dict[str, any]:
         """
         Get a summary of all violations in the session.
 

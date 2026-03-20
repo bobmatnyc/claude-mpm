@@ -12,9 +12,9 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 from playwright.async_api import (
@@ -56,9 +56,9 @@ class ConnectionMonitor:
     def __init__(self, page: Page, tab_id: str = "main"):
         self.page = page
         self.tab_id = tab_id
-        self.console_messages: List[Dict[str, Any]] = []
-        self.websocket_events: List[Dict[str, Any]] = []
-        self.connection_events: List[Dict[str, Any]] = []
+        self.console_messages: list[dict[str, Any]] = []
+        self.websocket_events: list[dict[str, Any]] = []
+        self.connection_events: list[dict[str, Any]] = []
         self.disconnections = 0
         self.reconnections = 0
         self.start_time = None
@@ -66,7 +66,7 @@ class ConnectionMonitor:
 
     def start_monitoring(self):
         """Start monitoring console and network events"""
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
 
         # Monitor console messages
         self.page.on("console", self._handle_console_message)
@@ -84,7 +84,7 @@ class ConnectionMonitor:
 
     def _handle_console_message(self, msg: ConsoleMessage):
         """Handle browser console messages"""
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
         message_data = {
             "timestamp": timestamp.isoformat(),
             "type": msg.type,
@@ -128,7 +128,7 @@ class ConnectionMonitor:
 
     def _handle_websocket(self, ws):
         """Handle WebSocket connections"""
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
 
         def on_close():
             self.websocket_events.append(
@@ -200,10 +200,10 @@ class ConnectionMonitor:
     def get_duration(self) -> timedelta:
         """Get the monitoring duration"""
         if self.start_time:
-            return datetime.now(timezone.utc) - self.start_time
+            return datetime.now(UTC) - self.start_time
         return timedelta(0)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get connection statistics"""
         duration = self.get_duration()
         return {
@@ -249,11 +249,11 @@ async def test_single_tab_stability(
         await monitor.take_screenshot("after_connection")
 
         # Monitor for specified duration
-        end_time = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
+        end_time = datetime.now(UTC) + timedelta(minutes=duration_minutes)
         check_interval = 30  # Check every 30 seconds
 
-        while datetime.now(timezone.utc) < end_time:
-            remaining = end_time - datetime.now(timezone.utc)
+        while datetime.now(UTC) < end_time:
+            remaining = end_time - datetime.now(UTC)
             logger.info(
                 f"[single_tab] Monitoring... {remaining.total_seconds():.0f} seconds remaining"
             )
@@ -287,7 +287,7 @@ async def test_single_tab_stability(
 )
 async def test_multi_tab_stability(
     browser_context: BrowserContext, tab_count: int, duration_minutes: int
-) -> List[ConnectionMonitor]:
+) -> list[ConnectionMonitor]:
     """Test connection stability across multiple tabs"""
     logger.info(
         f"Starting multi-tab stability test with {tab_count} tabs for {duration_minutes} minutes"
@@ -315,11 +315,11 @@ async def test_multi_tab_stability(
             logger.info(f"[tab_{i + 1}] Created and connected")
 
         # Monitor all tabs for specified duration
-        end_time = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
+        end_time = datetime.now(UTC) + timedelta(minutes=duration_minutes)
         check_interval = 30
 
-        while datetime.now(timezone.utc) < end_time:
-            remaining = end_time - datetime.now(timezone.utc)
+        while datetime.now(UTC) < end_time:
+            remaining = end_time - datetime.now(UTC)
             logger.info(
                 f"[multi_tab] Monitoring {tab_count} tabs... {remaining.total_seconds():.0f} seconds remaining"
             )
@@ -352,7 +352,7 @@ async def test_multi_tab_stability(
 
 
 async def generate_report(
-    single_monitor: ConnectionMonitor, multi_monitors: List[ConnectionMonitor]
+    single_monitor: ConnectionMonitor, multi_monitors: list[ConnectionMonitor]
 ):
     """Generate comprehensive test report"""
     logger.info("Generating comprehensive test report...")
@@ -360,7 +360,7 @@ async def generate_report(
     report = {
         "test_metadata": {
             "dashboard_url": DASHBOARD_URL,
-            "test_timestamp": datetime.now(timezone.utc).isoformat(),
+            "test_timestamp": datetime.now(UTC).isoformat(),
             "single_tab_duration_minutes": TEST_DURATION_MINUTES,
             "multi_tab_duration_minutes": MULTI_TAB_TEST_DURATION_MINUTES,
             "multi_tab_count": MULTI_TAB_COUNT,
@@ -406,9 +406,7 @@ async def generate_report(
         f.write("Claude MPM Dashboard Connection Stability Test Results\n")
         f.write("=" * 60 + "\n\n")
 
-        f.write(
-            f"Test Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n"
-        )
+        f.write(f"Test Date: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Dashboard URL: {DASHBOARD_URL}\n\n")
 
         # Single tab results
@@ -477,9 +475,7 @@ async def generate_report(
     print("\n" + "=" * 60)
     print("CLAUDE MPM DASHBOARD STABILITY TEST RESULTS")
     print("=" * 60)
-    print(
-        f"Test completed at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}"
-    )
+    print(f"Test completed at: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Dashboard URL: {DASHBOARD_URL}")
     print()
 

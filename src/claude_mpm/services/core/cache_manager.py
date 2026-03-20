@@ -18,7 +18,7 @@ better organization and to support dependency injection.
 
 import threading
 import time
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any
 
 from claude_mpm.core.cache import FileSystemCache
 from claude_mpm.core.logger import get_logger
@@ -71,17 +71,15 @@ class CacheManager(ICacheManager):
         self.memories_ttl = memories_ttl
 
         # Cache storage with timestamps
-        self._capabilities_cache: Optional[str] = None
+        self._capabilities_cache: str | None = None
         self._capabilities_cache_time: float = 0
 
-        self._deployed_agents_cache: Optional[Set[str]] = None
+        self._deployed_agents_cache: set[str] | None = None
         self._deployed_agents_cache_time: float = 0
 
-        self._agent_metadata_cache: Dict[
-            str, Tuple[Optional[Dict[str, Any]], float]
-        ] = {}
+        self._agent_metadata_cache: dict[str, tuple[dict[str, Any] | None, float]] = {}
 
-        self._memories_cache: Optional[Dict[str, Any]] = None
+        self._memories_cache: dict[str, Any] | None = None
         self._memories_cache_time: float = 0
 
         # Thread safety
@@ -110,7 +108,7 @@ class CacheManager(ICacheManager):
         return age < ttl
 
     # Agent capabilities cache
-    def get_capabilities(self) -> Optional[str]:
+    def get_capabilities(self) -> str | None:
         """Get cached agent capabilities."""
         with self._lock:
             if self._capabilities_cache is not None and self.is_cache_valid(
@@ -131,7 +129,7 @@ class CacheManager(ICacheManager):
             self.logger.debug("Updated agent capabilities cache")
 
     # Deployed agents cache
-    def get_deployed_agents(self) -> Optional[Set[str]]:
+    def get_deployed_agents(self) -> set[str] | None:
         """Get cached deployed agents set."""
         with self._lock:
             if self._deployed_agents_cache is not None and self.is_cache_valid(
@@ -146,7 +144,7 @@ class CacheManager(ICacheManager):
             self.logger.debug("Cache miss: deployed agents")
             return None
 
-    def set_deployed_agents(self, agents: Set[str]) -> None:
+    def set_deployed_agents(self, agents: set[str]) -> None:
         """Set deployed agents cache."""
         with self._lock:
             self._deployed_agents_cache = agents.copy()  # Store a copy
@@ -158,7 +156,7 @@ class CacheManager(ICacheManager):
     # Agent metadata cache
     def get_agent_metadata(
         self, agent_file: str
-    ) -> Optional[Tuple[Optional[Dict[str, Any]], float]]:
+    ) -> tuple[dict[str, Any] | None, float] | None:
         """Get cached agent metadata for a specific file."""
         with self._lock:
             if agent_file in self._agent_metadata_cache:
@@ -172,7 +170,7 @@ class CacheManager(ICacheManager):
             return None
 
     def set_agent_metadata(
-        self, agent_file: str, metadata: Optional[Dict[str, Any]], mtime: float
+        self, agent_file: str, metadata: dict[str, Any] | None, mtime: float
     ) -> None:
         """Set agent metadata cache for a specific file."""
         with self._lock:
@@ -180,7 +178,7 @@ class CacheManager(ICacheManager):
             self.logger.debug(f"Updated metadata cache for {agent_file}")
 
     # Memories cache
-    def get_memories(self) -> Optional[Dict[str, Any]]:
+    def get_memories(self) -> dict[str, Any] | None:
         """Get cached memories."""
         with self._lock:
             if self._memories_cache is not None and self.is_cache_valid(
@@ -193,7 +191,7 @@ class CacheManager(ICacheManager):
             self.logger.debug("Cache miss: memories")
             return None
 
-    def set_memories(self, memories: Dict[str, Any]) -> None:
+    def set_memories(self, memories: dict[str, Any]) -> None:
         """Set memories cache."""
         with self._lock:
             self._memories_cache = memories.copy()  # Store a copy
@@ -248,7 +246,7 @@ class CacheManager(ICacheManager):
             self._memories_cache = None
             self._memories_cache_time = 0
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         with self._lock:
             current_time = time.time()

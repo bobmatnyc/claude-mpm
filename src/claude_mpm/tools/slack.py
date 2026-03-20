@@ -11,7 +11,7 @@ ACTIONS:
     messages-export     - Export messages from a channel
 """
 
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -71,8 +71,8 @@ class SlackTools(BaseToolModule):
     def _make_request(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
-        json_data: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
         service: str = "slack-user-proxy",
     ) -> dict[str, Any]:
         """Make authenticated Slack API request.

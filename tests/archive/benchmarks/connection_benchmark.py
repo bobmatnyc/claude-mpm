@@ -24,9 +24,9 @@ import sys
 import threading
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Add claude-mpm to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -66,8 +66,8 @@ class ConnectionTestResult:
     max_connection_time_ms: float
     duration_seconds: float
     concurrent_connections: int
-    error_reduction_percent: Optional[float] = None
-    baseline_failure_rate: Optional[float] = None
+    error_reduction_percent: float | None = None
+    baseline_failure_rate: float | None = None
     timestamp: str = None
 
     def __post_init__(self):
@@ -93,7 +93,7 @@ class ConnectionBenchmark:
         )
         return logging.getLogger("connection_benchmark")
 
-    def find_available_port(self, start_port: int = 8765) -> Optional[int]:
+    def find_available_port(self, start_port: int = 8765) -> int | None:
         """Find an available port for testing."""
         for port in range(start_port, start_port + 10):
             try:
@@ -144,7 +144,7 @@ class ConnectionBenchmark:
                         # Simulate some processing delay
                         time.sleep(random.uniform(0.01, 0.05))
                         client_socket.close()
-                    except socket.timeout:
+                    except TimeoutError:
                         continue
                     except Exception:
                         break
@@ -185,7 +185,7 @@ class ConnectionBenchmark:
                         conn_time = (time.time() - conn_start) * 1000  # Convert to ms
                         return True, conn_time, None
 
-                    except socket.timeout:
+                    except TimeoutError:
                         return False, 0, "timeout"
                     except ConnectionRefusedError:
                         return False, 0, "connection_refused"
@@ -310,7 +310,7 @@ class ConnectionBenchmark:
                 conn_time = (time.time() - conn_start) * 1000
                 return True, conn_time, None
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 return False, 0, "timeout"
             except Exception as e:
                 return False, 0, f"error: {e!s}"
@@ -435,7 +435,7 @@ class ConnectionBenchmark:
                 # Connection failed due to capacity
                 return False, 0, "capacity_exceeded"
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 return False, 0, "timeout"
             except Exception as e:
                 return False, 0, f"error: {e!s}"
@@ -467,7 +467,7 @@ class ConnectionBenchmark:
             else:
                 results = []
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Cancel all remaining tasks
             for task in connection_tasks:
                 if not task.done():
@@ -580,7 +580,7 @@ class ConnectionBenchmark:
                         cycle_failures += 1
                         connection_errors += 1
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     failures += 1
                     cycle_failures += 1
                     timeout_errors += 1
@@ -628,7 +628,7 @@ class ConnectionBenchmark:
             baseline_failure_rate=self.baseline_failure_rate,
         )
 
-    async def run_comprehensive_connection_benchmark(self) -> Dict[str, Any]:
+    async def run_comprehensive_connection_benchmark(self) -> dict[str, Any]:
         """Run comprehensive connection benchmark suite."""
         self.logger.info("🎯 Starting comprehensive connection benchmark...")
 
@@ -747,11 +747,11 @@ class ConnectionBenchmark:
         return benchmark_results
 
     def save_results(
-        self, results: Dict[str, Any], output_file: Optional[Path] = None
+        self, results: dict[str, Any], output_file: Path | None = None
     ) -> Path:
         """Save benchmark results to JSON file."""
         if output_file is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             output_file = (
                 Path(__file__).parent / f"connection_benchmark_{timestamp}.json"
             )
@@ -762,7 +762,7 @@ class ConnectionBenchmark:
         self.logger.info(f"📁 Results saved to: {output_file}")
         return output_file
 
-    def print_summary(self, results: Dict[str, Any]):
+    def print_summary(self, results: dict[str, Any]):
         """Print benchmark summary."""
         metadata = results.get("benchmark_metadata", {})
         metrics = results.get("aggregate_metrics", {})

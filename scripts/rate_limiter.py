@@ -22,7 +22,7 @@ class RateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         # Store deque of timestamps for each user_id
-        self.user_requests: Dict[str, deque] = defaultdict(deque)
+        self.user_requests: dict[str, deque] = defaultdict(deque)
 
     def allow_request(self, user_id: str) -> bool:
         """

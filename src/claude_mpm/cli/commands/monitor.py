@@ -13,8 +13,6 @@ DESIGN DECISIONS:
 - Integrated dashboard and Socket.IO server
 """
 
-from typing import Optional
-
 from ...constants import MonitorCommands
 from ...services.monitor.daemon import UnifiedMonitorDaemon
 from ..shared import BaseCommand, CommandResult
@@ -27,7 +25,7 @@ class MonitorCommand(BaseCommand):
         super().__init__("monitor")
         self.daemon = None
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         # Monitor command allows no subcommand (defaults to status)
         if hasattr(args, "monitor_command") and args.monitor_command:

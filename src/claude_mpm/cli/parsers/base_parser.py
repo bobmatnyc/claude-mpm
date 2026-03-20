@@ -12,7 +12,6 @@ and reduce duplication across command parsers.
 
 import argparse
 import sys
-from typing import List, Optional
 
 from ...constants import CLICommands, CLIPrefix, LogLevel
 
@@ -133,7 +132,7 @@ def _get_enhanced_version(base_version: str) -> str:
 
 
 def add_common_arguments(
-    parser: argparse.ArgumentParser, version: Optional[str] = None
+    parser: argparse.ArgumentParser, version: str | None = None
 ) -> None:
     """
     Add common arguments that apply to all commands.
@@ -789,7 +788,7 @@ def create_parser(
     return parser
 
 
-def preprocess_args(argv: Optional[List[str]] = None) -> List[str]:
+def preprocess_args(argv: list[str] | None = None) -> list[str]:
     """
     Preprocess arguments to handle --mpm: prefix commands.
 

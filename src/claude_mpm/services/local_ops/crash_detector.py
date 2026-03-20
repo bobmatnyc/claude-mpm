@@ -24,7 +24,7 @@ USAGE:
 
 import threading
 from collections import defaultdict
-from typing import Callable, Dict, List, Set
+from collections.abc import Callable
 
 from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
@@ -54,16 +54,16 @@ class CrashDetector(SyncBaseService, ICrashDetector):
         self._lock = threading.Lock()
 
         # Deployments being monitored
-        self._monitored_deployments: Set[str] = set()
+        self._monitored_deployments: set[str] = set()
 
         # Last known health status per deployment
-        self._last_health_status: Dict[str, HealthStatus] = {}
+        self._last_health_status: dict[str, HealthStatus] = {}
 
         # Crash count per deployment
-        self._crash_count: Dict[str, int] = defaultdict(int)
+        self._crash_count: dict[str, int] = defaultdict(int)
 
         # Crash callbacks: List of functions called with (deployment_id, reason)
-        self._crash_callbacks: List[Callable[[str, str], None]] = []
+        self._crash_callbacks: list[Callable[[str, str], None]] = []
 
     def initialize(self) -> bool:
         """

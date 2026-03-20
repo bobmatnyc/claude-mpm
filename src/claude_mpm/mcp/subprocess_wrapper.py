@@ -8,9 +8,11 @@ programmatically.
 import asyncio
 import os
 import uuid
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
+from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.mcp.errors import SessionError
 from claude_mpm.mcp.models import SessionResult
 from claude_mpm.mcp.ndjson_parser import (
@@ -42,7 +44,7 @@ class ClaudeMPMSubprocess:
         overrides: dict[str, str] | None = None,
     ) -> dict[str, str]:
         env = os.environ.copy()
-        env["DISABLE_TELEMETRY"] = "1"
+        apply_subprocess_env_defaults(env)
         env["CI"] = "true"
         env["CLAUDE_MPM_USER_PWD"] = self.working_directory
         env["CLAUDE_MPM_IS_SUBPROCESS"] = "1"
@@ -181,7 +183,7 @@ class ClaudeMPMSubprocess:
                 messages=messages,
             )
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             await self.terminate()
             raise SessionError(
                 f"Session timed out after {timeout}s",
@@ -228,7 +230,7 @@ class ClaudeMPMSubprocess:
         except ProcessLookupError:
             # Process already exited
             pass
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if force:
                 try:
                     self.process.kill()

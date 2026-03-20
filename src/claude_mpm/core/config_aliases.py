@@ -14,7 +14,6 @@ Aliases are stored in ~/.claude-mpm/config_aliases.json
 """
 
 import json
-from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -48,7 +47,7 @@ class ConfigAliasManager:
     friendly names to actual directory paths.
     """
 
-    def __init__(self, aliases_file: Optional[Path] = None):
+    def __init__(self, aliases_file: Path | None = None):
         """
         Initialize the configuration alias manager.
 
@@ -65,7 +64,7 @@ class ConfigAliasManager:
 
         self.config_mgr = ConfigurationManager(cache_enabled=True)
         self._ensure_aliases_file()
-        self._aliases: Dict[str, str] = self._load_aliases()
+        self._aliases: dict[str, str] = self._load_aliases()
 
     def _ensure_aliases_file(self) -> None:
         """Ensure the aliases file and its parent directory exist."""
@@ -74,7 +73,7 @@ class ConfigAliasManager:
             self._save_aliases({})
             logger.info(f"Created new aliases file at {self.aliases_file}")
 
-    def _load_aliases(self) -> Dict[str, str]:
+    def _load_aliases(self) -> dict[str, str]:
         """Load aliases from the JSON file."""
         try:
             return self.config_mgr.load_json(self.aliases_file)
@@ -82,7 +81,7 @@ class ConfigAliasManager:
             logger.error(f"Failed to load aliases: {e}")
             return {}
 
-    def _save_aliases(self, aliases: Dict[str, str]) -> None:
+    def _save_aliases(self, aliases: dict[str, str]) -> None:
         """Save aliases to the JSON file."""
         try:
             self.config_mgr.save_json(aliases, self.aliases_file, sort_keys=True)
@@ -152,7 +151,7 @@ class ConfigAliasManager:
 
         return path
 
-    def list_aliases(self) -> List[Tuple[str, str]]:
+    def list_aliases(self) -> list[tuple[str, str]]:
         """
         List all configured aliases.
 
@@ -230,7 +229,7 @@ class ConfigAliasManager:
         except Exception as e:
             raise InvalidDirectoryError(f"Invalid directory path '{path}': {e}") from e
 
-    def get_alias(self, alias_name: str) -> Optional[str]:
+    def get_alias(self, alias_name: str) -> str | None:
         """
         Get the directory path for an alias without validation.
 
@@ -278,7 +277,7 @@ class ConfigAliasManager:
         """
         return alias_name in self._aliases
 
-    def get_all_aliases(self) -> Dict[str, str]:
+    def get_all_aliases(self) -> dict[str, str]:
         """
         Get a copy of all aliases.
 

@@ -22,9 +22,9 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 import psutil
 
@@ -38,7 +38,7 @@ class StartupMeasurement:
     memory_mb: float
     cpu_percent: float
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
     timestamp: str = None
 
     def __post_init__(self):
@@ -67,7 +67,7 @@ class StartupBenchmark:
         return logging.getLogger("startup_benchmark")
 
     def measure_process_startup(
-        self, command: List[str], timeout: int = 15
+        self, command: list[str], timeout: int = 15
     ) -> StartupMeasurement:
         """Measure startup time and resource usage for a command."""
         mode = " ".join(command[1:3]) if len(command) > 2 else "unknown"
@@ -135,7 +135,7 @@ class StartupBenchmark:
                 error_message=str(e),
             )
 
-    def benchmark_oneshot_commands(self, samples: int = 5) -> List[StartupMeasurement]:
+    def benchmark_oneshot_commands(self, samples: int = 5) -> list[StartupMeasurement]:
         """Benchmark oneshot command performance."""
         self.logger.info("🚀 Benchmarking oneshot command startup...")
 
@@ -170,7 +170,7 @@ class StartupBenchmark:
 
     def benchmark_interactive_preparation(
         self, samples: int = 5
-    ) -> List[StartupMeasurement]:
+    ) -> list[StartupMeasurement]:
         """Benchmark interactive mode preparation."""
         self.logger.info("🎮 Benchmarking interactive mode preparation...")
 
@@ -204,7 +204,7 @@ class StartupBenchmark:
 
     def benchmark_agent_deployment_impact(
         self, samples: int = 3
-    ) -> List[StartupMeasurement]:
+    ) -> list[StartupMeasurement]:
         """Benchmark startup with agent deployment."""
         self.logger.info("🤖 Benchmarking startup with agent deployment...")
 
@@ -232,7 +232,7 @@ class StartupBenchmark:
 
     def benchmark_memory_initialization_impact(
         self, samples: int = 3
-    ) -> List[StartupMeasurement]:
+    ) -> list[StartupMeasurement]:
         """Benchmark startup with memory system initialization."""
         self.logger.info("🧠 Benchmarking startup with memory initialization...")
 
@@ -258,7 +258,7 @@ class StartupBenchmark:
 
         return measurements
 
-    def analyze_results(self, measurements: List[StartupMeasurement]) -> Dict:
+    def analyze_results(self, measurements: list[StartupMeasurement]) -> dict:
         """Analyze startup benchmark results."""
         successful_measurements = [m for m in measurements if m.success]
 
@@ -313,7 +313,7 @@ class StartupBenchmark:
             ],
         }
 
-    async def run_comprehensive_benchmark(self, samples: int = 5) -> Dict:
+    async def run_comprehensive_benchmark(self, samples: int = 5) -> dict:
         """Run comprehensive startup benchmark."""
         self.logger.info("🎯 Starting comprehensive startup benchmark...")
         start_time = time.time()
@@ -347,10 +347,10 @@ class StartupBenchmark:
 
         return analysis
 
-    def save_results(self, results: Dict, output_file: Optional[Path] = None) -> Path:
+    def save_results(self, results: dict, output_file: Path | None = None) -> Path:
         """Save benchmark results to JSON file."""
         if output_file is None:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             output_file = Path(__file__).parent / f"startup_benchmark_{timestamp}.json"
 
         with output_file.open("w") as f:
@@ -359,7 +359,7 @@ class StartupBenchmark:
         self.logger.info(f"📁 Results saved to: {output_file}")
         return output_file
 
-    def print_summary(self, results: Dict):
+    def print_summary(self, results: dict):
         """Print benchmark summary."""
         stats = results.get("overall_stats", {})
         metadata = results.get("benchmark_metadata", {})

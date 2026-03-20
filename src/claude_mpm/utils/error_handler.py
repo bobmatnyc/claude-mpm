@@ -6,9 +6,10 @@ Inspired by awesome-claude-code's comprehensive error handling approach.
 
 import logging
 import sys
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -21,14 +22,14 @@ class MPMError(Exception):
     def __init__(
         self,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
-        suggestions: Optional[List[str]] = None,
+        details: dict[str, Any] | None = None,
+        suggestions: list[str] | None = None,
     ):
         """Initialize MPM error with details and suggestions."""
         super().__init__(message)
         self.details = details or {}
         self.suggestions = suggestions or []
-        self.timestamp = datetime.now(timezone.utc)
+        self.timestamp = datetime.now(UTC)
 
     def get_user_friendly_message(self) -> str:
         """Get a user-friendly error message."""
@@ -64,7 +65,7 @@ class ConfigurationError(MPMError):
 
 
 def handle_errors(
-    error_type: Type[Exception] = Exception,
+    error_type: type[Exception] = Exception,
     fallback_value: Any = None,
     log_level: int = logging.ERROR,
 ) -> Callable:
@@ -130,7 +131,7 @@ def handle_errors(
 class ErrorContext:
     """Context manager for enhanced error reporting."""
 
-    def __init__(self, operation: str, details: Optional[Dict[str, Any]] = None):
+    def __init__(self, operation: str, details: dict[str, Any] | None = None):
         """Initialize error context."""
         self.operation = operation
         self.details = details or {}
@@ -284,7 +285,7 @@ def format_exception_chain(exc: Exception) -> str:
 
 
 # Setup patterns from awesome-claude-code
-def suggest_setup_fix(error: Exception) -> List[str]:
+def suggest_setup_fix(error: Exception) -> list[str]:
     """Suggest fixes for common setup errors."""
     suggestions = []
     error_msg = str(error).lower()

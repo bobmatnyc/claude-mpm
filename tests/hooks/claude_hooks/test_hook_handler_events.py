@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -31,7 +31,7 @@ class TestEventReadingAndParsing:
         valid_event = {
             "hook_event_name": "Start",
             "session_id": "test-session-123",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         with patch("sys.stdin") as mock_stdin:

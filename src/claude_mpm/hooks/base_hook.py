@@ -3,9 +3,9 @@
 import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -27,16 +27,16 @@ class HookContext:
     """Context passed to hooks for processing."""
 
     hook_type: HookType
-    data: Dict[str, Any]
-    metadata: Dict[str, Any]
+    data: dict[str, Any]
+    metadata: dict[str, Any]
     timestamp: datetime
-    session_id: Optional[str] = None
-    user_id: Optional[str] = None
+    session_id: str | None = None
+    user_id: str | None = None
 
     def __post_init__(self):
         """Ensure timestamp is set."""
         if not hasattr(self, "timestamp") or self.timestamp is None:
-            self.timestamp = datetime.now(timezone.utc)
+            self.timestamp = datetime.now(UTC)
 
 
 @dataclass
@@ -44,11 +44,11 @@ class HookResult:
     """Result returned from hook execution."""
 
     success: bool
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    data: dict[str, Any] | None = None
+    error: str | None = None
     modified: bool = False
-    metadata: Optional[Dict[str, Any]] = None
-    execution_time_ms: Optional[float] = None
+    metadata: dict[str, Any] | None = None
+    execution_time_ms: float | None = None
 
 
 class BaseHook(ABC):

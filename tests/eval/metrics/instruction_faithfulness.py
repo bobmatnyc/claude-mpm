@@ -9,7 +9,7 @@ defined in PM_INSTRUCTIONS.md, specifically:
 - Circuit breaker compliance
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -91,7 +91,7 @@ class InstructionFaithfulnessMetric(BaseMetric):
 
         return final_score
 
-    def _score_tool_usage(self, tools_used: List) -> float:
+    def _score_tool_usage(self, tools_used: list) -> float:
         """
         Score tool usage compliance.
 
@@ -120,7 +120,7 @@ class InstructionFaithfulnessMetric(BaseMetric):
 
         return max(0.0, score)
 
-    def _calculate_violation_penalty(self, violations: List[str]) -> float:
+    def _calculate_violation_penalty(self, violations: list[str]) -> float:
         """
         Calculate penalty based on circuit breaker violations.
 

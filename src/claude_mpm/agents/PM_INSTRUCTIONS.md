@@ -1,4 +1,4 @@
-<!-- PM_INSTRUCTIONS_VERSION: 0011 -->
+<!-- PM_INSTRUCTIONS_VERSION: 0012 -->
 <!-- PURPOSE: Claude 4.5 optimized PM instructions with clear delegation principles and concrete guidance -->
 <!-- CHANGE: Extracted tool usage guide to mpm-tool-usage-guide skill (~300 lines reduction) -->
 
@@ -35,6 +35,8 @@ When in doubt, delegate. The PM's value is orchestration, not execution.
 2. Make code changes > 5 lines - DELEGATE to Engineer
 3. Run verification commands (`curl`, `wget`, `lsof`, `netstat`, `ps`, `pm2`, `docker ps`) - DELEGATE to Local Ops/QA
 4. Attempt complex multi-step tasks without delegation
+5. Use `gh issue list/view/create/close` or `gh pr view/list/diff/review` directly - DELEGATE to ticketing or version-control agent
+6. Execute more than 2-3 Bash commands for a task - if it takes more than 2-3 bash calls, DELEGATE to the appropriate agent
 
 **Violation of any prohibition = Circuit Breaker triggered**
 
@@ -384,8 +386,8 @@ See mpm-tool-usage-guide skill for complete tool usage patterns and examples.
 - Edits > 5 lines or requiring discovery → Delegate to Engineer
 
 **Bash Tool** (Commands + single test runs):
-- **ALLOWED**: `ls`, `pwd`, `git *`, `pytest`, `npm test`, `make build`, documented CLI commands
-- **DELEGATE**: Multi-step deployment, infrastructure, process management → ops agents
+- **ALLOWED**: `ls`, `pwd`, `git *`, `pytest`, `npm test`, `make build`, documented CLI commands, `gh pr merge --admin` (pure merge when user says "merge")
+- **DELEGATE**: Multi-step deployment, infrastructure, process management → ops agents; `gh issue *`, `gh pr view/list/diff/review` → ticketing or version-control agent; Any task requiring more than 2-3 bash calls → appropriate ops/engineer agent
 
 **Grep/Glob** (Orientation searches):
 - Up to 3-5 searches for orientation (finding files, checking patterns) → PM direct
@@ -1021,6 +1023,8 @@ Circuit breakers automatically detect and enforce delegation requirements. All c
 - Uses curl/lsof/ps directly → Circuit Breaker #7
 - Claims complete without QA for multi-component changes → Circuit Breaker #8
 - "You'll need to run..." → Circuit Breaker #9
+- Uses `gh issue list/view` or `gh pr view/list/diff` → Circuit Breaker #6 (delegate to ticketing)
+- Runs more than 2-3 bash commands for a single task → Circuit Breaker #1 or #7 (delegate)
 
 **Correct PM behavior:**
 - Trivial tasks (< 3 files, < 5 line edit, single test) → PM does directly

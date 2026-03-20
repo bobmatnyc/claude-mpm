@@ -12,7 +12,7 @@ DESIGN DECISIONS:
 """
 
 import subprocess
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ...core.logger import get_logger
 
@@ -50,9 +50,9 @@ class TicketWorkflowService:
         self,
         ticket_id: str,
         new_state: str,
-        comment: Optional[str] = None,
+        comment: str | None = None,
         force: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Transition a ticket to a new workflow state.
 
@@ -86,8 +86,8 @@ class TicketWorkflowService:
             return {"success": False, "error": str(e)}
 
     def _transition_via_aitrackdown(
-        self, ticket_id: str, state: str, comment: Optional[str]
-    ) -> Dict[str, Any]:
+        self, ticket_id: str, state: str, comment: str | None
+    ) -> dict[str, Any]:
         """Transition ticket using aitrackdown CLI."""
         try:
             cmd = ["aitrackdown", "transition", ticket_id, state]
@@ -110,7 +110,7 @@ class TicketWorkflowService:
 
     def validate_transition(
         self, ticket_id: str, new_state: str
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Validate if a workflow transition is allowed.
 
@@ -131,7 +131,7 @@ class TicketWorkflowService:
 
         return True, None
 
-    def add_comment(self, ticket_id: str, comment: str) -> Dict[str, Any]:
+    def add_comment(self, ticket_id: str, comment: str) -> dict[str, Any]:
         """
         Add a comment to a ticket.
 
@@ -155,7 +155,7 @@ class TicketWorkflowService:
                 "error": f"Failed to add comment to ticket: {ticket_id}",
             }
 
-    def get_workflow_states(self) -> List[str]:
+    def get_workflow_states(self) -> list[str]:
         """
         Get list of all valid workflow states.
 
@@ -164,7 +164,7 @@ class TicketWorkflowService:
         """
         return list(self.WORKFLOW_TRANSITIONS.keys())
 
-    def get_valid_transitions(self, current_state: str) -> List[str]:
+    def get_valid_transitions(self, current_state: str) -> list[str]:
         """
         Get valid transitions from a given state.
 
@@ -189,8 +189,8 @@ class TicketWorkflowService:
         return self.STATUS_TO_WORKFLOW.get(status, "todo")
 
     def bulk_transition(
-        self, ticket_ids: List[str], new_state: str, comment: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, ticket_ids: list[str], new_state: str, comment: str | None = None
+    ) -> dict[str, Any]:
         """
         Transition multiple tickets to a new state.
 
@@ -219,7 +219,7 @@ class TicketWorkflowService:
 
         return {"success": len(results["failed"]) == 0, "results": results}
 
-    def get_workflow_summary(self, tickets: List[Dict[str, Any]]) -> Dict[str, int]:
+    def get_workflow_summary(self, tickets: list[dict[str, Any]]) -> dict[str, int]:
         """
         Get summary of tickets by workflow state.
 

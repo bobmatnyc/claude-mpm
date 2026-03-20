@@ -9,7 +9,7 @@ and verifies the dashboard receives it correctly.
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import requests
 
@@ -24,7 +24,7 @@ token_usage_event = {
     "data": {
         "type": "hook",
         "subtype": "token_usage_updated",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "data": {
             "session_id": SESSION_ID,
             "input_tokens": 1250,
@@ -32,7 +32,7 @@ token_usage_event = {
             "cache_creation_tokens": 300,
             "cache_read_tokens": 5000,
             "total_tokens": 7000,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
         "source": "claude_hooks",
         "session_id": SESSION_ID,

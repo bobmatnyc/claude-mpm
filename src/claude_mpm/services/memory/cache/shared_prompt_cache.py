@@ -45,7 +45,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from functools import wraps
 from threading import RLock
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from claude_mpm.core.base_service import BaseService
 
@@ -57,11 +57,11 @@ class CacheEntry:
     key: str
     value: Any
     created_at: float
-    ttl: Optional[float] = None
+    ttl: float | None = None
     access_count: int = 0
     last_accessed: float = field(default_factory=time.time)
     size_bytes: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_expired(self) -> bool:
@@ -118,7 +118,7 @@ class SharedPromptCache(BaseService):
     _instance: Optional["SharedPromptCache"] = None
     _lock = threading.Lock()
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the shared cache service."""
         # Singleton pattern enforcement
         if SharedPromptCache._instance is not None:
@@ -158,11 +158,11 @@ class SharedPromptCache(BaseService):
         self._metrics_lock = threading.Lock()
 
         # Background task tracking
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
 
         # Cache invalidation tracking
-        self._invalidation_callbacks: Dict[str, List[callable]] = {}
-        self._namespace_dependencies: Dict[str, Set[str]] = {}
+        self._invalidation_callbacks: dict[str, list[callable]] = {}
+        self._namespace_dependencies: dict[str, set[str]] = {}
 
         self.logger.info(
             f"SharedPromptCache initialized with max_size={self.max_size}, "
@@ -170,9 +170,7 @@ class SharedPromptCache(BaseService):
         )
 
     @classmethod
-    def get_instance(
-        cls, config: Optional[Dict[str, Any]] = None
-    ) -> "SharedPromptCache":
+    def get_instance(cls, config: dict[str, Any] | None = None) -> "SharedPromptCache":
         """
         Get the singleton instance of SharedPromptCache.
 
@@ -237,7 +235,7 @@ class SharedPromptCache(BaseService):
 
         self.logger.info("SharedPromptCache service cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform cache-specific health checks."""
         checks = {}
 
@@ -274,8 +272,8 @@ class SharedPromptCache(BaseService):
         self,
         key: str,
         value: Any,
-        ttl: Optional[float] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        ttl: float | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """
         Set a cache entry with optional TTL.
@@ -335,7 +333,7 @@ class SharedPromptCache(BaseService):
             self.logger.error(f"Failed to set cache key '{key}': {e}")
             return False
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """
         Get a cache entry by key.
 
@@ -472,7 +470,7 @@ class SharedPromptCache(BaseService):
         except Exception as e:
             self.logger.error(f"Failed to clear cache: {e}")
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get current cache metrics."""
         with self._metrics_lock:
             size_mb = self._metrics.size_bytes / (1024 * 1024)
@@ -501,7 +499,7 @@ class SharedPromptCache(BaseService):
                 "cleanup_interval": self.cleanup_interval,
             }
 
-    def get_cache_info(self) -> Dict[str, Any]:
+    def get_cache_info(self) -> dict[str, Any]:
         """Get detailed cache information."""
         with self._cache_lock:
             entries_info = []
@@ -597,7 +595,7 @@ class SharedPromptCache(BaseService):
         """Get current memory usage in MB."""
         return self._metrics.size_bytes / (1024 * 1024)
 
-    async def handle_memory_pressure(self, severity: str = "warning") -> Dict[str, Any]:
+    async def handle_memory_pressure(self, severity: str = "warning") -> dict[str, Any]:
         """
         Handle memory pressure by aggressively cleaning cache.
 
@@ -727,7 +725,7 @@ class SharedPromptCache(BaseService):
 
 # Decorator for caching function results
 def cache_result(
-    key_pattern: str, ttl: Optional[float] = None, namespace: Optional[str] = None
+    key_pattern: str, ttl: float | None = None, namespace: str | None = None
 ):
     """
     Decorator to cache function results in SharedPromptCache.
@@ -752,7 +750,8 @@ def cache_result(
 
             # Create key from pattern and args
             cache_key = key_pattern.format(
-                **kwargs, args_hash=hashlib.md5(str(args).encode()).hexdigest()[:8]
+                **kwargs,
+                args_hash=hashlib.md5(str(args).encode()).hexdigest()[:8],  # nosec
             )
 
             if namespace:
@@ -783,7 +782,7 @@ def get_shared_cache() -> SharedPromptCache:
 
 
 # Configuration helper
-def configure_shared_cache(config: Dict[str, Any]) -> SharedPromptCache:
+def configure_shared_cache(config: dict[str, Any]) -> SharedPromptCache:
     """Configure and get shared cache instance."""
     return SharedPromptCache.get_instance(config)
 

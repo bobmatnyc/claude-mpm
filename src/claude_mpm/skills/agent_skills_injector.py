@@ -17,7 +17,7 @@ References:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
@@ -60,7 +60,7 @@ class AgentSkillsInjector(LoggerMixin):
         super().__init__()
         self.skills_service: SkillsService = skills_service
 
-    def enhance_agent_template(self, template_path: Path) -> Dict[str, Any]:
+    def enhance_agent_template(self, template_path: Path) -> dict[str, Any]:
         """Add skills field to agent template JSON.
 
         Reads an agent JSON template, determines which skills should be assigned
@@ -118,7 +118,7 @@ class AgentSkillsInjector(LoggerMixin):
 
         return template
 
-    def generate_frontmatter_with_skills(self, agent_config: Dict[str, Any]) -> str:
+    def generate_frontmatter_with_skills(self, agent_config: dict[str, Any]) -> str:
         """Generate YAML frontmatter including skills field.
 
         Creates clean YAML frontmatter for agent markdown files, including:
@@ -174,7 +174,7 @@ class AgentSkillsInjector(LoggerMixin):
 
         return f"---\n{yaml_str}---\n"
 
-    def inject_skills_documentation(self, agent_content: str, skills: List[str]) -> str:
+    def inject_skills_documentation(self, agent_content: str, skills: list[str]) -> str:
         """Inject skills documentation reference into agent instructions.
 
         Adds a "## Available Skills" section after the YAML frontmatter that
@@ -226,7 +226,7 @@ class AgentSkillsInjector(LoggerMixin):
 
     def enhance_agent_with_skills(
         self, agent_id: str, template_content: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Convenience method to fully enhance an agent with skills.
 
         Combines all enhancement steps:
@@ -286,7 +286,7 @@ class AgentSkillsInjector(LoggerMixin):
             "content": enhanced_content,
         }
 
-    def get_skills_references_for_agent(self, agent_id: str) -> List[Dict[str, str]]:
+    def get_skills_references_for_agent(self, agent_id: str) -> list[dict[str, str]]:
         """Get skill references with metadata for an agent.
 
         Returns detailed information about each skill assigned to an agent,

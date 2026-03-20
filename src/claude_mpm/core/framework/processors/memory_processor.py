@@ -1,7 +1,7 @@
 """Memory content processor for framework memory management."""
 
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.utils.agent_filters import normalize_agent_id
@@ -14,7 +14,7 @@ class MemoryProcessor:
         """Initialize the memory processor."""
         self.logger = get_logger("memory_processor")
 
-    def load_pm_memories(self) -> Dict[str, str]:
+    def load_pm_memories(self) -> dict[str, str]:
         """Load PM memories from various locations.
 
         .. deprecated::
@@ -57,7 +57,7 @@ class MemoryProcessor:
 
         return memories
 
-    def load_agent_memories(self, deployed_agents: Set[str]) -> Dict[str, str]:
+    def load_agent_memories(self, deployed_agents: set[str]) -> dict[str, str]:
         """Load memories for deployed agents.
 
         Args:
@@ -117,9 +117,9 @@ class MemoryProcessor:
 
     def aggregate_memories(
         self,
-        pm_memories: Dict[str, str],
-        agent_memories: Dict[str, str],
-    ) -> Dict[str, Any]:
+        pm_memories: dict[str, str],
+        agent_memories: dict[str, str],
+    ) -> dict[str, Any]:
         """Aggregate all memories into a single structure.
 
         Args:
@@ -142,7 +142,7 @@ class MemoryProcessor:
 
         return result
 
-    def format_memory_section(self, memories: Dict[str, Any]) -> str:
+    def format_memory_section(self, memories: dict[str, Any]) -> str:
         """Format memories into a section for instructions.
 
         Args:
@@ -181,7 +181,7 @@ class MemoryProcessor:
 
         return "".join(sections)
 
-    def deduplicate_memories(self, memories: Dict[str, str]) -> Dict[str, str]:
+    def deduplicate_memories(self, memories: dict[str, str]) -> dict[str, str]:
         """Remove duplicate entries from memories.
 
         Args:

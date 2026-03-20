@@ -8,7 +8,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 import yaml
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
@@ -54,12 +54,12 @@ class ManifestCheckResult:
     """
 
     status: CompatibilityResult
-    repo_format_version: Optional[int]
-    min_cli_version: Optional[str]
+    repo_format_version: int | None
+    min_cli_version: str | None
     cli_version: str
     message: str
-    migration_notes: Optional[str] = None
-    deprecation_warnings: Optional[List[str]] = field(default=None)
+    migration_notes: str | None = None
+    deprecation_warnings: list[str] | None = field(default=None)
 
 
 class ManifestChecker:
@@ -87,7 +87,7 @@ class ManifestChecker:
 
     def check(
         self,
-        manifest_content: Optional[str],
+        manifest_content: str | None,
         cli_version: str,
     ) -> ManifestCheckResult:
         """Evaluate manifest compatibility against the given CLI version.
@@ -148,8 +148,8 @@ class ManifestChecker:
 
         repo_format_version = self._extract_repo_format_version(data)
         min_cli_version = self._extract_min_cli_version(data)
-        max_cli_version: Optional[str] = data.get("max_cli_version")
-        migration_notes: Optional[str] = data.get("migration_notes") or None
+        max_cli_version: str | None = data.get("max_cli_version")
+        migration_notes: str | None = data.get("migration_notes") or None
 
         # Collect deprecation warnings (informational; attached to all results).
         deprecation_warnings = self._check_deprecation_warnings(data, cli_version)
@@ -241,7 +241,7 @@ class ManifestChecker:
 
     def check_agent(
         self,
-        manifest_content: Optional[str],
+        manifest_content: str | None,
         cli_version: str,
         agent_name: str,
     ) -> ManifestCheckResult:
@@ -320,7 +320,7 @@ class ManifestChecker:
         *,
         repo_format_version: int,
         min_cli_version: str,
-        migration_notes: Optional[str],
+        migration_notes: str | None,
     ) -> Optional["ManifestCheckResult"]:
         """Check cli_version against a compatibility_ranges list.
 
@@ -390,7 +390,7 @@ class ManifestChecker:
 
             # Matched — determine outcome from status field.
             status_str = str(entry.get("status", "full")).lower()
-            notes: Optional[str] = entry.get("notes") or None
+            notes: str | None = entry.get("notes") or None
 
             if status_str == "full":
                 return ManifestCheckResult(
@@ -436,7 +436,7 @@ class ManifestChecker:
         self,
         data: dict,
         cli_version: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Collect applicable deprecation warnings from the manifest.
 
         Deprecation warnings are informational only and never block compatibility.
@@ -456,7 +456,7 @@ class ManifestChecker:
         if not isinstance(raw_warnings, list):
             return []
 
-        result: List[str] = []
+        result: list[str] = []
         for entry in raw_warnings:
             if not isinstance(entry, dict):
                 logger.debug("Skipping non-dict deprecation_warnings entry: %r", entry)
@@ -488,7 +488,7 @@ class ManifestChecker:
 
         return result
 
-    def _parse_manifest(self, content: str) -> Optional[dict]:
+    def _parse_manifest(self, content: str) -> dict | None:
         """Parse YAML manifest content and return a dict, or None on failure.
 
         Args:

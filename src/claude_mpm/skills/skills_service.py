@@ -19,7 +19,7 @@ References:
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -69,7 +69,7 @@ class SkillsService(LoggerMixin):
         )
 
         # Load registry
-        self.registry: Dict[str, Any] = self._load_registry()
+        self.registry: dict[str, Any] = self._load_registry()
 
     def _get_project_root(self) -> Path:
         """Get project root directory.
@@ -104,7 +104,7 @@ class SkillsService(LoggerMixin):
         except ValueError:
             return False
 
-    def _load_registry(self) -> Dict[str, Any]:
+    def _load_registry(self) -> dict[str, Any]:
         """Load skills registry mapping skills to agents with security checks.
 
         The registry file (config/skills_registry.yaml) contains:
@@ -155,7 +155,7 @@ class SkillsService(LoggerMixin):
             self.logger.error(f"Failed to read registry file: {e}")
             return {}
 
-    def discover_bundled_skills(self) -> List[Dict[str, Any]]:
+    def discover_bundled_skills(self) -> list[dict[str, Any]]:
         """Discover all skills in bundled directory.
 
         Scans bundled_skills_path for skills organized by category:
@@ -236,7 +236,7 @@ class SkillsService(LoggerMixin):
 
         return skills
 
-    def _parse_skill_metadata(self, skill_md: Path) -> Dict[str, Any]:
+    def _parse_skill_metadata(self, skill_md: Path) -> dict[str, Any]:
         """Extract YAML frontmatter from SKILL.md.
 
         Parses the YAML frontmatter section at the beginning of SKILL.md files:
@@ -277,7 +277,7 @@ class SkillsService(LoggerMixin):
             self.logger.error(f"Failed to read skill file {skill_md}: {e}")
             return {}
 
-    def deploy_bundled_skills(self, force: bool = False) -> Dict[str, Any]:
+    def deploy_bundled_skills(self, force: bool = False) -> dict[str, Any]:
         """Deploy bundled skills to .claude/skills/ directory.
 
         Copies skills from bundled/ to .claude/skills/ maintaining directory structure.
@@ -355,7 +355,7 @@ class SkillsService(LoggerMixin):
 
         return {"deployed": deployed, "skipped": skipped, "errors": errors}
 
-    def get_skills_for_agent(self, agent_id: str) -> List[str]:
+    def get_skills_for_agent(self, agent_id: str) -> list[str]:
         """Get list of skills assigned to specific agent.
 
         Reads from registry['agent_skills'][agent_id] and combines
@@ -382,7 +382,7 @@ class SkillsService(LoggerMixin):
 
         return required + optional
 
-    def validate_skill(self, skill_name: str) -> Dict[str, Any]:
+    def validate_skill(self, skill_name: str) -> dict[str, Any]:
         """Validate skill structure and metadata.
 
         Searches for skill in deployed or bundled locations and validates:
@@ -423,7 +423,7 @@ class SkillsService(LoggerMixin):
             "warnings": [],
         }
 
-    def _validate_skill_structure(self, skill_dir: Path) -> Dict[str, Any]:
+    def _validate_skill_structure(self, skill_dir: Path) -> dict[str, Any]:
         """Validate skill directory structure.
 
         Implements validation rules from SKILL-MD-FORMAT-SPECIFICATION.md:
@@ -496,7 +496,7 @@ class SkillsService(LoggerMixin):
             "metadata": metadata,
         }
 
-    def check_for_updates(self) -> Dict[str, Any]:
+    def check_for_updates(self) -> dict[str, Any]:
         """Compare versions of bundled vs deployed skills.
 
         Checks each deployed skill against its bundled version to identify:
@@ -571,7 +571,7 @@ class SkillsService(LoggerMixin):
             "orphaned": orphaned,
         }
 
-    def update_skills(self, skill_names: Optional[List[str]] = None) -> Dict[str, Any]:
+    def update_skills(self, skill_names: list[str] | None = None) -> dict[str, Any]:
         """Update specific or all skills.
 
         Redeploys skills from bundled to deployed location.
@@ -639,8 +639,8 @@ class SkillsService(LoggerMixin):
         return {"updated": updated, "errors": errors}
 
     def install_updates(
-        self, updates: List[Dict[str, Any]], force: bool = False
-    ) -> Dict[str, Any]:
+        self, updates: list[dict[str, Any]], force: bool = False
+    ) -> dict[str, Any]:
         """Install skill updates from update check results.
 
         Args:
@@ -653,7 +653,7 @@ class SkillsService(LoggerMixin):
         skill_names = [update["skill"] for update in updates]
         return self.update_skills(skill_names)
 
-    def get_skill_path(self, skill_name: str) -> Optional[Path]:
+    def get_skill_path(self, skill_name: str) -> Path | None:
         """Get the path to a deployed skill.
 
         Args:
@@ -673,7 +673,7 @@ class SkillsService(LoggerMixin):
 
         return None
 
-    def parse_skill_metadata(self, content: str) -> Dict[str, Any]:
+    def parse_skill_metadata(self, content: str) -> dict[str, Any]:
         """Parse metadata from SKILL.md content.
 
         Args:
@@ -700,7 +700,7 @@ class SkillsService(LoggerMixin):
 
         return metadata
 
-    def get_agents_for_skill(self, skill_name: str) -> List[str]:
+    def get_agents_for_skill(self, skill_name: str) -> list[str]:
         """Get list of agents that use a specific skill.
 
         Args:

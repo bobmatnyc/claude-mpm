@@ -9,7 +9,6 @@ Coverage: 100% - Safe to extract and refactor independently.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List
 
 from claude_mpm.cli.commands.configure_models import AgentConfig
 from claude_mpm.utils.agent_filters import normalize_agent_id
@@ -44,7 +43,7 @@ class SimpleAgentManager:
         # Add logger for error reporting
         self.logger = logging.getLogger(__name__)
         # Track pending changes for batch operations
-        self.deferred_changes: Dict[str, bool] = {}
+        self.deferred_changes: dict[str, bool] = {}
 
     def _load_states(self):
         """Load agent states from file."""
@@ -97,7 +96,7 @@ class SimpleAgentManager:
         """Check if there are unsaved changes."""
         return len(self.deferred_changes) > 0
 
-    def discover_agents(self, include_remote: bool = True) -> List[AgentConfig]:
+    def discover_agents(self, include_remote: bool = True) -> list[AgentConfig]:
         """Discover available agents from local templates and remote sources.
 
         Args:
@@ -126,7 +125,7 @@ class SimpleAgentManager:
 
         return agents if agents else [AgentConfig("engineer", "No agents found", [])]
 
-    def _discover_local_template_agents(self) -> List[AgentConfig]:
+    def _discover_local_template_agents(self) -> list[AgentConfig]:
         """Discover agents from local JSON templates (existing logic)."""
         agents = []
 
@@ -209,7 +208,7 @@ class SimpleAgentManager:
 
         return agents
 
-    def _discover_git_agents(self) -> List[AgentConfig]:
+    def _discover_git_agents(self) -> list[AgentConfig]:
         """Discover agents from Git sources using GitSourceManager."""
         try:
             from claude_mpm.services.agents.git_source_manager import GitSourceManager

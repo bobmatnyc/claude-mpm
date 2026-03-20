@@ -6,7 +6,6 @@ of failing fast with clear error messages rather than degrading gracefully.
 """
 
 import os
-from typing import Dict, List, Optional, Tuple
 
 import requests
 
@@ -16,7 +15,7 @@ from claude_mpm.core.logger import get_logger
 class APIKeyValidator:
     """Validates API keys for various services on framework startup."""
 
-    def __init__(self, config: Optional[Dict] = None):
+    def __init__(self, config: dict | None = None):
         """Initialize the API validator.
 
         Args:
@@ -24,12 +23,12 @@ class APIKeyValidator:
         """
         self.logger = get_logger("api_validator")
         self.config = config or {}
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
     def validate_all_keys(
         self, strict: bool = True
-    ) -> Tuple[bool, List[str], List[str]]:
+    ) -> tuple[bool, list[str], list[str]]:
         """Validate all configured API keys.
 
         Args:
@@ -244,7 +243,7 @@ class APIKeyValidator:
             self.errors.append(f"❌ GitHub token validation failed with error: {e}")
             return False
 
-    def _validate_custom_api(self, api_name: str, validation_config: Dict) -> bool:
+    def _validate_custom_api(self, api_name: str, validation_config: dict) -> bool:
         """Validate a custom API key based on configuration.
 
         Args:
@@ -312,7 +311,7 @@ class APIKeyValidator:
             return True
 
 
-def validate_api_keys(config: Optional[Dict] = None, strict: bool = True) -> bool:
+def validate_api_keys(config: dict | None = None, strict: bool = True) -> bool:
     """Convenience function to validate all API keys.
 
     Args:

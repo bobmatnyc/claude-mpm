@@ -399,11 +399,15 @@ class TestAgentSourcesCheck:
             yaml.safe_dump(config_data, f)
 
         # Mock repository accessibility and agent discovery
-        with patch("urllib.request.urlopen") as mock_urlopen, patch(
-            "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
-        ) as mock_service_class, patch(
-            "src.claude_mpm.services.diagnostics.checks.agent_sources_check.Path.home"
-        ) as mock_home:
+        with (
+            patch("urllib.request.urlopen") as mock_urlopen,
+            patch(
+                "src.claude_mpm.services.agents.single_tier_deployment_service.SingleTierDeploymentService"
+            ) as mock_service_class,
+            patch(
+                "src.claude_mpm.services.diagnostics.checks.agent_sources_check.Path.home"
+            ) as mock_home,
+        ):
             # Set home to use temp directory
             mock_home.return_value = mock_config_path.parent.parent.parent
 

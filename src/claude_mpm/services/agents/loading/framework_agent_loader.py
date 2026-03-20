@@ -22,7 +22,7 @@ are automatically deployed:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.agents.agent_loader import AgentTier, list_agents_by_tier
 from claude_mpm.core.agent_name_registry import CORE_AGENT_IDS
@@ -49,7 +49,7 @@ class FrameworkAgentLoader:
             AgentTier.SYSTEM: "system",
         }
 
-    def initialize(self, framework_claude_md_path: Optional[str] = None):
+    def initialize(self, framework_claude_md_path: str | None = None):
         """
         Initialize loader with project, user, and system directory detection
 
@@ -85,7 +85,7 @@ class FrameworkAgentLoader:
             )
             logger.info(f"System agents directory: {self.system_agents_dir}")
 
-    def _find_framework_directory(self) -> Optional[Path]:
+    def _find_framework_directory(self) -> Path | None:
         """Find directory containing agents/INSTRUCTIONS.md (or legacy CLAUDE.md)"""
         # Check if we're running from a wheel installation
         try:
@@ -113,7 +113,7 @@ class FrameworkAgentLoader:
 
         return None
 
-    def _find_project_directory(self) -> Optional[Path]:
+    def _find_project_directory(self) -> Path | None:
         """Find project directory containing .claude-mpm"""
         current = Path.cwd()
 
@@ -125,7 +125,7 @@ class FrameworkAgentLoader:
 
         return None
 
-    def load_agent_profile(self, agent_type: str) -> Optional[Dict[str, Any]]:
+    def load_agent_profile(self, agent_type: str) -> dict[str, Any] | None:
         """
         Load agent profile with precedence: Project → User → System
 
@@ -204,7 +204,7 @@ class FrameworkAgentLoader:
 
     def _load_profile_from_directory(
         self, directory: Path, agent_type: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Load agent profile from specific directory"""
         if not directory.exists():
             return None
@@ -220,7 +220,7 @@ class FrameworkAgentLoader:
             logger.error(f"Error loading profile {profile_file}: {e}")
             return None
 
-    def _parse_agent_profile(self, content: str, source_path: str) -> Dict[str, Any]:
+    def _parse_agent_profile(self, content: str, source_path: str) -> dict[str, Any]:
         """Parse agent profile markdown into structured data"""
         profile = {
             "source_path": source_path,
@@ -293,7 +293,7 @@ class FrameworkAgentLoader:
 
         return profile
 
-    def _process_section(self, profile: Dict[str, Any], section: str, content: list):
+    def _process_section(self, profile: dict[str, Any], section: str, content: list):
         """Process section content into profile structure"""
         text = "\n".join(content).strip()
 
@@ -341,7 +341,7 @@ class FrameworkAgentLoader:
                     patterns[agent] = desc
             profile["integration_patterns"] = patterns
 
-    def get_available_agents(self) -> Dict[str, list]:
+    def get_available_agents(self) -> dict[str, list]:
         """Get list of available agents by tier"""
         agents = {"project": [], "user": [], "system": []}
 
@@ -445,7 +445,7 @@ Please operate according to your profile specifications and maintain quality sta
 
         return instruction.strip()
 
-    def get_core_agents(self) -> List[str]:
+    def get_core_agents(self) -> list[str]:
         """
         Get the standard 6 core agents for auto-deployment.
 
@@ -465,7 +465,7 @@ Please operate according to your profile specifications and maintain quality sta
         """
         return CORE_AGENTS.copy()
 
-    def get_agents_with_fallback(self) -> Dict[str, list]:
+    def get_agents_with_fallback(self) -> dict[str, list]:
         """
         Get available agents, falling back to core agents if none found.
 

@@ -15,7 +15,6 @@ Architecture:
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 from ...core.agent_name_registry import CORE_AGENT_IDS
 from ...services.project.toolchain_analyzer import ToolchainAnalyzerService
@@ -35,7 +34,7 @@ class AgentRecommendationService:
     CORE_AGENTS = CORE_AGENT_IDS
 
     # Map detected languages to recommended engineer agents
-    LANGUAGE_TO_AGENTS: Dict[str, List[str]] = {
+    LANGUAGE_TO_AGENTS: dict[str, list[str]] = {
         "python": [
             "engineer/backend/python-engineer",
             "qa/api-qa",
@@ -75,7 +74,7 @@ class AgentRecommendationService:
     }
 
     # Map detected frameworks to recommended agents
-    FRAMEWORK_TO_AGENTS: Dict[str, List[str]] = {
+    FRAMEWORK_TO_AGENTS: dict[str, list[str]] = {
         # Frontend frameworks
         "react": [
             "engineer/frontend/react-engineer",
@@ -131,7 +130,7 @@ class AgentRecommendationService:
         ],
     }
 
-    def __init__(self, toolchain_analyzer: Optional[ToolchainAnalyzerService] = None):
+    def __init__(self, toolchain_analyzer: ToolchainAnalyzerService | None = None):
         """Initialize agent recommendation service.
 
         Args:
@@ -142,9 +141,9 @@ class AgentRecommendationService:
 
     def get_recommended_agents(
         self,
-        project_path: Optional[str] = None,
+        project_path: str | None = None,
         confidence_threshold: float = 0.5,
-    ) -> Set[str]:
+    ) -> set[str]:
         """Get recommended agents for a project.
 
         Args:
@@ -201,7 +200,7 @@ class AgentRecommendationService:
 
         return recommended
 
-    def get_detection_summary(self, project_path: Optional[str] = None) -> Dict:
+    def get_detection_summary(self, project_path: str | None = None) -> dict:
         """Get human-readable summary of detected toolchain.
 
         Args:

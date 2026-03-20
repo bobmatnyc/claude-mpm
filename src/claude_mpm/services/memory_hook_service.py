@@ -8,7 +8,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.enums import ServiceState
@@ -503,7 +503,7 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "service_available": True,
         }
 
-    def get_hook_status(self) -> Dict[str, Any]:
+    def get_hook_status(self) -> dict[str, Any]:
         """Get status of registered memory hooks.
 
         Returns:

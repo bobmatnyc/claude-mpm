@@ -12,7 +12,7 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -78,7 +78,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             and context.operation in self.metadata.supported_operations
         )
 
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """Validate input data for strategy."""
         errors = []
 
@@ -96,8 +96,8 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         return errors
 
     def analyze(
-        self, target: Any, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, target: Any, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Execute code analysis on target.
 
@@ -125,7 +125,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
-    def _analyze_file(self, file_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_file(self, file_path: Path, options: dict[str, Any]) -> dict[str, Any]:
         """Analyze a single code file."""
         try:
             # Detect language from extension
@@ -175,8 +175,8 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             }
 
     def _analyze_directory(
-        self, dir_path: Path, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, dir_path: Path, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze all code files in a directory."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -220,7 +220,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _analyze_python_code(self, content: str, file_path: Path) -> Dict[str, Any]:
+    def _analyze_python_code(self, content: str, file_path: Path) -> dict[str, Any]:
         """Perform Python-specific code analysis."""
         try:
             tree = ast.parse(content)
@@ -254,7 +254,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
             logger.warning(f"Syntax error in {file_path}: {e}")
             return {}
 
-    def _analyze_ast(self, node: ast.AST, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_ast(self, node: ast.AST, options: dict[str, Any]) -> dict[str, Any]:
         """Analyze an AST node directly."""
         metrics = {
             "node_type": node.__class__.__name__,
@@ -293,7 +293,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
 
     def _calculate_complexity_metrics(
         self, content: str, language: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Calculate various complexity metrics."""
         complexity = {
             "cyclomatic": 1,  # Base complexity
@@ -343,8 +343,8 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         return self._calculate_cyclomatic_complexity(node)
 
     def _detect_code_smells(
-        self, content: str, metrics: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, content: str, metrics: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Detect common code smells."""
         smells = []
 
@@ -374,7 +374,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
 
         return smells
 
-    def _calculate_maintainability(self, metrics: Dict[str, Any]) -> float:
+    def _calculate_maintainability(self, metrics: dict[str, Any]) -> float:
         """
         Calculate maintainability index (0-100 scale).
         Simplified version of the standard formula.
@@ -423,7 +423,7 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
 
         return count
 
-    def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metrics(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """Extract key metrics from analysis results."""
         metrics = {}
 
@@ -467,8 +467,8 @@ class CodeAnalyzerStrategy(AnalyzerStrategy):
         return metrics
 
     def compare_results(
-        self, baseline: Dict[str, Any], current: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, baseline: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare two analysis results."""
         comparison = {
             "improved": [],

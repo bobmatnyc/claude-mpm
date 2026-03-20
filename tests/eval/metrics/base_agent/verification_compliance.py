@@ -26,7 +26,7 @@ Example:
 """
 
 import re
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -110,21 +110,21 @@ class VerificationComplianceMetric(BaseMetric):
         """
         self.threshold = threshold if not strict_mode else 1.0
         self.strict_mode = strict_mode
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Verification Compliance"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

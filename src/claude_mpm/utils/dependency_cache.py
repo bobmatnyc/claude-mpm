@@ -10,7 +10,6 @@ redundant checks and improve startup performance.
 import hashlib
 import json
 import time
-from typing import Dict, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -34,7 +33,7 @@ class DependencyCache:
     DEFAULT_TTL_SECONDS = 86400  # 24 hours
 
     def __init__(
-        self, cache_dir: Optional[Path] = None, ttl_seconds: int = DEFAULT_TTL_SECONDS
+        self, cache_dir: Path | None = None, ttl_seconds: int = DEFAULT_TTL_SECONDS
     ):
         """
         Initialize the dependency cache.
@@ -49,9 +48,9 @@ class DependencyCache:
         self.cache_dir = cache_dir
         self.cache_file = self.cache_dir / ".dependency_cache"
         self.ttl_seconds = ttl_seconds
-        self._cache_data: Optional[Dict] = None
+        self._cache_data: dict | None = None
 
-    def _load_cache(self) -> Dict:
+    def _load_cache(self) -> dict:
         """
         Load cache data from disk.
 
@@ -74,7 +73,7 @@ class DependencyCache:
             self._cache_data = {}
             return self._cache_data
 
-    def _save_cache(self, cache_data: Dict) -> None:
+    def _save_cache(self, cache_data: dict) -> None:
         """
         Save cache data to disk.
 
@@ -92,7 +91,7 @@ class DependencyCache:
         except Exception as e:
             logger.debug(f"Could not save dependency cache: {e}")
 
-    def _generate_cache_key(self, deployment_hash: str, context: Dict) -> str:
+    def _generate_cache_key(self, deployment_hash: str, context: dict) -> str:
         """
         Generate a cache key for dependency results.
 
@@ -123,11 +122,9 @@ class DependencyCache:
 
         # Create a hash of all parts for a compact key
         key_string = "|".join(key_parts)
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.md5(key_string.encode()).hexdigest()  # nosec
 
-    def get(
-        self, deployment_hash: str, context: Optional[Dict] = None
-    ) -> Optional[Dict]:
+    def get(self, deployment_hash: str, context: dict | None = None) -> dict | None:
         """
         Get cached dependency check results.
 
@@ -163,7 +160,7 @@ class DependencyCache:
         return entry.get("results")
 
     def set(
-        self, deployment_hash: str, results: Dict, context: Optional[Dict] = None
+        self, deployment_hash: str, results: dict, context: dict | None = None
     ) -> None:
         """
         Cache dependency check results.
@@ -193,7 +190,7 @@ class DependencyCache:
         self._save_cache(cache_data)
         logger.debug(f"Cached results for key {cache_key}")
 
-    def invalidate(self, deployment_hash: Optional[str] = None) -> None:
+    def invalidate(self, deployment_hash: str | None = None) -> None:
         """
         Invalidate cache entries.
 
@@ -224,7 +221,7 @@ class DependencyCache:
                     f"Invalidated {len(keys_to_remove)} cache entries for deployment {deployment_hash[:8]}..."
                 )
 
-    def _cleanup_expired_entries(self, cache_data: Dict) -> None:
+    def _cleanup_expired_entries(self, cache_data: dict) -> None:
         """
         Remove expired entries from cache data.
 
@@ -247,7 +244,7 @@ class DependencyCache:
         if keys_to_remove:
             logger.debug(f"Cleaned up {len(keys_to_remove)} expired cache entries")
 
-    def get_cache_stats(self) -> Dict:
+    def get_cache_stats(self) -> dict:
         """
         Get statistics about the cache.
 
@@ -304,8 +301,8 @@ class SmartDependencyChecker:
         self._min_check_interval = 60  # Don't check more than once per minute
 
     def should_check_dependencies(
-        self, force_check: bool = False, deployment_hash: Optional[str] = None
-    ) -> Tuple[bool, str]:
+        self, force_check: bool = False, deployment_hash: str | None = None
+    ) -> tuple[bool, str]:
         """
         Determine if dependency checking should be performed.
 
@@ -336,7 +333,7 @@ class SmartDependencyChecker:
         self,
         loader,
         force_check: bool = False,  # AgentDependencyLoader instance
-    ) -> Tuple[Dict, bool]:
+    ) -> tuple[dict, bool]:
         """
         Get dependency results from cache or perform check.
 

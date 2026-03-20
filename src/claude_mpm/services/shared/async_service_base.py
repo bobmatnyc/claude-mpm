@@ -4,7 +4,7 @@ Base class for asynchronous services to reduce duplication.
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ...core.enums import ServiceState
 from ...core.mixins import LoggerMixin
@@ -21,7 +21,7 @@ class AsyncServiceBase(LoggerMixin, ABC):
     - Background task management
     """
 
-    def __init__(self, service_name: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, service_name: str, config: dict[str, Any] | None = None):
         """
         Initialize async service.
 
@@ -42,7 +42,7 @@ class AsyncServiceBase(LoggerMixin, ABC):
         self._shutdown_event = asyncio.Event()
 
         # Error tracking
-        self._last_error: Optional[Exception] = None
+        self._last_error: Exception | None = None
         self._error_count = 0
 
     @property
@@ -141,7 +141,7 @@ class AsyncServiceBase(LoggerMixin, ABC):
 
         return await self.initialize()
 
-    def create_background_task(self, coro, name: Optional[str] = None) -> asyncio.Task:
+    def create_background_task(self, coro, name: str | None = None) -> asyncio.Task:
         """
         Create and track a background task.
 
@@ -178,12 +178,12 @@ class AsyncServiceBase(LoggerMixin, ABC):
                 asyncio.gather(*self._background_tasks, return_exceptions=True),
                 timeout=5.0,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.logger.warning("Some background tasks did not cancel within timeout")
 
         self._background_tasks.clear()
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Perform health check.
 

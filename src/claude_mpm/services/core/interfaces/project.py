@@ -15,7 +15,6 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 1
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional
 
 from ..models.toolchain import (
     DeploymentTarget,
@@ -79,7 +78,7 @@ class IToolchainAnalyzer(ABC):
         """
 
     @abstractmethod
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect frameworks and their versions.
 
         Identifies frameworks by analyzing:
@@ -99,9 +98,7 @@ class IToolchainAnalyzer(ABC):
         """
 
     @abstractmethod
-    def detect_deployment_target(
-        self, project_path: Path
-    ) -> Optional[DeploymentTarget]:
+    def detect_deployment_target(self, project_path: Path) -> DeploymentTarget | None:
         """Detect intended deployment environment.
 
         Analyzes configuration to identify deployment targets:

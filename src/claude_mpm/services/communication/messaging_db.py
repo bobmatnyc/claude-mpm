@@ -15,9 +15,8 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from ...core.logging_utils import get_logger
 
@@ -114,7 +113,7 @@ class MessagingDatabase:
 
     # Message operations
 
-    def insert_message(self, message: Dict) -> str:
+    def insert_message(self, message: dict) -> str:
         """
         Insert a new message into the database.
 
@@ -148,7 +147,7 @@ class MessagingDatabase:
                     message["subject"],
                     message["body"],
                     message.get("status", "unread"),
-                    message.get("created_at", datetime.now(timezone.utc).isoformat()),
+                    message.get("created_at", datetime.now(UTC).isoformat()),
                     message.get("reply_to"),
                     metadata_json,
                     attachments_json,
@@ -158,7 +157,7 @@ class MessagingDatabase:
         logger.debug(f"Inserted message {message['id']}")
         return message["id"]
 
-    def get_message(self, message_id: str) -> Optional[Dict]:
+    def get_message(self, message_id: str) -> dict | None:
         """
         Get a message by ID.
 
@@ -176,9 +175,7 @@ class MessagingDatabase:
                 return self._row_to_message_dict(row)
             return None
 
-    def list_messages(
-        self, status: Optional[str] = None, limit: int = 50
-    ) -> List[Dict]:
+    def list_messages(self, status: str | None = None, limit: int = 50) -> list[dict]:
         """
         List messages with optional filtering.
 
@@ -223,7 +220,7 @@ class MessagingDatabase:
                     SET status = ?, read_at = ?
                     WHERE id = ?
                     """,
-                    (status, datetime.now(timezone.utc).isoformat(), message_id),
+                    (status, datetime.now(UTC).isoformat(), message_id),
                 )
             else:
                 cursor = conn.execute(
@@ -250,7 +247,7 @@ class MessagingDatabase:
             )
             return cursor.rowcount > 0
 
-    def get_unread_count(self, to_agent: Optional[str] = None) -> int:
+    def get_unread_count(self, to_agent: str | None = None) -> int:
         """
         Get count of unread messages.
 
@@ -276,7 +273,7 @@ class MessagingDatabase:
     # Session operations
 
     def register_session(
-        self, session_id: str, project_path: str, pid: Optional[int] = None
+        self, session_id: str, project_path: str, pid: int | None = None
     ) -> None:
         """
         Register a new session or update existing one.
@@ -287,7 +284,7 @@ class MessagingDatabase:
             pid: Process ID (optional)
         """
         project_name = Path(project_path).name
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         with self.get_connection() as conn:
             conn.execute(
@@ -319,7 +316,7 @@ class MessagingDatabase:
         with self.get_connection() as conn:
             conn.execute(
                 "UPDATE sessions SET last_active = ? WHERE session_id = ?",
-                (datetime.now(timezone.utc).isoformat(), session_id),
+                (datetime.now(UTC).isoformat(), session_id),
             )
 
     def deregister_session(self, session_id: str) -> None:
@@ -336,7 +333,7 @@ class MessagingDatabase:
             )
         logger.debug(f"Deregistered session {session_id}")
 
-    def list_active_sessions(self) -> List[Dict]:
+    def list_active_sessions(self) -> list[dict]:
         """
         List all active sessions.
 
@@ -364,7 +361,7 @@ class MessagingDatabase:
                 for row in cursor.fetchall()
             ]
 
-    def list_all_sessions(self) -> List[Dict]:
+    def list_all_sessions(self) -> list[dict]:
         """
         List all sessions regardless of status.
 
@@ -404,7 +401,7 @@ class MessagingDatabase:
         from datetime import timedelta
 
         cutoff_time = (
-            datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
+            datetime.now(UTC) - timedelta(minutes=timeout_minutes)
         ).isoformat()
 
         with self.get_connection() as conn:
@@ -425,7 +422,7 @@ class MessagingDatabase:
 
     # Helper methods
 
-    def _row_to_message_dict(self, row: sqlite3.Row) -> Dict:
+    def _row_to_message_dict(self, row: sqlite3.Row) -> dict:
         """Convert database row to message dictionary."""
         return {
             "id": row["id"],
@@ -447,8 +444,8 @@ class MessagingDatabase:
         }
 
     def get_messages_for_agent(
-        self, to_agent: str, status: Optional[str] = None, limit: int = 50
-    ) -> List[Dict]:
+        self, to_agent: str, status: str | None = None, limit: int = 50
+    ) -> list[dict]:
         """
         Get messages for a specific agent.
 
@@ -483,8 +480,8 @@ class MessagingDatabase:
             return [self._row_to_message_dict(row) for row in cursor.fetchall()]
 
     def get_high_priority_messages(
-        self, priorities: Optional[List[str]] = None, limit: int = 50
-    ) -> List[Dict]:
+        self, priorities: list[str] | None = None, limit: int = 50
+    ) -> list[dict]:
         """
         Get high priority messages.
 
@@ -521,8 +518,8 @@ class MessagingDatabase:
     # New methods for project-filtered queries (for shared database)
 
     def get_messages_for_project(
-        self, project_path: str, status: Optional[str] = None, limit: int = 50
-    ) -> List[Dict]:
+        self, project_path: str, status: str | None = None, limit: int = 50
+    ) -> list[dict]:
         """
         Get messages for a specific project.
 
@@ -560,9 +557,9 @@ class MessagingDatabase:
         self,
         project_path: str,
         to_agent: str,
-        status: Optional[str] = None,
+        status: str | None = None,
         limit: int = 50,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Get messages for a specific project and agent.
 
@@ -598,7 +595,7 @@ class MessagingDatabase:
             return [self._row_to_message_dict(row) for row in cursor.fetchall()]
 
     def get_unread_count_for_project(
-        self, project_path: str, to_agent: Optional[str] = None
+        self, project_path: str, to_agent: str | None = None
     ) -> int:
         """
         Get count of unread messages for a specific project.
@@ -631,8 +628,8 @@ class MessagingDatabase:
             return cursor.fetchone()[0]
 
     def get_high_priority_messages_for_project(
-        self, project_path: str, priorities: Optional[List[str]] = None, limit: int = 50
-    ) -> List[Dict]:
+        self, project_path: str, priorities: list[str] | None = None, limit: int = 50
+    ) -> list[dict]:
         """
         Get high priority messages for a specific project.
 

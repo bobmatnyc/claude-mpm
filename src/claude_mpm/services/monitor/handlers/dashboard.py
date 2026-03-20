@@ -14,7 +14,6 @@ DESIGN DECISIONS:
 """
 
 import asyncio
-from typing import Dict, Set
 
 import socketio
 
@@ -39,8 +38,8 @@ class DashboardHandler:
         self.logger = get_logger(__name__)
 
         # Client management
-        self.connected_clients: Set[str] = set()
-        self.client_info: Dict[str, Dict] = {}
+        self.connected_clients: set[str] = set()
+        self.client_info: dict[str, dict] = {}
 
     def register(self):
         """Register Socket.IO event handlers."""
@@ -64,7 +63,7 @@ class DashboardHandler:
             self.logger.error(f"Error registering dashboard handlers: {e}")
             raise
 
-    async def handle_connect(self, sid: str, environ: Dict):
+    async def handle_connect(self, sid: str, environ: dict):
         """Handle client connection.
 
         Args:
@@ -119,7 +118,7 @@ class DashboardHandler:
         except Exception as e:
             self.logger.error(f"Error handling client disconnection: {e}")
 
-    async def handle_get_status(self, sid: str, data: Dict):
+    async def handle_get_status(self, sid: str, data: dict):
         """Handle dashboard status request.
 
         Args:
@@ -148,7 +147,7 @@ class DashboardHandler:
                 "dashboard:error", {"error": f"Status error: {e!s}"}, room=sid
             )
 
-    async def handle_get_info(self, sid: str, data: Dict):
+    async def handle_get_info(self, sid: str, data: dict):
         """Handle dashboard info request.
 
         Args:
@@ -189,7 +188,7 @@ class DashboardHandler:
                 "dashboard:error", {"error": f"Info error: {e!s}"}, room=sid
             )
 
-    async def handle_ping(self, sid: str, data: Dict):
+    async def handle_ping(self, sid: str, data: dict):
         """Handle ping request.
 
         Args:
@@ -211,7 +210,7 @@ class DashboardHandler:
         except Exception as e:
             self.logger.error(f"Error handling ping: {e}")
 
-    async def handle_client_register(self, sid: str, data: Dict):
+    async def handle_client_register(self, sid: str, data: dict):
         """Handle client registration.
 
         Args:
@@ -242,7 +241,7 @@ class DashboardHandler:
                 "dashboard:error", {"error": f"Registration error: {e!s}"}, room=sid
             )
 
-    async def handle_client_list(self, sid: str, data: Dict):
+    async def handle_client_list(self, sid: str, data: dict):
         """Handle client list request.
 
         Args:
@@ -284,7 +283,7 @@ class DashboardHandler:
         except Exception as e:
             self.logger.error(f"Error broadcasting client count: {e}")
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get handler statistics.
 
         Returns:

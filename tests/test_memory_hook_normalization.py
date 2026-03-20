@@ -5,7 +5,7 @@ canonical normalize_agent_id() function instead of inline normalization,
 producing correct kebab-case agent IDs for all input patterns.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -64,7 +64,7 @@ class TestPreDelegationHookNormalization:
             hook_type=HookType.PRE_DELEGATION,
             data={"agent": agent_display_name, "context": {}},
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         hook.execute(context)
@@ -118,7 +118,7 @@ class TestPostDelegationHookNormalization:
                 "result": {"content": "No learnings here"},
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = hook.execute(context)
@@ -172,7 +172,7 @@ class TestPostDelegationHookNormalization:
                 "result": {"content": memory_block},
             },
             metadata={},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         result = hook.execute(context)

@@ -49,7 +49,7 @@ Usage:
 
 import fnmatch
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 import yaml
 
@@ -70,7 +70,7 @@ class ProfileManager:
     """
 
     def __init__(
-        self, project_dir: Optional[Path] = None, profiles_dir: Optional[Path] = None
+        self, project_dir: Path | None = None, profiles_dir: Path | None = None
     ):
         """
         Initialize ProfileManager.
@@ -89,13 +89,13 @@ class ProfileManager:
             # Try to find .claude-mpm directory automatically
             self.profiles_dir = self._find_profiles_dir()
 
-        self.active_profile: Optional[str] = None
-        self._profile_data: Dict[str, Any] = {}
+        self.active_profile: str | None = None
+        self._profile_data: dict[str, Any] = {}
 
         # Cached sets for performance
-        self._enabled_agents: Set[str] = set()
-        self._disabled_agents: Set[str] = set()
-        self._enabled_skills: Set[str] = set()
+        self._enabled_agents: set[str] = set()
+        self._disabled_agents: set[str] = set()
+        self._enabled_skills: set[str] = set()
         self._disabled_skill_patterns: list[str] = []
 
     def _find_profiles_dir(self) -> Path:
@@ -241,7 +241,7 @@ class ProfileManager:
         # No enabled list and didn't match disabled pattern - allow it
         return True
 
-    def get_enabled_agents(self) -> Set[str]:
+    def get_enabled_agents(self) -> set[str]:
         """
         Get set of enabled agent names.
 
@@ -250,7 +250,7 @@ class ProfileManager:
         """
         return self._enabled_agents.copy()
 
-    def get_disabled_agents(self) -> Set[str]:
+    def get_disabled_agents(self) -> set[str]:
         """
         Get set of disabled agent names.
 
@@ -259,7 +259,7 @@ class ProfileManager:
         """
         return self._disabled_agents.copy()
 
-    def get_enabled_skills(self) -> Set[str]:
+    def get_enabled_skills(self) -> set[str]:
         """
         Get set of explicitly enabled skill names.
 
@@ -277,7 +277,7 @@ class ProfileManager:
         """
         return self._disabled_skill_patterns.copy()
 
-    def get_filtering_summary(self) -> Dict[str, Any]:
+    def get_filtering_summary(self) -> dict[str, Any]:
         """
         Get summary of current profile filtering.
 
@@ -313,7 +313,7 @@ class ProfileManager:
 
         return sorted(profiles)
 
-    def get_profile_description(self, profile_name: str) -> Optional[str]:
+    def get_profile_description(self, profile_name: str) -> str | None:
         """
         Get description of a profile without loading it fully.
 

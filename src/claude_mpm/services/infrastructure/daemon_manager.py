@@ -21,7 +21,7 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 try:
     import psutil
@@ -92,7 +92,7 @@ class SocketIODaemonManager:
             self.pid_file.unlink(missing_ok=True)
             return False
 
-    def _check_port_conflict(self) -> Optional[Dict[str, Any]]:
+    def _check_port_conflict(self) -> dict[str, Any] | None:
         """
         Check for existing server on the target port.
 
@@ -237,7 +237,7 @@ class SocketIODaemonManager:
         time.sleep(1)
         return self.start()
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """
         Get detailed status information about the daemon.
 

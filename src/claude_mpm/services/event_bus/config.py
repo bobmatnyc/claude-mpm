@@ -9,7 +9,6 @@ WHY configuration module:
 
 import os
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 @dataclass
@@ -41,7 +40,7 @@ class EventBusConfig:
     )
 
     # Event filters (comma-separated list)
-    event_filters: List[str] = field(
+    event_filters: list[str] = field(
         default_factory=lambda: [
             f.strip()
             for f in os.environ.get("CLAUDE_MPM_EVENTBUS_FILTERS", "").split(",")
@@ -151,7 +150,7 @@ class EventBusConfig:
 
 
 # Global configuration instance
-_config: Optional[EventBusConfig] = None
+_config: EventBusConfig | None = None
 
 
 def get_config() -> EventBusConfig:

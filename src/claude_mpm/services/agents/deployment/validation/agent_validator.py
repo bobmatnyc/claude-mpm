@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -123,7 +123,7 @@ class AgentValidator:
         return result
 
     def _validate_frontmatter_fields(
-        self, frontmatter: Dict[str, Any], result: ValidationResult
+        self, frontmatter: dict[str, Any], result: ValidationResult
     ) -> None:
         """Validate frontmatter fields.
 
@@ -143,7 +143,7 @@ class AgentValidator:
                     )
 
     def _validate_frontmatter_values(
-        self, frontmatter: Dict[str, Any], result: ValidationResult
+        self, frontmatter: dict[str, Any], result: ValidationResult
     ) -> None:
         """Validate frontmatter field values.
 

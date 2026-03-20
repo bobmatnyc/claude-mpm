@@ -14,10 +14,10 @@ import sys
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.unified_paths import get_project_root
 
@@ -150,8 +150,8 @@ class JsonFormatter(logging.Formatter):
 def setup_logging(
     name: str = "claude_mpm",
     level: str = "INFO",
-    log_dir: Optional[Path] = None,
-    log_file: Optional[Path] = None,
+    log_dir: Path | None = None,
+    log_file: Path | None = None,
     console_output: bool = True,
     file_output: bool = True,
     use_rich: bool = False,
@@ -255,7 +255,7 @@ def setup_logging(
             log_dir.mkdir(parents=True, exist_ok=True)
 
             # Create timestamped log file
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             log_file = log_dir / f"mpm_{timestamp}.log"
 
             file_handler = logging.FileHandler(log_file)
@@ -325,7 +325,7 @@ def setup_logging(
 
 
 def cleanup_old_mpm_logs(
-    log_dir: Optional[Path] = None, keep_count: Optional[int] = None
+    log_dir: Path | None = None, keep_count: int | None = None
 ) -> int:
     """
     Clean up old MPM log files using time-based retention.
@@ -487,7 +487,7 @@ class ProjectLogger:
 
     def __init__(
         self,
-        project_dir: Optional[Path] = None,
+        project_dir: Path | None = None,
         log_level: str = "INFO",
         create_structure: bool = True,
     ):
@@ -517,8 +517,8 @@ class ProjectLogger:
                 path.mkdir(parents=True, exist_ok=True)
 
         # Create session directory
-        self.session_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        self.session_start_time = datetime.now(timezone.utc)
+        self.session_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        self.session_start_time = datetime.now(UTC)
         self.session_dir = self.dirs["logs_sessions"] / self.session_id
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
@@ -545,7 +545,7 @@ class ProjectLogger:
         if self.log_level == LogLevel.OFF:
             return
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         log_entry = {
             "timestamp": timestamp,
             "level": level,
@@ -555,8 +555,7 @@ class ProjectLogger:
 
         # Write to daily log file
         log_file = (
-            self.dirs["logs_system"]
-            / f"{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+            self.dirs["logs_system"] / f"{datetime.now(UTC).strftime('%Y%m%d')}.jsonl"
         )
         with log_file.open("a") as f:
             f.write(json.dumps(log_entry) + "\n")
@@ -570,16 +569,16 @@ class ProjectLogger:
         execution_time: float,
         tokens: int,
         success: bool = True,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """Log agent invocation with configurable detail level."""
         if self.log_level == LogLevel.OFF:
             return
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         # Update statistics
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         self.stats[today]["total_calls"] += 1
         self.stats[today]["total_tokens"] += tokens
         self.stats[today]["total_time_seconds"] += execution_time
@@ -609,21 +608,17 @@ class ProjectLogger:
         agent_log_dir = self.dirs["logs_agents"] / agent.lower()
         agent_log_dir.mkdir(exist_ok=True)
 
-        daily_log = (
-            agent_log_dir / f"{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
-        )
+        daily_log = agent_log_dir / f"{datetime.now(UTC).strftime('%Y%m%d')}.jsonl"
         with daily_log.open("a") as f:
             f.write(json.dumps(log_entry) + "\n")
 
-    def get_session_summary(self) -> Dict[str, Any]:
+    def get_session_summary(self) -> dict[str, Any]:
         """Get summary of current session."""
         return {
             "session_id": self.session_id,
             "session_dir": str(self.session_dir),
             "start_time": self.session_id,
-            "stats": self.stats.get(
-                datetime.now(timezone.utc).strftime("%Y-%m-%d"), {}
-            ),
+            "stats": self.stats.get(datetime.now(UTC).strftime("%Y-%m-%d"), {}),
         }
 
 

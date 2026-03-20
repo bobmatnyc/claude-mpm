@@ -4,10 +4,10 @@ CLI constants and enums for claude-mpm.
 WHY: Avoid magic strings throughout the CLI codebase.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class SetupFlag(str, Enum):
+class SetupFlag(StrEnum):
     """Flags for the setup command."""
 
     NO_LAUNCH = "no_launch"
@@ -28,7 +28,7 @@ class SetupFlag(str, Enum):
         return f"--{self.value.replace('_', '-')}"
 
 
-class SetupService(str, Enum):
+class SetupService(StrEnum):
     """Valid services for the setup command."""
 
     GWORKSPACE_MCP = "gworkspace-mcp"
@@ -48,7 +48,7 @@ class SetupService(str, Enum):
         return self.value
 
 
-class MCPConfigKey(str, Enum):
+class MCPConfigKey(StrEnum):
     """Keys used in .mcp.json configuration files."""
 
     MCP_SERVERS = "mcpServers"
@@ -61,7 +61,7 @@ class MCPConfigKey(str, Enum):
         return self.value
 
 
-class MCPServerType(str, Enum):
+class MCPServerType(StrEnum):
     """MCP server types."""
 
     STDIO = "stdio"
@@ -70,7 +70,7 @@ class MCPServerType(str, Enum):
         return self.value
 
 
-class MCPBinary(str, Enum):
+class MCPBinary(StrEnum):
     """MCP server binary/command names (installed executables)."""
 
     GOOGLE_WORKSPACE = "gworkspace-mcp"
@@ -84,7 +84,7 @@ class MCPBinary(str, Enum):
         return self.value
 
 
-class MCPSubcommand(str, Enum):
+class MCPSubcommand(StrEnum):
     """Common MCP subcommands."""
 
     MCP = "mcp"
@@ -94,7 +94,7 @@ class MCPSubcommand(str, Enum):
         return self.value
 
 
-class TicketStatus(str, Enum):
+class TicketStatus(StrEnum):
     """Ticket/issue status values."""
 
     OPEN = "open"

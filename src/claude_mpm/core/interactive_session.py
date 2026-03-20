@@ -15,9 +15,10 @@ import os
 import subprocess  # nosec B404
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from claude_mpm.core.enums import ServiceState
+from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.core.logger import get_logger
 
 # Protocol imports for type checking without circular dependencies
@@ -79,7 +80,7 @@ class InteractiveSession:
                 self.logger.warning(f"Failed to initialize response tracker: {e}")
                 # Continue without response tracking - not fatal
 
-    def initialize_interactive_session(self) -> Tuple[bool, Optional[str]]:
+    def initialize_interactive_session(self) -> tuple[bool, str | None]:
         """Initialize the interactive session environment.
 
         Sets up WebSocket connections, generates session IDs, and prepares
@@ -133,7 +134,7 @@ class InteractiveSession:
             self.logger.error(error_msg)
             return False, error_msg
 
-    def setup_interactive_environment(self) -> Tuple[bool, Dict[str, Any]]:
+    def setup_interactive_environment(self) -> tuple[bool, dict[str, Any]]:
         """Set up the interactive environment including agents and commands.
 
         Deploys system and project agents, prepares the command line,
@@ -171,7 +172,7 @@ class InteractiveSession:
             self.logger.error(error_msg)
             return False, {}
 
-    def handle_interactive_input(self, environment: Dict[str, Any]) -> bool:
+    def handle_interactive_input(self, environment: dict[str, Any]) -> bool:
         """Handle the interactive input/output loop.
 
         Launches Claude and manages the interactive session using either
@@ -220,7 +221,7 @@ class InteractiveSession:
             self._handle_launch_error("Exception", e)
             return self._attempt_fallback_launch(environment)
 
-    def process_interactive_command(self, prompt: str) -> Optional[bool]:
+    def process_interactive_command(self, prompt: str) -> bool | None:
         """Process special interactive commands.
 
         NOTE: As of v4.1.2, MPM slash commands are deployed as markdown files
@@ -281,7 +282,7 @@ class InteractiveSession:
 
     # Private helper methods (each <80 lines, complexity <10)
 
-    def _initialize_websocket(self) -> Tuple[bool, Optional[str]]:
+    def _initialize_websocket(self) -> tuple[bool, str | None]:
         """Initialize WebSocket connection for monitoring."""
         try:
             from claude_mpm.services.socketio_server import SocketIOClientProxy
@@ -349,7 +350,7 @@ class InteractiveSession:
         print("\033[32m╰───────────────────────────────────────────────────╯\033[0m")
         print("")  # Add blank line after box
 
-    def _get_output_style_info(self) -> Optional[str]:
+    def _get_output_style_info(self) -> str | None:
         """Get output style status for display."""
         try:
             # Check if output style manager is available through framework loader
@@ -514,7 +515,7 @@ class InteractiveSession:
 
         return cmd
 
-    def _build_agents_flag(self) -> Optional[list]:
+    def _build_agents_flag(self) -> list | None:
         """Build --agents flag with all MPM agents.
 
         Returns:
@@ -561,9 +562,8 @@ class InteractiveSession:
         for var in claude_vars_to_remove:
             clean_env.pop(var, None)
 
-        # Disable telemetry for Claude Code
-        # This ensures Claude Code doesn't send telemetry data during runtime
-        clean_env["DISABLE_TELEMETRY"] = "1"
+        # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
+        apply_subprocess_env_defaults(clean_env)
 
         return clean_env
 
@@ -656,7 +656,7 @@ class InteractiveSession:
                 {"event": "session_interrupted", "reason": "user_interrupt"}
             )
 
-    def _attempt_fallback_launch(self, environment: Dict[str, Any]) -> bool:
+    def _attempt_fallback_launch(self, environment: dict[str, Any]) -> bool:
         """Attempt fallback launch using subprocess."""
         print("\n🔄 Attempting fallback launch method...")
 

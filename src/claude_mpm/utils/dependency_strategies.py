@@ -10,9 +10,9 @@ based on the execution context and user preferences.
 import json
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from ..core.logger import get_logger
 
@@ -40,7 +40,7 @@ class DependencyStrategy:
     - Command being executed
     """
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Path | None = None):
         """
         Initialize dependency strategy manager.
 
@@ -114,7 +114,7 @@ class DependencyStrategy:
         """Check if running in interactive terminal."""
         return sys.stdin.isatty() and sys.stdout.isatty()
 
-    def _load_user_preference(self) -> Optional[DependencyMode]:
+    def _load_user_preference(self) -> DependencyMode | None:
         """
         Load user preference from config file.
 
@@ -160,9 +160,7 @@ class DependencyStrategy:
                 last_check = datetime.fromisoformat(cache.get("timestamp", ""))
 
                 # Check if cache is still valid
-                if datetime.now(timezone.utc) - last_check < timedelta(
-                    seconds=cache_ttl
-                ):
+                if datetime.now(UTC) - last_check < timedelta(seconds=cache_ttl):
                     logger.debug(f"Using cached dependency check from {last_check}")
                     return False
 
@@ -171,7 +169,7 @@ class DependencyStrategy:
 
         return True
 
-    def cache_results(self, results: Dict[str, Any]) -> None:
+    def cache_results(self, results: dict[str, Any]) -> None:
         """
         Cache dependency check results.
 
@@ -182,7 +180,7 @@ class DependencyStrategy:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
             cache_data = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "results": results,
             }
 
@@ -194,7 +192,7 @@ class DependencyStrategy:
         except Exception as e:
             logger.warning(f"Failed to cache results: {e}")
 
-    def get_cached_results(self) -> Optional[Dict[str, Any]]:
+    def get_cached_results(self) -> dict[str, Any] | None:
         """
         Get cached dependency check results if available.
 
@@ -304,8 +302,8 @@ class DependencyStrategy:
 
 
 def get_smart_dependency_handler(
-    command: Optional[str] = None,
-) -> Tuple[DependencyMode, DependencyStrategy]:
+    command: str | None = None,
+) -> tuple[DependencyMode, DependencyStrategy]:
     """
     Get the appropriate dependency handler for the current context.
 

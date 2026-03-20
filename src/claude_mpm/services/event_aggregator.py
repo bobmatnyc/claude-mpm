@@ -18,8 +18,8 @@ import sys
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     import socketio
@@ -48,7 +48,7 @@ class EventAggregator:
     """
 
     def __init__(
-        self, host: str = "localhost", port: int = 8765, save_dir: Optional[str] = None
+        self, host: str = "localhost", port: int = 8765, save_dir: str | None = None
     ):
         """Initialize the event aggregator.
 
@@ -68,11 +68,11 @@ class EventAggregator:
         self.config = config_loader.load_main_config()
 
         # Session storage
-        self.active_sessions: Dict[str, AgentSession] = {}
+        self.active_sessions: dict[str, AgentSession] = {}
         self.session_timeout = (
             self.config.get("event_aggregator.session_timeout_minutes", 60) * 60
         )
-        self.last_activity: Dict[str, float] = {}
+        self.last_activity: dict[str, float] = {}
 
         # Save directory - use config or provided dir or default to .claude-mpm/activity
         if save_dir is None:
@@ -258,7 +258,7 @@ class EventAggregator:
             except Exception as e:
                 self.logger.error(f"Error processing history: {e}")
 
-    async def _process_event(self, event_data: Dict[str, Any]):
+    async def _process_event(self, event_data: dict[str, Any]):
         """Process a single event and add it to the appropriate session.
 
         WHY: Each event needs to be routed to the correct session and
@@ -267,9 +267,7 @@ class EventAggregator:
         try:
             # Extract event metadata
             event_type = event_data.get("type", "unknown")
-            timestamp = event_data.get(
-                "timestamp", datetime.now(timezone.utc).isoformat() + "Z"
-            )
+            timestamp = event_data.get("timestamp", datetime.now(UTC).isoformat() + "Z")
             data = event_data.get("data", {})
 
             # Update statistics
@@ -311,9 +309,7 @@ class EventAggregator:
                 f"Error processing event {event_data.get('type', 'unknown')}: {e}"
             )
 
-    def _extract_session_id(
-        self, event_type: str, data: Dict[str, Any]
-    ) -> Optional[str]:
+    def _extract_session_id(self, event_type: str, data: dict[str, Any]) -> str | None:
         """Extract session ID from event data.
 
         WHY: Events use different field names for session ID depending on
@@ -344,7 +340,7 @@ class EventAggregator:
         return session_id
 
     def _get_or_create_session(
-        self, session_id: str, event_type: str, data: Dict[str, Any], timestamp: str
+        self, session_id: str, event_type: str, data: dict[str, Any], timestamp: str
     ) -> AgentSession:
         """Get existing session or create a new one.
 
@@ -452,7 +448,7 @@ class EventAggregator:
             except Exception as e:
                 self.logger.error(f"Failed to save session {session_id}: {e}")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get current status of the aggregator.
 
         Returns:
@@ -470,7 +466,7 @@ class EventAggregator:
             "active_session_ids": [sid[:8] + "..." for sid in self.active_sessions],
         }
 
-    def list_sessions(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def list_sessions(self, limit: int = 10) -> list[dict[str, Any]]:
         """List captured sessions.
 
         Args:
@@ -516,7 +512,7 @@ class EventAggregator:
 
         return sessions
 
-    def load_session(self, session_id_prefix: str) -> Optional[AgentSession]:
+    def load_session(self, session_id_prefix: str) -> AgentSession | None:
         """Load a session by ID prefix.
 
         Args:
@@ -537,7 +533,7 @@ class EventAggregator:
 
 
 # Global aggregator instance
-_aggregator: Optional[EventAggregator] = None
+_aggregator: EventAggregator | None = None
 
 
 def get_aggregator() -> EventAggregator:
@@ -562,7 +558,7 @@ def stop_aggregator():
         _aggregator = None
 
 
-def aggregator_status() -> Dict[str, Any]:
+def aggregator_status() -> dict[str, Any]:
     """Get status of the aggregator service."""
     aggregator = get_aggregator()
     return aggregator.get_status()

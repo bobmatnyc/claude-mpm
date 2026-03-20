@@ -16,8 +16,8 @@ Does NOT capture:
 
 import logging
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ DIRECTIVE_PATTERNS = [
 class PMMemoryManager:
     """Manages PM-level orchestration memory via kuzu-memory."""
 
-    def __init__(self, project_path: Optional[str] = None, enabled: bool = True):
+    def __init__(self, project_path: str | None = None, enabled: bool = True):
         """Initialize PM memory manager.
 
         Args:
@@ -106,9 +106,7 @@ class PMMemoryManager:
             logger.debug(f"Failed to enhance prompt: {e}")
             return prompt
 
-    def capture_directive(
-        self, prompt: str, project: Optional[str] = None
-    ) -> Optional[str]:
+    def capture_directive(self, prompt: str, project: str | None = None) -> str | None:
         """Capture user directive from prompt.
 
         Automatically detects and stores:
@@ -142,7 +140,7 @@ class PMMemoryManager:
                 metadata={
                     "source": "pm_directive",
                     "project": project,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
             logger.debug(f"Captured PM directive as {memory_type}: {memory_id}")
@@ -152,8 +150,8 @@ class PMMemoryManager:
             return None
 
     def capture_preference(
-        self, preference: str, project: Optional[str] = None
-    ) -> Optional[str]:
+        self, preference: str, project: str | None = None
+    ) -> str | None:
         """Explicitly store a user preference.
 
         Args:
@@ -177,16 +175,14 @@ class PMMemoryManager:
                 metadata={
                     "source": "pm_explicit_preference",
                     "project": project,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         except Exception as e:
             logger.debug(f"Failed to capture preference: {e}")
             return None
 
-    def capture_workflow(
-        self, workflow: str, project: Optional[str] = None
-    ) -> Optional[str]:
+    def capture_workflow(self, workflow: str, project: str | None = None) -> str | None:
         """Explicitly store a workflow pattern.
 
         Args:
@@ -210,7 +206,7 @@ class PMMemoryManager:
                 metadata={
                     "source": "pm_workflow",
                     "project": project,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         except Exception as e:
@@ -223,8 +219,8 @@ class PMMemoryManager:
         agent: str,
         outcome: str,
         success: bool,
-        project: Optional[str] = None,
-    ) -> Optional[str]:
+        project: str | None = None,
+    ) -> str | None:
         """Capture outcome of an agent delegation for learning.
 
         Args:
@@ -254,14 +250,14 @@ class PMMemoryManager:
                     "agent": agent,
                     "success": success,
                     "project": project,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         except Exception as e:
             logger.debug(f"Failed to capture delegation outcome: {e}")
             return None
 
-    def recall(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def recall(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         """Recall PM-level memories matching a query.
 
         Args:
@@ -313,7 +309,7 @@ class PMMemoryManager:
 
 
 # Global singleton for hook performance
-_pm_memory: Optional[PMMemoryManager] = None
+_pm_memory: PMMemoryManager | None = None
 
 
 def get_pm_memory(enabled: bool = True) -> PMMemoryManager:

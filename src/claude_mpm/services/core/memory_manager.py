@@ -21,9 +21,9 @@ ARCHITECTURE:
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
@@ -54,7 +54,7 @@ class MemoryManager(IMemoryManager):
         self,
         cache_manager: ICacheManager,
         path_resolver: IPathResolver,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """
         Initialize memory manager.
@@ -76,7 +76,7 @@ class MemoryManager(IMemoryManager):
             "cache_misses": 0,
         }
 
-    def load_memories(self, agent_name: Optional[str] = None) -> Dict[str, Any]:
+    def load_memories(self, agent_name: str | None = None) -> dict[str, Any]:
         """
         Load memories for an agent or all agents.
 
@@ -143,9 +143,7 @@ class MemoryManager(IMemoryManager):
 
         return result
 
-    def save_memory(
-        self, key: str, value: Any, agent_name: Optional[str] = None
-    ) -> None:
+    def save_memory(self, key: str, value: Any, agent_name: str | None = None) -> None:
         """
         Save a memory entry.
 
@@ -176,7 +174,7 @@ class MemoryManager(IMemoryManager):
             ]
 
         # Add new memory as a bullet point
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         lines.append(f"- [{timestamp}] {key}: {value}")
 
         # Write back
@@ -188,8 +186,8 @@ class MemoryManager(IMemoryManager):
         self.logger.info(f"Saved memory to {memory_file.name}")
 
     def search_memories(
-        self, query: str, agent_name: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, agent_name: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Search memories by query.
 
@@ -229,7 +227,7 @@ class MemoryManager(IMemoryManager):
 
         return results
 
-    def clear_memories(self, agent_name: Optional[str] = None) -> None:
+    def clear_memories(self, agent_name: str | None = None) -> None:
         """
         Clear memories for an agent or all agents.
 
@@ -258,7 +256,7 @@ class MemoryManager(IMemoryManager):
                 memory_file.unlink()
                 self.logger.info(f"Cleared memory file: {memory_file.name}")
 
-    def get_memory_stats(self) -> Dict[str, Any]:
+    def get_memory_stats(self) -> dict[str, Any]:
         """
         Get memory system statistics.
 
@@ -286,7 +284,7 @@ class MemoryManager(IMemoryManager):
 
     # Internal methods (extracted from framework_loader.py)
 
-    def _load_actual_memories(self, deployed_agents: Set[str]) -> Dict[str, Any]:
+    def _load_actual_memories(self, deployed_agents: set[str]) -> dict[str, Any]:
         """
         Load actual memories from project directory only.
 
@@ -388,9 +386,9 @@ class MemoryManager(IMemoryManager):
     def _load_memories_from_directory(
         self,
         memories_dir: Path,
-        deployed_agents: Set[str],
-        pm_memories: List[Dict[str, Any]],
-        agent_memories_dict: Dict[str, Any],
+        deployed_agents: set[str],
+        pm_memories: list[dict[str, Any]],
+        agent_memories_dict: dict[str, Any],
         source: str,
     ) -> None:
         """
@@ -563,7 +561,7 @@ class MemoryManager(IMemoryManager):
                 aggregated = self._aggregate_memories(agent_memories_dict[agent_name])
                 agent_memories_dict[agent_name] = aggregated
 
-    def _aggregate_memories(self, memory_entries: List[Dict[str, Any]]) -> str:
+    def _aggregate_memories(self, memory_entries: list[dict[str, Any]]) -> str:
         """
         Aggregate multiple memory entries into a single memory string.
 
@@ -623,9 +621,7 @@ class MemoryManager(IMemoryManager):
             lines.append("# Agent Memory")
 
         # Add latest timestamp
-        lines.append(
-            f"<!-- Last Updated: {datetime.now(timezone.utc).isoformat()}Z -->"
-        )
+        lines.append(f"<!-- Last Updated: {datetime.now(UTC).isoformat()}Z -->")
         lines.append("")
 
         # Add all unique items (sorted for consistency)
@@ -661,7 +657,7 @@ class MemoryManager(IMemoryManager):
             except Exception as e:
                 self.logger.error(f"Failed to migrate memory file {old_path.name}: {e}")
 
-    def _get_deployed_agents(self) -> Set[str]:
+    def _get_deployed_agents(self) -> set[str]:
         """
         Get a set of deployed agent names from .claude/agents/ directories.
 

@@ -30,7 +30,7 @@ import platform
 import shutil
 import subprocess  # nosec B404 - subprocess needed for safe git operations
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.mixins import LoggerMixin
 from claude_mpm.services.skills_config import SkillsConfig
@@ -59,8 +59,8 @@ class SkillsDeployerService(LoggerMixin):
 
     def __init__(
         self,
-        repo_url: Optional[str] = None,
-        toolchain_analyzer: Optional[any] = None,
+        repo_url: str | None = None,
+        toolchain_analyzer: Any | None = None,
     ):
         """Initialize Skills Deployer Service.
 
@@ -78,15 +78,15 @@ class SkillsDeployerService(LoggerMixin):
 
     def deploy_skills(
         self,
-        collection: Optional[str] = None,
-        toolchain: Optional[List[str]] = None,
-        categories: Optional[List[str]] = None,
+        collection: str | None = None,
+        toolchain: list[str] | None = None,
+        categories: list[str] | None = None,
         force: bool = False,
         selective: bool = True,
-        project_root: Optional[Path] = None,
-        skill_names: Optional[List[str]] = None,
-        skills_dir: Optional[Path] = None,
-    ) -> Dict:
+        project_root: Path | None = None,
+        skill_names: list[str] | None = None,
+        skills_dir: Path | None = None,
+    ) -> dict:
         """Deploy skills from GitHub repository.
 
         This is the main entry point for skill deployment. It:
@@ -429,7 +429,7 @@ class SkillsDeployerService(LoggerMixin):
             "cleanup": cleanup_result,
         }
 
-    def list_available_skills(self, collection: Optional[str] = None) -> Dict:
+    def list_available_skills(self, collection: str | None = None) -> dict:
         """List all available skills from GitHub repository.
 
         Downloads manifest and returns skill metadata grouped by category
@@ -520,7 +520,7 @@ class SkillsDeployerService(LoggerMixin):
                 "collection": collection_name,
             }
 
-    def check_deployed_skills(self, skills_dir: Optional[Path] = None) -> Dict:
+    def check_deployed_skills(self, skills_dir: Path | None = None) -> dict:
         """Check which skills are currently deployed.
 
         Scans the given skills directory (or ~/.claude/skills/ by default)
@@ -562,7 +562,7 @@ class SkillsDeployerService(LoggerMixin):
             "claude_skills_dir": str(scan_dir),
         }
 
-    def remove_skills(self, skill_names: Optional[List[str]] = None) -> Dict:
+    def remove_skills(self, skill_names: list[str] | None = None) -> dict:
         """Remove deployed skills.
 
         Args:
@@ -637,7 +637,7 @@ class SkillsDeployerService(LoggerMixin):
             "errors": errors,
         }
 
-    def _download_from_github(self, collection_name: str) -> Dict:
+    def _download_from_github(self, collection_name: str) -> dict:
         """Download skills repository from GitHub using git clone/pull.
 
         Logic:
@@ -768,7 +768,7 @@ class SkillsDeployerService(LoggerMixin):
         # Note: temp_dir is now the persistent collection directory
         return {"temp_dir": target_dir, "manifest": manifest, "repo_dir": target_dir}
 
-    def _flatten_manifest_skills(self, manifest: Dict) -> List[Dict]:
+    def _flatten_manifest_skills(self, manifest: dict) -> list[dict]:
         """Flatten skills from manifest, supporting both structures.
 
         Supports both legacy flat list and new nested dict structures:
@@ -867,10 +867,10 @@ class SkillsDeployerService(LoggerMixin):
 
     def _filter_skills(
         self,
-        skills: List[Dict],
-        toolchain: Optional[List[str]] = None,
-        categories: Optional[List[str]] = None,
-    ) -> List[Dict]:
+        skills: list[dict],
+        toolchain: list[str] | None = None,
+        categories: list[str] | None = None,
+    ) -> list[dict]:
         """Filter skills by toolchain and categories.
 
         Args:
@@ -919,12 +919,12 @@ class SkillsDeployerService(LoggerMixin):
 
     def _deploy_skill(
         self,
-        skill: Dict,
+        skill: dict,
         collection_dir: Path,
         collection_name: str,
         force: bool = False,
-        skills_dir: Optional[Path] = None,
-    ) -> Dict:
+        skills_dir: Path | None = None,
+    ) -> dict:
         """Deploy a single skill to target skills directory and track deployment.
 
         NOTE: With multi-collection support, skills are now stored in collection
@@ -1129,7 +1129,7 @@ class SkillsDeployerService(LoggerMixin):
 
     # === Collection Management Methods ===
 
-    def list_collections(self) -> Dict[str, Any]:
+    def list_collections(self) -> dict[str, Any]:
         """List all configured skill collections.
 
         Returns:
@@ -1154,7 +1154,7 @@ class SkillsDeployerService(LoggerMixin):
             "total_count": len(collections),
         }
 
-    def add_collection(self, name: str, url: str, priority: int = 99) -> Dict[str, Any]:
+    def add_collection(self, name: str, url: str, priority: int = 99) -> dict[str, Any]:
         """Add a new skill collection.
 
         Args:
@@ -1170,7 +1170,7 @@ class SkillsDeployerService(LoggerMixin):
         """
         return self.skills_config.add_collection(name, url, priority)
 
-    def remove_collection(self, name: str) -> Dict[str, Any]:
+    def remove_collection(self, name: str) -> dict[str, Any]:
         """Remove a skill collection.
 
         Args:
@@ -1198,7 +1198,7 @@ class SkillsDeployerService(LoggerMixin):
 
         return result
 
-    def enable_collection(self, name: str) -> Dict[str, Any]:
+    def enable_collection(self, name: str) -> dict[str, Any]:
         """Enable a disabled collection.
 
         Args:
@@ -1212,7 +1212,7 @@ class SkillsDeployerService(LoggerMixin):
         """
         return self.skills_config.enable_collection(name)
 
-    def disable_collection(self, name: str) -> Dict[str, Any]:
+    def disable_collection(self, name: str) -> dict[str, Any]:
         """Disable a collection without removing it.
 
         Args:
@@ -1226,7 +1226,7 @@ class SkillsDeployerService(LoggerMixin):
         """
         return self.skills_config.disable_collection(name)
 
-    def set_default_collection(self, name: str) -> Dict[str, Any]:
+    def set_default_collection(self, name: str) -> dict[str, Any]:
         """Set the default collection for deployments.
 
         Args:

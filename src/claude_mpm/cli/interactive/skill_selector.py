@@ -15,7 +15,6 @@ Features:
 import json
 import shutil
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
 
 import questionary
 
@@ -53,9 +52,9 @@ class SkillInfo:
     """Information about a skill from manifest."""
 
     name: str
-    toolchain: Optional[str]
-    framework: Optional[str]
-    tags: List[str]
+    toolchain: str | None
+    framework: str | None
+    tags: list[str]
     full_tokens: int
     description: str = ""
 
@@ -71,9 +70,9 @@ class SkillSelector:
 
     def __init__(
         self,
-        skills_manifest: Dict,
-        agent_skill_deps: Optional[List[str]] = None,
-        deployed_skills: Optional[Set[str]] = None,
+        skills_manifest: dict,
+        agent_skill_deps: list[str] | None = None,
+        deployed_skills: set[str] | None = None,
     ):
         """Initialize skill selector.
 
@@ -85,7 +84,7 @@ class SkillSelector:
         self.manifest = skills_manifest
         self.agent_skill_deps = set(agent_skill_deps or [])
         self.deployed_skills = deployed_skills or set()
-        self.skills_by_toolchain: Dict[str, List[SkillInfo]] = {}
+        self.skills_by_toolchain: dict[str, list[SkillInfo]] = {}
         self._parse_manifest()
 
     def _parse_manifest(self) -> None:
@@ -131,8 +130,8 @@ class SkillSelector:
 
     @staticmethod
     def _calculate_column_widths(
-        terminal_width: int, columns: Dict[str, int]
-    ) -> Dict[str, int]:
+        terminal_width: int, columns: dict[str, int]
+    ) -> dict[str, int]:
         """Calculate dynamic column widths based on terminal size.
 
         Args:
@@ -173,7 +172,7 @@ class SkillSelector:
         # Terminal too narrow, use minimum widths
         return columns.copy()
 
-    def _display_skills_table(self, skills: List[SkillInfo]) -> None:
+    def _display_skills_table(self, skills: list[SkillInfo]) -> None:
         """Display skills in a table with status (matches agent selector pattern).
 
         Args:
@@ -235,7 +234,7 @@ class SkillSelector:
                 f"{status:<{widths['Status']}}"
             )
 
-    def select_skills(self) -> List[str]:
+    def select_skills(self) -> list[str]:
         """Run interactive selection and return selected skill IDs.
 
         Returns:
@@ -285,7 +284,7 @@ class SkillSelector:
             print(f"  ✓ {skill_name}")
         print()
 
-    def _select_topic_groups(self) -> List[str]:
+    def _select_topic_groups(self) -> list[str]:
         """First tier: Select which toolchain groups to browse.
 
         Returns:
@@ -316,7 +315,7 @@ class SkillSelector:
 
         return selected
 
-    def _select_skills_from_group(self, toolchain: str) -> List[str]:
+    def _select_skills_from_group(self, toolchain: str) -> list[str]:
         """Second tier: Multi-select skills within a toolchain group.
 
         Args:
@@ -365,7 +364,7 @@ class SkillSelector:
         return selected
 
 
-def load_skills_manifest() -> Optional[Dict]:
+def load_skills_manifest() -> dict | None:
     """Load skills manifest from cache.
 
     Returns:
@@ -391,7 +390,7 @@ def load_skills_manifest() -> Optional[Dict]:
         return None
 
 
-def get_agent_skill_dependencies(config: UnifiedConfig) -> List[str]:
+def get_agent_skill_dependencies(config: UnifiedConfig) -> list[str]:
     """Get skill dependencies from deployed agents.
 
     Args:
@@ -421,7 +420,7 @@ def get_agent_skill_dependencies(config: UnifiedConfig) -> List[str]:
         return []
 
 
-def get_deployed_skills() -> Set[str]:
+def get_deployed_skills() -> set[str]:
     """Get skills currently deployed in .claude/skills/ directory.
 
     Returns:
@@ -447,7 +446,7 @@ def get_deployed_skills() -> Set[str]:
         return set()
 
 
-def run_skill_selector() -> Optional[List[str]]:
+def run_skill_selector() -> list[str] | None:
     """Main entry point for skill selector.
 
     Returns:

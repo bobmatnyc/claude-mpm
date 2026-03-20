@@ -1,7 +1,7 @@
 """Synchronous deployment executor."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
@@ -32,11 +32,11 @@ class SyncDeploymentExecutor(DeploymentExecutor):
         templates_dir: Path,
         base_agent_path: Path,
         working_directory: Path,
-        target_dir: Optional[Path] = None,
+        target_dir: Path | None = None,
         force_rebuild: bool = False,
         deployment_mode: str = "update",
-        config: Optional[Config] = None,
-    ) -> Dict[str, Any]:
+        config: Config | None = None,
+    ) -> dict[str, Any]:
         """Execute synchronous deployment.
 
         Args:
@@ -99,7 +99,7 @@ class SyncDeploymentExecutor(DeploymentExecutor):
                 },
             }
 
-    def _convert_pipeline_result(self, pipeline_result, context) -> Dict[str, Any]:
+    def _convert_pipeline_result(self, pipeline_result, context) -> dict[str, Any]:
         """Convert pipeline result to deployment result format.
 
         Args:
@@ -162,7 +162,7 @@ class SyncDeploymentExecutor(DeploymentExecutor):
         """
         return "sync"
 
-    def get_performance_characteristics(self) -> Dict[str, Any]:
+    def get_performance_characteristics(self) -> dict[str, Any]:
         """Get performance characteristics.
 
         Returns:

@@ -16,8 +16,9 @@ DESIGN DECISIONS:
 import asyncio
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     import socketio
@@ -65,7 +66,7 @@ class MonitorClient:
         self.reconnect_task = None
 
         # Event handlers - functions to call when events are received
-        self.event_handlers: Dict[str, Callable] = {}
+        self.event_handlers: dict[str, Callable] = {}
 
         # Connection statistics
         self.stats = {
@@ -144,7 +145,7 @@ class MonitorClient:
         """Check if client is connected to monitor."""
         return self.connected
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get client connection statistics."""
         return {
             **self.stats,
@@ -152,7 +153,7 @@ class MonitorClient:
             "monitor_url": self.monitor_url,
             "uptime": (
                 (
-                    datetime.now(timezone.utc)
+                    datetime.now(UTC)
                     - datetime.fromisoformat(self.stats["last_connected"])
                 ).total_seconds()
                 if self.stats["last_connected"] and self.connected
@@ -224,7 +225,7 @@ class MonitorClient:
             self.connected = True
             self.connecting = False
             self.stats["successful_connections"] += 1
-            self.stats["last_connected"] = datetime.now(timezone.utc).isoformat()
+            self.stats["last_connected"] = datetime.now(UTC).isoformat()
             self.reconnect_delay = 1.0  # Reset reconnect delay on successful connection
 
             self.logger.info(f"Connected to monitor server at {self.monitor_url}")
@@ -255,7 +256,7 @@ class MonitorClient:
             """Handle disconnection."""
             self.logger.info("Disconnected from monitor server")
             self.connected = False
-            self.stats["last_disconnected"] = datetime.now(timezone.utc).isoformat()
+            self.stats["last_disconnected"] = datetime.now(UTC).isoformat()
 
         @self.client.event
         async def connect_error(data):

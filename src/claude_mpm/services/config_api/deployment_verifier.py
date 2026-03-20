@@ -6,9 +6,8 @@ to confirm the expected state was achieved on disk.
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
 
 from claude_mpm.core.config_scope import (
     ConfigScope,
@@ -38,7 +37,7 @@ class VerificationResult:
     """Aggregated result of all verification checks."""
 
     passed: bool
-    checks: List[VerificationCheck] = field(default_factory=list)
+    checks: list[VerificationCheck] = field(default_factory=list)
     timestamp: str = ""
 
 
@@ -51,8 +50,8 @@ class DeploymentVerifier:
 
     def __init__(
         self,
-        agents_dir: Optional[Path] = None,
-        skills_dir: Optional[Path] = None,
+        agents_dir: Path | None = None,
+        skills_dir: Path | None = None,
     ) -> None:
         """Initialize DeploymentVerifier.
 
@@ -66,7 +65,7 @@ class DeploymentVerifier:
         self.default_skills_dir = skills_dir or resolve_skills_dir()
 
     def verify_agent_deployed(
-        self, agent_name: str, agents_dir: Optional[Path] = None
+        self, agent_name: str, agents_dir: Path | None = None
     ) -> VerificationResult:
         """Verify an agent was deployed successfully.
 
@@ -83,7 +82,7 @@ class DeploymentVerifier:
         Returns:
             VerificationResult with individual check outcomes.
         """
-        checks: List[VerificationCheck] = []
+        checks: list[VerificationCheck] = []
         base_dir = agents_dir or self.default_agents_dir
         agent_path = base_dir / f"{agent_name}.md"
         path_str = str(agent_path)
@@ -165,7 +164,7 @@ class DeploymentVerifier:
         return self._make_result(checks)
 
     def verify_agent_undeployed(
-        self, agent_name: str, agents_dir: Optional[Path] = None
+        self, agent_name: str, agents_dir: Path | None = None
     ) -> VerificationResult:
         """Verify an agent was undeployed (file removed).
 
@@ -193,7 +192,7 @@ class DeploymentVerifier:
         return self._make_result(checks)
 
     def verify_skill_deployed(
-        self, skill_name: str, skills_dir: Optional[Path] = None
+        self, skill_name: str, skills_dir: Path | None = None
     ) -> VerificationResult:
         """Verify a skill was deployed successfully.
 
@@ -208,7 +207,7 @@ class DeploymentVerifier:
         Returns:
             VerificationResult with individual check outcomes.
         """
-        checks: List[VerificationCheck] = []
+        checks: list[VerificationCheck] = []
         base_dir = skills_dir or self.default_skills_dir
         skill_path = base_dir / skill_name
         path_str = str(skill_path)
@@ -244,7 +243,7 @@ class DeploymentVerifier:
         return self._make_result(checks)
 
     def verify_skill_undeployed(
-        self, skill_name: str, skills_dir: Optional[Path] = None
+        self, skill_name: str, skills_dir: Path | None = None
     ) -> VerificationResult:
         """Verify a skill was undeployed (directory removed).
 
@@ -274,7 +273,7 @@ class DeploymentVerifier:
         return self._make_result(checks)
 
     def verify_mode_switch(
-        self, expected_mode: str, config_path: Optional[Path] = None
+        self, expected_mode: str, config_path: Path | None = None
     ) -> VerificationResult:
         """Verify a mode switch was applied to the configuration file.
 
@@ -289,7 +288,7 @@ class DeploymentVerifier:
         Returns:
             VerificationResult with check outcomes.
         """
-        checks: List[VerificationCheck] = []
+        checks: list[VerificationCheck] = []
         cfg_path = config_path or (Path.cwd() / "configuration.yaml")
         path_str = str(cfg_path)
 
@@ -351,16 +350,16 @@ class DeploymentVerifier:
         return self._make_result(checks)
 
     @staticmethod
-    def _make_result(checks: List[VerificationCheck]) -> VerificationResult:
+    def _make_result(checks: list[VerificationCheck]) -> VerificationResult:
         """Build a VerificationResult from a list of checks."""
         return VerificationResult(
             passed=all(c.passed for c in checks),
             checks=checks,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
 
     @staticmethod
-    def _extract_frontmatter(content: str) -> Optional[str]:
+    def _extract_frontmatter(content: str) -> str | None:
         """Extract YAML frontmatter from markdown content.
 
         Expects content starting with --- and ending with ---.

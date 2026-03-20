@@ -19,9 +19,9 @@ import logging
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 try:
     import psutil
@@ -230,7 +230,7 @@ class StartupStatusLogger:
         except Exception as e:
             self.logger.warning(f"Monitor: Status check failed - {e}")
 
-    def _find_mcp_executable(self) -> Optional[str]:
+    def _find_mcp_executable(self) -> str | None:
         """Find MCP server executable in PATH."""
         # Common MCP executable names
         executables = ["claude-mpm-mcp", "mcp", "claude-mcp"]
@@ -256,7 +256,7 @@ class StartupStatusLogger:
 
         return None
 
-    def _get_mcp_version(self, executable: str) -> Optional[str]:
+    def _get_mcp_version(self, executable: str) -> str | None:
         """Get MCP server version."""
         try:
             # Try --version flag
@@ -291,7 +291,7 @@ class StartupStatusLogger:
 
         return None
 
-    def _check_mcp_configuration(self) -> Dict[str, Any]:
+    def _check_mcp_configuration(self) -> dict[str, Any]:
         """Check MCP configuration in ~/.claude.json."""
         claude_json_path = Path.home() / ".claude.json"
 
@@ -317,7 +317,7 @@ class StartupStatusLogger:
 
         return result
 
-    def _check_mcp_gateway_status(self) -> Dict[str, Any]:
+    def _check_mcp_gateway_status(self) -> dict[str, Any]:
         """Check Claude MPM MCP gateway configuration status."""
         result = {"configured": False, "error": None}
 
@@ -336,7 +336,7 @@ class StartupStatusLogger:
 
         return result
 
-    def _check_socketio_dependencies(self) -> Dict[str, Any]:
+    def _check_socketio_dependencies(self) -> dict[str, Any]:
         """Check if Socket.IO dependencies are available."""
         import importlib.util
 
@@ -378,7 +378,7 @@ class StartupStatusLogger:
         except Exception:
             return False
 
-    def _check_response_logging_config(self) -> Dict[str, Any]:
+    def _check_response_logging_config(self) -> dict[str, Any]:
         """Check response logging configuration."""
         result = {"enabled": False, "directory": None, "error": None}
 
@@ -477,7 +477,7 @@ class StartupStatusLogger:
         return False
 
 
-def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
+def setup_startup_logging(project_root: Path | None = None) -> Path:
     """
     Set up logging to both console and file for startup.
 
@@ -505,7 +505,7 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate timestamp for log file
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d-%H-%M-%S")
     log_file = log_dir / f"startup-{timestamp}.log"
 
     # Create file handler with detailed formatting
@@ -528,7 +528,7 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
     # Log startup header
     logger = get_logger("startup")
     logger.info("=" * 60)
-    logger.info(f"Claude MPM Startup - {datetime.now(timezone.utc).isoformat()}")
+    logger.info(f"Claude MPM Startup - {datetime.now(UTC).isoformat()}")
     logger.info(f"Log file: {log_file}")
     logger.info("=" * 60)
 
@@ -563,7 +563,7 @@ def setup_startup_logging(project_root: Optional[Path] = None) -> Path:
 
 
 def cleanup_old_startup_logs(
-    project_root: Optional[Path] = None, keep_count: Optional[int] = None
+    project_root: Path | None = None, keep_count: int | None = None
 ) -> int:
     """
     Clean up old startup log files using time-based retention.
@@ -631,7 +631,7 @@ def cleanup_old_startup_logs(
         return deleted_count
 
 
-async def trigger_vector_search_indexing(project_root: Optional[Path] = None) -> None:
+async def trigger_vector_search_indexing(project_root: Path | None = None) -> None:
     """
     Trigger mcp-vector-search indexing in the background.
 
@@ -701,7 +701,7 @@ async def trigger_vector_search_indexing(project_root: Optional[Path] = None) ->
         logger.debug(f"Failed to start vector search indexing: {e}")
 
 
-def start_vector_search_indexing(project_root: Optional[Path] = None) -> None:
+def start_vector_search_indexing(project_root: Path | None = None) -> None:
     """
     Synchronous wrapper to trigger vector search indexing.
 
@@ -727,7 +727,7 @@ def start_vector_search_indexing(project_root: Optional[Path] = None) -> None:
         _start_vector_search_subprocess(project_root)
 
 
-def _start_vector_search_subprocess(project_root: Optional[Path] = None) -> None:
+def _start_vector_search_subprocess(project_root: Path | None = None) -> None:
     """
     Fallback method to start vector search indexing using subprocess.Popen.
 
@@ -781,7 +781,7 @@ def _start_vector_search_subprocess(project_root: Optional[Path] = None) -> None
         logger.debug(f"Failed to start vector search indexing: {e}")
 
 
-def get_latest_startup_log(project_root: Optional[Path] = None) -> Optional[Path]:
+def get_latest_startup_log(project_root: Path | None = None) -> Path | None:
     """
     Get the path to the most recent startup log file.
 

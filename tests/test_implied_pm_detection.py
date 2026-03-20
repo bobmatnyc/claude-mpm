@@ -6,13 +6,13 @@ Tests the orphan agent detection and implied PM grouping logic.
 """
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 
 def create_test_events():
     """Create test events with various scenarios for implied PM detection."""
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
     events = []
 
     # Scenario 1: Normal PM delegation (should NOT create implied PM)

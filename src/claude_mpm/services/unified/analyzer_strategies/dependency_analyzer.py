@@ -12,7 +12,7 @@ Created: 2025-01-26
 import json
 import re
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -126,7 +126,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             and context.operation in self.metadata.supported_operations
         )
 
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """Validate input data for strategy."""
         errors = []
 
@@ -144,8 +144,8 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         return errors
 
     def analyze(
-        self, target: Any, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, target: Any, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Execute dependency analysis on target.
 
@@ -172,8 +172,8 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         }
 
     def _analyze_project(
-        self, project_path: Path, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, project_path: Path, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze dependencies in a project directory."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -218,8 +218,8 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         return results
 
     def _analyze_manifest(
-        self, manifest_path: Path, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, manifest_path: Path, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze a specific package manifest file."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -257,7 +257,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _detect_package_managers(self, project_path: Path) -> List[str]:
+    def _detect_package_managers(self, project_path: Path) -> list[str]:
         """Detect all package managers used in the project."""
         managers = []
 
@@ -296,8 +296,8 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         return managers
 
     def _analyze_package_manager(
-        self, project_path: Path, manager: str, options: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, project_path: Path, manager: str, options: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Analyze dependencies for a specific package manager."""
         try:
             if manager in ["npm", "yarn", "pnpm"]:
@@ -316,7 +316,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
     def _analyze_node_dependencies(
         self, project_path: Path, manager: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Analyze Node.js dependencies."""
         package_json_path = project_path / "package.json"
         if not package_json_path.exists():
@@ -326,7 +326,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
     def _analyze_python_dependencies(
         self, project_path: Path, manager: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Analyze Python dependencies."""
         results = {"dependencies": {}, "dev_dependencies": {}}
 
@@ -354,7 +354,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return results
 
-    def _analyze_cargo_dependencies(self, project_path: Path) -> Dict[str, Any]:
+    def _analyze_cargo_dependencies(self, project_path: Path) -> dict[str, Any]:
         """Analyze Rust/Cargo dependencies."""
         cargo_toml_path = project_path / "Cargo.toml"
         if not cargo_toml_path.exists():
@@ -362,7 +362,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return self._parse_cargo_toml(cargo_toml_path)
 
-    def _analyze_go_dependencies(self, project_path: Path) -> Dict[str, Any]:
+    def _analyze_go_dependencies(self, project_path: Path) -> dict[str, Any]:
         """Analyze Go dependencies."""
         go_mod_path = project_path / "go.mod"
         if not go_mod_path.exists():
@@ -370,7 +370,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return self._parse_go_mod(go_mod_path)
 
-    def _parse_package_json(self, path: Path) -> Dict[str, Any]:
+    def _parse_package_json(self, path: Path) -> dict[str, Any]:
         """Parse package.json file."""
         try:
             with path.open() as f:
@@ -385,7 +385,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             logger.error(f"Error parsing package.json: {e}")
             return {}
 
-    def _parse_requirements_txt(self, path: Path) -> Dict[str, Any]:
+    def _parse_requirements_txt(self, path: Path) -> dict[str, Any]:
         """Parse requirements.txt file."""
         dependencies = {}
 
@@ -406,7 +406,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return {"dependencies": dependencies}
 
-    def _parse_pyproject_toml(self, path: Path) -> Dict[str, Any]:
+    def _parse_pyproject_toml(self, path: Path) -> dict[str, Any]:
         """Parse pyproject.toml file."""
         try:
             import tomllib
@@ -449,7 +449,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             logger.error(f"Error parsing pyproject.toml: {e}")
             return {}
 
-    def _parse_pipfile(self, path: Path) -> Dict[str, Any]:
+    def _parse_pipfile(self, path: Path) -> dict[str, Any]:
         """Parse Pipfile."""
         try:
             import tomllib
@@ -471,7 +471,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             logger.error(f"Error parsing Pipfile: {e}")
             return {}
 
-    def _parse_cargo_toml(self, path: Path) -> Dict[str, Any]:
+    def _parse_cargo_toml(self, path: Path) -> dict[str, Any]:
         """Parse Cargo.toml file."""
         try:
             import tomllib
@@ -493,7 +493,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             logger.error(f"Error parsing Cargo.toml: {e}")
             return {}
 
-    def _parse_go_mod(self, path: Path) -> Dict[str, Any]:
+    def _parse_go_mod(self, path: Path) -> dict[str, Any]:
         """Parse go.mod file."""
         dependencies = {}
 
@@ -523,15 +523,15 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         return {"dependencies": dependencies}
 
     def _flatten_dependencies(
-        self, deps_dict: Dict[str, Dict[str, str]]
-    ) -> Dict[str, str]:
+        self, deps_dict: dict[str, dict[str, str]]
+    ) -> dict[str, str]:
         """Flatten nested dependency dictionaries."""
         flattened = {}
         for manager_deps in deps_dict.values():
             flattened.update(manager_deps)
         return flattened
 
-    def _detect_frameworks(self, dependencies: Dict[str, str]) -> List[str]:
+    def _detect_frameworks(self, dependencies: dict[str, str]) -> list[str]:
         """Detect web frameworks from dependencies."""
         detected = []
 
@@ -542,7 +542,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return detected
 
-    def _detect_databases(self, dependencies: Dict[str, str]) -> List[str]:
+    def _detect_databases(self, dependencies: dict[str, str]) -> list[str]:
         """Detect database systems from dependencies."""
         detected = []
 
@@ -555,7 +555,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return detected
 
-    def _detect_testing_tools(self, dependencies: Dict[str, str]) -> List[str]:
+    def _detect_testing_tools(self, dependencies: dict[str, str]) -> list[str]:
         """Detect testing tools from dependencies."""
         detected = []
 
@@ -566,7 +566,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
 
         return detected
 
-    def _check_vulnerabilities(self, project_path: Path) -> Dict[str, Any]:
+    def _check_vulnerabilities(self, project_path: Path) -> dict[str, Any]:
         """Check for known security vulnerabilities in dependencies."""
         return {
             "total": 0,
@@ -581,7 +581,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         # In production, you would integrate with vulnerability databases
         # like npm audit, pip-audit, or safety
 
-    def _calculate_statistics(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def _calculate_statistics(self, results: dict[str, Any]) -> dict[str, Any]:
         """Calculate dependency statistics."""
         all_deps = self._flatten_dependencies(results.get("dependencies", {}))
         all_dev_deps = self._flatten_dependencies(results.get("dev_dependencies", {}))
@@ -595,7 +595,7 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
             "testing_tools_count": len(results.get("testing_tools", [])),
         }
 
-    def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metrics(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """Extract key metrics from analysis results."""
         metrics = {}
 
@@ -620,8 +620,8 @@ class DependencyAnalyzerStrategy(AnalyzerStrategy):
         return metrics
 
     def compare_results(
-        self, baseline: Dict[str, Any], current: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, baseline: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare two analysis results."""
         comparison = {
             "added_dependencies": [],

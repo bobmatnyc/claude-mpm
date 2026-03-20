@@ -40,12 +40,15 @@ class TestAgentValidationService:
     @pytest.fixture
     def service(self, mock_validator, mock_registry):
         """Create service instance with mocked dependencies."""
-        with patch(
-            "claude_mpm.services.cli.agent_validation_service.FrontmatterValidator",
-            return_value=mock_validator,
-        ), patch(
-            "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter"
-        ) as mock_adapter:
+        with (
+            patch(
+                "claude_mpm.services.cli.agent_validation_service.FrontmatterValidator",
+                return_value=mock_validator,
+            ),
+            patch(
+                "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter"
+            ) as mock_adapter,
+        ):
             mock_adapter.return_value.registry = mock_registry
             service = AgentValidationService()
             service._registry = (
@@ -384,8 +387,11 @@ Agent content here
         """Test handling of registry initialization error."""
         service = AgentValidationService()
 
-        with patch(
-            "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter",
-            side_effect=Exception("Init error"),
-        ), pytest.raises(RuntimeError, match="Could not initialize agent registry"):
+        with (
+            patch(
+                "claude_mpm.services.cli.agent_validation_service.AgentRegistryAdapter",
+                side_effect=Exception("Init error"),
+            ),
+            pytest.raises(RuntimeError, match="Could not initialize agent registry"),
+        ):
             _ = service.registry

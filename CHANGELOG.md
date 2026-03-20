@@ -1,3 +1,71 @@
+## v5.10.9 (2026-03-19)
+
+## v5.10.8 (2026-03-19)
+
+### Fix
+
+- **tests**: patch _get_agent_list in hash mismatch test to isolate mock responses
+
+## v5.10.7 (2026-03-19)
+
+### Feat
+
+- implement PM instruction override system with self-awareness
+
+## v5.10.6 (2026-03-18)
+
+### Fix
+
+- correct broken imports and type errors in dashboard launcher and process_manager
+
+### Refactor
+
+- move MCP utilities and rate_limiter from scripts/ to src/ services
+
+## v5.10.5 (2026-03-18)
+
+### Feat
+
+- **mcp**: add internal MCP server for messaging system
+
+## v5.10.4 (2026-03-18)
+
+### Fix
+
+- add UP042 to .ruff.toml ignore list
+
+### Refactor
+
+- modernize type hints to Python 3.12+ style (ruff UP auto-fix)
+
+## v5.10.3 (2026-03-18)
+
+### Feat
+
+- **messaging**: add directory shortcuts CLI for message send command
+- prohibit direct gh ticket reads and multi-bash tasks - must delegate (v0012)
+
+### Fix
+
+- **tests**: update agent list assertions to match renamed fallback agents
+- **tests**: update upgrade message assertion to match new installation-method-agnostic wording
+- address review recommendations for DISABLE_TELEMETRY handling
+- address review — type annotation, registry fallback, test assertions
+
+### Refactor
+
+- centralize DISABLE_TELEMETRY handling via env_defaults module
+
+## v5.10.2 (2026-03-17)
+
+## v5.10.1 (2026-03-17)
+
+### Fix
+
+- correct OAuthError fallback and _ensure_mcp_configured call in setup/oauth
+- resolve type errors in setup.py and oauth.py (failure_result, OAuthError)
+- validate gworkspace-mcp tokens and include OAuth env vars in .mcp.json (#344)
+
 ## v5.10.0 (2026-03-16)
 
 ### Feat

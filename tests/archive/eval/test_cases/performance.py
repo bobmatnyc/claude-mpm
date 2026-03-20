@@ -33,7 +33,7 @@ import statistics
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -64,7 +64,7 @@ class PerformanceTracker:
         value: float,
         unit: str = "ms",
         category: str = "general",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """Record a performance metric."""
         metric = {

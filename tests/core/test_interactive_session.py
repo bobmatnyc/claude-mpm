@@ -71,10 +71,14 @@ class TestInteractiveSession:
 
         mock_proxy = Mock()
 
-        with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
-            "claude_mpm.services.socketio_server.SocketIOClientProxy",
-            return_value=mock_proxy,
-        ), patch("os.getcwd", return_value="/test/cwd"):
+        with (
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch(
+                "claude_mpm.services.socketio_server.SocketIOClientProxy",
+                return_value=mock_proxy,
+            ),
+            patch("os.getcwd", return_value="/test/cwd"),
+        ):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
             success, _error = interactive_session.initialize_interactive_session()
@@ -93,9 +97,12 @@ class TestInteractiveSession:
         """Test initialization with WebSocket import error."""
         interactive_session.runner.enable_websocket = True
 
-        with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
-            "claude_mpm.services.socketio_server.SocketIOClientProxy",
-            side_effect=ImportError("No module"),
+        with (
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch(
+                "claude_mpm.services.socketio_server.SocketIOClientProxy",
+                side_effect=ImportError("No module"),
+            ),
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
@@ -114,9 +121,12 @@ class TestInteractiveSession:
         mock_proxy = Mock()
         mock_proxy.start.side_effect = ConnectionError("Connection failed")
 
-        with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
-            "claude_mpm.services.socketio_server.SocketIOClientProxy",
-            return_value=mock_proxy,
+        with (
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch(
+                "claude_mpm.services.socketio_server.SocketIOClientProxy",
+                return_value=mock_proxy,
+            ),
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
@@ -155,13 +165,19 @@ class TestInteractiveSession:
         """Test successful environment setup."""
         interactive_session.session_id = "test-session"
 
-        with patch.object(
-            interactive_session,
-            "_build_claude_command",
-            return_value=["claude", "--test"],
-        ), patch.object(
-            interactive_session, "_prepare_environment", return_value={"ENV": "test"}
-        ), patch.object(interactive_session, "_change_to_user_directory"):
+        with (
+            patch.object(
+                interactive_session,
+                "_build_claude_command",
+                return_value=["claude", "--test"],
+            ),
+            patch.object(
+                interactive_session,
+                "_prepare_environment",
+                return_value={"ENV": "test"},
+            ),
+            patch.object(interactive_session, "_change_to_user_directory"),
+        ):
             success, env = interactive_session.setup_interactive_environment()
 
             assert success is True
@@ -181,11 +197,13 @@ class TestInteractiveSession:
         """Test environment setup deploys project agents."""
         interactive_session.session_id = "test-session"
 
-        with patch.object(
-            interactive_session, "_build_claude_command", return_value=["claude"]
-        ), patch.object(
-            interactive_session, "_prepare_environment", return_value={}
-        ), patch.object(interactive_session, "_change_to_user_directory"):
+        with (
+            patch.object(
+                interactive_session, "_build_claude_command", return_value=["claude"]
+            ),
+            patch.object(interactive_session, "_prepare_environment", return_value={}),
+            patch.object(interactive_session, "_change_to_user_directory"),
+        ):
             success, _env = interactive_session.setup_interactive_environment()
 
             assert success is True
@@ -212,9 +230,12 @@ class TestInteractiveSession:
             "session_id": "test-session",
         }
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session, "_launch_exec_mode", return_value=True
-        ) as mock_exec:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session, "_launch_exec_mode", return_value=True
+            ) as mock_exec,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is True
@@ -229,9 +250,12 @@ class TestInteractiveSession:
             "session_id": "test-session",
         }
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session, "_launch_subprocess_mode", return_value=True
-        ) as mock_subprocess:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session, "_launch_subprocess_mode", return_value=True
+            ) as mock_subprocess,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is True
@@ -248,8 +272,9 @@ class TestInteractiveSession:
             "session_id": "test-session",
         }
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session, "_launch_exec_mode", return_value=True
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(interactive_session, "_launch_exec_mode", return_value=True),
         ):
             interactive_session.handle_interactive_input(environment)
 
@@ -261,11 +286,15 @@ class TestInteractiveSession:
         """Test handling of FileNotFoundError during launch."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session,
-            "_launch_exec_mode",
-            side_effect=FileNotFoundError("claude not found"),
-        ), patch.object(interactive_session, "_handle_launch_error") as mock_handle:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session,
+                "_launch_exec_mode",
+                side_effect=FileNotFoundError("claude not found"),
+            ),
+            patch.object(interactive_session, "_handle_launch_error") as mock_handle,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
@@ -280,11 +309,15 @@ class TestInteractiveSession:
         """Test handling of PermissionError during launch."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session,
-            "_launch_exec_mode",
-            side_effect=PermissionError("Permission denied"),
-        ), patch.object(interactive_session, "_handle_launch_error") as mock_handle:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session,
+                "_launch_exec_mode",
+                side_effect=PermissionError("Permission denied"),
+            ),
+            patch.object(interactive_session, "_handle_launch_error") as mock_handle,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
@@ -299,11 +332,18 @@ class TestInteractiveSession:
         """Test handling of OSError with successful fallback."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session, "_launch_exec_mode", side_effect=OSError("OS error")
-        ), patch.object(interactive_session, "_handle_launch_error"), patch.object(
-            interactive_session, "_attempt_fallback_launch", return_value=True
-        ) as mock_fallback:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session,
+                "_launch_exec_mode",
+                side_effect=OSError("OS error"),
+            ),
+            patch.object(interactive_session, "_handle_launch_error"),
+            patch.object(
+                interactive_session, "_attempt_fallback_launch", return_value=True
+            ) as mock_fallback,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is True
@@ -313,11 +353,17 @@ class TestInteractiveSession:
         """Test handling of KeyboardInterrupt during launch."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session, "_launch_exec_mode", side_effect=KeyboardInterrupt()
-        ), patch.object(
-            interactive_session, "_handle_keyboard_interrupt"
-        ) as mock_handle:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session,
+                "_launch_exec_mode",
+                side_effect=KeyboardInterrupt(),
+            ),
+            patch.object(
+                interactive_session, "_handle_keyboard_interrupt"
+            ) as mock_handle,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is True  # Clean exit
@@ -329,13 +375,18 @@ class TestInteractiveSession:
         """Test handling of unexpected exception with fallback."""
         environment = {"command": ["claude"], "environment": {}}
 
-        with patch.object(interactive_session, "_log_launch_attempt"), patch.object(
-            interactive_session,
-            "_launch_exec_mode",
-            side_effect=RuntimeError("Unexpected"),
-        ), patch.object(interactive_session, "_handle_launch_error"), patch.object(
-            interactive_session, "_attempt_fallback_launch", return_value=False
-        ) as mock_fallback:
+        with (
+            patch.object(interactive_session, "_log_launch_attempt"),
+            patch.object(
+                interactive_session,
+                "_launch_exec_mode",
+                side_effect=RuntimeError("Unexpected"),
+            ),
+            patch.object(interactive_session, "_handle_launch_error"),
+            patch.object(
+                interactive_session, "_attempt_fallback_launch", return_value=False
+            ) as mock_fallback,
+        ):
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
@@ -376,9 +427,10 @@ class TestInteractiveSession:
 
         interactive_session.original_cwd = Path("/test/dir")
 
-        with patch.object(Path, "exists", return_value=True), patch(
-            "os.chdir"
-        ) as mock_chdir:
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("os.chdir") as mock_chdir,
+        ):
             interactive_session.cleanup_interactive_session()
 
             mock_chdir.assert_called_once_with(Path("/test/dir"))
@@ -389,9 +441,10 @@ class TestInteractiveSession:
         """Test cleanup when original directory doesn't exist."""
         interactive_session.original_cwd = "/nonexistent"
 
-        with patch("os.path.exists", return_value=False), patch(
-            "os.chdir"
-        ) as mock_chdir:
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.chdir") as mock_chdir,
+        ):
             interactive_session.cleanup_interactive_session()
 
             mock_chdir.assert_not_called()
@@ -402,8 +455,9 @@ class TestInteractiveSession:
 
         interactive_session.original_cwd = Path("/test/dir")
 
-        with patch("os.path.exists", return_value=True), patch(
-            "os.chdir", side_effect=OSError("Permission denied")
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("os.chdir", side_effect=OSError("Permission denied")),
         ):
             # Should not raise exception
             interactive_session.cleanup_interactive_session()
@@ -454,13 +508,16 @@ class TestInteractiveSession:
         # Mock use_native_agents to True and _build_agents_flag
         interactive_session.runner.use_native_agents = True
 
-        with patch(
-            "claude_mpm.core.claude_runner.create_simple_context",
-            return_value="simple context",
-        ), patch.object(
-            interactive_session,
-            "_build_agents_flag",
-            return_value=["--agents", "simple context"],
+        with (
+            patch(
+                "claude_mpm.core.claude_runner.create_simple_context",
+                return_value="simple context",
+            ),
+            patch.object(
+                interactive_session,
+                "_build_agents_flag",
+                return_value=["--agents", "simple context"],
+            ),
         ):
             result = interactive_session._build_claude_command()
 
@@ -482,13 +539,16 @@ class TestInteractiveSession:
         interactive_session.runner.claude_args = ["--verbose", "--timeout", "30"]
         interactive_session.runner.use_native_agents = True
 
-        with patch(
-            "claude_mpm.core.claude_runner.create_simple_context",
-            return_value="simple context",
-        ), patch.object(
-            interactive_session,
-            "_build_agents_flag",
-            return_value=["--agents", "simple context"],
+        with (
+            patch(
+                "claude_mpm.core.claude_runner.create_simple_context",
+                return_value="simple context",
+            ),
+            patch.object(
+                interactive_session,
+                "_build_agents_flag",
+                return_value=["--agents", "simple context"],
+            ),
         ):
             result = interactive_session._build_claude_command()
 
@@ -515,13 +575,16 @@ class TestInteractiveSession:
         )
         interactive_session.runner.use_native_agents = True
 
-        with patch(
-            "claude_mpm.core.claude_runner.create_simple_context",
-            return_value="simple context",
-        ), patch.object(
-            interactive_session,
-            "_build_agents_flag",
-            return_value=["--agents", "simple context"],
+        with (
+            patch(
+                "claude_mpm.core.claude_runner.create_simple_context",
+                return_value="simple context",
+            ),
+            patch.object(
+                interactive_session,
+                "_build_agents_flag",
+                return_value=["--agents", "simple context"],
+            ),
         ):
             result = interactive_session._build_claude_command()
 
@@ -817,11 +880,14 @@ class TestInteractiveSessionIntegration:
         mock_result = Mock()
         mock_result.returncode = 0
 
-        with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
-            "os.environ.copy", return_value={"PATH": "/usr/bin"}
-        ), patch("subprocess.run", return_value=mock_result), patch(
-            "claude_mpm.core.claude_runner.create_simple_context",
-            return_value="simple context",
+        with (
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch("os.environ.copy", return_value={"PATH": "/usr/bin"}),
+            patch("subprocess.run", return_value=mock_result),
+            patch(
+                "claude_mpm.core.claude_runner.create_simple_context",
+                return_value="simple context",
+            ),
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="integration-session-id")
 
@@ -862,12 +928,17 @@ class TestInteractiveSessionIntegration:
 
         mock_proxy = Mock()
 
-        with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
-            "claude_mpm.services.socketio_server.SocketIOClientProxy",
-            return_value=mock_proxy,
-        ), patch("os.environ.copy", return_value={}), patch(
-            "claude_mpm.core.claude_runner.create_simple_context",
-            return_value="simple context",
+        with (
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch(
+                "claude_mpm.services.socketio_server.SocketIOClientProxy",
+                return_value=mock_proxy,
+            ),
+            patch("os.environ.copy", return_value={}),
+            patch(
+                "claude_mpm.core.claude_runner.create_simple_context",
+                return_value="simple context",
+            ),
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-integration-session")
 
@@ -897,11 +968,13 @@ class TestInteractiveSessionIntegration:
         # Simulate agents setup failure
         mock_runner.setup_agents.return_value = False
 
-        with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
-            "os.environ.copy", return_value={}
-        ), patch(
-            "claude_mpm.core.claude_runner.create_simple_context",
-            return_value="simple context",
+        with (
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch("os.environ.copy", return_value={}),
+            patch(
+                "claude_mpm.core.claude_runner.create_simple_context",
+                return_value="simple context",
+            ),
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="error-session")
 
@@ -914,9 +987,14 @@ class TestInteractiveSessionIntegration:
             assert env_success is True
 
             # Simulate launch error with successful fallback
-            with patch.object(
-                session, "_launch_subprocess_mode", side_effect=OSError("Launch failed")
-            ), patch.object(session, "_attempt_fallback_launch", return_value=True):
+            with (
+                patch.object(
+                    session,
+                    "_launch_subprocess_mode",
+                    side_effect=OSError("Launch failed"),
+                ),
+                patch.object(session, "_attempt_fallback_launch", return_value=True),
+            ):
                 input_success = session.handle_interactive_input(environment)
                 assert input_success is True
 

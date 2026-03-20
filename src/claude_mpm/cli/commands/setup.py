@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess  # nosec B404
 import sys
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -494,9 +495,9 @@ class SetupCommand(BaseCommand):
                 # Step 3: optionally register in .mcp.json.
                 if mcp_server_name:
                     try:
-                        from ...services.oauth import _ensure_mcp_configured
+                        from .oauth import _ensure_mcp_configured
 
-                        _ensure_mcp_configured(mcp_server_name)
+                        _ensure_mcp_configured(mcp_server_name, Path.cwd())
                     except Exception as exc:
                         console.print(
                             f"[yellow]Warning: could not update .mcp.json: {exc}[/yellow]"
@@ -1170,7 +1171,7 @@ class SetupCommand(BaseCommand):
 
                 overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
                 if overwrite.lower() != "y":
-                    return CommandResult.failure_result("Setup cancelled")
+                    return CommandResult.error_result("Setup cancelled")
 
             # Add Brave Search configuration
             if "mcpServers" not in mcp_config:
@@ -1190,7 +1191,7 @@ class SetupCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]✗ Error setting up Brave Search: {e}[/red]")
-            return CommandResult.failure_result(f"Setup failed: {e}")
+            return CommandResult.error_result(f"Setup failed: {e}")
 
     def _setup_tavily(self, args) -> CommandResult:
         """Set up Tavily MCP server for AI-optimized search."""
@@ -1230,7 +1231,7 @@ class SetupCommand(BaseCommand):
 
                 overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
                 if overwrite.lower() != "y":
-                    return CommandResult.failure_result("Setup cancelled")
+                    return CommandResult.error_result("Setup cancelled")
 
             # Add Tavily configuration
             if "mcpServers" not in mcp_config:
@@ -1250,7 +1251,7 @@ class SetupCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]✗ Error setting up Tavily: {e}[/red]")
-            return CommandResult.failure_result(f"Setup failed: {e}")
+            return CommandResult.error_result(f"Setup failed: {e}")
 
     def _setup_firecrawl(self, args) -> CommandResult:
         """Set up Firecrawl MCP server for web scraping."""
@@ -1292,7 +1293,7 @@ class SetupCommand(BaseCommand):
 
                 overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
                 if overwrite.lower() != "y":
-                    return CommandResult.failure_result("Setup cancelled")
+                    return CommandResult.error_result("Setup cancelled")
 
             # Add Firecrawl configuration
             if "mcpServers" not in mcp_config:
@@ -1312,7 +1313,7 @@ class SetupCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]✗ Error setting up Firecrawl: {e}[/red]")
-            return CommandResult.failure_result(f"Setup failed: {e}")
+            return CommandResult.error_result(f"Setup failed: {e}")
 
     def _setup_kuzu_memory(self, args) -> CommandResult:
         """Set up kuzu-memory graph-based memory backend."""
@@ -1436,11 +1437,11 @@ class SetupCommand(BaseCommand):
 
                     if archived_count > 0:
                         # Create README in archive directory
-                        from datetime import datetime, timezone
+                        from datetime import datetime
 
                         readme_content = f"""# Migrated Memory Files
 
-These static memory files were migrated to kuzu-memory on {datetime.now(timezone.utc).isoformat()}.
+These static memory files were migrated to kuzu-memory on {datetime.now(UTC).isoformat()}.
 
 **Status**: These files are archived and no longer active. The kuzu-memory graph database now manages all memories.
 
@@ -1884,10 +1885,42 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             else:
                 return CommandResult.error_result(message)
 
-        # Check if tokens already exist - skip setup if authenticated
+        # Validate existing tokens before skipping setup
         tokens_path = Path.home() / ".gworkspace-mcp" / "tokens.json"
+        token_valid = False
         if tokens_path.exists() and tokens_path.stat().st_size > 10 and not force:
-            console.print("[green]✓ Already authenticated (tokens exist)[/green]")
+            try:
+                token_data = json.loads(tokens_path.read_text())
+                # Must contain at least one usable credential
+                has_token = bool(
+                    token_data.get("token")
+                    or token_data.get("refresh_token")
+                    or token_data.get("access_token")
+                )
+                if has_token:
+                    # Check expiry if present
+                    expiry_str = token_data.get("expiry") or token_data.get(
+                        "expires_at"
+                    )
+                    if expiry_str:
+                        from datetime import datetime
+
+                        expiry = datetime.fromisoformat(str(expiry_str))
+                        if expiry.tzinfo is None:
+                            expiry = expiry.replace(tzinfo=UTC)
+                        if expiry > datetime.now(UTC):
+                            token_valid = True
+                        elif token_data.get("refresh_token"):
+                            # Expired but refresh_token can renew it
+                            token_valid = True
+                    else:
+                        # No expiry field means we trust the token
+                        token_valid = True
+            except (json.JSONDecodeError, ValueError, OSError):
+                token_valid = False
+
+        if token_valid:
+            console.print("[green]✓ Already authenticated (tokens validated)[/green]")
             exit_code = 0
         else:
             # Detect credentials from environment or .env files

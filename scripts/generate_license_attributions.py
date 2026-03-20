@@ -36,8 +36,8 @@ class LicenseAttributionGenerator:
         """
         self.bundled_dir: Path = bundled_dir
         self.output_path: Path = output_path
-        self.skills: List[Dict[str, Any]] = []
-        self.missing_license: List[str] = []
+        self.skills: list[dict[str, Any]] = []
+        self.missing_license: list[str] = []
 
     def scan_skills(self) -> None:
         """Scan bundled directory for skills and extract metadata."""
@@ -76,7 +76,7 @@ class LicenseAttributionGenerator:
                     if not metadata.get("license"):
                         self.missing_license.append(skill_info["name"])
 
-    def _extract_metadata(self, skill_md: Path) -> Optional[Dict[str, Any]]:
+    def _extract_metadata(self, skill_md: Path) -> dict[str, Any] | None:
         """Extract YAML frontmatter from SKILL.md.
 
         Args:

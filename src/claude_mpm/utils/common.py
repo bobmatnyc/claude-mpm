@@ -10,7 +10,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -26,8 +26,8 @@ logger = get_logger(__name__)
 
 
 def load_json_safe(
-    file_path: Union[str, Path],
-    default: Optional[Any] = None,
+    file_path: str | Path,
+    default: Any | None = None,
     encoding: str = "utf-8",
 ) -> Any:
     """
@@ -62,7 +62,7 @@ def load_json_safe(
 
 
 def save_json_safe(
-    file_path: Union[str, Path],
+    file_path: str | Path,
     data: Any,
     indent: int = 2,
     encoding: str = "utf-8",
@@ -96,8 +96,8 @@ def save_json_safe(
 
 
 def load_yaml_safe(
-    file_path: Union[str, Path],
-    default: Optional[Any] = None,
+    file_path: str | Path,
+    default: Any | None = None,
     encoding: str = "utf-8",
 ) -> Any:
     """
@@ -130,7 +130,7 @@ def load_yaml_safe(
 
 
 def save_yaml_safe(
-    file_path: Union[str, Path],
+    file_path: str | Path,
     data: Any,
     encoding: str = "utf-8",
     create_parents: bool = True,
@@ -167,7 +167,7 @@ def save_yaml_safe(
 
 
 def ensure_path_exists(
-    path: Union[str, Path],
+    path: str | Path,
     create_parents: bool = True,
     is_file: bool = False,
 ) -> bool:
@@ -205,10 +205,10 @@ def ensure_path_exists(
 
 
 def read_file_if_exists(
-    file_path: Union[str, Path],
+    file_path: str | Path,
     encoding: str = "utf-8",
     default: str = "",
-) -> Optional[str]:
+) -> str | None:
     """
     Read file contents if it exists, otherwise return default.
 
@@ -232,7 +232,7 @@ def read_file_if_exists(
 
 
 def write_file_safe(
-    file_path: Union[str, Path],
+    file_path: str | Path,
     content: str,
     encoding: str = "utf-8",
     create_parents: bool = True,
@@ -262,7 +262,7 @@ def write_file_safe(
         return False
 
 
-def get_file_size(file_path: Union[str, Path]) -> int:
+def get_file_size(file_path: str | Path) -> int:
     """
     Get file size in bytes, returning 0 if file doesn't exist.
 
@@ -284,10 +284,10 @@ def get_file_size(file_path: Union[str, Path]) -> int:
 
 
 def find_files(
-    directory: Union[str, Path],
+    directory: str | Path,
     pattern: str = "*",
     recursive: bool = True,
-) -> List[Path]:
+) -> list[Path]:
     """
     Find files matching a pattern in a directory.
 
@@ -319,12 +319,12 @@ def find_files(
 
 
 def run_command_safe(
-    command: Union[str, List[str]],
-    cwd: Optional[Union[str, Path]] = None,
+    command: str | list[str],
+    cwd: str | Path | None = None,
     capture_output: bool = True,
     check: bool = False,
-    timeout: Optional[int] = None,
-    env: Optional[Dict[str, str]] = None,
+    timeout: int | None = None,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
     """
     Safely run a subprocess command with error handling.
@@ -347,7 +347,7 @@ def run_command_safe(
 
         return subprocess.run(
             command,
-            shell=shell,
+            shell=shell,  # nosec
             cwd=cwd,
             capture_output=capture_output,
             text=True,
@@ -435,8 +435,8 @@ def get_env_int(key: str, default: int = 0) -> int:
 
 
 def get_env_list(
-    key: str, separator: str = ",", default: Optional[List[str]] = None
-) -> List[str]:
+    key: str, separator: str = ",", default: list[str] | None = None
+) -> list[str]:
     """
     Get list from environment variable.
 
@@ -515,7 +515,7 @@ def import_from_string(import_path: str, fallback: Any = None) -> Any:
 # ==============================================================================
 
 
-def deprecated(replacement: Optional[str] = None):
+def deprecated(replacement: str | None = None):
     """
     Decorator to mark functions as deprecated.
 

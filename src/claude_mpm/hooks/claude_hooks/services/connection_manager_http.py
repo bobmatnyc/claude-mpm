@@ -17,7 +17,7 @@ is simpler and more reliable for ephemeral processes.
 
 import os
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Try to import _log from hook_handler, fall back to no-op
 try:
@@ -57,7 +57,7 @@ except ImportError:
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
-                            "timestamp", datetime.now(timezone.utc).isoformat()
+                            "timestamp", datetime.now(UTC).isoformat()
                         ),
                         "data": event_data.get("data", event_data),
                     }
@@ -105,7 +105,7 @@ class ConnectionManagerService:
         raw_event = {
             "type": "hook",
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": data,
             "source": "claude_hooks",  # Identify the source
             "session_id": data.get("session_id") or data.get("sessionId"),

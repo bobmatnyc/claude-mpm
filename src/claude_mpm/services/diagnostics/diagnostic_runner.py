@@ -7,7 +7,6 @@ and aggregate results for reporting.
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Type
 
 from claude_mpm.core.enums import ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
@@ -51,7 +50,7 @@ class DiagnosticRunner:
         self.fix = fix
         self.logger = logger  # Add logger initialization
         # Define check order (dependencies first)
-        self.check_classes: List[Type[BaseDiagnosticCheck]] = [
+        self.check_classes: list[type[BaseDiagnosticCheck]] = [
             InstallationCheck,
             ConfigurationCheck,
             FilesystemCheck,
@@ -146,8 +145,8 @@ class DiagnosticRunner:
         return summary
 
     def _run_level_parallel(
-        self, check_classes: List[Type[BaseDiagnosticCheck]]
-    ) -> List[DiagnosticResult]:
+        self, check_classes: list[type[BaseDiagnosticCheck]]
+    ) -> list[DiagnosticResult]:
         """Run a group of checks in parallel.
 
         Args:
@@ -198,7 +197,7 @@ class DiagnosticRunner:
 
         return results
 
-    def run_specific_checks(self, check_names: List[str]) -> DiagnosticSummary:
+    def run_specific_checks(self, check_names: list[str]) -> DiagnosticSummary:
         """Run only specific diagnostic checks.
 
         Args:

@@ -21,8 +21,9 @@ Usage:
 
 import asyncio
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Optional
 
 # ============================================================================
 # SYNCHRONIZATION HELPERS (Replaces sleep())
@@ -177,7 +178,7 @@ def wait_for_event(
 
 
 def assert_eventually(
-    predicate: Callable[[], bool], timeout: float = 5.0, message: Optional[str] = None
+    predicate: Callable[[], bool], timeout: float = 5.0, message: str | None = None
 ) -> None:
     """Assert that condition becomes true eventually.
 
@@ -207,7 +208,7 @@ def assert_eventually(
 
 
 def assert_dict_contains(
-    actual: Dict, expected: Dict, message: Optional[str] = None
+    actual: dict, expected: dict, message: str | None = None
 ) -> None:
     """Assert that actual dict contains all expected key-value pairs.
 
@@ -233,7 +234,7 @@ def assert_dict_contains(
 
 
 def assert_list_contains_items(
-    actual: List, expected_items: List, message: Optional[str] = None
+    actual: list, expected_items: list, message: str | None = None
 ) -> None:
     """Assert that list contains all expected items.
 
@@ -301,7 +302,7 @@ def assert_called_with_eventually(
 # ============================================================================
 
 
-def create_mock_with_methods(methods: Dict[str, Any]):
+def create_mock_with_methods(methods: dict[str, Any]):
     """Create a mock object with predefined method return values.
 
     Args:
@@ -328,7 +329,7 @@ def create_mock_with_methods(methods: Dict[str, Any]):
     return mock
 
 
-def create_async_mock_with_methods(methods: Dict[str, Any]):
+def create_async_mock_with_methods(methods: dict[str, Any]):
     """Create an async mock object with predefined method return values.
 
     Args:
@@ -372,7 +373,7 @@ class PerformanceAssertion:
         self,
         max_duration: float,
         operation: str = "operation",
-        min_duration: Optional[float] = None,
+        min_duration: float | None = None,
     ):
         """Initialize performance assertion.
 
@@ -460,7 +461,7 @@ def run_async_test(async_func: Callable, *args, **kwargs) -> Any:
     return asyncio.run(async_func(*args, **kwargs))
 
 
-async def gather_with_timeout(*tasks, timeout: float = 10.0) -> List[Any]:
+async def gather_with_timeout(*tasks, timeout: float = 10.0) -> list[Any]:
     """Gather async tasks with timeout.
 
     Args:
@@ -489,7 +490,7 @@ async def gather_with_timeout(*tasks, timeout: float = 10.0) -> List[Any]:
 # ============================================================================
 
 
-def assert_mock_call_order(mock_obj, expected_calls: List[str]) -> None:
+def assert_mock_call_order(mock_obj, expected_calls: list[str]) -> None:
     """Assert that mock methods were called in specific order.
 
     Args:
@@ -564,9 +565,7 @@ def create_temp_file(tmp_path, filename: str, content: str = "") -> Any:
     return file_path
 
 
-def create_temp_directory(
-    tmp_path, dirname: str, files: Optional[Dict[str, str]] = None
-):
+def create_temp_directory(tmp_path, dirname: str, files: dict[str, str] | None = None):
     """Create temporary directory with files.
 
     Args:

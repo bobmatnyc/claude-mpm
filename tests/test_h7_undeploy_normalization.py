@@ -104,15 +104,15 @@ class TestH7aUndeployHandler:
             mock_dc_cls.from_request_scope.return_value = mock_ctx
 
             # Mock safety helpers
-            with patch.object(
-                handler, "validate_safe_name", return_value=(True, None)
-            ), patch.object(
-                handler, "validate_path_containment", return_value=(True, None)
-            ), patch.object(handler, "_get_backup_manager") as mock_bm, patch.object(
-                handler, "_get_operation_journal"
-            ) as mock_journal, patch.object(
-                handler, "_get_deployment_verifier"
-            ) as mock_verifier:
+            with (
+                patch.object(handler, "validate_safe_name", return_value=(True, None)),
+                patch.object(
+                    handler, "validate_path_containment", return_value=(True, None)
+                ),
+                patch.object(handler, "_get_backup_manager") as mock_bm,
+                patch.object(handler, "_get_operation_journal") as mock_journal,
+                patch.object(handler, "_get_deployment_verifier") as mock_verifier,
+            ):
                 mock_bm.return_value.create_backup.return_value = MagicMock(
                     backup_path=tmp_path / "backup"
                 )
@@ -164,15 +164,15 @@ class TestH7aUndeployHandler:
         with patch.object(handler, "DeploymentContext") as mock_dc_cls:
             mock_dc_cls.from_request_scope.return_value = mock_ctx
 
-            with patch.object(
-                handler, "validate_safe_name", return_value=(True, None)
-            ), patch.object(
-                handler, "validate_path_containment", return_value=(True, None)
-            ), patch.object(handler, "_get_backup_manager") as mock_bm, patch.object(
-                handler, "_get_operation_journal"
-            ) as mock_journal, patch.object(
-                handler, "_get_deployment_verifier"
-            ) as mock_verifier:
+            with (
+                patch.object(handler, "validate_safe_name", return_value=(True, None)),
+                patch.object(
+                    handler, "validate_path_containment", return_value=(True, None)
+                ),
+                patch.object(handler, "_get_backup_manager") as mock_bm,
+                patch.object(handler, "_get_operation_journal") as mock_journal,
+                patch.object(handler, "_get_deployment_verifier") as mock_verifier,
+            ):
                 mock_bm.return_value.create_backup.return_value = MagicMock(
                     backup_path=tmp_path / "backup"
                 )

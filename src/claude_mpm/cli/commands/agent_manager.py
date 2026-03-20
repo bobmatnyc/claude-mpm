@@ -12,7 +12,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ...core.enums import OutputFormat
 from ...core.logging_config import get_logger
@@ -476,7 +476,7 @@ class AgentManagerCommand(AgentCommand):
             return CommandResult.error_result(f"Failed to reset agents: {e}")
 
     def _scan_and_clean_directory(
-        self, directory: Path, results: Dict[str, Any], dry_run: bool
+        self, directory: Path, results: dict[str, Any], dry_run: bool
     ) -> None:
         """Scan a directory for claude-mpm authored agents and optionally remove them.
 
@@ -501,7 +501,7 @@ class AgentManagerCommand(AgentCommand):
                 self.logger.warning(f"Could not process {agent_file}: {e}")
 
     def _format_reset_results(
-        self, results: Dict[str, Any], dry_run: bool, force: bool
+        self, results: dict[str, Any], dry_run: bool, force: bool
     ) -> str:
         """Format reset results for display.
 
@@ -617,7 +617,7 @@ class AgentManagerCommand(AgentCommand):
             return CommandResult.error_result(f"Creation failed: {e}")
 
     def _save_agent(
-        self, config: Dict[str, Any], instructions: str, agent_id: str
+        self, config: dict[str, Any], instructions: str, agent_id: str
     ) -> bool:
         """Save agent configuration and instructions.
 
@@ -649,7 +649,7 @@ class AgentManagerCommand(AgentCommand):
             self.logger.error(f"Failed to save agent: {e}")
             return False
 
-    def _read_agent_summary(self, agent_file: Path, tier: str) -> Dict[str, Any]:
+    def _read_agent_summary(self, agent_file: Path, tier: str) -> dict[str, Any]:
         """Read agent summary from file."""
         try:
             agent_id = agent_file.stem
@@ -689,7 +689,7 @@ class AgentManagerCommand(AgentCommand):
         except Exception:
             return {}
 
-    def _format_agent_list(self, agents: Dict[str, List]) -> str:
+    def _format_agent_list(self, agents: dict[str, list]) -> str:
         """Format agent list for display."""
         output = "=== Agent Hierarchy ===\n\n"
 
@@ -717,26 +717,26 @@ class AgentManagerCommand(AgentCommand):
 
         return output
 
-    def _find_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def _find_agent(self, agent_id: str) -> dict[str, Any] | None:
         """Find agent across all tiers."""
         # Implementation would search across tiers
         # This is a simplified version
         return {"id": agent_id, "tier": "system"}
 
-    def _load_agent_config(self, agent_id: str) -> Optional[Dict[str, Any]]:
+    def _load_agent_config(self, agent_id: str) -> dict[str, Any] | None:
         """Load agent configuration."""
         try:
             return self.builder_service._load_template(agent_id)
         except Exception:
             return None
 
-    def _check_conflicts(self, agent_id: str) -> Optional[str]:
+    def _check_conflicts(self, agent_id: str) -> str | None:
         """Check for agent conflicts across tiers."""
         # Check if agent exists in multiple tiers
         # Return tier information if conflicts exist
         return None
 
-    def _format_agent_details(self, agent_info: Dict[str, Any]) -> str:
+    def _format_agent_details(self, agent_info: dict[str, Any]) -> str:
         """Format agent details for display."""
         output = f"=== Agent: {agent_info['id']} ===\n\n"
         for key, value in agent_info.items():

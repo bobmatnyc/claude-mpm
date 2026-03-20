@@ -9,7 +9,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from ..core.logging_config import get_logger
 
@@ -97,7 +97,7 @@ class HookInstallerService:
             self.logger.error(f"Error checking hook configuration: {e}")
             return False
 
-    def _detect_package_origin(self) -> Tuple[str, Optional[Path]]:
+    def _detect_package_origin(self) -> tuple[str, Path | None]:
         """Detect how claude-mpm was installed.
 
         Returns:
@@ -143,7 +143,7 @@ class HookInstallerService:
 
         return "unknown", None
 
-    def _find_hook_script(self) -> Optional[Path]:
+    def _find_hook_script(self) -> Path | None:
         """Find the hook script based on installation type.
 
         Returns:
@@ -316,7 +316,7 @@ class HookInstallerService:
             if "hooks" not in settings:
                 settings["hooks"] = {}
 
-            def is_our_hook(cmd: Dict[str, Any]) -> bool:
+            def is_our_hook(cmd: dict[str, Any]) -> bool:
                 """Check if a hook command belongs to claude-mpm."""
                 if cmd.get("type") != "command":
                     return False
@@ -328,7 +328,7 @@ class HookInstallerService:
                 )
 
             def merge_hooks_for_event(
-                existing_hooks: list, hook_command: Dict[str, Any]
+                existing_hooks: list, hook_command: dict[str, Any]
             ) -> list:
                 """Merge new hook command into existing hooks without duplication.
 
@@ -418,7 +418,7 @@ class HookInstallerService:
             self.logger.error(f"Error installing hooks: {e}")
             return False
 
-    def _is_claude_mpm_hook(self, hook_config: Dict[str, Any]) -> bool:
+    def _is_claude_mpm_hook(self, hook_config: dict[str, Any]) -> bool:
         """Check if a hook configuration belongs to Claude MPM.
 
         Args:
@@ -526,7 +526,7 @@ class HookInstallerService:
             self.logger.error(f"Error uninstalling hooks: {e}")
             return False
 
-    def get_hook_status(self) -> Dict[str, Any]:
+    def get_hook_status(self) -> dict[str, Any]:
         """Get detailed status of hook configuration.
 
         Returns:

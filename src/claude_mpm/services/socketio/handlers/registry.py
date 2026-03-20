@@ -5,7 +5,7 @@ providing a clean interface for the SocketIOServer to register all
 events without knowing the details of each handler.
 """
 
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING
 
 from ....core.logger import get_logger
 from .base import BaseEventHandler
@@ -34,7 +34,7 @@ class EventHandlerRegistry:
     """
 
     # Default handler classes in registration order
-    DEFAULT_HANDLERS: List[Type[BaseEventHandler]] = [
+    DEFAULT_HANDLERS: list[type[BaseEventHandler]] = [
         ConnectionEventHandler,  # Connection management first
         HookEventHandler,  # Hook events for session tracking
         GitEventHandler,  # Git operations
@@ -53,11 +53,11 @@ class EventHandlerRegistry:
         """
         self.server: SocketIOServer = server
         self.logger: Logger = get_logger("EventHandlerRegistry")
-        self.handlers: List[BaseEventHandler] = []
+        self.handlers: list[BaseEventHandler] = []
         self._initialized: bool = False
 
     def initialize(
-        self, handler_classes: Optional[List[Type[BaseEventHandler]]] = None
+        self, handler_classes: list[type[BaseEventHandler]] | None = None
     ) -> None:
         """Initialize all event handlers.
 
@@ -174,7 +174,7 @@ class EventHandlerRegistry:
             f"{total_sio_events} total Socket.IO events registered"
         )
 
-    def add_handler(self, handler_class: Type[BaseEventHandler]):
+    def add_handler(self, handler_class: type[BaseEventHandler]):
         """Add a custom handler to the registry.
 
         WHY: Allows dynamic addition of custom handlers for specific
@@ -196,7 +196,7 @@ class EventHandlerRegistry:
             self.logger.error(f"Failed to add handler {handler_class.__name__}: {e}")
             raise
 
-    def get_handler(self, handler_class: Type[BaseEventHandler]) -> BaseEventHandler:
+    def get_handler(self, handler_class: type[BaseEventHandler]) -> BaseEventHandler:
         """Get a specific handler instance by class.
 
         WHY: Useful for testing or when specific handler functionality

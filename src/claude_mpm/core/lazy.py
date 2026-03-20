@@ -14,9 +14,10 @@ import asyncio
 import functools
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Generic, Optional, Type, TypeVar
+from datetime import UTC, datetime
+from typing import Any, TypeVar
 
 from ..core.logger import get_logger
 
@@ -28,14 +29,14 @@ class LazyMetrics:
     """Metrics for lazy loading performance."""
 
     created_at: datetime = field(default_factory=datetime.now)
-    first_access: Optional[datetime] = None
+    first_access: datetime | None = None
     initialization_time: float = 0.0
     access_count: int = 0
-    initialization_error: Optional[Exception] = None
+    initialization_error: Exception | None = None
     is_initialized: bool = False
 
 
-class LazyService(Generic[T]):
+class LazyService[T]:
     """Lazy loading wrapper for expensive services.
 
     WHY this design:
@@ -64,10 +65,10 @@ class LazyService(Generic[T]):
 
     def __init__(
         self,
-        service_class: Type[T],
+        service_class: type[T],
         init_args: tuple = (),
-        init_kwargs: Optional[dict] = None,
-        name: Optional[str] = None,
+        init_kwargs: dict | None = None,
+        name: str | None = None,
         eager: bool = False,
     ):
         """Initialize lazy service wrapper.
@@ -85,7 +86,7 @@ class LazyService(Generic[T]):
         self._name = name or service_class.__name__
         self._eager = eager
 
-        self._instance: Optional[T] = None
+        self._instance: T | None = None
         self._lock = threading.RLock()
         self._metrics = LazyMetrics()
         self._logger = get_logger(f"lazy.{self._name}")
@@ -120,7 +121,7 @@ class LazyService(Generic[T]):
             # Track initialization
             start_time = time.time()
             if self._metrics.first_access is None:
-                self._metrics.first_access = datetime.now(timezone.utc)
+                self._metrics.first_access = datetime.now(UTC)
 
             try:
                 self._logger.debug(f"Initializing lazy service: {self._name}")
@@ -196,16 +197,16 @@ class LazyServiceRegistry:
         a threading.Lock for mutation protection.
         TEST: Instantiate; assert _services is empty and _lock is a threading.Lock.
         """
-        self._services: Dict[str, LazyService] = {}
+        self._services: dict[str, LazyService] = {}
         self._logger = get_logger("lazy_registry")
         self._lock = threading.Lock()
 
     def register(
         self,
         name: str,
-        service_class: Type,
+        service_class: type,
         init_args: tuple = (),
-        init_kwargs: Optional[dict] = None,
+        init_kwargs: dict | None = None,
         eager: bool = False,
     ) -> LazyService:
         """Register a lazy service.
@@ -236,11 +237,11 @@ class LazyServiceRegistry:
             self._logger.debug(f"Registered lazy service: {name}")
             return service
 
-    def get(self, name: str) -> Optional[LazyService]:
+    def get(self, name: str) -> LazyService | None:
         """Get a registered service by name."""
         return self._services.get(name)
 
-    def initialize_all(self) -> Dict[str, float]:
+    def initialize_all(self) -> dict[str, float]:
         """Initialize all registered services.
 
         Useful for testing or preloading.
@@ -261,7 +262,7 @@ class LazyServiceRegistry:
 
         return init_times
 
-    def get_metrics(self) -> Dict[str, Dict[str, Any]]:
+    def get_metrics(self) -> dict[str, dict[str, Any]]:
         """Get metrics for all registered services."""
         metrics = {}
 
@@ -289,10 +290,10 @@ _registry = LazyServiceRegistry()
 
 
 def lazy_load(
-    service_class: Type,
-    name: Optional[str] = None,
+    service_class: type,
+    name: str | None = None,
     init_args: tuple = (),
-    init_kwargs: Optional[dict] = None,
+    init_kwargs: dict | None = None,
 ) -> LazyService:
     """Convenience function to create and register a lazy service.
 
@@ -326,17 +327,17 @@ def lazy_load(
     )
 
 
-def get_lazy_service(name: str) -> Optional[LazyService]:
+def get_lazy_service(name: str) -> LazyService | None:
     """Get a registered lazy service by name."""
     return _registry.get(name)
 
 
-def get_lazy_metrics() -> Dict[str, Dict[str, Any]]:
+def get_lazy_metrics() -> dict[str, dict[str, Any]]:
     """Get metrics for all lazy services."""
     return _registry.get_metrics()
 
 
-def initialize_all_services() -> Dict[str, float]:
+def initialize_all_services() -> dict[str, float]:
     """Initialize all registered lazy services."""
     return _registry.initialize_all()
 
@@ -372,7 +373,7 @@ class lazy_property:
         self.lock = threading.RLock()
         functools.update_wrapper(self, func)  # type: ignore[arg-type]
 
-    def __get__(self, obj: Any, objtype: Optional[Type] = None) -> Any:
+    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
         """Return the cached value, computing it on first access.
 
         WHY: Implements the descriptor protocol so the lazy property behaves like a
@@ -404,7 +405,7 @@ class lazy_property:
             return val
 
 
-class AsyncLazyService(Generic[T]):
+class AsyncLazyService[T]:
     """Async version of LazyService for async services.
 
     Supports services that require async initialization.
@@ -412,10 +413,10 @@ class AsyncLazyService(Generic[T]):
 
     def __init__(
         self,
-        service_class: Type[T],
+        service_class: type[T],
         init_args: tuple = (),
-        init_kwargs: Optional[dict] = None,
-        name: Optional[str] = None,
+        init_kwargs: dict | None = None,
+        name: str | None = None,
     ):
         """Initialise the async lazy wrapper without starting the underlying service.
 
@@ -431,7 +432,7 @@ class AsyncLazyService(Generic[T]):
         self._init_kwargs = init_kwargs or {}
         self._name = name or service_class.__name__
 
-        self._instance: Optional[T] = None
+        self._instance: T | None = None
         self._lock = asyncio.Lock()
         self._metrics = LazyMetrics()
         self._logger = get_logger(f"async_lazy.{self._name}")
@@ -452,7 +453,7 @@ class AsyncLazyService(Generic[T]):
 
             start_time = time.time()
             if self._metrics.first_access is None:
-                self._metrics.first_access = datetime.now(timezone.utc)
+                self._metrics.first_access = datetime.now(UTC)
 
             try:
                 self._logger.debug(f"Async initializing: {self._name}")

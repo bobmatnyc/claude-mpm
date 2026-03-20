@@ -6,7 +6,7 @@ handling both new standardized schema and legacy agent formats.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.agent_registry import AgentRegistryAdapter
 from claude_mpm.core.logging_utils import get_logger
@@ -21,8 +21,8 @@ class DeployedAgentDiscovery(ConfigServiceBase):
 
     def __init__(
         self,
-        project_root: Optional[Path] = None,
-        config: Optional[Dict[str, Any]] = None,
+        project_root: Path | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """Initialize the discovery service.
 
@@ -43,7 +43,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
             f"Initialized DeployedAgentDiscovery with root: {self.project_root}"
         )
 
-    def discover_deployed_agents(self) -> List[Dict[str, Any]]:
+    def discover_deployed_agents(self) -> list[dict[str, Any]]:
         """Discover all deployed agents following hierarchy precedence.
 
         Returns:
@@ -85,7 +85,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
             # Return empty list on failure to allow graceful degradation
             return []
 
-    def _extract_agent_info(self, agent) -> Dict[str, Any]:
+    def _extract_agent_info(self, agent) -> dict[str, Any]:
         """Extract relevant information from agent definition.
 
         Args:
@@ -158,7 +158,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
             logger.error(f"Error extracting agent info: {e}")
             return None
 
-    def _load_full_agent_data(self, agent_path: str) -> Dict[str, Any]:
+    def _load_full_agent_data(self, agent_path: str) -> dict[str, Any]:
         """Load full agent data from JSON file.
 
         Args:
@@ -177,8 +177,8 @@ class DeployedAgentDiscovery(ConfigServiceBase):
         return None
 
     def _extract_from_json_data(
-        self, json_data: Dict[str, Any], registry_info: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, json_data: dict[str, Any], registry_info: dict[str, Any]
+    ) -> dict[str, Any]:
         """Extract agent info from full JSON data.
 
         Args:
@@ -236,7 +236,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
         # Default to system tier
         return "system"
 
-    def _is_valid_agent(self, agent_info: Dict[str, Any]) -> bool:
+    def _is_valid_agent(self, agent_info: dict[str, Any]) -> bool:
         """Check if agent is a valid deployable agent (not a template).
 
         Args:
@@ -267,7 +267,7 @@ class DeployedAgentDiscovery(ConfigServiceBase):
 
         return True
 
-    def get_precedence_order(self) -> List[str]:
+    def get_precedence_order(self) -> list[str]:
         """
         Get the precedence order for agent discovery.
 

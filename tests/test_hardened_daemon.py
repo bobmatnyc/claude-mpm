@@ -13,7 +13,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -433,7 +433,7 @@ def main():
     print("HARDENED SOCKET.IO DAEMON TEST SUITE")
     print("=" * 70)
     print(f"Testing daemon script: {DAEMON_SCRIPT}")
-    print(f"Test started: {datetime.now(timezone.utc)}")
+    print(f"Test started: {datetime.now(UTC)}")
 
     # Ensure clean state
     cleanup_daemon()

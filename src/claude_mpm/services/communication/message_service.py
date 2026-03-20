@@ -14,9 +14,8 @@ DESIGN:
 import os
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
 
@@ -39,10 +38,10 @@ class Message:
     priority: str
     created_at: datetime
     status: str = "unread"
-    reply_to: Optional[str] = None
+    reply_to: str | None = None
     subject: str = ""
     body: str = ""
-    attachments: List[str] = field(default_factory=list)
+    attachments: list[str] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
 
     def to_markdown(self) -> str:
@@ -136,7 +135,7 @@ class MessageService:
     def __init__(
         self,
         project_root: Path,
-        registry_path: Optional[Path] = None,
+        registry_path: Path | None = None,
     ):
         """
         Initialize message service.
@@ -269,8 +268,8 @@ class MessageService:
         body: str,
         priority: str = "normal",
         from_agent: str = "pm",
-        attachments: Optional[List[str]] = None,
-        metadata: Optional[dict] = None,
+        attachments: list[str] | None = None,
+        metadata: dict | None = None,
     ) -> Message:
         """
         Send a message to another project.
@@ -295,7 +294,7 @@ class MessageService:
         to_project_normalized = self._canonical_path(to_project)
 
         # Generate message ID
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
         message_id = f"msg-{timestamp}-{unique_id}"
 
@@ -308,7 +307,7 @@ class MessageService:
             to_agent=to_agent,
             type=message_type,
             priority=priority,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             status="sent",
             subject=subject,
             body=body,
@@ -359,8 +358,8 @@ class MessageService:
         return message
 
     def list_messages(
-        self, status: Optional[str] = None, agent: Optional[str] = None
-    ) -> List[Message]:
+        self, status: str | None = None, agent: str | None = None
+    ) -> list[Message]:
         """
         List messages in inbox.
 
@@ -406,7 +405,7 @@ class MessageService:
 
         return messages
 
-    def read_message(self, message_id: str) -> Optional[Message]:
+    def read_message(self, message_id: str) -> Message | None:
         """
         Read a message and mark as read.
 
@@ -455,7 +454,7 @@ class MessageService:
         """
         return self.messaging_db.update_message_status(message_id, "archived")
 
-    def get_unread_count(self, agent: Optional[str] = None) -> int:
+    def get_unread_count(self, agent: str | None = None) -> int:
         """
         Get count of unread messages.
 
@@ -476,7 +475,7 @@ class MessageService:
         subject: str,
         body: str,
         from_agent: str = "pm",
-    ) -> Optional[Message]:
+    ) -> Message | None:
         """
         Reply to a message.
 
@@ -532,9 +531,7 @@ class MessageService:
         """
         from datetime import timedelta
 
-        cutoff_date = (
-            datetime.now(timezone.utc) - timedelta(days=days_to_keep)
-        ).isoformat()
+        cutoff_date = (datetime.now(UTC) - timedelta(days=days_to_keep)).isoformat()
 
         with self.messaging_db.get_connection() as conn:
             cursor = conn.execute(
@@ -543,7 +540,7 @@ class MessageService:
             )
             return cursor.rowcount
 
-    def get_high_priority_messages(self) -> List[Message]:
+    def get_high_priority_messages(self) -> list[Message]:
         """
         Get high priority unread messages.
 

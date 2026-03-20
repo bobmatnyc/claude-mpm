@@ -14,7 +14,7 @@ Based on: tests/unit/services/cli/test_session_resume_helper.py (Gold Standard)
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, mock_open, patch
 
@@ -299,7 +299,7 @@ class TestVersionMetadata:
         """Test initialization with minimal data."""
         # Arrange
         version = SemanticVersion(1, 2, 3)
-        release_date = datetime.now(timezone.utc)
+        release_date = datetime.now(UTC)
 
         # Act
         metadata = VersionMetadata(version=version, release_date=release_date)
@@ -318,7 +318,7 @@ class TestVersionMetadata:
         """Test initialization with complete data."""
         # Arrange
         version = SemanticVersion(1, 2, 3)
-        release_date = datetime.now(timezone.utc)
+        release_date = datetime.now(UTC)
         changes = ["Added feature X", "Fixed bug Y"]
         breaking_changes = ["Removed API endpoint Z"]
         contributors = ["John Doe", "Jane Smith"]
@@ -718,7 +718,7 @@ class TestChangelogGeneration:
         changes = ["Add feature"]
         metadata = VersionMetadata(
             version=sample_version,
-            release_date=datetime.now(timezone.utc),
+            release_date=datetime.now(UTC),
             commit_hash="abc123",
             contributors=["John Doe"],
         )

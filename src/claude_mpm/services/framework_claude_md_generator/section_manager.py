@@ -5,7 +5,8 @@ Manages section registration, ordering, and updates.
 """
 
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 
 class SectionManager:
@@ -18,8 +19,8 @@ class SectionManager:
     def register_section(
         self,
         name: str,
-        generator: Callable[[Dict[str, Any]], str],
-        data: Optional[Dict[str, Any]] = None,
+        generator: Callable[[dict[str, Any]], str],
+        data: dict[str, Any] | None = None,
     ):
         """
         Register a section generator.
@@ -50,7 +51,7 @@ class SectionManager:
         return True
 
     def add_custom_section(
-        self, section_name: str, content: str, after: Optional[str] = None
+        self, section_name: str, content: str, after: str | None = None
     ):
         """
         Add a custom section to the generator.
@@ -73,7 +74,7 @@ class SectionManager:
                     new_sections[section_name] = new_section
             self.sections = new_sections
 
-    def get_section_list(self) -> List[str]:
+    def get_section_list(self) -> list[str]:
         """
         Get list of all section names in order.
 

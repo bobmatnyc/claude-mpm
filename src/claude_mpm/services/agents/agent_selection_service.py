@@ -37,7 +37,7 @@ Example Workflow:
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from claude_mpm.services.agents.single_tier_deployment_service import (
     SingleTierDeploymentService,
@@ -104,7 +104,7 @@ class AgentSelectionService:
 
         logger.info("AgentSelectionService initialized")
 
-    def deploy_minimal_configuration(self, dry_run: bool = False) -> Dict[str, Any]:
+    def deploy_minimal_configuration(self, dry_run: bool = False) -> dict[str, Any]:
         """Deploy minimal configuration (6 core agents).
 
         Deploys exactly 6 agents required for basic Claude MPM workflow:
@@ -168,9 +168,9 @@ class AgentSelectionService:
             )
 
         # Step 3: Deploy each available minimal agent
-        deployed_agents: List[str] = []
-        failed_agents: List[str] = []
-        deployment_details: List[Dict[str, Any]] = []
+        deployed_agents: list[str] = []
+        failed_agents: list[str] = []
+        deployment_details: list[dict[str, Any]] = []
 
         for agent_name in available_minimal:
             try:
@@ -235,9 +235,9 @@ class AgentSelectionService:
 
     def deploy_auto_configure(
         self,
-        project_path: Optional[Path] = None,
+        project_path: Path | None = None,
         dry_run: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Auto-detect toolchain and deploy matching agents.
 
         Workflow:
@@ -342,9 +342,9 @@ class AgentSelectionService:
             )
 
         # Step 5: Deploy each available recommended agent
-        deployed_agents: List[str] = []
-        failed_agents: List[str] = []
-        deployment_details: List[Dict[str, Any]] = []
+        deployed_agents: list[str] = []
+        failed_agents: list[str] = []
+        deployment_details: list[dict[str, Any]] = []
 
         for agent_name in available_recommended:
             try:
@@ -410,8 +410,8 @@ class AgentSelectionService:
         return report
 
     def _validate_agent_availability(
-        self, required_agents: List[str], available_agents: Set[str]
-    ) -> Tuple[List[str], List[str]]:
+        self, required_agents: list[str], available_agents: set[str]
+    ) -> tuple[list[str], list[str]]:
         """Validate which required agents are available.
 
         Args:
@@ -423,8 +423,8 @@ class AgentSelectionService:
             - available_list: Agents that are available
             - missing_list: Agents that are not available
         """
-        available_list: List[str] = []
-        missing_list: List[str] = []
+        available_list: list[str] = []
+        missing_list: list[str] = []
 
         for agent_name in required_agents:
             agent_id = agent_name.lower().replace(" ", "-")
@@ -435,7 +435,7 @@ class AgentSelectionService:
 
         return available_list, missing_list
 
-    def get_available_selection_modes(self) -> List[Dict[str, Any]]:
+    def get_available_selection_modes(self) -> list[dict[str, Any]]:
         """Get information about available selection modes.
 
         Returns:

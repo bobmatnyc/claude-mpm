@@ -11,7 +11,7 @@ These tests ensure that Research Agent principles work together cohesively,
 not just in isolation.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase

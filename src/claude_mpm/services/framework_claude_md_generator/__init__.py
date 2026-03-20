@@ -7,7 +7,7 @@ This service provides structured generation of the framework INSTRUCTIONS.md tem
 (legacy: CLAUDE.md) with auto-versioning, section management, and deployment capabilities.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from .content_assembler import ContentAssembler
 from .content_validator import ContentValidator
@@ -78,8 +78,8 @@ class FrameworkClaudeMdGenerator:
 
     def generate(
         self,
-        current_content: Optional[str] = None,
-        template_variables: Optional[Dict[str, str]] = None,
+        current_content: str | None = None,
+        template_variables: dict[str, str] | None = None,
     ) -> str:
         """
         Generate the complete INSTRUCTIONS.md/CLAUDE.md content.
@@ -108,7 +108,7 @@ class FrameworkClaudeMdGenerator:
         # Assemble content
         return self.assembler.assemble_content(sections, template_variables)
 
-    def validate_content(self, content: str) -> Tuple[bool, List[str]]:
+    def validate_content(self, content: str) -> tuple[bool, list[str]]:
         """
         Validate that generated content has all required sections.
 
@@ -122,7 +122,7 @@ class FrameworkClaudeMdGenerator:
 
     def deploy_to_parent(
         self, parent_path: Path, force: bool = False
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Deploy generated content to a parent directory.
 
@@ -150,7 +150,7 @@ class FrameworkClaudeMdGenerator:
         # Deploy using deployment manager
         return self.deployment_manager.deploy_to_parent(new_content, parent_path, force)
 
-    def get_section_list(self) -> List[str]:
+    def get_section_list(self) -> list[str]:
         """
         Get list of all section names in order.
 
@@ -173,7 +173,7 @@ class FrameworkClaudeMdGenerator:
         return self.section_manager.update_section(section_name, content)
 
     def add_custom_section(
-        self, section_name: str, content: str, after: Optional[str] = None
+        self, section_name: str, content: str, after: str | None = None
     ):
         """
         Add a custom section to the generator.
@@ -190,11 +190,11 @@ class FrameworkClaudeMdGenerator:
         """Get framework version (compatibility method)."""
         return self.version_manager._get_framework_version()
 
-    def _parse_current_version(self, content: str) -> Tuple[str, int]:
+    def _parse_current_version(self, content: str) -> tuple[str, int]:
         """Parse current version (compatibility method)."""
         return self.version_manager.parse_current_version(content)
 
-    def _auto_increment_version(self, current_content: Optional[str] = None) -> str:
+    def _auto_increment_version(self, current_content: str | None = None) -> str:
         """Auto-increment version (compatibility method)."""
         return self.version_manager.auto_increment_version(current_content)
 

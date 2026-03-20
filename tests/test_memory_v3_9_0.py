@@ -46,7 +46,7 @@ class MemoryV3_9_0_Tester:
         self.test_results.append(result)
         print(result)
 
-    def create_temp_project(self, project_memory_content: Optional[str] = None) -> Path:
+    def create_temp_project(self, project_memory_content: str | None = None) -> Path:
         """Create a temporary project with optional project-specific memory."""
         temp_dir = Path(tmp_path)
         self.temp_dirs.append(temp_dir)

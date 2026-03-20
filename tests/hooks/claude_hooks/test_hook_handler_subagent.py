@@ -171,9 +171,12 @@ class TestErrorHandling:
 
         handler = ClaudeHookHandler()
 
-        with patch.object(
-            handler, "_read_hook_event", side_effect=Exception("Read error")
-        ), patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+        with (
+            patch.object(
+                handler, "_read_hook_event", side_effect=Exception("Read error")
+            ),
+            patch("sys.stdout", new_callable=StringIO) as mock_stdout,
+        ):
             handler.handle()
 
         output = mock_stdout.getvalue()

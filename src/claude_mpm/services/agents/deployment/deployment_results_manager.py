@@ -3,7 +3,7 @@
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class DeploymentResultsManager:
@@ -14,7 +14,7 @@ class DeploymentResultsManager:
     all deployment operations.
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: logging.Logger | None = None):
         """Initialize the deployment results manager.
 
         Args:
@@ -35,7 +35,7 @@ class DeploymentResultsManager:
 
     def initialize_deployment_results(
         self, agents_dir: Path, deployment_start_time: float
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Initialize the deployment results dictionary.
 
         WHY: Consistent result structure ensures all deployment
@@ -78,8 +78,8 @@ class DeploymentResultsManager:
         is_migration: bool,
         reason: str,
         agent_start_time: float,
-        results: Dict[str, Any],
-        logger: Optional[logging.Logger] = None,
+        results: dict[str, Any],
+        logger: logging.Logger | None = None,
     ) -> None:
         """Record deployment metrics and update results.
 
@@ -134,7 +134,7 @@ class DeploymentResultsManager:
             logger.debug(f"Built and deployed agent: {agent_name}")
 
     def finalize_results(
-        self, results: Dict[str, Any], deployment_start_time: float
+        self, results: dict[str, Any], deployment_start_time: float
     ) -> None:
         """Finalize deployment results with end metrics.
 
@@ -149,7 +149,7 @@ class DeploymentResultsManager:
         results["metrics"]["duration_ms"] = deployment_duration
 
     def update_deployment_metrics(
-        self, success: bool, error_type: Optional[str] = None
+        self, success: bool, error_type: str | None = None
     ) -> None:
         """Update internal deployment metrics.
 
@@ -168,7 +168,7 @@ class DeploymentResultsManager:
                     self._deployment_metrics["deployment_errors"].get(error_type, 0) + 1
                 )
 
-    def get_deployment_metrics(self) -> Dict[str, Any]:
+    def get_deployment_metrics(self) -> dict[str, Any]:
         """Get current deployment metrics."""
         return self._deployment_metrics.copy()
 

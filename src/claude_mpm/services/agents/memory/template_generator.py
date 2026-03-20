@@ -13,9 +13,9 @@ This module provides:
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.core.config import Config
 
@@ -46,7 +46,7 @@ class MemoryTemplateGenerator:
         self.working_directory = working_directory
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    def create_default_memory(self, agent_id: str, limits: Dict[str, Any]) -> str:
+    def create_default_memory(self, agent_id: str, limits: dict[str, Any]) -> str:
         """Create basic memory template for agent.
 
         Args:
@@ -58,13 +58,13 @@ class MemoryTemplateGenerator:
         """
         # Convert agent_id to proper name, handling cases like "test_agent" -> "Test"
         agent_id.replace("_agent", "").replace("_", " ").title()
-        datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
         # Create a simple template that agents will populate through learning
         return self._create_basic_memory_template(agent_id, limits)
 
     def _create_basic_memory_template(
-        self, agent_id: str, limits: Dict[str, Any]
+        self, agent_id: str, limits: dict[str, Any]
     ) -> str:
         """Create basic memory template as a simple list.
 
@@ -75,7 +75,7 @@ class MemoryTemplateGenerator:
         Returns:
             str: Basic memory template
         """
-        timestamp = datetime.now(timezone.utc).isoformat() + "Z"
+        timestamp = datetime.now(UTC).isoformat() + "Z"
 
         return f"""# Agent Memory: {agent_id}
 <!-- Last Updated: {timestamp} -->

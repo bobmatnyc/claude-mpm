@@ -5,7 +5,8 @@ This test suite validates that Research Agent memory management protocols are
 properly enforced across all memory scenarios (MEM-R-001 to MEM-R-006).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -22,7 +23,7 @@ class TestMemoryProtocol:
         self.metric = MemoryEfficiencyMetric(threshold=0.9)
 
     def test_file_size_check_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant file size checking scores high.
 
@@ -44,7 +45,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_file_size_check_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing file size check fails.
 
@@ -66,7 +67,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_summarizer_usage_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that document summarizer usage scores high.
 
@@ -87,7 +88,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_summarizer_usage_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing summarizer usage fails.
 
@@ -108,7 +109,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_file_read_limit_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that 3-5 file limit compliance scores high.
 
@@ -129,7 +130,7 @@ class TestMemoryProtocol:
         )
 
     def test_file_read_limit_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that excessive file reads fail.
 
@@ -150,7 +151,7 @@ class TestMemoryProtocol:
         )
 
     def test_line_sampling_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that strategic line sampling scores high.
 
@@ -170,7 +171,7 @@ class TestMemoryProtocol:
         )
 
     def test_line_sampling_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that full file reads fail.
 
@@ -190,7 +191,7 @@ class TestMemoryProtocol:
         )
 
     def test_no_full_codebase_reads_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that discovery-based approach scores high.
 
@@ -212,7 +213,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_no_full_codebase_reads_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that brute force reads fail.
 
@@ -233,7 +234,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_strategic_sampling_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that strategic sampling scores high.
 
@@ -255,7 +256,7 @@ class TestMemoryProtocol:
         )
 
     def test_strategic_sampling_non_compliant(
-        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
+        self, memory_scenarios: list[dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that exhaustive analysis fails.
 

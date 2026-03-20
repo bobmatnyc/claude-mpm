@@ -7,7 +7,7 @@ Extracted from AgentDeploymentService to reduce complexity and improve maintaina
 import logging
 import shutil
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
 class SystemInstructionsDeployer:
@@ -22,7 +22,7 @@ class SystemInstructionsDeployer:
         self,
         target_dir: Path,
         force_rebuild: bool,
-        results: Dict[str, Any],
+        results: dict[str, Any],
     ) -> None:
         """
         Deploy system instructions and framework files for PM framework.
@@ -121,7 +121,7 @@ class SystemInstructionsDeployer:
         self,
         claude_mpm_dir: Path,
         force_rebuild: bool,
-        results: Dict[str, Any],
+        results: dict[str, Any],
     ) -> None:
         """
         Deploy PM instruction template files to project .claude-mpm/templates directory.

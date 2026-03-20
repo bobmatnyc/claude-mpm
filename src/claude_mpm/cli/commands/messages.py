@@ -13,13 +13,13 @@ DESIGN:
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from rich.panel import Panel
 from rich.table import Table
 
 from ...core.unified_paths import UnifiedPathManager
 from ...services.communication.message_service import MessageService
+from ...services.communication.shortcuts_service import ShortcutsService
 from ...utils.console import console
 from ..shared import BaseCommand, CommandResult
 
@@ -31,9 +31,10 @@ class MessagesCommand(BaseCommand):
         super().__init__("messages")
         self.path_manager = UnifiedPathManager()
         self.message_service = MessageService(self.path_manager.project_root)
+        self.shortcuts_service = ShortcutsService()
 
     @staticmethod
-    def _resolve_body(args) -> Optional[str]:
+    def _resolve_body(args) -> str | None:
         """Resolve message body from --body, --body-file, or stdin.
 
         Priority: --body-file > --body
@@ -52,7 +53,7 @@ class MessagesCommand(BaseCommand):
             return path.read_text(encoding="utf-8").strip()
         return getattr(args, "body", None)
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         if not hasattr(args, "message_command") or not args.message_command:
             return "No message subcommand specified"
@@ -65,6 +66,7 @@ class MessagesCommand(BaseCommand):
             "reply",
             "check",
             "sessions",
+            "shortcut",
         ]
         if args.message_command not in valid_commands:
             return f"Unknown message command: {args.message_command}. Valid: {', '.join(valid_commands)}"
@@ -108,6 +110,8 @@ class MessagesCommand(BaseCommand):
             return self._check_messages(args)
         if args.message_command == "sessions":
             return self._list_sessions(args)
+        if args.message_command == "shortcut":
+            return self._handle_shortcut(args)
 
         return CommandResult.error_result(
             f"Unknown message command: {args.message_command}"
@@ -116,8 +120,19 @@ class MessagesCommand(BaseCommand):
     def _send_message(self, args) -> CommandResult:
         """Send a message to another project."""
         try:
+            # Resolve shortcut or absolute path
+            to_project_str = args.to_project
+            if not to_project_str.startswith("/"):
+                resolved = self.shortcuts_service.get_shortcut_path(to_project_str)
+                if resolved:
+                    to_project_str = resolved
+                else:
+                    return CommandResult.error_result(
+                        f"'{to_project_str}' is not an absolute path and no shortcut found."
+                    )
+
             # Resolve target project path
-            to_project = Path(args.to_project).resolve()
+            to_project = Path(to_project_str).resolve()
 
             if not to_project.exists():
                 return CommandResult.error_result(
@@ -417,6 +432,98 @@ class MessagesCommand(BaseCommand):
 
         except Exception as e:
             return CommandResult.error_result(f"Failed to list sessions: {e}")
+
+    def _handle_shortcut(self, args) -> CommandResult:
+        """Dispatch shortcut subcommands."""
+        shortcut_command = getattr(args, "shortcut_command", None)
+
+        if not shortcut_command:
+            console.print(
+                "[yellow]No shortcut subcommand specified. "
+                "Use: add, list, remove, resolve[/yellow]"
+            )
+            return CommandResult.error_result("No shortcut subcommand specified")
+
+        if shortcut_command == "add":
+            return self._shortcut_add(args)
+        if shortcut_command == "list":
+            return self._shortcut_list(args)
+        if shortcut_command == "remove":
+            return self._shortcut_remove(args)
+        if shortcut_command == "resolve":
+            return self._shortcut_resolve(args)
+
+        return CommandResult.error_result(
+            f"Unknown shortcut subcommand: {shortcut_command}"
+        )
+
+    def _shortcut_add(self, args) -> CommandResult:
+        """Add or update a shortcut."""
+        name = args.name
+        path = args.path
+
+        success = self.shortcuts_service.add_shortcut(name, path)
+        if not success:
+            return CommandResult.error_result(
+                f"Failed to add shortcut '{name}'. "
+                "Name must be alphanumeric (underscores/hyphens allowed) "
+                "and path must be an existing directory."
+            )
+
+        resolved = self.shortcuts_service.get_shortcut_path(name)
+        console.print(
+            f"[green]✓[/green] Shortcut added: [cyan]{name}[/cyan] -> {resolved}"
+        )
+        return CommandResult.success_result(f"Shortcut '{name}' added")
+
+    def _shortcut_list(self, args) -> CommandResult:
+        """List all shortcuts."""
+        shortcuts = self.shortcuts_service.list_shortcuts()
+
+        if not shortcuts:
+            console.print("[yellow]No shortcuts defined.[/yellow]")
+            console.print(
+                "[dim]Add one with: claude-mpm message shortcut add <name> <path>[/dim]"
+            )
+            return CommandResult.success_result("No shortcuts")
+
+        table = Table(
+            title="Message Shortcuts",
+            show_header=True,
+            header_style="bold",
+            show_lines=False,
+        )
+        table.add_column("Name", style="cyan")
+        table.add_column("Path", style="white")
+
+        for name, path in sorted(shortcuts.items()):
+            table.add_row(name, path)
+
+        console.print(table)
+        console.print(f"\n[dim]Total: {len(shortcuts)} shortcut(s)[/dim]")
+        return CommandResult.success_result(f"Listed {len(shortcuts)} shortcuts")
+
+    def _shortcut_remove(self, args) -> CommandResult:
+        """Remove a shortcut."""
+        name = args.name
+        removed = self.shortcuts_service.remove_shortcut(name)
+
+        if not removed:
+            return CommandResult.error_result(f"Shortcut not found: '{name}'")
+
+        console.print(f"[green]✓[/green] Shortcut removed: [cyan]{name}[/cyan]")
+        return CommandResult.success_result(f"Shortcut '{name}' removed")
+
+    def _shortcut_resolve(self, args) -> CommandResult:
+        """Resolve a shortcut name to its path."""
+        name = args.name
+        path = self.shortcuts_service.get_shortcut_path(name)
+
+        if path is None:
+            return CommandResult.error_result(f"Shortcut not found: '{name}'")
+
+        console.print(path)
+        return CommandResult.success_result(path)
 
 
 def manage_messages(args) -> int:

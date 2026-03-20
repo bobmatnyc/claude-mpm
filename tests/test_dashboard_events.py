@@ -8,7 +8,7 @@ import asyncio
 import json
 import random
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import socketio
 
@@ -45,7 +45,7 @@ class DashboardEventTester:
 
         if data is None:
             data = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "test_id": random.randint(1000, 9999),
                 "message": f"Test event generated at {time.time()}",
             }
@@ -125,7 +125,7 @@ class DashboardEventTester:
                 "load_test": True,
                 "event_num": i + 1,
                 "total_events": total_events,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "performance_data": {
                     "cpu_usage": random.uniform(10, 90),
                     "memory_mb": random.randint(100, 1000),

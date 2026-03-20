@@ -7,7 +7,7 @@ import json
 import shutil
 import subprocess  # nosec B404 - required for CLI adapters
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class CLIAdapter(ABC):
@@ -21,14 +21,14 @@ class CLIAdapter(ABC):
         """Execute prompt and return response text."""
 
     @abstractmethod
-    def invoke_json(self, prompt: str, **kwargs) -> Dict[str, Any]:
+    def invoke_json(self, prompt: str, **kwargs) -> dict[str, Any]:
         """Execute prompt and return structured response."""
 
     def is_available(self) -> bool:
         """Check if CLI is installed."""
         return shutil.which(self.command) is not None
 
-    def _run(self, args: List[str], input_text: Optional[str] = None) -> str:
+    def _run(self, args: list[str], input_text: str | None = None) -> str:
         """Run CLI command and return stdout."""
         result = subprocess.run(  # nosec B603 - args are controlled by adapter subclasses
             args,
@@ -52,7 +52,7 @@ class ClaudeAdapter(CLIAdapter):
     def invoke(self, prompt: str, **kwargs) -> str:
         return self._run(["claude", "-p", prompt])
 
-    def invoke_json(self, prompt: str, **kwargs) -> Dict[str, Any]:
+    def invoke_json(self, prompt: str, **kwargs) -> dict[str, Any]:
         output = self._run(["claude", "-p", "--output-format", "json", prompt])
         return json.loads(output)
 
@@ -70,7 +70,7 @@ class CodexAdapter(CLIAdapter):
     def invoke(self, prompt: str, **kwargs) -> str:
         return self._run(["codex", "exec", prompt])
 
-    def invoke_json(self, prompt: str, **kwargs) -> Dict[str, Any]:
+    def invoke_json(self, prompt: str, **kwargs) -> dict[str, Any]:
         output = self._run(["codex", "exec", "--json", prompt])
         # Parse JSONL format, return all responses
         lines = [json.loads(line) for line in output.strip().split("\n") if line]
@@ -90,7 +90,7 @@ class AuggieAdapter(CLIAdapter):
     def invoke(self, prompt: str, **kwargs) -> str:
         return self._run(["auggie", "--print", "--quiet", prompt])
 
-    def invoke_json(self, prompt: str, **kwargs) -> Dict[str, Any]:
+    def invoke_json(self, prompt: str, **kwargs) -> dict[str, Any]:
         # Auggie doesn't have native JSON output for responses
         output = self.invoke(prompt, **kwargs)
         return {"response": output, "format": "text"}
@@ -111,13 +111,13 @@ class GeminiAdapter(CLIAdapter):
 
     def invoke_json(
         self, prompt: str, model: str = "flash", **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         output = self._run(["gemini", "-m", model, "-o", "json", prompt])
         return json.loads(output)
 
 
 # Registry of available adapters
-ADAPTERS: Dict[str, type] = {
+ADAPTERS: dict[str, type] = {
     "claude": ClaudeAdapter,
     "codex": CodexAdapter,
     "auggie": AuggieAdapter,
@@ -142,6 +142,6 @@ def get_adapter(name: str = "claude") -> CLIAdapter:
     return ADAPTERS[name]()
 
 
-def get_available_adapters() -> List[str]:
+def get_available_adapters() -> list[str]:
     """Return list of installed/available CLI adapters."""
     return [name for name, cls in ADAPTERS.items() if cls().is_available()]

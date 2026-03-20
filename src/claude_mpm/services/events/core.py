@@ -12,9 +12,9 @@ import time
 import uuid
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Deque, Dict, List, Optional, Set
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -36,11 +36,11 @@ class EventMetadata:
 
     retry_count: int = 0
     max_retries: int = 3
-    published_at: Optional[datetime] = None
-    consumed_at: Optional[datetime] = None
-    consumers_processed: Set[str] = field(default_factory=set)
-    consumers_failed: Set[str] = field(default_factory=set)
-    error_messages: List[str] = field(default_factory=list)
+    published_at: datetime | None = None
+    consumed_at: datetime | None = None
+    consumers_processed: set[str] = field(default_factory=set)
+    consumers_failed: set[str] = field(default_factory=set)
+    error_messages: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -56,9 +56,9 @@ class Event:
     type: str  # Event type (e.g., "AssistantResponse")
     timestamp: datetime  # When event was created
     source: str  # Who created the event
-    data: Dict[str, Any]  # Event payload
-    metadata: Optional[EventMetadata] = None  # Event metadata
-    correlation_id: Optional[str] = None  # For tracking related events
+    data: dict[str, Any]  # Event payload
+    metadata: EventMetadata | None = None  # Event metadata
+    correlation_id: str | None = None  # For tracking related events
     priority: EventPriority = EventPriority.NORMAL
 
     def __post_init__(self):
@@ -135,17 +135,17 @@ class EventBus(IEventBus):
 
         # State
         self._running = False
-        self._processing_task: Optional[asyncio.Task] = None
+        self._processing_task: asyncio.Task | None = None
 
         # Event queue (priority-based)
-        self._event_queues: Dict[EventPriority, Deque[Event]] = {
+        self._event_queues: dict[EventPriority, deque[Event]] = {
             priority: deque(maxlen=max_queue_size // 4) for priority in EventPriority
         }
 
         # Consumers
-        self._consumers: Dict[str, IEventConsumer] = {}
-        self._consumer_topics: Dict[str, List[str]] = {}
-        self._topic_consumers: Dict[str, Set[str]] = defaultdict(set)
+        self._consumers: dict[str, IEventConsumer] = {}
+        self._consumer_topics: dict[str, list[str]] = {}
+        self._topic_consumers: dict[str, set[str]] = defaultdict(set)
 
         # Metrics
         self._metrics = {
@@ -160,7 +160,7 @@ class EventBus(IEventBus):
         }
 
         # Dead letter queue for failed events
-        self._dead_letter_queue: Deque[Event] = deque(maxlen=1000)
+        self._dead_letter_queue: deque[Event] = deque(maxlen=1000)
 
     async def start(self) -> None:
         """Start the event bus."""
@@ -225,7 +225,7 @@ class EventBus(IEventBus):
 
         # Add metadata
         if event.metadata:
-            event.metadata.published_at = datetime.now(timezone.utc)
+            event.metadata.published_at = datetime.now(UTC)
 
         # Queue event
         self._event_queues[event.priority].append(event)
@@ -306,11 +306,11 @@ class EventBus(IEventBus):
             self.logger.error(f"Error unsubscribing consumer {consumer_name}: {e}")
             return False
 
-    def get_consumers(self) -> List[IEventConsumer]:
+    def get_consumers(self) -> list[IEventConsumer]:
         """Get list of active consumers."""
         return list(self._consumers.values())
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get event bus metrics."""
         return {
             **self._metrics,
@@ -353,7 +353,7 @@ class EventBus(IEventBus):
                 # Update metrics
                 if events_processed > 0:
                     self._metrics["events_processed"] += events_processed
-                    self._metrics["last_event_time"] = datetime.now(timezone.utc)
+                    self._metrics["last_event_time"] = datetime.now(UTC)
                     self._metrics["queue_size"] = sum(
                         len(q) for q in self._event_queues.values()
                     )
@@ -366,7 +366,7 @@ class EventBus(IEventBus):
                 self.logger.error(f"Error in event processing loop: {e}")
                 await asyncio.sleep(1)  # Back off on error
 
-    async def _route_events(self, events: List[Event]) -> None:
+    async def _route_events(self, events: list[Event]) -> None:
         """
         Route events to appropriate consumers.
 

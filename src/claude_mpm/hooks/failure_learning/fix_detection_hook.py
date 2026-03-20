@@ -21,7 +21,7 @@ Integration points:
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.hooks.base_hook import BaseHook, HookContext, HookResult, HookType
 from claude_mpm.services.memory.failure_tracker import get_failure_tracker
@@ -143,7 +143,7 @@ class FixDetectionHook(BaseHook):
         # Must have tool execution data
         return "tool_name" in context.data
 
-    def _extract_tool_output(self, data: Dict[str, Any]) -> str:
+    def _extract_tool_output(self, data: dict[str, Any]) -> str:
         """Extract tool output from event data.
 
         Args:
@@ -161,7 +161,7 @@ class FixDetectionHook(BaseHook):
 
         return str(output) if output else ""
 
-    def _build_fix_context(self, context: HookContext) -> Dict[str, str]:
+    def _build_fix_context(self, context: HookContext) -> dict[str, str]:
         """Build context dictionary for fix event.
 
         Args:

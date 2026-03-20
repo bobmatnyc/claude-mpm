@@ -16,9 +16,10 @@ Key Responsibilities:
 import asyncio
 import time
 from dataclasses import dataclass, field
+from datetime import UTC
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_paths import get_path_manager
@@ -52,12 +53,12 @@ class LifecycleOperationResult:
     agent_name: str
     success: bool
     duration_ms: float
-    error_message: Optional[str] = None
-    modification_id: Optional[str] = None
-    persistence_id: Optional[str] = None
+    error_message: str | None = None
+    modification_id: str | None = None
+    persistence_id: str | None = None
     cache_invalidated: bool = False
     registry_updated: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class AgentOperationService(BaseService):
@@ -71,17 +72,17 @@ class AgentOperationService(BaseService):
     - Handle concurrency and locking
     """
 
-    def __init__(self, agent_manager: Optional[AgentManager] = None):
+    def __init__(self, agent_manager: AgentManager | None = None):
         """Initialize the operation service."""
         super().__init__("agent_operation_service")
 
         # Dependencies
         self.agent_manager = agent_manager
-        self.modification_tracker: Optional[AgentModificationTracker] = None
+        self.modification_tracker: AgentModificationTracker | None = None
 
         # Operation tracking
-        self.operation_history: List[LifecycleOperationResult] = []
-        self.active_operations: Dict[str, LifecycleOperation] = {}
+        self.operation_history: list[LifecycleOperationResult] = []
+        self.active_operations: dict[str, LifecycleOperation] = {}
 
         # Operation lock for thread safety
         self._operation_lock = asyncio.Lock()
@@ -469,7 +470,7 @@ class AgentOperationService(BaseService):
 
     async def _create_deletion_backup(
         self, agent_name: str, file_path: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Create backup before agent deletion."""
         try:
             source_path = Path(file_path)
@@ -479,9 +480,9 @@ class AgentOperationService(BaseService):
             backup_dir = get_path_manager().get_cache_dir() / "tracking" / "backups"
             path_ops.ensure_dir(backup_dir)
 
-            from datetime import datetime, timezone
+            from datetime import datetime
 
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{agent_name}_deleted_{timestamp}{source_path.suffix}"
             backup_path = backup_dir / backup_filename
 
@@ -535,8 +536,8 @@ class AgentOperationService(BaseService):
         ) / total_ops
 
     def get_operation_history(
-        self, agent_name: Optional[str] = None, limit: int = 100
-    ) -> List[LifecycleOperationResult]:
+        self, agent_name: str | None = None, limit: int = 100
+    ) -> list[LifecycleOperationResult]:
         """Get operation history with optional filtering."""
         history = self.operation_history
 
@@ -545,11 +546,11 @@ class AgentOperationService(BaseService):
 
         return sorted(history, key=lambda x: x.duration_ms, reverse=True)[:limit]
 
-    def get_active_operations(self) -> Dict[str, LifecycleOperation]:
+    def get_active_operations(self) -> dict[str, LifecycleOperation]:
         """Get currently active operations."""
         return self.active_operations.copy()
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics."""
         return self._operation_metrics.copy()
 
@@ -565,7 +566,7 @@ class AgentOperationService(BaseService):
 
         self.logger.info("AgentOperationService cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform health check."""
         return {
             "agent_manager_available": self.agent_manager is not None,

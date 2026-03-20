@@ -52,7 +52,7 @@ class MockStateManager:
         self._cleanup_calls: int = 0
 
     def track_delegation(
-        self, session_id: str, agent_type: str, request_data: Optional[dict] = None
+        self, session_id: str, agent_type: str, request_data: dict | None = None
     ) -> None:
         self._track_delegation_calls.append(
             {
@@ -69,10 +69,10 @@ class MockStateManager:
     def cleanup_old_entries(self) -> None:
         self._cleanup_calls += 1
 
-    def get_git_branch(self, working_dir: Optional[str] = None) -> str:
+    def get_git_branch(self, working_dir: str | None = None) -> str:
         return "mock-branch"
 
-    def find_matching_request(self, session_id: str) -> Optional[dict]:
+    def find_matching_request(self, session_id: str) -> dict | None:
         return self.delegation_requests.get(session_id)
 
     def remove_request(self, session_id: str) -> None:
@@ -125,9 +125,9 @@ class MockResponseTrackingManager:
 
     def __init__(self) -> None:
         self.response_tracking_enabled: bool = True
-        self.response_tracker: Optional[Any] = None
+        self.response_tracker: Any | None = None
         self.track_all_interactions: bool = False
-        self.auto_pause_handler: Optional[Any] = None
+        self.auto_pause_handler: Any | None = None
         self._tracked_responses: list = []
 
     def track_agent_response(
@@ -228,14 +228,14 @@ class MockAutoPauseHandler:
     def on_assistant_response(self, response: str) -> None:
         self._assistant_responses.append(response)
 
-    def on_usage_update(self, usage: dict) -> Optional[str]:
+    def on_usage_update(self, usage: dict) -> str | None:
         self._usage_updates.append(usage)
         return None
 
     def emit_threshold_warning(self, threshold: str) -> str:
         return f"Warning: {threshold} threshold reached"
 
-    def on_session_end(self) -> Optional[Any]:
+    def on_session_end(self) -> Any | None:
         return None
 
 
@@ -258,7 +258,7 @@ class MockEventHandlers:
     def handle_user_prompt_fast(self, event: dict) -> None:
         self._handled_events["user_prompt"].append(event)
 
-    def handle_pre_tool_fast(self, event: dict) -> Optional[dict]:
+    def handle_pre_tool_fast(self, event: dict) -> dict | None:
         self._handled_events["pre_tool"].append(event)
         return None
 

@@ -26,7 +26,7 @@ import re
 import shutil
 import subprocess  # nosec B404
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.hooks.base_hook import HookContext, HookResult, SubmitHook
@@ -71,7 +71,7 @@ class KuzuMemoryHook(SubmitHook):
             r"(?:Learned|Discovered|Found that):\s*(.+?)(?:\n|$)",
         ]
 
-    def _detect_kuzu_memory(self) -> Optional[str]:
+    def _detect_kuzu_memory(self) -> str | None:
         """
         Detect if kuzu-memory is installed and return its command path.
 
@@ -157,7 +157,7 @@ class KuzuMemoryHook(SubmitHook):
                 error=f"Memory integration failed: {e}",
             )
 
-    def _retrieve_memories(self, query: str) -> List[Dict[str, Any]]:
+    def _retrieve_memories(self, query: str) -> list[dict[str, Any]]:
         """
         Retrieve relevant memories for the given query.
 
@@ -203,8 +203,8 @@ class KuzuMemoryHook(SubmitHook):
         return []
 
     def _enrich_prompt(
-        self, original_data: Dict[str, Any], prompt: str, memories: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, original_data: dict[str, Any], prompt: str, memories: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Enrich the user prompt with relevant memories.
 
@@ -238,7 +238,7 @@ Note: Use the memories above to provide more informed and contextual responses.
 
         return enriched_data
 
-    def _format_memories(self, memories: List[Dict[str, Any]]) -> str:
+    def _format_memories(self, memories: list[dict[str, Any]]) -> str:
         """
         Format memories into a readable context string.
 
@@ -270,7 +270,7 @@ Note: Use the memories above to provide more informed and contextual responses.
 
         return "\n".join(formatted)
 
-    def store_memory(self, content: str, tags: Optional[List[str]] = None) -> bool:
+    def store_memory(self, content: str, tags: list[str] | None = None) -> bool:
         """
         Store a memory using kuzu-memory async learn command.
 
@@ -340,7 +340,7 @@ Note: Use the memories above to provide more informed and contextual responses.
 
         return stored_count
 
-    def _infer_tags(self, content: str) -> List[str]:
+    def _infer_tags(self, content: str) -> list[str]:
         """
         Infer tags based on memory content.
 

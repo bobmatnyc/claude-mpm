@@ -324,10 +324,13 @@ class TestFullWorkflowSkillIntegration:
         # agent files. Without this mock, _review_project_agents() uses
         # Path.cwd() / ".claude" / "agents" (ignoring project_path entirely) and
         # archives all agents not in recommendations via shutil.move().
-        with patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {"python-engineer": ["python-testing", "systematic-debugging"]},
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {"python-engineer": ["python-testing", "systematic-debugging"]},
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             result = command.run(args)
 
             # Verify full workflow executed successfully
@@ -397,10 +400,13 @@ class TestFullWorkflowSkillIntegration:
         # agent files. Without this mock, _review_project_agents() uses
         # Path.cwd() / ".claude" / "agents" (ignoring project_path entirely) and
         # archives all agents not in recommendations via shutil.move().
-        with patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {"python-engineer": ["python-testing"]},
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {"python-engineer": ["python-testing"]},
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             result = command.run(args)
 
             # Verify skills deployed but agents skipped
@@ -439,10 +445,13 @@ class TestFullWorkflowSkillIntegration:
         # agent files. Without this mock, _review_project_agents() uses
         # Path.cwd() / ".claude" / "agents" (ignoring project_path entirely) and
         # archives all agents not in recommendations via shutil.move().
-        with patch(
-            "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
-            {"python-engineer": ["python-testing"]},
-        ), patch.object(command, "_review_project_agents", return_value=None):
+        with (
+            patch(
+                "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
+                {"python-engineer": ["python-testing"]},
+            ),
+            patch.object(command, "_review_project_agents", return_value=None),
+        ):
             result = command.run(args)
 
             # Should handle skill failure gracefully

@@ -12,7 +12,7 @@ rather than a single list with type checking because:
 """
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import HookServiceInterface
@@ -39,7 +39,7 @@ class HookService(HookServiceInterface):
     - We log all failures for debugging but keep the system resilient
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         """Initialize the hook service.
 
         Args:
@@ -49,8 +49,8 @@ class HookService(HookServiceInterface):
         self.logger = get_logger(__name__)
 
         # Separate lists for different hook types for performance
-        self.pre_delegation_hooks: List[PreDelegationHook] = []
-        self.post_delegation_hooks: List[PostDelegationHook] = []
+        self.pre_delegation_hooks: list[PreDelegationHook] = []
+        self.post_delegation_hooks: list[PostDelegationHook] = []
 
         # Track execution statistics for monitoring
         self.stats = {
@@ -286,7 +286,7 @@ class HookService(HookServiceInterface):
 
         return True
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get execution statistics.
 
         WHY: Monitoring hook execution helps identify performance issues
@@ -308,7 +308,7 @@ class HookService(HookServiceInterface):
             "errors": 0,
         }
 
-    def list_hooks(self) -> Dict[str, List[str]]:
+    def list_hooks(self) -> dict[str, list[str]]:
         """List all registered hooks by type.
 
         WHY: Useful for debugging and understanding what hooks are active.
@@ -355,7 +355,7 @@ class HookService(HookServiceInterface):
     # ================================================================================
     # These methods are added to comply with HookServiceInterface
 
-    def get_registered_hooks(self) -> Dict[str, List[Any]]:
+    def get_registered_hooks(self) -> dict[str, list[Any]]:
         """Get all registered hooks by type.
 
         WHY: This method provides interface compliance by exposing the
@@ -385,7 +385,7 @@ class HookService(HookServiceInterface):
             ],
         }
 
-    def clear_hooks(self, hook_type: Optional[str] = None) -> None:
+    def clear_hooks(self, hook_type: str | None = None) -> None:
         """Clear registered hooks.
 
         WHY: This method provides interface compliance by allowing bulk

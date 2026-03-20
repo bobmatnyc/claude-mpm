@@ -33,8 +33,8 @@ USAGE:
 
 import threading
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Callable, Dict, List, Tuple
+from collections.abc import Callable
+from datetime import UTC, datetime
 
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.stability import IMemoryLeakDetector
@@ -73,13 +73,13 @@ class MemoryLeakDetector(SyncBaseService, IMemoryLeakDetector):
         self.window_size = window_size
 
         # Memory measurements: deployment_id -> List[(timestamp, memory_mb)]
-        self._measurements: Dict[str, List[Tuple[datetime, float]]] = defaultdict(list)
+        self._measurements: dict[str, list[tuple[datetime, float]]] = defaultdict(list)
 
         # Thread safety
         self._lock = threading.Lock()
 
         # Leak detection callbacks
-        self._leak_callbacks: List[Callable[[str, MemoryTrend], None]] = []
+        self._leak_callbacks: list[Callable[[str, MemoryTrend], None]] = []
 
     def initialize(self) -> bool:
         """
@@ -117,7 +117,7 @@ class MemoryLeakDetector(SyncBaseService, IMemoryLeakDetector):
         """
         with self._lock:
             # Add new measurement
-            timestamp = datetime.now(tz=timezone.utc)
+            timestamp = datetime.now(tz=UTC)
             self._measurements[deployment_id].append((timestamp, memory_mb))
 
             # Trim to window size
@@ -216,7 +216,7 @@ class MemoryLeakDetector(SyncBaseService, IMemoryLeakDetector):
             self._leak_callbacks.append(callback)
             self.log_debug(f"Registered leak callback: {callback.__name__}")
 
-    def _calculate_slope(self, measurements: List[Tuple[datetime, float]]) -> float:
+    def _calculate_slope(self, measurements: list[tuple[datetime, float]]) -> float:
         """
         Calculate memory growth slope using simple linear regression.
 
@@ -265,7 +265,7 @@ class MemoryLeakDetector(SyncBaseService, IMemoryLeakDetector):
             except Exception as e:
                 self.log_error(f"Error in leak callback {callback.__name__}: {e}")
 
-    def get_measurements(self, deployment_id: str) -> List[Tuple[datetime, float]]:
+    def get_measurements(self, deployment_id: str) -> list[tuple[datetime, float]]:
         """
         Get all measurements for a deployment (for testing/debugging).
 

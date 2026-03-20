@@ -341,9 +341,11 @@ class TestGitEventHandler:
 
         from pathlib import Path as _Path
 
-        with patch("subprocess.run", return_value=mock_result), patch.object(
-            _Path, "exists", return_value=True
-        ), patch.object(_Path, "is_dir", return_value=True):
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch.object(_Path, "exists", return_value=True),
+            patch.object(_Path, "is_dir", return_value=True),
+        ):
             await get_branch_handler("test-sid", "/test/repo")
 
             # Should emit successful response
@@ -378,9 +380,11 @@ class TestGitEventHandler:
 
         from pathlib import Path as _Path
 
-        with patch("subprocess.run", return_value=mock_result), patch.object(
-            _Path, "exists", return_value=True
-        ), patch.object(_Path, "is_dir", return_value=True):
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch.object(_Path, "exists", return_value=True),
+            patch.object(_Path, "is_dir", return_value=True),
+        ):
             await get_branch_handler("test-sid", "/test/repo")
 
             # Should emit failure response
@@ -479,8 +483,9 @@ class TestGitEventHandler:
         """Test directory validation when directory exists."""
         from pathlib import Path
 
-        with patch.object(Path, "exists", return_value=True), patch.object(
-            Path, "is_dir", return_value=True
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch.object(Path, "is_dir", return_value=True),
         ):
             result = await git_handler._validate_directory(
                 "test-sid", "/valid/dir", "test_response"
@@ -506,8 +511,9 @@ class TestGitEventHandler:
         """Test directory validation when path is not a directory."""
         git_handler.sio.emit = AsyncMock()
 
-        with patch("os.path.exists", return_value=True), patch(
-            "os.path.isdir", return_value=False
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("os.path.isdir", return_value=False),
         ):
             result = await git_handler._validate_directory(
                 "test-sid", "/file/path", "test_response"
@@ -546,8 +552,9 @@ class TestGitEventHandler:
         mock_result.returncode = 0
         mock_result.stdout = "/git/repo\n"
 
-        with patch("subprocess.run", return_value=mock_result), patch(
-            "os.path.relpath", return_value="relative/path.py"
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch("os.path.relpath", return_value="relative/path.py"),
         ):
             result = git_handler._make_path_relative_to_git(
                 "/git/repo/relative/path.py", "/git/repo"
@@ -581,9 +588,10 @@ class TestGitEventHandler:
         mock_process = Mock()
         mock_process.returncode = 128
 
-        with patch(
-            "asyncio.create_subprocess_exec", return_value=mock_process
-        ), patch.object(mock_process, "communicate", new_callable=AsyncMock):
+        with (
+            patch("asyncio.create_subprocess_exec", return_value=mock_process),
+            patch.object(mock_process, "communicate", new_callable=AsyncMock),
+        ):
             result = await git_handler.generate_git_diff(
                 "test_file.py", working_dir="/not/git"
             )
@@ -607,24 +615,30 @@ class TestGitEventHandler:
         diff_proc = Mock()
         diff_proc.returncode = 0
 
-        with patch(
-            "asyncio.create_subprocess_exec",
-            side_effect=[git_check, git_root, log_proc, diff_proc],
-        ), patch.object(git_check, "communicate", new_callable=AsyncMock), patch.object(
-            git_root,
-            "communicate",
-            new_callable=AsyncMock,
-            return_value=(b"/git/repo\n", b""),
-        ), patch.object(
-            log_proc,
-            "communicate",
-            new_callable=AsyncMock,
-            return_value=(b"abc123 Test commit\n", b""),
-        ), patch.object(
-            diff_proc,
-            "communicate",
-            new_callable=AsyncMock,
-            return_value=(b"diff --git a/test.py b/test.py\n", b""),
+        with (
+            patch(
+                "asyncio.create_subprocess_exec",
+                side_effect=[git_check, git_root, log_proc, diff_proc],
+            ),
+            patch.object(git_check, "communicate", new_callable=AsyncMock),
+            patch.object(
+                git_root,
+                "communicate",
+                new_callable=AsyncMock,
+                return_value=(b"/git/repo\n", b""),
+            ),
+            patch.object(
+                log_proc,
+                "communicate",
+                new_callable=AsyncMock,
+                return_value=(b"abc123 Test commit\n", b""),
+            ),
+            patch.object(
+                diff_proc,
+                "communicate",
+                new_callable=AsyncMock,
+                return_value=(b"diff --git a/test.py b/test.py\n", b""),
+            ),
         ):
             result = await git_handler.generate_git_diff(
                 "test.py", timestamp="2023-01-01T12:00:00Z", working_dir="/git/repo"
@@ -749,11 +763,14 @@ class TestFileEventHandler:
 
         from pathlib import Path as _Path
 
-        with patch(
-            "claude_mpm.services.socketio.handlers.file.get_project_root",
-            return_value=str(tmp_path),
-        ), patch.object(
-            _Path, "open", side_effect=PermissionError("Permission denied")
+        with (
+            patch(
+                "claude_mpm.services.socketio.handlers.file.get_project_root",
+                return_value=str(tmp_path),
+            ),
+            patch.object(
+                _Path, "open", side_effect=PermissionError("Permission denied")
+            ),
         ):
             result = await file_handler._read_file_safely(str(test_file), str(tmp_path))
 

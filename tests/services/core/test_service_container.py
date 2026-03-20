@@ -10,7 +10,7 @@ circular dependency detection, and thread safety.
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 
@@ -64,7 +64,7 @@ class DependentService(IDependentService):
 class OptionalDependencyService:
     """Service with optional dependency."""
 
-    def __init__(self, test_service: Optional[ITestService] = None):
+    def __init__(self, test_service: ITestService | None = None):
         self.test_service = test_service
 
     def has_dependency(self) -> bool:
@@ -80,7 +80,7 @@ class MultiDependencyService:
         self.test_service = test_service
         self.dependent_service = dependent_service
 
-    def get_all_values(self) -> List[str]:
+    def get_all_values(self) -> list[str]:
         return [self.test_service.get_value(), self.dependent_service.process()]
 
 

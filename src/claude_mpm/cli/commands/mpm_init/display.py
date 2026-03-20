@@ -6,7 +6,7 @@ information. All functions accept DisplayHelper as a parameter and have no
 side effects beyond console output.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.utils.display_helper import DisplayHelper
 
@@ -22,7 +22,7 @@ __all__ = [
 
 
 def display_documentation_status(
-    display: DisplayHelper, analysis: Dict[str, Any]
+    display: DisplayHelper, analysis: dict[str, Any]
 ) -> None:
     """
     Display current documentation status.
@@ -37,10 +37,10 @@ def display_documentation_status(
 def display_review_report(
     display: DisplayHelper,
     console: Any,
-    structure: Dict[str, Any],
-    docs: Dict[str, Any],
-    git: Optional[Dict[str, Any]],
-    state: Dict[str, Any],
+    structure: dict[str, Any],
+    docs: dict[str, Any],
+    git: dict[str, Any] | None,
+    state: dict[str, Any],
 ) -> None:
     """
     Display comprehensive review report.
@@ -110,7 +110,7 @@ def display_review_report(
     display.display_separator()
 
 
-def display_catchup(display: DisplayHelper, console: Any, data: Dict[str, Any]) -> None:
+def display_catchup(display: DisplayHelper, console: Any, data: dict[str, Any]) -> None:
     """
     Display catchup information to console.
 
@@ -180,7 +180,7 @@ def display_catchup(display: DisplayHelper, console: Any, data: Dict[str, Any]) 
     console.print("  • Use this context to inform current work priorities\n")
 
 
-def display_activity_report(display: DisplayHelper, report: Dict[str, Any]) -> None:
+def display_activity_report(display: DisplayHelper, report: dict[str, Any]) -> None:
     """
     Display the activity report in a formatted manner.
 
@@ -234,7 +234,7 @@ def display_activity_report(display: DisplayHelper, report: Dict[str, Any]) -> N
 
 
 def display_results(
-    display: DisplayHelper, console: Any, result: Dict[str, Any], verbose: bool
+    display: DisplayHelper, console: Any, result: dict[str, Any], verbose: bool
 ) -> None:
     """
     Display initialization results.

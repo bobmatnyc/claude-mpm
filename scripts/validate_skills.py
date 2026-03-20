@@ -93,7 +93,7 @@ class SkillValidator:
         self.skill_path = skill_path
         self.skill_md = skill_path / "SKILL.md"
         self.fix = fix
-        self.issues: List[Dict[str, Any]] = []
+        self.issues: list[dict[str, Any]] = []
 
     def add_issue(
         self,
@@ -122,7 +122,7 @@ class SkillValidator:
             }
         )
 
-    def validate(self) -> Dict[str, Any]:
+    def validate(self) -> dict[str, Any]:
         """Run all 16 validation rules.
 
         Returns:
@@ -169,7 +169,7 @@ class SkillValidator:
 
         return self._result()
 
-    def _extract_frontmatter(self, content: str) -> Tuple[Optional[str], Optional[str]]:
+    def _extract_frontmatter(self, content: str) -> tuple[str | None, str | None]:
         """Extract and validate frontmatter format.
 
         Args:
@@ -206,7 +206,7 @@ class SkillValidator:
 
         return frontmatter, body
 
-    def _validate_required_fields(self, metadata: Dict[str, Any]):
+    def _validate_required_fields(self, metadata: dict[str, Any]):
         """Validate required fields (Rules 5-10).
 
         Args:
@@ -279,7 +279,7 @@ class SkillValidator:
                     f"(must be one of: {', '.join(self.VALID_CATEGORIES)})",
                 )
 
-    def _validate_progressive_disclosure(self, metadata: Dict[str, Any]):
+    def _validate_progressive_disclosure(self, metadata: dict[str, Any]):
         """Validate progressive disclosure configuration (Rules 11-13).
 
         Args:
@@ -327,7 +327,7 @@ class SkillValidator:
                         f"{min_len}-{max_len} characters (found {length})",
                     )
 
-    def _validate_references(self, metadata: Dict[str, Any]):
+    def _validate_references(self, metadata: dict[str, Any]):
         """Validate reference files (Rules 14-16).
 
         Args:
@@ -390,7 +390,7 @@ class SkillValidator:
                 "Duplicate reference files found (potential circular reference)",
             )
 
-    def _result(self) -> Dict[str, Any]:
+    def _result(self) -> dict[str, Any]:
         """Format validation result.
 
         Returns:
@@ -410,7 +410,7 @@ class SkillValidator:
         }
 
 
-def format_terminal_output(result: Dict[str, Any], verbose: bool = False) -> str:
+def format_terminal_output(result: dict[str, Any], verbose: bool = False) -> str:
     """Format validation result for terminal output.
 
     Args:

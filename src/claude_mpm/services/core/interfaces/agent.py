@@ -19,7 +19,7 @@ EXTRACTED FROM: services/core/interfaces.py (lines 198-875)
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ..models.agent_config import (
     AgentCapabilities,
@@ -40,19 +40,19 @@ class AgentMetadata:
     type: str
     path: str
     tier: str
-    description: Optional[str] = None
-    version: Optional[str] = None
-    capabilities: List[str] = None
-    specializations: List[str] = None
-    frameworks: List[str] = None
-    domains: List[str] = None
-    roles: List[str] = None
+    description: str | None = None
+    version: str | None = None
+    capabilities: list[str] = None
+    specializations: list[str] = None
+    frameworks: list[str] = None
+    domains: list[str] = None
+    roles: list[str] = None
     is_hybrid: bool = False
     validation_score: float = 0.0
-    last_modified: Optional[float] = None
+    last_modified: float | None = None
     # Model configuration fields
-    preferred_model: Optional[str] = None
-    model_config: Optional[Dict[str, Any]] = None
+    preferred_model: str | None = None
+    model_config: dict[str, Any] | None = None
 
     def __post_init__(self):
         if self.capabilities is None:
@@ -75,21 +75,21 @@ class IAgentRegistry(ABC):
     @abstractmethod
     async def discover_agents(
         self, force_refresh: bool = False
-    ) -> Dict[str, AgentMetadata]:
+    ) -> dict[str, AgentMetadata]:
         """Discover all available agents"""
 
     @abstractmethod
-    async def get_agent(self, agent_name: str) -> Optional[AgentMetadata]:
+    async def get_agent(self, agent_name: str) -> AgentMetadata | None:
         """Get specific agent metadata"""
 
     @abstractmethod
     async def list_agents(
-        self, agent_type: Optional[str] = None, tier: Optional[str] = None
-    ) -> List[AgentMetadata]:
+        self, agent_type: str | None = None, tier: str | None = None
+    ) -> list[AgentMetadata]:
         """List agents with optional filtering"""
 
     @abstractmethod
-    async def get_specialized_agents(self, agent_type: str) -> List[AgentMetadata]:
+    async def get_specialized_agents(self, agent_type: str) -> list[AgentMetadata]:
         """Get agents of a specific specialized type"""
 
     @abstractmethod
@@ -112,7 +112,7 @@ class AgentDeploymentInterface(ABC):
     @abstractmethod
     def deploy_agents(
         self, force: bool = False, include_all: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy agents to target environment.
 
         Args:
@@ -124,7 +124,7 @@ class AgentDeploymentInterface(ABC):
         """
 
     @abstractmethod
-    def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
+    def validate_agent(self, agent_path: Path) -> tuple[bool, list[str]]:
         """Validate agent configuration and structure.
 
         Args:
@@ -135,7 +135,7 @@ class AgentDeploymentInterface(ABC):
         """
 
     @abstractmethod
-    def get_deployment_status(self, agent_name: str) -> Dict[str, Any]:
+    def get_deployment_status(self, agent_name: str) -> dict[str, Any]:
         """Get deployment status for a specific agent.
 
         Args:
@@ -196,7 +196,7 @@ class SystemInstructionsInterface(ABC):
         """
 
     @abstractmethod
-    def get_available_instruction_types(self) -> List[str]:
+    def get_available_instruction_types(self) -> list[str]:
         """Get list of available instruction types.
 
         Returns:
@@ -204,7 +204,7 @@ class SystemInstructionsInterface(ABC):
         """
 
     @abstractmethod
-    def validate_instructions(self, instructions: str) -> Tuple[bool, List[str]]:
+    def validate_instructions(self, instructions: str) -> tuple[bool, list[str]]:
         """Validate system instructions format and content.
 
         Args:
@@ -228,7 +228,7 @@ class SubprocessLauncherInterface(ABC):
     """
 
     @abstractmethod
-    def launch_subprocess(self, command: List[str], **kwargs) -> Dict[str, Any]:
+    def launch_subprocess(self, command: list[str], **kwargs) -> dict[str, Any]:
         """Launch a subprocess with PTY support.
 
         Args:
@@ -241,8 +241,8 @@ class SubprocessLauncherInterface(ABC):
 
     @abstractmethod
     async def launch_subprocess_async(
-        self, command: List[str], **kwargs
-    ) -> Dict[str, Any]:
+        self, command: list[str], **kwargs
+    ) -> dict[str, Any]:
         """Launch a subprocess asynchronously with PTY support.
 
         Args:
@@ -265,7 +265,7 @@ class SubprocessLauncherInterface(ABC):
         """
 
     @abstractmethod
-    def get_subprocess_status(self, process_id: str) -> Dict[str, Any]:
+    def get_subprocess_status(self, process_id: str) -> dict[str, Any]:
         """Get status of a running subprocess.
 
         Args:
@@ -290,7 +290,7 @@ class RunnerConfigurationInterface(ABC):
     """
 
     @abstractmethod
-    def initialize_runner(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def initialize_runner(self, config: dict[str, Any]) -> dict[str, Any]:
         """Initialize runner with configuration.
 
         Args:
@@ -309,7 +309,7 @@ class RunnerConfigurationInterface(ABC):
         """
 
     @abstractmethod
-    def load_configuration(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
+    def load_configuration(self, config_path: Path | None = None) -> dict[str, Any]:
         """Load configuration from file or defaults.
 
         Args:
@@ -320,7 +320,7 @@ class RunnerConfigurationInterface(ABC):
         """
 
     @abstractmethod
-    def validate_configuration(self, config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_configuration(self, config: dict[str, Any]) -> tuple[bool, list[str]]:
         """Validate configuration structure and values.
 
         Args:
@@ -331,7 +331,7 @@ class RunnerConfigurationInterface(ABC):
         """
 
     @abstractmethod
-    def setup_logging(self, config: Dict[str, Any]) -> None:
+    def setup_logging(self, config: dict[str, Any]) -> None:
         """Setup logging configuration.
 
         Args:
@@ -356,8 +356,8 @@ class IAgentRecommender(ABC):
     def recommend_agents(
         self,
         toolchain: ToolchainAnalysis,
-        constraints: Optional[Dict[str, Any]] = None,
-    ) -> List[AgentRecommendation]:
+        constraints: dict[str, Any] | None = None,
+    ) -> list[AgentRecommendation]:
         """Recommend agents based on toolchain analysis.
 
         Analyzes the toolchain and recommends agents that best match the
@@ -470,7 +470,7 @@ class IAutoConfigManager(ABC):
 
     @abstractmethod
     def validate_configuration(
-        self, recommendations: List[AgentRecommendation]
+        self, recommendations: list[AgentRecommendation]
     ) -> ValidationResult:
         """Validate proposed configuration before deployment.
 

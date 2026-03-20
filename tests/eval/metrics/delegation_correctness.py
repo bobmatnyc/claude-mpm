@@ -11,7 +11,7 @@ Key checks:
 - Proper delegation context and acceptance criteria
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -49,7 +49,7 @@ class DelegationCorrectnessMetric(BaseMetric):
     def __init__(
         self,
         threshold: float = 0.9,
-        expected_agent: Optional[str] = None,
+        expected_agent: str | None = None,
         require_context: bool = True,
     ):
         """
@@ -128,7 +128,7 @@ class DelegationCorrectnessMetric(BaseMetric):
         return any(t.tool_name in forbidden_tools for t in analysis.tools_used)
 
     def _score_delegations(
-        self, delegations: List[DelegationEvent], input_text: str, tools_used: List
+        self, delegations: list[DelegationEvent], input_text: str, tools_used: list
     ) -> float:
         """
         Score delegation quality.
@@ -155,7 +155,7 @@ class DelegationCorrectnessMetric(BaseMetric):
         return agent_score * 0.5 + context_score * 0.3 + task_tool_score * 0.2
 
     def _score_agent_selection(
-        self, delegations: List[DelegationEvent], input_text: str
+        self, delegations: list[DelegationEvent], input_text: str
     ) -> float:
         """
         Score whether correct agent was selected for task.
@@ -177,7 +177,7 @@ class DelegationCorrectnessMetric(BaseMetric):
         # Delegation occurred but agent may not match input
         return 0.7
 
-    def _score_delegation_context(self, delegations: List[DelegationEvent]) -> float:
+    def _score_delegation_context(self, delegations: list[DelegationEvent]) -> float:
         """
         Score quality of delegation context.
 
@@ -324,7 +324,7 @@ class TicketingDelegationMetric(DelegationCorrectnessMetric):
 
 def create_delegation_correctness_metric(
     threshold: float = 0.9,
-    expected_agent: Optional[str] = None,
+    expected_agent: str | None = None,
     strict_ticketing: bool = False,
 ) -> DelegationCorrectnessMetric:
     """

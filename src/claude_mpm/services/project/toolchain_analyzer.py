@@ -15,7 +15,7 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 2
 
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any
 
 from ...core.base_service import BaseService
 from ..core.interfaces.project import IToolchainAnalyzer
@@ -50,9 +50,9 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
 
     def __init__(
         self,
-        project_analyzer: Optional[any] = None,
-        dependency_analyzer: Optional[any] = None,
-        config: Optional[Dict] = None,
+        project_analyzer: Any | None = None,
+        dependency_analyzer: Any | None = None,
+        config: dict | None = None,
     ):
         """Initialize the toolchain analyzer.
 
@@ -72,11 +72,11 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
         self.dependency_analyzer = dependency_analyzer
 
         # Initialize detection strategies
-        self._strategies: Dict[str, IToolchainDetectionStrategy] = {}
+        self._strategies: dict[str, IToolchainDetectionStrategy] = {}
         self._register_default_strategies()
 
         # Analysis cache
-        self._cache: Dict[str, ToolchainAnalysis] = {}
+        self._cache: dict[str, ToolchainAnalysis] = {}
         self._cache_ttl = 300  # 5 minutes
 
     def _register_default_strategies(self) -> None:
@@ -209,7 +209,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
         if not project_path.exists():
             raise FileNotFoundError(f"Project path does not exist: {project_path}")
 
-        detections: List[LanguageDetection] = []
+        detections: list[LanguageDetection] = []
 
         # Run all strategies that can detect
         for strategy_name, strategy in self._strategies.items():
@@ -267,7 +267,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
 
         return detections[0]
 
-    def detect_frameworks(self, project_path: Path) -> List[Framework]:
+    def detect_frameworks(self, project_path: Path) -> list[Framework]:
         """Detect frameworks and their versions.
 
         WHY: Framework detection enables targeted agent recommendations
@@ -285,7 +285,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
         if not project_path.exists():
             raise FileNotFoundError(f"Project path does not exist: {project_path}")
 
-        all_frameworks: List[Framework] = []
+        all_frameworks: list[Framework] = []
         seen_frameworks: set = set()
 
         # Run all strategies that can detect
@@ -330,9 +330,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
 
         return all_frameworks
 
-    def detect_deployment_target(
-        self, project_path: Path
-    ) -> Optional[DeploymentTarget]:
+    def detect_deployment_target(self, project_path: Path) -> DeploymentTarget | None:
         """Detect intended deployment environment.
 
         WHY: Deployment target affects agent recommendations (e.g., DevOps
@@ -413,7 +411,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
         self.logger.debug(f"No deployment target detected for {project_path}")
         return None
 
-    def _detect_build_tools(self, project_path: Path) -> List[ToolchainComponent]:
+    def _detect_build_tools(self, project_path: Path) -> list[ToolchainComponent]:
         """Detect build tools used in the project."""
         build_tools = []
 
@@ -442,7 +440,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
 
         return build_tools
 
-    def _detect_package_managers(self, project_path: Path) -> List[ToolchainComponent]:
+    def _detect_package_managers(self, project_path: Path) -> list[ToolchainComponent]:
         """Detect package managers used in the project."""
         package_managers = []
 
@@ -471,7 +469,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
 
         return package_managers
 
-    def _detect_development_tools(self, project_path: Path) -> List[ToolchainComponent]:
+    def _detect_development_tools(self, project_path: Path) -> list[ToolchainComponent]:
         """Detect development tools and utilities."""
         dev_tools = []
 
@@ -514,8 +512,8 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
     def _calculate_overall_confidence(
         self,
         language_detection: LanguageDetection,
-        frameworks: List[Framework],
-        deployment_target: Optional[DeploymentTarget],
+        frameworks: list[Framework],
+        deployment_target: DeploymentTarget | None,
     ) -> ConfidenceLevel:
         """Calculate overall confidence for the analysis.
 
@@ -555,7 +553,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
             return ConfidenceLevel.LOW
         return ConfidenceLevel.VERY_LOW
 
-    def _get_from_cache(self, cache_key: str) -> Optional[ToolchainAnalysis]:
+    def _get_from_cache(self, cache_key: str) -> ToolchainAnalysis | None:
         """Get analysis from cache if valid."""
         if cache_key in self._cache:
             cached = self._cache[cache_key]

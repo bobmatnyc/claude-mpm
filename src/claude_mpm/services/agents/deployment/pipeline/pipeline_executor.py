@@ -1,7 +1,7 @@
 """Pipeline executor for running deployment pipelines."""
 
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -21,8 +21,8 @@ class DeploymentPipelineExecutor:
         self.logger = get_logger(__name__)
 
     def execute(
-        self, steps: List[BaseDeploymentStep], context: PipelineContext
-    ) -> Dict[str, Any]:
+        self, steps: list[BaseDeploymentStep], context: PipelineContext
+    ) -> dict[str, Any]:
         """Execute a deployment pipeline.
 
         Args:
@@ -135,7 +135,7 @@ class DeploymentPipelineExecutor:
 
         return final_results
 
-    def validate_pipeline(self, steps: List[BaseDeploymentStep]) -> List[str]:
+    def validate_pipeline(self, steps: list[BaseDeploymentStep]) -> list[str]:
         """Validate a pipeline before execution.
 
         Args:

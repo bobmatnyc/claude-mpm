@@ -52,8 +52,9 @@ Or to continue without modification:
 import json
 import os
 import sys
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Try to import _log from hook_handler, fall back to no-op
 try:
@@ -76,7 +77,7 @@ class PreToolUseHook:
         if self.debug:
             _log(f"[PreToolUse Hook] {message}")
 
-    def read_event(self) -> Optional[Dict[str, Any]]:
+    def read_event(self) -> dict[str, Any] | None:
         """Read and parse the hook event from stdin."""
         try:
             event_data = sys.stdin.read()
@@ -90,9 +91,7 @@ class PreToolUseHook:
             self.log_debug(f"Error reading event: {e}")
             return None
 
-    def continue_execution(
-        self, modified_input: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def continue_execution(self, modified_input: dict[str, Any] | None = None) -> None:
         """Continue execution with optional modified input."""
         response = {"continue": True}
         if modified_input is not None:
@@ -105,8 +104,8 @@ class PreToolUseHook:
         print(json.dumps(response))
 
     def modify_input(
-        self, tool_name: str, tool_input: Dict[str, Any], event: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, tool_name: str, tool_input: dict[str, Any], event: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """
         Modify tool input before execution.
 
@@ -124,7 +123,7 @@ class PreToolUseHook:
         return None
 
     def should_block(
-        self, tool_name: str, tool_input: Dict[str, Any], event: Dict[str, Any]
+        self, tool_name: str, tool_input: dict[str, Any], event: dict[str, Any]
     ) -> tuple[bool, str]:
         """
         Check if execution should be blocked.
@@ -205,8 +204,8 @@ class ContextInjectionHook(PreToolUseHook):
         return ""
 
     def modify_input(
-        self, tool_name: str, tool_input: Dict[str, Any], event: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, tool_name: str, tool_input: dict[str, Any], event: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Inject context into Read operations."""
         if tool_name == "Read" and self.project_context:
             # Add context as a note (this is conceptual - actual implementation depends on use case)
@@ -233,7 +232,7 @@ class SecurityGuardHook(PreToolUseHook):
     ]
 
     def should_block(
-        self, tool_name: str, tool_input: Dict[str, Any], event: Dict[str, Any]
+        self, tool_name: str, tool_input: dict[str, Any], event: dict[str, Any]
     ) -> tuple[bool, str]:
         """Block operations on sensitive files."""
         if tool_name in ["Write", "Edit", "Read"]:
@@ -256,14 +255,14 @@ class LoggingHook(PreToolUseHook):
         self.log_file.parent.mkdir(exist_ok=True)
 
     def modify_input(
-        self, tool_name: str, tool_input: Dict[str, Any], event: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, tool_name: str, tool_input: dict[str, Any], event: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Log the tool call."""
         try:
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             log_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "tool_name": tool_name,
                 "session_id": event.get("session_id", ""),
                 "cwd": event.get("cwd", ""),
@@ -286,8 +285,8 @@ class ParameterEnhancementHook(PreToolUseHook):
     """
 
     def modify_input(
-        self, tool_name: str, tool_input: Dict[str, Any], event: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, tool_name: str, tool_input: dict[str, Any], event: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Add default parameters."""
         modified = tool_input.copy()
 

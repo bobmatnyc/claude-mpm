@@ -15,7 +15,6 @@ DESIGN DECISIONS:
 """
 
 import sys
-from typing import Optional
 
 from ...constants import TicketCommands
 from ...services.ticket_services import (
@@ -42,7 +41,7 @@ class TicketsCommand(BaseCommand):
         self.search_service = TicketSearchService()
         self.workflow_service = TicketWorkflowService()
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         if not hasattr(args, "tickets_command") or not args.tickets_command:
             return "No tickets subcommand specified"

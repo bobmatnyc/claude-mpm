@@ -5,7 +5,6 @@ coordinating providers, callback servers, and token storage.
 """
 
 import webbrowser
-from typing import Optional
 
 from claude_mpm.auth.callback_server import OAuthCallbackServer
 from claude_mpm.auth.models import OAuthToken, StoredToken, TokenMetadata, TokenStatus
@@ -51,7 +50,7 @@ class OAuthManager:
         ```
     """
 
-    def __init__(self, storage: Optional[TokenStorage] = None) -> None:
+    def __init__(self, storage: TokenStorage | None = None) -> None:
         """Initialize OAuth manager.
 
         Args:
@@ -83,7 +82,7 @@ class OAuthManager:
         self,
         service_name: str,
         provider_name: str,
-        scopes: Optional[list[str]] = None,
+        scopes: list[str] | None = None,
         open_browser: bool = True,
     ) -> OAuthToken:
         """Perform complete OAuth2 authentication flow.
@@ -170,7 +169,7 @@ class OAuthManager:
 
         return token
 
-    async def refresh_if_needed(self, service_name: str) -> Optional[OAuthToken]:
+    async def refresh_if_needed(self, service_name: str) -> OAuthToken | None:
         """Refresh token if expired or about to expire.
 
         Checks if the stored token is expired and refreshes it using
@@ -240,9 +239,7 @@ class OAuthManager:
 
         return revoked
 
-    def get_status(
-        self, service_name: str
-    ) -> tuple[TokenStatus, Optional[StoredToken]]:
+    def get_status(self, service_name: str) -> tuple[TokenStatus, StoredToken | None]:
         """Get the status of a stored token.
 
         Args:

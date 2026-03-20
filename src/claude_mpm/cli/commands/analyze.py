@@ -19,9 +19,8 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from ...core.enums import OutputFormat
 from ...core.logging_config import get_logger
@@ -37,7 +36,7 @@ class AnalyzeCommand(BaseCommand):
         self.logger = get_logger(__name__)
         self.session_manager = SessionManager()
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments.
 
         Args:
@@ -185,7 +184,7 @@ class AnalyzeCommand(BaseCommand):
 
         return "\n".join(prompt_parts)
 
-    def _get_diagram_instructions(self, diagram_types: List[str]) -> str:
+    def _get_diagram_instructions(self, diagram_types: list[str]) -> str:
         """Get specific instructions for requested diagram types.
 
         Args:
@@ -218,8 +217,8 @@ class AnalyzeCommand(BaseCommand):
         return ""
 
     async def _execute_agent_analysis(
-        self, agent: str, prompt: str, session_id: Optional[str], args
-    ) -> Optional[str]:
+        self, agent: str, prompt: str, session_id: str | None, args
+    ) -> str | None:
         """Execute analysis using the specified agent.
 
         Args:
@@ -333,7 +332,7 @@ class AnalyzeCommand(BaseCommand):
             self.logger.error(f"Agent execution failed: {e}", exc_info=True)
             return None
 
-    def _extract_mermaid_diagrams(self, response: str) -> List[Dict[str, str]]:
+    def _extract_mermaid_diagrams(self, response: str) -> list[dict[str, str]]:
         """Extract mermaid diagram blocks from response.
 
         Args:
@@ -363,7 +362,7 @@ class AnalyzeCommand(BaseCommand):
         self.logger.info(f"Extracted {len(diagrams)} mermaid diagrams")
         return diagrams
 
-    def _save_diagrams(self, diagrams: List[Dict[str, str]], args) -> List[Path]:
+    def _save_diagrams(self, diagrams: list[dict[str, str]], args) -> list[Path]:
         """Save mermaid diagrams to files.
 
         Args:
@@ -377,7 +376,7 @@ class AnalyzeCommand(BaseCommand):
         diagram_dir = args.diagram_output or Path("./diagrams")
         diagram_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
         for diagram in diagrams:
             filename = f"{timestamp}_{diagram['title']}.mermaid"
@@ -415,7 +414,7 @@ class AnalyzeCommand(BaseCommand):
         return safe_chars[:50].strip("_").lower()
 
     def _format_output(
-        self, result_data: Dict, format_type: str, diagrams: List[Dict]
+        self, result_data: dict, format_type: str, diagrams: list[dict]
     ) -> str:
         """Format output based on requested format.
 
@@ -434,7 +433,7 @@ class AnalyzeCommand(BaseCommand):
         if format_type == "markdown":
             output = "# Code Analysis Report\n\n"
             output += f"**Target:** `{result_data['target']}`\n"
-            output += f"**Timestamp:** {datetime.now(timezone.utc).isoformat()}\n"
+            output += f"**Timestamp:** {datetime.now(UTC).isoformat()}\n"
 
             if result_data.get("session_id"):
                 output += f"**Session ID:** {result_data['session_id']}\n"
@@ -497,7 +496,7 @@ class AnalyzeCommand(BaseCommand):
         """
         session_data = {
             "context": "code_analysis",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "type": "analysis",
         }
         session_id = self.session_manager.create_session(session_data)

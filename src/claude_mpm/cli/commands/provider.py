@@ -12,7 +12,6 @@ on the next claude-mpm session.
 import argparse
 import os
 from pathlib import Path
-from typing import Optional
 
 from rich.panel import Panel
 from rich.table import Table
@@ -28,7 +27,7 @@ class ProviderCommand(BaseCommand):
     def __init__(self) -> None:
         super().__init__("provider")
 
-    def validate_args(self, args: argparse.Namespace) -> Optional[str]:
+    def validate_args(self, args: argparse.Namespace) -> str | None:
         """Validate command arguments."""
         # provider_command can be None (show status), bedrock, anthropic, or status
         valid_commands = [None, "bedrock", "anthropic", "status"]

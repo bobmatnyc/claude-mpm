@@ -5,7 +5,7 @@ Validates generated content structure and completeness.
 """
 
 import re
-from typing import ClassVar, List, Tuple
+from typing import ClassVar
 
 
 class ContentValidator:
@@ -33,7 +33,7 @@ class ContentValidator:
         "{{PLATFORM_NOTES}}",
     }
 
-    def validate_content(self, content: str) -> Tuple[bool, List[str]]:
+    def validate_content(self, content: str) -> tuple[bool, list[str]]:
         """
         Validate that generated content has all required sections.
 
@@ -88,7 +88,7 @@ class ContentValidator:
 
         return len(issues) == 0, issues
 
-    def validate_section_order(self, sections: List[str]) -> Tuple[bool, List[str]]:
+    def validate_section_order(self, sections: list[str]) -> tuple[bool, list[str]]:
         """
         Validate that sections are in the correct order.
 

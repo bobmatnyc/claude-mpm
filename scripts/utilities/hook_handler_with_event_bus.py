@@ -9,7 +9,7 @@ hook handler, removing direct Socket.IO dependencies.
 
 import asyncio
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -44,10 +44,10 @@ class SimplifiedHookHandler:
         self.event_producer = event_producer
 
         # Track current conversation context
-        self.current_correlation_id: Optional[str] = None
-        self.conversation_context: Dict[str, Any] = {}
+        self.current_correlation_id: str | None = None
+        self.conversation_context: dict[str, Any] = {}
 
-    async def handle_hook_event(self, event_data: Dict[str, Any]) -> None:
+    async def handle_hook_event(self, event_data: dict[str, Any]) -> None:
         """
         Handle a hook event from Claude.
 
@@ -72,7 +72,7 @@ class SimplifiedHookHandler:
             # Generic hook event
             await self._handle_generic(event_type, event_data)
 
-    async def _handle_assistant_response(self, data: Dict[str, Any]) -> None:
+    async def _handle_assistant_response(self, data: dict[str, Any]) -> None:
         """Handle assistant response events."""
         # Extract response content
         content = data.get("content", "")
@@ -83,7 +83,7 @@ class SimplifiedHookHandler:
             response_data={
                 "content": content,
                 "model": model,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "context": self.conversation_context,
             },
             correlation_id=self.current_correlation_id,
@@ -91,7 +91,7 @@ class SimplifiedHookHandler:
 
         self.logger.info(f"Published assistant response ({len(content)} chars)")
 
-    async def _handle_tool_use(self, data: Dict[str, Any]) -> None:
+    async def _handle_tool_use(self, data: dict[str, Any]) -> None:
         """Handle tool usage events."""
         tool_name = data.get("tool", "unknown")
         tool_params = data.get("params", {})
@@ -107,7 +107,7 @@ class SimplifiedHookHandler:
 
         self.logger.info(f"Published tool use: {tool_name}")
 
-    async def _handle_subagent_start(self, data: Dict[str, Any]) -> None:
+    async def _handle_subagent_start(self, data: dict[str, Any]) -> None:
         """Handle subagent start events."""
         subagent_name = data.get("name", "unknown")
         task = data.get("task", "")
@@ -118,14 +118,14 @@ class SimplifiedHookHandler:
             event_type="Start",
             event_data={
                 "task": task,
-                "started_at": datetime.now(timezone.utc).isoformat(),
+                "started_at": datetime.now(UTC).isoformat(),
             },
             correlation_id=self.current_correlation_id,
         )
 
         self.logger.info(f"Published subagent start: {subagent_name}")
 
-    async def _handle_subagent_stop(self, data: Dict[str, Any]) -> None:
+    async def _handle_subagent_stop(self, data: dict[str, Any]) -> None:
         """Handle subagent stop events."""
         subagent_name = data.get("name", "unknown")
         result = data.get("result", "")
@@ -136,14 +136,14 @@ class SimplifiedHookHandler:
             event_type="Stop",
             event_data={
                 "result": result,
-                "stopped_at": datetime.now(timezone.utc).isoformat(),
+                "stopped_at": datetime.now(UTC).isoformat(),
             },
             correlation_id=self.current_correlation_id,
         )
 
         self.logger.info(f"Published subagent stop: {subagent_name}")
 
-    async def _handle_error(self, data: Dict[str, Any]) -> None:
+    async def _handle_error(self, data: dict[str, Any]) -> None:
         """Handle error events."""
         error_type = data.get("error_type", "unknown")
         message = data.get("message", "")
@@ -159,7 +159,7 @@ class SimplifiedHookHandler:
 
         self.logger.error(f"Published error: {error_type} - {message}")
 
-    async def _handle_generic(self, event_type: str, data: Dict[str, Any]) -> None:
+    async def _handle_generic(self, event_type: str, data: dict[str, Any]) -> None:
         """Handle generic hook events."""
         # Publish raw hook event
         await self.event_producer.publish_raw_hook_event(

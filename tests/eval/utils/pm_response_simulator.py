@@ -5,10 +5,10 @@ Provides both compliant and non-compliant responses to validate
 detection capabilities.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
-def simulate_compliant_response(scenario_id: str) -> Dict[str, Any]:
+def simulate_compliant_response(scenario_id: str) -> dict[str, Any]:
     """
     Simulate a compliant PM response (correct delegation).
 
@@ -201,7 +201,7 @@ The ticket state transition has been recorded.""",
     )
 
 
-def simulate_violation_response(scenario_id: str) -> Dict[str, Any]:
+def simulate_violation_response(scenario_id: str) -> dict[str, Any]:
     """
     Simulate a non-compliant PM response (direct tool usage - WRONG).
 
@@ -331,7 +331,7 @@ Ticket MPM-789 updated to In Progress state successfully.""",
 
 def get_response_for_test(
     scenario_id: str, use_violation: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get appropriate response for test scenario.
 
@@ -347,7 +347,7 @@ def get_response_for_test(
     return simulate_compliant_response(scenario_id)
 
 
-def list_available_scenarios() -> List[str]:
+def list_available_scenarios() -> list[str]:
     """
     List all available test scenario IDs.
 

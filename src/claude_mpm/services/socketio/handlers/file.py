@@ -6,7 +6,7 @@ auditing and makes it easier to add file-related features.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ....core.typing_utils import EventData
 from ....core.unified_paths import get_project_root
@@ -105,7 +105,7 @@ class FileEventHandler(BaseEventHandler):
     async def _read_file_safely(
         self,
         file_path: str,
-        working_dir: Optional[str] = None,
+        working_dir: str | None = None,
         max_size: int = 1024 * 1024,
     ) -> EventData:
         """Safely read file content with security checks.
@@ -217,7 +217,7 @@ class FileEventHandler(BaseEventHandler):
 
     def _read_binary_file(
         self, real_path: str, file_path: str, file_size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Handle binary or non-UTF8 files.
 
         WHY: Not all files are UTF-8 encoded. We need to handle other

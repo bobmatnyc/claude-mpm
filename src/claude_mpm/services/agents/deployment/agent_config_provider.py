@@ -4,7 +4,7 @@ This module provides agent-specific configurations and tools for different agent
 Extracted from AgentDeploymentService to reduce complexity and improve maintainability.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from claude_mpm.core.constants import ResourceLimits, SystemLimits, TimeoutConfig
 
@@ -13,7 +13,7 @@ class AgentConfigProvider:
     """Provides agent-specific configurations and tools."""
 
     @staticmethod
-    def get_agent_tools(agent_name: str, metadata: Dict[str, Any]) -> List[str]:
+    def get_agent_tools(agent_name: str, metadata: dict[str, Any]) -> list[str]:
         """
         Get appropriate tools for an agent based on its type.
 
@@ -52,7 +52,7 @@ class AgentConfigProvider:
         return agent_tools.get(agent_name, [*base_tools, "Bash", "WebSearch"])
 
     @staticmethod
-    def get_agent_specific_config(agent_name: str) -> Dict[str, Any]:
+    def get_agent_specific_config(agent_name: str) -> dict[str, Any]:
         """
         Get agent-specific configuration based on agent type.
 
@@ -84,7 +84,7 @@ class AgentConfigProvider:
         )
 
     @staticmethod
-    def _get_agent_configs(base_config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def _get_agent_configs(base_config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Get all agent-specific configurations."""
         return {
             "engineer": {
@@ -392,8 +392,8 @@ class AgentConfigProvider:
 
     @staticmethod
     def _get_default_config(
-        agent_name: str, base_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        agent_name: str, base_config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Get default configuration for unknown agent types."""
         return {
             **base_config,

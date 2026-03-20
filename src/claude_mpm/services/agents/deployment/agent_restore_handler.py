@@ -5,7 +5,7 @@ Extracted to reduce complexity and improve maintainability.
 """
 
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from claude_mpm.core.path_ops import path_ops
 
@@ -22,7 +22,7 @@ class AgentRestoreHandler:
         self.logger = lifecycle_manager.logger
 
     async def restore_agent(
-        self, agent_name: str, backup_path: Optional[str] = None
+        self, agent_name: str, backup_path: str | None = None
     ) -> "LifecycleOperationResult":
         """Restore agent from backup."""
         from .agent_lifecycle_manager import (

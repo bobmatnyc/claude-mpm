@@ -14,7 +14,7 @@ Ticket: 1M-382 - Migrate Agent System to Git-Based Markdown Repository
 import json
 import sqlite3
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -186,7 +186,7 @@ class TestETagCache:
 
         # Verify timestamp is recent
         last_modified = datetime.fromisoformat(entry["last_modified"])
-        assert (datetime.now(timezone.utc) - last_modified).total_seconds() < 5
+        assert (datetime.now(UTC) - last_modified).total_seconds() < 5
 
 
 # ==============================================================================
@@ -438,10 +438,10 @@ class TestGitSourceSyncServiceAgentSync:
         # The Git Tree API returns full paths; fallback returns just filenames
         all_items = " ".join(agent_list)
         for expected_agent in [
-            "research.md",
+            "research-agent.md",
             "engineer.md",
-            "qa.md",
-            "documentation.md",
+            "qa-agent.md",
+            "documentation-agent.md",
             "security.md",
             "ops.md",
         ]:
@@ -990,8 +990,11 @@ class TestHashMismatchHandling:
 
         mock_get.side_effect = [mock_response_304, mock_response_200]
 
-        # Sync should detect mismatch and re-download
-        result = git_sync_service.sync_agents()
+        # Patch _get_agent_list to return only our test file so the two mocked
+        # HTTP responses map 1:1 to the sync calls (304 then 200).
+        with patch.object(git_sync_service, "_get_agent_list", return_value=[filename]):
+            # Sync should detect mismatch and re-download
+            result = git_sync_service.sync_agents()
 
         # Verify re-download occurred
         assert filename in result["synced"]
@@ -1604,7 +1607,7 @@ class TestErrorHandling:
                     "nonexistent-source",
                     "test.md",
                     "hash123",
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                 )
                 conn.execute(query, params)
 

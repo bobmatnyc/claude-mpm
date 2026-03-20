@@ -29,7 +29,7 @@ Example:
 """
 
 import re
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -54,7 +54,7 @@ class MemoryEfficiencyMetric(BaseMetric):
     """
 
     # File size check patterns
-    SIZE_CHECK_PATTERNS: List[str] = [
+    SIZE_CHECK_PATTERNS: list[str] = [
         r"file\s+size\s*[:\-]?\s*\d+",
         r"(\d+)\s*(KB|MB|bytes)",
         r"checking\s+size",
@@ -65,7 +65,7 @@ class MemoryEfficiencyMetric(BaseMetric):
     ]
 
     # Summarizer usage patterns
-    SUMMARIZER_PATTERNS: List[str] = [
+    SUMMARIZER_PATTERNS: list[str] = [
         r"document_summarizer",
         r"summariz(?:e|ing|ed)",
         r"summary\s+of\s+file",
@@ -78,7 +78,7 @@ class MemoryEfficiencyMetric(BaseMetric):
     FILE_READ_PATTERN = r"(?:Read|read|reading)\s+[`\']?([a-zA-Z0-9_/\-\.]+\.[a-z]+)"
 
     # Strategic sampling patterns
-    SAMPLING_PATTERNS: List[str] = [
+    SAMPLING_PATTERNS: list[str] = [
         r"lines?\s+(\d+)\s*[-–to]+\s*(\d+)",
         r"sampling",
         r"excerpt",
@@ -91,7 +91,7 @@ class MemoryEfficiencyMetric(BaseMetric):
 
     # Brute force anti-patterns
     # These indicate exhaustive, inefficient searches
-    BRUTE_FORCE_PATTERNS: List[str] = [
+    BRUTE_FORCE_PATTERNS: list[str] = [
         r"\bread(?:ing)?\s+all\s+files\b",
         r"\bscan(?:ning)?\s+entire\s+codebase\b",
         r"\bcheck(?:ing)?\s+every\s+file\b",
@@ -101,14 +101,14 @@ class MemoryEfficiencyMetric(BaseMetric):
     ]
 
     # Negation patterns (good - these AVOID brute force)
-    BRUTE_FORCE_NEGATIONS: List[str] = [
+    BRUTE_FORCE_NEGATIONS: list[str] = [
         r"\bavoid(?:s|ing)?\s+.*(?:all\s+files|entire\s+codebase|every\s+file)",
         r"\bwithout\s+.*(?:all\s+files|entire\s+codebase|every\s+file)",
         r"\bnot\s+.*(?:all\s+files|entire\s+codebase|every\s+file)",
     ]
 
     # Targeted discovery patterns (positive indicators)
-    TARGETED_DISCOVERY_PATTERNS: List[str] = [
+    TARGETED_DISCOVERY_PATTERNS: list[str] = [
         r"grep",
         r"glob",
         r"search\s+for",
@@ -137,21 +137,21 @@ class MemoryEfficiencyMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.9 for 90% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Memory Efficiency"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 
@@ -312,7 +312,7 @@ class MemoryEfficiencyMetric(BaseMetric):
         """
         # Extract unique file paths
         file_reads = re.findall(self.FILE_READ_PATTERN, output, re.IGNORECASE)
-        unique_files: Set[str] = set(file_reads)
+        unique_files: set[str] = set(file_reads)
         file_count = len(unique_files)
 
         # Scoring logic

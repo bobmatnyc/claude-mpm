@@ -18,7 +18,7 @@ This service manages:
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Try to import _log from hook_handler, fall back to no-op
 try:
@@ -71,7 +71,7 @@ except ImportError:
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
-                            "timestamp", datetime.now(timezone.utc).isoformat()
+                            "timestamp", datetime.now(UTC).isoformat()
                         ),
                         "data": event_data.get("data", event_data),
                     }
@@ -164,7 +164,7 @@ class ConnectionManagerService:
         raw_event = {
             "type": event_type,  # Use actual hook type for hook_execution, "hook" otherwise
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop", "execution"
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": data,
             "source": "mpm_hook",  # Identify the source as mpm_hook
             "session_id": session_id,  # Include session if available (supports both naming conventions)

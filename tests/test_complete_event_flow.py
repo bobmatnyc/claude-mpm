@@ -4,7 +4,7 @@
 import asyncio
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add src to path
@@ -29,21 +29,21 @@ async def test_http_endpoint():
             "hook_event_name": "PreToolUse",
             "hook_event_type": "PreToolUse",
             "session_id": "test-session-001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_input_data": {"tool_name": "Bash", "params": {"command": "ls"}},
         },
         {
             "hook_event_name": "UserPromptSubmit",
             "hook_event_type": "UserPromptSubmit",
             "session_id": "test-session-001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_input_data": {"prompt": "Test user prompt"},
         },
         {
             "hook_event_name": "PostToolUse",
             "hook_event_type": "PostToolUse",
             "session_id": "test-session-001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "hook_input_data": {
                 "tool_name": "Bash",
                 "success": True,

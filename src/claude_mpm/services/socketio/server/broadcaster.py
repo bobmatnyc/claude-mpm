@@ -13,8 +13,8 @@ import asyncio
 import time
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Deque, Dict, List, Optional, Set
+from datetime import UTC, datetime
+from typing import Any
 
 from ..event_normalizer import EventNormalizer
 
@@ -29,12 +29,12 @@ class RetryableEvent:
     """
 
     event_type: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     attempt_count: int = 0
     max_retries: int = 3
     created_at: float = None
     last_attempt: float = None
-    skip_sid: Optional[str] = None
+    skip_sid: str | None = None
 
     def __post_init__(self):
         """Initialise timestamp fields to the current time if not supplied by the caller.
@@ -92,7 +92,7 @@ class RetryQueue:
         and a stats dict with queued/retried/succeeded/abandoned counters set to zero.
         TEST: Instantiate RetryQueue(max_size=5); assert len(queue)==0 and all stats==0.
         """
-        self.queue: Deque[RetryableEvent] = deque(maxlen=max_size)
+        self.queue: deque[RetryableEvent] = deque(maxlen=max_size)
         self.lock = asyncio.Lock()
         self.stats = {"queued": 0, "retried": 0, "succeeded": 0, "abandoned": 0}
 
@@ -102,7 +102,7 @@ class RetryQueue:
             self.queue.append(event)
             self.stats["queued"] += 1
 
-    async def get_ready_events(self) -> List[RetryableEvent]:
+    async def get_ready_events(self) -> list[RetryableEvent]:
         """Get events that are ready for retry.
 
         WHY: We need to respect backoff delays to avoid
@@ -149,7 +149,7 @@ class RetryQueue:
         if event.should_retry():
             await self.add(event)
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get retry queue statistics."""
         return {**self.stats, "queue_size": len(self.queue)}
 
@@ -164,10 +164,10 @@ class SocketIOEventBroadcaster:
     def __init__(
         self,
         sio,
-        connected_clients: Set[str],
+        connected_clients: set[str],
         event_buffer,
         buffer_lock,
-        stats: Dict[str, Any],
+        stats: dict[str, Any],
         logger,
         server=None,  # Add server reference for event history access
         connection_manager=None,  # Add connection manager for robust delivery
@@ -321,7 +321,7 @@ class SocketIOEventBroadcaster:
             # Reconstruct the raw event
             raw_event = {
                 "type": event.event_type,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "data": {**event.data, "retry_attempt": event.attempt_count + 1},
             }
 
@@ -403,7 +403,7 @@ class SocketIOEventBroadcaster:
         return "claude_event"
 
     def broadcast_event(
-        self, event_type: str, data: Dict[str, Any], skip_sid: Optional[str] = None
+        self, event_type: str, data: dict[str, Any], skip_sid: str | None = None
     ):
         """Broadcast an event to all connected clients with retry support.
 
@@ -417,7 +417,7 @@ class SocketIOEventBroadcaster:
         # Create raw event for normalization
         raw_event = {
             "type": event_type,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": data,
         }
 
@@ -537,18 +537,18 @@ class SocketIOEventBroadcaster:
                 "session_id": session_id,
                 "launch_method": launch_method,
                 "working_dir": working_dir,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
     def session_ended(self):
         """Notify that a session has ended."""
         self.broadcast_event(
-            "session_ended", {"timestamp": datetime.now(timezone.utc).isoformat()}
+            "session_ended", {"timestamp": datetime.now(UTC).isoformat()}
         )
 
     def claude_status_changed(
-        self, status: str, pid: Optional[int] = None, message: str = ""
+        self, status: str, pid: int | None = None, message: str = ""
     ):
         """Notify Claude status change."""
         self.broadcast_event(
@@ -565,7 +565,7 @@ class SocketIOEventBroadcaster:
             "agent_delegated", {"agent": agent, "task": task, "status": status}
         )
 
-    def todo_updated(self, todos: List[Dict[str, Any]]):
+    def todo_updated(self, todos: list[dict[str, Any]]):
         """Notify todo list update."""
         # Limit the size of todo data to prevent large payloads
         limited_todos = todos[:50] if len(todos) > 50 else todos
@@ -629,7 +629,7 @@ class SocketIOEventBroadcaster:
         )
 
     def file_changed(
-        self, file_path: str, change_type: str, content: Optional[str] = None
+        self, file_path: str, change_type: str, content: str | None = None
     ):
         """Notify file system changes."""
         event_data = {"file_path": file_path, "change_type": change_type}
@@ -643,14 +643,14 @@ class SocketIOEventBroadcaster:
 
         self.broadcast_event("file_changed", event_data)
 
-    def git_operation(self, operation: str, details: Dict[str, Any]):
+    def git_operation(self, operation: str, details: dict[str, Any]):
         """Notify Git operations."""
         self.broadcast_event(
             "git_operation", {"operation": operation, "details": details}
         )
 
     def error_occurred(
-        self, error_type: str, message: str, details: Optional[Dict[str, Any]] = None
+        self, error_type: str, message: str, details: dict[str, Any] | None = None
     ):
         """Notify when errors occur."""
         self.broadcast_event(
@@ -664,11 +664,11 @@ class SocketIOEventBroadcaster:
             "performance", {"metric": metric_name, "value": value, "unit": unit}
         )
 
-    def system_status(self, status: Dict[str, Any]):
+    def system_status(self, status: dict[str, Any]):
         """Broadcast system status information."""
         self.broadcast_event("system_status", status)
 
-    def broadcast_system_heartbeat(self, heartbeat_data: Dict[str, Any]):
+    def broadcast_system_heartbeat(self, heartbeat_data: dict[str, Any]):
         """Broadcast system heartbeat event.
 
         WHY: System events are separate from hook events to provide

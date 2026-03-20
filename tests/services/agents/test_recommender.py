@@ -10,7 +10,7 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 3
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 import yaml
@@ -36,7 +36,7 @@ from claude_mpm.services.core.models.toolchain import (
 
 
 @pytest.fixture
-def minimal_config() -> Dict[str, Any]:
+def minimal_config() -> dict[str, Any]:
     """Minimal agent capabilities configuration for testing."""
     return {
         "agent_capabilities": {
@@ -129,7 +129,7 @@ def minimal_config() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def config_file(minimal_config: Dict[str, Any]) -> Path:
+def config_file(minimal_config: dict[str, Any]) -> Path:
     """Create temporary config file."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         yaml.dump(minimal_config, f)

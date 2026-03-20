@@ -7,7 +7,7 @@ in the heartbeat data, simulating what happens during actual Claude usage.
 
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add the src directory to the path
@@ -50,7 +50,7 @@ class HookEventSimulator:
         hook_event = {
             "type": "hook",
             "event": event_type,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": data,
         }
 

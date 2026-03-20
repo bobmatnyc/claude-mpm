@@ -10,8 +10,8 @@ WHY: Eliminates HTTP overhead for in-process events while maintaining external A
 
 import asyncio
 import weakref
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Set
+from datetime import UTC, datetime
+from typing import Any, Optional
 
 import aiohttp
 
@@ -30,11 +30,11 @@ class AsyncEventEmitter:
         self.logger = get_logger("event_emitter")
 
         # Direct emission targets (in-process)
-        self._socketio_servers: Set[weakref.ref] = set()
+        self._socketio_servers: set[weakref.ref] = set()
 
         # HTTP connection pool for external requests
-        self._http_session: Optional[aiohttp.ClientSession] = None
-        self._http_connector: Optional[aiohttp.TCPConnector] = None
+        self._http_session: aiohttp.ClientSession | None = None
+        self._http_connector: aiohttp.TCPConnector | None = None
 
         # Performance metrics
         self._direct_events = 0
@@ -43,7 +43,7 @@ class AsyncEventEmitter:
 
         # Event queue for batching (if needed)
         self._event_queue = asyncio.Queue(maxsize=10000)
-        self._batch_processor_task: Optional[asyncio.Task] = None
+        self._batch_processor_task: asyncio.Task | None = None
 
     @classmethod
     async def get_instance(cls) -> "AsyncEventEmitter":
@@ -114,9 +114,9 @@ class AsyncEventEmitter:
         self,
         namespace: str,
         event: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         force_http: bool = False,
-        endpoint: Optional[str] = None,
+        endpoint: str | None = None,
     ) -> bool:
         """
         Emit event with optimal routing (direct calls vs HTTP).
@@ -157,7 +157,7 @@ class AsyncEventEmitter:
             self._failed_events += 1
             return False
 
-    async def _emit_direct(self, event: str, data: Dict[str, Any]) -> bool:
+    async def _emit_direct(self, event: str, data: dict[str, Any]) -> bool:
         """Emit event directly to registered Socket.IO servers."""
         success_count = 0
 
@@ -190,8 +190,8 @@ class AsyncEventEmitter:
         self,
         namespace: str,
         event: str,
-        data: Dict[str, Any],
-        endpoint: Optional[str] = None,
+        data: dict[str, Any],
+        endpoint: str | None = None,
     ) -> bool:
         """Emit event via HTTP with connection pooling."""
         if not self._http_session:
@@ -204,7 +204,7 @@ class AsyncEventEmitter:
             "namespace": namespace,
             "event": event,
             "data": data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "source": "async_emitter",
         }
 
@@ -218,7 +218,7 @@ class AsyncEventEmitter:
                 )
                 return False
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.logger.warning(f"HTTP emission timeout: {event}")
             return False
         except aiohttp.ClientError as e:
@@ -241,7 +241,7 @@ class AsyncEventEmitter:
         for weak_ref in to_remove:
             self._socketio_servers.discard(weak_ref)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get performance statistics."""
         return {
             "direct_events": self._direct_events,
@@ -331,7 +331,7 @@ class AsyncEventEmitter:
 
 
 # Global instance for easy access
-_global_emitter: Optional[AsyncEventEmitter] = None
+_global_emitter: AsyncEventEmitter | None = None
 
 
 async def get_event_emitter() -> AsyncEventEmitter:

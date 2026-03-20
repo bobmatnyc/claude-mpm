@@ -18,10 +18,10 @@ Trade-offs:
 
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from claude_mpm.config.skill_sources import SkillSource, SkillSourceConfiguration
 from claude_mpm.core.logging_config import get_logger
@@ -33,7 +33,7 @@ from claude_mpm.services.skills.skill_discovery_service import SkillDiscoverySer
 logger = get_logger(__name__)
 
 
-def _get_github_token(source: Optional[SkillSource] = None) -> Optional[str]:
+def _get_github_token(source: SkillSource | None = None) -> str | None:
     """Get GitHub token with source-specific override support.
 
     Priority: source.token > GITHUB_TOKEN > GH_TOKEN
@@ -102,8 +102,8 @@ class GitSkillSourceManager:
     def __init__(
         self,
         config: SkillSourceConfiguration,
-        cache_dir: Optional[Path] = None,
-        sync_service: Optional[GitSourceSyncService] = None,
+        cache_dir: Path | None = None,
+        sync_service: GitSourceSyncService | None = None,
     ):
         """Initialize skill source manager.
 
@@ -128,7 +128,7 @@ class GitSkillSourceManager:
 
     def sync_all_sources(
         self, force: bool = False, progress_callback=None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Sync all enabled skill sources.
 
         Syncs sources in priority order (lower priority first). Individual
@@ -170,7 +170,7 @@ class GitSkillSourceManager:
             "total_files_updated": 0,
             "total_files_cached": 0,
             "sources": {},
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         for source in sources:
@@ -201,7 +201,7 @@ class GitSkillSourceManager:
 
     def sync_source(
         self, source_id: str, force: bool = False, progress_callback=None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Sync a specific skill source.
 
         Design Decision: Recursive GitHub directory download for skills
@@ -279,7 +279,7 @@ class GitSkillSourceManager:
                 "files_updated": files_updated,
                 "files_cached": files_cached,
                 "skills_discovered": len(discovered_skills),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             self.logger.info(
@@ -294,10 +294,10 @@ class GitSkillSourceManager:
             return {
                 "synced": False,
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
-    def get_all_skills(self) -> List[Dict[str, Any]]:
+    def get_all_skills(self) -> list[dict[str, Any]]:
         """Get all skills from all sources with priority resolution.
 
         Returns:
@@ -366,7 +366,7 @@ class GitSkillSourceManager:
 
         return resolved_skills
 
-    def get_skills_by_source(self, source_id: str) -> List[Dict[str, Any]]:
+    def get_skills_by_source(self, source_id: str) -> list[dict[str, Any]]:
         """Get skills from a specific source.
 
         Args:
@@ -406,8 +406,8 @@ class GitSkillSourceManager:
             return []
 
     def _apply_priority_resolution(
-        self, skills_by_source: Dict[str, List[Dict[str, Any]]]
-    ) -> List[Dict[str, Any]]:
+        self, skills_by_source: dict[str, list[dict[str, Any]]]
+    ) -> list[dict[str, Any]]:
         """Apply priority resolution to skill list.
 
         Args:
@@ -437,7 +437,7 @@ class GitSkillSourceManager:
             return []
 
         # Group by skill_id
-        skills_by_id: Dict[str, List[Dict[str, Any]]] = {}
+        skills_by_id: dict[str, list[dict[str, Any]]] = {}
         for skill in all_skills:
             skill_id = skill.get("skill_id", skill.get("name", "unknown"))
             if skill_id not in skills_by_id:
@@ -471,7 +471,7 @@ class GitSkillSourceManager:
         cache_path: Path,
         force: bool = False,
         progress_callback=None,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         """Recursively sync entire GitHub repository structure to cache.
 
         Design Decision: Two-phase sync architecture (Phase 2 refactoring)
@@ -614,8 +614,8 @@ class GitSkillSourceManager:
         return files_updated, files_cached
 
     def _discover_repository_files_via_tree_api(
-        self, owner_repo: str, branch: str, source: Optional[SkillSource] = None
-    ) -> List[str]:
+        self, owner_repo: str, branch: str, source: SkillSource | None = None
+    ) -> list[str]:
         """Discover all files in repository using GitHub Git Tree API.
 
         Design Decision: Two-step Tree API pattern (Phase 2 refactoring)
@@ -745,7 +745,7 @@ class GitSkillSourceManager:
         url: str,
         local_path: Path,
         force: bool = False,
-        source: Optional[SkillSource] = None,
+        source: SkillSource | None = None,
     ) -> bool:
         """Download file from URL with ETag caching (thread-safe).
 
@@ -883,9 +883,9 @@ class GitSkillSourceManager:
     def deploy_skills_to_project(
         self,
         project_dir: Path,
-        skill_list: Optional[List[str]] = None,
+        skill_list: list[str] | None = None,
         force: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy skills from cache to project directory (Phase 2 deployment).
 
         Design Decision: Deploy from cache to project-specific directory
@@ -1085,11 +1085,11 @@ class GitSkillSourceManager:
 
     def deploy_skills(
         self,
-        target_dir: Optional[Path] = None,
+        target_dir: Path | None = None,
         force: bool = False,
         progress_callback=None,
-        skill_filter: Optional[Set[str]] = None,
-    ) -> Dict[str, Any]:
+        skill_filter: set[str] | None = None,
+    ) -> dict[str, Any]:
         """Deploy skills from cache to target directory with flat structure and automatic cleanup.
 
         Flattens nested Git repository structure into Claude Code compatible
@@ -1258,8 +1258,8 @@ class GitSkillSourceManager:
         }
 
     def _cleanup_unfiltered_skills(
-        self, target_dir: Path, filtered_skills: List[Dict[str, Any]]
-    ) -> List[str]:
+        self, target_dir: Path, filtered_skills: list[dict[str, Any]]
+    ) -> list[str]:
         """Remove skills from target directory that aren't in the filtered skill list.
 
         CRITICAL: Only removes MPM-managed skills (those in our cache). Custom user skills
@@ -1405,8 +1405,8 @@ class GitSkillSourceManager:
         return removed_skills
 
     def _deploy_single_skill(
-        self, skill: Dict[str, Any], target_dir: Path, deployment_name: str, force: bool
-    ) -> Dict[str, Any]:
+        self, skill: dict[str, Any], target_dir: Path, deployment_name: str, force: bool
+    ) -> dict[str, Any]:
         """Deploy a single skill with flattened directory name.
 
         Args:

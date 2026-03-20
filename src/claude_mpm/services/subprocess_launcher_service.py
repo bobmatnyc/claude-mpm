@@ -19,10 +19,11 @@ import subprocess
 import sys
 import termios
 import tty
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.enums import OperationResult, ServiceState
+from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
 
 
@@ -48,7 +49,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
 
     # Implementation of abstract methods from SubprocessLauncherInterface
 
-    def launch_subprocess(self, command: List[str], **kwargs) -> Dict[str, Any]:
+    def launch_subprocess(self, command: list[str], **kwargs) -> dict[str, Any]:
         """Launch a subprocess with PTY support.
 
         Args:
@@ -76,8 +77,8 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
             }
 
     async def launch_subprocess_async(
-        self, command: List[str], **kwargs
-    ) -> Dict[str, Any]:
+        self, command: list[str], **kwargs
+    ) -> dict[str, Any]:
         """Launch a subprocess asynchronously with PTY support.
 
         Args:
@@ -105,7 +106,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         self.logger.warning(f"Process termination not implemented for ID: {process_id}")
         return False
 
-    def get_subprocess_status(self, process_id: str) -> Dict[str, Any]:
+    def get_subprocess_status(self, process_id: str) -> dict[str, Any]:
         """Get status of a running subprocess.
 
         Args:
@@ -123,7 +124,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         }
 
     def launch_subprocess_interactive(
-        self, cmd: List[str], env: Dict[str, str]
+        self, cmd: list[str], env: dict[str, str]
     ) -> None:
         """Launch Claude as a subprocess with PTY for interactive mode.
 
@@ -284,8 +285,8 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         return all(importlib.util.find_spec(mod) is not None for mod in required)
 
     def create_subprocess_command(
-        self, base_cmd: List[str], additional_args: Optional[List[str]] = None
-    ) -> List[str]:
+        self, base_cmd: list[str], additional_args: list[str] | None = None
+    ) -> list[str]:
         """Create a subprocess command with proper arguments.
 
         Args:
@@ -301,8 +302,8 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         return cmd
 
     def prepare_subprocess_environment(
-        self, base_env: Optional[Dict[str, str]] = None
-    ) -> Dict[str, str]:
+        self, base_env: dict[str, str] | None = None
+    ) -> dict[str, str]:
         """Prepare environment variables for subprocess execution.
 
         Args:
@@ -315,8 +316,7 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         if base_env:
             env.update(base_env)
 
-        # Disable telemetry for Claude Code subprocesses
-        # This ensures Claude Code doesn't send telemetry data during runtime
-        env["DISABLE_TELEMETRY"] = "1"
+        # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
+        apply_subprocess_env_defaults(env)
 
         return env

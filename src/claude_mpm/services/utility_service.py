@@ -14,8 +14,8 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 import json
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import UtilityServiceInterface
@@ -62,7 +62,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
         text_lower = text.lower()
         return any(pattern.lower() in text_lower for pattern in delegation_patterns)
 
-    def extract_agent_from_response(self, text: str) -> Optional[str]:
+    def extract_agent_from_response(self, text: str) -> str | None:
         """Try to extract agent name from delegation response.
 
         Args:
@@ -94,7 +94,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
 
         return None
 
-    def log_session_event(self, log_file: Optional[Path], event_data: Dict[str, Any]):
+    def log_session_event(self, log_file: Path | None, event_data: dict[str, Any]):
         """Log an event to the session log file.
 
         Args:
@@ -106,7 +106,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
 
         try:
             log_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 **event_data,
             }
 
@@ -192,7 +192,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
 
         return text[: max_length - len(suffix)] + suffix
 
-    def parse_key_value_pairs(self, text: str) -> Dict[str, str]:
+    def parse_key_value_pairs(self, text: str) -> dict[str, str]:
         """Parse key=value pairs from text.
 
         Args:
@@ -212,7 +212,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
 
         return pairs
 
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """Get current utility service status.
 
         Returns:
@@ -267,7 +267,7 @@ class UtilityService(BaseService, UtilityServiceInterface):
         unique_id = str(uuid.uuid4())
         return f"{prefix}_{unique_id}" if prefix else unique_id
 
-    def validate_path(self, path: Path) -> Tuple[bool, Optional[str]]:
+    def validate_path(self, path: Path) -> tuple[bool, str | None]:
         """Validate a filesystem path."""
         try:
             if not isinstance(path, Path):

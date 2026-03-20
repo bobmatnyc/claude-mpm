@@ -24,7 +24,7 @@ USAGE:
 """
 
 import argparse
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 from typing import List, Tuple
@@ -80,7 +80,7 @@ def write_build_number(build_file: Path, build_number: int) -> None:
         sys.exit(1)
 
 
-def get_git_diff_files(staged_only: bool = True) -> List[str]:
+def get_git_diff_files(staged_only: bool = True) -> list[str]:
     """Get list of modified files from git.
 
     Args:
@@ -98,7 +98,7 @@ def get_git_diff_files(staged_only: bool = True) -> List[str]:
             # Check all modified files (staged and unstaged)
             cmd = ["git", "diff", "HEAD", "--name-only"]
 
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603
             cmd, capture_output=True, text=True, check=True, cwd=get_project_root()
         )
 
@@ -110,7 +110,7 @@ def get_git_diff_files(staged_only: bool = True) -> List[str]:
         return []
 
 
-def has_code_changes(files: List[str]) -> Tuple[bool, List[str]]:
+def has_code_changes(files: list[str]) -> tuple[bool, list[str]]:
     """Check if the list of files contains code changes.
 
     Code changes are defined as:

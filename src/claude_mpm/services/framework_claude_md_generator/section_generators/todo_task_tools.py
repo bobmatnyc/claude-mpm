@@ -2,7 +2,7 @@
 Todo and Task Tools section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class TodoTaskToolsGenerator(BaseSectionGenerator):
     """Generates the Todo and Task Tools section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the todo and task tools section."""
         return """
 ## B) TODO AND TASK TOOLS

@@ -14,7 +14,7 @@ import asyncio
 import contextlib
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -34,11 +34,10 @@ class TestSocketIOServiceSingleton:
         """
         import socket as socket_module
 
-        with patch(
-            "claude_mpm.services.socketio_server.SocketIOServer"
-        ) as mock_server, patch(
-            "claude_mpm.services.socketio_server.socket"
-        ) as mock_socket_mod:
+        with (
+            patch("claude_mpm.services.socketio_server.SocketIOServer") as mock_server,
+            patch("claude_mpm.services.socketio_server.socket") as mock_socket_mod,
+        ):
             # Mock socket to show port as NOT in use (so SocketIOServer path is taken)
             mock_sock_instance = MagicMock()
             mock_sock_instance.connect_ex.return_value = 1  # Port not in use
@@ -143,19 +142,22 @@ class TestServerLifecycle:
         # Create real SocketIOServer instance
         server = SocketIOServer(host="localhost", port=8765)
 
-        with patch.object(server.core, "start_sync") as mock_core_start, patch(
-            "claude_mpm.services.socketio.server.main.ConnectionManager"
-        ) as mock_conn_mgr, patch(
-            "claude_mpm.services.socketio.server.main.SocketIOEventBroadcaster"
-        ) as mock_broadcaster, patch(
-            "claude_mpm.services.socketio.server.main.EventBusIntegration"
+        with (
+            patch.object(server.core, "start_sync") as mock_core_start,
+            patch(
+                "claude_mpm.services.socketio.server.main.ConnectionManager"
+            ) as mock_conn_mgr,
+            patch(
+                "claude_mpm.services.socketio.server.main.SocketIOEventBroadcaster"
+            ) as mock_broadcaster,
+            patch("claude_mpm.services.socketio.server.main.EventBusIntegration"),
         ):
             # Setup mocks
             mock_core_start.return_value = None
             server.core.sio = MagicMock()
             server.core.loop = asyncio.new_event_loop()
             server.core.running = True
-            server.core.stats = {"start_time": datetime.now(timezone.utc).isoformat()}
+            server.core.stats = {"start_time": datetime.now(UTC).isoformat()}
 
             # Start server
             server.start_sync()

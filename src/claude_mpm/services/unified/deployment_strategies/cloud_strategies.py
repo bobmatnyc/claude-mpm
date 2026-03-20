@@ -8,9 +8,9 @@ Reduces duplication by sharing common cloud deployment patterns.
 
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logging_utils import get_logger
@@ -42,7 +42,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         )
         self._logger = get_logger(f"{__name__}.RailwayDeploymentStrategy")
 
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """Validate Railway deployment."""
         errors = []
 
@@ -62,7 +62,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """Prepare Railway artifacts."""
         artifact_path, _metadata = prepare_deployment_artifact(
             context.source, "directory", context.config
@@ -70,8 +70,8 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         return [artifact_path]
 
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """Execute Railway deployment."""
         deploy_dir = artifacts[0] if artifacts else Path(context.source)
 
@@ -98,7 +98,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
                         break
 
             return {
-                "deployment_id": f"railway_{datetime.now(timezone.utc).timestamp()}",
+                "deployment_id": f"railway_{datetime.now(UTC).timestamp()}",
                 "deployment_url": deployment_url,
                 "deployed_path": deploy_dir,
                 "stdout": result.stdout,
@@ -107,7 +107,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
             raise Exception(f"Railway deployment failed: {e.stderr}") from e
 
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """Verify Railway deployment."""
         return (
@@ -122,7 +122,7 @@ class RailwayDeploymentStrategy(DeploymentStrategy):
         self._logger.warning("Railway rollback must be done via dashboard")
         return False
 
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """Get Railway deployment health."""
         return verify_deployment_health("railway", deployment_info)
 
@@ -144,7 +144,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
         )
         self._logger = get_logger(f"{__name__}.AWSDeploymentStrategy")
 
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """Validate AWS deployment."""
         errors = []
 
@@ -169,7 +169,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """Prepare AWS deployment artifacts."""
         service = context.config.get("service", "lambda")
 
@@ -185,8 +185,8 @@ class AWSDeploymentStrategy(DeploymentStrategy):
         return [artifact_path]
 
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """Execute AWS deployment."""
         service = context.config.get("service", "lambda")
 
@@ -198,7 +198,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
 
     def _deploy_lambda(
         self, context: DeploymentContext, artifact: Path
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy AWS Lambda function."""
         function_name = context.config.get("function_name", artifact.stem)
 
@@ -247,7 +247,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
             "function_arn": response.get("FunctionArn"),
         }
 
-    def _deploy_s3(self, context: DeploymentContext, artifact: Path) -> Dict[str, Any]:
+    def _deploy_s3(self, context: DeploymentContext, artifact: Path) -> dict[str, Any]:
         """Deploy to S3 bucket."""
         bucket = context.config.get("bucket")
         prefix = context.config.get("prefix", "")
@@ -262,7 +262,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
         }
 
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """Verify AWS deployment."""
         service = context.config.get("service", "lambda")
@@ -306,7 +306,7 @@ class AWSDeploymentStrategy(DeploymentStrategy):
                 pass
         return False
 
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """Get AWS deployment health."""
         return verify_deployment_health("aws", deployment_info)
 
@@ -328,7 +328,7 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         )
         self._logger = get_logger(f"{__name__}.DockerDeploymentStrategy")
 
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """Validate Docker deployment."""
         errors = []
 
@@ -347,17 +347,17 @@ class DockerDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """Prepare Docker artifacts."""
         return [Path(context.source)]
 
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """Execute Docker deployment."""
         source_dir = artifacts[0] if artifacts[0].is_dir() else artifacts[0].parent
         image_name = context.config.get(
-            "image_name", f"app_{datetime.now(timezone.utc).timestamp()}"
+            "image_name", f"app_{datetime.now(UTC).timestamp()}"
         )
         container_name = context.config.get("container_name", image_name)
 
@@ -400,7 +400,7 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         }
 
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """Verify Docker deployment."""
         return check_docker_container(deployment_info.get("container_id"))
@@ -409,7 +409,7 @@ class DockerDeploymentStrategy(DeploymentStrategy):
         """Rollback Docker deployment."""
         return rollback_docker_deployment(result.to_dict())
 
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """Get Docker container health."""
         container_id = deployment_info.get("container_id")
         health = {"status": OperationResult.UNKNOWN, "container_id": container_id}
@@ -440,7 +440,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
         )
         self._logger = get_logger(f"{__name__}.GitDeploymentStrategy")
 
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """Validate Git deployment."""
         errors = []
 
@@ -456,13 +456,13 @@ class GitDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """Prepare Git artifacts."""
         return [Path(context.source)]
 
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """Execute Git deployment."""
         source_dir = artifacts[0] if artifacts[0].is_dir() else artifacts[0].parent
         remote_url = context.config.get("remote_url")
@@ -516,7 +516,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
         }
 
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """Verify Git deployment."""
         # Check if commit exists on remote
@@ -560,7 +560,7 @@ class GitDeploymentStrategy(DeploymentStrategy):
                 pass
         return False
 
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """Get Git deployment health."""
         return {
             "status": (

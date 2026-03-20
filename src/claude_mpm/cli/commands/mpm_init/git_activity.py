@@ -6,9 +6,9 @@ including commit analysis, file change tracking, and contributor statistics.
 
 import subprocess
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rich.console import Console
 
@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-def catchup(project_path: Path) -> Dict[str, Any]:
+def catchup(project_path: Path) -> dict[str, Any]:
     """Get recent commit history for PM context.
 
     Args:
@@ -96,8 +96,8 @@ def catchup(project_path: Path) -> Dict[str, Any]:
 
 
 def generate_activity_report(
-    git_analysis: Dict, doc_analysis: Dict, days: int = 30
-) -> Dict:
+    git_analysis: dict, doc_analysis: dict, days: int = 30
+) -> dict:
     """Generate activity report from git analysis and documentation status.
 
     Args:
@@ -110,7 +110,7 @@ def generate_activity_report(
     """
     report = {
         "period": f"Last {days} days",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "summary": {},
         "recommendations": [],
     }
@@ -185,7 +185,7 @@ def generate_activity_report(
     return report
 
 
-def export_activity_report(project_path: Path, report: Dict, export_path: str) -> Path:
+def export_activity_report(project_path: Path, report: dict, export_path: str) -> Path:
     """Export activity report to a markdown file.
 
     Args:
@@ -199,7 +199,7 @@ def export_activity_report(project_path: Path, report: Dict, export_path: str) -
     # Determine export path
     if export_path == "auto":
         # Generate default path with timestamp
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         reports_dir = project_path / "docs" / "reports"
         reports_dir.mkdir(parents=True, exist_ok=True)
         file_path = reports_dir / f"activity-report-{timestamp}.md"
@@ -213,7 +213,7 @@ def export_activity_report(project_path: Path, report: Dict, export_path: str) -
 
     # Generate markdown content
     summary = report.get("summary", {})
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
     content = f"""# Activity Report
 
@@ -283,7 +283,7 @@ def export_activity_report(project_path: Path, report: Dict, export_path: str) -
     return file_path
 
 
-def append_activity_notes(claude_md_path: Path, report: Dict) -> None:
+def append_activity_notes(claude_md_path: Path, report: dict) -> None:
     """Append activity notes to CLAUDE.md.
 
     Args:
@@ -292,7 +292,7 @@ def append_activity_notes(claude_md_path: Path, report: Dict) -> None:
     """
     # Generate activity summary section
     summary = report.get("summary", {})
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 
     activity_section = f"""
 
@@ -345,10 +345,10 @@ def append_activity_notes(claude_md_path: Path, report: Dict) -> None:
 
 def handle_context(
     project_path: Path,
-    session_id: Optional[str] = None,
+    session_id: str | None = None,
     list_sessions: bool = False,
     days: int = 7,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Provide intelligent context for resuming work based on git history.
 
     Analyzes recent commits to identify:

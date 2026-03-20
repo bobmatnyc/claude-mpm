@@ -9,7 +9,7 @@ This module provides handlers for different execution modes:
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -66,7 +66,7 @@ def run_review_mode(
     organizer: ProjectOrganizer,
     doc_manager: DocumentationManager,
     analyzer: EnhancedProjectAnalyzer,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run review mode to analyze project without changes.
 
@@ -139,8 +139,8 @@ def run_quick_update_mode(
     archive_manager: ArchiveManager,
     days: int = 30,
     non_interactive: bool = False,
-    export: Optional[str] = None,
-) -> Dict[str, Any]:
+    export: str | None = None,
+) -> dict[str, Any]:
     """
     Run quick update mode - lightweight update based on recent git activity.
 
@@ -278,7 +278,7 @@ def run_dry_run_mode(
     doc_manager: DocumentationManager,
     organize_files: bool,
     has_existing: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run dry-run mode to show what would be done without making changes.
 

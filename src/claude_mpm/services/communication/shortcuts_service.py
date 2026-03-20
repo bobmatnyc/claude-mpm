@@ -13,7 +13,6 @@ DESIGN:
 
 import json
 from pathlib import Path
-from typing import Dict, Optional
 
 from ...core.logging_utils import get_logger
 
@@ -23,7 +22,7 @@ logger = get_logger(__name__)
 class ShortcutsService:
     """Service for managing directory shortcuts in messaging."""
 
-    def __init__(self, shortcuts_file: Optional[Path] = None):
+    def __init__(self, shortcuts_file: Path | None = None):
         """
         Initialize shortcuts service.
 
@@ -33,12 +32,12 @@ class ShortcutsService:
         self.shortcuts_file = shortcuts_file or (
             Path.home() / ".claude-mpm" / "shortcuts.json"
         )
-        self._shortcuts_cache: Optional[Dict[str, str]] = None
+        self._shortcuts_cache: dict[str, str] | None = None
 
         # Ensure shortcuts directory exists
         self.shortcuts_file.parent.mkdir(parents=True, exist_ok=True)
 
-    def _load_shortcuts(self) -> Dict[str, str]:
+    def _load_shortcuts(self) -> dict[str, str]:
         """Load shortcuts from disk, with caching."""
         if self._shortcuts_cache is not None:
             return self._shortcuts_cache
@@ -151,7 +150,7 @@ class ShortcutsService:
         logger.info(f"Removed shortcut '{name}'")
         return True
 
-    def list_shortcuts(self) -> Dict[str, str]:
+    def list_shortcuts(self) -> dict[str, str]:
         """
         List all shortcuts.
 
@@ -196,7 +195,7 @@ class ShortcutsService:
         shortcuts = self._load_shortcuts()
         return name in shortcuts
 
-    def get_shortcut_path(self, name: str) -> Optional[str]:
+    def get_shortcut_path(self, name: str) -> str | None:
         """
         Get the path for a specific shortcut.
 

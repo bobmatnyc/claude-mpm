@@ -6,8 +6,8 @@ Publishes system-level events to the event bus.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -62,7 +62,7 @@ class SystemEventProducer(IEventProducer):
             self._metrics["events_failed"] += 1
             return False
 
-    async def publish_batch(self, events: List[Event]) -> int:
+    async def publish_batch(self, events: list[Event]) -> int:
         """Publish multiple system events."""
         successful = 0
 
@@ -83,7 +83,7 @@ class SystemEventProducer(IEventProducer):
         self,
         service_name: str,
         version: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> bool:
         """
         Publish a service startup event.
@@ -100,7 +100,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.lifecycle.startup",
             type="ServiceStartup",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -116,7 +116,7 @@ class SystemEventProducer(IEventProducer):
         self,
         service_name: str,
         reason: str = "normal",
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> bool:
         """
         Publish a service shutdown event.
@@ -133,7 +133,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.lifecycle.shutdown",
             type="ServiceShutdown",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -149,8 +149,8 @@ class SystemEventProducer(IEventProducer):
         self,
         service_name: str,
         status: str,
-        checks: Dict[str, bool],
-        details: Optional[Dict[str, Any]] = None,
+        checks: dict[str, bool],
+        details: dict[str, Any] | None = None,
     ) -> bool:
         """
         Publish a health status event.
@@ -168,7 +168,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.health",
             type="HealthStatus",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -206,7 +206,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.config",
             type="ConfigChange",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -222,7 +222,7 @@ class SystemEventProducer(IEventProducer):
     async def publish_performance_metrics(
         self,
         service_name: str,
-        metrics: Dict[str, Any],
+        metrics: dict[str, Any],
     ) -> bool:
         """
         Publish performance metrics.
@@ -238,7 +238,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.performance",
             type="PerformanceMetrics",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -254,8 +254,8 @@ class SystemEventProducer(IEventProducer):
         service_name: str,
         error_type: str,
         error_message: str,
-        stacktrace: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        stacktrace: str | None = None,
+        context: dict[str, Any] | None = None,
     ) -> bool:
         """
         Publish a system error event.
@@ -274,7 +274,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.error",
             type="SystemError",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -293,7 +293,7 @@ class SystemEventProducer(IEventProducer):
         service_name: str,
         warning_type: str,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> bool:
         """
         Publish a system warning event.
@@ -311,7 +311,7 @@ class SystemEventProducer(IEventProducer):
             id=str(uuid.uuid4()),
             topic="system.warning",
             type="SystemWarning",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             source=self.source_name,
             data={
                 "service": service_name,
@@ -324,6 +324,6 @@ class SystemEventProducer(IEventProducer):
 
         return await self.publish(event)
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get producer metrics."""
         return self._metrics

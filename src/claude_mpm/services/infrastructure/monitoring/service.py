@@ -4,7 +4,7 @@ Monitors service-specific metrics like client connections, event processing, and
 """
 
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from ....core.enums import HealthStatus
 from .base import BaseMonitoringService, HealthMetric
@@ -23,7 +23,7 @@ class ServiceHealthService(BaseMonitoringService):
 
     def __init__(
         self,
-        service_stats: Dict[str, Any],
+        service_stats: dict[str, Any],
         max_clients: int = 1000,
         max_error_rate: float = 0.1,
         stale_activity_seconds: int = 300,
@@ -47,7 +47,7 @@ class ServiceHealthService(BaseMonitoringService):
         self.last_events_processed = 0
         self.last_errors = 0
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Check service-specific health metrics."""
         metrics = []
         current_time = time.time()
@@ -72,7 +72,7 @@ class ServiceHealthService(BaseMonitoringService):
 
         return metrics
 
-    def _check_client_connections(self) -> List[HealthMetric]:
+    def _check_client_connections(self) -> list[HealthMetric]:
         """Check client connection metrics."""
         metrics = []
         try:
@@ -116,7 +116,7 @@ class ServiceHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_event_processing(self, current_time: float) -> List[HealthMetric]:
+    def _check_event_processing(self, current_time: float) -> list[HealthMetric]:
         """Check event processing metrics."""
         metrics = []
         try:
@@ -180,7 +180,7 @@ class ServiceHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_error_rates(self) -> List[HealthMetric]:
+    def _check_error_rates(self) -> list[HealthMetric]:
         """Check error rate metrics."""
         metrics = []
         try:
@@ -247,7 +247,7 @@ class ServiceHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_service_activity(self, current_time: float) -> List[HealthMetric]:
+    def _check_service_activity(self, current_time: float) -> list[HealthMetric]:
         """Check service activity freshness."""
         metrics = []
         try:
@@ -298,7 +298,7 @@ class ServiceHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_response_times(self) -> List[HealthMetric]:
+    def _check_response_times(self) -> list[HealthMetric]:
         """Check response time metrics if available."""
         metrics = []
 

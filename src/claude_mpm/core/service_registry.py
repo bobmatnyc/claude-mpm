@@ -5,7 +5,7 @@ Provides centralized service registration and discovery, working with
 the DI container to manage application services.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any
 
 from .base_service import BaseService
 from .config import Config
@@ -27,7 +27,7 @@ class ServiceRegistry:
     Manages service registration, configuration, and lifecycle.
     """
 
-    def __init__(self, container: Optional[DIContainer] = None):
+    def __init__(self, container: DIContainer | None = None):
         """
         Initialize service registry.
 
@@ -35,7 +35,7 @@ class ServiceRegistry:
             container: DI container to use (uses global if not provided)
         """
         self.container = container or get_container()
-        self._services: Dict[str, Type[BaseService]] = {}
+        self._services: dict[str, type[BaseService]] = {}
         self._initialized = False
 
     def register_core_services(self) -> None:
@@ -108,11 +108,11 @@ class ServiceRegistry:
     def register_service(
         self,
         name: str,
-        service_class: Type[BaseService],
+        service_class: type[BaseService],
         lifetime: ServiceLifetime = ServiceLifetime.SINGLETON,
-        factory: Optional[Any] = None,
-        dependencies: Optional[Dict[str, Any]] = None,
-        config: Optional[Dict[str, Any]] = None,
+        factory: Any | None = None,
+        dependencies: dict[str, Any] | None = None,
+        config: dict[str, Any] | None = None,
     ) -> None:
         """
         Register a service with the registry.
@@ -164,7 +164,7 @@ class ServiceRegistry:
 
         logger.debug(f"Registered service: {name} ({service_class.__name__})")
 
-    def get_service(self, service_type: Union[str, Type[BaseService]]) -> BaseService:
+    def get_service(self, service_type: str | type[BaseService]) -> BaseService:
         """
         Get a service instance.
 
@@ -191,9 +191,9 @@ class ServiceRegistry:
 
     def get_service_optional(
         self,
-        service_type: Union[str, Type[BaseService]],
-        default: Optional[BaseService] = None,
-    ) -> Optional[BaseService]:
+        service_type: str | type[BaseService],
+        default: BaseService | None = None,
+    ) -> BaseService | None:
         """Get a service if available, otherwise return default."""
         try:
             return self.get_service(service_type)
@@ -267,7 +267,7 @@ class ServiceRegistry:
 
         asyncio.run(_stop_all())
 
-    def get_service_health(self) -> Dict[str, Dict[str, Any]]:
+    def get_service_health(self) -> dict[str, dict[str, Any]]:
         """Get health status of all services."""
         import asyncio
 
@@ -304,7 +304,7 @@ class ServiceRegistry:
 
         return asyncio.run(_get_health())
 
-    def list_services(self) -> List[Dict[str, Any]]:
+    def list_services(self) -> list[dict[str, Any]]:
         """List all registered services with their metadata."""
         services = []
 
@@ -336,7 +336,7 @@ class ServiceRegistry:
 
 
 # Global registry instance
-_global_registry: Optional[ServiceRegistry] = None
+_global_registry: ServiceRegistry | None = None
 
 
 def get_service_registry() -> ServiceRegistry:
@@ -348,7 +348,7 @@ def get_service_registry() -> ServiceRegistry:
     return _global_registry
 
 
-def initialize_services(config: Optional[Dict[str, Any]] = None) -> ServiceRegistry:
+def initialize_services(config: dict[str, Any] | None = None) -> ServiceRegistry:
     """
     Initialize all application services.
 

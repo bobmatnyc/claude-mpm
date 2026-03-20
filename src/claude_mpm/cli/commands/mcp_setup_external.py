@@ -7,9 +7,8 @@ This module handles the registration of external MCP services
 import json
 import subprocess  # nosec B404 - subprocess is required to execute MCP service commands
 import sys
-from datetime import timezone
+from datetime import UTC
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from ..constants import MCPBinary, MCPConfigKey, MCPServerType, SetupService
 
@@ -37,7 +36,7 @@ def _normalize_mcp_key(service_name: str) -> str:
 class MCPExternalServicesSetup:
     """Handles setup of external MCP services in Claude Code configuration."""
 
-    def get_project_services(self, project_path: Path) -> Dict:
+    def get_project_services(self, project_path: Path) -> dict:
         """Get external services configuration for the current project.
 
         Args:
@@ -75,7 +74,7 @@ class MCPExternalServicesSetup:
             },
         }
 
-    def _get_best_slack_mpm_config(self) -> Dict:
+    def _get_best_slack_mpm_config(self) -> dict:
         """Get configuration for slack-mpm.
 
         Prefers local development install at ~/Projects/slack-mpm,
@@ -129,7 +128,7 @@ class MCPExternalServicesSetup:
             str(MCPConfigKey.ENV): {},
         }
 
-    def _get_best_service_config(self, service_name: str, project_path: Path) -> Dict:
+    def _get_best_service_config(self, service_name: str, project_path: Path) -> dict:
         """Get the best configuration for a service.
 
         Priority order:
@@ -173,7 +172,7 @@ class MCPExternalServicesSetup:
 
     def _get_local_dev_config(
         self, service_name: str, project_path: Path
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Get configuration for a locally developed service.
 
         Checks common development locations like ~/Projects/managed/
@@ -281,7 +280,7 @@ class MCPExternalServicesSetup:
 
         return None
 
-    def _get_venv_config(self, service_name: str, project_path: Path) -> Optional[Dict]:
+    def _get_venv_config(self, service_name: str, project_path: Path) -> dict | None:
         """Get configuration for a service in the local virtual environment.
 
         Args:
@@ -318,7 +317,7 @@ class MCPExternalServicesSetup:
 
         return None
 
-    def _get_system_config(self, service_name: str, project_path: Path) -> Dict:
+    def _get_system_config(self, service_name: str, project_path: Path) -> dict:
         """Get configuration using system Python.
 
         Args:
@@ -332,7 +331,7 @@ class MCPExternalServicesSetup:
 
     def _create_service_config(
         self, service_name: str, python_path: str, project_path: Path
-    ) -> Dict:
+    ) -> dict:
         """Create service configuration for the given Python executable.
 
         Args:
@@ -384,7 +383,7 @@ class MCPExternalServicesSetup:
             str(MCPConfigKey.ENV): {},
         }
 
-    def detect_mcp_installations(self) -> Dict[str, Dict]:
+    def detect_mcp_installations(self) -> dict[str, dict]:
         """Detect all MCP service installations and their locations.
 
         Returns:
@@ -604,7 +603,7 @@ class MCPExternalServicesSetup:
         return False
 
     def _setup_service(
-        self, config: Dict, service_name: str, service_info: Dict, force: bool
+        self, config: dict, service_name: str, service_info: dict, force: bool
     ) -> bool:
         """Setup a single external MCP service.
 
@@ -735,7 +734,7 @@ class MCPExternalServicesSetup:
         except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
             return False
 
-    def _load_config(self, config_path: Path) -> Optional[Dict]:
+    def _load_config(self, config_path: Path) -> dict | None:
         """Load MCP configuration.
 
         Args:
@@ -761,7 +760,7 @@ class MCPExternalServicesSetup:
             # Try to return empty config instead of None
             return {"mcpServers": {}}
 
-    def _save_config(self, config: Dict, config_path: Path) -> bool:
+    def _save_config(self, config: dict, config_path: Path) -> bool:
         """Save MCP configuration.
 
         Args:
@@ -781,7 +780,7 @@ class MCPExternalServicesSetup:
 
                 backup_path = (
                     config_path.parent
-                    / f".mcp.backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+                    / f".mcp.backup.{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
                 )
                 import shutil
 
@@ -800,7 +799,7 @@ class MCPExternalServicesSetup:
             print(f"❌ Error saving config: {e}")
             return False
 
-    def _get_pipx_config(self, package_name: str, project_path: Path) -> Optional[Dict]:
+    def _get_pipx_config(self, package_name: str, project_path: Path) -> dict | None:
         """Get configuration for a pipx-installed package.
 
         Args:
@@ -869,7 +868,7 @@ class MCPExternalServicesSetup:
 
         return None
 
-    def _check_pipx_installation(self, package_name: str) -> Tuple[bool, str]:
+    def _check_pipx_installation(self, package_name: str) -> tuple[bool, str]:
         """Check if a package is installed via pipx.
 
         Args:

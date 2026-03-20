@@ -8,7 +8,7 @@ import asyncio
 import json
 import random
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import socketio
 
@@ -34,8 +34,8 @@ class EventTester:
         print("🔌 Disconnected from server")
 
     def create_test_event(
-        self, event_type: str, subtype: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, event_type: str, subtype: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Create a test event with consistent structure"""
         event = {
             "type": event_type,
@@ -49,7 +49,7 @@ class EventTester:
 
         return event
 
-    async def send_event(self, event: Dict[str, Any]):
+    async def send_event(self, event: dict[str, Any]):
         """Send an event to the server"""
         try:
             await self.sio.emit("claude_event", event)

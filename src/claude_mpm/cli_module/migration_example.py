@@ -6,7 +6,6 @@ from 16 to under 10 by using ArgumentRegistry and CommandRegistry.
 
 import argparse
 import sys
-from typing import Optional
 
 from claude_mpm._version import __version__
 from claude_mpm.cli import ArgumentRegistry, CommandRegistry, register_standard_commands
@@ -14,7 +13,7 @@ from claude_mpm.core.logger import get_logger, setup_logging
 from claude_mpm.services.hook_service_manager import HookServiceManager
 
 
-def main_refactored(argv: Optional[list] = None):
+def main_refactored(argv: list | None = None):
     """Refactored main CLI entry point with reduced complexity.
 
     This version uses registries to manage arguments and commands,

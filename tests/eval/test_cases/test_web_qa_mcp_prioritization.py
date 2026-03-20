@@ -27,7 +27,7 @@ Usage:
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from deepeval import assert_test
@@ -48,7 +48,7 @@ with open(SCENARIOS_FILE) as f:
     SCENARIOS = SCENARIO_DATA["scenarios"]
 
 
-def get_scenario_by_id(scenario_id: str) -> Dict[str, Any]:
+def get_scenario_by_id(scenario_id: str) -> dict[str, Any]:
     """Get scenario by ID."""
     for scenario in SCENARIOS:
         if scenario["id"] == scenario_id:
@@ -73,7 +73,7 @@ class TestWebQAMCPPrioritization:
     @pytest.mark.parametrize(
         "scenario", get_scenarios_by_severity("critical"), ids=lambda s: s["id"]
     )
-    def test_critical_prioritization_scenarios(self, scenario: Dict[str, Any]):
+    def test_critical_prioritization_scenarios(self, scenario: dict[str, Any]):
         """
         Test critical MCP tool prioritization scenarios.
 
@@ -102,7 +102,7 @@ class TestWebQAMCPPrioritization:
     @pytest.mark.parametrize(
         "scenario", get_scenarios_by_severity("high"), ids=lambda s: s["id"]
     )
-    def test_high_priority_scenarios(self, scenario: Dict[str, Any]):
+    def test_high_priority_scenarios(self, scenario: dict[str, Any]):
         """
         Test high-priority MCP tool prioritization scenarios.
 
@@ -123,7 +123,7 @@ class TestWebQAMCPPrioritization:
     @pytest.mark.parametrize(
         "scenario", get_scenarios_by_severity("medium"), ids=lambda s: s["id"]
     )
-    def test_medium_priority_scenarios(self, scenario: Dict[str, Any]):
+    def test_medium_priority_scenarios(self, scenario: dict[str, Any]):
         """
         Test medium-priority scenarios.
 
@@ -367,7 +367,7 @@ class TestWebQAMCPPrioritization:
             f"Tool availability failed: {availability_metric.reason}"
         )
 
-    def _generate_expected_response(self, scenario: Dict[str, Any]) -> str:
+    def _generate_expected_response(self, scenario: dict[str, Any]) -> str:
         """
         Generate expected response for a scenario.
 
@@ -491,7 +491,7 @@ class TestWebQAMCPIntegration:
 
 # Parametrized test for all scenarios
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda s: s["id"])
-def test_all_scenarios(scenario: Dict[str, Any]):
+def test_all_scenarios(scenario: dict[str, Any]):
     """
     Parametrized test running all scenarios.
 

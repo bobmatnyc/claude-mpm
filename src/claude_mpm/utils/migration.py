@@ -22,7 +22,6 @@ MIGRATION PATH:
 import logging
 import shutil
 from pathlib import Path
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ class MigrationUtility:
         self.new_agent_cache = Path.home() / ".claude-mpm" / "cache" / "agents"
         self.new_skill_cache = Path.home() / ".claude-mpm" / "cache" / "skills"
 
-    def detect_old_locations(self) -> Dict[str, bool]:
+    def detect_old_locations(self) -> dict[str, bool]:
         """Detect if old directory locations exist and contain files.
 
         Returns:
@@ -79,7 +78,7 @@ class MigrationUtility:
 
     def migrate_agents(
         self, dry_run: bool = False, auto_confirm: bool = False
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """Migrate agents from ~/.claude/agents/ to ~/.claude-mpm/cache/agents/.
 
         Args:
@@ -189,7 +188,7 @@ class MigrationUtility:
 
     def migrate_skills(
         self, dry_run: bool = False, auto_confirm: bool = False
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """Migrate skills from ~/.claude/skills/ to ~/.claude-mpm/cache/skills/.
 
         Args:
@@ -284,7 +283,7 @@ class MigrationUtility:
 
     def migrate_all(
         self, dry_run: bool = False, auto_confirm: bool = False
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """Migrate both agents and skills.
 
         Args:
@@ -354,7 +353,7 @@ class MigrationUtility:
         except Exception:
             return False
 
-    def get_fallback_paths(self) -> Dict[str, Optional[Path]]:
+    def get_fallback_paths(self) -> dict[str, Path | None]:
         """Get fallback paths for old directory structure.
 
         Used when migration hasn't been performed and old paths still exist.

@@ -12,9 +12,9 @@ DESIGN:
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 from huey import SqliteHuey, crontab
 from huey.api import Task
@@ -29,7 +29,7 @@ class MessageBus:
 
     # Singleton instance
     _instance: Optional["MessageBus"] = None
-    _huey: Optional[SqliteHuey] = None
+    _huey: SqliteHuey | None = None
 
     def __new__(cls):
         """Ensure singleton pattern for shared bus."""
@@ -63,7 +63,7 @@ class MessageBus:
             raise RuntimeError("MessageBus not initialized")
         return MessageBus._huey
 
-    def enqueue_message(self, message_data: Dict) -> Task:
+    def enqueue_message(self, message_data: dict) -> Task:
         """
         Enqueue a message for delivery.
 
@@ -128,7 +128,7 @@ huey = _bus.huey
 
 
 @huey.task()
-def process_message(message_data: Dict) -> bool:
+def process_message(message_data: dict) -> bool:
     """
     Process a message by delivering it to the target project.
 
@@ -221,7 +221,7 @@ def send_notification(project_path: str, message_id: str, priority: str) -> bool
             notification_data = {
                 "message_id": message_id,
                 "priority": priority,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             # Append to notification file

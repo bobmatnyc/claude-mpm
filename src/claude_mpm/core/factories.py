@@ -9,7 +9,7 @@ or have multiple configuration options.
 
 import os
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from ..services import AgentDeploymentService
 from .config import Config
@@ -43,8 +43,8 @@ class AgentServiceFactory(ServiceFactory):
     def create(
         self,
         container: DIContainer,
-        framework_dir: Optional[Path] = None,
-        project_dir: Optional[Path] = None,
+        framework_dir: Path | None = None,
+        project_dir: Path | None = None,
     ) -> AgentDeploymentService:
         """
         Create an agent deployment service.
@@ -128,8 +128,8 @@ class ConfigurationFactory(ServiceFactory):
     def create(
         self,
         container: DIContainer,
-        config_data: Optional[Dict[str, Any]] = None,
-        config_path: Optional[Path] = None,
+        config_data: dict[str, Any] | None = None,
+        config_path: Path | None = None,
         env_prefix: str = "CLAUDE_MPM",
     ) -> Config:
         """
@@ -164,8 +164,8 @@ class UnifiedConfigurationFactory(ServiceFactory):
     def create(
         self,
         container: DIContainer,
-        config_data: Optional[Dict[str, Any]] = None,
-        config_path: Optional[Path] = None,
+        config_data: dict[str, Any] | None = None,
+        config_path: Path | None = None,
     ) -> "ConfigurationService":
         """
         Create a unified configuration service instance.
@@ -198,7 +198,7 @@ class FactoryRegistry:
 
     def __init__(self):
         """Initialize factory registry."""
-        self._factories: Dict[str, ServiceFactory] = {
+        self._factories: dict[str, ServiceFactory] = {
             # 'orchestrator' removed - replaced by claude_runner
             "agent_service": AgentServiceFactory(),
             "session_manager": SessionManagerFactory(),

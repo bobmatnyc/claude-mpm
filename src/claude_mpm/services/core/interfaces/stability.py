@@ -27,7 +27,7 @@ USAGE:
 """
 
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from collections.abc import Callable
 
 from claude_mpm.services.core.models.stability import (
     LogPatternMatch,
@@ -167,7 +167,7 @@ class ILogMonitor(ABC):
     @abstractmethod
     def get_recent_matches(
         self, deployment_id: str, limit: int = 10
-    ) -> List[LogPatternMatch]:
+    ) -> list[LogPatternMatch]:
         """
         Get recent pattern matches for a deployment.
 

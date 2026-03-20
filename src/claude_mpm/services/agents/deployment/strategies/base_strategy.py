@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
 
 from claude_mpm.core.config import Config
 
@@ -12,14 +11,14 @@ from claude_mpm.core.config import Config
 class DeploymentContext:
     """Context object containing all deployment parameters."""
 
-    target_dir: Optional[Path] = None
+    target_dir: Path | None = None
     force_rebuild: bool = False
     deployment_mode: str = "update"
-    config: Optional[Config] = None
+    config: Config | None = None
     use_async: bool = False
-    working_directory: Optional[Path] = None
-    templates_dir: Optional[Path] = None
-    base_agent_path: Optional[Path] = None
+    working_directory: Path | None = None
+    templates_dir: Path | None = None
+    base_agent_path: Path | None = None
 
 
 class BaseDeploymentStrategy(ABC):
@@ -72,7 +71,7 @@ class BaseDeploymentStrategy(ABC):
         """
 
     @abstractmethod
-    def get_excluded_agents(self, context: DeploymentContext) -> List[str]:
+    def get_excluded_agents(self, context: DeploymentContext) -> list[str]:
         """Get list of agents to exclude for this deployment type.
 
         Args:

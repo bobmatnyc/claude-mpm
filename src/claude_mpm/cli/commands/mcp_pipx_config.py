@@ -12,7 +12,7 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -73,7 +73,7 @@ def check_pipx_installation() -> bool:
     return False
 
 
-def create_mcp_config() -> Dict[str, Any]:
+def create_mcp_config() -> dict[str, Any]:
     """Create MCP configuration for pipx installation."""
     return {"mcpServers": {"claude-mpm-gateway": {"command": "claude-mpm-mcp"}}}
 

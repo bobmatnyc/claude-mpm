@@ -9,9 +9,9 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import psutil
 
@@ -31,7 +31,7 @@ class MemoryMonitor:
     # Memory thresholds in MB
     WARNING_THRESHOLDS = [1024, 2048, 5120]  # 1GB, 2GB, 5GB
 
-    def __init__(self, process_id: Optional[int] = None, enable_logging: bool = True):
+    def __init__(self, process_id: int | None = None, enable_logging: bool = True):
         """
         Initialize memory monitor.
 
@@ -42,8 +42,8 @@ class MemoryMonitor:
         self.process = psutil.Process(process_id or os.getpid())
         self.start_memory = self.get_memory_usage()
         self.peak_memory = self.start_memory
-        self.measurements: List[Tuple[datetime, float]] = []
-        self.warnings_issued: Dict[int, bool] = dict.fromkeys(
+        self.measurements: list[tuple[datetime, float]] = []
+        self.warnings_issued: dict[int, bool] = dict.fromkeys(
             self.WARNING_THRESHOLDS, False
         )
 
@@ -56,8 +56,7 @@ class MemoryMonitor:
         log_dir.mkdir(exist_ok=True)
 
         file_handler = logging.FileHandler(
-            log_dir
-            / f"memory_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.log"
+            log_dir / f"memory_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.log"
         )
         file_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -72,7 +71,7 @@ class MemoryMonitor:
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return 0.0
 
-    def get_system_memory(self) -> Dict[str, float]:
+    def get_system_memory(self) -> dict[str, float]:
         """Get system-wide memory statistics."""
         mem = psutil.virtual_memory()
         return {
@@ -82,7 +81,7 @@ class MemoryMonitor:
             "used": mem.used / (1024 * 1024),
         }
 
-    def check_thresholds(self, current_memory: float) -> Optional[int]:
+    def check_thresholds(self, current_memory: float) -> int | None:
         """Check if memory has crossed any warning thresholds."""
         for threshold in self.WARNING_THRESHOLDS:
             if current_memory >= threshold and not self.warnings_issued[threshold]:
@@ -90,7 +89,7 @@ class MemoryMonitor:
                 return threshold
         return None
 
-    def measure(self, label: str = "") -> Dict[str, float]:
+    def measure(self, label: str = "") -> dict[str, float]:
         """
         Take a memory measurement.
 
@@ -102,7 +101,7 @@ class MemoryMonitor:
         """
         current_memory = self.get_memory_usage()
         self.peak_memory = max(self.peak_memory, current_memory)
-        self.measurements.append((datetime.now(timezone.utc), current_memory))
+        self.measurements.append((datetime.now(UTC), current_memory))
 
         # Check thresholds
         threshold_crossed = self.check_thresholds(current_memory)
@@ -119,7 +118,7 @@ class MemoryMonitor:
             "start": self.start_memory,
             "peak": self.peak_memory,
             "delta": current_memory - self.start_memory,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         if label:
@@ -149,7 +148,7 @@ class MemoryMonitor:
             "\n" + "=" * 60,
             "MEMORY USAGE REPORT",
             "=" * 60,
-            f"Timestamp: {datetime.now(timezone.utc).isoformat()}",
+            f"Timestamp: {datetime.now(UTC).isoformat()}",
             "",
             "PROCESS MEMORY:",
             f"  Current:  {current:>10.2f} MB",
@@ -215,9 +214,7 @@ class MemoryMonitor:
 
         return OperationMonitor(self, operation_name)
 
-    def continuous_monitor(
-        self, interval: float = 1.0, duration: Optional[float] = None
-    ):
+    def continuous_monitor(self, interval: float = 1.0, duration: float | None = None):
         """
         Continuously monitor memory usage.
 

@@ -7,7 +7,6 @@ sources are accessible, and agents are discoverable from configured repositories
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from ....core.enums import OperationResult, ValidationSeverity
 from ..models import DiagnosticResult
@@ -319,7 +318,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
             details={"total": total_sources, "enabled": enabled_sources},
         )
 
-    def _check_system_repo_accessible(self, config) -> Optional[DiagnosticResult]:
+    def _check_system_repo_accessible(self, config) -> DiagnosticResult | None:
         """Check if system repository is accessible.
 
         Args:
@@ -353,7 +352,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
 
         reachable = []
         unreachable = []
-        details: Dict[str, str] = {}
+        details: dict[str, str] = {}
 
         for repo in repos:
             result = self._check_repo_accessible(repo.url, repo.identifier)
@@ -421,7 +420,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
             req = urllib.request.Request(url, method="HEAD")
             req.add_header("User-Agent", "claude-mpm-doctor/1.0")
 
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=5) as response:  # nosec
                 status = response.status
 
             if status == 200:
@@ -506,7 +505,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 fix_description="Fix cache directory permissions",
             )
 
-    def _check_priority_conflicts(self, config) -> Optional[DiagnosticResult]:
+    def _check_priority_conflicts(self, config) -> DiagnosticResult | None:
         """Check for priority conflicts.
 
         Args:
@@ -519,7 +518,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
             return None
 
         # Group repos by priority
-        priority_groups: Dict[int, List[str]] = {}
+        priority_groups: dict[int, list[str]] = {}
         for repo in repos:
             priority = repo.priority
             if priority not in priority_groups:
@@ -581,7 +580,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 )
 
             # Group agents by source
-            agents_by_source: Dict[str, int] = {}
+            agents_by_source: dict[str, int] = {}
             for agent in available_agents:
                 source = agent.get("source", "unknown")
                 agents_by_source[source] = agents_by_source.get(source, 0) + 1

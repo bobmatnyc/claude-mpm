@@ -18,7 +18,7 @@ import tempfile
 import threading
 import time
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -70,7 +70,7 @@ class TestEventFlowIntegration(unittest.TestCase):
             "hook_event_name": "SessionStart",
             "session_id": "test-session-123",
             "cwd": "/test/dir",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Process event
@@ -108,7 +108,7 @@ class TestEventFlowIntegration(unittest.TestCase):
             "hook_event_name": "UserPromptSubmit",
             "session_id": "test-session-456",
             "prompt": "Create a test file",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         handler._route_event(test_event)
@@ -140,7 +140,7 @@ class TestEventFlowIntegration(unittest.TestCase):
             "hook_event_name": "Stop",
             "session_id": "test-session-789",
             "response": "Task completed",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         handler._route_event(test_event)

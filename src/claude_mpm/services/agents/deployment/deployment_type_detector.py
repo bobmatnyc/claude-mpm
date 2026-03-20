@@ -6,7 +6,6 @@ Extracted from AgentDeploymentService to reduce complexity.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.config.paths import paths
 
@@ -15,7 +14,7 @@ class DeploymentTypeDetector:
     """Detects the type of agent deployment based on template directory."""
 
     @staticmethod
-    def is_system_agent_deployment(templates_dir: Optional[Path]) -> bool:
+    def is_system_agent_deployment(templates_dir: Path | None) -> bool:
         """
         Check if this is a deployment of system agents.
 
@@ -46,7 +45,7 @@ class DeploymentTypeDetector:
 
     @staticmethod
     def is_project_specific_deployment(
-        templates_dir: Optional[Path], working_directory: Path
+        templates_dir: Path | None, working_directory: Path
     ) -> bool:
         """
         Check if deploying project-specific agents.
@@ -71,7 +70,7 @@ class DeploymentTypeDetector:
         return False
 
     @staticmethod
-    def is_user_custom_deployment(templates_dir: Optional[Path]) -> bool:
+    def is_user_custom_deployment(templates_dir: Path | None) -> bool:
         """
         Check if deploying user custom agents.
 
@@ -92,7 +91,7 @@ class DeploymentTypeDetector:
         return False
 
     @staticmethod
-    def determine_source_tier(templates_dir: Optional[Path]) -> str:
+    def determine_source_tier(templates_dir: Path | None) -> str:
         """
         Determine the source tier for logging.
 

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class AgentDeploymentStatus(Enum):
@@ -34,12 +34,12 @@ class AgentDeploymentResult:
 
     # Timing information
     deployment_time_ms: float = 0.0
-    start_time: Optional[float] = None
-    end_time: Optional[float] = None
+    start_time: float | None = None
+    end_time: float | None = None
 
     # Status details
-    reason: Optional[str] = None
-    error_message: Optional[str] = None
+    reason: str | None = None
+    error_message: str | None = None
 
     # Flags
     was_update: bool = False
@@ -47,7 +47,7 @@ class AgentDeploymentResult:
     was_skipped: bool = False
 
     # Additional metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def deployed(
@@ -83,7 +83,7 @@ class AgentDeploymentResult:
         template_file: Path,
         target_file: Path,
         deployment_time_ms: float = 0.0,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> "AgentDeploymentResult":
         """Create an updated result.
 
@@ -114,7 +114,7 @@ class AgentDeploymentResult:
         template_file: Path,
         target_file: Path,
         deployment_time_ms: float = 0.0,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> "AgentDeploymentResult":
         """Create a migrated result.
 
@@ -144,7 +144,7 @@ class AgentDeploymentResult:
         agent_name: str,
         template_file: Path,
         target_file: Path,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> "AgentDeploymentResult":
         """Create a skipped result.
 
@@ -196,7 +196,7 @@ class AgentDeploymentResult:
             error_message=error_message,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to dictionary.
 
         Returns:

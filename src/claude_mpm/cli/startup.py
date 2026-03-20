@@ -491,8 +491,10 @@ def setup_early_environment(argv):
         cwd_value = pwd_from_shell if pwd_from_shell else cwd_from_python
         os.environ["CLAUDE_MPM_USER_PWD"] = cwd_value
 
-    # Disable telemetry and set cleanup flags early
-    os.environ.setdefault("DISABLE_TELEMETRY", "1")
+    # Apply env var defaults (respects existing shell values) and set cleanup flags
+    from claude_mpm.core.env_defaults import apply_env_defaults
+
+    apply_env_defaults()
     os.environ.setdefault("CLAUDE_MPM_SKIP_CLEANUP", "0")
 
     # CRITICAL: Suppress ALL logging by default

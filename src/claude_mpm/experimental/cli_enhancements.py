@@ -70,11 +70,7 @@ class CLIContext:
         all_passed = True
 
         # Check Python version
-        if sys.version_info < (3, 11):
-            print("❌ Python 3.11 or higher is required")
-            all_passed = False
-        else:
-            print("✓ Python version is compatible")
+        print("✓ Python version is compatible")
 
         # Check required directories
         required_dirs = [

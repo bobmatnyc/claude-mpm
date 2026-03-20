@@ -33,9 +33,9 @@ USAGE:
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
@@ -59,7 +59,7 @@ class PauseAction:
     type: str
     timestamp: str
     session_id: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     context_percentage: float
 
     def to_json_line(self) -> str:
@@ -105,7 +105,7 @@ class IncrementalPauseManager:
 
     ACTIVE_PAUSE_FILE = "ACTIVE-PAUSE.jsonl"
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize incremental pause manager.
 
         Args:
@@ -127,7 +127,7 @@ class IncrementalPauseManager:
         return self.active_pause_path.exists()
 
     def start_incremental_pause(
-        self, context_percentage: float, initial_state: Dict[str, Any]
+        self, context_percentage: float, initial_state: dict[str, Any]
     ) -> str:
         """Start a new incremental pause session.
 
@@ -149,12 +149,12 @@ class IncrementalPauseManager:
             )
 
         # Generate session ID matching SessionPauseManager pattern
-        session_id = f"session-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        session_id = f"session-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 
         # Create initial pause_started action
         start_action = PauseAction(
             type="pause_started",
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             session_id=session_id,
             data={
                 "context_percentage": context_percentage,
@@ -183,7 +183,7 @@ class IncrementalPauseManager:
             raise RuntimeError(f"Failed to start incremental pause: {e}") from e
 
     def append_action(
-        self, action_type: str, action_data: Dict[str, Any], context_percentage: float
+        self, action_type: str, action_data: dict[str, Any], context_percentage: float
     ) -> None:
         """Append an action to the active pause file.
 
@@ -210,7 +210,7 @@ class IncrementalPauseManager:
 
             action = PauseAction(
                 type=action_type,
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 session_id=session_id,
                 data=action_data,
                 context_percentage=context_percentage,
@@ -230,7 +230,7 @@ class IncrementalPauseManager:
             logger.error(f"Failed to append action to pause session: {e}")
             raise RuntimeError(f"Failed to append action: {e}") from e
 
-    def get_recorded_actions(self) -> List[PauseAction]:
+    def get_recorded_actions(self) -> list[PauseAction]:
         """Read all actions from the current pause session.
 
         Returns:
@@ -256,7 +256,7 @@ class IncrementalPauseManager:
             logger.error(f"Failed to read recorded actions: {e}")
             raise RuntimeError(f"Failed to read actions: {e}") from e
 
-    def finalize_pause(self, create_full_snapshot: bool = True) -> Optional[Path]:
+    def finalize_pause(self, create_full_snapshot: bool = True) -> Path | None:
         """Finalize the incremental pause into a complete session snapshot.
 
         This method:
@@ -300,7 +300,7 @@ class IncrementalPauseManager:
             total_actions = len(actions)
             final_percentage = actions[-1].context_percentage
             pause_started_at = first_action.timestamp
-            pause_finalized_at = datetime.now(timezone.utc).isoformat()
+            pause_finalized_at = datetime.now(UTC).isoformat()
 
             # Append finalization action
             self.append_action(
@@ -385,7 +385,7 @@ class IncrementalPauseManager:
             logger.error(f"Failed to discard pause session: {e}")
             raise RuntimeError(f"Failed to discard pause: {e}") from e
 
-    def get_pause_summary(self) -> Optional[Dict[str, Any]]:
+    def get_pause_summary(self) -> dict[str, Any] | None:
         """Get summary of current pause session.
 
         Returns:
@@ -413,7 +413,7 @@ class IncrementalPauseManager:
             last_action = actions[-1]
 
             pause_started_at = first_action.timestamp
-            current_time = datetime.now(timezone.utc).isoformat()
+            current_time = datetime.now(UTC).isoformat()
 
             return {
                 "session_id": first_action.session_id,
@@ -481,10 +481,10 @@ class IncrementalPauseManager:
 
     def _build_enriched_state(
         self,
-        initial_state: Dict[str, Any],
-        actions: List[PauseAction],
+        initial_state: dict[str, Any],
+        actions: list[PauseAction],
         session_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build enriched state dictionary from initial state and recorded actions.
 
         Args:

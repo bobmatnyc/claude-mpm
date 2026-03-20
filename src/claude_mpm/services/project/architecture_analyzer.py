@@ -15,7 +15,7 @@ import logging
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import ClassVar, Dict, List
+from typing import ClassVar
 
 
 @dataclass
@@ -23,15 +23,15 @@ class ArchitectureInfo:
     """Container for architecture analysis results."""
 
     architecture_type: str
-    patterns_detected: List[str]
-    main_modules: List[str]
-    key_directories: List[str]
-    entry_points: List[str]
-    api_patterns: List[str]
-    configuration_patterns: List[str]
-    project_terminology: List[str]
+    patterns_detected: list[str]
+    main_modules: list[str]
+    key_directories: list[str]
+    entry_points: list[str]
+    api_patterns: list[str]
+    configuration_patterns: list[str]
+    project_terminology: list[str]
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -144,7 +144,7 @@ class ArchitectureAnalyzerService:
 
         return info
 
-    def detect_design_patterns(self) -> List[str]:
+    def detect_design_patterns(self) -> list[str]:
         """Detect design patterns used in the project.
 
         WHY: Understanding design patterns helps maintain
@@ -184,7 +184,7 @@ class ArchitectureAnalyzerService:
 
         return patterns
 
-    def analyze_module_structure(self) -> Dict[str, List[str]]:
+    def analyze_module_structure(self) -> dict[str, list[str]]:
         """Analyze module organization and dependencies.
 
         WHY: Module structure reveals how code is organized
@@ -440,7 +440,7 @@ class ArchitectureAnalyzerService:
         else:
             info.architecture_type = "Standard Application Architecture"
 
-    def _get_sample_source_files(self, limit: int = 20) -> List[Path]:
+    def _get_sample_source_files(self, limit: int = 20) -> list[Path]:
         """Get a sample of source files for analysis."""
         extensions = [".py", ".js", ".ts", ".java", ".go", ".rs", ".rb", ".php", ".cs"]
         source_files = []

@@ -9,7 +9,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.enums import OperationResult
@@ -146,7 +146,7 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
         """
         return prompt.strip().startswith("/mpm:")
 
-    def get_available_commands(self) -> List[str]:
+    def get_available_commands(self) -> list[str]:
         """Get list of available MPM commands.
 
         Returns:
@@ -156,7 +156,7 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
 
     # Implementation of abstract methods from CommandHandlerInterface
 
-    def handle_command(self, command: str, args: List[str]) -> Dict[str, Any]:
+    def handle_command(self, command: str, args: list[str]) -> dict[str, Any]:
         """Handle an MPM command.
 
         Args:

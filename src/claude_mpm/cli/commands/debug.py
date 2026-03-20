@@ -14,9 +14,9 @@ import contextlib
 import json
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ...core.logger import get_logger
 
@@ -408,7 +408,7 @@ def debug_agents(args, logger):
                             agent_name = agent_file.stem
                             size = agent_file.stat().st_size
                             modified = datetime.fromtimestamp(
-                                agent_file.stat().st_mtime, tz=timezone.utc
+                                agent_file.stat().st_mtime, tz=UTC
                             )
                             print(f"   • {agent_name}")
                             print(f"     Size: {size:,} bytes")
@@ -1080,7 +1080,7 @@ def _profile_memory_operations():
 
 
 # Helper functions for benchmarking
-def _benchmark_service_resolution() -> Dict[str, Any]:
+def _benchmark_service_resolution() -> dict[str, Any]:
     """Benchmark service container resolution."""
     from ...core.container import DIContainer
 
@@ -1106,7 +1106,7 @@ def _benchmark_service_resolution() -> Dict[str, Any]:
     }
 
 
-def _benchmark_cache_operations() -> Dict[str, Any]:
+def _benchmark_cache_operations() -> dict[str, Any]:
     """Benchmark cache operations."""
     from ...services.core.cache_manager import CacheManager
 
@@ -1128,7 +1128,7 @@ def _benchmark_cache_operations() -> Dict[str, Any]:
     }
 
 
-def _benchmark_agent_loading() -> Dict[str, Any]:
+def _benchmark_agent_loading() -> dict[str, Any]:
     """Benchmark agent loading."""
     from pathlib import Path
 
@@ -1150,7 +1150,7 @@ def _benchmark_agent_loading() -> Dict[str, Any]:
     }
 
 
-def _benchmark_hook_execution() -> Dict[str, Any]:
+def _benchmark_hook_execution() -> dict[str, Any]:
     """Benchmark hook execution."""
     from ...hooks.base_hook import HookContext, HookResult, PreDelegationHook
 

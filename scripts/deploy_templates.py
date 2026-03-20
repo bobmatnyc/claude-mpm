@@ -48,7 +48,7 @@ def get_templates_source_dir():
     return None
 
 
-def deploy_templates(target_dir: Optional[Path] = None, verbose: bool = True) -> bool:
+def deploy_templates(target_dir: Path | None = None, verbose: bool = True) -> bool:
     """Deploy template files to target directory.
 
     Args:

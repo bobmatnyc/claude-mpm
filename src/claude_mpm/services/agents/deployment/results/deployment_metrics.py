@@ -2,7 +2,7 @@
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -15,11 +15,11 @@ class DeploymentMetrics:
 
     # Timing metrics
     start_time: float = field(default_factory=time.time)
-    end_time: Optional[float] = None
-    total_duration: Optional[float] = None
+    end_time: float | None = None
+    total_duration: float | None = None
 
     # Step timing metrics
-    step_timings: Dict[str, float] = field(default_factory=dict)
+    step_timings: dict[str, float] = field(default_factory=dict)
 
     # Agent metrics
     total_agents: int = 0
@@ -31,31 +31,31 @@ class DeploymentMetrics:
     failed_agents: int = 0
 
     # Agent lists for detailed tracking
-    deployed_agent_names: List[str] = field(default_factory=list)
-    updated_agent_names: List[str] = field(default_factory=list)
-    migrated_agent_names: List[str] = field(default_factory=list)
-    skipped_agent_names: List[str] = field(default_factory=list)
-    repaired_agent_names: List[str] = field(default_factory=list)
-    failed_agent_names: List[str] = field(default_factory=list)
+    deployed_agent_names: list[str] = field(default_factory=list)
+    updated_agent_names: list[str] = field(default_factory=list)
+    migrated_agent_names: list[str] = field(default_factory=list)
+    skipped_agent_names: list[str] = field(default_factory=list)
+    repaired_agent_names: list[str] = field(default_factory=list)
+    failed_agent_names: list[str] = field(default_factory=list)
 
     # Error and warning tracking
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     # Performance metrics
-    average_agent_deployment_time: Optional[float] = None
-    fastest_agent_deployment: Optional[float] = None
-    slowest_agent_deployment: Optional[float] = None
+    average_agent_deployment_time: float | None = None
+    fastest_agent_deployment: float | None = None
+    slowest_agent_deployment: float | None = None
 
     # Strategy and configuration info
-    strategy_used: Optional[str] = None
-    deployment_mode: Optional[str] = None
-    target_directory: Optional[str] = None
+    strategy_used: str | None = None
+    deployment_mode: str | None = None
+    target_directory: str | None = None
 
     # Additional metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def finalize(self, end_time: Optional[float] = None) -> None:
+    def finalize(self, end_time: float | None = None) -> None:
         """Finalize metrics calculation.
 
         Args:
@@ -78,7 +78,7 @@ class DeploymentMetrics:
                 self.slowest_agent_deployment = max(agent_times)
 
     def add_deployed_agent(
-        self, agent_name: str, deployment_time: Optional[float] = None
+        self, agent_name: str, deployment_time: float | None = None
     ) -> None:
         """Add a deployed agent to metrics.
 
@@ -93,7 +93,7 @@ class DeploymentMetrics:
             self.step_timings[f"agent_{agent_name}"] = deployment_time
 
     def add_updated_agent(
-        self, agent_name: str, deployment_time: Optional[float] = None
+        self, agent_name: str, deployment_time: float | None = None
     ) -> None:
         """Add an updated agent to metrics.
 
@@ -116,7 +116,7 @@ class DeploymentMetrics:
         self.migrated_agents += 1
         self.migrated_agent_names.append(agent_name)
 
-    def add_skipped_agent(self, agent_name: str, reason: Optional[str] = None) -> None:
+    def add_skipped_agent(self, agent_name: str, reason: str | None = None) -> None:
         """Add a skipped agent to metrics.
 
         Args:
@@ -177,7 +177,7 @@ class DeploymentMetrics:
         successful = self.deployed_agents + self.updated_agents + self.skipped_agents
         return (successful / self.total_agents) * 100.0
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get a summary of deployment metrics.
 
         Returns:

@@ -15,8 +15,8 @@ Design Principles:
 
 import platform
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 
 class SocketIOServerError(Exception):
@@ -29,8 +29,8 @@ class SocketIOServerError(Exception):
     def __init__(
         self,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
     ):
         """Initialize base server error.
 
@@ -43,9 +43,9 @@ class SocketIOServerError(Exception):
         self.message = message
         self.error_code = error_code or self.__class__.__name__.lower()
         self.context = context or {}
-        self.timestamp = datetime.now(timezone.utc).isoformat() + "Z"
+        self.timestamp = datetime.now(UTC).isoformat() + "Z"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert error to dictionary format for structured logging/handling."""
         return {
             "error_type": self.__class__.__name__,
@@ -67,9 +67,9 @@ class DaemonConflictError(SocketIOServerError):
         self,
         port: int,
         existing_pid: int,
-        existing_server_id: Optional[str] = None,
-        process_info: Optional[Dict[str, Any]] = None,
-        pidfile_path: Optional[Path] = None,
+        existing_server_id: str | None = None,
+        process_info: dict[str, Any] | None = None,
+        pidfile_path: Path | None = None,
     ):
         """Initialize daemon conflict error with detailed context.
 
@@ -125,9 +125,9 @@ class DaemonConflictError(SocketIOServerError):
             )
 
             if create_time:
-                start_time = datetime.fromtimestamp(
-                    create_time, tz=timezone.utc
-                ).strftime("%Y-%m-%d %H:%M:%S")
+                start_time = datetime.fromtimestamp(create_time, tz=UTC).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 uptime = time.time() - create_time
                 lines.append(f"  • Started: {start_time} (uptime: {uptime:.0f}s)")
 
@@ -157,7 +157,7 @@ class DaemonConflictError(SocketIOServerError):
 
         return "\n".join(lines)
 
-    def _get_resolution_steps(self) -> List[str]:
+    def _get_resolution_steps(self) -> list[str]:
         """Get ordered list of resolution steps."""
         steps = [
             f"Check if the existing server is still needed: ps -p {self.existing_pid}",
@@ -190,7 +190,7 @@ class PortConflictError(SocketIOServerError):
         self,
         port: int,
         host: str = "localhost",
-        conflicting_process: Optional[Dict[str, Any]] = None,
+        conflicting_process: dict[str, Any] | None = None,
     ):
         """Initialize port conflict error.
 
@@ -255,7 +255,7 @@ class PortConflictError(SocketIOServerError):
 
         return "\n".join(lines)
 
-    def _get_resolution_steps(self) -> List[str]:
+    def _get_resolution_steps(self) -> list[str]:
         """Get resolution steps for port conflicts."""
         steps = [f"Check what process is using port {self.port}:"]
 
@@ -302,9 +302,9 @@ class StaleProcessError(SocketIOServerError):
     def __init__(
         self,
         pid: int,
-        pidfile_path: Optional[Path] = None,
+        pidfile_path: Path | None = None,
         process_status: str = "not_found",
-        validation_errors: Optional[List[str]] = None,
+        validation_errors: list[str] | None = None,
     ):
         """Initialize stale process error.
 
@@ -383,7 +383,7 @@ class StaleProcessError(SocketIOServerError):
 
         return "\n".join(lines)
 
-    def _get_resolution_steps(self) -> List[str]:
+    def _get_resolution_steps(self) -> list[str]:
         """Get resolution steps for stale processes."""
         steps = []
 
@@ -432,8 +432,8 @@ class RecoveryFailedError(SocketIOServerError):
         recovery_action: str,
         failure_reason: str,
         attempt_count: int = 1,
-        health_status: Optional[Dict[str, Any]] = None,
-        last_successful_recovery: Optional[str] = None,
+        health_status: dict[str, Any] | None = None,
+        last_successful_recovery: str | None = None,
     ):
         """Initialize recovery failure error.
 
@@ -511,7 +511,7 @@ class RecoveryFailedError(SocketIOServerError):
 
         return "\n".join(lines)
 
-    def _get_resolution_steps(self) -> List[str]:
+    def _get_resolution_steps(self) -> list[str]:
         """Get manual resolution steps for recovery failures."""
         steps = [
             "Check server logs for detailed error information",
@@ -568,8 +568,8 @@ class HealthCheckError(SocketIOServerError):
         self,
         check_name: str,
         check_status: str,
-        check_details: Optional[Dict[str, Any]] = None,
-        threshold_exceeded: Optional[Dict[str, Any]] = None,
+        check_details: dict[str, Any] | None = None,
+        threshold_exceeded: dict[str, Any] | None = None,
     ):
         """Initialize health check error.
 
@@ -643,7 +643,7 @@ class HealthCheckError(SocketIOServerError):
 
         return "\n".join(lines)
 
-    def _get_resolution_steps(self) -> List[str]:
+    def _get_resolution_steps(self) -> list[str]:
         """Get resolution steps based on health check type."""
         steps = []
 

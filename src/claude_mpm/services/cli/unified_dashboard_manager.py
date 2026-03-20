@@ -19,7 +19,6 @@ import time
 import webbrowser
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 import requests
 
@@ -35,7 +34,7 @@ class DashboardInfo:
 
     url: str
     port: int
-    pid: Optional[int] = None
+    pid: int | None = None
     status: str = "running"
 
 
@@ -45,7 +44,7 @@ class IUnifiedDashboardManager(ABC):
     @abstractmethod
     def start_dashboard(
         self, port: int = 8765, background: bool = False, open_browser: bool = True
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """Start the dashboard using unified daemon."""
 
     @abstractmethod
@@ -81,7 +80,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         background: bool = False,
         open_browser: bool = True,
         force_restart: bool = False,
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         """
         Start the dashboard using unified daemon.
 
@@ -311,7 +310,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             time.sleep(0.5)
         return False
 
-    def get_dashboard_info(self, port: int = 8765) -> Optional[DashboardInfo]:
+    def get_dashboard_info(self, port: int = 8765) -> DashboardInfo | None:
         """
         Get information about running dashboard.
 
@@ -327,7 +326,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
             )
         return None
 
-    def ensure_dependencies(self) -> Tuple[bool, Optional[str]]:
+    def ensure_dependencies(self) -> tuple[bool, str | None]:
         """
         Ensure required dependencies are available.
 
@@ -375,8 +374,8 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         return daemon_mgr.cleanup_port_conflicts()
 
     def start_server(
-        self, port: Optional[int] = None, timeout: int = 30, force_restart: bool = True
-    ) -> Tuple[bool, DashboardInfo]:
+        self, port: int | None = None, timeout: int = 30, force_restart: bool = True
+    ) -> tuple[bool, DashboardInfo]:
         """
         Start the server (compatibility method for SocketIOManager interface).
 
@@ -415,7 +414,7 @@ class UnifiedDashboardManager(IUnifiedDashboardManager):
         """
         return self.is_dashboard_running(port)
 
-    def stop_server(self, port: Optional[int] = None, timeout: int = 10) -> bool:
+    def stop_server(self, port: int | None = None, timeout: int = 10) -> bool:
         """
         Stop the server (compatibility method for SocketIOManager interface).
 

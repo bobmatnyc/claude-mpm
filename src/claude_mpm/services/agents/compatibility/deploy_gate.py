@@ -43,7 +43,7 @@ class DeploymentVersionGate:
         self,
         source_id: str,
         cli_version: str,
-        cached_manifest_content: Optional[str] = None,
+        cached_manifest_content: str | None = None,
     ) -> ManifestCheckResult:
         """Check compatibility before deploying agents from cache.
 

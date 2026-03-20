@@ -9,7 +9,7 @@ import contextlib
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 class MPMInitCommand:
     """Initialize projects for optimal Claude Code and Claude MPM usage."""
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize the MPM-Init command."""
         self.project_path = project_path or Path.cwd()
         self.claude_mpm_dir = self.project_path / ".claude-mpm"
@@ -48,8 +48,8 @@ class MPMInitCommand:
 
     def initialize_project(
         self,
-        project_type: Optional[str] = None,
-        framework: Optional[str] = None,
+        project_type: str | None = None,
+        framework: str | None = None,
         force: bool = False,
         verbose: bool = False,
         ast_analysis: bool = True,
@@ -63,8 +63,8 @@ class MPMInitCommand:
         catchup: bool = False,
         non_interactive: bool = False,
         days: int = 30,
-        export: Optional[str] = None,
-    ) -> Dict:
+        export: str | None = None,
+    ) -> dict:
         """
         Initialize project with Agentic Coder Optimizer standards.
 
@@ -225,7 +225,7 @@ class MPMInitCommand:
         # Otherwise assume it's in PATH
         return Path("claude-mpm")
 
-    def _build_claude_mpm_command(self, verbose: bool) -> List[str]:
+    def _build_claude_mpm_command(self, verbose: bool) -> list[str]:
         """Build the claude-mpm run command with appropriate arguments."""
         cmd = [str(self.claude_mpm_script)]
 
@@ -250,7 +250,7 @@ class MPMInitCommand:
         prompt: str,
         verbose: bool,
         update_mode: bool = False,
-    ) -> Dict:
+    ) -> dict:
         """Run the initialization through subprocess calling claude-mpm."""
         try:
             # Write prompt to temporary file
@@ -350,7 +350,7 @@ class MPMInitCommand:
 
     def _run_pre_initialization_checks(
         self, organize_files: bool, skip_archive: bool, has_existing: bool
-    ) -> Dict:
+    ) -> dict:
         """Run pre-initialization checks and preparations."""
         checks_passed = []
         warnings = []
@@ -407,8 +407,8 @@ class MPMInitCommand:
 
     def _build_initialization_prompt(
         self,
-        project_type: Optional[str] = None,
-        framework: Optional[str] = None,
+        project_type: str | None = None,
+        framework: str | None = None,
         ast_analysis: bool = True,
     ) -> str:
         """Build the initialization prompt for the agent."""
@@ -422,8 +422,8 @@ class MPMInitCommand:
 
     def _build_update_prompt(
         self,
-        project_type: Optional[str],
-        framework: Optional[str],
+        project_type: str | None,
+        framework: str | None,
         ast_analysis: bool,
         preserve_custom: bool,
     ) -> str:
@@ -495,7 +495,7 @@ class MPMInitCommand:
             preserve_custom,
         )
 
-    def _display_documentation_status(self, analysis: Dict) -> None:
+    def _display_documentation_status(self, analysis: dict) -> None:
         """Display current documentation status."""
         display.display_documentation_status(self.display, analysis)
 
@@ -503,7 +503,7 @@ class MPMInitCommand:
         """Prompt user for update action."""
         return modes.prompt_update_action(self.console)
 
-    def _run_review_mode(self) -> Dict:
+    def _run_review_mode(self) -> dict:
         """Run review mode to analyze project without changes."""
         return modes.run_review_mode(
             self.console,
@@ -517,8 +517,8 @@ class MPMInitCommand:
         self,
         days: int = 30,
         non_interactive: bool = False,
-        export: Optional[str] = None,
-    ) -> Dict:
+        export: str | None = None,
+    ) -> dict:
         """Run quick update mode - lightweight update based on recent git activity."""
         return modes.run_quick_update_mode(
             self.console,
@@ -532,11 +532,11 @@ class MPMInitCommand:
             export=export,
         )
 
-    def _catchup(self) -> Dict[str, Any]:
+    def _catchup(self) -> dict[str, Any]:
         """Get recent commit history for PM context."""
         return git_activity.catchup(self.project_path)
 
-    def _display_catchup(self, data: Dict[str, Any]) -> None:
+    def _display_catchup(self, data: dict[str, Any]) -> None:
         """Display catchup information to console.
 
         Args:
@@ -544,7 +544,7 @@ class MPMInitCommand:
         """
         display.display_catchup(self.display, self.console, data)
 
-    def _run_dry_run_mode(self, organize_files: bool, has_existing: bool) -> Dict:
+    def _run_dry_run_mode(self, organize_files: bool, has_existing: bool) -> dict:
         """Run dry-run mode to show what would be done without making changes."""
         return modes.run_dry_run_mode(
             self.console,
@@ -576,23 +576,23 @@ class MPMInitCommand:
         if claude_md.exists():
             self._optimize_claude_md_with_prompt_engineer()
 
-    def _display_results(self, result: Dict, verbose: bool):
+    def _display_results(self, result: dict, verbose: bool):
         """Display initialization results."""
         display.display_results(self.display, self.console, result, verbose)
 
     def handle_context(
         self,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         list_sessions: bool = False,
         days: int = 7,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Provide intelligent context for resuming work based on git history."""
         return git_activity.handle_context(
             self.project_path, session_id, list_sessions, days
         )
 
     def _build_research_context_prompt(
-        self, git_analysis: Dict[str, Any], days: int
+        self, git_analysis: dict[str, Any], days: int
     ) -> str:
         """Build structured Research agent delegation prompt from git analysis."""
         return prompts.build_research_context_prompt(git_analysis, days)

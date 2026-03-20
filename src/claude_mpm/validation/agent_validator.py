@@ -21,9 +21,9 @@ Security Considerations:
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from jsonschema import Draft7Validator, ValidationError, validate
 
@@ -58,9 +58,9 @@ class ValidationResult:
     """
 
     is_valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class AgentValidator:
@@ -92,7 +92,7 @@ class AgentValidator:
         "claude-3-5-haiku-20241022": "haiku",
     }
 
-    def __init__(self, schema_path: Optional[Path] = None):
+    def __init__(self, schema_path: Path | None = None):
         """Initialise the validator, loading and compiling the JSON schema.
 
         Why: Schema compilation via ``Draft7Validator`` is expensive; doing it
@@ -118,7 +118,7 @@ class AgentValidator:
         self.schema = self._load_schema()
         self.validator = Draft7Validator(self.schema)
 
-    def _load_schema(self) -> Dict[str, Any]:
+    def _load_schema(self) -> dict[str, Any]:
         """Load and return the JSON schema dict from ``self.schema_path``.
 
         Why: Separating schema loading from ``__init__`` makes it possible to
@@ -178,7 +178,7 @@ class AgentValidator:
         logger.warning(f"Unrecognized model '{model}', defaulting to 'sonnet'")
         return "sonnet"
 
-    def validate_agent(self, agent_data: Dict[str, Any]) -> ValidationResult:
+    def validate_agent(self, agent_data: dict[str, Any]) -> ValidationResult:
         """
         Validate a single agent configuration against the schema.
 
@@ -225,7 +225,7 @@ class AgentValidator:
 
         # Add metadata
         result.metadata = {
-            "validated_at": datetime.now(timezone.utc).isoformat(),
+            "validated_at": datetime.now(UTC).isoformat(),
             "schema_version": self.schema.get("version", "1.1.0"),
             "agent_id": agent_data.get("id", "unknown"),
         }
@@ -233,7 +233,7 @@ class AgentValidator:
         return result
 
     def _validate_business_rules(
-        self, agent_data: Dict[str, Any], result: ValidationResult
+        self, agent_data: dict[str, Any], result: ValidationResult
     ) -> None:
         """Apply additional business rule validations beyond schema.
 
@@ -295,7 +295,7 @@ class AgentValidator:
                 result.is_valid = False
 
     def _validate_resource_tier_limits(
-        self, agent_data: Dict[str, Any], tier: str, result: ValidationResult
+        self, agent_data: dict[str, Any], tier: str, result: ValidationResult
     ) -> None:
         """Validate resource limits match the tier constraints.
 
@@ -360,7 +360,7 @@ class AgentValidator:
                 )
 
     def _validate_model_tool_compatibility(
-        self, agent_data: Dict[str, Any], result: ValidationResult
+        self, agent_data: dict[str, Any], result: ValidationResult
     ) -> None:
         """Validate that model and tools are compatible."""
         model = agent_data.get("capabilities", {}).get("model", "")
@@ -451,7 +451,7 @@ class AgentValidator:
             result.errors.append(f"Error reading {file_path}: {e}")
             return result
 
-    def validate_directory(self, directory: Path) -> Dict[str, ValidationResult]:
+    def validate_directory(self, directory: Path) -> dict[str, ValidationResult]:
         """Validate all agent files in a directory.
 
         Security Considerations:
@@ -492,7 +492,7 @@ class AgentValidator:
 
         return results
 
-    def get_schema_info(self) -> Dict[str, Any]:
+    def get_schema_info(self) -> dict[str, Any]:
         """Return a summary dict describing the loaded schema.
 
         Why: Callers (CLI help commands, admin dashboards) need to display
@@ -517,7 +517,7 @@ class AgentValidator:
 
 
 def validate_agent_migration(
-    old_agent: Dict[str, Any], new_agent: Dict[str, Any]
+    old_agent: dict[str, Any], new_agent: dict[str, Any]
 ) -> ValidationResult:
     """
     Validate that a migrated agent maintains compatibility.
@@ -596,7 +596,7 @@ def validate_agent_file(file_path: Path) -> ValidationResult:
     return validator.validate_file(file_path)
 
 
-def validate_all_agents(directory: Path) -> Tuple[int, int, List[str]]:
+def validate_all_agents(directory: Path) -> tuple[int, int, list[str]]:
     """Validate every agent JSON file in *directory* and return a summary.
 
     Why: CI pipelines and release scripts need a single call that scans an

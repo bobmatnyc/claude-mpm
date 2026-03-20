@@ -13,7 +13,7 @@ DESIGN DECISIONS:
 
 import json
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ...core.logger import get_logger
 
@@ -48,10 +48,10 @@ class TicketCRUDService:
         ticket_type: str = "task",
         priority: str = "medium",
         description: str = "",
-        tags: Optional[List[str]] = None,
-        parent_epic: Optional[str] = None,
-        parent_issue: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        tags: list[str] | None = None,
+        parent_epic: str | None = None,
+        parent_issue: str | None = None,
+    ) -> dict[str, Any]:
         """
         Create a new ticket.
 
@@ -81,7 +81,7 @@ class TicketCRUDService:
             self.logger.error(f"Error creating ticket: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_ticket(self, ticket_id: str) -> Optional[Dict[str, Any]]:
+    def get_ticket(self, ticket_id: str) -> dict[str, Any] | None:
         """
         Get a specific ticket by ID.
 
@@ -101,7 +101,7 @@ class TicketCRUDService:
         page_size: int = 20,
         type_filter: str = "all",
         status_filter: str = "all",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List tickets with pagination and filtering.
 
@@ -138,7 +138,7 @@ class TicketCRUDService:
         page_size: int,
         type_filter: str,
         status_filter: str,
-    ) -> Optional[List[Dict]]:
+    ) -> list[dict] | None:
         """List tickets using aitrackdown CLI."""
         try:
             cmd = ["aitrackdown", "status", "tasks"]
@@ -177,7 +177,7 @@ class TicketCRUDService:
         page_size: int,
         type_filter: str,
         status_filter: str,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """List tickets using TicketManager."""
         all_tickets = self.ticket_manager.list_recent_tickets(limit=limit * 2)
 
@@ -202,12 +202,12 @@ class TicketCRUDService:
     def update_ticket(
         self,
         ticket_id: str,
-        status: Optional[str] = None,
-        priority: Optional[str] = None,
-        description: Optional[str] = None,
-        tags: Optional[List[str]] = None,
-        assignees: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        status: str | None = None,
+        priority: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        assignees: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Update a ticket's properties.
 
@@ -246,8 +246,8 @@ class TicketCRUDService:
             return {"success": False, "error": str(e)}
 
     def _update_via_aitrackdown(
-        self, ticket_id: str, status: str, updates: Dict
-    ) -> Dict[str, Any]:
+        self, ticket_id: str, status: str, updates: dict
+    ) -> dict[str, Any]:
         """Update ticket using aitrackdown CLI."""
         try:
             cmd = ["aitrackdown", "transition", ticket_id, status]
@@ -272,8 +272,8 @@ class TicketCRUDService:
             return {"success": False, "error": f"Failed to update ticket: {ticket_id}"}
 
     def close_ticket(
-        self, ticket_id: str, resolution: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, ticket_id: str, resolution: str | None = None
+    ) -> dict[str, Any]:
         """
         Close a ticket.
 
@@ -294,8 +294,8 @@ class TicketCRUDService:
             return {"success": False, "error": str(e)}
 
     def _close_via_aitrackdown(
-        self, ticket_id: str, resolution: Optional[str]
-    ) -> Dict[str, Any]:
+        self, ticket_id: str, resolution: str | None
+    ) -> dict[str, Any]:
         """Close ticket using aitrackdown CLI."""
         try:
             cmd = ["aitrackdown", "close", ticket_id]
@@ -307,7 +307,7 @@ class TicketCRUDService:
         except subprocess.CalledProcessError:
             return {"success": False, "error": f"Failed to close ticket: {ticket_id}"}
 
-    def delete_ticket(self, ticket_id: str, force: bool = False) -> Dict[str, Any]:
+    def delete_ticket(self, ticket_id: str, force: bool = False) -> dict[str, Any]:
         """
         Delete a ticket.
 

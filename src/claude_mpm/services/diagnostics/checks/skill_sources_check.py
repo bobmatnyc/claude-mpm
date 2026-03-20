@@ -7,7 +7,6 @@ sources are accessible, and skills are discoverable from configured repositories
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from ....core.enums import OperationResult, ValidationSeverity
 from ..models import DiagnosticResult
@@ -249,7 +248,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
                 details={"path": str(config_path), "error": str(e)},
             )
 
-    def _check_sources_configured(self, sources: List) -> DiagnosticResult:
+    def _check_sources_configured(self, sources: list) -> DiagnosticResult:
         """Check if at least one source is configured.
 
         Args:
@@ -286,9 +285,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
             details={"total": total_sources, "enabled": enabled_sources},
         )
 
-    def _check_system_repo_accessible(
-        self, sources: List
-    ) -> Optional[DiagnosticResult]:
+    def _check_system_repo_accessible(self, sources: list) -> DiagnosticResult | None:
         """Check if system repository is accessible.
 
         Args:
@@ -306,7 +303,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
             system_repo.url, "System Repository", is_system=True
         )
 
-    def _check_sources_reachable(self, sources: List) -> DiagnosticResult:
+    def _check_sources_reachable(self, sources: list) -> DiagnosticResult:
         """Check if enabled sources are reachable.
 
         Args:
@@ -324,7 +321,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
 
         reachable = []
         unreachable = []
-        details: Dict[str, str] = {}
+        details: dict[str, str] = {}
 
         for source in enabled_sources:
             result = self._check_repo_accessible(source.url, source.id)
@@ -392,7 +389,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
             req = urllib.request.Request(url, method="HEAD")
             req.add_header("User-Agent", "claude-mpm-doctor/1.0")
 
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=5) as response:  # nosec
                 status = response.status
 
             if status == 200:
@@ -477,7 +474,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
                 fix_description="Fix cache directory permissions",
             )
 
-    def _check_priority_conflicts(self, sources: List) -> Optional[DiagnosticResult]:
+    def _check_priority_conflicts(self, sources: list) -> DiagnosticResult | None:
         """Check for priority conflicts.
 
         Args:
@@ -490,7 +487,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
             return None
 
         # Group sources by priority
-        priority_groups: Dict[int, List[str]] = {}
+        priority_groups: dict[int, list[str]] = {}
         for source in enabled_sources:
             priority = source.priority
             if priority not in priority_groups:
@@ -561,7 +558,7 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
                 )
 
             # Group skills by source
-            skills_by_source: Dict[str, int] = {}
+            skills_by_source: dict[str, int] = {}
             for skill in available_skills:
                 source = skill.get("source_id", "unknown")
                 skills_by_source[source] = skills_by_source.get(source, 0) + 1

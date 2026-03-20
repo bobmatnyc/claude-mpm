@@ -17,7 +17,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 # Add the src directory to Python path for imports
 project_root = Path(__file__).parent.parent
@@ -33,7 +33,7 @@ class ResumeTestResults:
         self.failed = 0
         self.errors = []
 
-    def add_test(self, name: str, passed: bool, details: Dict[str, Any]):
+    def add_test(self, name: str, passed: bool, details: dict[str, Any]):
         """Add a test result"""
         self.tests.append({"name": name, "passed": passed, "details": details})
         if passed:
@@ -45,7 +45,7 @@ class ResumeTestResults:
         """Add an error"""
         self.errors.append(error)
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get test summary"""
         return {
             "total_tests": len(self.tests),
@@ -63,7 +63,7 @@ class ResumeTestRunner:
         self.project_root = Path(__file__).parent.parent
         self.results = ResumeTestResults()
 
-    def run_subcommand(self, cmd: List[str], timeout: int = 30) -> Tuple[int, str, str]:
+    def run_subcommand(self, cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
         """Run a command and capture output"""
         try:
             print(f"Running: {' '.join(cmd)}")

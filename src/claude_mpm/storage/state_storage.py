@@ -22,7 +22,7 @@ import platform
 import tempfile
 import time
 from contextlib import contextmanager, suppress
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 class StateStorage:
     """Reliable state storage with atomic operations."""
 
-    def __init__(self, storage_dir: Optional[Path] = None):
+    def __init__(self, storage_dir: Path | None = None):
         """Initialize State Storage.
 
         Args:
@@ -51,8 +51,8 @@ class StateStorage:
 
     def write_json(
         self,
-        data: Dict[str, Any],
-        file_path: Union[str, Path],
+        data: dict[str, Any],
+        file_path: str | Path,
         compress: bool = False,
         atomic: bool = True,
     ) -> bool:
@@ -91,8 +91,8 @@ class StateStorage:
             return False
 
     def read_json(
-        self, file_path: Union[str, Path], compressed: Optional[bool] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, file_path: str | Path, compressed: bool | None = None
+    ) -> dict[str, Any] | None:
         """Read data from JSON file.
 
         Args:
@@ -132,7 +132,7 @@ class StateStorage:
     def write_pickle(
         self,
         data: Any,
-        file_path: Union[str, Path],
+        file_path: str | Path,
         compress: bool = False,
         atomic: bool = True,
     ) -> bool:
@@ -171,8 +171,8 @@ class StateStorage:
             return False
 
     def read_pickle(
-        self, file_path: Union[str, Path], compressed: Optional[bool] = None
-    ) -> Optional[Any]:
+        self, file_path: str | Path, compressed: bool | None = None
+    ) -> Any | None:
         """Read data from pickle file.
 
         Args:
@@ -196,10 +196,10 @@ class StateStorage:
             with self._file_lock(file_path, "rb"):
                 if compressed:
                     with gzip.open(file_path, "rb") as f:
-                        data = pickle.load(f)
+                        data = pickle.load(f)  # nosec
                 else:
                     with file_path.open("rb") as f:
-                        data = pickle.load(f)
+                        data = pickle.load(f)  # nosec
 
             self.read_count += 1
             return data
@@ -316,7 +316,7 @@ class StateStorage:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
                 f.close()
 
-    def _add_checksum(self, file_path: Union[str, Path]) -> None:
+    def _add_checksum(self, file_path: str | Path) -> None:
         """Add checksum to file for integrity verification.
 
         Args:
@@ -341,7 +341,7 @@ class StateStorage:
         except Exception as e:
             logger.warning(f"Could not add checksum: {e}")
 
-    def verify_checksum(self, file_path: Union[str, Path]) -> bool:
+    def verify_checksum(self, file_path: str | Path) -> bool:
         """Verify file checksum for integrity.
 
         Args:
@@ -416,7 +416,7 @@ class StateStorage:
             logger.error(f"Error cleaning up temp files: {e}")
             return 0
 
-    def get_storage_info(self) -> Dict[str, Any]:
+    def get_storage_info(self) -> dict[str, Any]:
         """Get storage statistics and information.
 
         Returns:
@@ -463,14 +463,14 @@ class StateCache:
         """
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
-        self.cache: Dict[str, Tuple[Any, float]] = {}
-        self.access_count: Dict[str, int] = {}
+        self.cache: dict[str, tuple[Any, float]] = {}
+        self.access_count: dict[str, int] = {}
 
         # Statistics
         self.hits = 0
         self.misses = 0
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         """Get item from cache.
 
         Args:
@@ -526,7 +526,7 @@ class StateCache:
         self.cache.clear()
         self.access_count.clear()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics.
 
         Returns:

@@ -12,8 +12,8 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timezone
+from typing import Any
 
 # Add the src directory to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -45,7 +45,7 @@ class CircuitBreakerPerformanceTest:
             "integration_with_pool": {},
         }
 
-    def test_failure_threshold(self) -> Dict[str, Any]:
+    def test_failure_threshold(self) -> dict[str, Any]:
         """Test circuit breaker opens after failure threshold.
 
         Expected behavior:
@@ -95,7 +95,7 @@ class CircuitBreakerPerformanceTest:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def test_recovery_timeout(self) -> Dict[str, Any]:
+    def test_recovery_timeout(self) -> dict[str, Any]:
         """Test circuit breaker recovery timeout behavior.
 
         Expected behavior:
@@ -117,7 +117,7 @@ class CircuitBreakerPerformanceTest:
                 circuit.record_failure()
 
             # Record time when circuit opened
-            open_time = datetime.now(timezone.utc)
+            open_time = datetime.now(UTC)
             open_state = circuit.state.value
             open_can_execute = circuit.can_execute()
 
@@ -134,7 +134,7 @@ class CircuitBreakerPerformanceTest:
             after_timeout_can_execute = circuit.can_execute()
 
             # Record elapsed time
-            elapsed_time = (datetime.now(timezone.utc) - open_time).total_seconds()
+            elapsed_time = (datetime.now(UTC) - open_time).total_seconds()
 
             return {
                 "status": "completed",
@@ -158,7 +158,7 @@ class CircuitBreakerPerformanceTest:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def test_half_open_recovery(self) -> Dict[str, Any]:
+    def test_half_open_recovery(self) -> dict[str, Any]:
         """Test HALF_OPEN state recovery behavior.
 
         Expected behavior:
@@ -234,7 +234,7 @@ class CircuitBreakerPerformanceTest:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def test_fail_fast_behavior(self) -> Dict[str, Any]:
+    def test_fail_fast_behavior(self) -> dict[str, Any]:
         """Test fail-fast behavior when circuit is open.
 
         Expected behavior:
@@ -288,7 +288,7 @@ class CircuitBreakerPerformanceTest:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def test_integration_with_pool(self) -> Dict[str, Any]:
+    def test_integration_with_pool(self) -> dict[str, Any]:
         """Test circuit breaker integration with connection pool.
 
         Expected behavior:
@@ -382,7 +382,7 @@ class CircuitBreakerPerformanceTest:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def run_all_tests(self) -> Dict[str, Any]:
+    def run_all_tests(self) -> dict[str, Any]:
         """Run all circuit breaker performance tests."""
         print("=== Circuit Breaker Performance Test Suite ===\n")
 
@@ -416,10 +416,10 @@ class CircuitBreakerPerformanceTest:
             "status": "completed",
             "test_results": self.results,
             "summary": summary,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
-    def generate_summary(self) -> Dict[str, Any]:
+    def generate_summary(self) -> dict[str, Any]:
         """Generate test summary and assessment."""
         summary = {
             "total_tests": 5,

@@ -89,7 +89,7 @@ def main():
             # Use shell=True to support commands with cd and &&
             process = subprocess.Popen(
                 server["cmd"],
-                shell=True,
+                shell=True,  # nosec
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )

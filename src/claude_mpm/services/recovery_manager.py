@@ -22,10 +22,11 @@ import signal
 import time
 from abc import ABC, abstractmethod
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.constants import PerformanceConfig, RetryConfig
 
@@ -60,15 +61,13 @@ class RecoveryEvent:
     health_status: HealthStatus
     success: bool
     duration_ms: float
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert recovery event to dictionary."""
         return {
             "timestamp": self.timestamp,
-            "timestamp_iso": datetime.fromtimestamp(
-                self.timestamp, timezone.utc
-            ).isoformat(),
+            "timestamp_iso": datetime.fromtimestamp(self.timestamp, UTC).isoformat(),
             "action": self.action.value,
             "trigger": self.trigger,
             "health_status": self.health_status.value,
@@ -103,7 +102,7 @@ class GradedRecoveryStrategy(RecoveryStrategy):
     - Time since last recovery attempt
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize graded recovery strategy.
 
         Args:
@@ -305,7 +304,7 @@ class CircuitBreaker:
         self.success_count = 0
         self.logger.info("Circuit breaker CLOSED. Normal recovery operations resumed.")
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get current circuit breaker status."""
         current_time = time.time()
         return {
@@ -335,7 +334,7 @@ class RecoveryManager:
     - Integration with service lifecycle
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None, server_instance=None):
+    def __init__(self, config: dict[str, Any] | None = None, server_instance=None):
         """Initialize recovery manager.
 
         Args:
@@ -379,7 +378,7 @@ class RecoveryManager:
         self.recovery_count = 0
 
         # Recovery callbacks
-        self.recovery_callbacks: List[Callable[[RecoveryEvent], None]] = []
+        self.recovery_callbacks: list[Callable[[RecoveryEvent], None]] = []
 
         # Statistics
         self.recovery_stats = {
@@ -401,7 +400,7 @@ class RecoveryManager:
 
     def handle_health_result(
         self, health_result: HealthCheckResult
-    ) -> Optional[RecoveryEvent]:
+    ) -> RecoveryEvent | None:
         """Handle health check result and trigger recovery if needed.
 
         Args:
@@ -671,7 +670,7 @@ class RecoveryManager:
             current_avg * (total_recoveries - 1) + event.duration_ms
         ) / total_recoveries
 
-    def get_recovery_status(self) -> Dict[str, Any]:
+    def get_recovery_status(self) -> dict[str, Any]:
         """Get comprehensive recovery manager status."""
         return {
             "enabled": self.enabled,
@@ -691,7 +690,7 @@ class RecoveryManager:
             },
         }
 
-    def get_recovery_history(self, limit: Optional[int] = None) -> List[RecoveryEvent]:
+    def get_recovery_history(self, limit: int | None = None) -> list[RecoveryEvent]:
         """Get recovery event history.
 
         Args:

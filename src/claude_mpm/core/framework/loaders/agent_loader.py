@@ -1,7 +1,7 @@
 """Loader for agent discovery and management."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -9,7 +9,7 @@ from claude_mpm.core.logging_utils import get_logger
 class AgentLoader:
     """Handles agent discovery and loading from various sources."""
 
-    def __init__(self, framework_path: Optional[Path] = None):
+    def __init__(self, framework_path: Path | None = None):
         """Initialize the agent loader.
 
         Args:
@@ -18,7 +18,7 @@ class AgentLoader:
         self.logger = get_logger("agent_loader")
         self.framework_path = framework_path
 
-    def get_deployed_agents(self) -> Set[str]:
+    def get_deployed_agents(self) -> set[str]:
         """
         Get a set of deployed agent names from .claude/agents/ directories.
 
@@ -47,9 +47,7 @@ class AgentLoader:
         self.logger.debug(f"Total deployed agents found: {len(deployed)}")
         return deployed
 
-    def load_single_agent(
-        self, agent_file: Path
-    ) -> Tuple[Optional[str], Optional[str]]:
+    def load_single_agent(self, agent_file: Path) -> tuple[str | None, str | None]:
         """
         Load a single agent file.
 
@@ -73,10 +71,10 @@ class AgentLoader:
 
     def load_agents_directory(
         self,
-        agents_dir: Optional[Path],
-        templates_dir: Optional[Path] = None,
-        main_dir: Optional[Path] = None,
-    ) -> Dict[str, str]:
+        agents_dir: Path | None,
+        templates_dir: Path | None = None,
+        main_dir: Path | None = None,
+    ) -> dict[str, str]:
         """
         Load agent definitions from the appropriate directory.
 
@@ -114,7 +112,7 @@ class AgentLoader:
 
         return agents
 
-    def discover_local_json_templates(self) -> Dict[str, Dict[str, Any]]:
+    def discover_local_json_templates(self) -> dict[str, dict[str, Any]]:
         """Discover local JSON agent templates.
 
         NOTE: This method is kept for backward compatibility but is deprecated.
@@ -190,7 +188,7 @@ class AgentLoader:
 
         return local_agents
 
-    def _extract_tools_from_template(self, template_data: Dict[str, Any]) -> str:
+    def _extract_tools_from_template(self, template_data: dict[str, Any]) -> str:
         """Extract tools string from template data.
 
         Args:

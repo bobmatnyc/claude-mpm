@@ -9,7 +9,7 @@ All blocking service calls are wrapped in asyncio.to_thread().
 
 import asyncio
 import time
-from typing import Any, Dict
+from typing import Any
 
 from aiohttp import web
 
@@ -120,7 +120,7 @@ def _error_response(status: int, error: str, code: str) -> web.Response:
     )
 
 
-def _verification_to_dict(result) -> Dict[str, Any]:
+def _verification_to_dict(result) -> dict[str, Any]:
     """Convert a VerificationResult to a JSON-serialisable dict."""
     return {
         "passed": result.passed,

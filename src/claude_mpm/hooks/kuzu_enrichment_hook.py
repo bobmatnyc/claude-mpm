@@ -18,7 +18,7 @@ DESIGN DECISIONS:
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.hooks.base_hook import HookContext, HookResult, PreDelegationHook
 from claude_mpm.hooks.kuzu_memory_hook import get_kuzu_memory_hook
@@ -133,7 +133,7 @@ class KuzuEnrichmentHook(PreDelegationHook):
                 error=f"Memory enrichment failed: {e}",
             )
 
-    def _extract_query_from_context(self, data: Dict[str, Any]) -> Optional[str]:
+    def _extract_query_from_context(self, data: dict[str, Any]) -> str | None:
         """
         Extract query text for memory retrieval.
 
@@ -176,8 +176,8 @@ class KuzuEnrichmentHook(PreDelegationHook):
         return None
 
     def _enrich_delegation_context(
-        self, original_data: Dict[str, Any], memories: list, agent_name: str
-    ) -> Dict[str, Any]:
+        self, original_data: dict[str, Any], memories: list, agent_name: str
+    ) -> dict[str, Any]:
         """
         Enrich delegation context with memories.
 

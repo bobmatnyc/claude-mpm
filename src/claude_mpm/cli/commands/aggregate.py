@@ -14,7 +14,6 @@ DESIGN DECISIONS:
 
 import json
 import sys
-from typing import Optional
 
 from ...core.enums import OutputFormat
 from ...core.logger import get_logger
@@ -35,7 +34,7 @@ class AggregateCommand(BaseCommand):
     def __init__(self):
         super().__init__("aggregate")
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         if not hasattr(args, "aggregate_subcommand") or not args.aggregate_subcommand:
             return "No aggregate subcommand specified"

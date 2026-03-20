@@ -13,9 +13,9 @@ chronological order for session replay and analysis.
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 
 class EventCategory(Enum):
@@ -43,12 +43,12 @@ class SessionEvent:
     timestamp: str
     event_type: str  # Original event type from Socket.IO
     category: EventCategory
-    data: Dict[str, Any]
-    session_id: Optional[str] = None
-    agent_context: Optional[str] = None  # Which agent was active
-    correlation_id: Optional[str] = None  # For matching pre/post events
+    data: dict[str, Any]
+    session_id: str | None = None
+    agent_context: str | None = None  # Which agent was active
+    correlation_id: str | None = None  # For matching pre/post events
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "timestamp": self.timestamp,
@@ -72,14 +72,14 @@ class ToolOperation:
     tool_name: str
     agent_type: str
     start_time: str
-    end_time: Optional[str] = None
-    input_data: Optional[Dict[str, Any]] = None
-    output_data: Optional[Dict[str, Any]] = None
-    duration_ms: Optional[int] = None
+    end_time: str | None = None
+    input_data: dict[str, Any] | None = None
+    output_data: dict[str, Any] | None = None
+    duration_ms: int | None = None
     success: bool = True
-    error: Optional[str] = None
+    error: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
 
@@ -95,18 +95,18 @@ class AgentDelegation:
     agent_type: str
     task_description: str
     start_time: str
-    end_time: Optional[str] = None
-    prompt: Optional[str] = None
-    response: Optional[str] = None
-    tool_operations: List[ToolOperation] = field(default_factory=list)
-    file_changes: List[str] = field(default_factory=list)
-    todos_modified: List[Dict[str, Any]] = field(default_factory=list)
-    memory_updates: List[Dict[str, Any]] = field(default_factory=list)
-    duration_ms: Optional[int] = None
+    end_time: str | None = None
+    prompt: str | None = None
+    response: str | None = None
+    tool_operations: list[ToolOperation] = field(default_factory=list)
+    file_changes: list[str] = field(default_factory=list)
+    todos_modified: list[dict[str, Any]] = field(default_factory=list)
+    memory_updates: list[dict[str, Any]] = field(default_factory=list)
+    duration_ms: int | None = None
     success: bool = True
-    error: Optional[str] = None
+    error: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "agent_type": self.agent_type,
@@ -134,16 +134,16 @@ class SessionMetrics:
     """
 
     total_events: int = 0
-    event_counts: Dict[str, int] = field(default_factory=dict)
-    agents_used: Set[str] = field(default_factory=set)
-    tools_used: Set[str] = field(default_factory=set)
-    files_modified: Set[str] = field(default_factory=set)
+    event_counts: dict[str, int] = field(default_factory=dict)
+    agents_used: set[str] = field(default_factory=set)
+    tools_used: set[str] = field(default_factory=set)
+    files_modified: set[str] = field(default_factory=set)
     total_delegations: int = 0
     total_tool_calls: int = 0
     total_file_operations: int = 0
-    session_duration_ms: Optional[int] = None
+    session_duration_ms: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "total_events": self.total_events,
@@ -172,31 +172,31 @@ class AgentSession:
 
     session_id: str
     start_time: str
-    end_time: Optional[str] = None
+    end_time: str | None = None
     working_directory: str = ""
     launch_method: str = ""
-    initial_prompt: Optional[str] = None
-    final_response: Optional[str] = None
+    initial_prompt: str | None = None
+    final_response: str | None = None
 
     # Event collections
-    events: List[SessionEvent] = field(default_factory=list)
-    delegations: List[AgentDelegation] = field(default_factory=list)
+    events: list[SessionEvent] = field(default_factory=list)
+    delegations: list[AgentDelegation] = field(default_factory=list)
 
     # Session state
-    current_agent: Optional[str] = None
-    active_delegation: Optional[AgentDelegation] = None
-    pending_tool_operations: Dict[str, ToolOperation] = field(default_factory=dict)
+    current_agent: str | None = None
+    active_delegation: AgentDelegation | None = None
+    pending_tool_operations: dict[str, ToolOperation] = field(default_factory=dict)
 
     # Metrics
     metrics: SessionMetrics = field(default_factory=SessionMetrics)
 
     # Metadata
-    claude_pid: Optional[int] = None
-    git_branch: Optional[str] = None
-    project_root: Optional[str] = None
+    claude_pid: int | None = None
+    git_branch: str | None = None
+    project_root: str | None = None
 
     def add_event(
-        self, event_type: str, data: Dict[str, Any], timestamp: Optional[str] = None
+        self, event_type: str, data: dict[str, Any], timestamp: str | None = None
     ) -> SessionEvent:
         """Add an event to the session.
 
@@ -204,7 +204,7 @@ class AgentSession:
         and metric updates.
         """
         if timestamp is None:
-            timestamp = datetime.now(timezone.utc).isoformat() + "Z"
+            timestamp = datetime.now(UTC).isoformat() + "Z"
 
         # Categorize the event
         category = self._categorize_event(event_type, data)
@@ -232,7 +232,7 @@ class AgentSession:
 
         return event
 
-    def _categorize_event(self, event_type: str, data: Dict[str, Any]) -> EventCategory:
+    def _categorize_event(self, event_type: str, data: dict[str, Any]) -> EventCategory:
         """Categorize an event based on its type and data.
 
         WHY: Categories help with filtering and analysis of related events.
@@ -403,7 +403,7 @@ class AgentSession:
                 delegation.success = False
                 delegation.error = "Delegation did not complete"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "session_id": self.session_id,
@@ -423,7 +423,7 @@ class AgentSession:
             },
         }
 
-    def save_to_file(self, directory: Optional[str] = None) -> str:
+    def save_to_file(self, directory: str | None = None) -> str:
         """Save the session to a JSON file.
 
         WHY: Persistent storage allows for later analysis and debugging.
@@ -454,7 +454,7 @@ class AgentSession:
         return str(filepath)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AgentSession":
+    def from_dict(cls, data: dict[str, Any]) -> "AgentSession":
         """Create an AgentSession from a dictionary.
 
         WHY: Allows loading saved sessions for analysis.

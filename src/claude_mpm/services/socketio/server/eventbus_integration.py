@@ -7,8 +7,7 @@ WHY this integration module:
 - Provides clean separation of concerns
 """
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.event_bus import EventBus
@@ -35,12 +34,12 @@ class EventBusIntegration:
             server_instance: Optional Socket.IO server instance
         """
         self.server = server_instance
-        self.relay: Optional[DirectSocketIORelay] = None
-        self.event_bus: Optional[EventBus] = None
+        self.relay: DirectSocketIORelay | None = None
+        self.event_bus: EventBus | None = None
         self.config = get_config()
         self.enabled = self.config.enabled and self.config.relay_enabled
 
-    def setup(self, port: Optional[int] = None) -> bool:
+    def setup(self, port: int | None = None) -> bool:
         """Set up EventBus and relay.
 
         Args:
@@ -51,14 +50,14 @@ class EventBusIntegration:
         """
 
         print(
-            f"[{datetime.now(timezone.utc).isoformat()}] EventBusIntegration.setup() called",
+            f"[{datetime.now(UTC).isoformat()}] EventBusIntegration.setup() called",
             flush=True,
         )
 
         if not self.enabled:
             logger.info("EventBus integration disabled by configuration")
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] EventBus integration disabled by configuration",
+                f"[{datetime.now(UTC).isoformat()}] EventBus integration disabled by configuration",
                 flush=True,
             )
             return False
@@ -66,12 +65,12 @@ class EventBusIntegration:
         try:
             # Get EventBus instance
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] Getting EventBus instance...",
+                f"[{datetime.now(UTC).isoformat()}] Getting EventBus instance...",
                 flush=True,
             )
             self.event_bus = EventBus.get_instance()
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] EventBus instance obtained",
+                f"[{datetime.now(UTC).isoformat()}] EventBus instance obtained",
                 flush=True,
             )
 
@@ -80,36 +79,34 @@ class EventBusIntegration:
 
             # Create direct relay that uses server's broadcaster
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] Creating DirectSocketIORelay...",
+                f"[{datetime.now(UTC).isoformat()}] Creating DirectSocketIORelay...",
                 flush=True,
             )
             if self.server:
                 self.relay = DirectSocketIORelay(self.server)
                 print(
-                    f"[{datetime.now(timezone.utc).isoformat()}] DirectSocketIORelay created with server instance",
+                    f"[{datetime.now(UTC).isoformat()}] DirectSocketIORelay created with server instance",
                     flush=True,
                 )
             else:
                 logger.warning("No server instance provided, relay won't work")
                 print(
-                    f"[{datetime.now(timezone.utc).isoformat()}] WARNING: No server instance for relay",
+                    f"[{datetime.now(UTC).isoformat()}] WARNING: No server instance for relay",
                     flush=True,
                 )
                 return False
 
             # Start the relay
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] Starting relay...",
+                f"[{datetime.now(UTC).isoformat()}] Starting relay...",
                 flush=True,
             )
             self.relay.start()
-            print(
-                f"[{datetime.now(timezone.utc).isoformat()}] Relay started", flush=True
-            )
+            print(f"[{datetime.now(UTC).isoformat()}] Relay started", flush=True)
 
             logger.info("EventBus integration setup complete with DirectSocketIORelay")
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] EventBus integration setup complete with DirectSocketIORelay",
+                f"[{datetime.now(UTC).isoformat()}] EventBus integration setup complete with DirectSocketIORelay",
                 flush=True,
             )
             return True
@@ -117,7 +114,7 @@ class EventBusIntegration:
         except Exception as e:
             logger.error(f"Failed to setup EventBus integration: {e}")
             print(
-                f"[{datetime.now(timezone.utc).isoformat()}] Failed to setup EventBus integration: {e}",
+                f"[{datetime.now(UTC).isoformat()}] Failed to setup EventBus integration: {e}",
                 flush=True,
             )
             import traceback
@@ -163,7 +160,7 @@ class EventBusIntegration:
 
 
 def integrate_with_server(
-    server_instance, port: Optional[int] = None
+    server_instance, port: int | None = None
 ) -> EventBusIntegration:
     """Helper function to integrate EventBus with a Socket.IO server.
 

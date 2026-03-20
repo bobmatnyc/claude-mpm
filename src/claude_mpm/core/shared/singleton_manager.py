@@ -3,7 +3,7 @@ Shared singleton management utilities to reduce duplication.
 """
 
 import threading
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, TypeVar
 
 from ..logger import get_logger
 
@@ -21,13 +21,13 @@ class SingletonManager:
     SingletonMixin.__new__ and @singleton decorator patterns.
     """
 
-    _instances: Dict[Type, Any] = {}
-    _locks: Dict[Type, threading.RLock] = {}
+    _instances: dict[type, Any] = {}
+    _locks: dict[type, threading.RLock] = {}
     _global_lock = threading.RLock()
 
     @classmethod
     def get_instance(
-        cls, singleton_class: Type[T], *args, force_new: bool = False, **kwargs
+        cls, singleton_class: type[T], *args, force_new: bool = False, **kwargs
     ) -> T:
         """
         Get singleton instance of a class.
@@ -65,7 +65,7 @@ class SingletonManager:
             return cls._instances[singleton_class]
 
     @classmethod
-    def has_instance(cls, singleton_class: Type) -> bool:
+    def has_instance(cls, singleton_class: type) -> bool:
         """
         Check if singleton instance exists.
 
@@ -78,7 +78,7 @@ class SingletonManager:
         return singleton_class in cls._instances
 
     @classmethod
-    def clear_instance(cls, singleton_class: Type) -> None:
+    def clear_instance(cls, singleton_class: type) -> None:
         """
         Clear singleton instance.
 
@@ -103,7 +103,7 @@ class SingletonManager:
             cls._instances.clear()
 
     @classmethod
-    def get_instance_info(cls) -> Dict[str, Any]:
+    def get_instance_info(cls) -> dict[str, Any]:
         """
         Get information about managed instances.
 
@@ -148,7 +148,7 @@ class SingletonMixin:
         return SingletonManager.has_instance(cls)
 
 
-def singleton(cls: Type[T]) -> Type[T]:
+def singleton[T](cls: type[T]) -> type[T]:
     """
     Decorator to make a class a singleton.
 

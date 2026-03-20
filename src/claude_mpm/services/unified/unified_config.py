@@ -23,8 +23,9 @@ Features:
 """
 
 import json
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.core.logging_utils import get_logger
@@ -52,9 +53,9 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         """Initialize unified configuration manager."""
         self._logger = get_logger(f"{__name__}.UnifiedConfigManager")
         self._registry = get_strategy_registry()
-        self._configs: Dict[str, Dict[str, Any]] = {}
-        self._config_schemas: Dict[str, Dict[str, Any]] = {}
-        self._config_versions: Dict[str, List[Dict[str, Any]]] = {}
+        self._configs: dict[str, dict[str, Any]] = {}
+        self._config_schemas: dict[str, dict[str, Any]] = {}
+        self._config_versions: dict[str, list[dict[str, Any]]] = {}
         self._metrics = {
             "total_loads": 0,
             "total_saves": 0,
@@ -143,7 +144,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         self._initialized = False
         self._logger.info("UnifiedConfigManager shutdown complete")
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform health check.
 
@@ -162,7 +163,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             "metrics": self.get_metrics(),
         }
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get service metrics.
 
@@ -195,9 +196,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             "rollbacks": 0,
         }
 
-    def load_config(
-        self, source: Union[str, Path, Dict[str, Any]]
-    ) -> ConfigurationResult:
+    def load_config(self, source: str | Path | dict[str, Any]) -> ConfigurationResult:
         """
         Load configuration from source.
 
@@ -281,7 +280,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             )
 
     def save_config(
-        self, config: Dict[str, Any], target: Union[str, Path]
+        self, config: dict[str, Any], target: str | Path
     ) -> ConfigurationResult:
         """
         Save configuration to target.
@@ -360,7 +359,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
                 validation_errors=[f"Save failed: {e!s}"],
             )
 
-    def validate_config(self, config: Dict[str, Any]) -> List[str]:
+    def validate_config(self, config: dict[str, Any]) -> list[str]:
         """
         Validate configuration.
 
@@ -393,8 +392,8 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         return errors
 
     def merge_configs(
-        self, *configs: Dict[str, Any], strategy: str = "deep"
-    ) -> Dict[str, Any]:
+        self, *configs: dict[str, Any], strategy: str = "deep"
+    ) -> dict[str, Any]:
         """
         Merge multiple configurations.
 
@@ -424,7 +423,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         return self._deep_merge(*configs)
 
     def get_config_value(
-        self, key: str, default: Any = None, config: Optional[Dict[str, Any]] = None
+        self, key: str, default: Any = None, config: dict[str, Any] | None = None
     ) -> Any:
         """
         Get configuration value by key.
@@ -459,7 +458,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         return value
 
     def set_config_value(
-        self, key: str, value: Any, config: Optional[Dict[str, Any]] = None
+        self, key: str, value: Any, config: dict[str, Any] | None = None
     ) -> ConfigurationResult:
         """
         Set configuration value by key.
@@ -518,7 +517,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             validation_errors=[],
         )
 
-    def get_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> dict[str, Any]:
         """
         Get configuration schema.
 
@@ -536,7 +535,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
             "additionalProperties": True,
         }
 
-    def apply_defaults(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def apply_defaults(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Apply default values.
 
@@ -608,18 +607,18 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         import hashlib
 
         source_str = str(source)
-        return hashlib.md5(f"{config_type}:{source_str}".encode()).hexdigest()[:8]
+        return hashlib.md5(f"{config_type}:{source_str}".encode()).hexdigest()[:8]  # nosec
 
     def _apply_strategy_defaults(
-        self, strategy: ConfigStrategy, config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, strategy: ConfigStrategy, config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Apply defaults using strategy."""
         schema = strategy.get_schema()
         return self._apply_schema_defaults(config, schema)
 
     def _apply_schema_defaults(
-        self, config: Dict[str, Any], schema: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, config: dict[str, Any], schema: dict[str, Any]
+    ) -> dict[str, Any]:
         """Apply defaults from schema."""
         result = config.copy()
 
@@ -631,8 +630,8 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         return result
 
     def _get_applied_defaults(
-        self, original: Dict[str, Any], with_defaults: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, original: dict[str, Any], with_defaults: dict[str, Any]
+    ) -> dict[str, Any]:
         """Get dictionary of applied defaults."""
         applied = {}
         for key, value in with_defaults.items():
@@ -640,7 +639,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
                 applied[key] = value
         return applied
 
-    def _add_to_version_history(self, config_id: str, config: Dict[str, Any]) -> None:
+    def _add_to_version_history(self, config_id: str, config: dict[str, Any]) -> None:
         """Add configuration to version history."""
         if config_id not in self._config_versions:
             self._config_versions[config_id] = []
@@ -656,7 +655,7 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
         if len(self._config_versions[config_id]) > 10:
             self._config_versions[config_id] = self._config_versions[config_id][-10:]
 
-    def _deep_merge(self, *configs: Dict[str, Any]) -> Dict[str, Any]:
+    def _deep_merge(self, *configs: dict[str, Any]) -> dict[str, Any]:
         """Deep merge configurations."""
         result = {}
 
@@ -673,19 +672,19 @@ class UnifiedConfigManager(IConfigurationService, IUnifiedService):
 
         return result
 
-    def _shallow_merge(self, *configs: Dict[str, Any]) -> Dict[str, Any]:
+    def _shallow_merge(self, *configs: dict[str, Any]) -> dict[str, Any]:
         """Shallow merge configurations."""
         result = {}
         for config in configs:
             result.update(config)
         return result
 
-    def _override_merge(self, *configs: Dict[str, Any]) -> Dict[str, Any]:
+    def _override_merge(self, *configs: dict[str, Any]) -> dict[str, Any]:
         """Override merge - last config wins."""
         return configs[-1].copy() if configs else {}
 
     def _get_timestamp(self) -> str:
         """Get current timestamp."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()

@@ -15,7 +15,7 @@ DO NOT use "event" or "type" fields - use "hook_event_name" instead!
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
@@ -225,9 +225,7 @@ class DirectSocketIORelay:
                             event_type, broadcast_data
                         )
                         self.stats["events_relayed"] += 1
-                        self.stats["last_relay_time"] = datetime.now(
-                            timezone.utc
-                        ).isoformat()
+                        self.stats["last_relay_time"] = datetime.now(UTC).isoformat()
 
                         # Reset retry counter on successful broadcast
                         if self.connection_retries > 0:

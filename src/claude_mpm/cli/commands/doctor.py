@@ -12,6 +12,7 @@ DESIGN DECISIONS:
 """
 
 import sys
+from datetime import UTC
 from pathlib import Path
 
 from ...services.diagnostics import DiagnosticRunner, DoctorReporter
@@ -117,7 +118,7 @@ def doctor_command(args):
         Exit code (0 for success, 1 for warnings, 2 for errors)
     """
     # Configure logging
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from claude_mpm.core.logging_utils import get_logger
 
@@ -128,7 +129,7 @@ def doctor_command(args):
     if output_file is not None:
         # If output_file is specified without a path, use default with timestamp
         if str(output_file) == ".":
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
             output_file = Path(f"mpm-doctor-report-{timestamp}.md")
         elif not str(output_file).endswith((".md", ".json", ".txt")):
             # Add .md extension if no extension provided

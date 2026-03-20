@@ -11,7 +11,7 @@ Provides the SkillToAgentMapper service and HTTP handler functions.
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import yaml
 
@@ -30,9 +30,9 @@ class SkillToAgentMapper:
     """
 
     def __init__(self) -> None:
-        self._agent_to_skills: Dict[str, Dict[str, Set[str]]] = {}
-        self._skill_to_agents: Dict[str, Dict[str, Any]] = {}
-        self._deployed_skill_names: Set[str] = set()
+        self._agent_to_skills: dict[str, dict[str, set[str]]] = {}
+        self._skill_to_agents: dict[str, dict[str, Any]] = {}
+        self._deployed_skill_names: set[str] = set()
         self._initialized = False
 
     def _build_index(self) -> None:
@@ -82,8 +82,8 @@ class SkillToAgentMapper:
             logger.warning(f"Failed to read {agent_file}: {e}")
             return
 
-        frontmatter_skills: Set[str] = set()
-        content_marker_skills: Set[str] = set()
+        frontmatter_skills: set[str] = set()
+        content_marker_skills: set[str] = set()
 
         # Parse frontmatter skills
         match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
@@ -157,7 +157,7 @@ class SkillToAgentMapper:
         if not self._initialized:
             self._build_index()
 
-    def get_all_links(self) -> Dict[str, Any]:
+    def get_all_links(self) -> dict[str, Any]:
         """Get the full bidirectional mapping.
 
         Returns:
@@ -165,7 +165,7 @@ class SkillToAgentMapper:
         """
         self._ensure_initialized()
 
-        by_agent: Dict[str, Any] = {}
+        by_agent: dict[str, Any] = {}
         for agent_name, sources in self._agent_to_skills.items():
             fm = sorted(sources["frontmatter"])
             cm = sorted(sources["content_markers"])
@@ -175,7 +175,7 @@ class SkillToAgentMapper:
                 "total": len(set(fm) | set(cm)),
             }
 
-        by_skill: Dict[str, Any] = {}
+        by_skill: dict[str, Any] = {}
         for skill_name, info in self._skill_to_agents.items():
             by_skill[skill_name] = {
                 "agents": sorted(info["agents"]),
@@ -185,7 +185,7 @@ class SkillToAgentMapper:
 
         return {"by_agent": by_agent, "by_skill": by_skill}
 
-    def get_agent_skills(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_skills(self, agent_name: str) -> dict[str, Any] | None:
         """Get skills for a specific agent.
 
         Args:
@@ -205,7 +205,7 @@ class SkillToAgentMapper:
         all_skills = sorted(set(fm) | set(cm))
 
         # Categorize skills with deployment status
-        skills_detail: List[Dict[str, Any]] = []
+        skills_detail: list[dict[str, Any]] = []
         for skill in all_skills:
             source = "frontmatter"
             if (
@@ -234,7 +234,7 @@ class SkillToAgentMapper:
             "total": len(all_skills),
         }
 
-    def get_skill_agents(self, skill_name: str) -> Optional[Dict[str, Any]]:
+    def get_skill_agents(self, skill_name: str) -> dict[str, Any] | None:
         """Get agents that reference a specific skill.
 
         Args:
@@ -256,7 +256,7 @@ class SkillToAgentMapper:
             "is_deployed": self._is_skill_deployed(skill_name),
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get aggregate statistics about skill-agent links.
 
         Returns:

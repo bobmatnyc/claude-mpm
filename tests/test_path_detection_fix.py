@@ -211,13 +211,16 @@ class TestPipxPathDetectionFix(unittest.TestCase):
         pm._deployment_context = DeploymentContext.DEVELOPMENT
 
         # Mock framework root
-        with patch.object(
-            pm,
-            "framework_root",
-            new_callable=lambda: MagicMock(
-                return_value=Path("/Users/masa/Projects/claude-mpm")
+        with (
+            patch.object(
+                pm,
+                "framework_root",
+                new_callable=lambda: MagicMock(
+                    return_value=Path("/Users/masa/Projects/claude-mpm")
+                ),
             ),
-        ), patch.object(Path, "exists", return_value=True):
+            patch.object(Path, "exists", return_value=True),
+        ):
             # Should return src/claude_mpm
             pkg_root = pm.package_root
             self.assertEqual(

@@ -63,8 +63,7 @@ except ImportError:
             force=True,
             filename=str(log_file),
         )
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
@@ -97,8 +96,8 @@ class MemoryHookManager:
 
     def __init__(self):
         self.memory_hooks_initialized = False
-        self.pre_delegation_hook: Optional[MemoryPreDelegationHook] = None
-        self.post_delegation_hook: Optional[MemoryPostDelegationHook] = None
+        self.pre_delegation_hook: MemoryPreDelegationHook | None = None
+        self.post_delegation_hook: MemoryPostDelegationHook | None = None
 
         if MEMORY_HOOKS_AVAILABLE:
             self._initialize_memory_hooks()
@@ -172,7 +171,7 @@ class MemoryHookManager:
                     "session_id": session_id,
                 },
                 metadata={"source": "claude_hook_handler", "tool_name": "Task"},
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 session_id=session_id,
             )
 
@@ -249,7 +248,7 @@ class MemoryHookManager:
                     "tool_name": "Task",
                     "duration_ms": event.get("duration_ms", 0),
                 },
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 session_id=session_id,
             )
 

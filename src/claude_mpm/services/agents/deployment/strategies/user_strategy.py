@@ -1,7 +1,6 @@
 """User-specific agent deployment strategy."""
 
 from pathlib import Path
-from typing import List
 
 from .base_strategy import BaseDeploymentStrategy, DeploymentContext
 
@@ -85,7 +84,7 @@ class UserAgentDeploymentStrategy(BaseDeploymentStrategy):
         # User-specific templates directory
         return Path.home() / ".claude-mpm" / "agents"
 
-    def get_excluded_agents(self, context: DeploymentContext) -> List[str]:
+    def get_excluded_agents(self, context: DeploymentContext) -> list[str]:
         """Get excluded agents for user deployment.
 
         User deployment typically has minimal exclusions.

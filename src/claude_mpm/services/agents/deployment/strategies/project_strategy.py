@@ -1,7 +1,6 @@
 """Project-specific agent deployment strategy."""
 
 from pathlib import Path
-from typing import List
 
 from .base_strategy import BaseDeploymentStrategy, DeploymentContext
 
@@ -103,7 +102,7 @@ class ProjectAgentDeploymentStrategy(BaseDeploymentStrategy):
 
         return get_path_manager().get_user_agents_dir() / "templates"
 
-    def get_excluded_agents(self, context: DeploymentContext) -> List[str]:
+    def get_excluded_agents(self, context: DeploymentContext) -> list[str]:
         """Get excluded agents for project deployment.
 
         Project deployment may have project-specific exclusions.

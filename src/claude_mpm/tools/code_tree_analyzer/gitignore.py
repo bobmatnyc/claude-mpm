@@ -10,7 +10,7 @@ or display files that should be ignored in the repository.
 """
 
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 try:
     import pathspec
@@ -83,8 +83,8 @@ class GitignoreManager:
     def __init__(self):
         """Initialize the GitignoreManager."""
         self.logger = get_logger(__name__)
-        self._pathspec_cache: Dict[str, Any] = {}
-        self._gitignore_cache: Dict[str, List[str]] = {}
+        self._pathspec_cache: dict[str, Any] = {}
+        self._gitignore_cache: dict[str, list[str]] = {}
         self._use_pathspec = PATHSPEC_AVAILABLE
 
         if not self._use_pathspec:
@@ -92,7 +92,7 @@ class GitignoreManager:
                 "pathspec library not available - using basic pattern matching"
             )
 
-    def get_ignore_patterns(self, working_dir: Path) -> List[str]:
+    def get_ignore_patterns(self, working_dir: Path) -> list[str]:
         """Get all ignore patterns for a directory.
 
         Args:
@@ -160,7 +160,7 @@ class GitignoreManager:
             # Fallback to basic pattern matching
             return self._basic_should_ignore(path, working_dir)
 
-    def _get_pathspec(self, working_dir: Path) -> Optional[Any]:
+    def _get_pathspec(self, working_dir: Path) -> Any | None:
         """Get or create a PathSpec object for the working directory.
 
         Args:
@@ -185,7 +185,7 @@ class GitignoreManager:
 
         return self._pathspec_cache[cache_key]
 
-    def _find_gitignore_files(self, working_dir: Path) -> List[Path]:
+    def _find_gitignore_files(self, working_dir: Path) -> list[Path]:
         """Find all .gitignore files in the directory tree.
 
         Args:
@@ -216,7 +216,7 @@ class GitignoreManager:
 
         return gitignore_files
 
-    def _parse_gitignore(self, gitignore_path: Path) -> List[str]:
+    def _parse_gitignore(self, gitignore_path: Path) -> list[str]:
         """Parse a .gitignore file and return patterns.
 
         Args:

@@ -9,7 +9,6 @@ import json
 import os
 import shutil
 import sys
-from typing import Dict, Optional
 
 import yaml
 
@@ -75,7 +74,7 @@ class ProjectInitializer:
             self.logger.error(f"Failed to initialize user directory: {e}")
             return False
 
-    def initialize_project_directory(self, project_path: Optional[Path] = None) -> bool:
+    def initialize_project_directory(self, project_path: Path | None = None) -> bool:
         """Initialize project-level .claude-mpm directory structure.
 
         Creates:
@@ -585,7 +584,7 @@ class ProjectInitializer:
             self.logger.debug(f"Security check failed: {e}")
             # Don't print to console - this is a non-critical failure
 
-    def validate_dependencies(self) -> Dict[str, bool]:
+    def validate_dependencies(self) -> dict[str, bool]:
         """Validate that all required dependencies are available."""
         dependencies = {}
 

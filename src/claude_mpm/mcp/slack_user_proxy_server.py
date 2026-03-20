@@ -10,7 +10,7 @@ to channels, messages, and workspace features.
 import asyncio
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from mcp.server import Server
@@ -97,8 +97,8 @@ class SlackUserProxyServer:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
-        json_data: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make an authenticated request to Slack API.
 

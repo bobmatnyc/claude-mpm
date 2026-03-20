@@ -11,7 +11,7 @@ import contextlib
 import shlex
 import subprocess
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import psutil
 
@@ -26,9 +26,9 @@ class SubprocessError(Exception):
     def __init__(
         self,
         message: str,
-        returncode: Optional[int] = None,
-        stdout: Optional[str] = None,
-        stderr: Optional[str] = None,
+        returncode: int | None = None,
+        stdout: str | None = None,
+        stderr: str | None = None,
     ):
         super().__init__(message)
         self.returncode = returncode
@@ -88,12 +88,12 @@ def run_command(command_string: str, timeout: float = 60) -> str:
 
 
 def run_subprocess(
-    cmd: List[str],
-    timeout: Optional[float] = None,
+    cmd: list[str],
+    timeout: float | None = None,
     capture_output: bool = True,
     text: bool = True,
-    cwd: Optional[str] = None,
-    env: Optional[Dict[str, str]] = None,
+    cwd: str | None = None,
+    env: dict[str, str] | None = None,
     **kwargs,
 ) -> SubprocessResult:
     """
@@ -151,11 +151,11 @@ def run_subprocess(
 
 
 async def run_subprocess_async(
-    cmd: List[str],
-    timeout: Optional[float] = None,
+    cmd: list[str],
+    timeout: float | None = None,
     capture_output: bool = True,
-    cwd: Optional[str] = None,
-    env: Optional[Dict[str, str]] = None,
+    cwd: str | None = None,
+    env: dict[str, str] | None = None,
     **kwargs,
 ) -> SubprocessResult:
     """
@@ -191,7 +191,7 @@ async def run_subprocess_async(
             stdout_data, stderr_data = await asyncio.wait_for(
                 process.communicate(), timeout=timeout
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
             raise SubprocessError(
@@ -255,7 +255,7 @@ def terminate_process_tree(pid: int, timeout: float = 5.0) -> int:
     return terminated_count
 
 
-def get_process_info(pid: Optional[int] = None) -> Dict[str, Any]:
+def get_process_info(pid: int | None = None) -> dict[str, Any]:
     """
     Get information about a process.
 
@@ -285,7 +285,7 @@ def get_process_info(pid: Optional[int] = None) -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def monitor_process_resources(pid: int) -> Optional[Dict[str, Any]]:
+def monitor_process_resources(pid: int) -> dict[str, Any] | None:
     """
     Monitor resource usage of a process.
 

@@ -30,7 +30,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -55,7 +55,7 @@ class ConsolidationMetric(BaseMetric):
     """
 
     # Duplicate detection patterns
-    DUPLICATE_DETECTION_PATTERNS: List[str] = [
+    DUPLICATE_DETECTION_PATTERNS: list[str] = [
         r"found\s+duplicate",
         r"similar\s+(?:function|implementation|code)",
         r"existing\s+implementation",
@@ -70,7 +70,7 @@ class ConsolidationMetric(BaseMetric):
     ]
 
     # Consolidation decision patterns
-    DECISION_PATTERNS: List[str] = [
+    DECISION_PATTERNS: list[str] = [
         r">?\s*80%\s+(?:similar|similarity)",
         r">?\s*50%\s+(?:shared|similar)",
         r"same\s+domain",
@@ -84,7 +84,7 @@ class ConsolidationMetric(BaseMetric):
     ]
 
     # Implementation quality patterns
-    IMPLEMENTATION_PATTERNS: List[str] = [
+    IMPLEMENTATION_PATTERNS: list[str] = [
         r"consolidat(?:ed|ing)",
         r"merged.*into",
         r"single\s+implementation",
@@ -98,7 +98,7 @@ class ConsolidationMetric(BaseMetric):
     ]
 
     # Single-path enforcement patterns
-    SINGLE_PATH_PATTERNS: List[str] = [
+    SINGLE_PATH_PATTERNS: list[str] = [
         r"(?:one|single|only)\s+implementation",
         r"single\s+(?:path|source|canonical)",
         r"removed?\s+(?:duplicate|old|alternate)",
@@ -110,7 +110,7 @@ class ConsolidationMetric(BaseMetric):
     ]
 
     # Session artifact cleanup patterns
-    CLEANUP_PATTERNS: List[str] = [
+    CLEANUP_PATTERNS: list[str] = [
         r"removed?\s+_old",
         r"deleted?\s+_v\d+",
         r"removed?\s+_backup",
@@ -129,21 +129,21 @@ class ConsolidationMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.85 for 85% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Consolidation"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

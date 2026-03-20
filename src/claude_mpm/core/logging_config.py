@@ -22,7 +22,7 @@ import logging
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logger import (
@@ -57,7 +57,7 @@ class LogContext:
     or request IDs to all logs within a scope without modifying every log call.
     """
 
-    _context: Dict[str, Any] = {}
+    _context: dict[str, Any] = {}
 
     @classmethod
     def set(cls, **kwargs):
@@ -65,7 +65,7 @@ class LogContext:
         cls._context.update(kwargs)
 
     @classmethod
-    def get(cls) -> Dict[str, Any]:
+    def get(cls) -> dict[str, Any]:
         """Get current context."""
         return cls._context.copy()
 
@@ -141,7 +141,7 @@ class ContextualLogger:
 
 def get_logger(
     name: str, with_context: bool = True
-) -> Union[ContextualLogger, logging.Logger]:
+) -> ContextualLogger | logging.Logger:
     """
     Get a configured logger instance.
 
@@ -172,7 +172,7 @@ def get_logger(
 
 def configure_logging(
     level: str = "INFO",
-    log_dir: Optional[Path] = None,
+    log_dir: Path | None = None,
     console_output: bool = True,
     file_output: bool = True,
     json_format: bool = False,
@@ -205,9 +205,7 @@ def configure_logging(
 
 
 @contextmanager
-def log_operation(
-    logger: Union[ContextualLogger, logging.Logger], operation: str, **context
-):
+def log_operation(logger: ContextualLogger | logging.Logger, operation: str, **context):
     """
     Context manager for logging operation start/end with timing.
 
@@ -255,7 +253,7 @@ def log_operation(
 
 @contextmanager
 def log_performance_context(
-    logger: Union[ContextualLogger, logging.Logger],
+    logger: ContextualLogger | logging.Logger,
     operation: str,
     warn_threshold: float = 1.0,
     error_threshold: float = 5.0,
@@ -436,7 +434,7 @@ LOGGING_STANDARDS = {
 
 
 def log_with_level(
-    logger: Union[ContextualLogger, logging.Logger], level: str, message: str, **extra
+    logger: ContextualLogger | logging.Logger, level: str, message: str, **extra
 ):
     """
     Log a message with dynamic level selection.

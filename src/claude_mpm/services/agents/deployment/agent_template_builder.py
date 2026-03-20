@@ -10,7 +10,7 @@ maintainability and testability.
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
@@ -78,7 +78,7 @@ class AgentTemplateBuilder:
 
         return tool_list
 
-    def _discover_base_agent_templates(self, agent_file: Path) -> List[Path]:
+    def _discover_base_agent_templates(self, agent_file: Path) -> list[Path]:
         """Discover BASE-AGENT.md files in hierarchy from agent file to repository root.
 
         This method implements hierarchical BASE template discovery by walking up the
@@ -819,7 +819,7 @@ Only include memories that are:
 
         return merged
 
-    def extract_agent_metadata(self, template_content: str) -> Dict[str, Any]:
+    def extract_agent_metadata(self, template_content: str) -> dict[str, Any]:
         """
         Extract metadata from simplified agent template content.
 
@@ -867,7 +867,7 @@ Only include memories that are:
 
         return metadata
 
-    def format_yaml_list(self, items: List[str], indent: int) -> str:
+    def format_yaml_list(self, items: list[str], indent: int) -> str:
         """
         Format a list for YAML with proper indentation.
 
@@ -986,7 +986,7 @@ Only include memories that are:
 
     def _extract_examples_from_template(
         self, template_data: dict, agent_name: str
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Extract examples from template data and format with commentary.
         Creates ONE example with commentary from template data.
@@ -1068,7 +1068,7 @@ Only include memories that are:
 
     def _generate_default_examples(
         self, agent_name: str, template_data: dict
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Generate default examples when none are available in template.
         Creates ONE example with commentary for each agent type.

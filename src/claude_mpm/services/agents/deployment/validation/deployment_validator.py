@@ -1,7 +1,7 @@
 """Main deployment validator service."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -24,8 +24,8 @@ class DeploymentValidator:
         self.agent_validator = AgentValidator()
 
     def validate_template_files(
-        self, template_files: List[Path]
-    ) -> Dict[str, ValidationResult]:
+        self, template_files: list[Path]
+    ) -> dict[str, ValidationResult]:
         """Validate multiple template files.
 
         Args:
@@ -53,8 +53,8 @@ class DeploymentValidator:
         return results
 
     def validate_agent_files(
-        self, agent_files: List[Path]
-    ) -> Dict[str, ValidationResult]:
+        self, agent_files: list[Path]
+    ) -> dict[str, ValidationResult]:
         """Validate multiple agent files.
 
         Args:
@@ -82,7 +82,7 @@ class DeploymentValidator:
         return results
 
     def validate_deployment_environment(
-        self, target_dir: Path, templates_dir: Optional[Path] = None
+        self, target_dir: Path, templates_dir: Path | None = None
     ) -> ValidationResult:
         """Validate deployment environment.
 
@@ -184,8 +184,8 @@ class DeploymentValidator:
         return result
 
     def repair_agent_files(
-        self, agent_files: List[Path], dry_run: bool = True
-    ) -> Dict[str, ValidationResult]:
+        self, agent_files: list[Path], dry_run: bool = True
+    ) -> dict[str, ValidationResult]:
         """Repair multiple agent files.
 
         Args:
@@ -210,8 +210,8 @@ class DeploymentValidator:
         return results
 
     def get_validation_summary(
-        self, results: Dict[str, ValidationResult]
-    ) -> Dict[str, Any]:
+        self, results: dict[str, ValidationResult]
+    ) -> dict[str, Any]:
         """Get summary of validation results.
 
         Args:

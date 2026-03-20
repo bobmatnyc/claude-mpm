@@ -13,9 +13,9 @@ import asyncio
 import threading
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any
 
 try:
     import aiohttp
@@ -72,8 +72,8 @@ class SocketIOServerCore:
         self.sio = None
 
         # Connection tracking
-        self.connected_clients: Set[str] = set()
-        self.client_info: Dict[str, Dict[str, Any]] = {}
+        self.connected_clients: set[str] = set()
+        self.client_info: dict[str, dict[str, Any]] = {}
 
         # Event buffering for reliability
         self.event_buffer = deque(
@@ -294,7 +294,7 @@ class SocketIOServerCore:
             await self.site.start()
 
             self.running = True
-            self.stats["start_time"] = datetime.now(timezone.utc)
+            self.stats["start_time"] = datetime.now(UTC)
 
             self.logger.info(
                 f"Socket.IO server listening on http://{self.host}:{self.port}"
@@ -593,15 +593,13 @@ class SocketIOServerCore:
                 uptime_seconds = 0
                 if self.stats.get("start_time"):
                     uptime_seconds = int(
-                        (
-                            datetime.now(timezone.utc) - self.stats["start_time"]
-                        ).total_seconds()
+                        (datetime.now(UTC) - self.stats["start_time"]).total_seconds()
                     )
 
                 health_data = {
                     "status": "healthy",
                     "service": "claude-mpm-socketio",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "uptime_seconds": uptime_seconds,
                     "connected_clients": len(self.connected_clients),
                     "total_events": self.stats.get("events_sent", 0),
@@ -1156,9 +1154,7 @@ class SocketIOServerCore:
                 uptime_seconds = 0
                 if self.stats.get("start_time"):
                     uptime_seconds = int(
-                        (
-                            datetime.now(timezone.utc) - self.stats["start_time"]
-                        ).total_seconds()
+                        (datetime.now(UTC) - self.stats["start_time"]).total_seconds()
                     )
 
                 # Get active sessions from main server if available
@@ -1175,7 +1171,7 @@ class SocketIOServerCore:
                 heartbeat_data = {
                     "type": "system",
                     "subtype": "heartbeat",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "source": "server",
                     "data": {
                         "uptime_seconds": uptime_seconds,

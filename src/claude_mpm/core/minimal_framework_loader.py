@@ -2,7 +2,6 @@
 
 import contextlib
 from pathlib import Path
-from typing import Optional
 
 try:
     from ..core.logger import get_logger
@@ -15,15 +14,15 @@ class MinimalFrameworkLoader:
 
     def __init__(
         self,
-        framework_path: Optional[Path] = None,
-        agents_dir: Optional[Path] = None,
+        framework_path: Path | None = None,
+        agents_dir: Path | None = None,
     ):
         """Initialize the minimal loader."""
         self.logger = get_logger("minimal_framework_loader")
         self.framework_path = framework_path or self._detect_framework_path()
         self.agents_dir = agents_dir
 
-    def _detect_framework_path(self) -> Optional[Path]:
+    def _detect_framework_path(self) -> Path | None:
         """Detect the claude-mpm framework path."""
         # Same detection logic as main loader
         candidates = [

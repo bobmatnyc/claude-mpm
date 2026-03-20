@@ -7,7 +7,7 @@ making services easier to test and configure.
 
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 from .base_service import BaseService
 from .container import DIContainer
@@ -32,10 +32,10 @@ class InjectableService(BaseService, ABC):
     def __init__(
         self,
         name: str,
-        config: Optional[Dict[str, Any]] = None,
-        config_path: Optional[Path] = None,
+        config: dict[str, Any] | None = None,
+        config_path: Path | None = None,
         enable_enhanced_features: bool = True,
-        container: Optional[DIContainer] = None,
+        container: DIContainer | None = None,
         **injected_deps,
     ):
         """
@@ -108,7 +108,7 @@ class InjectableService(BaseService, ABC):
                 except Exception as e:
                     logger.warning(f"Could not inject {attr_name}: {e}")
 
-    def get_dependency(self, service_type: Type[T]) -> T:
+    def get_dependency(self, service_type: type[T]) -> T:
         """
         Get a dependency from the container.
 
@@ -126,8 +126,8 @@ class InjectableService(BaseService, ABC):
         return self._di_container.resolve(service_type)
 
     def get_optional_dependency(
-        self, service_type: Type[T], default: Optional[T] = None
-    ) -> Optional[T]:
+        self, service_type: type[T], default: T | None = None
+    ) -> T | None:
         """
         Get an optional dependency from the container.
 
@@ -143,7 +143,7 @@ class InjectableService(BaseService, ABC):
 
         return self._di_container.resolve_optional(service_type, default)
 
-    def has_dependency(self, service_type: Type) -> bool:
+    def has_dependency(self, service_type: type) -> bool:
         """Check if a dependency is available in the container."""
         if not self._di_container:
             return False

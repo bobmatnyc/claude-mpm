@@ -1,7 +1,5 @@
 """Pipeline builder for creating deployment pipelines."""
 
-from typing import Dict, List, Type
-
 from claude_mpm.core.logger import get_logger
 
 from .steps.base_step import BaseDeploymentStep
@@ -19,8 +17,8 @@ class DeploymentPipelineBuilder:
     def __init__(self):
         """Initialize the pipeline builder."""
         self.logger = get_logger(__name__)
-        self._steps: List[BaseDeploymentStep] = []
-        self._step_registry: Dict[str, Type[BaseDeploymentStep]] = {}
+        self._steps: list[BaseDeploymentStep] = []
+        self._step_registry: dict[str, type[BaseDeploymentStep]] = {}
 
         # Register default steps
         self._register_default_steps()
@@ -68,7 +66,7 @@ class DeploymentPipelineBuilder:
         step = step_class(**kwargs)
         return self.add_step(step)
 
-    def create_standard_pipeline(self) -> List[BaseDeploymentStep]:
+    def create_standard_pipeline(self) -> list[BaseDeploymentStep]:
         """Create a standard deployment pipeline with all common steps.
 
         Returns:
@@ -80,7 +78,7 @@ class DeploymentPipelineBuilder:
             # Additional steps will be added as they're implemented
         ]
 
-    def create_minimal_pipeline(self) -> List[BaseDeploymentStep]:
+    def create_minimal_pipeline(self) -> list[BaseDeploymentStep]:
         """Create a minimal deployment pipeline with only essential steps.
 
         Returns:
@@ -91,7 +89,7 @@ class DeploymentPipelineBuilder:
             TargetDirectorySetupStep(),
         ]
 
-    def create_custom_pipeline(self, step_names: List[str]) -> List[BaseDeploymentStep]:
+    def create_custom_pipeline(self, step_names: list[str]) -> list[BaseDeploymentStep]:
         """Create a custom pipeline from step names.
 
         Args:
@@ -113,7 +111,7 @@ class DeploymentPipelineBuilder:
 
         return steps
 
-    def build(self) -> List[BaseDeploymentStep]:
+    def build(self) -> list[BaseDeploymentStep]:
         """Build the pipeline from added steps.
 
         Returns:
@@ -129,7 +127,7 @@ class DeploymentPipelineBuilder:
         # In a full implementation, this would do topological sorting
         return self._steps.copy()
 
-    def register_step(self, name: str, step_class: Type[BaseDeploymentStep]) -> None:
+    def register_step(self, name: str, step_class: type[BaseDeploymentStep]) -> None:
         """Register a new step type.
 
         Args:
@@ -139,7 +137,7 @@ class DeploymentPipelineBuilder:
         self._step_registry[name] = step_class
         self.logger.debug(f"Registered step: {name} -> {step_class.__name__}")
 
-    def get_registered_steps(self) -> Dict[str, Type[BaseDeploymentStep]]:
+    def get_registered_steps(self) -> dict[str, type[BaseDeploymentStep]]:
         """Get all registered step types.
 
         Returns:

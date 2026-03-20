@@ -2,8 +2,8 @@
 
 import asyncio
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.hooks.base_hook import BaseHook, HookContext, HookType
@@ -16,10 +16,10 @@ class SimpleHookRunner:
 
     def __init__(self):
         """Initialize the simple hook runner."""
-        self._hooks: Dict[HookType, List[BaseHook]] = defaultdict(list)
-        self._hook_instances: Dict[str, BaseHook] = {}
+        self._hooks: dict[HookType, list[BaseHook]] = defaultdict(list)
+        self._hook_instances: dict[str, BaseHook] = {}
 
-    def register_hook(self, hook: BaseHook, hook_type: Optional[HookType] = None):
+    def register_hook(self, hook: BaseHook, hook_type: HookType | None = None):
         """Register a hook instance."""
         if hook_type is None:
             hook_type = HookType.CUSTOM
@@ -34,7 +34,7 @@ class SimpleHookRunner:
         self._hook_instances[hook.name] = hook
         self._hooks[hook_type].sort()  # Sort by priority
 
-    async def run_hooks(self, context: HookContext) -> List[Dict[str, Any]]:
+    async def run_hooks(self, context: HookContext) -> list[dict[str, Any]]:
         """Run all hooks for the given context."""
         hooks = [h for h in self._hooks[context.hook_type] if h.enabled]
         results = []
@@ -69,7 +69,7 @@ class SimpleHookRunner:
 class ToolCallInterceptor:
     """Intercepts and processes tool calls through the hook system."""
 
-    def __init__(self, hook_runner: Optional[SimpleHookRunner] = None):
+    def __init__(self, hook_runner: SimpleHookRunner | None = None):
         """Initialize the tool call interceptor.
 
         Args:
@@ -80,9 +80,9 @@ class ToolCallInterceptor:
     async def intercept_tool_call(
         self,
         tool_name: str,
-        parameters: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Intercept a tool call and run it through the hook system.
 
         Args:
@@ -105,7 +105,7 @@ class ToolCallInterceptor:
                 "parameters": parameters.copy(),  # Copy to avoid modifying original
             },
             metadata=metadata or {},
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         # Run hooks
@@ -146,9 +146,9 @@ class ToolCallInterceptor:
     def intercept_tool_call_sync(
         self,
         tool_name: str,
-        parameters: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Synchronous version of intercept_tool_call."""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -176,7 +176,7 @@ class ToolCallHookIntegration:
         """
 
         async def wrapped_executor(
-            tool_name: str, parameters: Dict[str, Any], **kwargs
+            tool_name: str, parameters: dict[str, Any], **kwargs
         ):
             # Intercept the tool call
             interception_result = await interceptor.intercept_tool_call(
@@ -196,7 +196,7 @@ class ToolCallHookIntegration:
 
     @staticmethod
     def create_tool_call_validator(
-        valid_tools: List[str], interceptor: ToolCallInterceptor
+        valid_tools: list[str], interceptor: ToolCallInterceptor
     ):
         """Create a tool call validator that uses the hook system.
 
@@ -208,7 +208,7 @@ class ToolCallHookIntegration:
             Validator function
         """
 
-        def validator(tool_name: str, parameters: Dict[str, Any]) -> bool:
+        def validator(tool_name: str, parameters: dict[str, Any]) -> bool:
             # Basic validation
             if tool_name not in valid_tools:
                 return False

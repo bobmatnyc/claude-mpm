@@ -9,7 +9,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
@@ -115,7 +115,7 @@ class VersionService(BaseService, VersionServiceInterface):
         # Format version with build number if available
         return self._format_version(version, build_number)
 
-    def _get_build_number(self) -> Optional[int]:
+    def _get_build_number(self) -> int | None:
         """Get build number from BUILD_NUMBER file.
 
         Returns:
@@ -145,7 +145,7 @@ class VersionService(BaseService, VersionServiceInterface):
 
         return None
 
-    def _format_version(self, version: str, build_number: Optional[int]) -> str:
+    def _format_version(self, version: str, build_number: int | None) -> str:
         """Format version string with optional build number.
 
         Args:
@@ -204,7 +204,7 @@ class VersionService(BaseService, VersionServiceInterface):
 
         return version
 
-    def get_build_number(self) -> Optional[int]:
+    def get_build_number(self) -> int | None:
         """Get current build number.
 
         Returns:
@@ -227,7 +227,7 @@ class VersionService(BaseService, VersionServiceInterface):
 
     # Implementation of abstract methods from VersionServiceInterface
 
-    def get_version_info(self) -> Dict[str, Any]:
+    def get_version_info(self) -> dict[str, Any]:
         """Get detailed version information.
 
         Returns:
@@ -258,7 +258,7 @@ class VersionService(BaseService, VersionServiceInterface):
             return self.get_version()  # Already includes build number
         return self.get_base_version()
 
-    def check_for_updates(self) -> Dict[str, Any]:
+    def check_for_updates(self) -> dict[str, Any]:
         """Check for available updates.
 
         Returns:
@@ -275,7 +275,7 @@ class VersionService(BaseService, VersionServiceInterface):
             "checked_at": None,
         }
 
-    def get_agents_versions(self) -> Dict[str, List[Dict[str, str]]]:
+    def get_agents_versions(self) -> dict[str, list[dict[str, str]]]:
         """Get all agents grouped by tier with versions.
 
         Returns:
@@ -315,7 +315,7 @@ class VersionService(BaseService, VersionServiceInterface):
 
         return agents_by_tier
 
-    def get_skills_versions(self) -> Dict[str, List[Dict[str, str]]]:
+    def get_skills_versions(self) -> dict[str, list[dict[str, str]]]:
         """Get all skills grouped by source with versions.
 
         Returns:
@@ -351,7 +351,7 @@ class VersionService(BaseService, VersionServiceInterface):
 
         return skills_by_source
 
-    def get_version_summary(self) -> Dict:
+    def get_version_summary(self) -> dict:
         """Get complete version summary.
 
         Returns:

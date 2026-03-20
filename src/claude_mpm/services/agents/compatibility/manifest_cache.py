@@ -3,9 +3,9 @@
 import json
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class ManifestCache:
         assert entry["min_cli_version"] == "5.10.0"
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         self._db_path = db_path or DEFAULT_CACHE_DB
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
@@ -68,10 +68,10 @@ class ManifestCache:
         source_id: str,
         repo_format_version: int,
         min_cli_version: str,
-        max_cli_version: Optional[str] = None,
-        compatibility_ranges: Optional[List[Dict[str, Any]]] = None,
-        agent_overrides: Optional[Dict[str, Any]] = None,
-        raw_content: Optional[str] = None,
+        max_cli_version: str | None = None,
+        compatibility_ranges: list[dict[str, Any]] | None = None,
+        agent_overrides: dict[str, Any] | None = None,
+        raw_content: str | None = None,
     ) -> None:
         """Store or update a manifest cache entry.
 
@@ -99,13 +99,13 @@ class ManifestCache:
                     max_cli_version,
                     json.dumps(compatibility_ranges) if compatibility_ranges else None,
                     json.dumps(agent_overrides) if agent_overrides else None,
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                     raw_content,
                 ),
             )
             conn.commit()
 
-    def get(self, source_id: str) -> Optional[Dict[str, Any]]:
+    def get(self, source_id: str) -> dict[str, Any] | None:
         """Retrieve cached manifest data for a source.
 
         Args:
@@ -135,7 +135,7 @@ class ManifestCache:
                 result["agent_overrides"] = json.loads(result["agent_overrides"])
             return result
 
-    def get_all(self) -> List[Dict[str, Any]]:
+    def get_all(self) -> list[dict[str, Any]]:
         """Retrieve all cached manifests, ordered by last_checked descending.
 
         Returns:

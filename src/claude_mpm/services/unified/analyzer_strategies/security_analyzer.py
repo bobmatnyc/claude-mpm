@@ -12,7 +12,7 @@ Created: 2025-01-26
 import ast
 import re
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -158,7 +158,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
             and context.operation in self.metadata.supported_operations
         )
 
-    def validate_input(self, input_data: Any) -> List[str]:
+    def validate_input(self, input_data: Any) -> list[str]:
         """Validate input data for strategy."""
         errors = []
 
@@ -176,8 +176,8 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         return errors
 
     def analyze(
-        self, target: Any, options: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, target: Any, options: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Execute security analysis on target.
 
@@ -203,7 +203,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
             "message": f"Unsupported target type: {type(target).__name__}",
         }
 
-    def _analyze_file(self, file_path: Path, options: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_file(self, file_path: Path, options: dict[str, Any]) -> dict[str, Any]:
         """Analyze a single file for security issues."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -248,8 +248,8 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         return results
 
     def _analyze_directory(
-        self, dir_path: Path, options: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, dir_path: Path, options: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze all files in a directory for security issues."""
         results = {
             "status": OperationResult.SUCCESS,
@@ -328,7 +328,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
     def _scan_for_vulnerabilities(
         self, content: str, file_path: Path
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Scan content for known vulnerability patterns."""
         vulnerabilities = []
 
@@ -354,7 +354,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
     def _scan_for_config_issues(
         self, content: str, file_path: Path
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Scan for insecure configuration patterns."""
         issues = []
 
@@ -396,7 +396,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
     def _analyze_python_security(
         self, content: str, file_path: Path
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Perform Python-specific security analysis."""
         issues = []
 
@@ -466,7 +466,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
     def _analyze_javascript_security(
         self, content: str, file_path: Path
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Perform JavaScript-specific security analysis."""
         issues = []
 
@@ -512,7 +512,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return issues
 
-    def _calculate_risk_score(self, vulnerabilities: List[Dict[str, Any]]) -> float:
+    def _calculate_risk_score(self, vulnerabilities: list[dict[str, Any]]) -> float:
         """Calculate risk score based on vulnerabilities."""
         if not vulnerabilities:
             return 0.0
@@ -536,7 +536,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return round(normalized, 2)
 
-    def _calculate_overall_risk(self, results: Dict[str, Any]) -> float:
+    def _calculate_overall_risk(self, results: dict[str, Any]) -> float:
         """Calculate overall risk score for directory analysis."""
         severity_weights = {
             "critical": 1.0,
@@ -560,8 +560,8 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         return min(100.0, round(weighted_score / max(results["files_analyzed"], 1), 2))
 
     def _generate_summary(
-        self, vulnerabilities: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, vulnerabilities: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Generate summary of security findings."""
         summary = {
             "total": len(vulnerabilities),
@@ -588,7 +588,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return summary
 
-    def _generate_recommendations(self, results: Dict[str, Any]) -> List[str]:
+    def _generate_recommendations(self, results: dict[str, Any]) -> list[str]:
         """Generate security recommendations based on findings."""
         recommendations = []
 
@@ -641,7 +641,7 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
 
         return recommendations
 
-    def extract_metrics(self, analysis_result: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_metrics(self, analysis_result: dict[str, Any]) -> dict[str, Any]:
         """Extract key metrics from analysis results."""
         metrics = {}
 
@@ -682,8 +682,8 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
         return metrics
 
     def compare_results(
-        self, baseline: Dict[str, Any], current: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, baseline: dict[str, Any], current: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare two security analysis results."""
         comparison = {
             "risk_change": 0,

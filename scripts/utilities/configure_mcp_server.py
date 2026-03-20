@@ -17,7 +17,7 @@ import json
 import platform
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 
@@ -86,7 +86,7 @@ def backup_config(config_path):
     if not config_path.exists():
         return None
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     backup_path = (
         config_path.parent
         / f"{config_path.stem}_backup_{timestamp}{config_path.suffix}"
@@ -161,7 +161,7 @@ def configure_mcp_server(config, project_root):
             "PYTHONPATH": str(project_root / "src"),
             "CLAUDE_MPM_ROOT": str(project_root),
             "MCP_MODE": "production",
-            "DISABLE_TELEMETRY": "1",
+            "DISABLE_TELEMETRY": "1",  # Static JSON template default, not runtime-overridable
         },
     }
 

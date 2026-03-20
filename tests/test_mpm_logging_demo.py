@@ -10,7 +10,7 @@ import asyncio
 import os
 import sys
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 from claude_mpm.core.config import Config
@@ -107,7 +107,7 @@ def test_mpm_logging_end_to_end_demo():
         asyncio.run(create_new_logs())
 
         # Verify new logs are in correct location
-        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        today = datetime.now(UTC).strftime("%Y%m%d")
         today_log = new_location / f"mpm_{today}.log"
 
         if today_log.exists():
@@ -130,7 +130,7 @@ def test_mpm_logging_end_to_end_demo():
         old_log.write_text("Old test content")
 
         # Set its modification time to be old
-        old_time = (datetime.now(timezone.utc) - timedelta(hours=50)).timestamp()
+        old_time = (datetime.now(UTC) - timedelta(hours=50)).timestamp()
         os.utime(old_log, (old_time, old_time))
 
         # Run cleanup

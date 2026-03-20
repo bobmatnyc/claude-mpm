@@ -11,7 +11,6 @@ This test demonstrates all the new features of the enhanced DIContainer:
 """
 
 import threading
-from typing import List
 
 import pytest
 
@@ -66,7 +65,7 @@ class ConsoleLogger(ILogger):
     """Console logger implementation."""
 
     def __init__(self):
-        self.messages: List[str] = []
+        self.messages: list[str] = []
 
     def log(self, message: str) -> None:
         self.messages.append(message)

@@ -11,7 +11,7 @@ Part of TSK-0046: Service Layer Architecture Reorganization
 
 import threading
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -29,8 +29,8 @@ class BaseService(ABC):
 
     def __init__(
         self,
-        service_name: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
+        service_name: str | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize base service.
@@ -128,8 +128,8 @@ class SyncBaseService(ABC):
 
     def __init__(
         self,
-        service_name: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
+        service_name: str | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize base service.
@@ -227,7 +227,7 @@ class SingletonService(SyncBaseService):
     Uses RLock (reentrant lock) to support recursive instantiation patterns.
     """
 
-    _instances: Dict[type, "SingletonService"] = {}
+    _instances: dict[type, "SingletonService"] = {}
     _lock = threading.RLock()
 
     def __new__(cls, *args, **kwargs):

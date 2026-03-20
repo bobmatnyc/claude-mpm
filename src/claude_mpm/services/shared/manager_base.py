@@ -3,7 +3,7 @@ Base class for manager-style services to reduce duplication.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Optional, Set, TypeVar
+from typing import Any, Generic, TypeVar
 
 from .config_service_base import ConfigServiceBase
 
@@ -24,8 +24,8 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
     def __init__(
         self,
         manager_name: str,
-        config: Optional[Dict[str, Any]] = None,
-        config_section: Optional[str] = None,
+        config: dict[str, Any] | None = None,
+        config_section: str | None = None,
     ):
         """
         Initialize manager.
@@ -38,15 +38,15 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
         super().__init__(manager_name, config, config_section)
 
         # Item storage
-        self._items: Dict[str, T] = {}
-        self._item_metadata: Dict[str, Dict[str, Any]] = {}
+        self._items: dict[str, T] = {}
+        self._item_metadata: dict[str, dict[str, Any]] = {}
 
         # Indexing
-        self._indexes: Dict[str, Dict[Any, Set[str]]] = {}
+        self._indexes: dict[str, dict[Any, set[str]]] = {}
 
         # State tracking
         self._initialized = False
-        self._last_scan_time: Optional[float] = None
+        self._last_scan_time: float | None = None
 
         # Configuration
         self._auto_scan = self.get_config_value("auto_scan", True, config_type=bool)
@@ -103,7 +103,7 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
             return False
 
     def register_item(
-        self, item_id: str, item: T, metadata: Optional[Dict[str, Any]] = None
+        self, item_id: str, item: T, metadata: dict[str, Any] | None = None
     ) -> bool:
         """
         Register an item.
@@ -163,15 +163,15 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
         self.logger.debug(f"Unregistered item: {item_id}")
         return True
 
-    def get_item(self, item_id: str) -> Optional[T]:
+    def get_item(self, item_id: str) -> T | None:
         """Get item by ID."""
         return self._items.get(item_id)
 
-    def get_item_metadata(self, item_id: str) -> Dict[str, Any]:
+    def get_item_metadata(self, item_id: str) -> dict[str, Any]:
         """Get item metadata."""
         return self._item_metadata.get(item_id, {})
 
-    def list_items(self, filter_func=None) -> List[str]:
+    def list_items(self, filter_func=None) -> list[str]:
         """
         List item IDs.
 
@@ -190,7 +190,7 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
             if filter_func(item_id, item, self._item_metadata.get(item_id, {}))
         ]
 
-    def find_items(self, **criteria) -> List[str]:
+    def find_items(self, **criteria) -> list[str]:
         """
         Find items by criteria using indexes.
 
@@ -260,7 +260,7 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
         self._item_metadata.clear()
         self._indexes.clear()
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get manager status.
 
@@ -284,13 +284,13 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
             self._indexes[index_name] = {}
             self.logger.debug(f"Created index: {index_name}")
 
-    def _update_indexes(self, item_id: str, item: T, metadata: Dict[str, Any]) -> None:
+    def _update_indexes(self, item_id: str, item: T, metadata: dict[str, Any]) -> None:
         """Update indexes for an item."""
         # Manager-specific index updates
         self._do_update_indexes(item_id, item, metadata)
 
     def _remove_from_indexes(
-        self, item_id: str, item: T, metadata: Dict[str, Any]
+        self, item_id: str, item: T, metadata: dict[str, Any]
     ) -> None:
         """Remove item from indexes."""
         for _index_name, index in self._indexes.items():
@@ -310,6 +310,6 @@ class ManagerBase(ConfigServiceBase, Generic[T], ABC):
         """Manager-specific item scanning logic."""
 
     def _do_update_indexes(
-        self, item_id: str, item: T, metadata: Dict[str, Any]
+        self, item_id: str, item: T, metadata: dict[str, Any]
     ) -> None:
         """Manager-specific index update logic."""

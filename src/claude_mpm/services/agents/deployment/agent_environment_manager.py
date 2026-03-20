@@ -9,7 +9,7 @@ maintainability and testability.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -28,9 +28,7 @@ class AgentEnvironmentManager:
         """Initialize the environment manager."""
         self.logger = get_logger(__name__)
 
-    def set_claude_environment(
-        self, config_dir: Optional[Path] = None
-    ) -> Dict[str, str]:
+    def set_claude_environment(self, config_dir: Path | None = None) -> dict[str, str]:
         """
         Set Claude environment variables for agent discovery.
 
@@ -66,7 +64,7 @@ class AgentEnvironmentManager:
         )
         return env_vars
 
-    def get_current_environment(self) -> Dict[str, str]:
+    def get_current_environment(self) -> dict[str, str]:
         """
         Get current Claude-related environment variables.
 
@@ -84,7 +82,7 @@ class AgentEnvironmentManager:
 
         return claude_env_vars
 
-    def validate_environment(self, config_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def validate_environment(self, config_dir: Path | None = None) -> dict[str, Any]:
         """
         Validate the current Claude environment configuration.
 
@@ -164,8 +162,8 @@ class AgentEnvironmentManager:
         return validation_results
 
     def setup_development_environment(
-        self, config_dir: Optional[Path] = None
-    ) -> Dict[str, Any]:
+        self, config_dir: Path | None = None
+    ) -> dict[str, Any]:
         """
         Set up a complete development environment for Claude agents.
 
@@ -226,7 +224,7 @@ cache/
 
         return setup_results
 
-    def get_environment_info(self) -> Dict[str, Any]:
+    def get_environment_info(self) -> dict[str, Any]:
         """
         Get comprehensive information about the current environment.
 
@@ -243,7 +241,7 @@ cache/
             "claude_config_locations": self._find_claude_config_locations(),
         }
 
-    def cleanup_environment(self) -> Dict[str, Any]:
+    def cleanup_environment(self) -> dict[str, Any]:
         """
         Clean up Claude environment variables.
 

@@ -10,9 +10,8 @@ Created: 2026-02-12
 
 import json
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -21,7 +20,7 @@ from .project_inspector import TechnologyStack
 logger = get_logger(__name__)
 
 
-class SkillPriority(str, Enum):
+class SkillPriority(StrEnum):
     """Priority levels for skill recommendations."""
 
     CRITICAL = "critical"  # Core skills for detected stack
@@ -39,11 +38,11 @@ class SkillRecommendation:
     priority: SkillPriority
     relevance_score: float
     category: str
-    toolchain: Optional[str]
-    framework: Optional[str]
-    tags: List[str]
+    toolchain: str | None
+    framework: str | None
+    tags: list[str]
     justification: str
-    matched_technologies: List[str]
+    matched_technologies: list[str]
 
     def __str__(self) -> str:
         """String representation for display."""
@@ -100,7 +99,7 @@ class SkillRecommendationEngine:
         "debugging": ["universal-debugging-systematic-debugging"],
     }
 
-    def __init__(self, manifest_path: Optional[Path] = None):
+    def __init__(self, manifest_path: Path | None = None):
         """Initialize engine with skills manifest."""
         self.manifest_path = manifest_path or self._get_default_manifest_path()
         self.skills_manifest = self._load_manifest()
@@ -127,7 +126,7 @@ class SkillRecommendationEngine:
         logger.warning("Could not find skills manifest in standard locations")
         return cache_path  # Return cache path anyway, will fail later if doesn't exist
 
-    def _load_manifest(self) -> Dict:
+    def _load_manifest(self) -> dict:
         """Load skills manifest from JSON file."""
         try:
             with open(self.manifest_path) as f:
@@ -141,9 +140,9 @@ class SkillRecommendationEngine:
     def recommend_skills(
         self,
         tech_stack: TechnologyStack,
-        already_deployed: Optional[Set[str]] = None,
+        already_deployed: set[str] | None = None,
         max_recommendations: int = 10,
-    ) -> List[SkillRecommendation]:
+    ) -> list[SkillRecommendation]:
         """Recommend skills based on technology stack.
 
         Args:
@@ -204,8 +203,8 @@ class SkillRecommendationEngine:
         return recommendations[:max_recommendations]
 
     def _evaluate_skill(
-        self, skill: Dict, tech_stack: TechnologyStack
-    ) -> Optional[SkillRecommendation]:
+        self, skill: dict, tech_stack: TechnologyStack
+    ) -> SkillRecommendation | None:
         """Evaluate if skill is relevant to technology stack."""
         skill_id = skill.get("name", "")
         skill_tags = set(skill.get("tags", []))
@@ -314,10 +313,10 @@ class SkillRecommendationEngine:
 
     def _generate_justification(
         self,
-        matched_tech: List[str],
+        matched_tech: list[str],
         tech_stack: TechnologyStack,
-        toolchain: Optional[str],
-        framework: Optional[str],
+        toolchain: str | None,
+        framework: str | None,
     ) -> str:
         """Generate human-readable justification for recommendation."""
         if not matched_tech:
@@ -360,7 +359,7 @@ class SkillRecommendationEngine:
 
         return "; ".join(reasons)
 
-    def get_deployed_skills(self, project_dir: Optional[Path] = None) -> Set[str]:
+    def get_deployed_skills(self, project_dir: Path | None = None) -> set[str]:
         """Get set of already deployed skill IDs.
 
         Args:

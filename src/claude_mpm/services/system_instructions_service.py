@@ -10,8 +10,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
 import re
-from datetime import datetime, timezone
-from typing import List, Optional, Tuple
+from datetime import UTC, datetime
 
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
@@ -124,7 +123,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
 
             # Replace current date
             if "{{CURRENT_DATE}}" in base_pm_content:
-                current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                current_date = datetime.now(UTC).strftime("%Y-%m-%d")
                 base_pm_content = base_pm_content.replace(
                     "{{CURRENT_DATE}}", current_date
                 )
@@ -182,7 +181,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             self.logger.warning(f"Error stripping metadata comments: {e}")
             return content
 
-    def create_system_prompt(self, system_instructions: Optional[str] = None) -> str:
+    def create_system_prompt(self, system_instructions: str | None = None) -> str:
         """Create the complete system prompt including instructions.
 
         Args:
@@ -230,7 +229,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             self.logger.debug(f"Could not determine version: {e}")
             return "unknown"
 
-    def get_available_instruction_types(self) -> List[str]:
+    def get_available_instruction_types(self) -> list[str]:
         """Get list of available instruction types.
 
         Returns:
@@ -239,7 +238,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         # Currently only "default" type is supported
         return ["default"]
 
-    def validate_instructions(self, instructions: str) -> Tuple[bool, List[str]]:
+    def validate_instructions(self, instructions: str) -> tuple[bool, list[str]]:
         """Validate system instructions format and content.
 
         Args:

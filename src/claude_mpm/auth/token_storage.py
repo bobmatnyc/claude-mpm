@@ -13,9 +13,10 @@ Security Features:
 
 import json
 import stat
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 import keyring
 from cryptography.fernet import Fernet, InvalidToken
@@ -63,7 +64,7 @@ class KeyringTimeoutError(Exception):
         self.timeout = timeout
 
 
-def _keyring_with_timeout(
+def _keyring_with_timeout[T](
     func: Callable[..., T],
     args: tuple[Any, ...],
     operation: str,
@@ -125,7 +126,7 @@ class TokenStorage:
         ```
     """
 
-    def __init__(self, credentials_dir: Optional[Path] = None) -> None:
+    def __init__(self, credentials_dir: Path | None = None) -> None:
         """Initialize token storage.
 
         Args:
@@ -248,7 +249,7 @@ class TokenStorage:
         # Set file permissions to owner read/write only (600)
         token_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
-    def retrieve(self, service_name: str) -> Optional[StoredToken]:
+    def retrieve(self, service_name: str) -> StoredToken | None:
         """Retrieve a stored OAuth token.
 
         Args:

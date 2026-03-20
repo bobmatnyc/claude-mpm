@@ -7,11 +7,13 @@ import ipaddress
 import re
 import urllib.parse
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Pattern, Union
+from re import Pattern  # noqa: TC003
+from typing import Any
 
 from claude_mpm.core.enums import ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
@@ -44,10 +46,10 @@ class ValidationRule:
     """Single validation rule definition"""
 
     type: ValidationType
-    params: Dict[str, Any] = field(default_factory=dict)
-    message: Optional[str] = None
+    params: dict[str, Any] = field(default_factory=dict)
+    message: str | None = None
     severity: str = ValidationSeverity.ERROR
-    condition: Optional[Callable] = None
+    condition: Callable | None = None
 
 
 @dataclass
@@ -55,10 +57,10 @@ class ValidationResult:
     """Result of validation operation"""
 
     valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    info: List[str] = field(default_factory=list)
-    context: Dict[str, Any] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    info: list[str] = field(default_factory=list)
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseValidator(ABC):
@@ -76,14 +78,14 @@ class BaseValidator(ABC):
 
     @abstractmethod
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Perform validation"""
 
     def _create_result(
         self,
         valid: bool,
-        message: Optional[str] = None,
+        message: str | None = None,
         severity: str = ValidationSeverity.ERROR,
     ) -> ValidationResult:
         """Create validation result"""
@@ -122,7 +124,7 @@ class TypeValidator(BaseValidator):
     }
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate value type"""
         expected_type = rule.params.get("type")
@@ -163,7 +165,7 @@ class RequiredValidator(BaseValidator):
     """Validates required fields - replaces 35 required validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate required fields"""
         required_fields = rule.params.get("fields", [])
@@ -186,7 +188,7 @@ class RequiredValidator(BaseValidator):
 
         return self._create_result(True)
 
-    def _check_nested_field(self, obj: Dict, path: str) -> bool:
+    def _check_nested_field(self, obj: dict, path: str) -> bool:
         """Check if nested field exists"""
         parts = path.split(".")
         current = obj
@@ -203,7 +205,7 @@ class RangeValidator(BaseValidator):
     """Validates numeric ranges - replaces 28 range validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate numeric range"""
         if not isinstance(value, (int, float)):
@@ -245,7 +247,7 @@ class LengthValidator(BaseValidator):
     """Validates string/array lengths - replaces 22 length validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate length constraints"""
         if not hasattr(value, "__len__"):
@@ -296,10 +298,10 @@ class PatternValidator(BaseValidator):
         TEST: Instantiate; assert _compiled_patterns is an empty dict.
         """
         super().__init__()
-        self._compiled_patterns: Dict[str, Pattern] = {}
+        self._compiled_patterns: dict[str, Pattern] = {}
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate against regex pattern"""
         if not isinstance(value, str):
@@ -332,7 +334,7 @@ class EnumValidator(BaseValidator):
     """Validates enum values - replaces 18 enum validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate enum membership"""
         allowed_values = rule.params.get("values", [])
@@ -368,10 +370,10 @@ class EnumValidator(BaseValidator):
 class FormatValidator(BaseValidator):
     """Validates common formats - replaces 24 format validation functions"""
 
-    FORMAT_VALIDATORS: Dict[str, Callable[[str], bool]] = {}
+    FORMAT_VALIDATORS: dict[str, Callable[[str], bool]] = {}
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate format"""
         if not isinstance(value, str):
@@ -675,7 +677,7 @@ class DependencyValidator(BaseValidator):
     """Validates field dependencies - replaces 16 dependency validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate field dependencies"""
         config = context.get("config", {})
@@ -711,7 +713,7 @@ class UniqueValidator(BaseValidator):
     """Validates unique values - replaces 12 unique validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate unique values in collections"""
         if not isinstance(value, (list, tuple)):
@@ -743,7 +745,7 @@ class CustomValidator(BaseValidator):
     """Executes custom validation functions - replaces 20 custom validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Execute custom validation function"""
         validator_func = rule.params.get("function")
@@ -787,7 +789,7 @@ class ConditionalValidator(BaseValidator):
     """Validates based on conditions - replaces 15 conditional validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Perform conditional validation"""
         condition = rule.params.get("if")
@@ -809,7 +811,7 @@ class ConditionalValidator(BaseValidator):
         return self._create_result(True)
 
     def _evaluate_condition(
-        self, condition: Any, value: Any, context: Dict[str, Any]
+        self, condition: Any, value: Any, context: dict[str, Any]
     ) -> bool:
         """Evaluate condition"""
         if callable(condition):
@@ -853,7 +855,7 @@ class ConditionalValidator(BaseValidator):
             return False
 
     def _apply_rule(
-        self, rule_def: Dict, value: Any, context: Dict[str, Any]
+        self, rule_def: dict, value: Any, context: dict[str, Any]
     ) -> ValidationResult:
         """Apply validation rule"""
         # Create and execute rule
@@ -876,7 +878,7 @@ class RecursiveValidator(BaseValidator):
     """Validates nested structures recursively - replaces 10 recursive validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Recursively validate nested structures"""
         schema = rule.params.get("schema", {})
@@ -905,7 +907,7 @@ class RecursiveValidator(BaseValidator):
         return result
 
     def _validate_dict(
-        self, value: Dict, schema: Dict, context: Dict, depth: int
+        self, value: dict, schema: dict, context: dict, depth: int
     ) -> ValidationResult:
         """Validate dictionary recursively"""
         result = ValidationResult(valid=True)
@@ -938,7 +940,7 @@ class RecursiveValidator(BaseValidator):
         return result
 
     def _validate_list(
-        self, value: List, schema: Dict, context: Dict, depth: int
+        self, value: list, schema: dict, context: dict, depth: int
     ) -> ValidationResult:
         """Validate list recursively"""
         result = ValidationResult(valid=True)
@@ -972,7 +974,7 @@ class CrossFieldValidator(BaseValidator):
     """Validates cross-field constraints - replaces 8 cross-field validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate cross-field constraints"""
         config = context.get("config", {})
@@ -993,7 +995,7 @@ class CrossFieldValidator(BaseValidator):
 
         return result
 
-    def _evaluate_constraint(self, config: Dict, constraint: Dict) -> bool:
+    def _evaluate_constraint(self, config: dict, constraint: dict) -> bool:
         """Evaluate a cross-field constraint"""
         constraint_type = constraint.get("type")
 
@@ -1060,7 +1062,7 @@ class CompositeValidator(BaseValidator):
     """Composes multiple validators - replaces 6 composite validation functions"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Apply multiple validators in sequence"""
         validators = rule.params.get("validators", [])
@@ -1109,7 +1111,7 @@ class SchemaValidator(BaseValidator):
     """Validates against full schema - orchestrates other validators"""
 
     def validate(
-        self, value: Any, rule: ValidationRule, context: Dict[str, Any]
+        self, value: Any, rule: ValidationRule, context: dict[str, Any]
     ) -> ValidationResult:
         """Validate against complete schema"""
         schema = rule.params.get("schema", {})
@@ -1193,15 +1195,15 @@ class ValidationStrategy(IConfigStrategy):
             ValidationType.SCHEMA: SchemaValidator(),
         }
 
-    def can_handle(self, source: Union[str, Path, Dict]) -> bool:
+    def can_handle(self, source: str | Path | dict) -> bool:
         """Check if this strategy can handle validation"""
         return isinstance(source, dict)
 
-    def load(self, source: Any, **kwargs) -> Dict[str, Any]:
+    def load(self, source: Any, **kwargs) -> dict[str, Any]:
         """Not used for validation"""
         return source if isinstance(source, dict) else {}
 
-    def validate(self, config: Dict[str, Any], schema: Optional[Dict] = None) -> bool:
+    def validate(self, config: dict[str, Any], schema: dict | None = None) -> bool:
         """Main validation entry point"""
         if not schema:
             return True
@@ -1216,12 +1218,12 @@ class ValidationStrategy(IConfigStrategy):
 
         return result.valid
 
-    def transform(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def transform(self, config: dict[str, Any]) -> dict[str, Any]:
         """Transform config based on schema"""
         return config
 
     def _validate_with_schema(
-        self, config: Dict, schema: Dict, context: Dict
+        self, config: dict, schema: dict, context: dict
     ) -> ValidationResult:
         """Validate configuration against schema"""
         # Use schema validator for comprehensive validation
@@ -1234,7 +1236,7 @@ class ValidationStrategy(IConfigStrategy):
         )
 
     # Helper methods for direct validation
-    def validate_type(self, config: Dict, schema: Dict) -> ValidationResult:
+    def validate_type(self, config: dict, schema: dict) -> ValidationResult:
         """Validate types in configuration"""
         result = ValidationResult(valid=True)
         properties = schema.get("properties", {})
@@ -1253,7 +1255,7 @@ class ValidationStrategy(IConfigStrategy):
 
         return result
 
-    def validate_required(self, config: Dict, schema: Dict) -> ValidationResult:
+    def validate_required(self, config: dict, schema: dict) -> ValidationResult:
         """Validate required fields"""
         required_fields = schema.get("required", [])
         if required_fields:
@@ -1269,7 +1271,7 @@ class ValidationStrategy(IConfigStrategy):
     def compose_validators(self, *validator_names: str) -> Callable:
         """Compose multiple validators into a single function"""
 
-        def composed_validator(config: Dict, schema: Dict) -> ValidationResult:
+        def composed_validator(config: dict, schema: dict) -> ValidationResult:
             """Run each named validator against config and merge the results.
 
             WHY: Composing validators at call time allows the same composed function to

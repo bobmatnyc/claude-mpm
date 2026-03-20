@@ -17,7 +17,7 @@ DESIGN DECISIONS:
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from ...agents.frontmatter_validator import FrontmatterValidator
 from ...core.agent_registry import AgentRegistryAdapter
@@ -28,29 +28,29 @@ class IAgentValidationService(ABC):
     """Interface for agent validation operations."""
 
     @abstractmethod
-    def validate_agent(self, agent_name: str) -> Dict[str, Any]:
+    def validate_agent(self, agent_name: str) -> dict[str, Any]:
         """Validate a single agent."""
 
     @abstractmethod
-    def validate_all_agents(self) -> Dict[str, Any]:
+    def validate_all_agents(self) -> dict[str, Any]:
         """Validate all deployed agents."""
 
     @abstractmethod
     def fix_agent_frontmatter(
         self, agent_name: str, dry_run: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fix frontmatter issues for a single agent."""
 
     @abstractmethod
-    def fix_all_agents(self, dry_run: bool = True) -> Dict[str, Any]:
+    def fix_all_agents(self, dry_run: bool = True) -> dict[str, Any]:
         """Fix frontmatter issues for all agents."""
 
     @abstractmethod
-    def check_agent_integrity(self, agent_name: str) -> Dict[str, Any]:
+    def check_agent_integrity(self, agent_name: str) -> dict[str, Any]:
         """Verify agent file structure and content integrity."""
 
     @abstractmethod
-    def validate_deployment_state(self) -> Dict[str, Any]:
+    def validate_deployment_state(self) -> dict[str, Any]:
         """Check deployment consistency across all agents."""
 
 
@@ -75,7 +75,7 @@ class AgentValidationService(IAgentValidationService):
                 raise RuntimeError(f"Could not initialize agent registry: {e}") from e
         return self._registry
 
-    def validate_agent(self, agent_name: str) -> Dict[str, Any]:
+    def validate_agent(self, agent_name: str) -> dict[str, Any]:
         """
         Validate a single agent.
 
@@ -127,7 +127,7 @@ class AgentValidationService(IAgentValidationService):
             )
             return {"success": False, "agent": agent_name, "error": str(e)}
 
-    def validate_all_agents(self) -> Dict[str, Any]:
+    def validate_all_agents(self) -> dict[str, Any]:
         """
         Validate all deployed agents.
 
@@ -209,7 +209,7 @@ class AgentValidationService(IAgentValidationService):
 
     def fix_agent_frontmatter(
         self, agent_name: str, dry_run: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Fix frontmatter issues for a single agent.
 
@@ -259,7 +259,7 @@ class AgentValidationService(IAgentValidationService):
             self.logger.error(f"Error fixing agent {agent_name}: {e}", exc_info=True)
             return {"success": False, "agent": agent_name, "error": str(e)}
 
-    def fix_all_agents(self, dry_run: bool = True) -> Dict[str, Any]:
+    def fix_all_agents(self, dry_run: bool = True) -> dict[str, Any]:
         """
         Fix frontmatter issues for all agents.
 
@@ -347,7 +347,7 @@ class AgentValidationService(IAgentValidationService):
             self.logger.error(f"Error fixing all agents: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
 
-    def check_agent_integrity(self, agent_name: str) -> Dict[str, Any]:
+    def check_agent_integrity(self, agent_name: str) -> dict[str, Any]:
         """
         Verify agent file structure and content integrity.
 
@@ -466,7 +466,7 @@ class AgentValidationService(IAgentValidationService):
             )
             return {"success": False, "agent": agent_name, "error": str(e)}
 
-    def validate_deployment_state(self) -> Dict[str, Any]:
+    def validate_deployment_state(self) -> dict[str, Any]:
         """
         Check deployment consistency across all agents.
 
@@ -573,7 +573,7 @@ class AgentValidationService(IAgentValidationService):
             self.logger.error(f"Error validating deployment state: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
 
-    def _extract_frontmatter(self, content: str) -> Optional[Tuple[str, str]]:
+    def _extract_frontmatter(self, content: str) -> tuple[str, str] | None:
         """
         Extract frontmatter and content from an agent file.
 

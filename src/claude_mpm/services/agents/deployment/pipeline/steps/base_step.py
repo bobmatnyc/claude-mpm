@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logger import get_logger
@@ -13,9 +12,9 @@ class StepResult:
     """Result of executing a pipeline step."""
 
     status: OperationResult
-    message: Optional[str] = None
-    error: Optional[Exception] = None
-    execution_time: Optional[float] = None
+    message: str | None = None
+    error: Exception | None = None
+    execution_time: float | None = None
 
     @property
     def is_success(self) -> bool:

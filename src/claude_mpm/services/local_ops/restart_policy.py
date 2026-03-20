@@ -31,8 +31,7 @@ USAGE:
 """
 
 import threading
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional
+from datetime import UTC, datetime, timedelta
 
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.restart import IRestartPolicy
@@ -67,7 +66,7 @@ class RestartPolicy(SyncBaseService, IRestartPolicy):
         self._lock = threading.Lock()
 
         # Restart history per deployment
-        self._history: Dict[str, RestartHistory] = {}
+        self._history: dict[str, RestartHistory] = {}
 
     def initialize(self) -> bool:
         """
@@ -158,7 +157,7 @@ class RestartPolicy(SyncBaseService, IRestartPolicy):
             return backoff
 
     def record_restart_attempt(
-        self, deployment_id: str, success: bool, failure_reason: Optional[str] = None
+        self, deployment_id: str, success: bool, failure_reason: str | None = None
     ) -> None:
         """
         Record a restart attempt and update circuit breaker state.
@@ -170,7 +169,7 @@ class RestartPolicy(SyncBaseService, IRestartPolicy):
         """
         with self._lock:
             history = self._get_or_create_history(deployment_id)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             # Calculate backoff for this attempt (already holding lock)
             attempt_number = history.get_attempt_count() + 1
@@ -250,7 +249,7 @@ class RestartPolicy(SyncBaseService, IRestartPolicy):
             history = self._get_or_create_history(deployment_id)
             return history.get_attempt_count()
 
-    def get_history(self, deployment_id: str) -> Optional[RestartHistory]:
+    def get_history(self, deployment_id: str) -> RestartHistory | None:
         """
         Get restart history for a deployment.
 

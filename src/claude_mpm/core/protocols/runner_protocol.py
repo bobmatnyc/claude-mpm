@@ -5,7 +5,7 @@ allowing dependency injection without circular imports.
 """
 
 from pathlib import Path
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 
 class SystemPromptProvider(Protocol):
@@ -40,12 +40,12 @@ class ClaudeRunnerProtocol(Protocol):
     enable_websocket: bool
     enable_tickets: bool
     log_level: str
-    claude_args: Optional[list]
+    claude_args: list | None
     launch_method: str
     websocket_port: int
     use_native_agents: bool
     config: Any
-    session_log_file: Optional[Path]
+    session_log_file: Path | None
 
     # Service references
     project_logger: Any

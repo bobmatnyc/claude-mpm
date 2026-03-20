@@ -7,7 +7,7 @@ Integrates the new agent management service with the existing agent loader.
 Provides backward compatibility while enabling advanced features.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -25,7 +25,7 @@ class EnhancedAgentLoader:
         """Initialize enhanced loader."""
         self.manager = AgentManager()
 
-    def get_agent_definition(self, agent_name: str) -> Optional[AgentDefinition]:
+    def get_agent_definition(self, agent_name: str) -> AgentDefinition | None:
         """
         Get full agent definition with structured data.
 
@@ -41,7 +41,7 @@ class EnhancedAgentLoader:
 
         return self.manager.read_agent(agent_file_name)
 
-    def get_agent_metadata(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_metadata(self, agent_name: str) -> dict[str, Any] | None:
         """
         Get agent metadata only.
 
@@ -73,7 +73,7 @@ class EnhancedAgentLoader:
             ),
         }
 
-    def get_agent_capabilities(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_capabilities(self, agent_name: str) -> dict[str, Any] | None:
         """
         Get agent capabilities and permissions.
 
@@ -98,7 +98,7 @@ class EnhancedAgentLoader:
             "tools_available": bool(agent_def.tools_commands),
         }
 
-    def get_agent_selection_criteria(self, agent_name: str) -> Optional[Dict[str, Any]]:
+    def get_agent_selection_criteria(self, agent_name: str) -> dict[str, Any] | None:
         """
         Get agent selection criteria for routing.
 
@@ -163,12 +163,12 @@ def get_enhanced_loader() -> EnhancedAgentLoader:
 
 
 # Convenience functions
-def get_agent_full_definition(agent_name: str) -> Optional[AgentDefinition]:
+def get_agent_full_definition(agent_name: str) -> AgentDefinition | None:
     """Get complete agent definition."""
     return get_enhanced_loader().get_agent_definition(agent_name)
 
 
-def get_agent_version(agent_name: str) -> Optional[str]:
+def get_agent_version(agent_name: str) -> str | None:
     """Get agent version."""
     metadata = get_enhanced_loader().get_agent_metadata(agent_name)
     return metadata["version"] if metadata else None
@@ -187,7 +187,7 @@ def check_agent_capability(agent_name: str, capability_keyword: str) -> bool:
     return False
 
 
-def should_select_agent(agent_name: str, task_description: str) -> Dict[str, Any]:
+def should_select_agent(agent_name: str, task_description: str) -> dict[str, Any]:
     """
     Determine if an agent should be selected for a task.
 

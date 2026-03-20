@@ -8,9 +8,10 @@ properly logged, and recoverable error handling.
 import functools
 import sys
 import traceback
+from collections.abc import Callable
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from claude_mpm.core.constants import RetryConfig
 from claude_mpm.core.exceptions import MPMError
@@ -57,7 +58,7 @@ class ErrorHandler:
 
     def __init__(
         self,
-        logger: Optional[Any] = None,
+        logger: Any | None = None,
         default_strategy: ErrorStrategy = ErrorStrategy.ESCALATE,
         capture_traceback: bool = True,
     ):
@@ -71,15 +72,15 @@ class ErrorHandler:
         self.logger = logger or get_logger(__name__)
         self.default_strategy = default_strategy
         self.capture_traceback = capture_traceback
-        self.error_history: List[Dict[str, Any]] = []
-        self.recovery_handlers: Dict[Type[Exception], Callable] = {}
+        self.error_history: list[dict[str, Any]] = []
+        self.recovery_handlers: dict[type[Exception], Callable] = {}
 
     def handle(
         self,
         error: Exception,
-        context: Optional[str] = None,
-        operation: Optional[str] = None,
-        strategy: Optional[ErrorStrategy] = None,
+        context: str | None = None,
+        operation: str | None = None,
+        strategy: ErrorStrategy | None = None,
         severity: ErrorSeverity = ErrorSeverity.ERROR,
         fallback_value: Any = None,
         max_retries: int = 0,
@@ -103,7 +104,7 @@ class ErrorHandler:
         strategy = strategy or self.default_strategy
 
         # Build error context
-        error_context: Dict[str, Any] = {
+        error_context: dict[str, Any] = {
             "error_type": type(error).__name__,
             "error_message": str(error),
             "operation": operation or "unknown",
@@ -150,9 +151,9 @@ class ErrorHandler:
     def _log_error(
         self,
         error: Exception,
-        context: Optional[str],
+        context: str | None,
         severity: ErrorSeverity,
-        error_context: Dict[str, Any],
+        error_context: dict[str, Any],
     ) -> None:
         """Log error with appropriate severity.
 
@@ -178,9 +179,9 @@ class ErrorHandler:
     def _handle_retry(
         self,
         error: Exception,
-        operation: Optional[str],
+        operation: str | None,
         max_retries: int,
-        context: Dict[str, Any],
+        context: dict[str, Any],
     ) -> None:
         """Handle retry strategy.
 
@@ -198,7 +199,7 @@ class ErrorHandler:
     def _handle_recovery(
         self,
         error: Exception,
-        error_context: Dict[str, Any],
+        error_context: dict[str, Any],
     ) -> Any:
         """Attempt to recover from error.
 
@@ -226,8 +227,8 @@ class ErrorHandler:
 
     def register_recovery(
         self,
-        error_type: Type[Exception],
-        handler: Callable[[Exception, Dict], Any],
+        error_type: type[Exception],
+        handler: Callable[[Exception, dict], Any],
     ) -> None:
         """Register a recovery handler for an error type.
 
@@ -239,9 +240,9 @@ class ErrorHandler:
 
     def get_error_history(
         self,
-        limit: Optional[int] = None,
-        operation: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        limit: int | None = None,
+        operation: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Get error history.
 
         Args:
@@ -276,12 +277,12 @@ _global_handler = ErrorHandler()
 
 def handle_error(
     error: Exception,
-    context: Optional[str] = None,
-    operation: Optional[str] = None,
-    strategy: Optional[ErrorStrategy] = None,
+    context: str | None = None,
+    operation: str | None = None,
+    strategy: ErrorStrategy | None = None,
     severity: ErrorSeverity = ErrorSeverity.ERROR,
     fallback_value: Any = None,
-    logger: Optional[Any] = None,
+    logger: Any | None = None,
     **extra_context,
 ) -> Any:
     """Handle an error using the global error handler.
@@ -322,8 +323,8 @@ def handle_error(
 
 
 def register_recovery_handler(
-    error_type: Type[Exception],
-    handler: Callable[[Exception, Dict], Any],
+    error_type: type[Exception],
+    handler: Callable[[Exception, dict], Any],
 ) -> None:
     """Register a global recovery handler for an error type.
 
@@ -345,7 +346,7 @@ def with_error_handling(
     fallback_value: Any = None,
     max_retries: int = 0,
     retry_delay: float = 1.0,
-    exceptions: Union[Type[Exception], tuple] = Exception,
+    exceptions: type[Exception] | tuple = Exception,
 ):
     """Decorator for automatic error handling.
 
@@ -425,7 +426,7 @@ def with_error_handling(
 def safe_operation(
     fallback_value: Any = None,
     log_errors: bool = True,
-    exceptions: Union[Type[Exception], tuple] = Exception,
+    exceptions: type[Exception] | tuple = Exception,
 ):
     """Decorator for safe operations that should never fail.
 
@@ -478,7 +479,7 @@ def retry_on_error(
     max_retries: int = RetryConfig.MAX_RETRIES,
     delay: float = RetryConfig.INITIAL_RETRY_DELAY,
     exponential_backoff: bool = True,
-    exceptions: Union[Type[Exception], tuple] = Exception,
+    exceptions: type[Exception] | tuple = Exception,
 ):
     """Decorator for automatic retry with exponential backoff.
 
@@ -599,7 +600,7 @@ def error_context(
 
 @contextmanager
 def suppress_errors(
-    *exceptions: Type[Exception],
+    *exceptions: type[Exception],
     log: bool = True,
     fallback: Any = None,
 ):
@@ -637,7 +638,7 @@ class ErrorCollector:
         Args:
             fail_fast: Raise first error immediately
         """
-        self.errors: List[Exception] = []
+        self.errors: list[Exception] = []
         self.fail_fast = fail_fast
 
     def collect(self, error: Exception) -> None:

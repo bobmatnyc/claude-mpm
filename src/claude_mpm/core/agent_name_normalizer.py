@@ -16,8 +16,6 @@ required; a module-level singleton ``agent_name_normalizer`` is also
 exported for convenience.
 """
 
-from typing import Optional
-
 from claude_mpm.core.agent_name_registry import (
     AGENT_NAME_MAP,  # type: ignore[import-untyped]
 )
@@ -424,7 +422,7 @@ class AgentNameNormalizer:
         return f"[{normalized}]"
 
     @classmethod
-    def colorize(cls, agent_name: str, text: Optional[str] = None) -> str:
+    def colorize(cls, agent_name: str, text: str | None = None) -> str:
         """Apply consistent ANSI colour coding to agent names for terminal output.
 
         Why: Terminal output uses colour to distinguish agent types at a glance
@@ -458,7 +456,7 @@ class AgentNameNormalizer:
         return display_text
 
     @classmethod
-    def extract_from_todo(cls, todo_text: str) -> Optional[str]:
+    def extract_from_todo(cls, todo_text: str) -> str | None:
         """Extract and normalise the agent name embedded in a TODO line.
 
         Why: PM logic needs to parse TodoWrite items and identify which agent
@@ -495,7 +493,7 @@ class AgentNameNormalizer:
         return None
 
     @classmethod
-    def validate_todo_format(cls, todo_text: str) -> tuple[bool, Optional[str]]:
+    def validate_todo_format(cls, todo_text: str) -> tuple[bool, str | None]:
         """Validate that a TODO item carries a recognised agent prefix.
 
         Why: TodoWrite items without a valid ``[Agent]`` prefix cannot be

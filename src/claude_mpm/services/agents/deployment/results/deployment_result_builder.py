@@ -1,7 +1,7 @@
 """Deployment result builder for creating structured deployment results."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 
@@ -19,14 +19,14 @@ class DeploymentResultBuilder:
         """Initialize the deployment result builder."""
         self.logger = get_logger(__name__)
         self.metrics = DeploymentMetrics()
-        self._results: Dict[str, Any] = {}
+        self._results: dict[str, Any] = {}
         self._initialized = False
 
     def initialize(
         self,
-        target_dir: Optional[Path] = None,
-        strategy_name: Optional[str] = None,
-        deployment_mode: Optional[str] = None,
+        target_dir: Path | None = None,
+        strategy_name: str | None = None,
+        deployment_mode: str | None = None,
     ) -> "DeploymentResultBuilder":
         """Initialize the result builder with basic information.
 
@@ -76,7 +76,7 @@ class DeploymentResultBuilder:
         return self
 
     def add_deployed_agent(
-        self, agent_name: str, deployment_time: Optional[float] = None
+        self, agent_name: str, deployment_time: float | None = None
     ) -> "DeploymentResultBuilder":
         """Add a deployed agent to results.
 
@@ -92,7 +92,7 @@ class DeploymentResultBuilder:
         return self
 
     def add_updated_agent(
-        self, agent_name: str, deployment_time: Optional[float] = None
+        self, agent_name: str, deployment_time: float | None = None
     ) -> "DeploymentResultBuilder":
         """Add an updated agent to results.
 
@@ -121,7 +121,7 @@ class DeploymentResultBuilder:
         return self
 
     def add_skipped_agent(
-        self, agent_name: str, reason: Optional[str] = None
+        self, agent_name: str, reason: str | None = None
     ) -> "DeploymentResultBuilder":
         """Add a skipped agent to results.
 
@@ -203,7 +203,7 @@ class DeploymentResultBuilder:
         self.metrics.metadata[key] = value
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build the final results dictionary.
 
         Returns:

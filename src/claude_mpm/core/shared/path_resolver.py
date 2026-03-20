@@ -4,7 +4,6 @@ Shared path resolution utilities to reduce duplication.
 
 import os
 from pathlib import Path
-from typing import List, Optional, Union
 
 from ..logger import get_logger
 
@@ -20,7 +19,7 @@ class PathResolver:
     - Memory directory resolution
     """
 
-    def __init__(self, base_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, base_dir: str | Path | None = None):
         """
         Initialize path resolver.
 
@@ -129,8 +128,8 @@ class PathResolver:
         return temp_dir
 
     def find_agent_file(
-        self, agent_name: str, filename: Optional[str] = None
-    ) -> Optional[Path]:
+        self, agent_name: str, filename: str | None = None
+    ) -> Path | None:
         """
         Find agent file in standard locations.
 
@@ -164,8 +163,8 @@ class PathResolver:
         return None
 
     def find_memory_file(
-        self, agent_name: str, filename: Optional[str] = None
-    ) -> Optional[Path]:
+        self, agent_name: str, filename: str | None = None
+    ) -> Path | None:
         """
         Find memory file for an agent.
 
@@ -188,8 +187,8 @@ class PathResolver:
         return None
 
     def find_config_file(
-        self, filename: str, search_paths: Optional[List[Union[str, Path]]] = None
-    ) -> Optional[Path]:
+        self, filename: str, search_paths: list[str | Path] | None = None
+    ) -> Path | None:
         """
         Find configuration file in standard locations.
 
@@ -222,7 +221,7 @@ class PathResolver:
 
         return None
 
-    def ensure_directory(self, path: Union[str, Path]) -> Path:
+    def ensure_directory(self, path: str | Path) -> Path:
         """
         Ensure directory exists.
 
@@ -242,7 +241,7 @@ class PathResolver:
 
         return dir_path
 
-    def resolve_relative_path(self, path: Union[str, Path]) -> Path:
+    def resolve_relative_path(self, path: str | Path) -> Path:
         """
         Resolve path relative to base directory.
 

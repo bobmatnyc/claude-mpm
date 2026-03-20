@@ -11,7 +11,6 @@ separating it from directory traversal and caching concerns.
 
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from ...core.logging_config import get_logger
 from .cache import CacheManager
@@ -45,7 +44,7 @@ class FileAnalyzer:
         self.cache_manager = cache_manager
         self.event_manager = event_manager
 
-    def analyze_file(self, file_path: str) -> Dict[str, any]:
+    def analyze_file(self, file_path: str) -> dict[str, any]:
         """Analyze a specific file and return its AST structure.
 
         Args:
@@ -81,7 +80,7 @@ class FileAnalyzer:
 
     def _analyze_and_cache_file(
         self, path: Path, language: str, cache_key: str
-    ) -> Tuple[List[CodeNode], List[dict], float]:
+    ) -> tuple[list[CodeNode], list[dict], float]:
         """Analyze file content and cache results.
 
         Args:
@@ -126,7 +125,7 @@ class FileAnalyzer:
             return self.multilang_analyzer
         return self.multilang_analyzer
 
-    def _filter_nodes(self, nodes: List[CodeNode]) -> List[dict]:
+    def _filter_nodes(self, nodes: list[CodeNode]) -> list[dict]:
         """Filter nodes without emitting events.
 
         Args:
@@ -137,7 +136,7 @@ class FileAnalyzer:
         """
         return [self._node_to_dict(n) for n in nodes if not self._is_internal_node(n)]
 
-    def _filter_and_emit_nodes(self, nodes: List[CodeNode], path: Path) -> List[dict]:
+    def _filter_and_emit_nodes(self, nodes: list[CodeNode], path: Path) -> list[dict]:
         """Filter nodes and emit events for each.
 
         Args:
@@ -173,7 +172,7 @@ class FileAnalyzer:
             "signature": node.signature,
         }
 
-    def _convert_nodes_to_elements(self, final_nodes: List[dict]) -> List[dict]:
+    def _convert_nodes_to_elements(self, final_nodes: list[dict]) -> list[dict]:
         """Convert nodes to elements format for dashboard.
 
         Args:
@@ -201,8 +200,8 @@ class FileAnalyzer:
         self,
         file_path: str,
         language: str,
-        final_nodes: List[dict],
-        elements: List[dict],
+        final_nodes: list[dict],
+        elements: list[dict],
     ) -> dict:
         """Build final result dictionary.
 

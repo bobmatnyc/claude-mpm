@@ -27,7 +27,7 @@ Example:
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +71,12 @@ class AutoDeployIndexParser:
             index_file_path: Path to AUTO-DEPLOY-INDEX.md file
         """
         self.index_file_path = Path(index_file_path)
-        self._cache: Optional[Dict[str, Any]] = None
-        self._content: Optional[str] = None
+        self._cache: dict[str, Any] | None = None
+        self._content: str | None = None
 
         logger.debug(f"AutoDeployIndexParser initialized with: {self.index_file_path}")
 
-    def parse(self) -> Dict[str, Any]:
+    def parse(self) -> dict[str, Any]:
         """Parse AUTO-DEPLOY-INDEX.md and return structured data.
 
         Returns:
@@ -134,7 +134,7 @@ class AutoDeployIndexParser:
 
         return result
 
-    def _empty_result(self) -> Dict[str, Any]:
+    def _empty_result(self) -> dict[str, Any]:
         """Return empty result structure when parsing fails."""
         return {
             "universal_agents": [],
@@ -144,7 +144,7 @@ class AutoDeployIndexParser:
             "specialization_mappings": {},
         }
 
-    def _parse_universal_agents(self) -> List[str]:
+    def _parse_universal_agents(self) -> list[str]:
         """Extract universal agents (always deployed).
 
         Looks for the "Universal Agents (Always Deployed)" section
@@ -178,7 +178,7 @@ class AutoDeployIndexParser:
         logger.debug(f"Found {len(agents)} universal agents")
         return agents
 
-    def _parse_language_mappings(self) -> Dict[str, Dict[str, List[str]]]:
+    def _parse_language_mappings(self) -> dict[str, dict[str, list[str]]]:
         """Extract language-specific agent mappings.
 
         Parses sections like "### Python Projects" to extract:
@@ -236,7 +236,7 @@ class AutoDeployIndexParser:
 
         return mappings
 
-    def _parse_framework_mappings(self) -> Dict[str, List[str]]:
+    def _parse_framework_mappings(self) -> dict[str, list[str]]:
         """Extract framework-specific agent mappings.
 
         Parses conditional deployment sections like "#### React Projects"
@@ -285,7 +285,7 @@ class AutoDeployIndexParser:
 
         return mappings
 
-    def _parse_platform_mappings(self) -> Dict[str, List[str]]:
+    def _parse_platform_mappings(self) -> dict[str, list[str]]:
         """Extract platform-specific agent mappings.
 
         Parses "## Platform-Specific Detection" section to extract
@@ -336,7 +336,7 @@ class AutoDeployIndexParser:
 
         return mappings
 
-    def _parse_specialization_mappings(self) -> Dict[str, List[str]]:
+    def _parse_specialization_mappings(self) -> dict[str, list[str]]:
         """Extract specialization-specific agent mappings.
 
         Parses "## Specialized Detection" section to extract agents
@@ -383,7 +383,7 @@ class AutoDeployIndexParser:
 
     def _extract_agents_from_section(
         self, content: str, section_name: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Extract agent IDs from a named section within content.
 
         Args:
@@ -404,7 +404,7 @@ class AutoDeployIndexParser:
         section_text = section_match.group(1)
         return self._extract_agent_ids(section_text)
 
-    def _extract_agent_ids(self, content: str) -> List[str]:
+    def _extract_agent_ids(self, content: str) -> list[str]:
         """Extract agent IDs from content (looks for backtick-wrapped IDs).
 
         Args:
@@ -416,7 +416,7 @@ class AutoDeployIndexParser:
         agent_pattern = r"`([a-z0-9\-]+/[a-z0-9\-/]+)`"
         return re.findall(agent_pattern, content)
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         """Get all available agent categories.
 
         Categories are derived from agent IDs by extracting the path prefix.
@@ -459,7 +459,7 @@ class AutoDeployIndexParser:
 
         return sorted(categories)
 
-    def get_agents_by_category(self, category: str) -> List[str]:
+    def get_agents_by_category(self, category: str) -> list[str]:
         """Get all agents matching a specific category.
 
         Args:
@@ -499,7 +499,7 @@ class AutoDeployIndexParser:
 
         return sorted(set(matching_agents))
 
-    def get_agents_by_language(self, language: str) -> Dict[str, List[str]]:
+    def get_agents_by_language(self, language: str) -> dict[str, list[str]]:
         """Get core and optional agents for a specific language.
 
         Args:
@@ -520,7 +520,7 @@ class AutoDeployIndexParser:
             language.lower(), {"core": [], "optional": []}
         )
 
-    def get_agents_by_framework(self, framework: str) -> List[str]:
+    def get_agents_by_framework(self, framework: str) -> list[str]:
         """Get agents for a specific framework.
 
         Args:
@@ -536,7 +536,7 @@ class AutoDeployIndexParser:
         data = self.parse()
         return data["framework_mappings"].get(framework.lower(), [])
 
-    def get_agents_by_platform(self, platform: str) -> List[str]:
+    def get_agents_by_platform(self, platform: str) -> list[str]:
         """Get agents for a specific platform.
 
         Args:
@@ -552,7 +552,7 @@ class AutoDeployIndexParser:
         data = self.parse()
         return data["platform_mappings"].get(platform.lower(), [])
 
-    def get_agents_by_specialization(self, specialization: str) -> List[str]:
+    def get_agents_by_specialization(self, specialization: str) -> list[str]:
         """Get agents for a specific specialization.
 
         Args:

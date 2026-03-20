@@ -35,7 +35,7 @@ import re
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import ProjectAnalyzerInterface
@@ -50,38 +50,38 @@ class ProjectCharacteristics:
 
     # Core project info
     project_name: str
-    primary_language: Optional[str]
-    languages: List[str]
-    frameworks: List[str]
+    primary_language: str | None
+    languages: list[str]
+    frameworks: list[str]
 
     # Architecture and structure
     architecture_type: str
-    main_modules: List[str]
-    key_directories: List[str]
-    entry_points: List[str]
+    main_modules: list[str]
+    key_directories: list[str]
+    entry_points: list[str]
 
     # Development practices
-    testing_framework: Optional[str]
-    test_patterns: List[str]
-    package_manager: Optional[str]
-    build_tools: List[str]
+    testing_framework: str | None
+    test_patterns: list[str]
+    package_manager: str | None
+    build_tools: list[str]
 
     # Integrations and dependencies
-    databases: List[str]
-    web_frameworks: List[str]
-    api_patterns: List[str]
-    key_dependencies: List[str]
+    databases: list[str]
+    web_frameworks: list[str]
+    api_patterns: list[str]
+    key_dependencies: list[str]
 
     # Project-specific patterns
-    code_conventions: List[str]
-    configuration_patterns: List[str]
-    project_terminology: List[str]
+    code_conventions: list[str]
+    configuration_patterns: list[str]
+    project_terminology: list[str]
 
     # Documentation and structure
-    documentation_files: List[str]
-    important_configs: List[str]
+    documentation_files: list[str]
+    important_configs: list[str]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
 
@@ -138,7 +138,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
     }
 
     def __init__(
-        self, config: Optional[Config] = None, working_directory: Optional[Path] = None
+        self, config: Config | None = None, working_directory: Path | None = None
     ):
         """Initialize the project analyzer.
 
@@ -151,8 +151,8 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         # Cache for analysis results
-        self._analysis_cache: Optional[ProjectCharacteristics] = None
-        self._cache_timestamp: Optional[float] = None
+        self._analysis_cache: ProjectCharacteristics | None = None
+        self._cache_timestamp: float | None = None
 
     def analyze_project(self, force_refresh: bool = False) -> ProjectCharacteristics:
         """Analyze the current project and return characteristics.
@@ -531,7 +531,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             if src_entry_path.exists():
                 characteristics.entry_points.append(f"src/{pattern}")
 
-    def _get_subdirectories(self, path: Path, max_depth: int = 2) -> List[str]:
+    def _get_subdirectories(self, path: Path, max_depth: int = 2) -> list[str]:
         """Get subdirectory names up to a certain depth."""
         subdirs = []
         try:
@@ -889,7 +889,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
 
         return "\n".join(summary_parts)
 
-    def get_important_files_for_context(self) -> List[str]:
+    def get_important_files_for_context(self) -> list[str]:
         """Get list of important files that should be considered for memory context.
 
         WHY: Instead of hardcoding which files to analyze for memory creation,
@@ -931,7 +931,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
     # ================================================================================
     # These methods adapt the existing implementation to comply with ProjectAnalyzerInterface
 
-    def detect_technology_stack(self) -> List[str]:
+    def detect_technology_stack(self) -> list[str]:
         """Detect technologies used in the project.
 
         WHY: This adapter method provides interface compliance by extracting
@@ -958,7 +958,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
         # Remove duplicates
         return list(set(technologies))
 
-    def analyze_code_patterns(self) -> Dict[str, Any]:
+    def analyze_code_patterns(self) -> dict[str, Any]:
         """Analyze code patterns and conventions.
 
         WHY: This adapter method provides interface compliance by extracting
@@ -977,7 +977,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             "architecture_type": characteristics.architecture_type,
         }
 
-    def get_project_structure(self) -> Dict[str, Any]:
+    def get_project_structure(self) -> dict[str, Any]:
         """Get project directory structure analysis.
 
         WHY: This adapter method provides interface compliance by organizing
@@ -998,7 +998,7 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             "architecture_type": characteristics.architecture_type,
         }
 
-    def identify_entry_points(self) -> List[Path]:
+    def identify_entry_points(self) -> list[Path]:
         """Identify project entry points.
 
         WHY: This adapter method provides interface compliance by converting

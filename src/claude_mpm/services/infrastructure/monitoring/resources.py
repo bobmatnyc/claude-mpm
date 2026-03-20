@@ -3,8 +3,6 @@
 Monitors system-wide resource usage including CPU, memory, and disk utilization.
 """
 
-from typing import Dict, List, Optional
-
 from ....core.enums import HealthStatus
 from .base import BaseMonitoringService, HealthMetric
 
@@ -45,7 +43,7 @@ class ResourceMonitorService(BaseMonitoringService):
         self.memory_threshold = memory_threshold
         self.disk_threshold = disk_threshold
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Check system resource health."""
         metrics = []
 
@@ -224,7 +222,7 @@ class ResourceMonitorService(BaseMonitoringService):
             return HealthStatus.DEGRADED
         return HealthStatus.UNHEALTHY
 
-    def get_resource_summary(self) -> Optional[Dict[str, float]]:
+    def get_resource_summary(self) -> dict[str, float] | None:
         """Get quick resource summary without full health check.
 
         Returns:

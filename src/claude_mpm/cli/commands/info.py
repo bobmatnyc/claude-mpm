@@ -14,7 +14,7 @@ DESIGN DECISIONS:
 import importlib.util
 import shutil
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ..shared import BaseCommand, CommandResult
 
@@ -51,7 +51,7 @@ class InfoCommand(BaseCommand):
             self.logger.error(f"Error gathering system info: {e}", exc_info=True)
             return CommandResult.error_result(f"Error gathering system info: {e}")
 
-    def _gather_system_info(self, args) -> Dict[str, Any]:
+    def _gather_system_info(self, args) -> dict[str, Any]:
         """Gather comprehensive system information."""
         try:
             from ...core.framework_loader import FrameworkLoader
@@ -107,7 +107,7 @@ class InfoCommand(BaseCommand):
             "dependencies": dependencies,
         }
 
-    def _check_dependencies(self) -> Dict[str, Any]:
+    def _check_dependencies(self) -> dict[str, Any]:
         """Check system dependencies."""
         dependencies = {}
 
@@ -146,7 +146,7 @@ class InfoCommand(BaseCommand):
 
         return dependencies
 
-    def _display_text_info(self, info_data: Dict[str, Any]) -> None:
+    def _display_text_info(self, info_data: dict[str, Any]) -> None:
         """Display information in text format."""
         print("Claude MPM - Multi-Agent Project Manager")
         print("=" * 50)

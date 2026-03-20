@@ -45,7 +45,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -70,7 +70,7 @@ class DeploymentSafetyMetric(BaseMetric):
     """
 
     # Environment validation patterns
-    ENV_VALIDATION_PATTERNS: List[str] = [
+    ENV_VALIDATION_PATTERNS: list[str] = [
         r"(?:read|cat|check|inspect).*(?:\.env|config)",
         r"environment\s+variable",
         r"connectivity\s+(?:check|test|verify)",
@@ -82,7 +82,7 @@ class DeploymentSafetyMetric(BaseMetric):
     ]
 
     # Rollback preparation patterns
-    ROLLBACK_PATTERNS: List[str] = [
+    ROLLBACK_PATTERNS: list[str] = [
         r"rollback\s+(?:plan|procedure|script)",
         r"current\s+(?:version|commit)",
         r"git\s+(?:tag|checkout)",
@@ -94,7 +94,7 @@ class DeploymentSafetyMetric(BaseMetric):
     ]
 
     # Health check patterns
-    HEALTH_CHECK_PATTERNS: List[str] = [
+    HEALTH_CHECK_PATTERNS: list[str] = [
         r"/health",
         r"curl.*(?:health|status)",
         r"application\s+logs",
@@ -107,7 +107,7 @@ class DeploymentSafetyMetric(BaseMetric):
     ]
 
     # Smoke test patterns
-    SMOKE_TEST_PATTERNS: List[str] = [
+    SMOKE_TEST_PATTERNS: list[str] = [
         r"smoke\s+test",
         r"critical\s+(?:flow|path)",
         r"authentication.*test",
@@ -119,7 +119,7 @@ class DeploymentSafetyMetric(BaseMetric):
     ]
 
     # Documentation patterns
-    DOCUMENTATION_PATTERNS: List[str] = [
+    DOCUMENTATION_PATTERNS: list[str] = [
         r"(?:document|record).*deployment",
         r"commit\s+hash",
         r"configuration\s+change",
@@ -138,21 +138,21 @@ class DeploymentSafetyMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.9 for 90% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Deployment Safety"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

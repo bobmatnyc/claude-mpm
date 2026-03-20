@@ -9,9 +9,9 @@ This script simulates the complete flow from hook system to dashboard:
 
 import asyncio
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -75,14 +75,14 @@ class HookEventSimulator:
     """Simulates hook events being sent to the system."""
 
     @staticmethod
-    async def send_hook_event(event_type: str, data: Dict[str, Any]) -> bool:
+    async def send_hook_event(event_type: str, data: dict[str, Any]) -> bool:
         """Send a hook event to the hook service."""
         try:
             # Try to send via hook service if available
             async with aiohttp.ClientSession() as session:
                 payload = {
                     "event": event_type,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     **data,
                 }
 
@@ -96,7 +96,7 @@ class HookEventSimulator:
                         if resp.status == 200:
                             print(f"   📤 Sent {event_type} via hook service")
                             return True
-                except (aiohttp.ClientError, asyncio.TimeoutError):
+                except (TimeoutError, aiohttp.ClientError):
                     pass
 
                 # Fallback: Send directly to Socket.IO server
@@ -121,7 +121,7 @@ class HookEventSimulator:
                 {
                     "type": "hook",
                     "event": event_type,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     **data,
                 },
             )

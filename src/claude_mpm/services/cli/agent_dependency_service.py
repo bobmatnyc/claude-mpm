@@ -16,7 +16,7 @@ DESIGN DECISIONS:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ...core.logger import get_logger
 from ...utils.agent_dependency_loader import AgentDependencyLoader
@@ -27,29 +27,29 @@ class IAgentDependencyService(ABC):
     """Interface for agent dependency management operations."""
 
     @abstractmethod
-    def check_dependencies(self, agent_name: Optional[str] = None) -> Dict[str, Any]:
+    def check_dependencies(self, agent_name: str | None = None) -> dict[str, Any]:
         """Check dependencies for deployed agents."""
 
     @abstractmethod
     def install_dependencies(
-        self, agent_name: Optional[str] = None, dry_run: bool = False
-    ) -> Dict[str, Any]:
+        self, agent_name: str | None = None, dry_run: bool = False
+    ) -> dict[str, Any]:
         """Install missing dependencies for agents."""
 
     @abstractmethod
-    def list_dependencies(self, format_type: str = "text") -> Dict[str, Any]:
+    def list_dependencies(self, format_type: str = "text") -> dict[str, Any]:
         """List all dependencies from deployed agents."""
 
     @abstractmethod
     def fix_dependencies(
-        self, max_retries: int = 3, agent_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, max_retries: int = 3, agent_name: str | None = None
+    ) -> dict[str, Any]:
         """Auto-fix dependency issues with retry logic."""
 
     @abstractmethod
     def validate_compatibility(
-        self, packages: List[str]
-    ) -> Tuple[List[str], List[str]]:
+        self, packages: list[str]
+    ) -> tuple[list[str], list[str]]:
         """Check version compatibility for packages."""
 
     @abstractmethod
@@ -71,7 +71,7 @@ class AgentDependencyService(IAgentDependencyService):
             self.loader = AgentDependencyLoader(auto_install=auto_install)
         return self.loader
 
-    def check_dependencies(self, agent_name: Optional[str] = None) -> Dict[str, Any]:
+    def check_dependencies(self, agent_name: str | None = None) -> dict[str, Any]:
         """
         Check dependencies for deployed agents.
 
@@ -124,8 +124,8 @@ class AgentDependencyService(IAgentDependencyService):
             }
 
     def install_dependencies(
-        self, agent_name: Optional[str] = None, dry_run: bool = False
-    ) -> Dict[str, Any]:
+        self, agent_name: str | None = None, dry_run: bool = False
+    ) -> dict[str, Any]:
         """
         Install missing dependencies for agents.
 
@@ -204,7 +204,7 @@ class AgentDependencyService(IAgentDependencyService):
                 "error": str(e),
             }
 
-    def list_dependencies(self, format_type: str = "text") -> Dict[str, Any]:
+    def list_dependencies(self, format_type: str = "text") -> dict[str, Any]:
         """
         List all dependencies from deployed agents.
 
@@ -265,8 +265,8 @@ class AgentDependencyService(IAgentDependencyService):
             }
 
     def fix_dependencies(
-        self, max_retries: int = 3, agent_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, max_retries: int = 3, agent_name: str | None = None
+    ) -> dict[str, Any]:
         """
         Auto-fix dependency issues with retry logic.
 
@@ -359,8 +359,8 @@ class AgentDependencyService(IAgentDependencyService):
             }
 
     def validate_compatibility(
-        self, packages: List[str]
-    ) -> Tuple[List[str], List[str]]:
+        self, packages: list[str]
+    ) -> tuple[list[str], list[str]]:
         """
         Check version compatibility for packages.
 

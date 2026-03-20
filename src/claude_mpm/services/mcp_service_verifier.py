@@ -14,7 +14,6 @@ import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -37,10 +36,10 @@ class ServiceDiagnostic:
     name: str
     status: ServiceStatus
     message: str
-    installed_path: Optional[str] = None
-    configured_command: Optional[str] = None
-    fix_command: Optional[str] = None
-    details: Optional[Dict] = None
+    installed_path: str | None = None
+    configured_command: str | None = None
+    fix_command: str | None = None
+    details: dict | None = None
 
 
 class MCPServiceVerifier:
@@ -93,11 +92,11 @@ class MCPServiceVerifier:
         self.logger = get_logger(__name__)
         self.project_root = Path.cwd()
         self.claude_config_path = Path.home() / ".claude.json"
-        self.diagnostics: Dict[str, ServiceDiagnostic] = {}
+        self.diagnostics: dict[str, ServiceDiagnostic] = {}
 
     def verify_all_services(
         self, auto_fix: bool = False
-    ) -> Dict[str, ServiceDiagnostic]:
+    ) -> dict[str, ServiceDiagnostic]:
         """
         Perform comprehensive verification of all MCP services.
 
@@ -231,7 +230,7 @@ class MCPServiceVerifier:
             configured_command=config_status.get("command"),
         )
 
-    def _find_service_installation(self, service_name: str) -> Optional[str]:
+    def _find_service_installation(self, service_name: str) -> str | None:
         """
         Find where a service is installed.
 
@@ -355,7 +354,7 @@ class MCPServiceVerifier:
 
         return False
 
-    def _check_kuzu_version(self, path: str) -> Dict:
+    def _check_kuzu_version(self, path: str) -> dict:
         """
         Check kuzu-memory version and MCP support.
 
@@ -410,7 +409,7 @@ class MCPServiceVerifier:
 
         return version_info
 
-    def _verify_configuration(self, service_name: str, installed_path: str) -> Dict:
+    def _verify_configuration(self, service_name: str, installed_path: str) -> dict:
         """
         Verify service configuration in ~/.claude.json.
 
@@ -532,7 +531,7 @@ class MCPServiceVerifier:
             return {"configured": False, "correct": False, "error": str(e)}
 
     def _test_mcp_command(
-        self, service_name: str, command: str, args: List[str]
+        self, service_name: str, command: str, args: list[str]
     ) -> bool:
         """
         Test if the configured MCP command actually works.
@@ -636,7 +635,7 @@ class MCPServiceVerifier:
         return False
 
     def print_diagnostics(
-        self, diagnostics: Optional[Dict[str, ServiceDiagnostic]] = None
+        self, diagnostics: dict[str, ServiceDiagnostic] | None = None
     ) -> None:
         """
         Print formatted diagnostic results to console.
@@ -703,7 +702,7 @@ class MCPServiceVerifier:
         print("=" * 60 + "\n")
 
 
-def verify_mcp_services_on_startup() -> Tuple[bool, str]:
+def verify_mcp_services_on_startup() -> tuple[bool, str]:
     """
     Quick verification check for MCP services during startup.
 

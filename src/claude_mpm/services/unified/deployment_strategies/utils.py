@@ -19,9 +19,9 @@ import json
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from claude_mpm.core.enums import HealthStatus, OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 # ====================
 
 
-def validate_deployment_config(config: Dict[str, Any]) -> List[str]:
+def validate_deployment_config(config: dict[str, Any]) -> list[str]:
     """
     Validate deployment configuration.
 
@@ -141,10 +141,10 @@ def validate_path_security(path: Path, base_path: Path) -> bool:
 
 
 def prepare_deployment_artifact(
-    source: Union[str, Path],
+    source: str | Path,
     artifact_type: str = "auto",
-    config: Optional[Dict[str, Any]] = None,
-) -> Tuple[Path, Dict[str, Any]]:
+    config: dict[str, Any] | None = None,
+) -> tuple[Path, dict[str, Any]]:
     """
     Prepare deployment artifact from source.
 
@@ -163,7 +163,7 @@ def prepare_deployment_artifact(
     metadata = {
         "source": str(source_path),
         "type": artifact_type,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
     # Auto-detect type
@@ -240,9 +240,9 @@ def create_tar_artifact(source: Path, output_dir: Path) -> Path:
 
 def verify_deployment_health(
     deployment_type: str,
-    deployment_info: Dict[str, Any],
-    checks: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    deployment_info: dict[str, Any],
+    checks: list[str] | None = None,
+) -> dict[str, Any]:
     """
     Perform health checks on deployment.
 
@@ -258,7 +258,7 @@ def verify_deployment_health(
     """
     health = {
         "status": OperationResult.UNKNOWN,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "checks": {},
         "errors": [],
     }
@@ -311,13 +311,13 @@ def check_url_accessibility(url: str, timeout: int = 10) -> bool:
     try:
         import urllib.request
 
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(url, timeout=timeout) as response:  # nosec
             return response.status < 400
     except Exception:
         return False
 
 
-def check_docker_container(container_id: Optional[str]) -> bool:
+def check_docker_container(container_id: str | None) -> bool:
     """Check if Docker container is running."""
     if not container_id:
         return False
@@ -334,7 +334,7 @@ def check_docker_container(container_id: Optional[str]) -> bool:
         return False
 
 
-def check_aws_deployment(deployment_info: Dict[str, Any]) -> bool:
+def check_aws_deployment(deployment_info: dict[str, Any]) -> bool:
     """Check AWS deployment status."""
     # Simplified check - would use boto3 in production
     return deployment_info.get("aws_status") == "deployed"
@@ -346,8 +346,8 @@ def check_aws_deployment(deployment_info: Dict[str, Any]) -> bool:
 
 def rollback_deployment(
     deployment_type: str,
-    deployment_info: Dict[str, Any],
-    backup_info: Optional[Dict[str, Any]] = None,
+    deployment_info: dict[str, Any],
+    backup_info: dict[str, Any] | None = None,
 ) -> bool:
     """
     Rollback deployment to previous state.
@@ -378,7 +378,7 @@ def rollback_deployment(
 
 
 def rollback_local_deployment(
-    deployment_info: Dict[str, Any], backup_info: Optional[Dict[str, Any]] = None
+    deployment_info: dict[str, Any], backup_info: dict[str, Any] | None = None
 ) -> bool:
     """Rollback local filesystem deployment."""
     deployed_path = Path(deployment_info.get("deployed_path", ""))
@@ -403,7 +403,7 @@ def rollback_local_deployment(
     return True
 
 
-def rollback_docker_deployment(deployment_info: Dict[str, Any]) -> bool:
+def rollback_docker_deployment(deployment_info: dict[str, Any]) -> bool:
     """Rollback Docker deployment."""
     container_id = deployment_info.get("container_id")
 
@@ -421,7 +421,7 @@ def rollback_docker_deployment(deployment_info: Dict[str, Any]) -> bool:
     return True
 
 
-def rollback_git_deployment(deployment_info: Dict[str, Any]) -> bool:
+def rollback_git_deployment(deployment_info: dict[str, Any]) -> bool:
     """Rollback Git-based deployment."""
     repo_path = Path(deployment_info.get("repo_path", ""))
     previous_commit = deployment_info.get("previous_commit")
@@ -437,7 +437,7 @@ def rollback_git_deployment(deployment_info: Dict[str, Any]) -> bool:
 # ==================
 
 
-def get_version_info(path: Union[str, Path]) -> Dict[str, Any]:
+def get_version_info(path: str | Path) -> dict[str, Any]:
     """
     Extract version information from deployment.
 
@@ -490,7 +490,7 @@ def get_version_info(path: Union[str, Path]) -> Dict[str, Any]:
 
 
 def update_version(
-    path: Union[str, Path], new_version: str, create_backup: bool = True
+    path: str | Path, new_version: str, create_backup: bool = True
 ) -> bool:
     """
     Update version in deployment.
@@ -513,9 +513,7 @@ def update_version(
             shutil.copy2(version_file, backup_file)
 
         # Write new version
-        version_file.write_text(
-            f"{new_version}\n{datetime.now(timezone.utc).isoformat()}\n"
-        )
+        version_file.write_text(f"{new_version}\n{datetime.now(UTC).isoformat()}\n")
         return True
 
     except Exception as e:
@@ -527,7 +525,7 @@ def update_version(
 # ======================
 
 
-def calculate_checksum(path: Union[str, Path], algorithm: str = "sha256") -> str:
+def calculate_checksum(path: str | Path, algorithm: str = "sha256") -> str:
     """
     Calculate checksum of file or directory.
 
@@ -558,7 +556,7 @@ def calculate_checksum(path: Union[str, Path], algorithm: str = "sha256") -> str
 
 
 def verify_checksum(
-    path: Union[str, Path], expected_checksum: str, algorithm: str = "sha256"
+    path: str | Path, expected_checksum: str, algorithm: str = "sha256"
 ) -> bool:
     """
     Verify checksum of file or directory.
@@ -578,7 +576,7 @@ def verify_checksum(
         return False
 
 
-def get_size(path: Union[str, Path]) -> int:
+def get_size(path: str | Path) -> int:
     """
     Get size of file or directory in bytes.
 
@@ -605,7 +603,7 @@ def get_size(path: Union[str, Path]) -> int:
 # =====================
 
 
-def load_env_file(env_file: Union[str, Path]) -> Dict[str, str]:
+def load_env_file(env_file: str | Path) -> dict[str, str]:
     """
     Load environment variables from file.
 
@@ -629,7 +627,7 @@ def load_env_file(env_file: Union[str, Path]) -> Dict[str, str]:
     return env_vars
 
 
-def merge_environments(*env_dicts: Dict[str, str]) -> Dict[str, str]:
+def merge_environments(*env_dicts: dict[str, str]) -> dict[str, str]:
     """
     Merge multiple environment dictionaries.
 
@@ -648,7 +646,7 @@ def merge_environments(*env_dicts: Dict[str, str]) -> Dict[str, str]:
     return merged
 
 
-def export_env_to_file(env_vars: Dict[str, str], output_file: Union[str, Path]) -> None:
+def export_env_to_file(env_vars: dict[str, str], output_file: str | Path) -> None:
     """
     Export environment variables to file.
 

@@ -11,9 +11,9 @@ Implements Stage 1 of the three-stage sync algorithm:
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 import requests
 
@@ -92,9 +92,9 @@ class ETagCache:
             cache_file: Path to JSON file storing ETags
         """
         self._cache_file = cache_file
-        self._cache: Dict[str, Dict[str, Any]] = self._load_cache()
+        self._cache: dict[str, dict[str, Any]] = self._load_cache()
 
-    def get_etag(self, url: str) -> Optional[str]:
+    def get_etag(self, url: str) -> str | None:
         """Retrieve stored ETag for URL.
 
         Args:
@@ -106,7 +106,7 @@ class ETagCache:
         entry = self._cache.get(url, {})
         return entry.get("etag")
 
-    def set_etag(self, url: str, etag: str, file_size: Optional[int] = None):
+    def set_etag(self, url: str, etag: str, file_size: int | None = None):
         """Store ETag for URL.
 
         Args:
@@ -116,12 +116,12 @@ class ETagCache:
         """
         self._cache[url] = {
             "etag": etag,
-            "last_modified": datetime.now(timezone.utc).isoformat(),
+            "last_modified": datetime.now(UTC).isoformat(),
             "file_size": file_size,
         }
         self._save_cache()
 
-    def _load_cache(self) -> Dict[str, Dict[str, Any]]:
+    def _load_cache(self) -> dict[str, dict[str, Any]]:
         """Load ETag cache from JSON file.
 
         Returns:
@@ -211,7 +211,7 @@ class GitSourceSyncService:
     def __init__(
         self,
         source_url: str = "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main/agents",
-        cache_dir: Optional[Path] = None,
+        cache_dir: Path | None = None,
         source_id: str = "github-remote",
     ):
         """Initialize Git source sync service.
@@ -371,7 +371,7 @@ class GitSourceSyncService:
         show_progress: bool = True,
         progress_prefix: str = "Syncing agents",
         progress_suffix: str = "agents",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Sync agents from remote Git repository with SQLite state tracking.
 
         Args:
@@ -612,7 +612,7 @@ class GitSourceSyncService:
 
         return results
 
-    def check_for_updates(self) -> Dict[str, bool]:
+    def check_for_updates(self) -> dict[str, bool]:
         """Check if remote repository has updates using ETag.
 
         Uses HEAD requests to check ETags without downloading content.
@@ -658,7 +658,7 @@ class GitSourceSyncService:
 
         return updates
 
-    def download_agent_file(self, filename: str) -> Optional[str]:
+    def download_agent_file(self, filename: str) -> str | None:
         """Download single agent file with ETag caching.
 
         Args:
@@ -693,7 +693,7 @@ class GitSourceSyncService:
 
     def _fetch_with_etag(
         self, url: str, force_refresh: bool = False
-    ) -> Tuple[Optional[str], int]:
+    ) -> tuple[str | None, int]:
         """Fetch URL with ETag caching.
 
         Design Decision: Use If-None-Match header for conditional requests
@@ -778,7 +778,7 @@ class GitSourceSyncService:
         except Exception as e:
             logger.error(f"Error saving {filename} to cache: {e}")
 
-    def _load_from_cache(self, filename: str) -> Optional[str]:
+    def _load_from_cache(self, filename: str) -> str | None:
         """Load agent file from cache.
 
         Args:
@@ -812,7 +812,7 @@ class GitSourceSyncService:
             logger.error(f"Error loading {filename} from cache: {e}")
             return None
 
-    def _get_agent_list(self) -> List[str]:
+    def _get_agent_list(self) -> list[str]:
         """Get list of agent file paths to sync (including nested directories).
 
         Design Decision: Use Git Tree API instead of Contents API (Phase 1 fix)
@@ -903,7 +903,7 @@ class GitSourceSyncService:
 
     def _discover_agents_via_tree_api(
         self, owner: str, repo: str, branch: str, base_path: str = ""
-    ) -> List[str]:
+    ) -> list[str]:
         """Discover all agent files using GitHub Git Tree API with recursion.
 
         Design Decision: Two-step Tree API pattern (commit SHA → tree)
@@ -1067,8 +1067,8 @@ class GitSourceSyncService:
     def _cleanup_excluded_agents(
         self,
         deployment_dir: Path,
-        excluded_set: Set[str],
-    ) -> Dict[str, List[str]]:
+        excluded_set: set[str],
+    ) -> dict[str, list[str]]:
         """Remove excluded agents from deployment directory.
 
         Removes any agents in the deployment directory whose normalized
@@ -1083,7 +1083,7 @@ class GitSourceSyncService:
             Dictionary with cleanup results:
             - removed: List of agent names that were removed
         """
-        cleanup_results: Dict[str, List[str]] = {"removed": []}
+        cleanup_results: dict[str, list[str]] = {"removed": []}
 
         if not deployment_dir.exists():
             logger.debug("Deployment directory does not exist, no cleanup needed")
@@ -1123,9 +1123,9 @@ class GitSourceSyncService:
     def deploy_agents_to_project(
         self,
         project_dir: Path,
-        agent_list: Optional[List[str]] = None,
+        agent_list: list[str] | None = None,
         force: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Deploy agents from cache to project directory (Phase 1 deployment).
 
         Design Decision: Copy from cache to project-specific deployment directory
@@ -1197,7 +1197,7 @@ class GitSourceSyncService:
             excluded_agents = []
 
         # Create normalized exclusion set
-        excluded_set: Set[str] = (
+        excluded_set: set[str] = (
             {_normalize_agent_name(name) for name in excluded_agents}
             if excluded_agents
             else set()
@@ -1288,7 +1288,7 @@ class GitSourceSyncService:
 
         return results
 
-    def _resolve_cache_path(self, agent_path: str) -> Optional[Path]:
+    def _resolve_cache_path(self, agent_path: str) -> Path | None:
         """Resolve normalized agent path to actual cache file.
 
         Handles git-nested cache structure by searching for the agent file
@@ -1320,7 +1320,7 @@ class GitSourceSyncService:
 
         return None
 
-    def _discover_cached_agents(self) -> List[str]:
+    def _discover_cached_agents(self) -> list[str]:
         """Discover all agent files currently in cache.
 
         Scans cache directory for .md and .json files, filtering to only

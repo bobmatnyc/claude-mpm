@@ -6,7 +6,7 @@ WHY: Ensure postmortem analysis correctly categorizes errors and generates
 appropriate improvement actions based on error source.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -226,7 +226,7 @@ class TestPostmortemService:
         # Mock session manager
         mock_mgr = MagicMock()
         mock_mgr.get_session_id.return_value = "test-session-123"
-        mock_mgr._session_start_time = datetime.now(timezone.utc)
+        mock_mgr._session_start_time = datetime.now(UTC)
         mock_session_mgr.return_value = mock_mgr
 
         # Add test failures (include file path so categorization works)
@@ -287,7 +287,7 @@ class TestPostmortemService:
         with patch("claude_mpm.services.session_manager.get_session_manager") as mock:
             mock_mgr = MagicMock()
             mock_mgr.get_session_id.return_value = "test"
-            mock_mgr._session_start_time = datetime.now(timezone.utc)
+            mock_mgr._session_start_time = datetime.now(UTC)
             mock.return_value = mock_mgr
 
             report = service.analyze_session()

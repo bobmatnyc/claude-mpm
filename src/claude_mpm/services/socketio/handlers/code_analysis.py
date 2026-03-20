@@ -15,7 +15,7 @@ DESIGN DECISIONS:
 import asyncio
 import uuid
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ....core.logging_config import get_logger
 from ....dashboard.analysis_runner import CodeAnalysisRunner
@@ -64,7 +64,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             self.analysis_runner = None
             self.logger.info("Code analysis runner stopped")
 
-    def get_events(self) -> Dict[str, Any]:
+    def get_events(self) -> dict[str, Any]:
         """Get the events this handler manages.
 
         Returns:
@@ -91,7 +91,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             self.server.core.sio.on(event_name, handler_method)
             self.logger.info(f"Registered event handler: {event_name}")
 
-    async def handle_analyze_request(self, sid: str, data: Dict[str, Any]):
+    async def handle_analyze_request(self, sid: str, data: dict[str, Any]):
         """Handle code analysis request from client.
 
         Args:
@@ -156,7 +156,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 room=sid,
             )
 
-    async def handle_cancel_request(self, sid: str, data: Dict[str, Any]):
+    async def handle_cancel_request(self, sid: str, data: dict[str, Any]):
         """Handle analysis cancellation request.
 
         Args:
@@ -175,7 +175,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
             room=sid,
         )
 
-    async def handle_status_request(self, sid: str, data: Dict[str, Any]):
+    async def handle_status_request(self, sid: str, data: dict[str, Any]):
         """Handle status request from client.
 
         Args:
@@ -187,7 +187,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
         # Send status to requesting client
         await self.server.sio.emit("code:analysis:status", status, room=sid)
 
-    async def handle_discover_top_level(self, sid: str, data: Dict[str, Any]):
+    async def handle_discover_top_level(self, sid: str, data: dict[str, Any]):
         """Handle top-level directory discovery request for lazy loading.
 
         Args:
@@ -246,7 +246,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 original_emit = emitter.emit
 
                 def socket_emit(
-                    event_type: str, event_data: Dict[str, Any], batch: bool = False
+                    event_type: str, event_data: dict[str, Any], batch: bool = False
                 ):
                     # Keep the original event format with colons - frontend expects this!
                     # The frontend listens for 'code:directory:discovered' not 'code.directory.discovered'
@@ -353,7 +353,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 room=sid,
             )
 
-    async def handle_discover_directory(self, sid: str, data: Dict[str, Any]):
+    async def handle_discover_directory(self, sid: str, data: dict[str, Any]):
         """Handle directory discovery request for lazy loading.
 
         Args:
@@ -435,7 +435,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 original_emit = emitter.emit
 
                 def socket_emit(
-                    event_type: str, event_data: Dict[str, Any], batch: bool = False
+                    event_type: str, event_data: dict[str, Any], batch: bool = False
                 ):
                     # Keep the original event format with colons - frontend expects this!
                     # The frontend listens for 'code:directory:discovered' not 'code.directory.discovered'
@@ -525,7 +525,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 room=sid,
             )
 
-    async def handle_analyze_file(self, sid: str, data: Dict[str, Any]):
+    async def handle_analyze_file(self, sid: str, data: dict[str, Any]):
         """Handle file analysis request for lazy loading.
 
         Args:
@@ -605,7 +605,7 @@ class CodeAnalysisEventHandler(BaseEventHandler):
                 original_emit = emitter.emit
 
                 def socket_emit(
-                    event_type: str, event_data: Dict[str, Any], batch: bool = False
+                    event_type: str, event_data: dict[str, Any], batch: bool = False
                 ):
                     # Keep the original event format with colons - frontend expects this!
                     # The frontend listens for 'code:file:analyzed' not 'code.file.analyzed'

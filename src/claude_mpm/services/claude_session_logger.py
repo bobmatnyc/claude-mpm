@@ -14,9 +14,9 @@ Configuration via .claude-mpm/configuration.yaml.
 import importlib.util
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Import configuration manager
 from claude_mpm.core.config import Config
@@ -44,9 +44,9 @@ class ClaudeSessionLogger:
 
     def __init__(
         self,
-        base_dir: Optional[Path] = None,
-        use_async: Optional[bool] = None,
-        config: Optional[Config] = None,
+        base_dir: Path | None = None,
+        use_async: bool | None = None,
+        config: Config | None = None,
     ):
         """
         Initialize the session logger.
@@ -133,7 +133,7 @@ class ClaudeSessionLogger:
                 )
                 self.use_async = False
 
-    def _generate_filename(self, agent: Optional[str] = None) -> str:
+    def _generate_filename(self, agent: str | None = None) -> str:
         """
         Generate a flat filename with session ID, agent, and timestamp.
 
@@ -149,7 +149,7 @@ class ClaudeSessionLogger:
         agent_name = agent_name.replace(" ", "_").lower()
 
         # Generate timestamp with microseconds for uniqueness
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
 
         # Create filename: session_id-agent-timestamp.json
         return f"{self.session_id}-{agent_name}-{timestamp}.json"
@@ -158,9 +158,9 @@ class ClaudeSessionLogger:
         self,
         request_summary: str,
         response_content: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        agent: Optional[str] = None,
-    ) -> Optional[Path]:
+        metadata: dict[str, Any] | None = None,
+        agent: str | None = None,
+    ) -> Path | None:
         """
         Log a response to the session directory.
 
@@ -209,7 +209,7 @@ class ClaudeSessionLogger:
 
         # Prepare response data with standardized field names
         response_data = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "session_id": self.session_id,
             "request": request_summary,  # Standardized field name
             "response": response_content,  # Already correct
@@ -246,7 +246,7 @@ class ClaudeSessionLogger:
         session_manager.set_session_id(session_id)
         logger.info(f"Session ID set to: {session_id}")
 
-    def get_session_path(self) -> Optional[Path]:
+    def get_session_path(self) -> Path | None:
         """
         Get the path to the responses directory.
 
@@ -274,7 +274,7 @@ _logger_instance = None
 _logger_lock = Lock()
 
 
-def get_session_logger(config: Optional[Config] = None) -> ClaudeSessionLogger:
+def get_session_logger(config: Config | None = None) -> ClaudeSessionLogger:
     """
     Get the singleton session logger instance with thread-safe initialization.
 
@@ -302,9 +302,9 @@ def get_session_logger(config: Optional[Config] = None) -> ClaudeSessionLogger:
 def log_response(
     request_summary: str,
     response_content: str,
-    metadata: Optional[Dict[str, Any]] = None,
-    agent: Optional[str] = None,
-) -> Optional[Path]:
+    metadata: dict[str, Any] | None = None,
+    agent: str | None = None,
+) -> Path | None:
     """
     Convenience function to log a response.
 

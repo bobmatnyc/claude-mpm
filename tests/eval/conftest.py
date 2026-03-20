@@ -13,7 +13,7 @@ Provides common fixtures for:
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -102,7 +102,7 @@ def load_scenario_file(scenarios_dir: Path):
         scenarios = load_scenario_file("ticketing_scenarios.json")
     """
 
-    def _load(filename: str) -> Dict[str, Any]:
+    def _load(filename: str) -> dict[str, Any]:
         file_path = scenarios_dir / filename
         if not file_path.exists():
             pytest.fail(f"Scenario file not found: {filename}")
@@ -114,14 +114,14 @@ def load_scenario_file(scenarios_dir: Path):
 
 
 @pytest.fixture
-def ticketing_scenarios(load_scenario_file) -> List[Dict[str, Any]]:
+def ticketing_scenarios(load_scenario_file) -> list[dict[str, Any]]:
     """Load ticketing delegation test scenarios."""
     data = load_scenario_file("ticketing_scenarios.json")
     return data.get("scenarios", [])
 
 
 @pytest.fixture
-def circuit_breaker_scenarios(load_scenario_file) -> List[Dict[str, Any]]:
+def circuit_breaker_scenarios(load_scenario_file) -> list[dict[str, Any]]:
     """Load circuit breaker test scenarios."""
     data = load_scenario_file("circuit_breaker_scenarios.json")
     return data.get("scenarios", [])
@@ -141,12 +141,12 @@ def mock_pm_response():
     """
 
     def _create_response(
-        used_tools: Optional[List[str]] = None,
-        delegated_to: Optional[str] = None,
-        assertions: Optional[List[str]] = None,
-        evidence: Optional[Dict[str, Any]] = None,
+        used_tools: list[str] | None = None,
+        delegated_to: str | None = None,
+        assertions: list[str] | None = None,
+        evidence: dict[str, Any] | None = None,
         response_text: str = "",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return {
             "used_tools": used_tools or [],
             "delegated_to": delegated_to,
@@ -245,7 +245,7 @@ async def async_pm_response_generator():
     Useful for testing real-time PM behavior simulation.
     """
 
-    async def _generate(prompt: str, context: Optional[Dict[str, Any]] = None):
+    async def _generate(prompt: str, context: dict[str, Any] | None = None):
         # This would integrate with actual PM agent in future
         # For now, return mock response structure
         return {
@@ -276,7 +276,7 @@ def save_evaluation_result(evaluation_results_dir):
         save_evaluation_result("test_name", result_dict)
     """
 
-    def _save(test_name: str, result: Dict[str, Any]):
+    def _save(test_name: str, result: dict[str, Any]):
         output_file = evaluation_results_dir / f"{test_name}.json"
         with open(output_file, "w") as f:
             json.dump(result, f, indent=2)
@@ -384,7 +384,7 @@ async def pm_agent(pm_endpoint, pm_api_key):
             self.api_key = api_key
             self.available_agents = []  # Track available agents for delegation
 
-        def set_available_agents(self, agents: List[str]):
+        def set_available_agents(self, agents: list[str]):
             """Set available agents for this test scenario. PM must select from this list."""
             self.available_agents = agents
 
@@ -449,8 +449,8 @@ async def pm_agent(pm_endpoint, pm_api_key):
             )
 
         async def process_request(
-            self, input_text: str, context: Optional[Dict[str, Any]] = None
-        ) -> Dict[str, Any]:
+            self, input_text: str, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             """Process request through PM agent with intelligent delegation."""
             # Select appropriate agent
             selected_agent = self._select_agent_for_work(input_text)
@@ -473,8 +473,8 @@ async def pm_agent(pm_endpoint, pm_api_key):
             }
 
         def process_request_sync(
-            self, input_text: str, context: Optional[Dict[str, Any]] = None
-        ) -> Dict[str, Any]:
+            self, input_text: str, context: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
             """Synchronous version for non-async tests."""
             import asyncio
 
@@ -551,8 +551,8 @@ def pm_test_helper(
             scenario_id: str,
             input_text: str,
             category: str = "general",
-            expected_behavior: Optional[str] = None,
-        ) -> Dict[str, Any]:
+            expected_behavior: str | None = None,
+        ) -> dict[str, Any]:
             """
             Run test in appropriate mode (integration, replay, or unit).
 

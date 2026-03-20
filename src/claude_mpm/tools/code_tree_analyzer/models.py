@@ -9,7 +9,7 @@ WHY: Centralizes data models for clean separation between data and logic.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -23,12 +23,12 @@ class CodeNode:
     line_end: int
     complexity: int = 0
     has_docstring: bool = False
-    decorators: List[str] = None
-    parent: Optional[str] = None
-    children: List["CodeNode"] = None
+    decorators: list[str] = None
+    parent: str | None = None
+    children: list["CodeNode"] = None
     language: str = "python"
     signature: str = ""
-    metrics: Dict[str, Any] = None
+    metrics: dict[str, Any] = None
 
     def __post_init__(self):
         if self.decorators is None:

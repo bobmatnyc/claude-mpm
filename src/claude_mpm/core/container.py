@@ -13,8 +13,9 @@ that supports:
 
 import inspect
 import threading
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, Union
+from typing import Any, TypeVar, Union
 
 from claude_mpm.services.core.interfaces import IServiceContainer
 
@@ -38,12 +39,12 @@ class ServiceRegistration:
 
     def __init__(
         self,
-        service_type: Type,
-        implementation: Optional[Union[Type, Callable]] = None,
-        factory: Optional[Callable] = None,
-        instance: Optional[Any] = None,
+        service_type: type,
+        implementation: type | Callable | None = None,
+        factory: Callable | None = None,
+        instance: Any | None = None,
         lifetime: ServiceLifetime = ServiceLifetime.SINGLETON,
-        dependencies: Optional[Dict[str, Type]] = None,
+        dependencies: dict[str, type] | None = None,
     ):
         """
         Initialize service registration.
@@ -98,16 +99,16 @@ class ServiceScope:
     def __init__(self, container: "DIContainer"):
         """Initialize service scope."""
         self._container = container
-        self._scoped_instances: Dict[Type, Any] = {}
+        self._scoped_instances: dict[type, Any] = {}
         self._disposed = False
         self._lock = threading.Lock()
 
-    def get_scoped_instance(self, service_type: Type) -> Optional[Any]:
+    def get_scoped_instance(self, service_type: type) -> Any | None:
         """Get scoped instance if exists."""
         with self._lock:
             return self._scoped_instances.get(service_type)
 
-    def set_scoped_instance(self, service_type: Type, instance: Any) -> None:
+    def set_scoped_instance(self, service_type: type, instance: Any) -> None:
         """Store scoped instance."""
         with self._lock:
             if not self._disposed:
@@ -166,16 +167,16 @@ class DIContainer(IServiceContainer):
 
     def __init__(self):
         """Initialize the DI container."""
-        self._registrations: Dict[Type, ServiceRegistration] = {}
-        self._named_registrations: Dict[str, ServiceRegistration] = {}
-        self._factories: Dict[Type, Callable] = {}
-        self._singletons: Dict[Type, Any] = {}
-        self._scopes: List[ServiceScope] = []
-        self._initialization_order: List[Type] = []
-        self._disposal_handlers: Dict[Type, Callable] = {}
+        self._registrations: dict[type, ServiceRegistration] = {}
+        self._named_registrations: dict[str, ServiceRegistration] = {}
+        self._factories: dict[type, Callable] = {}
+        self._singletons: dict[type, Any] = {}
+        self._scopes: list[ServiceScope] = []
+        self._initialization_order: list[type] = []
+        self._disposal_handlers: dict[type, Callable] = {}
         self._lock = threading.RLock()
-        self._resolving: Set[Type] = set()
-        self._current_scope: Optional[ServiceScope] = None
+        self._resolving: set[type] = set()
+        self._current_scope: ServiceScope | None = None
 
     def register(
         self, service_type: type, implementation: type, singleton: bool = True
@@ -202,12 +203,12 @@ class DIContainer(IServiceContainer):
 
     def _register_internal(
         self,
-        service_type: Type[T],
-        implementation: Optional[Union[Type[T], Callable[..., T]]] = None,
+        service_type: type[T],
+        implementation: type[T] | Callable[..., T] | None = None,
         lifetime: ServiceLifetime = ServiceLifetime.SINGLETON,
-        factory: Optional[Callable[["DIContainer"], T]] = None,
-        instance: Optional[T] = None,
-        dependencies: Optional[Dict[str, Type]] = None,
+        factory: Callable[["DIContainer"], T] | None = None,
+        instance: T | None = None,
+        dependencies: dict[str, type] | None = None,
     ) -> None:
         """
         Internal registration method with full flexibility.
@@ -255,7 +256,7 @@ class DIContainer(IServiceContainer):
             lifetime=ServiceLifetime.SINGLETON,
         )
 
-    def resolve_all(self, service_type: type) -> List[Any]:
+    def resolve_all(self, service_type: type) -> list[Any]:
         """
         Resolve all implementations of a service type (IServiceContainer interface method).
 
@@ -282,11 +283,11 @@ class DIContainer(IServiceContainer):
 
     def register_singleton(
         self,
-        interface: Type[T],
-        implementation: Optional[Union[Type[T], T]] = None,
-        instance: Optional[T] = None,
-        name: Optional[str] = None,
-        dispose_handler: Optional[Callable[[T], None]] = None,
+        interface: type[T],
+        implementation: type[T] | T | None = None,
+        instance: T | None = None,
+        name: str | None = None,
+        dispose_handler: Callable[[T], None] | None = None,
     ) -> None:
         """
         Register a singleton service.
@@ -359,9 +360,9 @@ class DIContainer(IServiceContainer):
 
     def register_scoped(
         self,
-        interface: Type[T],
-        implementation: Optional[Type[T]] = None,
-        name: Optional[str] = None,
+        interface: type[T],
+        implementation: type[T] | None = None,
+        name: str | None = None,
     ) -> None:
         """
         Register a scoped service.
@@ -389,7 +390,7 @@ class DIContainer(IServiceContainer):
             self._named_registrations[name] = self._registrations[interface]
 
     def register_transient(
-        self, service_type: Type[T], implementation: Optional[Type[T]] = None
+        self, service_type: type[T], implementation: type[T] | None = None
     ) -> None:
         """
         Register a transient service.
@@ -402,10 +403,10 @@ class DIContainer(IServiceContainer):
 
     def register_factory(
         self,
-        interface: Type[T],
+        interface: type[T],
         factory: Callable[["DIContainer"], T],
         lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> None:
         """
         Register a service with a factory function.
@@ -431,7 +432,7 @@ class DIContainer(IServiceContainer):
         if name:
             self._named_registrations[name] = self._registrations[interface]
 
-    def get(self, interface: Type[T], name: Optional[str] = None) -> T:
+    def get(self, interface: type[T], name: str | None = None) -> T:
         """
         Get service instance with dependency resolution.
 
@@ -486,7 +487,7 @@ class DIContainer(IServiceContainer):
 
         return self._resolve_internal(interface)
 
-    def resolve(self, service_type: Type[T]) -> T:
+    def resolve(self, service_type: type[T]) -> T:
         """
         Resolve a service from the container (legacy method).
 
@@ -505,7 +506,7 @@ class DIContainer(IServiceContainer):
         """
         return self.get(service_type)
 
-    def _resolve_internal(self, service_type: Type[T]) -> T:
+    def _resolve_internal(self, service_type: type[T]) -> T:
         """
         Internal method to resolve a service.
 
@@ -582,8 +583,8 @@ class DIContainer(IServiceContainer):
                 self._resolving.remove(service_type)
 
     def resolve_optional(
-        self, service_type: Type[T], default: Optional[T] = None
-    ) -> Optional[T]:
+        self, service_type: type[T], default: T | None = None
+    ) -> T | None:
         """
         Resolve a service if registered, otherwise return default.
 
@@ -595,7 +596,7 @@ class DIContainer(IServiceContainer):
             return default
 
     def create_instance(
-        self, cls: Type[T], explicit_deps: Optional[Dict[str, Type]] = None
+        self, cls: type[T], explicit_deps: dict[str, type] | None = None
     ) -> T:
         """
         Create an instance of a class, resolving constructor dependencies.
@@ -674,11 +675,11 @@ class DIContainer(IServiceContainer):
 
         return cls(**kwargs)
 
-    def is_registered(self, service_type: Type) -> bool:
+    def is_registered(self, service_type: type) -> bool:
         """Check if a service type is registered."""
         return service_type in self._registrations
 
-    def get_all_registrations(self) -> Dict[Type, ServiceRegistration]:
+    def get_all_registrations(self) -> dict[type, ServiceRegistration]:
         """Get all service registrations."""
         with self._lock:
             return self._registrations.copy()
@@ -798,7 +799,7 @@ class DIContainer(IServiceContainer):
             self._disposal_handlers.clear()
             self._resolving.clear()
 
-    def _get_similar_types(self, service_type: Type) -> List[str]:
+    def _get_similar_types(self, service_type: type) -> list[str]:
         """
         Get similar registered type names for better error messages.
 
@@ -832,7 +833,7 @@ class DIContainer(IServiceContainer):
 
         return similar[:3]  # Return top 3 suggestions
 
-    def _get_similar_names(self, name: str) -> List[str]:
+    def _get_similar_names(self, name: str) -> list[str]:
         """
         Get similar registered names for better error messages.
         """
@@ -865,7 +866,7 @@ class DIContainer(IServiceContainer):
 
 
 # Global container instance (optional, for convenience)
-_global_container: Optional[DIContainer] = None
+_global_container: DIContainer | None = None
 _global_lock = threading.Lock()
 
 

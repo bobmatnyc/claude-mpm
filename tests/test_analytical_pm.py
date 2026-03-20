@@ -14,7 +14,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 class AnalyticalPMValidator:
@@ -78,7 +78,7 @@ class AnalyticalPMValidator:
             "overall_score": 0,
         }
 
-    def load_files(self) -> Tuple[str, str]:
+    def load_files(self) -> tuple[str, str]:
         """Load instruction files."""
         try:
             with open(self.instructions_path, encoding="utf-8") as f:
@@ -98,7 +98,7 @@ class AnalyticalPMValidator:
 
         return instructions_content, base_pm_content
 
-    def test_forbidden_language_removal(self, content: str) -> Dict[str, Any]:
+    def test_forbidden_language_removal(self, content: str) -> dict[str, Any]:
         """Test that forbidden affirmative language is removed."""
         issues = []
 
@@ -184,7 +184,7 @@ class AnalyticalPMValidator:
             "total_checks": len(self.forbidden_patterns) + len(problem_phrases),
         }
 
-    def test_required_analytical_patterns(self, content: str) -> Dict[str, Any]:
+    def test_required_analytical_patterns(self, content: str) -> dict[str, Any]:
         """Test that required analytical language patterns are present."""
         issues = []
         found_patterns = []
@@ -206,7 +206,7 @@ class AnalyticalPMValidator:
             "coverage_percentage": coverage,
         }
 
-    def test_section_presence(self, content: str) -> Dict[str, Any]:
+    def test_section_presence(self, content: str) -> dict[str, Any]:
         """Test that required sections are present in instructions."""
         issues = []
         found_sections = []
@@ -226,7 +226,7 @@ class AnalyticalPMValidator:
             "total_sections": len(self.required_sections),
         }
 
-    def test_json_format_requirements(self, content: str) -> Dict[str, Any]:
+    def test_json_format_requirements(self, content: str) -> dict[str, Any]:
         """Test that JSON response format includes structural analysis."""
         issues = []
         required_json_fields = [
@@ -267,7 +267,7 @@ class AnalyticalPMValidator:
             "valid_structural_json": valid_json_found,
         }
 
-    def test_analytical_examples(self, content: str) -> Dict[str, Any]:
+    def test_analytical_examples(self, content: str) -> dict[str, Any]:
         """Test that examples follow analytical approach."""
         issues = []
 
@@ -320,7 +320,7 @@ class AnalyticalPMValidator:
             ),
         }
 
-    def run_comprehensive_test(self) -> Dict[str, Any]:
+    def run_comprehensive_test(self) -> dict[str, Any]:
         """Run all validation tests."""
         try:
             instructions_content, base_pm_content = self.load_files()

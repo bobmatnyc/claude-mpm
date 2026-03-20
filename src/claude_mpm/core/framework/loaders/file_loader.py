@@ -3,7 +3,6 @@
 import logging
 import re
 from pathlib import Path
-from typing import Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -14,10 +13,10 @@ class FileLoader:
     def __init__(self):
         """Initialize the file loader."""
         self.logger = get_logger("file_loader")
-        self.framework_version: Optional[str] = None
-        self.framework_last_modified: Optional[str] = None
+        self.framework_version: str | None = None
+        self.framework_last_modified: str | None = None
 
-    def try_load_file(self, file_path: Path, file_type: str) -> Optional[str]:
+    def try_load_file(self, file_path: Path, file_type: str) -> str | None:
         """
         Try to load a file with error handling.
 
@@ -70,9 +69,9 @@ class FileLoader:
         self,
         filename: str,
         current_dir: Path,
-        framework_path: Optional[Path] = None,
+        framework_path: Path | None = None,
         include_system: bool = False,
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Load file with tier precedence: project → user → system.
 
         Args:
@@ -115,7 +114,7 @@ class FileLoader:
 
     def load_instructions_file(
         self, current_dir: Path
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Load custom INSTRUCTIONS.md from .claude-mpm directories.
 
@@ -133,7 +132,7 @@ class FileLoader:
 
     def load_workflow_file(
         self, current_dir: Path, framework_path: Path
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Load WORKFLOW.md from various locations.
 
@@ -155,7 +154,7 @@ class FileLoader:
 
     def load_memory_file(
         self, current_dir: Path, framework_path: Path
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Load MEMORY.md from various locations.
 
@@ -173,4 +172,26 @@ class FileLoader:
         """
         return self._load_tier_file(
             "MEMORY.md", current_dir, framework_path, include_system=True
+        )
+
+    def load_agent_delegation_file(
+        self, current_dir: Path, framework_path: Path
+    ) -> tuple[str | None, str | None]:
+        """
+        Load AGENT_DELEGATION.md from various locations.
+
+        Precedence (highest to lowest):
+        1. Project-specific: ./.claude-mpm/AGENT_DELEGATION.md
+        2. User-specific: ~/.claude-mpm/AGENT_DELEGATION.md
+        3. System default: framework/agents/AGENT_DELEGATION.md
+
+        Args:
+            current_dir: Current working directory
+            framework_path: Path to framework installation
+
+        Returns:
+            Tuple of (content, level) where level is 'project', 'user', 'system', or None
+        """
+        return self._load_tier_file(
+            "AGENT_DELEGATION.md", current_dir, framework_path, include_system=True
         )

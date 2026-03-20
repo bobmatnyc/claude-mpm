@@ -19,7 +19,7 @@ EXTRACTED FROM: services/core/interfaces.py (lines 876-1397)
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 # Version service interface
@@ -43,7 +43,7 @@ class VersionServiceInterface(ABC):
         """
 
     @abstractmethod
-    def get_version_info(self) -> Dict[str, Any]:
+    def get_version_info(self) -> dict[str, Any]:
         """Get detailed version information.
 
         Returns:
@@ -62,7 +62,7 @@ class VersionServiceInterface(ABC):
         """
 
     @abstractmethod
-    def check_for_updates(self) -> Dict[str, Any]:
+    def check_for_updates(self) -> dict[str, Any]:
         """Check for available updates.
 
         Returns:
@@ -83,7 +83,7 @@ class CommandHandlerInterface(ABC):
     """
 
     @abstractmethod
-    def handle_command(self, command: str, args: List[str]) -> Dict[str, Any]:
+    def handle_command(self, command: str, args: list[str]) -> dict[str, Any]:
         """Handle an MPM command.
 
         Args:
@@ -95,7 +95,7 @@ class CommandHandlerInterface(ABC):
         """
 
     @abstractmethod
-    def get_available_commands(self) -> List[str]:
+    def get_available_commands(self) -> list[str]:
         """Get list of available commands.
 
         Returns:
@@ -135,7 +135,7 @@ class MemoryHookInterface(ABC):
         """Unregister memory-related hooks from the hook service."""
 
     @abstractmethod
-    def get_hook_status(self) -> Dict[str, Any]:
+    def get_hook_status(self) -> dict[str, Any]:
         """Get status of registered memory hooks.
 
         Returns:
@@ -156,7 +156,7 @@ class SessionManagementInterface(ABC):
     """
 
     @abstractmethod
-    def start_session(self, session_config: Dict[str, Any]) -> str:
+    def start_session(self, session_config: dict[str, Any]) -> str:
         """Start a new session.
 
         Args:
@@ -178,7 +178,7 @@ class SessionManagementInterface(ABC):
         """
 
     @abstractmethod
-    def get_session_status(self, session_id: str) -> Dict[str, Any]:
+    def get_session_status(self, session_id: str) -> dict[str, Any]:
         """Get status of a session.
 
         Args:
@@ -189,7 +189,7 @@ class SessionManagementInterface(ABC):
         """
 
     @abstractmethod
-    def list_active_sessions(self) -> List[str]:
+    def list_active_sessions(self) -> list[str]:
         """List all active session IDs.
 
         Returns:
@@ -262,7 +262,7 @@ class UtilityServiceInterface(ABC):
         """
 
     @abstractmethod
-    def validate_path(self, path: Path) -> Tuple[bool, Optional[str]]:
+    def validate_path(self, path: Path) -> tuple[bool, str | None]:
         """Validate a filesystem path.
 
         Args:
@@ -286,7 +286,7 @@ class MemoryServiceInterface(ABC):
     """
 
     @abstractmethod
-    def load_memory(self, agent_id: str) -> Optional[str]:
+    def load_memory(self, agent_id: str) -> str | None:
         """Load memory for a specific agent.
 
         Args:
@@ -309,7 +309,7 @@ class MemoryServiceInterface(ABC):
         """
 
     @abstractmethod
-    def validate_memory_size(self, content: str) -> Tuple[bool, Optional[str]]:
+    def validate_memory_size(self, content: str) -> tuple[bool, str | None]:
         """Validate memory content size and structure.
 
         Args:
@@ -331,7 +331,7 @@ class MemoryServiceInterface(ABC):
         """
 
     @abstractmethod
-    def get_memory_stats(self, agent_id: str) -> Dict[str, Any]:
+    def get_memory_stats(self, agent_id: str) -> dict[str, Any]:
         """Get memory statistics for an agent.
 
         Args:
@@ -381,7 +381,7 @@ class HookServiceInterface(ABC):
         """
 
     @abstractmethod
-    def execute_hook(self, hook_name: str, *args, **kwargs) -> List[Any]:
+    def execute_hook(self, hook_name: str, *args, **kwargs) -> list[Any]:
         """Execute all callbacks for a hook.
 
         Args:
@@ -394,7 +394,7 @@ class HookServiceInterface(ABC):
         """
 
     @abstractmethod
-    def get_hook_info(self, hook_name: str) -> Dict[str, Any]:
+    def get_hook_info(self, hook_name: str) -> dict[str, Any]:
         """Get information about registered hooks.
 
         Args:

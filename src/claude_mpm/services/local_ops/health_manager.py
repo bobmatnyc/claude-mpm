@@ -37,7 +37,7 @@ USAGE:
 
 import threading
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
@@ -87,15 +87,15 @@ class HealthCheckManager(SyncBaseService, IHealthCheckManager):
 
         # Background monitoring state
         self._monitoring = False
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
 
         # Health history: deployment_id -> List[DeploymentHealth]
-        self._health_history: Dict[str, List[DeploymentHealth]] = defaultdict(list)
+        self._health_history: dict[str, list[DeploymentHealth]] = defaultdict(list)
 
         # Status change callbacks
-        self._status_callbacks: List[Callable] = []
+        self._status_callbacks: list[Callable] = []
 
     def initialize(self) -> bool:
         """
@@ -163,7 +163,7 @@ class HealthCheckManager(SyncBaseService, IHealthCheckManager):
             raise ValueError(f"Deployment not found: {deployment_id}")
 
         # Execute all health checks
-        checks: List[HealthCheckResult] = []
+        checks: list[HealthCheckResult] = []
 
         # 1. Process health check (most critical)
         try:
@@ -297,7 +297,7 @@ class HealthCheckManager(SyncBaseService, IHealthCheckManager):
 
     def get_health_history(
         self, deployment_id: str, limit: int = 10
-    ) -> List[DeploymentHealth]:
+    ) -> list[DeploymentHealth]:
         """
         Get historical health check results for a deployment.
 
@@ -362,7 +362,7 @@ class HealthCheckManager(SyncBaseService, IHealthCheckManager):
 
         self.log_debug("Health monitoring loop stopped")
 
-    def _aggregate_health_status(self, checks: List[HealthCheckResult]) -> HealthStatus:
+    def _aggregate_health_status(self, checks: list[HealthCheckResult]) -> HealthStatus:
         """
         Aggregate health status from multiple check results.
 

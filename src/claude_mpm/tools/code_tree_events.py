@@ -19,8 +19,8 @@ import threading
 import time
 from collections import deque
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from ..core.enums import OperationResult
 
@@ -48,15 +48,15 @@ class CodeNodeEvent:
     line_end: int
     complexity: int = 0
     has_docstring: bool = False
-    decorators: List[str] = None
-    parent: Optional[str] = None
+    decorators: list[str] = None
+    parent: str | None = None
     children_count: int = 0
     language: str = "python"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         data = asdict(self)
-        data["timestamp"] = datetime.now(timezone.utc).isoformat()
+        data["timestamp"] = datetime.now(UTC).isoformat()
         return data
 
 
@@ -159,7 +159,7 @@ class CodeTreeEventEmitter:
 
     def start(self):
         """Start the event emitter and background tasks."""
-        self.stats["start_time"] = datetime.now(timezone.utc)
+        self.stats["start_time"] = datetime.now(UTC)
         self._stop_event.clear()
 
         # Start background emit task
@@ -170,7 +170,7 @@ class CodeTreeEventEmitter:
         self.emit(
             self.EVENT_ANALYSIS_START,
             {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "batch_size": self.batch_size,
                 "batch_timeout": self.batch_timeout,
             },
@@ -185,11 +185,9 @@ class CodeTreeEventEmitter:
         self.emit(
             self.EVENT_ANALYSIS_COMPLETE,
             {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "duration": (
-                    (
-                        datetime.now(timezone.utc) - self.stats["start_time"]
-                    ).total_seconds()
+                    (datetime.now(UTC) - self.stats["start_time"]).total_seconds()
                     if self.stats["start_time"]
                     else 0
                 ),
@@ -206,7 +204,7 @@ class CodeTreeEventEmitter:
         if self.sio and self.connected:
             self.sio.disconnect()
 
-    def emit(self, event_type: str, data: Dict[str, Any], batch: bool = False):
+    def emit(self, event_type: str, data: dict[str, Any], batch: bool = False):
         """Emit an event, either immediately or batched.
 
         Args:
@@ -217,7 +215,7 @@ class CodeTreeEventEmitter:
         event = {
             "type": event_type,
             "data": data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         if batch:
@@ -231,7 +229,7 @@ class CodeTreeEventEmitter:
         else:
             self._emit_event(event)
 
-    def emit_directory_discovered(self, dir_path: str, children: List[Dict[str, Any]]):
+    def emit_directory_discovered(self, dir_path: str, children: list[dict[str, Any]]):
         """Emit directory discovery event."""
         self.emit(
             self.EVENT_DIRECTORY_DISCOVERED,
@@ -244,7 +242,7 @@ class CodeTreeEventEmitter:
         )
 
     def emit_file_discovered(
-        self, file_path: str, language: Optional[str] = None, size: int = 0
+        self, file_path: str, language: str | None = None, size: int = 0
     ):
         """Emit file discovery event."""
         self.emit(
@@ -258,7 +256,7 @@ class CodeTreeEventEmitter:
             },
         )
 
-    def emit_file_start(self, file_path: str, language: Optional[str] = None):
+    def emit_file_start(self, file_path: str, language: str | None = None):
         """Emit file analysis start event.
 
         WHY: Signals the beginning of file analysis for progress tracking.
@@ -294,7 +292,7 @@ class CodeTreeEventEmitter:
         )
 
     def emit_file_analyzed(
-        self, file_path: str, nodes: List[Dict[str, Any]], duration: float = 0
+        self, file_path: str, nodes: list[dict[str, Any]], duration: float = 0
     ):
         """Emit file analysis complete event."""
         self.stats["files_processed"] += 1
@@ -353,7 +351,7 @@ class CodeTreeEventEmitter:
         self.stats["errors"] += 1
         self.emit(self.EVENT_ERROR, {"file": file_path, "error": str(error)})
 
-    def _emit_event(self, event: Dict[str, Any]):
+    def _emit_event(self, event: dict[str, Any]):
         """Emit a single event."""
 
         # Convert datetime objects to ISO strings for JSON serialization
@@ -397,7 +395,7 @@ class CodeTreeEventEmitter:
                     "events": list(self.event_buffer),
                     "count": len(self.event_buffer),
                 },
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             self._emit_event(batch_event)
@@ -415,6 +413,6 @@ class CodeTreeEventEmitter:
                     if self.event_buffer:
                         self._flush_events()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get current statistics."""
         return self.stats.copy()

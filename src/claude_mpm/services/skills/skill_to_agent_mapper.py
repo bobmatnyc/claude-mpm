@@ -39,7 +39,7 @@ References:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import yaml
 
@@ -73,7 +73,7 @@ class SkillToAgentMapper:
         Path(__file__).parent.parent.parent / "config" / "skill_to_agent_mapping.yaml"
     )
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Path | None = None):
         """Initialize skill-to-agent mapper.
 
         Args:
@@ -92,8 +92,8 @@ class SkillToAgentMapper:
         self._config = self._load_config()
 
         # Build forward and inverse indexes
-        self._skill_to_agents: Dict[str, List[str]] = {}
-        self._agent_to_skills: Dict[str, List[str]] = {}
+        self._skill_to_agents: dict[str, list[str]] = {}
+        self._agent_to_skills: dict[str, list[str]] = {}
         self._build_indexes()
 
         self.logger.info(
@@ -101,7 +101,7 @@ class SkillToAgentMapper:
             f"{len(self._agent_to_skills)} agents"
         )
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         """Load and validate YAML configuration.
 
         Returns:
@@ -181,7 +181,7 @@ class SkillToAgentMapper:
             f"Built indexes: {len(self._skill_to_agents)} skills, {len(self._agent_to_skills)} agents"
         )
 
-    def get_agents_for_skill(self, skill_path: str) -> List[str]:
+    def get_agents_for_skill(self, skill_path: str) -> list[str]:
         """Get list of agent IDs for a skill path.
 
         Looks up skill path in configuration. If not found, attempts to infer
@@ -220,7 +220,7 @@ class SkillToAgentMapper:
         self.logger.debug(f"No mapping or inference available for skill: {skill_path}")
         return []
 
-    def get_skills_for_agent(self, agent_id: str) -> List[str]:
+    def get_skills_for_agent(self, agent_id: str) -> list[str]:
         """Get list of skill paths for an agent (inverse lookup).
 
         Args:
@@ -242,7 +242,7 @@ class SkillToAgentMapper:
 
         return self._agent_to_skills[agent_id].copy()
 
-    def infer_agents_from_pattern(self, skill_path: str) -> List[str]:
+    def infer_agents_from_pattern(self, skill_path: str) -> list[str]:
         """Infer agents for a skill path using pattern matching.
 
         Uses inference_rules from configuration to match skill paths against
@@ -276,7 +276,7 @@ class SkillToAgentMapper:
             return []
 
         inference_rules = self._config["inference_rules"]
-        inferred_agents: Set[str] = set()
+        inferred_agents: set[str] = set()
 
         # Normalize skill path for matching (lowercase, split on /)
         path_parts = skill_path.lower().split("/")
@@ -311,7 +311,7 @@ class SkillToAgentMapper:
 
         return sorted(inferred_agents)
 
-    def get_all_mapped_skills(self) -> List[str]:
+    def get_all_mapped_skills(self) -> list[str]:
         """Get all skill paths with explicit mappings.
 
         Returns:
@@ -323,7 +323,7 @@ class SkillToAgentMapper:
         """
         return sorted(self._skill_to_agents.keys())
 
-    def get_all_agents(self) -> List[str]:
+    def get_all_agents(self) -> list[str]:
         """Get all agent IDs referenced in mappings.
 
         Returns:
@@ -352,7 +352,7 @@ class SkillToAgentMapper:
         """
         return skill_path in self._skill_to_agents
 
-    def get_mapping_stats(self) -> Dict[str, Any]:
+    def get_mapping_stats(self) -> dict[str, Any]:
         """Get statistics about skill-to-agent mappings.
 
         Returns:

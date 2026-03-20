@@ -78,13 +78,15 @@ class TestDashboardModuleLoading:
             assert result is None
 
         # Test that method handles exceptions gracefully
-        with patch(
-            "claude_mpm.core.unified_paths.get_path_manager"
-        ) as mock_path_mgr, patch(
-            "claude_mpm.services.socketio.server.core.get_project_root"
-        ) as mock_get_root, patch(
-            "claude_mpm.services.socketio.server.core.get_scripts_dir"
-        ) as mock_get_scripts:
+        with (
+            patch("claude_mpm.core.unified_paths.get_path_manager") as mock_path_mgr,
+            patch(
+                "claude_mpm.services.socketio.server.core.get_project_root"
+            ) as mock_get_root,
+            patch(
+                "claude_mpm.services.socketio.server.core.get_scripts_dir"
+            ) as mock_get_scripts,
+        ):
             mock_path_mgr.side_effect = Exception("Path manager error")
             mock_get_root.return_value = Path("/mock/project")
             mock_get_scripts.return_value = Path("/mock/scripts")
@@ -121,9 +123,11 @@ class TestDashboardModuleLoading:
             def mock_index_exists(path):
                 return path.name == "index.html" and mock_exists(path.parent)
 
-            with patch("pathlib.Path.exists", side_effect=mock_exists), patch(
-                "pathlib.Path.is_dir", side_effect=mock_is_dir
-            ), patch("pathlib.Path.cwd", return_value=Path("/current_working_dir")):
+            with (
+                patch("pathlib.Path.exists", side_effect=mock_exists),
+                patch("pathlib.Path.is_dir", side_effect=mock_is_dir),
+                patch("pathlib.Path.cwd", return_value=Path("/current_working_dir")),
+            ):
                 with patch.object(Path, "exists", mock_index_exists):
                     result = server._find_static_path()
 
@@ -140,11 +144,13 @@ class TestDashboardModuleLoading:
         server = SocketIOServerCore()
 
         # Mock all path checks to return False
-        with patch("pathlib.Path.exists", return_value=False), patch(
-            "pathlib.Path.is_dir", return_value=False
-        ), patch(
-            "claude_mpm.services.socketio.server.core.get_path_manager"
-        ) as mock_path_mgr:
+        with (
+            patch("pathlib.Path.exists", return_value=False),
+            patch("pathlib.Path.is_dir", return_value=False),
+            patch(
+                "claude_mpm.services.socketio.server.core.get_path_manager"
+            ) as mock_path_mgr,
+        ):
             mock_path_mgr.side_effect = Exception("No path manager")
 
             result = server._find_static_path()

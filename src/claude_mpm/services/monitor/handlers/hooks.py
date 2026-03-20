@@ -15,7 +15,6 @@ DESIGN DECISIONS:
 
 import asyncio
 from collections import deque
-from typing import Dict, List
 
 import socketio
 
@@ -41,7 +40,7 @@ class HookHandler:
 
         # Event storage
         self.event_history: deque = deque(maxlen=1000)  # Keep last 1000 events
-        self.active_sessions: Dict[str, Dict] = {}
+        self.active_sessions: dict[str, dict] = {}
 
     def register(self):
         """Register Socket.IO event handlers."""
@@ -68,7 +67,7 @@ class HookHandler:
             self.logger.error(f"Error registering hook handlers: {e}")
             raise
 
-    async def handle_claude_event(self, sid: str, data: Dict):
+    async def handle_claude_event(self, sid: str, data: dict):
         """Handle Claude Code hook events sent via 'claude_event'.
 
         This is the primary integration point for Claude Code hooks.
@@ -111,7 +110,7 @@ class HookHandler:
                 room=sid,
             )
 
-    async def handle_hook_ingest(self, sid: str, data: Dict):
+    async def handle_hook_ingest(self, sid: str, data: dict):
         """Handle incoming Claude Code hook event.
 
         Args:
@@ -152,7 +151,7 @@ class HookHandler:
                 "hook:error", {"error": f"Hook processing error: {e!s}"}, room=sid
             )
 
-    async def handle_session_start(self, sid: str, data: Dict):
+    async def handle_session_start(self, sid: str, data: dict):
         """Handle Claude Code session start.
 
         Args:
@@ -200,7 +199,7 @@ class HookHandler:
                 "hook:error", {"error": f"Session start error: {e!s}"}, room=sid
             )
 
-    async def handle_session_end(self, sid: str, data: Dict):
+    async def handle_session_end(self, sid: str, data: dict):
         """Handle Claude Code session end.
 
         Args:
@@ -252,7 +251,7 @@ class HookHandler:
                 "hook:error", {"error": f"Session end error: {e!s}"}, room=sid
             )
 
-    async def handle_get_history(self, sid: str, data: Dict):
+    async def handle_get_history(self, sid: str, data: dict):
         """Handle request for event history.
 
         Args:
@@ -301,7 +300,7 @@ class HookHandler:
                 "hook:error", {"error": f"History error: {e!s}"}, room=sid
             )
 
-    async def handle_replay_start(self, sid: str, data: Dict):
+    async def handle_replay_start(self, sid: str, data: dict):
         """Handle event replay request.
 
         Args:
@@ -342,7 +341,7 @@ class HookHandler:
                 "hook:error", {"error": f"Replay error: {e!s}"}, room=sid
             )
 
-    async def handle_list_sessions(self, sid: str, data: Dict):
+    async def handle_list_sessions(self, sid: str, data: dict):
         """Handle request for active sessions list.
 
         Args:
@@ -364,7 +363,7 @@ class HookHandler:
                 "hook:error", {"error": f"Sessions list error: {e!s}"}, room=sid
             )
 
-    async def handle_session_info(self, sid: str, data: Dict):
+    async def handle_session_info(self, sid: str, data: dict):
         """Handle request for specific session info.
 
         Args:
@@ -396,7 +395,7 @@ class HookHandler:
                 "hook:error", {"error": f"Session info error: {e!s}"}, room=sid
             )
 
-    def _validate_hook_data(self, data: Dict) -> bool:
+    def _validate_hook_data(self, data: dict) -> bool:
         """Validate hook event data format.
 
         Args:
@@ -408,7 +407,7 @@ class HookHandler:
         required_fields = ["type", "timestamp"]
         return all(field in data for field in required_fields)
 
-    def _process_claude_event(self, data: Dict) -> Dict:
+    def _process_claude_event(self, data: dict) -> dict:
         """Process and normalize Claude Code hook event data.
 
         Args:
@@ -436,7 +435,7 @@ class HookHandler:
             ),  # Preserve original event name (e.g., "mpm_event")
         }
 
-    def _process_hook_event(self, data: Dict) -> Dict:
+    def _process_hook_event(self, data: dict) -> dict:
         """Process and normalize hook event data.
 
         Args:
@@ -460,7 +459,7 @@ class HookHandler:
             "cwd": data.get("cwd"),  # Required for project/stream identification
         }
 
-    def _update_session_tracking(self, session_id: str, event: Dict):
+    def _update_session_tracking(self, session_id: str, event: dict):
         """Update session tracking with new event.
 
         Args:
@@ -474,7 +473,7 @@ class HookHandler:
                 "timestamp", asyncio.get_event_loop().time()
             )
 
-    async def _replay_events(self, sid: str, events: List[Dict], speed: float):
+    async def _replay_events(self, sid: str, events: list[dict], speed: float):
         """Replay events to a specific client.
 
         Args:

@@ -24,8 +24,7 @@ RECOMMENDED MODELS (from research):
 - General: gemma2:9b (good default balance)
 """
 
-import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 
@@ -61,7 +60,7 @@ class OllamaProvider(BaseModelProvider):
     """
 
     # Default model mappings based on research recommendations
-    DEFAULT_MODELS: Dict[ModelCapability, str] = {
+    DEFAULT_MODELS: dict[ModelCapability, str] = {
         ModelCapability.SEO_ANALYSIS: "llama3.3:70b",
         ModelCapability.READABILITY: "gemma2:9b",
         ModelCapability.GRAMMAR: "qwen3:14b",
@@ -72,7 +71,7 @@ class OllamaProvider(BaseModelProvider):
         ModelCapability.GENERAL: "gemma2:9b",
     }
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """
         Initialize Ollama provider.
 
@@ -102,8 +101,8 @@ class OllamaProvider(BaseModelProvider):
                 else:
                     self.model_mapping[key] = value
 
-        self._session: Optional[aiohttp.ClientSession] = None
-        self._available_models: List[str] = []
+        self._session: aiohttp.ClientSession | None = None
+        self._available_models: list[str] = []
 
     async def initialize(self) -> bool:
         """
@@ -170,7 +169,7 @@ class OllamaProvider(BaseModelProvider):
             self.log_warning(f"Error checking Ollama availability: {e}")
             return False
 
-    async def get_available_models(self) -> List[str]:
+    async def get_available_models(self) -> list[str]:
         """
         List available models from Ollama.
 
@@ -193,7 +192,7 @@ class OllamaProvider(BaseModelProvider):
             self.log_error(f"Error fetching available models: {e}")
             return []
 
-    def get_supported_capabilities(self) -> List[ModelCapability]:
+    def get_supported_capabilities(self) -> list[ModelCapability]:
         """
         Return all supported capabilities.
 
@@ -222,7 +221,7 @@ class OllamaProvider(BaseModelProvider):
         self,
         content: str,
         task: ModelCapability,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> ModelResponse:
         """
@@ -357,7 +356,7 @@ class OllamaProvider(BaseModelProvider):
                     error=f"Ollama API error {response.status}: {error_text}",
                 )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return self.create_response(
                 success=False,
                 model=model,
@@ -372,7 +371,7 @@ class OllamaProvider(BaseModelProvider):
                 error=f"Request failed: {e!s}",
             )
 
-    async def get_model_info(self, model: str) -> Dict[str, Any]:
+    async def get_model_info(self, model: str) -> dict[str, Any]:
         """
         Get detailed information about a model.
 

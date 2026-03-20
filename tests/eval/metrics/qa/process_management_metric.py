@@ -31,7 +31,7 @@ Example:
 """
 
 import re
-from typing import List, Optional
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -55,7 +55,7 @@ class ProcessManagementMetric(BaseMetric):
     """
 
     # Pre-flight check patterns
-    PREFLIGHT_PATTERNS: List[str] = [
+    PREFLIGHT_PATTERNS: list[str] = [
         r"package\.json",
         r"test\s+script",
         r"before\s+running",
@@ -68,7 +68,7 @@ class ProcessManagementMetric(BaseMetric):
     ]
 
     # Post-execution verification patterns
-    POST_EXECUTION_PATTERNS: List[str] = [
+    POST_EXECUTION_PATTERNS: list[str] = [
         r"ps\s+aux",
         r"verif(?:y|ied|ying)",
         r"clean",
@@ -81,7 +81,7 @@ class ProcessManagementMetric(BaseMetric):
     ]
 
     # Hanging process detection patterns
-    HANGING_DETECTION_PATTERNS: List[str] = [
+    HANGING_DETECTION_PATTERNS: list[str] = [
         r"hanging",
         r"stuck",
         r"timeout",
@@ -93,7 +93,7 @@ class ProcessManagementMetric(BaseMetric):
     ]
 
     # Cleanup patterns
-    CLEANUP_PATTERNS: List[str] = [
+    CLEANUP_PATTERNS: list[str] = [
         r"killed?",
         r"terminat(?:e|ed|ing)",
         r"clean(?:ed)?\s+up",
@@ -112,21 +112,21 @@ class ProcessManagementMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.9 for 90% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Process Management"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

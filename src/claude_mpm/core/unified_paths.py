@@ -28,7 +28,7 @@ import sys
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -473,7 +473,7 @@ class UnifiedPathManager:
         """Get the user-level configuration directory."""
         return Path.home() / self.CONFIG_DIR_NAME
 
-    def get_project_config_dir(self, project_root: Optional[Path] = None) -> Path:
+    def get_project_config_dir(self, project_root: Path | None = None) -> Path:
         """Get the project-level configuration directory."""
         root = project_root or self.project_root
         return root / self.CONFIG_DIR_NAME
@@ -503,7 +503,7 @@ class UnifiedPathManager:
         """Get the user-level agents directory."""
         return self.get_user_config_dir() / "agents"
 
-    def get_project_agents_dir(self, project_root: Optional[Path] = None) -> Path:
+    def get_project_agents_dir(self, project_root: Path | None = None) -> Path:
         """Get the project-level agents directory."""
         return self.get_project_config_dir(project_root) / "agents"
 
@@ -578,8 +578,8 @@ class UnifiedPathManager:
         return base_dir / filename
 
     def find_file_upwards(
-        self, filename: str, start_path: Optional[Path] = None
-    ) -> Optional[Path]:
+        self, filename: str, start_path: Path | None = None
+    ) -> Path | None:
         """Search for a file by traversing up the directory tree."""
         current = start_path or _safe_cwd()
 
@@ -635,7 +635,7 @@ class UnifiedPathManager:
         return self.LEGACY_CONFIG_DIR_NAME not in str(path)
 
     def get_relative_to_root(
-        self, path: Union[str, Path], root_type: str = "project"
+        self, path: str | Path, root_type: str = "project"
     ) -> Path:
         """Get a path relative to a specific root."""
         if root_type == "project":
@@ -718,7 +718,7 @@ class UnifiedPathManager:
         if src_dir.exists() and str(src_dir) not in sys.path:
             sys.path.insert(0, str(src_dir))
 
-    def get_executable_path(self) -> Optional[Path]:
+    def get_executable_path(self) -> Path | None:
         """Get the path to the claude-mpm executable for the current deployment context.
 
         This method provides deployment-context-aware executable path detection,
@@ -747,7 +747,7 @@ class UnifiedPathManager:
 
         return None
 
-    def _find_pipx_executable(self) -> Optional[Path]:
+    def _find_pipx_executable(self) -> Path | None:
         """Find claude-mpm executable in pipx installation."""
         try:
             import claude_mpm
@@ -818,7 +818,7 @@ class UnifiedPathManager:
 
         return None
 
-    def _find_development_executable(self) -> Optional[Path]:
+    def _find_development_executable(self) -> Path | None:
         """Find claude-mpm executable in development installation."""
         # For development, prefer the script in the project
         scripts_dir = self.get_scripts_dir()
@@ -840,7 +840,7 @@ class UnifiedPathManager:
 
         return None
 
-    def _find_pip_executable(self) -> Optional[Path]:
+    def _find_pip_executable(self) -> Path | None:
         """Find claude-mpm executable in pip installation."""
         # For pip installs, check the current Python environment
         if hasattr(sys, "real_prefix") or (
@@ -879,7 +879,7 @@ class UnifiedPathManager:
 # ============================================================================
 
 # Global singleton instance
-_path_manager: Optional[UnifiedPathManager] = None
+_path_manager: UnifiedPathManager | None = None
 
 
 def get_path_manager() -> UnifiedPathManager:
@@ -921,9 +921,7 @@ def get_config_dir(scope: str = "project") -> Path:
     return get_path_manager().get_config_dir(scope)
 
 
-def find_file_upwards(
-    filename: str, start_path: Optional[Path] = None
-) -> Optional[Path]:
+def find_file_upwards(filename: str, start_path: Path | None = None) -> Path | None:
     """Search for a file by traversing up the directory tree."""
     return get_path_manager().find_file_upwards(filename, start_path)
 
@@ -933,7 +931,7 @@ def get_package_resource_path(resource_path: str) -> Path:
     return get_path_manager().get_package_resource_path(resource_path)
 
 
-def get_executable_path() -> Optional[Path]:
+def get_executable_path() -> Path | None:
     """Get the claude-mpm executable path for the current deployment context."""
     return get_path_manager().get_executable_path()
 

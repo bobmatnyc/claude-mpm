@@ -9,7 +9,7 @@ maintainability and testability.
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -28,7 +28,7 @@ class AgentValidator:
         """Initialize the agent validator."""
         self.logger = get_logger(__name__)
 
-    def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
+    def validate_agent(self, agent_path: Path) -> tuple[bool, list[str]]:
         """
         Validate agent configuration and structure.
 
@@ -81,7 +81,7 @@ class AgentValidator:
 
         return is_valid, errors
 
-    def validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
+    def validate_and_repair_existing_agents(self, agents_dir: Path) -> dict[str, Any]:
         """
         Validate and repair broken frontmatter in existing agent files.
 
@@ -142,7 +142,7 @@ class AgentValidator:
         )
         return results
 
-    def verify_deployment(self, config_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def verify_deployment(self, config_dir: Path | None = None) -> dict[str, Any]:
         """
         Verify agent deployment and Claude configuration.
 
@@ -205,7 +205,7 @@ class AgentValidator:
 
         return results
 
-    def _validate_yaml_frontmatter(self, content: str) -> Tuple[bool, List[str]]:
+    def _validate_yaml_frontmatter(self, content: str) -> tuple[bool, list[str]]:
         """Validate YAML frontmatter structure."""
         errors = []
 
@@ -229,7 +229,7 @@ class AgentValidator:
 
         return True, errors
 
-    def _validate_required_fields(self, content: str) -> Tuple[bool, List[str]]:
+    def _validate_required_fields(self, content: str) -> tuple[bool, list[str]]:
         """Validate required fields in agent content."""
         errors = []
         required_fields = ["name", "description", "tools"]
@@ -241,7 +241,7 @@ class AgentValidator:
 
         return len(errors) == 0, errors
 
-    def _validate_agent_name(self, content: str) -> Tuple[bool, List[str]]:
+    def _validate_agent_name(self, content: str) -> tuple[bool, list[str]]:
         """Validate agent name format."""
         errors = []
 
@@ -258,7 +258,7 @@ class AgentValidator:
 
         return len(errors) == 0, errors
 
-    def _validate_tools_format(self, content: str) -> Tuple[bool, List[str]]:
+    def _validate_tools_format(self, content: str) -> tuple[bool, list[str]]:
         """Validate tools format."""
         errors = []
 
@@ -273,7 +273,7 @@ class AgentValidator:
 
         return len(errors) == 0, errors
 
-    def _repair_agent_file(self, content: str) -> Tuple[str, bool, List[str]]:
+    def _repair_agent_file(self, content: str) -> tuple[str, bool, list[str]]:
         """
         Attempt to repair common issues in agent file content.
 
@@ -318,7 +318,7 @@ class AgentValidator:
 
         return repaired_content, was_repaired, issues_fixed
 
-    def _extract_agent_info(self, content: str, agent_file: Path) -> Dict[str, Any]:
+    def _extract_agent_info(self, content: str, agent_file: Path) -> dict[str, Any]:
         """Extract basic agent information from content."""
         agent_info = {
             "file": agent_file.name,

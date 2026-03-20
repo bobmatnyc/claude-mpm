@@ -22,8 +22,8 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     import aiofiles
@@ -100,7 +100,7 @@ class OptimizedAgentLoader:
         self.logger = get_logger("optimized_agent_loader")
 
         # Template compilation cache
-        self._compiled_templates: Dict[str, Dict[str, Any]] = {}
+        self._compiled_templates: dict[str, dict[str, Any]] = {}
         self._template_lock = threading.Lock()
 
     def _get_cache_key(self, file_path: Path) -> str:
@@ -114,7 +114,7 @@ class OptimizedAgentLoader:
         except Exception:
             return f"agent:{file_path}"
 
-    def _load_agent_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    def _load_agent_file(self, file_path: Path) -> dict[str, Any] | None:
         """Load and parse a single agent file.
 
         Args:
@@ -154,7 +154,7 @@ class OptimizedAgentLoader:
 
             # Add metadata
             agent_data["_file_path"] = str(file_path)
-            agent_data["_loaded_at"] = datetime.now(timezone.utc).isoformat()
+            agent_data["_loaded_at"] = datetime.now(UTC).isoformat()
 
             # Cache the result
             self.cache.put(cache_key, agent_data, ttl=self.cache_ttl)
@@ -169,7 +169,7 @@ class OptimizedAgentLoader:
             elapsed = time.time() - start_time
             self.logger.debug(f"Loaded {file_path.name} in {elapsed:.3f}s")
 
-    def _parse_markdown_agent(self, content: str) -> Dict[str, Any]:
+    def _parse_markdown_agent(self, content: str) -> dict[str, Any]:
         """Parse agent data from markdown content.
 
         Extracts YAML frontmatter and content from markdown files.
@@ -195,8 +195,8 @@ class OptimizedAgentLoader:
         return {"instructions": content}
 
     def load_agents_parallel(
-        self, file_paths: List[Path], batch_size: int = 10
-    ) -> Dict[str, Dict[str, Any]]:
+        self, file_paths: list[Path], batch_size: int = 10
+    ) -> dict[str, dict[str, Any]]:
         """Load multiple agents in parallel.
 
         Args:
@@ -245,8 +245,8 @@ class OptimizedAgentLoader:
         return agents
 
     async def load_agents_async(
-        self, file_paths: List[Path]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, file_paths: list[Path]
+    ) -> dict[str, dict[str, Any]]:
         """Load agents asynchronously for async applications.
 
         Args:
@@ -293,7 +293,7 @@ class OptimizedAgentLoader:
 
         return agents
 
-    async def _load_agent_async(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    async def _load_agent_async(self, file_path: Path) -> dict[str, Any] | None:
         """Load a single agent asynchronously."""
         try:
             # Check cache first
@@ -322,7 +322,7 @@ class OptimizedAgentLoader:
 
             # Add metadata
             agent_data["_file_path"] = str(file_path)
-            agent_data["_loaded_at"] = datetime.now(timezone.utc).isoformat()
+            agent_data["_loaded_at"] = datetime.now(UTC).isoformat()
 
             # Cache the result
             self.cache.put(cache_key, agent_data, ttl=self.cache_ttl)
@@ -333,7 +333,7 @@ class OptimizedAgentLoader:
             self.logger.error(f"Failed to async load {file_path}: {e}")
             return None
 
-    def compile_template(self, agent_id: str, template: str) -> Dict[str, Any]:
+    def compile_template(self, agent_id: str, template: str) -> dict[str, Any]:
         """Compile and cache an agent template.
 
         WHY template compilation:
@@ -366,7 +366,7 @@ class OptimizedAgentLoader:
                     "template": template,
                     "variables": self._extract_variables(template),
                     "sections": self._extract_sections(template),
-                    "compiled_at": datetime.now(timezone.utc).isoformat(),
+                    "compiled_at": datetime.now(UTC).isoformat(),
                 }
 
                 # Cache compiled template
@@ -379,14 +379,14 @@ class OptimizedAgentLoader:
                 self.logger.error(f"Failed to compile template {agent_id}: {e}")
                 return {"id": agent_id, "template": template, "error": str(e)}
 
-    def _extract_variables(self, template: str) -> List[str]:
+    def _extract_variables(self, template: str) -> list[str]:
         """Extract variable placeholders from template."""
         import re
 
         # Find {{variable}} patterns
         return re.findall(r"\{\{(\w+)\}\}", template)
 
-    def _extract_sections(self, template: str) -> Dict[str, str]:
+    def _extract_sections(self, template: str) -> dict[str, str]:
         """Extract named sections from template."""
         sections = {}
         current_section = "main"
@@ -410,7 +410,7 @@ class OptimizedAgentLoader:
 
         return sections
 
-    def preload_agents(self, agent_dirs: List[Path]) -> None:
+    def preload_agents(self, agent_dirs: list[Path]) -> None:
         """Preload all agents from specified directories.
 
         Useful for warming up the cache at startup.
@@ -429,7 +429,7 @@ class OptimizedAgentLoader:
         if all_paths:
             self.load_agents_parallel(all_paths)
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get loader performance metrics."""
         return {
             "total_agents": self.metrics.total_agents,
@@ -452,7 +452,7 @@ class OptimizedAgentLoader:
 
 
 # Global loader instance
-_global_loader: Optional[OptimizedAgentLoader] = None
+_global_loader: OptimizedAgentLoader | None = None
 
 
 def get_optimized_loader(max_workers: int = 4) -> OptimizedAgentLoader:

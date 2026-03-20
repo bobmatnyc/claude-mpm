@@ -5,7 +5,7 @@ import locale
 import os
 import platform
 import time as time_module
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from claude_mpm.core.logging_utils import get_logger
@@ -28,7 +28,7 @@ class ContextGenerator:
 
         try:
             # Get current datetime with timezone awareness
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             # Try to get timezone info - fallback to UTC offset if timezone name not available
             try:
@@ -64,7 +64,7 @@ class ContextGenerator:
             # Fallback to basic date if enhanced datetime fails
             self.logger.debug(f"Error generating enhanced datetime context: {e}")
             context_lines.append(
-                f"**Today's Date**: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
+                f"**Today's Date**: {datetime.now(UTC).strftime('%Y-%m-%d')}\n"
             )
 
         # Get user information

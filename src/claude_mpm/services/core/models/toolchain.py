@@ -15,12 +15,12 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 1
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
-class ConfidenceLevel(str, Enum):
+class ConfidenceLevel(StrEnum):
     """Confidence level for detection results.
 
     WHY: Not all detections are equally certain. This enum provides a
@@ -53,7 +53,7 @@ class ComponentView:
     """
 
     type: str
-    version: Optional[str]
+    version: str | None
     confidence: float  # 0.0-1.0 for percentage calculations
 
 
@@ -71,9 +71,9 @@ class ToolchainComponent:
     """
 
     name: str
-    version: Optional[str] = None
+    version: str | None = None
     confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate component data after initialization."""
@@ -97,10 +97,10 @@ class LanguageDetection:
     """
 
     primary_language: str
-    primary_version: Optional[str] = None
+    primary_version: str | None = None
     primary_confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
-    secondary_languages: List[ToolchainComponent] = field(default_factory=list)
-    language_percentages: Dict[str, float] = field(default_factory=dict)
+    secondary_languages: list[ToolchainComponent] = field(default_factory=list)
+    language_percentages: dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate language detection data."""
@@ -114,14 +114,14 @@ class LanguageDetection:
                 raise ValueError(f"Language percentages must sum to 100%, got {total}%")
 
     @property
-    def all_languages(self) -> List[str]:
+    def all_languages(self) -> list[str]:
         """Get list of all detected languages (primary + secondary)."""
         languages = [self.primary_language]
         languages.extend(comp.name for comp in self.secondary_languages)
         return languages
 
     @property
-    def high_confidence_languages(self) -> List[str]:
+    def high_confidence_languages(self) -> list[str]:
         """Get languages detected with high confidence."""
         languages = []
         if self.primary_confidence == ConfidenceLevel.HIGH:
@@ -148,12 +148,12 @@ class Framework:
     """
 
     name: str
-    version: Optional[str] = None
-    framework_type: Optional[str] = None  # web, testing, orm, cli, etc.
+    version: str | None = None
+    framework_type: str | None = None  # web, testing, orm, cli, etc.
     confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
     is_dev_dependency: bool = False
     popularity_score: float = 0.0  # 0.0-1.0, higher = more popular/used
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate framework data."""
@@ -186,11 +186,11 @@ class DeploymentTarget:
     """
 
     target_type: str  # cloud, container, serverless, on-premise, edge
-    platform: Optional[str] = None  # aws, gcp, azure, kubernetes, docker, etc.
-    configuration: Dict[str, Any] = field(default_factory=dict)
+    platform: str | None = None  # aws, gcp, azure, kubernetes, docker, etc.
+    configuration: dict[str, Any] = field(default_factory=dict)
     confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
     requires_ops_agent: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate deployment target data."""
@@ -224,14 +224,14 @@ class ToolchainAnalysis:
 
     project_path: Path
     language_detection: LanguageDetection
-    frameworks: List[Framework] = field(default_factory=list)
-    deployment_target: Optional[DeploymentTarget] = None
-    build_tools: List[ToolchainComponent] = field(default_factory=list)
-    package_managers: List[ToolchainComponent] = field(default_factory=list)
-    development_tools: List[ToolchainComponent] = field(default_factory=list)
+    frameworks: list[Framework] = field(default_factory=list)
+    deployment_target: DeploymentTarget | None = None
+    build_tools: list[ToolchainComponent] = field(default_factory=list)
+    package_managers: list[ToolchainComponent] = field(default_factory=list)
+    development_tools: list[ToolchainComponent] = field(default_factory=list)
     overall_confidence: ConfidenceLevel = ConfidenceLevel.MEDIUM
-    analysis_timestamp: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    analysis_timestamp: float | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate toolchain analysis data."""
@@ -244,14 +244,14 @@ class ToolchainAnalysis:
         """Check if a specific framework is detected."""
         return any(fw.name.lower() == framework_name.lower() for fw in self.frameworks)
 
-    def get_framework(self, framework_name: str) -> Optional[Framework]:
+    def get_framework(self, framework_name: str) -> Framework | None:
         """Get framework by name (case-insensitive)."""
         for fw in self.frameworks:
             if fw.name.lower() == framework_name.lower():
                 return fw
         return None
 
-    def get_frameworks_by_type(self, framework_type: str) -> List[Framework]:
+    def get_frameworks_by_type(self, framework_type: str) -> list[Framework]:
         """Get all frameworks of a specific type."""
         return [
             fw
@@ -265,12 +265,12 @@ class ToolchainAnalysis:
         return self.language_detection.primary_language
 
     @property
-    def all_languages(self) -> List[str]:
+    def all_languages(self) -> list[str]:
         """Get all detected languages."""
         return self.language_detection.all_languages
 
     @property
-    def web_frameworks(self) -> List[Framework]:
+    def web_frameworks(self) -> list[Framework]:
         """Get all web frameworks."""
         return self.get_frameworks_by_type("web")
 
@@ -291,13 +291,13 @@ class ToolchainAnalysis:
         )
 
     @property
-    def components(self) -> List[ComponentView]:
+    def components(self) -> list[ComponentView]:
         """Get unified view of all detected components.
 
         WHY: CLI and other consumers need a flat list of components
         with consistent attributes for display purposes.
         """
-        result: List[ComponentView] = []
+        result: list[ComponentView] = []
 
         # Add primary language
         result.append(
@@ -350,7 +350,7 @@ class ToolchainAnalysis:
 
         return result
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert analysis to dictionary for serialization."""
         return {
             "project_path": str(self.project_path),

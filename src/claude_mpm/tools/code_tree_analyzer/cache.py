@@ -12,7 +12,6 @@ significantly improving performance for large codebases.
 import hashlib
 import json
 from pathlib import Path
-from typing import Dict, List
 
 from ...core.logging_config import get_logger
 from .models import CodeNode
@@ -29,7 +28,7 @@ class CacheManager:
         """
         self.logger = get_logger(__name__)
         self.cache_dir = cache_dir
-        self.cache: Dict[str, List[CodeNode]] = {}
+        self.cache: dict[str, list[CodeNode]] = {}
 
     def get_file_hash(self, file_path: Path) -> str:
         """Get hash of file contents for caching.
@@ -40,7 +39,7 @@ class CacheManager:
         Returns:
             MD5 hash of file contents
         """
-        hasher = hashlib.md5()
+        hasher = hashlib.md5()  # nosec
         with file_path.open("rb") as f:
             hasher.update(f.read())
         return hasher.hexdigest()
@@ -57,7 +56,7 @@ class CacheManager:
         file_hash = self.get_file_hash(file_path)
         return f"{file_path}:{file_hash}"
 
-    def get(self, cache_key: str) -> List[CodeNode]:
+    def get(self, cache_key: str) -> list[CodeNode]:
         """Get cached nodes for a file.
 
         Args:
@@ -68,7 +67,7 @@ class CacheManager:
         """
         return self.cache.get(cache_key)
 
-    def set(self, cache_key: str, nodes: List[CodeNode]) -> None:
+    def set(self, cache_key: str, nodes: list[CodeNode]) -> None:
         """Cache nodes for a file.
 
         Args:

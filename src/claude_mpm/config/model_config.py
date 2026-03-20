@@ -43,7 +43,7 @@ ENVIRONMENT VARIABLES:
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -71,7 +71,7 @@ class OllamaConfig(BaseModel):
         description="Allow fallback to cloud on Ollama failure",
     )
     timeout: int = Field(default=30, description="Request timeout in seconds")
-    models: Dict[str, str] = Field(
+    models: dict[str, str] = Field(
         default_factory=dict,
         description="Task-specific model mappings",
     )
@@ -103,7 +103,7 @@ class ClaudeConfig(BaseModel):
         default=0.7,
         description="Sampling temperature (0.0-1.0)",
     )
-    api_key: Optional[str] = Field(
+    api_key: str | None = Field(
         default=None,
         description="Anthropic API key (can use env var)",
     )
@@ -169,7 +169,7 @@ class ModelConfigManager:
 
     @staticmethod
     def load_config(
-        config_path: Optional[str] = None,
+        config_path: str | None = None,
     ) -> ModelProviderConfig:
         """
         Load model configuration from file and environment.
@@ -186,7 +186,7 @@ class ModelConfigManager:
         Returns:
             ModelProviderConfig with merged settings
         """
-        config_data: Dict[str, Any] = {}
+        config_data: dict[str, Any] = {}
 
         # Try to load from file
         if config_path and Path(config_path).exists():
@@ -214,7 +214,7 @@ class ModelConfigManager:
             return ModelProviderConfig()
 
     @staticmethod
-    def _load_yaml_file(path: str) -> Dict[str, Any]:
+    def _load_yaml_file(path: str) -> dict[str, Any]:
         """
         Load YAML configuration file.
 
@@ -237,7 +237,7 @@ class ModelConfigManager:
             return {}
 
     @staticmethod
-    def _apply_env_overrides(config: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         """
         Apply environment variable overrides.
 
@@ -305,7 +305,7 @@ class ModelConfigManager:
         return config
 
     @staticmethod
-    def get_router_config(config: ModelProviderConfig) -> Dict[str, Any]:
+    def get_router_config(config: ModelProviderConfig) -> dict[str, Any]:
         """
         Get router configuration from model config.
 
@@ -323,7 +323,7 @@ class ModelConfigManager:
         }
 
     @staticmethod
-    def get_ollama_config(config: ModelProviderConfig) -> Dict[str, Any]:
+    def get_ollama_config(config: ModelProviderConfig) -> dict[str, Any]:
         """
         Get Ollama provider configuration.
 
@@ -340,7 +340,7 @@ class ModelConfigManager:
         }
 
     @staticmethod
-    def get_claude_config(config: ModelProviderConfig) -> Dict[str, Any]:
+    def get_claude_config(config: ModelProviderConfig) -> dict[str, Any]:
         """
         Get Claude provider configuration.
 

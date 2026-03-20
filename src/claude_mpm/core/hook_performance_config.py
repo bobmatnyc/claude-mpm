@@ -5,7 +5,6 @@ and enable/disable hooks based on performance requirements.
 """
 
 import os
-from typing import Dict, Optional
 
 
 class HookPerformanceConfig:
@@ -75,11 +74,11 @@ class HookPerformanceConfig:
         # Default to enabled for unknown hook types
         return True
 
-    def get_queue_config(self) -> Dict[str, int]:
+    def get_queue_config(self) -> dict[str, int]:
         """Get queue configuration for background processing."""
         return {"maxsize": self.queue_size, "timeout": self.background_timeout}
 
-    def get_batch_config(self) -> Dict[str, any]:
+    def get_batch_config(self) -> dict[str, any]:
         """Get batching configuration (for future use)."""
         return {
             "enabled": self.enable_batching,
@@ -104,7 +103,7 @@ class HookPerformanceConfig:
 
 
 # Global configuration instance
-_hook_config: Optional[HookPerformanceConfig] = None
+_hook_config: HookPerformanceConfig | None = None
 
 
 def get_hook_performance_config() -> HookPerformanceConfig:

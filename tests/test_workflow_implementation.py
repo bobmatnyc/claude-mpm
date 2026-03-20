@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, "/Users/masa/Projects/managed/ai-trackdown-pytools/src")
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from ai_trackdown_pytools.core.models import IssueModel, TaskModel
 from ai_trackdown_pytools.core.workflow import (
@@ -79,8 +79,8 @@ def test_model_integration():
             id="TSK-001",
             title="Test Task",
             status="open",
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         print(
             f"Created task with status: {task.status} (type: {type(task.status).__name__})"
@@ -95,8 +95,8 @@ def test_model_integration():
             id="ISS-001",
             title="Test Issue",
             status=UnifiedStatus.IN_PROGRESS,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         # Try transition to closed without resolution
@@ -154,8 +154,8 @@ def test_resolution_tracking():
             id="BUG-001",
             title="Test Bug",
             status=UnifiedStatus.IN_PROGRESS,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         # Transition to resolved with resolution

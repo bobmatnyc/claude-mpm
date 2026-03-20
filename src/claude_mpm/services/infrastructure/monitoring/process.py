@@ -3,8 +3,6 @@
 Monitors individual process health including CPU, memory, file descriptors, and threads.
 """
 
-from typing import List
-
 from claude_mpm.core.constants import ResourceLimits, TimeoutConfig
 from claude_mpm.core.enums import HealthStatus
 
@@ -58,7 +56,7 @@ class ProcessHealthService(BaseMonitoringService):
             except psutil.NoSuchProcess:
                 self.logger.warning(f"Process {pid} not found for monitoring")
 
-    async def check_health(self) -> List[HealthMetric]:
+    async def check_health(self) -> list[HealthMetric]:
         """Check process health metrics."""
         metrics = []
 
@@ -137,7 +135,7 @@ class ProcessHealthService(BaseMonitoringService):
 
         return metrics
 
-    def _check_process_status(self) -> List[HealthMetric]:
+    def _check_process_status(self) -> list[HealthMetric]:
         """Check process status."""
         metrics = []
         try:
@@ -170,7 +168,7 @@ class ProcessHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_cpu_usage(self) -> List[HealthMetric]:
+    def _check_cpu_usage(self) -> list[HealthMetric]:
         """Check CPU usage."""
         metrics = []
         try:
@@ -205,7 +203,7 @@ class ProcessHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_memory_usage(self) -> List[HealthMetric]:
+    def _check_memory_usage(self) -> list[HealthMetric]:
         """Check memory usage."""
         metrics = []
         try:
@@ -248,7 +246,7 @@ class ProcessHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_file_descriptors(self) -> List[HealthMetric]:
+    def _check_file_descriptors(self) -> list[HealthMetric]:
         """Check file descriptor count (Unix only)."""
         metrics = []
         if hasattr(self.process, "num_fds"):
@@ -281,7 +279,7 @@ class ProcessHealthService(BaseMonitoringService):
                 )
         return metrics
 
-    def _check_thread_count(self) -> List[HealthMetric]:
+    def _check_thread_count(self) -> list[HealthMetric]:
         """Check thread count."""
         metrics = []
         try:
@@ -304,7 +302,7 @@ class ProcessHealthService(BaseMonitoringService):
             )
         return metrics
 
-    def _check_process_metadata(self) -> List[HealthMetric]:
+    def _check_process_metadata(self) -> list[HealthMetric]:
         """Check process metadata."""
         metrics = []
         try:

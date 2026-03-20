@@ -13,8 +13,8 @@ organization and to reduce the complexity of the main server file.
 import asyncio
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 try:
     import socketio
@@ -167,7 +167,7 @@ class SocketIOClientProxy:
             self.logger.error(f"SocketIOClientProxy: Unexpected error: {e}")
             self._sio_client = None
 
-    def broadcast_event(self, event_type: str, data: Dict[str, Any]):
+    def broadcast_event(self, event_type: str, data: dict[str, Any]):
         """Send event to the persistent Socket.IO server."""
         if not SOCKETIO_AVAILABLE:
             return
@@ -181,7 +181,7 @@ class SocketIOClientProxy:
             try:
                 event = {
                     "type": event_type,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "data": data,
                 }
 
@@ -241,7 +241,7 @@ class SocketIOClientProxy:
         self.logger.debug("SocketIOClientProxy: Session ended")
 
     def claude_status_changed(
-        self, status: str, pid: Optional[int] = None, message: str = ""
+        self, status: str, pid: int | None = None, message: str = ""
     ):
         """Log a Claude process status change (WebSocketServer interface compatibility).
 
@@ -261,7 +261,7 @@ class SocketIOClientProxy:
         """
         self.logger.debug(f"SocketIOClientProxy: Agent {agent} delegated")
 
-    def todo_updated(self, todos: List[Dict[str, Any]]):
+    def todo_updated(self, todos: list[dict[str, Any]]):
         """Log a todo-list update (WebSocketServer interface compatibility).
 
         WHY: Maintains interface parity with WebSocketServer for todo-list notifications.

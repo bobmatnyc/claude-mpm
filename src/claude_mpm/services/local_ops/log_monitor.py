@@ -37,8 +37,8 @@ USAGE:
 import re
 import threading
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
@@ -61,7 +61,7 @@ class LogFileHandler(FileSystemEventHandler):
         self,
         log_file: str,
         deployment_id: str,
-        on_new_lines: Callable[[str, List[str]], None],
+        on_new_lines: Callable[[str, list[str]], None],
     ):
         """
         Initialize log file handler.
@@ -105,7 +105,7 @@ class LogFileHandler(FileSystemEventHandler):
             # Log error but don't crash the monitoring thread
             get_logger().error(f"Error reading new log lines: {e}")
 
-    def _read_new_lines(self) -> List[str]:
+    def _read_new_lines(self) -> list[str]:
         """
         Read new lines from log file since last read.
 
@@ -165,21 +165,21 @@ class LogMonitor(SyncBaseService, ILogMonitor):
         self.match_history_limit = match_history_limit
 
         # Error patterns: List[(pattern, severity)]
-        self._patterns: List[Tuple[re.Pattern, str]] = []
+        self._patterns: list[tuple[re.Pattern, str]] = []
 
         # Add default patterns
         for pattern, severity in self.DEFAULT_PATTERNS:
             self._patterns.append((re.compile(pattern), severity))
 
         # Watchdog observer and handlers
-        self._observer: Optional[Observer] = None
-        self._handlers: Dict[str, LogFileHandler] = {}  # deployment_id -> handler
+        self._observer: Observer | None = None
+        self._handlers: dict[str, LogFileHandler] = {}  # deployment_id -> handler
 
         # Match history: deployment_id -> List[LogPatternMatch]
-        self._match_history: Dict[str, List[LogPatternMatch]] = defaultdict(list)
+        self._match_history: dict[str, list[LogPatternMatch]] = defaultdict(list)
 
         # Match callbacks
-        self._match_callbacks: List[Callable[[str, LogPatternMatch], None]] = []
+        self._match_callbacks: list[Callable[[str, LogPatternMatch], None]] = []
 
         # Thread safety
         self._lock = threading.Lock()
@@ -303,7 +303,7 @@ class LogMonitor(SyncBaseService, ILogMonitor):
 
     def get_recent_matches(
         self, deployment_id: str, limit: int = 10
-    ) -> List[LogPatternMatch]:
+    ) -> list[LogPatternMatch]:
         """
         Get recent pattern matches for a deployment.
 
@@ -331,7 +331,7 @@ class LogMonitor(SyncBaseService, ILogMonitor):
             self._match_callbacks.append(callback)
             self.log_debug(f"Registered match callback: {callback.__name__}")
 
-    def _process_new_lines(self, deployment_id: str, lines: List[str]) -> None:
+    def _process_new_lines(self, deployment_id: str, lines: list[str]) -> None:
         """
         Process new log lines for pattern matching.
 

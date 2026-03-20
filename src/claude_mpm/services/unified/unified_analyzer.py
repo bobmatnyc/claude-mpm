@@ -23,7 +23,7 @@ Features:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from claude_mpm.core.enums import OperationResult, ServiceState, ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
@@ -51,7 +51,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         """Initialize unified analyzer service."""
         self._logger = get_logger(f"{__name__}.UnifiedAnalyzer")
         self._registry = get_strategy_registry()
-        self._analysis_cache: Dict[str, AnalysisResult] = {}
+        self._analysis_cache: dict[str, AnalysisResult] = {}
         self._metrics = {
             "total_analyses": 0,
             "cached_hits": 0,
@@ -124,7 +124,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         self._initialized = False
         self._logger.info("UnifiedAnalyzer shutdown complete")
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """
         Perform health check.
 
@@ -142,7 +142,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             "metrics": self.get_metrics(),
         }
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """
         Get service metrics.
 
@@ -181,8 +181,8 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
     def analyze(
         self,
-        target: Union[str, Path, Any],
-        options: Optional[Dict[str, Any]] = None,
+        target: str | Path | Any,
+        options: dict[str, Any] | None = None,
     ) -> AnalysisResult:
         """
         Perform analysis on target.
@@ -272,9 +272,9 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
     def batch_analyze(
         self,
-        targets: List[Union[str, Path, Any]],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> List[AnalysisResult]:
+        targets: list[str | Path | Any],
+        options: dict[str, Any] | None = None,
+    ) -> list[AnalysisResult]:
         """
         Perform batch analysis.
 
@@ -299,7 +299,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
         return results
 
-    def get_metrics(self, target: Union[str, Path, Any]) -> Dict[str, Any]:
+    def get_metrics(self, target: str | Path | Any) -> dict[str, Any]:
         """
         Get analysis metrics for target.
 
@@ -320,10 +320,10 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
     def compare(
         self,
-        target1: Union[str, Path, Any],
-        target2: Union[str, Path, Any],
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        target1: str | Path | Any,
+        target2: str | Path | Any,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Compare two targets.
 
@@ -386,7 +386,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
     def get_recommendations(
         self, analysis_result: AnalysisResult
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get recommendations from analysis.
 
@@ -443,7 +443,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         # This would be extended with actual strategy implementations
         self._logger.debug("Default strategies registered")
 
-    def _determine_analysis_type(self, target: Any, options: Dict[str, Any]) -> str:
+    def _determine_analysis_type(self, target: Any, options: dict[str, Any]) -> str:
         """
         Determine analysis type from target and options.
 
@@ -472,7 +472,7 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
 
         return "generic"
 
-    def _generate_cache_key(self, target: Any, options: Dict[str, Any]) -> str:
+    def _generate_cache_key(self, target: Any, options: dict[str, Any]) -> str:
         """Generate cache key for analysis."""
         import hashlib
         import json
@@ -482,15 +482,15 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
             "options": options,
         }
         key_str = json.dumps(key_data, sort_keys=True)
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.md5(key_str.encode()).hexdigest()  # nosec
 
-    def _aggregate_batch_metrics(self, results: List[AnalysisResult]) -> None:
+    def _aggregate_batch_metrics(self, results: list[AnalysisResult]) -> None:
         """Aggregate metrics from batch analysis."""
         # Implementation would aggregate metrics across results
 
     def _compare_metrics(
-        self, metrics1: Dict[str, Any], metrics2: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, metrics1: dict[str, Any], metrics2: dict[str, Any]
+    ) -> dict[str, Any]:
         """Compare two sets of metrics."""
         diff = {}
         all_keys = set(metrics1.keys()) | set(metrics2.keys())
@@ -505,8 +505,8 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         return diff
 
     def _compare_findings(
-        self, findings1: List[Dict[str, Any]], findings2: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, findings1: list[dict[str, Any]], findings2: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Compare two sets of findings."""
         return {
             "target1_count": len(findings1),
@@ -515,8 +515,8 @@ class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):
         }
 
     def _generate_metric_recommendations(
-        self, metrics: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, metrics: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Generate recommendations based on metrics."""
         recommendations = []
 

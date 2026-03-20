@@ -18,8 +18,8 @@ WHY this focused diagnostic:
 import json
 import sys
 import time
-from datetime import datetime, timezone
-from typing import Dict, Optional
+from datetime import UTC, datetime, timezone
+from typing import Optional
 
 try:
     import socketio
@@ -37,7 +37,7 @@ class ConnectionAuthDiagnostic:
 
     def __init__(self, server_url: str = "http://localhost:8765"):
         self.server_url = server_url
-        self.test_start = datetime.now(timezone.utc)
+        self.test_start = datetime.now(UTC)
         self.test_results = []
         self.errors = []
 
@@ -47,14 +47,14 @@ class ConnectionAuthDiagnostic:
         print("=" * 80)
 
     def log_result(
-        self, test_name: str, status: str, details: str, data: Optional[Dict] = None
+        self, test_name: str, status: str, details: str, data: dict | None = None
     ):
         """Log a test result."""
         result = {
             "test_name": test_name,
             "status": status,
             "details": details,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": data,
         }
         self.test_results.append(result)
@@ -626,8 +626,8 @@ class ConnectionAuthDiagnostic:
         if failed_namespaces:
             print(f"   ⚠️  {len(failed_namespaces)} namespace(s) have connection issues")
 
-        print(f"\n⏰ Diagnostic completed at: {datetime.now(timezone.utc).isoformat()}")
-        test_duration = (datetime.now(timezone.utc) - self.test_start).total_seconds()
+        print(f"\n⏰ Diagnostic completed at: {datetime.now(UTC).isoformat()}")
+        test_duration = (datetime.now(UTC) - self.test_start).total_seconds()
         print(f"🕒 Total diagnostic time: {test_duration:.2f} seconds")
 
     def run_all_tests(self):

@@ -14,8 +14,7 @@ import json
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Dict, List, Set
+from datetime import UTC, datetime, timezone
 
 import requests
 import socketio
@@ -200,7 +199,7 @@ async def run_comprehensive_test():
             test_event = {
                 "type": "hook",
                 "subtype": "test_http_duplicate",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "data": {
                     "test_id": f"http_duplicate_test_{i + 1}",
                     "message": f"HTTP duplicate test event {i + 1}",

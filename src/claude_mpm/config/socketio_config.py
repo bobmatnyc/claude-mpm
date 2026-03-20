@@ -16,7 +16,7 @@ CRITICAL: Ping/pong settings MUST match between client and server to prevent dis
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 # Import constants for default values
 from claude_mpm.core.constants import NetworkConfig, RetryConfig, SystemLimits
@@ -53,7 +53,7 @@ class SocketIOConfig:
     # Server settings
     host: str = "localhost"
     port: int = NetworkConfig.DEFAULT_DASHBOARD_PORT
-    server_id: Optional[str] = None
+    server_id: str | None = None
 
     # Connection settings - Use centralized config for consistency
     cors_allowed_origins: str = "*"  # Configure properly for production
@@ -76,7 +76,7 @@ class SocketIOConfig:
     # Logging settings
     log_level: str = "INFO"
     log_to_file: bool = False
-    log_file_path: Optional[str] = None
+    log_file_path: str | None = None
 
     # Health monitoring
     health_check_interval: int = 30
@@ -148,7 +148,7 @@ class SocketIOConfig:
             max_history_size=15000,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
             "host": self.host,
@@ -209,7 +209,7 @@ class ConfigManager:
         # Default to development
         return "development"
 
-    def get_config(self, environment: Optional[str] = None) -> SocketIOConfig:
+    def get_config(self, environment: str | None = None) -> SocketIOConfig:
         """Get configuration for the specified environment."""
         if environment is None:
             environment = self.detect_environment()
@@ -242,7 +242,7 @@ class ConfigManager:
 
         return config
 
-    def _load_config_file(self) -> Optional[Dict[str, Any]]:
+    def _load_config_file(self) -> dict[str, Any] | None:
         """Load configuration from file if available."""
         import json
 
@@ -257,7 +257,7 @@ class ConfigManager:
         return None
 
     def save_config(
-        self, config: SocketIOConfig, path: Optional[Union[str, Path]] = None
+        self, config: SocketIOConfig, path: str | Path | None = None
     ) -> bool:
         """Save configuration to file."""
         import json
@@ -284,18 +284,18 @@ class ConfigManager:
 _config_manager = ConfigManager()
 
 
-def get_config(environment: Optional[str] = None) -> SocketIOConfig:
+def get_config(environment: str | None = None) -> SocketIOConfig:
     """Get Socket.IO configuration for the current or specified environment."""
     return _config_manager.get_config(environment)
 
 
-def get_server_ports(config: SocketIOConfig) -> List[int]:
+def get_server_ports(config: SocketIOConfig) -> list[int]:
     """Get list of ports to try for server discovery."""
     base_port = config.port
     return [base_port, base_port + 1, base_port + 2, base_port + 3, base_port + 4]
 
 
-def get_discovery_hosts(config: SocketIOConfig) -> List[str]:
+def get_discovery_hosts(config: SocketIOConfig) -> list[str]:
     """Get list of hosts to try for server discovery."""
     if config.host == "0.0.0.0":  # nosec B104
         # If server binds to all interfaces, try localhost and 127.0.0.1 for discovery

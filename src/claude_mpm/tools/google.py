@@ -16,7 +16,7 @@ ACTIONS:
 """
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -84,8 +84,8 @@ class GoogleTools(BaseToolModule):
         self,
         method: str,
         url: str,
-        params: Optional[dict[str, Any]] = None,
-        json_data: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
         service: str = "google-workspace-mpm",
     ) -> dict[str, Any]:
         """Make authenticated API request.
@@ -131,8 +131,8 @@ class GoogleTools(BaseToolModule):
         self,
         method: str,
         url: str,
-        data: Optional[bytes] = None,
-        headers: Optional[dict[str, str]] = None,
+        data: bytes | None = None,
+        headers: dict[str, str] | None = None,
         service: str = "google-workspace-mpm",
     ) -> dict[str, Any]:
         """Make authenticated API request with raw body.

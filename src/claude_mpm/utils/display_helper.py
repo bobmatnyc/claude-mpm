@@ -6,7 +6,7 @@ across CLI commands. Provides reusable components for tables, panels,
 reports, and structured output.
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -41,7 +41,7 @@ class DisplayHelper:
     def display_key_value_table(
         self,
         title: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         key_style: str = "cyan",
         value_style: str = "white",
     ) -> None:
@@ -63,20 +63,20 @@ class DisplayHelper:
         self.console.print(table)
 
     def display_list_section(
-        self, title: str, items: List[str], max_items: int = 10, color: str = "white"
+        self, title: str, items: list[str], max_items: int = 10, color: str = "white"
     ) -> None:
         """Display a titled list of items."""
         self.console.print(f"\n[bold cyan]{title}[/bold cyan]")
         for item in items[:max_items]:
             self.console.print(f"  [{color}]{item}[/{color}]")
 
-    def display_warning_list(self, title: str, items: List[str]) -> None:
+    def display_warning_list(self, title: str, items: list[str]) -> None:
         """Display a list of warning items."""
         self.console.print(f"\n[yellow]{title}[/yellow]")
         for item in items:
             self.console.print(f"  • {item}")
 
-    def display_info_list(self, title: str, items: List[str]) -> None:
+    def display_info_list(self, title: str, items: list[str]) -> None:
         """Display a list of info items."""
         self.console.print(f"\n[blue]{title}[/blue]")
         for item in items[:5]:
@@ -93,7 +93,7 @@ class DisplayHelper:
             self.console.print(f"{indent_str}{label}: {value}")
 
     def display_metrics_section(
-        self, title: str, metrics: Dict[str, Any], emoji: str = ""
+        self, title: str, metrics: dict[str, Any], emoji: str = ""
     ) -> None:
         """Display a section with multiple metrics."""
         self.display_section_title(title, emoji)
@@ -103,7 +103,7 @@ class DisplayHelper:
     def display_report_section(
         self,
         title: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         emoji: str = "",
         show_warnings: bool = True,
     ) -> None:
@@ -131,7 +131,7 @@ class DisplayHelper:
                 # Simple key-value
                 self.console.print(f"  {key}: {value}")
 
-    def display_recommendations(self, recommendations: List[str]) -> None:
+    def display_recommendations(self, recommendations: list[str]) -> None:
         """Display a recommendations section."""
         if recommendations:
             self.display_section_title("💡 Recommendations")
@@ -139,7 +139,7 @@ class DisplayHelper:
                 self.console.print(f"  → {rec}")
 
     def display_documentation_status(
-        self, analysis: Dict, title: str = "Current CLAUDE.md Status"
+        self, analysis: dict, title: str = "Current CLAUDE.md Status"
     ) -> None:
         """Display documentation status table."""
         data = {
@@ -168,7 +168,7 @@ class DisplayHelper:
             )
 
     def display_activity_summary(
-        self, summary: Dict, period: str = "Last 30 days"
+        self, summary: dict, period: str = "Last 30 days"
     ) -> None:
         """Display activity summary metrics."""
         metrics = {
@@ -190,7 +190,7 @@ class DisplayHelper:
             )
 
     def display_commit_list(
-        self, commits: List[Dict], title: str = "📝 Recent Commits (last 10)"
+        self, commits: list[dict], title: str = "📝 Recent Commits (last 10)"
     ) -> None:
         """Display a list of commits."""
         if commits:
@@ -202,7 +202,7 @@ class DisplayHelper:
                 self.console.print(f"  [{hash_val}] {msg} - {author}")
 
     def display_file_change_list(
-        self, files: List[Tuple[str, int]], title: str = "🔥 Most Changed Files"
+        self, files: list[tuple[str, int]], title: str = "🔥 Most Changed Files"
     ) -> None:
         """Display a list of changed files with change counts."""
         if files:
@@ -212,7 +212,7 @@ class DisplayHelper:
 
     def display_branch_list(
         self,
-        branches: List[str],
+        branches: list[str],
         current_branch: str,
         title: str = "🌿 Active Branches",
     ) -> None:
@@ -242,7 +242,7 @@ class DisplayHelper:
         self.console.print(Panel(content, title=title, border_style=border_style))
 
     def display_files_list(
-        self, title: str, files: List[str], prefix: str = "•"
+        self, title: str, files: list[str], prefix: str = "•"
     ) -> None:
         """Display a list of files."""
         if files:
@@ -251,7 +251,7 @@ class DisplayHelper:
                 self.console.print(f"  {prefix} {file}")
             self.console.print()
 
-    def display_next_steps(self, steps: List[str]) -> None:
+    def display_next_steps(self, steps: list[str]) -> None:
         """Display next steps list."""
         if steps:
             self.console.print("[bold]Next Steps:[/bold]")

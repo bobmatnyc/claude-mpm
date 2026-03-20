@@ -1,48 +1,20 @@
 #!/usr/bin/env python3
 """
-MCP Server Launcher Script
-===========================
+DEPRECATED: Use src/claude_mpm/mcp/wrapper.py instead.
 
-This is a simple launcher that delegates to the wrapper script.
-It exists to provide a consistent entry point for the MCP server.
-
-WHY: Claude Code needs a reliable entry point that can be called
-directly without going through the CLI module system.
-
-DESIGN DECISION: Keep this launcher minimal and delegate all logic
-to the wrapper script for maintainability.
+This script has been moved to: src/claude_mpm/mcp/wrapper.py
 """
 
-import os
-import sys
-from pathlib import Path
+import warnings
 
-# Disable telemetry by default
-os.environ["DISABLE_TELEMETRY"] = "1"
+warnings.warn(
+    "scripts/utilities/mcp_server.py is deprecated. "
+    "Use src/claude_mpm/mcp/wrapper.py or the console script 'claude-mpm-mcp-wrapper'.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-# Add the project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
-
-import subprocess
-
-# Import and run the wrapper
-from pathlib import Path
-
-
-def main():
-    """Run the MCP server via the wrapper script."""
-    wrapper_script = Path(__file__).parent / "mcp_wrapper.py"
-
-    if not wrapper_script.exists():
-        print(f"Error: Wrapper script not found at {wrapper_script}", file=sys.stderr)
-        sys.exit(1)
-
-    # Execute the wrapper script with the same Python interpreter
-
-    result = subprocess.run([sys.executable, str(wrapper_script)], check=False)
-    sys.exit(result.returncode)
-
+from claude_mpm.mcp.wrapper import main
 
 if __name__ == "__main__":
     main()

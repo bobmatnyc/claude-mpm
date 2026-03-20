@@ -2,8 +2,7 @@
 """Memory Format Service - Handles memory content formatting and parsing."""
 
 import re
-from datetime import datetime, timezone
-from typing import Dict, List
+from datetime import UTC, datetime
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -16,7 +15,7 @@ class MemoryFormatService:
     def __init__(self):
         """Initialize the memory format service."""
 
-    def build_simple_memory_content(self, agent_id: str, items: List[str]) -> str:
+    def build_simple_memory_content(self, agent_id: str, items: list[str]) -> str:
         """Build memory content as a simple list with header and timestamp.
 
         Args:
@@ -28,7 +27,7 @@ class MemoryFormatService:
         """
         # Build header
         header = f"# {agent_id.title()} Agent Memory\n\n"
-        header += f"Last Updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        header += f"Last Updated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         header += "## Learnings\n\n"
 
         # Build item list
@@ -48,7 +47,7 @@ class MemoryFormatService:
 
         return content
 
-    def parse_memory_list(self, memory_content: str) -> List[str]:
+    def parse_memory_list(self, memory_content: str) -> list[str]:
         """Parse memory content into a simple list.
 
         Args:
@@ -83,7 +82,7 @@ class MemoryFormatService:
 
         return items
 
-    def parse_memory_sections(self, memory_content: str) -> Dict[str, List[str]]:
+    def parse_memory_sections(self, memory_content: str) -> dict[str, list[str]]:
         """Parse memory content into sections and items.
 
         Args:
@@ -175,7 +174,7 @@ class MemoryFormatService:
 
         return cleaned.strip()
 
-    def clean_template_placeholders_list(self, items: List[str]) -> List[str]:
+    def clean_template_placeholders_list(self, items: list[str]) -> list[str]:
         """Clean template placeholders from a list of items.
 
         Args:

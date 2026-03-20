@@ -30,9 +30,9 @@ Extension Points:
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -74,7 +74,7 @@ class InstructionCacheService:
     META_FILENAME = "PM_INSTRUCTIONS.md.meta"
     CACHE_VERSION = "1.0"
 
-    def __init__(self, project_root: Optional[Path] = None) -> None:
+    def __init__(self, project_root: Path | None = None) -> None:
         """Initialize instruction cache service.
 
         Args:
@@ -88,7 +88,7 @@ class InstructionCacheService:
 
     def update_cache(
         self, instruction_content: str, force: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Update cache with assembled instruction content.
 
         This method implements atomic cache updates using a temp file strategy:
@@ -243,7 +243,7 @@ class InstructionCacheService:
             self.logger.error(f"Failed to invalidate cache: {e}")
             return False
 
-    def get_cache_info(self) -> Dict[str, Any]:
+    def get_cache_info(self) -> dict[str, Any]:
         """Get information about current cache state.
 
         Returns cache metadata including existence, sizes, and timestamps
@@ -268,7 +268,7 @@ class InstructionCacheService:
             >>> print(f"Cache exists: {info['cache_exists']}")
             >>> print(f"Size: {info.get('cache_size_kb', 0):.1f}KB")
         """
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "cache_exists": self.cache_file.exists(),
             "cache_path": str(self.cache_file),
             "cache_valid": None,  # Can't validate without current content
@@ -314,7 +314,7 @@ class InstructionCacheService:
         sha256.update(content.encode("utf-8"))
         return sha256.hexdigest()
 
-    def _get_cached_hash(self) -> Optional[str]:
+    def _get_cached_hash(self) -> str | None:
         """Get cached content hash from metadata.
 
         Returns:
@@ -368,7 +368,7 @@ class InstructionCacheService:
             ],
             "content_hash": content_hash,
             "content_size_bytes": content_size,
-            "cached_at": datetime.now(timezone.utc).isoformat(),
+            "cached_at": datetime.now(UTC).isoformat(),
         }
 
         self.meta_file.write_text(json.dumps(metadata, indent=2))

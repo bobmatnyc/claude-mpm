@@ -24,9 +24,9 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -56,10 +56,10 @@ class ResponseLoggingHealthChecker:
         """
         self.verbose = verbose
         self.auto_fix = auto_fix
-        self.results: Dict[str, Dict[str, Any]] = {}
+        self.results: dict[str, dict[str, Any]] = {}
         self.fixes_applied: list = []
 
-    def run_all_checks(self) -> Tuple[bool, Dict[str, Dict[str, Any]]]:
+    def run_all_checks(self) -> tuple[bool, dict[str, dict[str, Any]]]:
         """Run all health checks for response logging.
 
         Returns:
@@ -271,13 +271,13 @@ class ResponseLoggingHealthChecker:
 
             # Check if we can create a session directory
             test_session_id = (
-                f"health_check_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+                f"health_check_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             )
             logger.set_session_id(test_session_id)
 
             # Try to log a test entry
             test_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "type": "health_check",
                 "message": "Testing response logging health",
             }
@@ -395,7 +395,7 @@ class ResponseLoggingHealthChecker:
                     "task_completed": True,
                     "instructions": "Health check completed",
                     "results": {"status": "healthy"},
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
 

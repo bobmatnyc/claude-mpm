@@ -245,8 +245,9 @@ class TestAgentConfigurationManager:
         user_config = temp_path / ".claude"
         user_config.mkdir()
 
-        with patch("pathlib.Path.cwd", return_value=temp_path), patch(
-            "pathlib.Path.home", return_value=temp_path
+        with (
+            patch("pathlib.Path.cwd", return_value=temp_path),
+            patch("pathlib.Path.home", return_value=temp_path),
         ):
             tier = config_manager_no_base.determine_source_tier()
             assert tier == "user"
@@ -255,8 +256,9 @@ class TestAgentConfigurationManager:
         """Test source tier determination for system context."""
         temp_path = Path(tmp_path)
 
-        with patch("pathlib.Path.cwd", return_value=temp_path), patch(
-            "pathlib.Path.home", return_value=temp_path
+        with (
+            patch("pathlib.Path.cwd", return_value=temp_path),
+            patch("pathlib.Path.home", return_value=temp_path),
         ):
             tier = config_manager_no_base.determine_source_tier()
             assert tier == "system"

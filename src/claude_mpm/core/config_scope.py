@@ -13,11 +13,11 @@ NOTE: This module resolves CLAUDE CODE deployment directories (.claude/agents/,
 .claude-mpm/behaviors/), see configure_template_editor.py.
 """
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 
-class ConfigScope(str, Enum):
+class ConfigScope(StrEnum):
     """Storage scope for configuration and deployment paths.
 
     The str base class ensures backward compatibility with existing

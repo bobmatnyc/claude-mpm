@@ -15,7 +15,6 @@ DESIGN DECISIONS:
 
 import argparse
 from pathlib import Path
-from typing import Optional
 
 
 class AnalyzeCodeParser:
@@ -118,7 +117,7 @@ class AnalyzeCodeParser:
         # Note: --verbose and --debug are already defined in base_parser
         # so we don't add them here to avoid conflicts
 
-    def validate_args(self, args: argparse.Namespace) -> Optional[str]:
+    def validate_args(self, args: argparse.Namespace) -> str | None:
         """Validate parsed arguments.
 
         Args:

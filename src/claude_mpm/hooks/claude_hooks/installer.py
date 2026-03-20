@@ -12,7 +12,6 @@ import shutil
 import stat
 import subprocess  # nosec B404 - Safe: only uses hardcoded 'claude' CLI command, no user input
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 class _PathEncoder(json.JSONEncoder):
@@ -226,10 +225,10 @@ main "$@"
         # There is no legacy settings file - this was a bug where both pointed to same file
         # Setting to None to disable cleanup that was deleting freshly installed hooks
         self.old_settings_file = None
-        self._claude_version: Optional[str] = None
-        self._hook_script_path: Optional[Path] = None
+        self._claude_version: str | None = None
+        self._hook_script_path: Path | None = None
 
-    def get_claude_version(self) -> Optional[str]:
+    def get_claude_version(self) -> str | None:
         """
         Get the installed Claude Code version.
 
@@ -272,7 +271,7 @@ main "$@"
 
         return None
 
-    def is_version_compatible(self) -> Tuple[bool, str]:
+    def is_version_compatible(self) -> tuple[bool, str]:
         """
         Check if the installed Claude Code version meets minimum requirements.
 
@@ -288,7 +287,7 @@ main "$@"
             )
 
         # Parse version numbers for comparison
-        def parse_version(v: str) -> List[int]:
+        def parse_version(v: str) -> list[int]:
             """Parse semantic version string to list of integers."""
             try:
                 return [int(x) for x in v.split(".")]
@@ -330,7 +329,7 @@ main "$@"
         if version is None:
             return False
 
-        def parse_version(v: str) -> List[int]:
+        def parse_version(v: str) -> list[int]:
             """Parse semantic version string to list of integers."""
             try:
                 return [int(x) for x in v.split(".")]
@@ -363,7 +362,7 @@ main "$@"
             True if version meets or exceeds minimum, False otherwise
         """
 
-        def parse_version(v: str) -> List[int]:
+        def parse_version(v: str) -> list[int]:
             """Parse semantic version string to list of integers."""
             try:
                 return [int(x) for x in v.split(".")]
@@ -682,7 +681,7 @@ main "$@"
         except Exception as e:
             self.logger.warning(f"Could not clean up old settings file: {e}")
 
-    def _fix_status_line(self, settings: Dict) -> None:
+    def _fix_status_line(self, settings: dict) -> None:
         """Fix statusLine command to use the single native outputStyle key.
 
         The statusLine command now uses the unified format with outputStyle:
@@ -950,7 +949,7 @@ main "$@"
         """Update existing hooks to the latest version."""
         return self.install_hooks(force=True)
 
-    def verify_hooks(self) -> Tuple[bool, List[str]]:
+    def verify_hooks(self) -> tuple[bool, list[str]]:
         """
         Verify that hooks are properly installed.
 
@@ -1090,7 +1089,7 @@ main "$@"
             self.logger.error(f"Hook uninstallation failed: {e}")
             return False
 
-    def get_status(self) -> Dict[str, any]:
+    def get_status(self) -> dict[str, any]:
         """
         Get the current status of hook installation.
 

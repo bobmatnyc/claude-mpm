@@ -10,7 +10,7 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import BaseEventHandler
 
@@ -365,7 +365,7 @@ class GitEventHandler(BaseEventHandler):
                     },
                 )
 
-    def _sanitize_working_dir(self, working_dir: Optional[str], operation: str) -> str:
+    def _sanitize_working_dir(self, working_dir: str | None, operation: str) -> str:
         """Sanitize and validate working directory input.
 
         WHY: Working directory input from clients can be invalid or malformed.
@@ -599,9 +599,9 @@ class GitEventHandler(BaseEventHandler):
     async def generate_git_diff(
         self,
         file_path: str,
-        timestamp: Optional[str] = None,
-        working_dir: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        timestamp: str | None = None,
+        working_dir: str | None = None,
+    ) -> dict[str, Any]:
         """Generate git diff for a specific file operation.
 
         WHY: This method generates a git diff showing the changes made to a file

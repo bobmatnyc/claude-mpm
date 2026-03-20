@@ -13,7 +13,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -29,14 +29,14 @@ class RemoteAgentMetadata:
     name: str
     description: str
     model: str
-    routing_keywords: List[str]
-    routing_paths: List[str]
+    routing_keywords: list[str]
+    routing_paths: list[str]
     routing_priority: int
     source_file: Path
     version: str  # SHA-256 hash from cache metadata
-    collection_id: Optional[str] = None  # Format: owner/repo-name
-    source_path: Optional[str] = None  # Relative path in repo
-    canonical_id: Optional[str] = None  # Format: collection_id:agent_id
+    collection_id: str | None = None  # Format: owner/repo-name
+    source_path: str | None = None  # Relative path in repo
+    canonical_id: str | None = None  # Format: collection_id:agent_id
 
 
 class RemoteAgentDiscoveryService:
@@ -70,7 +70,7 @@ class RemoteAgentDiscoveryService:
         self.agents_cache_dir = agents_cache_dir
         self.logger = get_logger(__name__)
 
-    def _extract_collection_id_from_path(self, file_path: Path) -> Optional[str]:
+    def _extract_collection_id_from_path(self, file_path: Path) -> str | None:
         """Extract collection_id from repository path structure.
 
         Collection ID is derived from the repository path structure:
@@ -117,7 +117,7 @@ class RemoteAgentDiscoveryService:
             )
             return None
 
-    def _extract_source_path_from_file(self, file_path: Path) -> Optional[str]:
+    def _extract_source_path_from_file(self, file_path: Path) -> str | None:
         """Extract relative source path within repository.
 
         Source path is relative to the repository root (not the agents subdirectory).
@@ -157,7 +157,7 @@ class RemoteAgentDiscoveryService:
             self.logger.warning(f"Failed to extract source_path from {file_path}: {e}")
             return None
 
-    def _parse_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _parse_yaml_frontmatter(self, content: str) -> dict[str, Any] | None:
         """Parse YAML frontmatter from Markdown content.
 
         Extracts YAML frontmatter delimited by --- markers at the start of the file.
@@ -370,7 +370,7 @@ class RemoteAgentDiscoveryService:
         except Exception:
             return "universal"
 
-    def discover_remote_agents(self) -> List[Dict[str, Any]]:
+    def discover_remote_agents(self) -> list[dict[str, Any]]:
         """Discover all remote agents from cache directory.
 
         Scans the remote agents directory for *.md files recursively and converts each
@@ -548,7 +548,7 @@ class RemoteAgentDiscoveryService:
         )
         return agents
 
-    def _parse_markdown_agent(self, md_file: Path) -> Optional[Dict[str, Any]]:
+    def _parse_markdown_agent(self, md_file: Path) -> dict[str, Any] | None:
         """Parse Markdown agent file and convert to JSON template format.
 
         Expected Markdown format with YAML frontmatter:
@@ -771,9 +771,7 @@ class RemoteAgentDiscoveryService:
             self.logger.warning(f"Failed to read metadata for {md_file.name}: {e}")
             return "unknown"
 
-    def get_remote_agent_metadata(
-        self, agent_name: str
-    ) -> Optional[RemoteAgentMetadata]:
+    def get_remote_agent_metadata(self, agent_name: str) -> RemoteAgentMetadata | None:
         """Get metadata for a specific remote agent.
 
         Args:
@@ -805,7 +803,7 @@ class RemoteAgentDiscoveryService:
                 )
         return None
 
-    def get_agents_by_collection(self, collection_id: str) -> List[Dict[str, Any]]:
+    def get_agents_by_collection(self, collection_id: str) -> list[dict[str, Any]]:
         """Get all agents belonging to a specific collection.
 
         Args:
@@ -833,7 +831,7 @@ class RemoteAgentDiscoveryService:
 
         return collection_agents
 
-    def list_collections(self) -> List[Dict[str, Any]]:
+    def list_collections(self) -> list[dict[str, Any]]:
         """List all available collections with agent counts.
 
         Returns:
@@ -857,7 +855,7 @@ class RemoteAgentDiscoveryService:
         all_agents = self.discover_remote_agents()
 
         # Group by collection_id
-        collections_map: Dict[str, List[str]] = {}
+        collections_map: dict[str, list[str]] = {}
 
         for agent in all_agents:
             collection_id = agent.get("collection_id")

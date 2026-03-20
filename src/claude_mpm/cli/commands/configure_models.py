@@ -4,18 +4,18 @@ This module contains data classes used by the configure command for
 agent metadata and configuration state management.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class AgentConfig:
     """Simple agent configuration model."""
 
     def __init__(
-        self, name: str, description: str = "", dependencies: Optional[List[str]] = None
+        self, name: str, description: str = "", dependencies: list[str] | None = None
     ):
         self.name = name
         self.description = description
         self.dependencies = dependencies or []
         self.is_deployed: bool = False
-        self.source_dict: Optional[Dict[str, Any]] = None
-        self.full_agent_id: Optional[str] = None
+        self.source_dict: dict[str, Any] | None = None
+        self.full_agent_id: str | None = None

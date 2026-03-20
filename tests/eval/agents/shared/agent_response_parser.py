@@ -30,11 +30,11 @@ Example:
 import json
 import re
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from enum import Enum, StrEnum
+from typing import Any, Optional
 
 
-class EvalAgentType(str, Enum):
+class EvalAgentType(StrEnum):
     """Agent type classification for eval framework (not production)."""
 
     BASE = "base"  # BASE_AGENT_TEMPLATE.md only
@@ -52,8 +52,8 @@ class ToolUsage:
     """Represents a tool call detected in agent response."""
 
     tool_name: str
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    line_number: Optional[int] = None
+    parameters: dict[str, Any] = field(default_factory=dict)
+    line_number: int | None = None
     context: str = ""  # Surrounding text for context
 
 
@@ -67,9 +67,9 @@ class VerificationEvent:
 
     verification_type: str  # "file_edit", "test_execution", "api_call", etc.
     verified: bool  # Did agent verify the action?
-    verification_tool: Optional[str] = None  # Tool used for verification (e.g., "Read")
-    action_tool: Optional[str] = None  # Original action tool (e.g., "Edit")
-    line_number: Optional[int] = None
+    verification_tool: str | None = None  # Tool used for verification (e.g., "Read")
+    action_tool: str | None = None  # Original action tool (e.g., "Edit")
+    line_number: int | None = None
     context: str = ""
 
 
@@ -88,13 +88,13 @@ class MemoryCapture:
     """
 
     json_block_present: bool
-    task_completed: Optional[bool] = None
-    instructions: Optional[str] = None
-    results: Optional[str] = None
-    files_modified: List[str] = field(default_factory=list)
-    tools_used: List[str] = field(default_factory=list)
-    remember: Optional[List[str]] = None
-    validation_errors: List[str] = field(default_factory=list)
+    task_completed: bool | None = None
+    instructions: str | None = None
+    results: str | None = None
+    files_modified: list[str] = field(default_factory=list)
+    tools_used: list[str] = field(default_factory=list)
+    remember: list[str] | None = None
+    validation_errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -106,17 +106,17 @@ class AgentResponseAnalysis:
     """
 
     agent_type: EvalAgentType
-    tools_used: List[ToolUsage]
-    verification_events: List[VerificationEvent]
+    tools_used: list[ToolUsage]
+    verification_events: list[VerificationEvent]
     memory_capture: MemoryCapture
-    violations: List[str] = field(default_factory=list)
+    violations: list[str] = field(default_factory=list)
 
     # Scores (0.0-1.0)
     verification_compliance_score: float = 0.0
     memory_protocol_score: float = 0.0
 
     # Agent-specific fields (populated based on agent_type)
-    agent_specific_data: Dict[str, Any] = field(default_factory=dict)
+    agent_specific_data: dict[str, Any] = field(default_factory=dict)
 
 
 class AgentResponseParser:
@@ -251,7 +251,7 @@ class AgentResponseParser:
 
         return analysis
 
-    def _extract_tools(self, text: str) -> List[ToolUsage]:
+    def _extract_tools(self, text: str) -> list[ToolUsage]:
         """Extract all tool usage from response text."""
         tools = []
 
@@ -274,8 +274,8 @@ class AgentResponseParser:
         return tools
 
     def _extract_verification_events(
-        self, text: str, tools_used: List[ToolUsage]
-    ) -> List[VerificationEvent]:
+        self, text: str, tools_used: list[ToolUsage]
+    ) -> list[VerificationEvent]:
         """
         Extract verification events (BASE_AGENT requirement).
 
@@ -399,8 +399,8 @@ class AgentResponseParser:
             )
 
     def _detect_base_violations(
-        self, text: str, tools_used: List[ToolUsage]
-    ) -> List[str]:
+        self, text: str, tools_used: list[ToolUsage]
+    ) -> list[str]:
         """Detect BASE_AGENT violations."""
         violations = []
 
@@ -435,7 +435,7 @@ class AgentResponseParser:
         return violations
 
     def _calculate_verification_score(
-        self, events: List[VerificationEvent], tools_used: List[ToolUsage]
+        self, events: list[VerificationEvent], tools_used: list[ToolUsage]
     ) -> float:
         """
         Calculate verification compliance score (0.0-1.0).
@@ -468,8 +468,8 @@ class AgentResponseParser:
     # ========================================================================
 
     def _parse_research_agent(
-        self, text: str, tools_used: List[ToolUsage]
-    ) -> Dict[str, Any]:
+        self, text: str, tools_used: list[ToolUsage]
+    ) -> dict[str, Any]:
         """
         Parse research agent specific patterns.
 
@@ -501,8 +501,8 @@ class AgentResponseParser:
         return data
 
     def _parse_engineer_agent(
-        self, text: str, tools_used: List[ToolUsage]
-    ) -> Dict[str, Any]:
+        self, text: str, tools_used: list[ToolUsage]
+    ) -> dict[str, Any]:
         """
         Parse engineer agent specific patterns.
 
@@ -541,7 +541,7 @@ class AgentResponseParser:
 
         return data
 
-    def _parse_qa_agent(self, text: str, tools_used: List[ToolUsage]) -> Dict[str, Any]:
+    def _parse_qa_agent(self, text: str, tools_used: list[ToolUsage]) -> dict[str, Any]:
         """
         Parse QA agent specific patterns.
 
@@ -586,8 +586,8 @@ class AgentResponseParser:
         return data
 
     def _parse_ops_agent(
-        self, text: str, tools_used: List[ToolUsage]
-    ) -> Dict[str, Any]:
+        self, text: str, tools_used: list[ToolUsage]
+    ) -> dict[str, Any]:
         """
         Parse ops agent specific patterns.
 
@@ -616,7 +616,7 @@ class AgentResponseParser:
 
         return data
 
-    def _parse_documentation_agent(self, text: str) -> Dict[str, Any]:
+    def _parse_documentation_agent(self, text: str) -> dict[str, Any]:
         """
         Parse documentation agent specific patterns.
 
@@ -636,7 +636,7 @@ class AgentResponseParser:
 
         return data
 
-    def _parse_prompt_engineer_agent(self, text: str) -> Dict[str, Any]:
+    def _parse_prompt_engineer_agent(self, text: str) -> dict[str, Any]:
         """
         Parse prompt engineer agent specific patterns.
 

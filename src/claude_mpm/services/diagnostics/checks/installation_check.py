@@ -9,7 +9,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from ....core.enums import OperationResult, ValidationSeverity
 from ..models import DiagnosticResult
@@ -459,7 +458,7 @@ class InstallationCheck(BaseDiagnosticCheck):
             },
         )
 
-    def _detect_container_environment(self) -> Optional[str]:
+    def _detect_container_environment(self) -> str | None:
         """Detect if running in a container environment."""
         # Check for Docker
         if Path("/.dockerenv").exists():
@@ -498,7 +497,7 @@ class InstallationCheck(BaseDiagnosticCheck):
 
         return None
 
-    def _get_pipx_metadata(self) -> Optional[dict]:
+    def _get_pipx_metadata(self) -> dict | None:
         """Get pipx metadata for the current installation."""
         try:
             import json

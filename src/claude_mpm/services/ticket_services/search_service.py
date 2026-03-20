@@ -11,7 +11,7 @@ DESIGN DECISIONS:
 - Abstracts search backend (can switch between different implementations)
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ...core.logger import get_logger
 
@@ -46,8 +46,8 @@ class TicketSearchService:
         type_filter: str = "all",
         status_filter: str = "all",
         limit: int = 10,
-        search_fields: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        search_fields: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Search tickets by query string.
 
@@ -96,7 +96,7 @@ class TicketSearchService:
             return []
 
     def _matches_query(
-        self, ticket: Dict[str, Any], query: str, search_fields: List[str]
+        self, ticket: dict[str, Any], query: str, search_fields: list[str]
     ) -> bool:
         """
         Check if ticket matches the search query.
@@ -131,7 +131,7 @@ class TicketSearchService:
 
         return False
 
-    def _passes_type_filter(self, ticket: Dict[str, Any], type_filter: str) -> bool:
+    def _passes_type_filter(self, ticket: dict[str, Any], type_filter: str) -> bool:
         """
         Check if ticket passes type filter.
 
@@ -144,7 +144,7 @@ class TicketSearchService:
         ticket_type = ticket.get("metadata", {}).get("ticket_type", "unknown")
         return ticket_type == type_filter
 
-    def _passes_status_filter(self, ticket: Dict[str, Any], status_filter: str) -> bool:
+    def _passes_status_filter(self, ticket: dict[str, Any], status_filter: str) -> bool:
         """
         Check if ticket passes status filter.
 
@@ -157,8 +157,8 @@ class TicketSearchService:
         return ticket.get("status") == status_filter
 
     def _sort_by_relevance(
-        self, tickets: List[Dict[str, Any]], query: str
-    ) -> List[Dict[str, Any]]:
+        self, tickets: list[dict[str, Any]], query: str
+    ) -> list[dict[str, Any]]:
         """
         Sort tickets by relevance to search query.
 
@@ -197,7 +197,7 @@ class TicketSearchService:
 
     def find_similar_tickets(
         self, ticket_id: str, limit: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find tickets similar to a given ticket.
 
@@ -239,7 +239,7 @@ class TicketSearchService:
             self.logger.error(f"Error finding similar tickets: {e}")
             return []
 
-    def _extract_keywords(self, ticket: Dict[str, Any]) -> List[str]:
+    def _extract_keywords(self, ticket: dict[str, Any]) -> list[str]:
         """
         Extract keywords from a ticket for similarity matching.
 
@@ -278,7 +278,7 @@ class TicketSearchService:
         return list(set(keywords))  # Remove duplicates
 
     def _calculate_similarity(
-        self, ref_ticket: Dict[str, Any], ticket: Dict[str, Any], keywords: List[str]
+        self, ref_ticket: dict[str, Any], ticket: dict[str, Any], keywords: list[str]
     ) -> float:
         """
         Calculate similarity score between two tickets.

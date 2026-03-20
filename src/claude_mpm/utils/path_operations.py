@@ -7,8 +7,8 @@ and file operations, reducing code duplication across the codebase.
 import os
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, List, Optional, Union
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -28,7 +28,7 @@ class PathOperations:
 
     # Path Validation Methods
 
-    def validate_exists(self, path: Union[str, Path]) -> bool:
+    def validate_exists(self, path: str | Path) -> bool:
         """Check if path exists.
 
         Args:
@@ -43,7 +43,7 @@ class PathOperations:
             logger.error(f"Error checking path existence: {e}")
             return False
 
-    def validate_is_file(self, path: Union[str, Path]) -> bool:
+    def validate_is_file(self, path: str | Path) -> bool:
         """Check if path is a file.
 
         Args:
@@ -58,7 +58,7 @@ class PathOperations:
             logger.error(f"Error checking if path is file: {e}")
             return False
 
-    def validate_is_dir(self, path: Union[str, Path]) -> bool:
+    def validate_is_dir(self, path: str | Path) -> bool:
         """Check if path is a directory.
 
         Args:
@@ -73,7 +73,7 @@ class PathOperations:
             logger.error(f"Error checking if path is directory: {e}")
             return False
 
-    def validate_readable(self, path: Union[str, Path]) -> bool:
+    def validate_readable(self, path: str | Path) -> bool:
         """Check if path has read permissions.
 
         Args:
@@ -91,7 +91,7 @@ class PathOperations:
             logger.error(f"Error checking read permissions: {e}")
             return False
 
-    def validate_writable(self, path: Union[str, Path]) -> bool:
+    def validate_writable(self, path: str | Path) -> bool:
         """Check if path has write permissions.
 
         Args:
@@ -115,10 +115,10 @@ class PathOperations:
 
     def safe_read(
         self,
-        path: Union[str, Path],
-        encoding: Optional[str] = None,
-        default: Optional[str] = None,
-    ) -> Optional[str]:
+        path: str | Path,
+        encoding: str | None = None,
+        default: str | None = None,
+    ) -> str | None:
         """Read file with error handling.
 
         Args:
@@ -146,9 +146,9 @@ class PathOperations:
 
     def safe_write(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         content: str,
-        encoding: Optional[str] = None,
+        encoding: str | None = None,
         backup: bool = False,
         atomic: bool = False,
     ) -> bool:
@@ -200,7 +200,7 @@ class PathOperations:
             return False
 
     def safe_delete(
-        self, path: Union[str, Path], confirm: Optional[Callable[[], bool]] = None
+        self, path: str | Path, confirm: Callable[[], bool] | None = None
     ) -> bool:
         """Delete file/directory with optional confirmation.
 
@@ -235,7 +235,7 @@ class PathOperations:
             return False
 
     def safe_copy(
-        self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = False
+        self, src: str | Path, dst: str | Path, overwrite: bool = False
     ) -> bool:
         """Copy file/directory with overwrite protection.
 
@@ -278,7 +278,7 @@ class PathOperations:
 
     # Common Patterns
 
-    def ensure_dir(self, path: Union[str, Path]) -> bool:
+    def ensure_dir(self, path: str | Path) -> bool:
         """Create directory if it doesn't exist.
 
         Args:
@@ -294,7 +294,7 @@ class PathOperations:
             logger.error(f"Error creating directory {path}: {e}")
             return False
 
-    def get_size(self, path: Union[str, Path]) -> int:
+    def get_size(self, path: str | Path) -> int:
         """Get size of file or directory in bytes.
 
         Args:
@@ -323,11 +323,11 @@ class PathOperations:
 
     def list_files(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         pattern: str = "*",
         recursive: bool = False,
         include_dirs: bool = False,
-    ) -> List[Path]:
+    ) -> list[Path]:
         """List files in directory with filtering.
 
         Args:

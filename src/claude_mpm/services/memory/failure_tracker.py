@@ -31,8 +31,7 @@ import logging
 import re
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +55,15 @@ class FailureEvent:
     task_type: str
     tool_name: str
     error_message: str
-    context: Dict[str, str] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    context: dict[str, str] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     fixed: bool = False
-    fix_timestamp: Optional[datetime] = None
+    fix_timestamp: datetime | None = None
 
     def mark_fixed(self) -> None:
         """Mark this failure as fixed."""
         self.fixed = True
-        self.fix_timestamp = datetime.now(timezone.utc)
+        self.fix_timestamp = datetime.now(UTC)
 
 
 @dataclass
@@ -83,9 +82,9 @@ class FixEvent:
     task_type: str
     tool_name: str
     success_message: str
-    context: Dict[str, str] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    matched_failure: Optional[FailureEvent] = None
+    context: dict[str, str] = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    matched_failure: FailureEvent | None = None
 
 
 @dataclass
@@ -106,11 +105,11 @@ class Learning:
     category: str
     problem: str
     solution: str
-    context: Dict[str, str]
+    context: dict[str, str]
     target_agent: str
     failure_event: FailureEvent
     fix_event: FixEvent
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_markdown(self) -> str:
         """Format learning as markdown for memory file.
@@ -166,14 +165,14 @@ class FailureTracker:
 
     def __init__(self):
         """Initialize the failure tracker."""
-        self.failures: List[FailureEvent] = []
-        self.fixes: List[FixEvent] = []
-        self.learnings: List[Learning] = []
-        self.session_id = datetime.now(timezone.utc).isoformat()
+        self.failures: list[FailureEvent] = []
+        self.fixes: list[FixEvent] = []
+        self.learnings: list[Learning] = []
+        self.session_id = datetime.now(UTC).isoformat()
 
     def detect_failure(
-        self, tool_name: str, tool_output: str, context: Optional[Dict[str, str]] = None
-    ) -> Optional[FailureEvent]:
+        self, tool_name: str, tool_output: str, context: dict[str, str] | None = None
+    ) -> FailureEvent | None:
         """Detect if tool output contains a failure.
 
         WHY: Failures can occur in many forms (errors, exceptions, test failures).
@@ -203,7 +202,7 @@ class FailureTracker:
                 task_type = self._classify_task_type(tool_output, context)
 
                 # Create failure event
-                task_id = f"{task_type}_{len(self.failures)}_{int(datetime.now(timezone.utc).timestamp())}"
+                task_id = f"{task_type}_{len(self.failures)}_{int(datetime.now(UTC).timestamp())}"
                 failure = FailureEvent(
                     task_id=task_id,
                     task_type=task_type,
@@ -227,8 +226,8 @@ class FailureTracker:
         tool_name: str,
         tool_output: str,
         exit_code: int = 0,
-        context: Optional[Dict[str, str]] = None,
-    ) -> Optional[Tuple[FixEvent, FailureEvent]]:
+        context: dict[str, str] | None = None,
+    ) -> tuple[FixEvent, FailureEvent] | None:
         """Detect if a successful execution fixes a previous failure.
 
         WHY: When a task succeeds, it might be fixing a previous failure of the
@@ -276,7 +275,7 @@ class FailureTracker:
         self,
         fix_event: FixEvent,
         failure_event: FailureEvent,
-        target_agent: Optional[str] = None,
+        target_agent: str | None = None,
     ) -> Learning:
         """Extract learning from a failure-fix pair.
 
@@ -330,7 +329,7 @@ class FailureTracker:
         logger.info(f"Extracted learning for {target_agent}: {category}")
         return learning
 
-    def get_unfixed_failures(self) -> List[FailureEvent]:
+    def get_unfixed_failures(self) -> list[FailureEvent]:
         """Get all failures that haven't been fixed yet.
 
         Returns:
@@ -338,7 +337,7 @@ class FailureTracker:
         """
         return [f for f in self.failures if not f.fixed]
 
-    def get_learnings_for_agent(self, agent_id: str) -> List[Learning]:
+    def get_learnings_for_agent(self, agent_id: str) -> list[Learning]:
         """Get all learnings targeted for a specific agent.
 
         Args:
@@ -349,7 +348,7 @@ class FailureTracker:
         """
         return [l for l in self.learnings if l.target_agent == agent_id]
 
-    def get_session_stats(self) -> Dict[str, int]:
+    def get_session_stats(self) -> dict[str, int]:
         """Get statistics for the current session.
 
         Returns:
@@ -363,7 +362,7 @@ class FailureTracker:
             "total_learnings": len(self.learnings),
         }
 
-    def _classify_task_type(self, output: str, context: Dict[str, str]) -> str:
+    def _classify_task_type(self, output: str, context: dict[str, str]) -> str:
         """Classify the task type based on output and context.
 
         Args:
@@ -395,7 +394,7 @@ class FailureTracker:
 
     def _find_matching_failure(
         self, task_type: str, tool_name: str
-    ) -> Optional[FailureEvent]:
+    ) -> FailureEvent | None:
         """Find the most recent unfixed failure matching the task type.
 
         Args:
@@ -536,7 +535,7 @@ class FailureTracker:
 
 
 # Singleton instance for session-level tracking
-_tracker_instance: Optional[FailureTracker] = None
+_tracker_instance: FailureTracker | None = None
 _tracker_lock = threading.Lock()
 
 

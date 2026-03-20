@@ -14,10 +14,10 @@ Design Principles:
 
 import json
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 import yaml
 
@@ -73,7 +73,7 @@ def _save_completed_migration(migration_id: str) -> None:
 
     # Add new migration entry
     data["migrations"].append(
-        {"id": migration_id, "completed_at": datetime.now(timezone.utc).isoformat()}
+        {"id": migration_id, "completed_at": datetime.now(UTC).isoformat()}
     )
 
     try:

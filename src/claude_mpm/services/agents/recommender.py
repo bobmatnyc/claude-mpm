@@ -14,7 +14,7 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 3
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -50,7 +50,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
     # Maps ecosystem/runtime names to their underlying programming languages.
     # Detection strategies may report ecosystem names (e.g. "Node.js") while
     # the YAML agent config lists programming languages ("javascript", "typescript").
-    LANGUAGE_ALIASES: Dict[str, List[str]] = {
+    LANGUAGE_ALIASES: dict[str, list[str]] = {
         "node.js": ["javascript", "typescript"],
         "nodejs": ["javascript", "typescript"],
         "node": ["javascript", "typescript"],
@@ -64,9 +64,9 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
 
     def __init__(
         self,
-        config_path: Optional[Path] = None,
-        config: Optional[Dict[str, Any]] = None,
-        container: Optional[Any] = None,
+        config_path: Path | None = None,
+        config: dict[str, Any] | None = None,
+        container: Any | None = None,
     ):
         """
         Initialize the Agent Recommender Service.
@@ -90,8 +90,8 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
             config_path = package_config_dir / "agent_capabilities.yaml"
 
         self.config_path = config_path
-        self._capabilities_config: Dict[str, Any] = {}
-        self._agent_capabilities_cache: Dict[str, AgentCapabilities] = {}
+        self._capabilities_config: dict[str, Any] = {}
+        self._agent_capabilities_cache: dict[str, AgentCapabilities] = {}
         self._load_configuration()
 
         self.logger.info(
@@ -145,8 +145,8 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
     def recommend_agents(
         self,
         toolchain: ToolchainAnalysis,
-        constraints: Optional[Dict[str, Any]] = None,
-    ) -> List[AgentRecommendation]:
+        constraints: dict[str, Any] | None = None,
+    ) -> list[AgentRecommendation]:
         """
         Recommend agents based on toolchain analysis.
 
@@ -182,7 +182,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         excluded_agents = set(constraints.get("excluded_agents", []))
         max_agents = constraints.get("max_agents")
 
-        recommendations: List[AgentRecommendation] = []
+        recommendations: list[AgentRecommendation] = []
         agent_configs = self._capabilities_config.get("agent_capabilities", {})
 
         # Calculate scores for all agents
@@ -455,7 +455,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         # Ensure score is in valid range and return
         return max(0.0, min(1.0, final_score))
 
-    def _resolve_language_aliases(self, language: str) -> List[str]:
+    def _resolve_language_aliases(self, language: str) -> list[str]:
         """Resolve a language name to all equivalent names via LANGUAGE_ALIASES.
 
         Returns the original language plus any aliases. For example,
@@ -472,7 +472,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         return [lang_lower] + [a.lower() for a in aliases]
 
     def _calculate_language_score(
-        self, supported_languages: List[str], toolchain: ToolchainAnalysis
+        self, supported_languages: list[str], toolchain: ToolchainAnalysis
     ) -> float:
         """Calculate language match score.
 
@@ -519,7 +519,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         return 0.0
 
     def _calculate_framework_score(
-        self, supported_frameworks: List[str], toolchain: ToolchainAnalysis
+        self, supported_frameworks: list[str], toolchain: ToolchainAnalysis
     ) -> float:
         """Calculate framework match score."""
         if not supported_frameworks:
@@ -549,7 +549,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         return min(1.0, match_ratio * 1.2)  # Boost for framework matches
 
     def _calculate_deployment_score(
-        self, supported_deployments: List[str], toolchain: ToolchainAnalysis
+        self, supported_deployments: list[str], toolchain: ToolchainAnalysis
     ) -> float:
         """Calculate deployment target match score."""
         if not supported_deployments or not toolchain.deployment_target:
@@ -576,10 +576,10 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
     def _generate_reasoning(
         self,
         agent_id: str,
-        agent_config: Dict[str, Any],
+        agent_config: dict[str, Any],
         toolchain: ToolchainAnalysis,
         score: float,
-    ) -> tuple[List[str], List[str]]:
+    ) -> tuple[list[str], list[str]]:
         """
         Generate match reasons and concerns for recommendation.
 
@@ -639,7 +639,7 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         return match_reasons, concerns
 
     def _calculate_deployment_priority(
-        self, agent_config: Dict[str, Any], toolchain: ToolchainAnalysis
+        self, agent_config: dict[str, Any], toolchain: ToolchainAnalysis
     ) -> int:
         """
         Calculate deployment priority (lower = higher priority).
@@ -674,8 +674,8 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         return 4  # General agents (lowest priority)
 
     def _generate_config_hints(
-        self, agent_config: Dict[str, Any], toolchain: ToolchainAnalysis
-    ) -> Dict[str, Any]:
+        self, agent_config: dict[str, Any], toolchain: ToolchainAnalysis
+    ) -> dict[str, Any]:
         """Generate configuration hints for the agent."""
         hints = {}
 

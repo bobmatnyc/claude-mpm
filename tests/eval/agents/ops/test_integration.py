@@ -32,7 +32,7 @@ Test Strategy:
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -49,7 +49,7 @@ SCENARIOS_PATH = (
 )
 
 
-def load_scenarios() -> Dict[str, Any]:
+def load_scenarios() -> dict[str, Any]:
     """Load Ops scenarios from JSON file.
 
     Returns:
@@ -66,7 +66,7 @@ def load_scenarios() -> Dict[str, Any]:
         return json.load(f)
 
 
-def get_scenario_by_id(scenario_id: str) -> Dict[str, Any]:
+def get_scenario_by_id(scenario_id: str) -> dict[str, Any]:
     """Get a specific scenario by its ID.
 
     Args:
@@ -389,11 +389,11 @@ class TestScenarioFileIntegrity:
     """Tests to verify ops_scenarios.json structure and completeness."""
 
     @pytest.fixture(scope="class")
-    def all_scenarios(self) -> Dict[str, Any]:
+    def all_scenarios(self) -> dict[str, Any]:
         """Load all Ops scenarios for class-level access."""
         return load_scenarios()
 
-    def test_total_scenario_count(self, all_scenarios: Dict[str, Any]):
+    def test_total_scenario_count(self, all_scenarios: dict[str, Any]):
         """Verify total scenario count matches expected (18)."""
         assert all_scenarios["total_scenarios"] == 18, (
             f"Expected 18 total Ops scenarios, got {all_scenarios['total_scenarios']}"
@@ -402,7 +402,7 @@ class TestScenarioFileIntegrity:
             f"Expected 18 scenarios in list, got {len(all_scenarios['scenarios'])}"
         )
 
-    def test_category_counts(self, all_scenarios: Dict[str, Any]):
+    def test_category_counts(self, all_scenarios: dict[str, Any]):
         """Verify each category has expected scenario count."""
         expected_categories = {
             "deployment_protocol": 6,
@@ -418,7 +418,7 @@ class TestScenarioFileIntegrity:
                 f"got {actual_count}"
             )
 
-    def test_scenario_structure(self, all_scenarios: Dict[str, Any]):
+    def test_scenario_structure(self, all_scenarios: dict[str, Any]):
         """Verify each scenario has required fields."""
         required_fields = {
             "scenario_id",
@@ -451,14 +451,14 @@ class TestScenarioFileIntegrity:
                 f"Scenario {scenario_id} missing non_compliant mock response"
             )
 
-    def test_scenario_ids_unique(self, all_scenarios: Dict[str, Any]):
+    def test_scenario_ids_unique(self, all_scenarios: dict[str, Any]):
         """Verify scenario IDs are unique."""
         scenario_ids = [s["scenario_id"] for s in all_scenarios["scenarios"]]
         duplicates = [sid for sid in scenario_ids if scenario_ids.count(sid) > 1]
 
         assert not duplicates, f"Duplicate scenario IDs found: {set(duplicates)}"
 
-    def test_metric_references(self, all_scenarios: Dict[str, Any]):
+    def test_metric_references(self, all_scenarios: dict[str, Any]):
         """Verify each scenario references valid metrics."""
         valid_metrics = {
             "DeploymentSafetyMetric",

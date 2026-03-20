@@ -7,7 +7,6 @@ Fails open: any error returns an empty list rather than blocking operations.
 """
 
 import subprocess  # nosec B404
-from typing import Dict, List
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -17,7 +16,7 @@ logger = get_logger(__name__)
 CLAUDE_PATTERNS = ("claude", "claude-code", "claude_code")
 
 
-def detect_active_claude_sessions() -> List[Dict[str, str]]:
+def detect_active_claude_sessions() -> list[dict[str, str]]:
     """Check for running Claude Code processes.
 
     Scans the process table via ``ps aux`` and filters for claude-related
@@ -40,7 +39,7 @@ def detect_active_claude_sessions() -> List[Dict[str, str]]:
             logger.debug("ps aux returned non-zero exit code: %d", result.returncode)
             return []
 
-        sessions: List[Dict[str, str]] = []
+        sessions: list[dict[str, str]] = []
 
         for line in result.stdout.splitlines():
             # Skip header line

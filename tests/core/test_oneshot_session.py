@@ -67,9 +67,10 @@ class TestOneshotSession:
         """Test successful session initialization."""
         prompt = "Test prompt"
 
-        with patch("time.time", return_value=1234567890), patch(
-            "uuid.uuid4", return_value=Mock(spec=uuid.UUID)
-        ) as mock_uuid:
+        with (
+            patch("time.time", return_value=1234567890),
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+        ):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
             success, error = oneshot_session.initialize_session(prompt)
@@ -135,10 +136,13 @@ class TestOneshotSession:
 
     def test_setup_infrastructure_basic(self, oneshot_session):
         """Test basic infrastructure setup."""
-        with patch.object(
-            oneshot_session, "_prepare_environment", return_value={"ENV": "test"}
-        ), patch.object(
-            oneshot_session, "_build_command", return_value=["claude", "--test"]
+        with (
+            patch.object(
+                oneshot_session, "_prepare_environment", return_value={"ENV": "test"}
+            ),
+            patch.object(
+                oneshot_session, "_build_command", return_value=["claude", "--test"]
+            ),
         ):
             result = oneshot_session.setup_infrastructure()
 
@@ -155,11 +159,16 @@ class TestOneshotSession:
         original_cwd = os.getcwd()
 
         try:
-            with patch.object(
-                oneshot_session,
-                "_prepare_environment",
-                return_value={"CLAUDE_MPM_USER_PWD": str(test_dir)},
-            ), patch.object(oneshot_session, "_build_command", return_value=["claude"]):
+            with (
+                patch.object(
+                    oneshot_session,
+                    "_prepare_environment",
+                    return_value={"CLAUDE_MPM_USER_PWD": str(test_dir)},
+                ),
+                patch.object(
+                    oneshot_session, "_build_command", return_value=["claude"]
+                ),
+            ):
                 result = oneshot_session.setup_infrastructure()
 
                 assert result["working_dir_changed"] is True
@@ -172,11 +181,14 @@ class TestOneshotSession:
 
     def test_setup_infrastructure_invalid_directory(self, oneshot_session):
         """Test infrastructure setup with invalid directory."""
-        with patch.object(
-            oneshot_session,
-            "_prepare_environment",
-            return_value={"CLAUDE_MPM_USER_PWD": "/nonexistent/path"},
-        ), patch.object(oneshot_session, "_build_command", return_value=["claude"]):
+        with (
+            patch.object(
+                oneshot_session,
+                "_prepare_environment",
+                return_value={"CLAUDE_MPM_USER_PWD": "/nonexistent/path"},
+            ),
+            patch.object(oneshot_session, "_build_command", return_value=["claude"]),
+        ):
             result = oneshot_session.setup_infrastructure()
 
             assert result["working_dir_changed"] is False
@@ -191,16 +203,22 @@ class TestOneshotSession:
             "env": {"TEST": "value"},
         }
 
-        with patch.object(
-            oneshot_session,
-            "_build_final_command",
-            return_value=[
-                "claude",
-                "--print",
-                "test context\n\ntest prompt",
-            ],
-        ), patch.object(oneshot_session, "_notify_execution_start"), patch.object(
-            oneshot_session, "_run_subprocess", return_value=(True, "success response")
+        with (
+            patch.object(
+                oneshot_session,
+                "_build_final_command",
+                return_value=[
+                    "claude",
+                    "--print",
+                    "test context\n\ntest prompt",
+                ],
+            ),
+            patch.object(oneshot_session, "_notify_execution_start"),
+            patch.object(
+                oneshot_session,
+                "_run_subprocess",
+                return_value=(True, "success response"),
+            ),
         ):
             success, response = oneshot_session.execute_command(
                 prompt, context, infrastructure
@@ -214,12 +232,12 @@ class TestOneshotSession:
         prompt = "test prompt"
         infrastructure = {"cmd": ["claude"], "env": {}}
 
-        with patch.object(
-            oneshot_session, "_build_final_command"
-        ) as mock_build, patch.object(
-            oneshot_session, "_notify_execution_start"
-        ), patch.object(
-            oneshot_session, "_run_subprocess", return_value=(True, "response")
+        with (
+            patch.object(oneshot_session, "_build_final_command") as mock_build,
+            patch.object(oneshot_session, "_notify_execution_start"),
+            patch.object(
+                oneshot_session, "_run_subprocess", return_value=(True, "response")
+            ),
         ):
             oneshot_session.execute_command(prompt, None, infrastructure)
 
@@ -295,9 +313,10 @@ class TestOneshotSession:
         mock_result.stdout = "test output"
         mock_result.stderr = ""
 
-        with patch("subprocess.run", return_value=mock_result), patch.object(
-            oneshot_session, "_handle_successful_response"
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch.object(oneshot_session, "_handle_successful_response") as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is True
@@ -315,9 +334,10 @@ class TestOneshotSession:
         mock_result.stdout = ""
         mock_result.stderr = "error message"
 
-        with patch("subprocess.run", return_value=mock_result), patch.object(
-            oneshot_session, "_handle_error_response"
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", return_value=mock_result),
+            patch.object(oneshot_session, "_handle_error_response") as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -332,9 +352,12 @@ class TestOneshotSession:
 
         timeout_error = subprocess.TimeoutExpired(cmd, 5)
 
-        with patch("subprocess.run", side_effect=timeout_error), patch.object(
-            oneshot_session, "_handle_timeout", return_value=(False, "timeout")
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", side_effect=timeout_error),
+            patch.object(
+                oneshot_session, "_handle_timeout", return_value=(False, "timeout")
+            ) as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -347,11 +370,14 @@ class TestOneshotSession:
         env = {}
         prompt = "test"
 
-        with patch("subprocess.run", side_effect=FileNotFoundError()), patch.object(
-            oneshot_session,
-            "_handle_claude_not_found",
-            return_value=(False, "not found"),
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", side_effect=FileNotFoundError()),
+            patch.object(
+                oneshot_session,
+                "_handle_claude_not_found",
+                return_value=(False, "not found"),
+            ) as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -366,11 +392,14 @@ class TestOneshotSession:
 
         perm_error = PermissionError("Permission denied")
 
-        with patch("subprocess.run", side_effect=perm_error), patch.object(
-            oneshot_session,
-            "_handle_permission_error",
-            return_value=(False, "permission denied"),
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", side_effect=perm_error),
+            patch.object(
+                oneshot_session,
+                "_handle_permission_error",
+                return_value=(False, "permission denied"),
+            ) as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -383,11 +412,14 @@ class TestOneshotSession:
         env = {}
         prompt = "test"
 
-        with patch("subprocess.run", side_effect=KeyboardInterrupt()), patch.object(
-            oneshot_session,
-            "_handle_keyboard_interrupt",
-            return_value=(False, "interrupted"),
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", side_effect=KeyboardInterrupt()),
+            patch.object(
+                oneshot_session,
+                "_handle_keyboard_interrupt",
+                return_value=(False, "interrupted"),
+            ) as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -402,11 +434,14 @@ class TestOneshotSession:
 
         mem_error = MemoryError("Out of memory")
 
-        with patch("subprocess.run", side_effect=mem_error), patch.object(
-            oneshot_session,
-            "_handle_memory_error",
-            return_value=(False, "memory error"),
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", side_effect=mem_error),
+            patch.object(
+                oneshot_session,
+                "_handle_memory_error",
+                return_value=(False, "memory error"),
+            ) as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -421,11 +456,14 @@ class TestOneshotSession:
 
         unexpected_error = RuntimeError("Unexpected error")
 
-        with patch("subprocess.run", side_effect=unexpected_error), patch.object(
-            oneshot_session,
-            "_handle_unexpected_error",
-            return_value=(False, "unexpected"),
-        ) as mock_handle:
+        with (
+            patch("subprocess.run", side_effect=unexpected_error),
+            patch.object(
+                oneshot_session,
+                "_handle_unexpected_error",
+                return_value=(False, "unexpected"),
+            ) as mock_handle,
+        ):
             success, response = oneshot_session._run_subprocess(cmd, env, prompt)
 
             assert success is False
@@ -492,10 +530,13 @@ class TestOneshotSession:
         mock_proxy = Mock()
         test_path = Path("/test/dir")
 
-        with patch(
-            "claude_mpm.services.socketio_server.SocketIOClientProxy",
-            return_value=mock_proxy,
-        ), patch("claude_mpm.core.oneshot_session.Path.cwd", return_value=test_path):
+        with (
+            patch(
+                "claude_mpm.services.socketio_server.SocketIOClientProxy",
+                return_value=mock_proxy,
+            ),
+            patch("claude_mpm.core.oneshot_session.Path.cwd", return_value=test_path),
+        ):
             oneshot_session._setup_websocket()
 
             assert oneshot_session.runner.websocket_server == mock_proxy
@@ -532,6 +573,21 @@ class TestOneshotSession:
         with patch("os.environ.copy", return_value={"TEST": "value"}):
             result = oneshot_session._prepare_environment()
             assert result == {"TEST": "value", "DISABLE_TELEMETRY": "1"}
+
+    def test_prepare_environment_telemetry_opt_in(self, oneshot_session, monkeypatch):
+        """When DISABLE_TELEMETRY=0 in shell, var must be absent from subprocess env.
+
+        Claude Code checks for existence of DISABLE_TELEMETRY, not its value.
+        Setting it to "0" still disables telemetry, so we must remove it entirely.
+        """
+        monkeypatch.setenv("DISABLE_TELEMETRY", "0")
+        with patch(
+            "os.environ.copy",
+            return_value={"TEST": "value", "DISABLE_TELEMETRY": "0"},
+        ):
+            result = oneshot_session._prepare_environment()
+            assert "DISABLE_TELEMETRY" not in result
+            assert result["TEST"] == "value"
 
     def test_build_command_basic(self, oneshot_session):
         """Test basic command building."""
@@ -782,9 +838,12 @@ class TestOneshotSession:
         infrastructure = {"cmd": ["claude"]}
         system_prompt = "test system prompt"
 
-        with patch.object(
-            oneshot_session, "_get_simple_context", return_value="simple context"
-        ), patch("tempfile.mkstemp", side_effect=OSError("File creation failed")):
+        with (
+            patch.object(
+                oneshot_session, "_get_simple_context", return_value="simple context"
+            ),
+            patch("tempfile.mkstemp", side_effect=OSError("File creation failed")),
+        ):
             oneshot_session.runner._create_system_prompt.return_value = system_prompt
 
             result = oneshot_session._build_final_command(prompt, None, infrastructure)
@@ -876,12 +935,12 @@ class TestOneshotSessionIntegration:
         mock_result.stdout = "print('Hello, World!')"
         mock_result.stderr = ""
 
-        with patch("time.time", return_value=1234567890), patch(
-            "uuid.uuid4", return_value=Mock(spec=uuid.UUID)
-        ) as mock_uuid, patch(
-            "os.environ.copy", return_value={"PATH": "/usr/bin"}
-        ), patch("subprocess.run", return_value=mock_result), patch(
-            "os.getcwd", return_value="/test/dir"
+        with (
+            patch("time.time", return_value=1234567890),
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch("os.environ.copy", return_value={"PATH": "/usr/bin"}),
+            patch("subprocess.run", return_value=mock_result),
+            patch("os.getcwd", return_value="/test/dir"),
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
@@ -924,11 +983,12 @@ class TestOneshotSessionIntegration:
         mock_result.stdout = ""
         mock_result.stderr = "Command failed"
 
-        with patch("time.time", return_value=1234567890), patch(
-            "uuid.uuid4", return_value=Mock(spec=uuid.UUID)
-        ) as mock_uuid, patch(
-            "os.environ.copy", return_value={"PATH": "/usr/bin"}
-        ), patch("subprocess.run", return_value=mock_result):
+        with (
+            patch("time.time", return_value=1234567890),
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch("os.environ.copy", return_value={"PATH": "/usr/bin"}),
+            patch("subprocess.run", return_value=mock_result),
+        ):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
             # Initialize session
@@ -964,14 +1024,17 @@ class TestOneshotSessionIntegration:
         mock_result.stdout = "WebSocket response"
         mock_result.stderr = ""
 
-        with patch("time.time", return_value=1234567890), patch(
-            "uuid.uuid4", return_value=Mock(spec=uuid.UUID)
-        ) as mock_uuid, patch(
-            "claude_mpm.services.socketio_server.SocketIOClientProxy",
-            return_value=mock_proxy,
-        ), patch("os.environ.copy", return_value={}), patch(
-            "subprocess.run", return_value=mock_result
-        ), patch("os.getcwd", return_value="/test/dir"):
+        with (
+            patch("time.time", return_value=1234567890),
+            patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid,
+            patch(
+                "claude_mpm.services.socketio_server.SocketIOClientProxy",
+                return_value=mock_proxy,
+            ),
+            patch("os.environ.copy", return_value={}),
+            patch("subprocess.run", return_value=mock_result),
+            patch("os.getcwd", return_value="/test/dir"),
+        ):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
             # Full workflow

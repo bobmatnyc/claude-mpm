@@ -14,7 +14,7 @@ import logging
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -1549,8 +1549,8 @@ class GoogleWorkspaceServer:
         self,
         method: str,
         url: str,
-        params: Optional[dict[str, Any]] = None,
-        json_data: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
+        json_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make an authenticated HTTP request to Google APIs.
 
@@ -2413,11 +2413,11 @@ class GoogleWorkspaceServer:
         to: str,
         subject: str,
         body: str,
-        cc: Optional[str] = None,
-        bcc: Optional[str] = None,
-        thread_id: Optional[str] = None,
-        in_reply_to: Optional[str] = None,
-        references: Optional[str] = None,
+        cc: str | None = None,
+        bcc: str | None = None,
+        thread_id: str | None = None,
+        in_reply_to: str | None = None,
+        references: str | None = None,
     ) -> str:
         """Build RFC 2822 email message and return base64url encoded.
 

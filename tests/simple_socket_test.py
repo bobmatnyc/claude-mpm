@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 # Add project to path
@@ -32,7 +32,7 @@ def test_hook_handler_improvements():
         "prompt": "Test prompt for improved hook handler",
         "session_id": "improvement_test",
         "cwd": str(Path.cwd()),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     hook_json = json.dumps(hook_event)
@@ -129,7 +129,7 @@ def test_connection_pool_fixes():
         test_data = {
             "event_type": "fix_test",
             "message": "Testing connection pool fixes",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         print("🧪 Testing event emission (expect connection failure)...")

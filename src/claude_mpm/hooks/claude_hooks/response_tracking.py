@@ -8,9 +8,9 @@ with their original requests.
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # Try to import _log from hook_handler, fall back to no-op
 try:
@@ -36,7 +36,7 @@ class ResponseTrackingManager:
     """Manager for response tracking functionality."""
 
     def __init__(self):
-        self.response_tracker: Optional[Any] = (
+        self.response_tracker: Any | None = (
             None  # Type hint changed to Any for lazy import
         )
         self.response_tracking_enabled = False
@@ -193,7 +193,7 @@ class ResponseTrackingManager:
                 "has_error": bool(event.get("error")),
                 "duration_ms": event.get("duration_ms"),
                 "working_directory": event.get("cwd", ""),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "tool_name": "Task",
                 "original_request_timestamp": request_info.get("timestamp"),
             }
@@ -367,7 +367,7 @@ class ResponseTrackingManager:
 
             # Track the response
             metadata = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "prompt_timestamp": prompt_data.get("timestamp"),
                 "working_directory": prompt_data.get("working_directory", ""),
                 "event_type": "assistant_response",

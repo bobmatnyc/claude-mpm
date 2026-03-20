@@ -16,8 +16,7 @@ DESIGN DECISIONS:
 import os
 import subprocess  # nosec B404 - required for process management
 import sys
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from ...constants import LogLevel
 from ...core.logger import get_logger
@@ -197,7 +196,7 @@ class RunCommand(BaseCommand):
     def __init__(self):
         super().__init__("run")
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         # Run command has minimal validation requirements
         # Most validation is handled by the ClaudeRunner and related services
@@ -549,7 +548,7 @@ class RunCommand(BaseCommand):
             # Update session usage
             session = session_manager.load_session(resume_session_id)
             if session:
-                session.last_used = datetime.now(timezone.utc).isoformat()
+                session.last_used = datetime.now(UTC).isoformat()
                 session.use_count += 1
                 session_manager.save_session(session)
         else:
@@ -1197,7 +1196,7 @@ def run_session_legacy(args):
         # Update session usage
         session = session_manager.load_session(resume_session_id)
         if session:
-            session.last_used = datetime.now(timezone.utc).isoformat()
+            session.last_used = datetime.now(UTC).isoformat()
             session.use_count += 1
             session_manager.save_session(session)
     else:

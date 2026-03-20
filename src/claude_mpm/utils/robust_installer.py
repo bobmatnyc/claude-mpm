@@ -18,7 +18,6 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from ..core.logger import get_logger
 
@@ -42,7 +41,7 @@ class InstallAttempt:
     strategy: InstallStrategy
     package: str
     success: bool
-    error: Optional[str]
+    error: str | None
     duration: float
     retry_count: int
 
@@ -79,16 +78,16 @@ class RobustPackageInstaller:
         self.retry_delay = retry_delay
         self.timeout = timeout
         self.use_cache = use_cache
-        self.attempts: List[InstallAttempt] = []
-        self.success_cache: Dict[str, bool] = {}
+        self.attempts: list[InstallAttempt] = []
+        self.success_cache: dict[str, bool] = {}
         self.in_virtualenv = self._check_virtualenv()
         self.is_uv_tool = self._check_uv_tool_installation()
         self.is_pep668_managed = self._check_pep668_managed()
         self.pep668_warning_shown = False
 
     def install_package(
-        self, package_spec: str, strategies: Optional[List[InstallStrategy]] = None
-    ) -> Tuple[bool, Optional[str]]:
+        self, package_spec: str, strategies: list[InstallStrategy] | None = None
+    ) -> tuple[bool, str | None]:
         """
         Install a package using robust retry logic and multiple strategies.
 
@@ -171,7 +170,7 @@ class RobustPackageInstaller:
 
     def _attempt_install(
         self, package_spec: str, strategy: InstallStrategy
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """
         Attempt to install a package using a specific strategy.
 
@@ -316,7 +315,7 @@ class RobustPackageInstaller:
 
     def _build_install_command(
         self, package_spec: str, strategy: InstallStrategy
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Build the installation command for a given strategy.
 
@@ -428,7 +427,7 @@ class RobustPackageInstaller:
 
         return package_name.lower() in special_packages
 
-    def _get_special_strategies(self, package_name: str) -> List[InstallStrategy]:
+    def _get_special_strategies(self, package_name: str) -> list[InstallStrategy]:
         """
         Get special installation strategies for problematic packages.
 
@@ -543,7 +542,7 @@ class RobustPackageInstaller:
             logger.debug(f"Verification error for {package_name}: {e}")
             return False
 
-    def _is_retryable_error(self, error: Optional[str]) -> bool:
+    def _is_retryable_error(self, error: str | None) -> bool:
         """
         Determine if an error is worth retrying.
 
@@ -653,8 +652,8 @@ class RobustPackageInstaller:
         return f"Multiple errors: {' | '.join(errors)}"
 
     def install_packages(
-        self, packages: List[str], parallel: bool = False
-    ) -> Tuple[List[str], List[str], Dict[str, str]]:
+        self, packages: list[str], parallel: bool = False
+    ) -> tuple[list[str], list[str], dict[str, str]]:
         """
         Install multiple packages with robust error handling.
 
@@ -695,7 +694,7 @@ class RobustPackageInstaller:
 
         return successful, failed, errors
 
-    def _attempt_batch_install(self, packages: List[str]) -> Tuple[bool, Optional[str]]:
+    def _attempt_batch_install(self, packages: list[str]) -> tuple[bool, str | None]:
         """
         Attempt to install multiple packages in a single pip command.
 
@@ -789,7 +788,7 @@ class RobustPackageInstaller:
         lines.append("")
 
         # Details by package
-        packages: Dict[str, List[InstallAttempt]] = {}
+        packages: dict[str, list[InstallAttempt]] = {}
         for attempt in self.attempts:
             if attempt.package not in packages:
                 packages[attempt.package] = []
@@ -812,8 +811,8 @@ class RobustPackageInstaller:
 
 
 def install_with_retry(
-    packages: List[str], max_retries: int = 3, verbose: bool = False
-) -> Tuple[bool, str]:
+    packages: list[str], max_retries: int = 3, verbose: bool = False
+) -> tuple[bool, str]:
     """
     Convenience function to install packages with retry logic.
 

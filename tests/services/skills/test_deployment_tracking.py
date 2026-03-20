@@ -12,7 +12,7 @@ DESIGN DECISIONS:
 """
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -166,9 +166,7 @@ class TestTrackDeployedSkill:
         with patch(
             "claude_mpm.services.skills.selective_skill_deployer.datetime"
         ) as mock_dt:
-            mock_dt.now.return_value = real_datetime(
-                2025, 12, 22, 10, 0, 0, tzinfo=timezone.utc
-            )
+            mock_dt.now.return_value = real_datetime(2025, 12, 22, 10, 0, 0, tzinfo=UTC)
 
             track_deployed_skill(tmp_path, "test-skill", "claude-mpm")
 
@@ -202,18 +200,14 @@ class TestTrackDeployedSkill:
         with patch(
             "claude_mpm.services.skills.selective_skill_deployer.datetime"
         ) as mock_dt:
-            mock_dt.now.return_value = real_datetime(
-                2025, 12, 22, 10, 0, 0, tzinfo=timezone.utc
-            )
+            mock_dt.now.return_value = real_datetime(2025, 12, 22, 10, 0, 0, tzinfo=UTC)
             track_deployed_skill(tmp_path, "test-skill", "old-collection")
 
         # Second deployment
         with patch(
             "claude_mpm.services.skills.selective_skill_deployer.datetime"
         ) as mock_dt:
-            mock_dt.now.return_value = real_datetime(
-                2025, 12, 22, 11, 0, 0, tzinfo=timezone.utc
-            )
+            mock_dt.now.return_value = real_datetime(2025, 12, 22, 11, 0, 0, tzinfo=UTC)
             track_deployed_skill(tmp_path, "test-skill", "new-collection")
 
         index = load_deployment_index(tmp_path)
@@ -262,9 +256,7 @@ class TestUntrackSkill:
         with patch(
             "claude_mpm.services.skills.selective_skill_deployer.datetime"
         ) as mock_dt:
-            mock_dt.now.return_value = real_datetime(
-                2025, 12, 22, 12, 0, 0, tzinfo=timezone.utc
-            )
+            mock_dt.now.return_value = real_datetime(2025, 12, 22, 12, 0, 0, tzinfo=UTC)
             untrack_skill(tmp_path, "skill-a")
 
         index = load_deployment_index(tmp_path)

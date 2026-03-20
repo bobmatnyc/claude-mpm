@@ -6,7 +6,7 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ...core.config import Config
 from ...core.logger import get_logger
@@ -19,19 +19,19 @@ class CommandResult:
 
     success: bool
     exit_code: int = 0
-    message: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
+    message: str | None = None
+    data: dict[str, Any] | None = None
 
     @classmethod
     def success_result(
-        cls, message: Optional[str] = None, data: Optional[Dict[str, Any]] = None
+        cls, message: str | None = None, data: dict[str, Any] | None = None
     ) -> "CommandResult":
         """Create a success result."""
         return cls(success=True, exit_code=0, message=message, data=data)
 
     @classmethod
     def error_result(
-        cls, message: str, exit_code: int = 1, data: Optional[Dict[str, Any]] = None
+        cls, message: str, exit_code: int = 1, data: dict[str, Any] | None = None
     ) -> "CommandResult":
         """Create an error result."""
         return cls(success=False, exit_code=exit_code, message=message, data=data)
@@ -57,8 +57,8 @@ class BaseCommand(ABC):
         """
         self.command_name = command_name
         self.logger = get_logger(f"cli.{command_name}")
-        self._config: Optional[Config] = None
-        self._working_dir: Optional[Path] = None
+        self._config: Config | None = None
+        self._working_dir: Path | None = None
 
     @property
     def config(self) -> Config:
@@ -107,7 +107,7 @@ class BaseCommand(ABC):
         else:
             self._config = config_loader.load_main_config()
 
-    def validate_args(self, args) -> Optional[str]:
+    def validate_args(self, args) -> str | None:
         """
         Validate command arguments.
 
@@ -225,7 +225,7 @@ class AgentCommand(BaseCommand):
         # Default to working directory
         return self.working_dir
 
-    def get_agent_pattern(self, args) -> Optional[str]:
+    def get_agent_pattern(self, args) -> str | None:
         """Get agent name pattern from arguments."""
         return getattr(args, "agent", None)
 

@@ -5,7 +5,7 @@ user token-based access to channels, messages, and workspace features.
 """
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import aiohttp
@@ -202,7 +202,7 @@ class SlackOAuthProvider(OAuthProvider):
                 # Slack user tokens are long-lived (no expiration by default)
                 # We set a far-future expiration as they don't expire unless revoked
                 # Using 1 year as a reasonable "long-lived" indicator
-                expires_at = datetime.now(timezone.utc) + timedelta(days=365)
+                expires_at = datetime.now(UTC) + timedelta(days=365)
 
                 # Extract scopes from authed_user
                 scopes_str = authed_user.get("scope", "")
@@ -282,12 +282,10 @@ class SlackOAuthProvider(OAuthProvider):
                 # Calculate expiration
                 expires_in = result.get("expires_in")
                 if expires_in:
-                    expires_at = datetime.now(timezone.utc) + timedelta(
-                        seconds=expires_in
-                    )
+                    expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
                 else:
                     # Default to 1 year for long-lived tokens
-                    expires_at = datetime.now(timezone.utc) + timedelta(days=365)
+                    expires_at = datetime.now(UTC) + timedelta(days=365)
 
                 # Extract scopes
                 scopes_str = result.get("scope", authed_user.get("scope", ""))

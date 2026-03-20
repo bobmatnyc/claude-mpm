@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Memory Categorization Service - Categorizes learnings into appropriate sections."""
 
-from typing import List
-
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -117,7 +115,7 @@ class MemoryCategorizationService:
 
         return "Current Technical Context"
 
-    def categorize_learnings_batch(self, learnings: List[str]) -> dict:
+    def categorize_learnings_batch(self, learnings: list[str]) -> dict:
         """Categorize multiple learnings at once.
 
         Args:

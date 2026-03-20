@@ -14,8 +14,8 @@ WHY this is needed:
 import functools
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from ..core.hook_manager import get_hook_manager
 from ..core.logger import get_logger
@@ -123,7 +123,7 @@ class PMHookInterceptor:
 
         return wrapper
 
-    def _extract_todos_from_args(self, args, kwargs) -> List[Dict[str, Any]]:
+    def _extract_todos_from_args(self, args, kwargs) -> list[dict[str, Any]]:
         """Extract todos from function arguments.
 
         Args:
@@ -150,7 +150,7 @@ class PMHookInterceptor:
         return []
 
     def _update_args_with_todos(
-        self, args, kwargs, modified_todos: List[Dict[str, Any]]
+        self, args, kwargs, modified_todos: list[dict[str, Any]]
     ):
         """Update function arguments with modified todos list.
 
@@ -185,7 +185,7 @@ class PMHookInterceptor:
         kwargs["todos"] = modified_todos
         return args, kwargs
 
-    def trigger_manual_todowrite_hooks(self, todos: List[Dict[str, Any]]):
+    def trigger_manual_todowrite_hooks(self, todos: list[dict[str, Any]]):
         """Manually trigger TodoWrite hooks for given todos.
 
         This method can be called directly when TodoWrite operations
@@ -201,7 +201,7 @@ class PMHookInterceptor:
                 {
                     "todos": todos,
                     "source": "PM_Manual",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -216,7 +216,7 @@ class PMHookInterceptor:
                     "todos_count": len(todos),
                     "source": "PM_Manual",
                     "success": True,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -235,7 +235,7 @@ class PMHookInterceptor:
             self.logger.error(f"Error manually triggering TodoWrite hooks: {e}")
             return False
 
-    def get_instruction_reinforcement_metrics(self) -> Dict[str, Any]:
+    def get_instruction_reinforcement_metrics(self) -> dict[str, Any]:
         """Get metrics from the instruction reinforcement hook.
 
         Returns:
@@ -250,7 +250,7 @@ class PMHookInterceptor:
 
 
 # Global instance
-_pm_hook_interceptor: Optional[PMHookInterceptor] = None
+_pm_hook_interceptor: PMHookInterceptor | None = None
 
 
 def get_pm_hook_interceptor(instruction_reinforcement_config=None) -> PMHookInterceptor:
@@ -269,7 +269,7 @@ def get_pm_hook_interceptor(instruction_reinforcement_config=None) -> PMHookInte
     return _pm_hook_interceptor
 
 
-def trigger_pm_todowrite_hooks(todos: List[Dict[str, Any]]) -> bool:
+def trigger_pm_todowrite_hooks(todos: list[dict[str, Any]]) -> bool:
     """Convenience function to trigger PM TodoWrite hooks.
 
     Args:
@@ -282,7 +282,7 @@ def trigger_pm_todowrite_hooks(todos: List[Dict[str, Any]]) -> bool:
     return interceptor.trigger_manual_todowrite_hooks(todos)
 
 
-def simulate_pm_todowrite_operation(todos: List[Dict[str, Any]]):
+def simulate_pm_todowrite_operation(todos: list[dict[str, Any]]):
     """Simulate a PM TodoWrite operation with proper hook triggering.
 
     This function is useful for testing and for cases where we want to
@@ -304,7 +304,7 @@ def simulate_pm_todowrite_operation(todos: List[Dict[str, Any]]):
     logger.info("PM TodoWrite simulation completed")
 
 
-def get_instruction_reinforcement_metrics() -> Dict[str, Any]:
+def get_instruction_reinforcement_metrics() -> dict[str, Any]:
     """Get instruction reinforcement metrics from the global PM hook interceptor.
 
     Returns:

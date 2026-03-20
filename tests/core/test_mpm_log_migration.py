@@ -9,7 +9,7 @@ to .claude-mpm/logs/mpm/ subdirectory with automatic migration.
 import asyncio
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -87,7 +87,7 @@ class TestMPMLogMigration:
             assert mpm_dir.exists()
 
             # Check for log file with today's date
-            today = datetime.now(timezone.utc).strftime("%Y%m%d")
+            today = datetime.now(UTC).strftime("%Y%m%d")
             expected_file = mpm_dir / f"mpm_{today}.log"
 
             # Wait for async write to complete
@@ -258,7 +258,7 @@ class TestMPMLogMigration:
             mpm_dir.mkdir(parents=True)
 
             # Create old MPM log files in new location
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             old_time = now - timedelta(hours=50)  # Older than default retention
             recent_time = now - timedelta(hours=10)  # Within retention period
 
@@ -378,7 +378,7 @@ class TestMPMLogMigration:
             assert mpm_dir.exists()
 
             # Find the log file
-            today = datetime.now(timezone.utc).strftime("%Y%m%d")
+            today = datetime.now(UTC).strftime("%Y%m%d")
             log_file = mpm_dir / f"mpm_{today}.log"
 
             # Wait for file to be written
@@ -475,7 +475,7 @@ class TestMPMLogManagerIntegration:
             mpm_dir.mkdir(parents=True)
 
             # Create files of different ages
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             old_file = mpm_dir / "mpm_old.log"
             recent_file = mpm_dir / "mpm_recent.log"
 

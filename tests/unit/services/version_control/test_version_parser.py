@@ -14,7 +14,7 @@ Based on: tests/unit/services/cli/test_session_resume_helper.py (Gold Standard)
 
 import json
 import subprocess
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import Mock, mock_open, patch
 
@@ -52,7 +52,7 @@ def sample_version_metadata():
     return VersionMetadata(
         version="1.2.3",
         source=VersionSource.GIT_TAGS,
-        release_date=datetime.now(timezone.utc),
+        release_date=datetime.now(UTC),
         commit_hash="abc123",
         author="Test Author",
         message="Release v1.2.3",
@@ -108,7 +108,7 @@ class TestVersionMetadataClass:
     def test_init_with_full_data(self):
         """Test initialization with complete data."""
         # Arrange
-        release_date = datetime.now(timezone.utc)
+        release_date = datetime.now(UTC)
         changes = ["Added feature", "Fixed bug"]
 
         # Act

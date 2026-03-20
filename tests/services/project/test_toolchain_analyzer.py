@@ -12,8 +12,8 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 2
 import json
 import shutil
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 

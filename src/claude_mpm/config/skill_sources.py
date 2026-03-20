@@ -33,7 +33,6 @@ Example:
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
 from urllib.parse import urlparse
 
 import yaml
@@ -91,7 +90,7 @@ class SkillSource:
     branch: str = "main"
     priority: int = 100
     enabled: bool = True
-    token: Optional[str] = None
+    token: str | None = None
 
     def __post_init__(self):
         """Validate skill source configuration after initialization.
@@ -103,7 +102,7 @@ class SkillSource:
         if errors:
             raise ValueError(f"Invalid skill source configuration: {', '.join(errors)}")
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate skill source configuration.
 
         Returns:
@@ -207,7 +206,7 @@ class SkillSourceConfiguration:
         >>> print(f"Loaded {len(sources)} skill sources")
     """
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, config_path: Path | None = None):
         """Initialize configuration manager.
 
         Args:
@@ -230,7 +229,7 @@ class SkillSourceConfiguration:
         """
         return cls(config_path=config_path)
 
-    def load(self) -> List[SkillSource]:
+    def load(self) -> list[SkillSource]:
         """Load skill sources from configuration file.
 
         Returns:
@@ -296,7 +295,7 @@ class SkillSourceConfiguration:
             self.logger.info("Using default configuration")
             return self._get_default_sources()
 
-    def save(self, sources: List[SkillSource]) -> None:
+    def save(self, sources: list[SkillSource]) -> None:
         """Save skill sources to configuration file.
 
         Args:
@@ -429,7 +428,7 @@ class SkillSourceConfiguration:
         self.logger.info(f"Removed skill source: {source_id}")
         return True
 
-    def get_source(self, source_id: str) -> Optional[SkillSource]:
+    def get_source(self, source_id: str) -> SkillSource | None:
         """Get a specific skill source by ID.
 
         Args:
@@ -494,7 +493,7 @@ class SkillSourceConfiguration:
         self.save(sources)
         self.logger.info(f"Updated skill source: {source_id}")
 
-    def get_enabled_sources(self) -> List[SkillSource]:
+    def get_enabled_sources(self) -> list[SkillSource]:
         """Get all enabled skill sources sorted by priority.
 
         Returns:
@@ -514,7 +513,7 @@ class SkillSourceConfiguration:
         enabled = [s for s in sources if s.enabled]
         return sorted(enabled, key=lambda s: s.priority)
 
-    def validate_priority_conflicts(self) -> List[str]:
+    def validate_priority_conflicts(self) -> list[str]:
         """Check for priority conflicts between sources.
 
         Returns:
@@ -550,7 +549,7 @@ class SkillSourceConfiguration:
 
         return warnings
 
-    def _get_default_sources(self) -> List[SkillSource]:
+    def _get_default_sources(self) -> list[SkillSource]:
         """Get default skill sources (system + official Anthropic).
 
         Returns:

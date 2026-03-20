@@ -22,7 +22,7 @@ following the naming convention: {agent_id}_memories.md
 """
 
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from typing import Any, ClassVar
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.enums import OperationResult
@@ -62,7 +62,7 @@ class AgentMemoryManager(MemoryServiceInterface):
     }
 
     def __init__(
-        self, config: Optional[Config] = None, working_directory: Optional[Path] = None
+        self, config: Config | None = None, working_directory: Path | None = None
     ):
         """Initialize the memory manager.
 
@@ -162,7 +162,7 @@ class AgentMemoryManager(MemoryServiceInterface):
         self.logger.info(f"Creating default memory for agent: {agent_id}")
         return self._create_default_memory(agent_id)
 
-    def update_agent_memory(self, agent_id: str, new_items: List[str]) -> bool:
+    def update_agent_memory(self, agent_id: str, new_items: list[str]) -> bool:
         """Add new learning items to agent memory as a simple list.
 
         WHY: Simplified memory system - all memories are stored as a simple list
@@ -229,7 +229,7 @@ class AgentMemoryManager(MemoryServiceInterface):
 
         return template
 
-    def optimize_memory(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+    def optimize_memory(self, agent_id: str | None = None) -> dict[str, Any]:
         """Optimize agent memory by consolidating/cleaning memories.
 
         WHY: Over time, memory files accumulate redundant or outdated information.
@@ -259,7 +259,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             self.logger.error(f"Error optimizing memory: {e}")
             return {"success": False, "error": str(e)}
 
-    def build_memories_from_docs(self, force_rebuild: bool = False) -> Dict[str, Any]:
+    def build_memories_from_docs(self, force_rebuild: bool = False) -> dict[str, Any]:
         """Build agent memories from project documentation.
 
         WHY: Project documentation contains valuable knowledge that should be
@@ -285,8 +285,8 @@ class AgentMemoryManager(MemoryServiceInterface):
             return {"success": False, "error": str(e)}
 
     def route_memory_command(
-        self, content: str, context: Optional[Dict] = None
-    ) -> Dict[str, Any]:
+        self, content: str, context: dict | None = None
+    ) -> dict[str, Any]:
         """Route memory command to appropriate agent via PM delegation.
 
         WHY: Memory commands like "remember this for next time" need to be analyzed
@@ -433,7 +433,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             )
             return False
 
-    def _add_learnings_to_memory(self, agent_id: str, learnings: List[str]) -> bool:
+    def _add_learnings_to_memory(self, agent_id: str, learnings: list[str]) -> bool:
         """Add new learnings to agent memory as a simple list.
 
         WHY: Simplified memory system - all memories are stored as a simple list
@@ -515,7 +515,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             self.logger.error(f"Error adding learnings to memory for {agent_id}: {e}")
             return False
 
-    def replace_agent_memory(self, agent_id: str, memory_items: List[str]) -> bool:
+    def replace_agent_memory(self, agent_id: str, memory_items: list[str]) -> bool:
         """Replace agent's memory with new content as a simple list.
 
         WHY: When agents provide complete memory updates through MEMORIES field,
@@ -550,7 +550,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             self.logger.error(f"Error replacing memory for {agent_id}: {e}")
             return False
 
-    def get_memory_status(self) -> Dict[str, Any]:
+    def get_memory_status(self) -> dict[str, Any]:
         """Get comprehensive memory system status.
 
         WHY: Provides detailed overview of memory system health, file sizes,
@@ -587,7 +587,7 @@ class AgentMemoryManager(MemoryServiceInterface):
 
         return status
 
-    def cross_reference_memories(self, query: Optional[str] = None) -> Dict[str, Any]:
+    def cross_reference_memories(self, query: str | None = None) -> dict[str, Any]:
         """Find common patterns and cross-references across agent memories.
 
         WHY: Different agents may have learned similar or related information.
@@ -608,7 +608,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             "deprecated": True,
         }
 
-    def get_all_memories_raw(self) -> Dict[str, Any]:
+    def get_all_memories_raw(self) -> dict[str, Any]:
         """Get all agent memories in structured JSON format.
 
         WHY: This provides programmatic access to all agent memories, allowing
@@ -641,7 +641,7 @@ class AgentMemoryManager(MemoryServiceInterface):
         )
         return self.file_service.save_memory_file(file_path, content)
 
-    def load_memory(self, agent_id: str) -> Optional[str]:
+    def load_memory(self, agent_id: str) -> str | None:
         """Load memory for a specific agent.
 
         WHY: This adapter method provides interface compliance by wrapping
@@ -694,7 +694,7 @@ class AgentMemoryManager(MemoryServiceInterface):
             self.logger.error(f"Failed to save memory for {agent_id}: {e}")
             return False
 
-    def validate_memory_size(self, content: str) -> Tuple[bool, Optional[str]]:
+    def validate_memory_size(self, content: str) -> tuple[bool, str | None]:
         """Validate memory content size and structure.
 
         WHY: This adapter method provides interface compliance by implementing
@@ -708,7 +708,7 @@ class AgentMemoryManager(MemoryServiceInterface):
         """
         return self.content_manager.validate_memory_size(content)
 
-    def get_memory_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_memory_metrics(self, agent_id: str | None = None) -> dict[str, Any]:
         """Get memory usage metrics.
 
         WHY: This adapter method provides interface compliance by gathering
@@ -774,7 +774,7 @@ class AgentMemoryManager(MemoryServiceInterface):
 
 # Convenience functions for external use
 def get_memory_manager(
-    config: Optional[Config] = None, working_directory: Optional[Path] = None
+    config: Config | None = None, working_directory: Path | None = None
 ) -> AgentMemoryManager:
     """Get a singleton instance of the memory manager.
 

@@ -5,7 +5,7 @@ Extracted from AgentDeploymentService to reduce complexity and improve maintaina
 """
 
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from claude_mpm.core.config import Config
 
@@ -17,7 +17,7 @@ class DeploymentConfigLoader:
         """Initialize the config loader with a logger."""
         self.logger = logger
 
-    def load_deployment_config(self, config: Optional[Config]) -> Tuple[Config, list]:
+    def load_deployment_config(self, config: Config | None) -> tuple[Config, list]:
         """
         Load and process deployment configuration.
 
@@ -58,9 +58,7 @@ class DeploymentConfigLoader:
 
         return config, disabled_agents
 
-    def get_deployment_settings(
-        self, config: Optional[Config] = None
-    ) -> Dict[str, Any]:
+    def get_deployment_settings(self, config: Config | None = None) -> dict[str, Any]:
         """
         Get comprehensive deployment settings from configuration.
 
@@ -99,7 +97,7 @@ class DeploymentConfigLoader:
         }
 
     def should_deploy_agent(
-        self, agent_id: str, agent_source: str, config: Optional[Config] = None
+        self, agent_id: str, agent_source: str, config: Config | None = None
     ) -> bool:
         """
         Check if an agent should be deployed based on configuration.

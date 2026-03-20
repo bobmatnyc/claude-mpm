@@ -33,10 +33,10 @@ DESIGN DECISIONS:
 import json
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 import psutil
 
@@ -71,8 +71,8 @@ class OrphanInfo:
         orphan_type: OrphanType,
         severity: OrphanSeverity,
         description: str,
-        details: Dict[str, Any],
-        cleanup_action: Optional[str] = None,
+        details: dict[str, Any],
+        cleanup_action: str | None = None,
     ):
         """
         Initialize orphan info.
@@ -89,9 +89,9 @@ class OrphanInfo:
         self.description = description
         self.details = details
         self.cleanup_action = cleanup_action
-        self.detected_at = datetime.now(timezone.utc)
+        self.detected_at = datetime.now(UTC)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "type": self.orphan_type.value,
@@ -134,7 +134,7 @@ class OrphanDetectionService(SyncBaseService):
     USER_PORT_RANGE_START = 3000
     USER_PORT_RANGE_END = 9999
 
-    def __init__(self, project_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None):
         """
         Initialize the orphan detection service.
 
@@ -201,7 +201,7 @@ class OrphanDetectionService(SyncBaseService):
         """
         return any(start <= port <= end for start, end in self.PROTECTED_PORT_RANGES)
 
-    def _get_process_age(self, pid: int) -> Optional[float]:
+    def _get_process_age(self, pid: int) -> float | None:
         """
         Get process age in seconds.
 
@@ -218,7 +218,7 @@ class OrphanDetectionService(SyncBaseService):
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return None
 
-    def _is_process_safe_to_kill(self, pid: int, cmdline: str) -> Tuple[bool, str]:
+    def _is_process_safe_to_kill(self, pid: int, cmdline: str) -> tuple[bool, str]:
         """
         Check if a process is safe to kill.
 
@@ -246,7 +246,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return True, "Safe to cleanup"
 
-    def scan_dead_pids(self) -> List[OrphanInfo]:
+    def scan_dead_pids(self) -> list[OrphanInfo]:
         """
         Scan for dead PIDs in state files.
 
@@ -292,7 +292,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return orphans
 
-    def scan_deleted_projects(self) -> List[OrphanInfo]:
+    def scan_deleted_projects(self) -> list[OrphanInfo]:
         """
         Scan global registry for projects that no longer exist.
 
@@ -334,7 +334,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return orphans
 
-    def scan_untracked_processes(self) -> List[OrphanInfo]:
+    def scan_untracked_processes(self) -> list[OrphanInfo]:
         """
         Scan for processes on managed ports without state tracking.
 
@@ -399,7 +399,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return orphans
 
-    def scan_pm2_orphans(self) -> List[OrphanInfo]:
+    def scan_pm2_orphans(self) -> list[OrphanInfo]:
         """
         Scan for orphaned PM2 processes.
 
@@ -466,7 +466,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return orphans
 
-    def scan_docker_orphans(self) -> List[OrphanInfo]:
+    def scan_docker_orphans(self) -> list[OrphanInfo]:
         """
         Scan for orphaned Docker containers.
 
@@ -540,7 +540,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return orphans
 
-    def _get_tracked_pm2_processes(self) -> Set[str]:
+    def _get_tracked_pm2_processes(self) -> set[str]:
         """
         Get set of PM2 process names tracked in state files.
 
@@ -568,7 +568,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return tracked
 
-    def _get_tracked_docker_containers(self) -> Set[str]:
+    def _get_tracked_docker_containers(self) -> set[str]:
         """
         Get set of Docker containers tracked in state files.
 
@@ -598,7 +598,7 @@ class OrphanDetectionService(SyncBaseService):
 
         return tracked
 
-    def scan_all_orphans(self) -> Dict[str, List[OrphanInfo]]:
+    def scan_all_orphans(self) -> dict[str, list[OrphanInfo]]:
         """
         Perform comprehensive orphan scan.
 
@@ -622,7 +622,7 @@ class OrphanDetectionService(SyncBaseService):
         self,
         orphan: OrphanInfo,
         force: bool = False,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Clean up a specific orphan.
 
@@ -659,7 +659,7 @@ class OrphanDetectionService(SyncBaseService):
             self.log_error(f"Error cleaning up orphan: {e}")
             return False, str(e)
 
-    def _cleanup_dead_pid(self, orphan: OrphanInfo) -> Tuple[bool, str]:
+    def _cleanup_dead_pid(self, orphan: OrphanInfo) -> tuple[bool, str]:
         """Clean up dead PID entry from state file."""
         try:
             with self.state_file.open() as f:
@@ -679,7 +679,7 @@ class OrphanDetectionService(SyncBaseService):
         except Exception as e:
             return False, f"Failed to cleanup: {e}"
 
-    def _cleanup_deleted_project(self, orphan: OrphanInfo) -> Tuple[bool, str]:
+    def _cleanup_deleted_project(self, orphan: OrphanInfo) -> tuple[bool, str]:
         """Clean up deleted project entry from global registry."""
         try:
             with self.global_registry_file.open() as f:
@@ -703,7 +703,7 @@ class OrphanDetectionService(SyncBaseService):
         self,
         orphan: OrphanInfo,
         force: bool,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Clean up untracked process."""
         pid = orphan.details.get("pid")
         cmdline = orphan.details.get("cmdline", "")
@@ -735,7 +735,7 @@ class OrphanDetectionService(SyncBaseService):
         self,
         orphan: OrphanInfo,
         force: bool,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Clean up orphaned PM2 process."""
         if not force:
             return False, "PM2 cleanup requires force=True"
@@ -762,7 +762,7 @@ class OrphanDetectionService(SyncBaseService):
         self,
         orphan: OrphanInfo,
         force: bool,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Clean up orphaned Docker container."""
         if not force:
             return False, "Docker cleanup requires force=True"

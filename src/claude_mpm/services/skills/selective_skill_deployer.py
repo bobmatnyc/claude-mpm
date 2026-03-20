@@ -37,9 +37,9 @@ References:
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 import yaml
 
@@ -111,7 +111,7 @@ CORE_SKILLS = {
 }
 
 
-def parse_agent_frontmatter(agent_file: Path) -> Dict[str, Any]:
+def parse_agent_frontmatter(agent_file: Path) -> dict[str, Any]:
     """Parse YAML frontmatter from agent markdown file.
 
     Args:
@@ -144,7 +144,7 @@ def parse_agent_frontmatter(agent_file: Path) -> Dict[str, Any]:
         return {}
 
 
-def get_skills_from_agent(frontmatter: Dict[str, Any]) -> Set[str]:
+def get_skills_from_agent(frontmatter: dict[str, Any]) -> set[str]:
     """Extract skill names from agent frontmatter (handles both formats).
 
     Supports both legacy and new formats:
@@ -196,7 +196,7 @@ def get_skills_from_agent(frontmatter: Dict[str, Any]) -> Set[str]:
     return set()
 
 
-def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
+def get_skills_from_mapping(agent_ids: list[str]) -> set[str]:
     """Get skills for agents using SkillToAgentMapper inference.
 
     DEPRECATED: This function is deprecated as of Phase 3 refactor.
@@ -230,7 +230,7 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
     return set()
 
 
-def extract_skills_from_content(agent_file: Path) -> Set[str]:
+def extract_skills_from_content(agent_file: Path) -> set[str]:
     """Extract skill names from [SKILL: skill-name] markers in agent file content.
 
     This function complements frontmatter skill extraction by finding inline
@@ -294,7 +294,7 @@ def extract_skills_from_content(agent_file: Path) -> Set[str]:
     return skills
 
 
-def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
+def get_required_skills_from_agents(agents_dir: Path) -> set[str]:
     """Extract all skills referenced by deployed agents.
 
     MAJOR CHANGE (Phase 3): Now uses TWO sources for skill discovery:
@@ -410,7 +410,7 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
 # === Deployment Tracking Functions ===
 
 
-def load_deployment_index(claude_skills_dir: Path) -> Dict[str, Any]:
+def load_deployment_index(claude_skills_dir: Path) -> dict[str, Any]:
     """Load deployment tracking index from ~/.claude/skills/.
 
     Args:
@@ -455,7 +455,7 @@ def load_deployment_index(claude_skills_dir: Path) -> Dict[str, Any]:
         return {"deployed_skills": {}, "user_requested_skills": [], "last_sync": None}
 
 
-def save_deployment_index(claude_skills_dir: Path, index: Dict[str, Any]) -> None:
+def save_deployment_index(claude_skills_dir: Path, index: dict[str, Any]) -> None:
     """Save deployment tracking index to ~/.claude/skills/.
 
     Args:
@@ -504,11 +504,11 @@ def track_deployed_skill(
     # Add skill to deployed_skills
     index["deployed_skills"][skill_name] = {
         "collection": collection,
-        "deployed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "deployed_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     }
 
     # Update last_sync timestamp
-    index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    index["last_sync"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     save_deployment_index(claude_skills_dir, index)
     logger.debug(f"Tracked deployment: {skill_name} from {collection}")
@@ -531,16 +531,14 @@ def untrack_skill(claude_skills_dir: Path, skill_name: str) -> None:
 
     if skill_name in index["deployed_skills"]:
         del index["deployed_skills"][skill_name]
-        index["last_sync"] = (
-            datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        )
+        index["last_sync"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         save_deployment_index(claude_skills_dir, index)
         logger.debug(f"Untracked skill: {skill_name}")
 
 
 def cleanup_orphan_skills(
-    claude_skills_dir: Path, required_skills: Set[str]
-) -> Dict[str, Any]:
+    claude_skills_dir: Path, required_skills: set[str]
+) -> dict[str, Any]:
     """Remove skills deployed by claude-mpm but no longer referenced by agents.
 
     This function:
@@ -647,7 +645,7 @@ def cleanup_orphan_skills(
 # === Configuration Management Functions ===
 
 
-def save_agent_skills_to_config(skills: List[str], config_path: Path) -> None:
+def save_agent_skills_to_config(skills: list[str], config_path: Path) -> None:
     """Save agent-scanned skills to configuration.yaml under skills.agent_referenced.
 
     Args:
@@ -693,7 +691,7 @@ def save_agent_skills_to_config(skills: List[str], config_path: Path) -> None:
         raise
 
 
-def get_skills_to_deploy(config_path: Path) -> Tuple[List[str], str]:
+def get_skills_to_deploy(config_path: Path) -> tuple[list[str], str]:
     """Resolve which skills to deploy based on configuration priority.
 
     Returns (skills_list, source) where source is 'user_defined' or 'agent_referenced'.
@@ -746,7 +744,7 @@ def get_skills_to_deploy(config_path: Path) -> Tuple[List[str], str]:
 # === User-Requested Skills Management ===
 
 
-def get_user_requested_skills(claude_skills_dir: Path) -> List[str]:
+def get_user_requested_skills(claude_skills_dir: Path) -> list[str]:
     """Get list of user-requested skills.
 
     Args:
@@ -798,7 +796,7 @@ def add_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> bool:
 
     user_requested.append(skill_name)
     index["user_requested_skills"] = user_requested
-    index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    index["last_sync"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     save_deployment_index(claude_skills_dir, index)
     logger.info(f"Added {skill_name} to user_requested_skills")
@@ -841,7 +839,7 @@ def remove_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> boo
 
     user_requested.remove(skill_name)
     index["user_requested_skills"] = user_requested
-    index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    index["last_sync"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
     save_deployment_index(claude_skills_dir, index)
     logger.info(f"Removed {skill_name} from user_requested_skills")

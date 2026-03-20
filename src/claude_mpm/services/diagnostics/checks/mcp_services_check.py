@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from claude_mpm.core.logger import get_logger
 
@@ -248,7 +247,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 details={"error": str(e)},
             )
 
-    async def _test_mcp_connection(self, service_name: str, command: List[str]) -> Dict:
+    async def _test_mcp_connection(self, service_name: str, command: list[str]) -> dict:
         """Test MCP server connection by sending JSON-RPC requests."""
         result = {
             "connected": False,
@@ -312,7 +311,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                                 response_text = response_line.decode().strip()
                             else:
                                 break
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             break
 
                     if not response_text or not response_text.startswith("{"):
@@ -356,7 +355,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                                         tool.get("name", "unknown")
                                         for tool in tools[:5]
                                     ]
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             # Connection successful but tools query timed out
                             pass
                         except (json.JSONDecodeError, KeyError):
@@ -372,7 +371,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 else:
                     result["error"] = "Server exited without producing any output"
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Try to get any error output from stderr
                 stderr_output = ""
                 if process and process.stderr:
@@ -384,7 +383,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             stderr_output = stderr_data.decode(
                                 "utf-8", errors="ignore"
                             )[:200]
-                    except (asyncio.TimeoutError, OSError):
+                    except (TimeoutError, OSError):
                         pass
 
                 if stderr_output:
@@ -406,7 +405,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                             stderr_output = stderr_data.decode(
                                 "utf-8", errors="ignore"
                             )[:200]
-                    except (asyncio.TimeoutError, OSError):
+                    except (TimeoutError, OSError):
                         pass
 
                 if stderr_output:
@@ -428,7 +427,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 try:
                     process.terminate()
                     await asyncio.wait_for(process.wait(), timeout=2.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     process.kill()
                     await process.wait()
                 except Exception:
@@ -436,7 +435,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
         return result
 
-    def _check_service(self, service_name: str, config: Dict) -> DiagnosticResult:
+    def _check_service(self, service_name: str, config: dict) -> DiagnosticResult:
         """Check a specific MCP service."""
         details = {"service": service_name}
 
@@ -619,7 +618,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             details=details,
         )
 
-    def _check_pipx_installation(self, package_name: str) -> Tuple[bool, Optional[str]]:
+    def _check_pipx_installation(self, package_name: str) -> tuple[bool, str | None]:
         """Check if a package is installed via pipx."""
         try:
             result = subprocess.run(
@@ -659,9 +658,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
         return False, None
 
-    def _check_command_accessible(
-        self, command: List[str]
-    ) -> Tuple[bool, Optional[str]]:
+    def _check_command_accessible(self, command: list[str]) -> tuple[bool, str | None]:
         """Check if a command is accessible in PATH."""
         try:
             # Use 'which' on Unix-like systems
@@ -688,7 +685,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
         return False, None
 
-    def _verify_command_works(self, command: List[str]) -> bool:
+    def _verify_command_works(self, command: list[str]) -> bool:
         """Verify a command actually works by checking its --version output."""
         try:
             result = subprocess.run(
@@ -744,7 +741,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
     def _check_alternative_installations(
         self, service_name: str
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Check for alternative installation locations."""
         # Common installation paths
         paths_to_check = [
@@ -761,7 +758,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
         return False, None
 
-    def _get_service_version(self, command: List[str]) -> Optional[str]:
+    def _get_service_version(self, command: list[str]) -> str | None:
         """Get version information for a service."""
         try:
             result = subprocess.run(
@@ -787,7 +784,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
 
         return None
 
-    def _check_and_fix_kuzu_memory_config(self) -> Optional[DiagnosticResult]:
+    def _check_and_fix_kuzu_memory_config(self) -> DiagnosticResult | None:
         """Check for incorrect kuzu-memory configuration in .claude.json and offer auto-fix."""
         claude_config_path = Path.home() / ".claude.json"
 
@@ -872,7 +869,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             return None
 
     def _fix_kuzu_memory_args(
-        self, config_path: Path, config: Dict, new_args: List[str]
+        self, config_path: Path, config: dict, new_args: list[str]
     ) -> bool:
         """Fix kuzu-memory args in the configuration."""
         try:

@@ -24,7 +24,7 @@ Usage:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 import pytest
 
@@ -38,19 +38,19 @@ with open(SCENARIOS_FILE) as f:
     SCENARIOS = BEHAVIORAL_DATA["scenarios"]
 
 
-def get_scenarios_by_category(category: str) -> List[Dict[str, Any]]:
+def get_scenarios_by_category(category: str) -> list[dict[str, Any]]:
     """Get all scenarios for a specific category."""
     return [s for s in SCENARIOS if s["category"] == category]
 
 
-def get_scenarios_by_severity(severity: str) -> List[Dict[str, Any]]:
+def get_scenarios_by_severity(severity: str) -> list[dict[str, Any]]:
     """Get all scenarios for a specific severity level."""
     return [s for s in SCENARIOS if s["severity"] == severity]
 
 
 def validate_pm_response(
-    response: Union[str, Dict[str, Any]], expected_behavior: Dict[str, Any]
-) -> Dict[str, Any]:
+    response: str | dict[str, Any], expected_behavior: dict[str, Any]
+) -> dict[str, Any]:
     """
     Validate PM response against expected behavior.
 
@@ -994,7 +994,7 @@ def mock_pm_agent():
             self.context = {}
             self.available_agents = []  # Track available agents for delegation
 
-        def set_available_agents(self, agents: List[str]):
+        def set_available_agents(self, agents: list[str]):
             """Set available agents for this test scenario. PM must select from this list."""
             self.available_agents = agents
 

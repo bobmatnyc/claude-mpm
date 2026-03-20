@@ -15,9 +15,9 @@ Key Features:
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import yaml
 
@@ -37,18 +37,18 @@ class LocalAgentTemplate:
     author: str = ""  # Will be project name for local agents
     agent_type: str = ""  # Backwards compatibility field
 
-    metadata: Dict[str, Any] = None
-    capabilities: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
+    capabilities: dict[str, Any] = None
     instructions: str = ""
-    configuration: Dict[str, Any] = None
+    configuration: dict[str, Any] = None
 
     # Local-specific fields
     tier: str = "project"
     priority: int = 1000  # Higher priority for local agents
     is_local: bool = True
-    parent_agent: Optional[str] = None  # For inheritance from system agents
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    parent_agent: str | None = None  # For inheritance from system agents
+    created_at: str | None = None
+    updated_at: str | None = None
 
     def __post_init__(self):
         """Initialize default values."""
@@ -59,9 +59,9 @@ class LocalAgentTemplate:
         if self.configuration is None:
             self.configuration = {}
         if self.created_at is None:
-            self.created_at = datetime.now(timezone.utc).isoformat()
+            self.created_at = datetime.now(UTC).isoformat()
         if self.updated_at is None:
-            self.updated_at = datetime.now(timezone.utc).isoformat()
+            self.updated_at = datetime.now(UTC).isoformat()
 
         # Ensure metadata has required fields
         if "name" not in self.metadata:
@@ -73,7 +73,7 @@ class LocalAgentTemplate:
         if "tags" not in self.metadata:
             self.metadata["tags"] = ["local", "custom"]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         data = {
             "schema_version": self.schema_version,
@@ -99,7 +99,7 @@ class LocalAgentTemplate:
         return data
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> "LocalAgentTemplate":
+    def from_json(cls, data: dict[str, Any]) -> "LocalAgentTemplate":
         """Create from JSON dictionary."""
         return cls(
             schema_version=data.get("schema_version", "1.3.0"),
@@ -122,7 +122,7 @@ class LocalAgentTemplate:
 class LocalAgentTemplateManager:
     """Manager for local agent templates in project and user directories."""
 
-    def __init__(self, working_directory: Optional[Path] = None):
+    def __init__(self, working_directory: Path | None = None):
         """Initialize the local template manager.
 
         Args:
@@ -136,7 +136,7 @@ class LocalAgentTemplateManager:
         self.user_agents_dir = Path.home() / ".claude-mpm" / "agents"
 
         # Cache for discovered templates
-        self._template_cache: Dict[str, LocalAgentTemplate] = {}
+        self._template_cache: dict[str, LocalAgentTemplate] = {}
         self._cache_valid = False
 
         logger.info(
@@ -161,7 +161,7 @@ class LocalAgentTemplateManager:
 
     def discover_local_templates(
         self, force_refresh: bool = False
-    ) -> Dict[str, LocalAgentTemplate]:
+    ) -> dict[str, LocalAgentTemplate]:
         """Discover all local agent templates.
 
         Args:
@@ -231,7 +231,7 @@ class LocalAgentTemplateManager:
             except Exception as e:
                 logger.error(f"Failed to load template from {template_file}: {e}")
 
-    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+    def _extract_yaml_frontmatter(self, content: str) -> dict[str, Any] | None:
         """
         Extract and parse YAML frontmatter from markdown content.
 
@@ -262,8 +262,8 @@ class LocalAgentTemplateManager:
         description: str,
         instructions: str,
         model: str = "sonnet",
-        tools: Union[str, List[str]] = "*",
-        parent_agent: Optional[str] = None,
+        tools: str | list[str] = "*",
+        parent_agent: str | None = None,
         tier: str = "project",
     ) -> LocalAgentTemplate:
         """Create a new local agent template.
@@ -315,7 +315,7 @@ class LocalAgentTemplateManager:
         )
 
     def save_local_template(
-        self, template: LocalAgentTemplate, tier: Optional[str] = None
+        self, template: LocalAgentTemplate, tier: str | None = None
     ) -> Path:
         """Save a local agent template to disk.
 
@@ -337,7 +337,7 @@ class LocalAgentTemplateManager:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         # Update timestamp
-        template.updated_at = datetime.now(timezone.utc).isoformat()
+        template.updated_at = datetime.now(UTC).isoformat()
 
         # Save to JSON file
         template_file = target_dir / f"{template.agent_id}.json"
@@ -356,7 +356,7 @@ class LocalAgentTemplateManager:
         tier: str = "project",
         delete_deployment: bool = True,
         backup_first: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Delete a local agent template with comprehensive options.
 
         Args:
@@ -471,8 +471,8 @@ class LocalAgentTemplateManager:
         return result
 
     def _create_deletion_backup(
-        self, agent_id: str, files_to_delete: List[Tuple[str, str, Path]]
-    ) -> Dict[str, Any]:
+        self, agent_id: str, files_to_delete: list[tuple[str, str, Path]]
+    ) -> dict[str, Any]:
         """Create a backup of files before deletion.
 
         Args:
@@ -489,7 +489,7 @@ class LocalAgentTemplateManager:
 
         try:
             # Create backup directory
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_dir = (
                 self.working_directory
                 / ".claude-mpm"
@@ -522,11 +522,11 @@ class LocalAgentTemplateManager:
 
     def delete_multiple_templates(
         self,
-        agent_ids: List[str],
+        agent_ids: list[str],
         tier: str = "project",
         delete_deployment: bool = True,
         backup_first: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Delete multiple local agent templates.
 
         Args:
@@ -567,7 +567,7 @@ class LocalAgentTemplateManager:
 
         return results
 
-    def get_local_template(self, agent_id: str) -> Optional[LocalAgentTemplate]:
+    def get_local_template(self, agent_id: str) -> LocalAgentTemplate | None:
         """Get a specific local agent template.
 
         Args:
@@ -579,9 +579,7 @@ class LocalAgentTemplateManager:
         templates = self.discover_local_templates()
         return templates.get(agent_id)
 
-    def list_local_templates(
-        self, tier: Optional[str] = None
-    ) -> List[LocalAgentTemplate]:
+    def list_local_templates(self, tier: str | None = None) -> list[LocalAgentTemplate]:
         """List all local agent templates.
 
         Args:
@@ -597,7 +595,7 @@ class LocalAgentTemplateManager:
         return list(templates.values())
 
     def inherit_from_system_agent(
-        self, system_agent_id: str, new_agent_id: str, modifications: Dict[str, Any]
+        self, system_agent_id: str, new_agent_id: str, modifications: dict[str, Any]
     ) -> LocalAgentTemplate:
         """Create a local agent by inheriting from a system agent.
 
@@ -637,7 +635,7 @@ class LocalAgentTemplateManager:
 
         return template
 
-    def version_local_template(self, agent_id: str, new_version: str) -> Optional[Path]:
+    def version_local_template(self, agent_id: str, new_version: str) -> Path | None:
         """Create a versioned copy of a local agent template.
 
         Args:
@@ -667,7 +665,7 @@ class LocalAgentTemplateManager:
 
         # Update template version
         template.agent_version = new_version
-        template.updated_at = datetime.now(timezone.utc).isoformat()
+        template.updated_at = datetime.now(UTC).isoformat()
 
         # Save updated template
         self.save_local_template(template)
@@ -679,7 +677,7 @@ class LocalAgentTemplateManager:
 
     def validate_local_template(
         self, template: LocalAgentTemplate
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """Validate a local agent template.
 
         Args:

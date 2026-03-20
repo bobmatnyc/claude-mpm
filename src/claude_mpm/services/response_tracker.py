@@ -18,9 +18,9 @@ DESIGN DECISIONS:
 - Handles agent name normalization for consistent tracking
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
@@ -41,7 +41,7 @@ class ResponseTracker:
     expected by the hook handler.
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         """Initialize the response tracker.
 
         Args:
@@ -94,9 +94,9 @@ class ResponseTracker:
         agent_name: str,
         request: str,
         response: str,
-        session_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Path]:
+        session_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Path | None:
         """Track an agent response.
 
         WHY: This method provides the interface expected by hook_handler.py
@@ -145,7 +145,7 @@ class ResponseTracker:
             {
                 "agent": agent_name,
                 "tracked_by": "ResponseTracker",
-                "tracking_timestamp": datetime.now(timezone.utc).isoformat(),
+                "tracking_timestamp": datetime.now(UTC).isoformat(),
             }
         )
 
@@ -194,7 +194,7 @@ class ResponseTracker:
         """
         return self.enabled and self.session_logger is not None
 
-    def get_session_path(self) -> Optional[Path]:
+    def get_session_path(self) -> Path | None:
         """Get the current session directory path.
 
         Returns:
@@ -220,7 +220,7 @@ _tracker_instance = None
 _tracker_lock = Lock()
 
 
-def get_response_tracker(config: Optional[Config] = None) -> ResponseTracker:
+def get_response_tracker(config: Config | None = None) -> ResponseTracker:
     """Get the singleton response tracker instance with thread-safe initialization.
 
     Uses double-checked locking pattern to ensure thread safety.
@@ -248,9 +248,9 @@ def track_response(
     agent_name: str,
     request: str,
     response: str,
-    session_id: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Optional[Path]:
+    session_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> Path | None:
     """Convenience function to track a response.
 
     Args:

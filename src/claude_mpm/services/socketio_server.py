@@ -19,7 +19,6 @@ focused modules for better maintainability and testing.
 """
 
 import socket
-from typing import Optional
 
 # Import from the new modular structure
 from .socketio.client_proxy import SocketIOClientProxy
@@ -35,7 +34,7 @@ __all__ = [
 ]
 
 # Global instance for easy access
-_socketio_server: Optional[SocketIOServer] = None
+_socketio_server: SocketIOServer | None = None
 
 
 def get_socketio_server() -> SocketIOServer:

@@ -15,7 +15,7 @@ import json
 import re
 import subprocess  # nosec B404
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from ..utils.imports import safe_import
 
@@ -23,7 +23,7 @@ from ..utils.imports import safe_import
 get_logger = safe_import("claude_mpm.core.logger", "core.logger", ["get_logger"])
 
 # Global cache for Claude version to avoid duplicate detection/logging
-_CACHED_CLAUDE_VERSION: Optional[str] = None
+_CACHED_CLAUDE_VERSION: str | None = None
 _VERSION_DETECTED: bool = False
 
 # Output style types
@@ -59,7 +59,7 @@ class OutputStyleManager:
         self.settings_file = Path.home() / ".claude" / "settings.json"
 
         # Style definitions
-        self.styles: Dict[str, StyleConfig] = {
+        self.styles: dict[str, StyleConfig] = {
             "professional": StyleConfig(
                 source=Path(__file__).parent.parent
                 / "agents"
@@ -95,7 +95,7 @@ class OutputStyleManager:
         self.output_style_path = self.styles["professional"]["target"]
         self.mpm_output_style_path = self.styles["professional"]["source"]
 
-    def _detect_claude_version(self) -> Optional[str]:
+    def _detect_claude_version(self) -> str | None:
         """
         Detect Claude Code version by running 'claude --version'.
         Uses global cache to avoid duplicate detection and logging.
@@ -270,7 +270,7 @@ class OutputStyleManager:
 
     def deploy_output_style(
         self,
-        content: Optional[str] = None,
+        content: str | None = None,
         style: OutputStyleType = "professional",
         activate: bool = True,
     ) -> bool:
@@ -464,7 +464,7 @@ class OutputStyleManager:
             self.logger.warning(f"Failed to update settings: {e}")
             return False
 
-    def get_status_summary(self) -> Dict[str, str]:
+    def get_status_summary(self) -> dict[str, str]:
         """
         Get a summary of the output style status.
 
@@ -538,7 +538,7 @@ class OutputStyleManager:
         # If no frontmatter found, return as-is
         return full_content
 
-    def deploy_all_styles(self, activate_default: bool = True) -> Dict[str, bool]:
+    def deploy_all_styles(self, activate_default: bool = True) -> dict[str, bool]:
         """
         Deploy all available output styles to Claude Code.
 
@@ -548,7 +548,7 @@ class OutputStyleManager:
         Returns:
             Dictionary mapping style names to deployment success status
         """
-        results: Dict[str, bool] = {}
+        results: dict[str, bool] = {}
 
         # Check if professional style exists BEFORE deployment
         # This determines if this is a fresh install
@@ -633,7 +633,7 @@ class OutputStyleManager:
         """
         return self.deploy_output_style(style="teaching", activate=activate)
 
-    def list_available_styles(self) -> Dict[str, Dict[str, str]]:
+    def list_available_styles(self) -> dict[str, dict[str, str]]:
         """
         List all available output styles with their metadata.
 

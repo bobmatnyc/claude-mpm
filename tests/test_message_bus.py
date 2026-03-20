@@ -5,7 +5,7 @@ Test the Huey-based message bus implementation.
 import json
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -87,7 +87,7 @@ class TestMessageBus:
             "priority": "high",
             "subject": "Test Message",
             "body": "This is a test",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         task = bus.enqueue_message(message_data)
@@ -273,7 +273,7 @@ class TestMessagingDatabase:
                     "subject": f"Task for {project}",
                     "body": f"Body for {project}",
                     "status": "unread",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(UTC).isoformat(),
                 }
             )
 

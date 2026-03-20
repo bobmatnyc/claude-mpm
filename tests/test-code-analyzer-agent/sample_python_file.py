@@ -4,7 +4,7 @@ This file contains various Python constructs for comprehensive testing.
 """
 
 import subprocess
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Constants and variables
 API_KEY = "hardcoded-secret-123"  # Security issue - hardcoded secret
@@ -22,7 +22,7 @@ class DatabaseManager:
     def connect(self):
         """Simple connection method."""
 
-    def execute_query(self, query: str, params: Optional[Dict] = None):
+    def execute_query(self, query: str, params: dict | None = None):
         """Potential SQL injection vulnerability."""
         # BAD: String concatenation in SQL query
         full_query = f"SELECT * FROM users WHERE name = '{params.get('name')}'"
@@ -36,7 +36,7 @@ class DatabaseManager:
         )  # Command injection risk
 
     # Large method with high complexity (should be flagged)
-    def complex_method(self, data: List[Dict]) -> Dict:
+    def complex_method(self, data: list[dict]) -> dict:
         """Method with high cyclomatic complexity."""
         result = {}
 
@@ -81,7 +81,7 @@ class UserService:
         self.db = db_manager
         self.cache = {}
 
-    async def get_user(self, user_id: int) -> Optional[Dict]:
+    async def get_user(self, user_id: int) -> dict | None:
         """Async method with synchronous I/O issue."""
         # BAD: Synchronous I/O in async context
         with open("/tmp/user_cache.txt") as f:
@@ -89,7 +89,7 @@ class UserService:
 
         return {"id": user_id, "cached": cached_data}
 
-    def process_users(self, users: List[Dict]):
+    def process_users(self, users: list[dict]):
         """Method with exception swallowing."""
         processed = []
 
@@ -103,7 +103,7 @@ class UserService:
 
         return processed
 
-    def validate_user(self, user: Dict) -> Dict:
+    def validate_user(self, user: dict) -> dict:
         """User validation with unsafe deserialization."""
         import pickle
 

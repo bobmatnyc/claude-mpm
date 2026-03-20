@@ -21,7 +21,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from .pm_response_capture import PMResponse, PMResponseCapture, get_golden_responses_dir
 
@@ -34,7 +34,7 @@ class ResponseComparison:
     current_response: PMResponse
     baseline_response: PMResponse
     match_score: float  # 0.0-1.0, 1.0 = exact match
-    differences: List[str]
+    differences: list[str]
     semantic_match: bool
     exact_match: bool
     regression_detected: bool
@@ -47,7 +47,7 @@ class RegressionReport:
     total_scenarios: int
     passed: int
     failed: int
-    regressions: List[ResponseComparison]
+    regressions: list[ResponseComparison]
     timestamp: str
     baseline_version: str
     current_version: str
@@ -79,8 +79,8 @@ class ResponseReplay:
 
     def __init__(
         self,
-        responses_dir: Optional[str] = None,
-        golden_dir: Optional[str] = None,
+        responses_dir: str | None = None,
+        golden_dir: str | None = None,
         similarity_threshold: float = 0.85,
     ):
         """
@@ -107,7 +107,7 @@ class ResponseReplay:
         scenario_id: str,
         current_response: PMResponse,
         category: str = "general",
-        baseline_response: Optional[PMResponse] = None,
+        baseline_response: PMResponse | None = None,
     ) -> ResponseComparison:
         """
         Compare current response with baseline (golden) response.
@@ -170,8 +170,8 @@ class ResponseReplay:
 
     def run_regression_suite(
         self,
-        category: Optional[str] = None,
-        scenario_ids: Optional[List[str]] = None,
+        category: str | None = None,
+        scenario_ids: list[str] | None = None,
     ) -> RegressionReport:
         """
         Run regression tests for multiple scenarios.
@@ -272,7 +272,7 @@ class ResponseReplay:
         self,
         scenario_id: str,
         category: str = "general",
-    ) -> Optional[PMResponse]:
+    ) -> PMResponse | None:
         """
         Load golden response for scenario.
 
@@ -291,7 +291,7 @@ class ResponseReplay:
         self,
         scenario_id: str,
         category: str,
-    ) -> Optional[PMResponse]:
+    ) -> PMResponse | None:
         """Load golden response from storage."""
         category_dir = self.golden_dir / category
         if not category_dir.exists():
@@ -308,12 +308,12 @@ class ResponseReplay:
 
         return PMResponse.from_dict(data)
 
-    def _exact_match(self, current: Dict[str, Any], baseline: Dict[str, Any]) -> bool:
+    def _exact_match(self, current: dict[str, Any], baseline: dict[str, Any]) -> bool:
         """Check if two responses are exactly the same."""
         return current == baseline
 
     def _calculate_similarity(
-        self, current: Dict[str, Any], baseline: Dict[str, Any]
+        self, current: dict[str, Any], baseline: dict[str, Any]
     ) -> float:
         """
         Calculate similarity score between responses.
@@ -333,8 +333,8 @@ class ResponseReplay:
         return matcher.ratio()
 
     def _find_differences(
-        self, current: Dict[str, Any], baseline: Dict[str, Any]
-    ) -> List[str]:
+        self, current: dict[str, Any], baseline: dict[str, Any]
+    ) -> list[str]:
         """
         Find specific differences between responses.
 
@@ -374,7 +374,7 @@ class ResponseReplay:
 
     def cleanup_old_responses(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         days_to_keep: int = 30,
     ):
         """
@@ -418,7 +418,7 @@ class GoldenResponseManager:
         ...     print("Golden response updated")
     """
 
-    def __init__(self, golden_dir: Optional[str] = None):
+    def __init__(self, golden_dir: str | None = None):
         """Initialize golden response manager."""
         self.replay = ResponseReplay(golden_dir=golden_dir)
         self.pending_dir = self.replay.golden_dir / "pending"
@@ -455,7 +455,7 @@ class GoldenResponseManager:
         print(f"Proposed golden response: {filepath}")
         print(f"Review and approve with: approve_pending('{response.scenario_id}')")
 
-    def list_pending(self) -> List[Tuple[str, Dict[str, Any]]]:
+    def list_pending(self) -> list[tuple[str, dict[str, Any]]]:
         """List pending golden response proposals."""
         pending = []
 

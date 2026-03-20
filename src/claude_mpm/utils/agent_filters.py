@@ -21,7 +21,6 @@ IMPLEMENTATION NOTES:
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Set
 
 
 def is_base_agent(agent_id: str) -> bool:
@@ -57,7 +56,7 @@ def is_base_agent(agent_id: str) -> bool:
     return normalized_id == "baseagent"
 
 
-def filter_base_agents(agents: List[Dict]) -> List[Dict]:
+def filter_base_agents(agents: list[dict]) -> list[dict]:
     """Remove BASE_AGENT from agent list.
 
     Filters out any agent with agent_id matching BASE_AGENT (case-insensitive).
@@ -174,7 +173,7 @@ def normalize_agent_id_for_comparison(agent_id: str) -> str:
     return normalize_agent_id(agent_id)
 
 
-def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
+def get_deployed_agent_ids(project_dir: Path | None = None) -> set[str]:
     """Get set of currently deployed agent IDs.
 
     Checks virtual deployment state (.mpm_deployment_state) first, then falls back
@@ -268,8 +267,8 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
 
 
 def filter_deployed_agents(
-    agents: List[Dict], project_dir: Optional[Path] = None
-) -> List[Dict]:
+    agents: list[dict], project_dir: Path | None = None
+) -> list[dict]:
     """Remove already-deployed agents from list.
 
     Filters agent list to show only agents that are not currently deployed.
@@ -308,11 +307,11 @@ def filter_deployed_agents(
 
 
 def apply_all_filters(
-    agents: List[Dict],
-    project_dir: Optional[Path] = None,
+    agents: list[dict],
+    project_dir: Path | None = None,
     filter_base: bool = True,
     filter_deployed: bool = False,
-) -> List[Dict]:
+) -> list[dict]:
     """Apply multiple filters to agent list in correct order.
 
     Convenience function to apply common filtering combinations. Filters are

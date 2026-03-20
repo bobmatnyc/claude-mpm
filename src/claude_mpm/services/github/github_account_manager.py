@@ -13,7 +13,6 @@ DESIGN DECISIONS:
 
 import subprocess  # nosec B404
 from pathlib import Path
-from typing import Optional
 
 from ...core.logging_utils import get_logger
 
@@ -23,7 +22,7 @@ logger = get_logger(__name__)
 class GitHubAccountManager:
     """Manages GitHub account switching and verification."""
 
-    def __init__(self, project_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Path | None = None):
         """
         Initialize GitHub account manager.
 
@@ -32,7 +31,7 @@ class GitHubAccountManager:
         """
         self.project_dir = project_dir or Path.cwd()
 
-    def find_project_root(self) -> Optional[Path]:
+    def find_project_root(self) -> Path | None:
         """
         Find project root by looking for .gh-account file.
 
@@ -49,7 +48,7 @@ class GitHubAccountManager:
 
         return None
 
-    def get_required_account(self) -> Optional[str]:
+    def get_required_account(self) -> str | None:
         """
         Get required GitHub account from .gh-account file.
 
@@ -68,7 +67,7 @@ class GitHubAccountManager:
             logger.error(f"Failed to read .gh-account file: {e}")
             return None
 
-    def get_current_gh_account(self) -> Optional[str]:
+    def get_current_gh_account(self) -> str | None:
         """
         Get current active gh CLI account.
 
@@ -113,7 +112,7 @@ class GitHubAccountManager:
             logger.error(f"Failed to switch gh account: {e}")
             return False
 
-    def verify_git_config(self, expected_user: Optional[str] = None) -> dict:
+    def verify_git_config(self, expected_user: str | None = None) -> dict:
         """
         Verify git configuration.
 
@@ -176,7 +175,7 @@ class GitHubAccountManager:
 
         return results
 
-    def verify_ssh_connection(self, expected_user: Optional[str] = None) -> dict:
+    def verify_ssh_connection(self, expected_user: str | None = None) -> dict:
         """
         Verify SSH connection to GitHub.
 
@@ -217,7 +216,7 @@ class GitHubAccountManager:
 
         return result
 
-    def verify_gh_cli(self, expected_user: Optional[str] = None) -> dict:
+    def verify_gh_cli(self, expected_user: str | None = None) -> dict:
         """
         Verify gh CLI authentication.
 

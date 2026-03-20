@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
 
 from claude_mpm.services.agent_capabilities_service import (
     AgentCapabilitiesService,
@@ -74,7 +73,7 @@ class DynamicSkillsGenerator:
 
         return skill_path
 
-    def _build_agent_skill_content(self, agents: Dict) -> str:
+    def _build_agent_skill_content(self, agents: dict) -> str:
         """Build content for agent selection skill.
 
         Args:
@@ -140,7 +139,7 @@ class DynamicSkillsGenerator:
 
         return "\n".join(lines)
 
-    def _build_tool_skill_content(self, services: Dict[str, Dict]) -> str:
+    def _build_tool_skill_content(self, services: dict[str, dict]) -> str:
         """Build content for tool selection skill.
 
         Args:

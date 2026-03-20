@@ -19,7 +19,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from claude_mpm.core.interfaces import ICacheService
 from claude_mpm.core.logging_utils import get_logger
@@ -34,12 +34,12 @@ class CacheEntry:
     key: str
     value: Any
     created_at: float
-    ttl: Optional[float] = None
-    expires_at: Optional[float] = None
+    ttl: float | None = None
+    expires_at: float | None = None
     access_count: int = 0
     last_accessed: float = field(default_factory=time.time)
-    tracked_files: Set[Path] = field(default_factory=set)
-    file_mtimes: Dict[str, float] = field(default_factory=dict)
+    tracked_files: set[Path] = field(default_factory=set)
+    file_mtimes: dict[str, float] = field(default_factory=dict)
 
     def is_expired(self) -> bool:
         """Check if the cache entry has expired."""
@@ -81,7 +81,7 @@ class SimpleCacheService(ICacheService):
             default_ttl: Default time-to-live in seconds (default: 1 hour)
             max_size: Maximum number of cache entries (default: 1000)
         """
-        self.cache: Dict[str, CacheEntry] = {}
+        self.cache: dict[str, CacheEntry] = {}
         self.default_ttl = default_ttl
         self.max_size = max_size
         self.lock = threading.RLock()
@@ -149,8 +149,8 @@ class SimpleCacheService(ICacheService):
         self,
         key: str,
         value: Any,
-        ttl: Optional[int] = None,
-        tracked_files: Optional[List[Path]] = None,
+        ttl: int | None = None,
+        tracked_files: list[Path] | None = None,
     ) -> None:
         """
         Set value in cache with optional TTL and file tracking.
@@ -253,7 +253,7 @@ class SimpleCacheService(ICacheService):
             self.metrics["invalidations"] += count
             logger.info(f"Cleared {count} cache entries")
 
-    def get_cache_metrics(self) -> Dict[str, Any]:
+    def get_cache_metrics(self) -> dict[str, Any]:
         """
         Get cache performance metrics.
 

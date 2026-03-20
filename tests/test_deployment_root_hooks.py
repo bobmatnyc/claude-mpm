@@ -17,9 +17,10 @@ class TestDeploymentRootHooks:
         installer = HookInstaller()
 
         # Mock claude_mpm to simulate development structure
-        with patch(
-            "claude_mpm.__file__", "/path/to/project/src/claude_mpm/__init__.py"
-        ), patch.object(Path, "exists") as mock_exists:
+        with (
+            patch("claude_mpm.__file__", "/path/to/project/src/claude_mpm/__init__.py"),
+            patch.object(Path, "exists") as mock_exists,
+        ):
             mock_exists.return_value = True
             # Mock os.stat and os.chmod for executable check
             with patch("os.stat", return_value=MagicMock(st_mode=0o755)):
@@ -34,10 +35,13 @@ class TestDeploymentRootHooks:
         installer = HookInstaller()
 
         # Mock claude_mpm to simulate pip install structure
-        with patch(
-            "claude_mpm.__file__",
-            "/usr/local/lib/python3.11/site-packages/claude_mpm/__init__.py",
-        ), patch.object(Path, "exists") as mock_exists:
+        with (
+            patch(
+                "claude_mpm.__file__",
+                "/usr/local/lib/python3.11/site-packages/claude_mpm/__init__.py",
+            ),
+            patch.object(Path, "exists") as mock_exists,
+        ):
             mock_exists.return_value = True
             # Mock os.stat and os.chmod for executable check
             with patch("os.stat", return_value=MagicMock(st_mode=0o755)):

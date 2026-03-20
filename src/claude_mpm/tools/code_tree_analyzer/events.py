@@ -9,9 +9,8 @@ WHY: Decouples event emission from analysis logic, allowing
 flexible event handling and real-time UI updates.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
 
 from ...core.logging_config import get_logger
 from ..code_tree_events import CodeTreeEventEmitter
@@ -21,7 +20,7 @@ from .models import CodeNode
 class EventManager:
     """Manages event emission during code tree analysis."""
 
-    def __init__(self, emitter: Optional[CodeTreeEventEmitter] = None):
+    def __init__(self, emitter: CodeTreeEventEmitter | None = None):
         """Initialize event manager.
 
         Args:
@@ -45,7 +44,7 @@ class EventManager:
                     "file": str(path),
                     "language": language,
                     "message": f"Analyzing: {path.name}",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -62,7 +61,7 @@ class EventManager:
                     "type": "cache.hit",
                     "file": str(path),
                     "message": f"Using cached analysis for {path.name}",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -79,7 +78,7 @@ class EventManager:
                     "type": "cache.miss",
                     "file": str(path),
                     "message": f"Cache miss, analyzing fresh: {path.name}",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -96,7 +95,7 @@ class EventManager:
                     "type": "analysis.parse",
                     "file": str(path),
                     "message": f"Parsing file content: {path.name}",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
@@ -117,12 +116,12 @@ class EventManager:
                     "line_start": node.line_start,
                     "complexity": node.complexity,
                     "message": f"Found {node.node_type}: {node.name}",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
 
     def emit_analysis_complete(
-        self, path: Path, filtered_nodes: List[dict], duration: float
+        self, path: Path, filtered_nodes: list[dict], duration: float
     ) -> None:
         """Emit analysis complete event.
 
@@ -143,12 +142,12 @@ class EventManager:
                 "stats": stats,
                 "duration": duration,
                 "message": f"Analysis complete: {stats['classes']} classes, {stats['functions']} functions, {stats['methods']} methods",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
         self.emitter.emit_file_analyzed(str(path), filtered_nodes, duration)
 
-    def _calculate_node_stats(self, filtered_nodes: List[dict]) -> dict:
+    def _calculate_node_stats(self, filtered_nodes: list[dict]) -> dict:
         """Calculate statistics from filtered nodes.
 
         Args:

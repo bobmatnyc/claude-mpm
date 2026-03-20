@@ -15,9 +15,9 @@ DESIGN DECISION: Simple JSON file storage because:
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from ..core.logger import get_logger
 
@@ -39,7 +39,7 @@ class EventLog:
     - Keep it simple - no complex queries needed
     """
 
-    def __init__(self, log_file: Optional[Path] = None):
+    def __init__(self, log_file: Path | None = None):
         """Initialize event log.
 
         Args:
@@ -52,9 +52,9 @@ class EventLog:
             log_file = Path.cwd() / ".claude-mpm" / "event_log.json"
 
         self.log_file = log_file
-        self.events: List[Dict[str, Any]] = self._load_events()
+        self.events: list[dict[str, Any]] = self._load_events()
 
-    def _load_events(self) -> List[Dict[str, Any]]:
+    def _load_events(self) -> list[dict[str, Any]]:
         """Load events from disk.
 
         Returns:
@@ -110,7 +110,7 @@ class EventLog:
     def append_event(
         self,
         event_type: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         status: EventStatus = "pending",
     ) -> str:
         """Append a new event to the log.
@@ -135,7 +135,7 @@ class EventLog:
             )
 
         # Create event record
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         event = {
             "id": timestamp,  # Use timestamp as ID for simplicity
             "timestamp": timestamp,
@@ -153,10 +153,10 @@ class EventLog:
 
     def list_events(
         self,
-        event_type: Optional[str] = None,
-        status: Optional[EventStatus] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        event_type: str | None = None,
+        status: EventStatus | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
         """List events with optional filtering.
 
         Args:
@@ -197,7 +197,7 @@ class EventLog:
         for event in self.events:
             if event["id"] == event_id:
                 event["status"] = "resolved"
-                event["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                event["resolved_at"] = datetime.now(UTC).isoformat()
                 self._save_events()
                 self.logger.debug(f"Marked event resolved: {event_id}")
                 return True
@@ -205,7 +205,7 @@ class EventLog:
         return False
 
     def mark_all_resolved(
-        self, event_type: Optional[str] = None, status: EventStatus = "pending"
+        self, event_type: str | None = None, status: EventStatus = "pending"
     ) -> int:
         """Mark multiple events as resolved.
 
@@ -217,7 +217,7 @@ class EventLog:
             Number of events marked as resolved
         """
         count = 0
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         for event in self.events:
             # Check filters
@@ -237,7 +237,7 @@ class EventLog:
 
         return count
 
-    def clear_resolved(self, older_than_days: Optional[int] = None) -> int:
+    def clear_resolved(self, older_than_days: int | None = None) -> int:
         """Remove resolved events from the log.
 
         Args:
@@ -250,7 +250,7 @@ class EventLog:
             # Calculate cutoff timestamp
             from datetime import timedelta
 
-            cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
+            cutoff = datetime.now(UTC) - timedelta(days=older_than_days)
             cutoff_iso = cutoff.isoformat()
 
             # Keep events that are NOT resolved OR are newer than cutoff
@@ -273,7 +273,7 @@ class EventLog:
 
         return removed
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get event log statistics.
 
         Returns:
@@ -299,10 +299,10 @@ class EventLog:
 
 
 # Global instance
-_event_log: Optional[EventLog] = None
+_event_log: EventLog | None = None
 
 
-def get_event_log(log_file: Optional[Path] = None) -> EventLog:
+def get_event_log(log_file: Path | None = None) -> EventLog:
     """Get the global event log instance.
 
     Args:

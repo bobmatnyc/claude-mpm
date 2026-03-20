@@ -11,7 +11,7 @@ languages, handling caching and incremental processing.
 
 import time
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 from ...core.logging_config import get_logger
 from ..code_tree_events import CodeTreeEventEmitter
@@ -93,8 +93,8 @@ class CodeTreeAnalyzer:
     def __init__(
         self,
         emit_events: bool = True,
-        cache_dir: Optional[Path] = None,
-        emitter: Optional[CodeTreeEventEmitter] = None,
+        cache_dir: Path | None = None,
+        emitter: CodeTreeEventEmitter | None = None,
     ):
         """Initialize the code tree analyzer.
 
@@ -143,10 +143,10 @@ class CodeTreeAnalyzer:
     def analyze_directory(
         self,
         directory: Path,
-        languages: Optional[List[str]] = None,
-        ignore_patterns: Optional[List[str]] = None,
-        max_depth: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        languages: list[str] | None = None,
+        ignore_patterns: list[str] | None = None,
+        max_depth: int | None = None,
+    ) -> dict[str, Any]:
         """Analyze a directory and build code tree.
 
         Args:
@@ -271,7 +271,7 @@ class CodeTreeAnalyzer:
 
         return {"tree": tree, "nodes": all_nodes, "stats": stats}
 
-    def _build_tree(self, nodes: List[CodeNode], root_dir: Path) -> Dict[str, Any]:
+    def _build_tree(self, nodes: list[CodeNode], root_dir: Path) -> dict[str, Any]:
         """Build hierarchical tree structure from flat nodes list."""
         tree = {
             "name": root_dir.name,
@@ -330,8 +330,8 @@ class CodeTreeAnalyzer:
         return tree
 
     def discover_top_level(
-        self, directory: Path, ignore_patterns: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, directory: Path, ignore_patterns: list[str] | None = None
+    ) -> dict[str, Any]:
         """Discover only top-level directories and files for lazy loading.
 
         Args:
@@ -344,8 +344,8 @@ class CodeTreeAnalyzer:
         return self.discovery_manager.discover_top_level(directory, ignore_patterns)
 
     def discover_directory(
-        self, dir_path: str, ignore_patterns: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, dir_path: str, ignore_patterns: list[str] | None = None
+    ) -> dict[str, Any]:
         """Discover contents of a specific directory for lazy loading.
 
         Args:
@@ -357,7 +357,7 @@ class CodeTreeAnalyzer:
         """
         return self.discovery_manager.discover_directory(dir_path, ignore_patterns)
 
-    def analyze_file(self, file_path: str) -> Dict[str, Any]:
+    def analyze_file(self, file_path: str) -> dict[str, Any]:
         """Analyze a specific file and return its AST structure.
 
         Args:

@@ -16,10 +16,10 @@ import signal
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import socketio
 
@@ -61,11 +61,11 @@ class EventStats:
     """Statistics for event tracking."""
 
     total_count: int = 0
-    event_types: Dict[str, int] = field(default_factory=dict)
-    tool_usage: Dict[str, int] = field(default_factory=dict)
-    sessions: Set[str] = field(default_factory=set)
-    first_event_time: Optional[float] = None
-    last_event_time: Optional[float] = None
+    event_types: dict[str, int] = field(default_factory=dict)
+    tool_usage: dict[str, int] = field(default_factory=dict)
+    sessions: set[str] = field(default_factory=set)
+    first_event_time: float | None = None
+    last_event_time: float | None = None
     events_per_second: float = 0.0
 
     def update_rate(self):
@@ -84,8 +84,8 @@ class SocketIODebugger:
         host: str = "localhost",
         port: int = 8765,
         mode: DisplayMode = DisplayMode.LIVE,
-        filter_types: Optional[List[str]] = None,
-        output_file: Optional[Path] = None,
+        filter_types: list[str] | None = None,
+        output_file: Path | None = None,
         quiet: bool = False,
         show_raw: bool = False,
         max_reconnect_attempts: int = 10,
@@ -116,7 +116,7 @@ class SocketIODebugger:
         # State tracking
         self.status = ConnectionStatus.DISCONNECTED
         self.stats = EventStats()
-        self.events: List[Dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
         self.connection_start = None
         self.latency = 0.0
         self.running = True
@@ -184,7 +184,7 @@ class SocketIODebugger:
             if "timestamp" in data:
                 self.latency = (time.time() - data["timestamp"]) * 1000
 
-    def _process_event(self, data: Dict[str, Any], is_historical: bool = False):
+    def _process_event(self, data: dict[str, Any], is_historical: bool = False):
         """Process an incoming event."""
         # Update statistics
         self.stats.total_count += 1
@@ -230,9 +230,9 @@ class SocketIODebugger:
         if self.output_file:
             self._write_to_file(data)
 
-    def _display_event(self, data: Dict[str, Any]):
+    def _display_event(self, data: dict[str, Any]):
         """Display an event based on current mode."""
-        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
+        timestamp = datetime.now(UTC).strftime("%H:%M:%S.%f")[:-3]
         event_type = data.get("type", "unknown")
         event_data = data.get("data", {})
 
@@ -250,7 +250,7 @@ class SocketIODebugger:
             self._display_basic(timestamp, event_type, event_data)
 
     def _display_pretty(
-        self, timestamp: str, event_type: str, event_data: Dict[str, Any]
+        self, timestamp: str, event_type: str, event_data: dict[str, Any]
     ):
         """Display event with rich formatting."""
         if not RICH_AVAILABLE:
@@ -306,7 +306,7 @@ class SocketIODebugger:
         return None
 
     def _display_basic(
-        self, timestamp: str, event_type: str, event_data: Dict[str, Any]
+        self, timestamp: str, event_type: str, event_data: dict[str, Any]
     ):
         """Display event with basic formatting."""
         print(f"[{timestamp}] {event_type}")
@@ -424,7 +424,7 @@ class SocketIODebugger:
 
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-    def _write_to_file(self, data: Dict[str, Any]):
+    def _write_to_file(self, data: dict[str, Any]):
         """Write event to output file."""
         if not self.output_file:
             return
@@ -449,7 +449,7 @@ class SocketIODebugger:
         if self.quiet and level not in ["error", "critical"]:
             return
 
-        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+        timestamp = datetime.now(UTC).strftime("%H:%M:%S")
 
         if RICH_AVAILABLE:
             styles = {

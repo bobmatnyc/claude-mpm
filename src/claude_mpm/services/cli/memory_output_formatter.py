@@ -17,7 +17,7 @@ DESIGN DECISIONS:
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 
@@ -28,7 +28,7 @@ class IMemoryOutputFormatter(ABC):
     """Interface for memory output formatting service."""
 
     @abstractmethod
-    def format_status(self, status_data: Dict[str, Any], verbose: bool = False) -> str:
+    def format_status(self, status_data: dict[str, Any], verbose: bool = False) -> str:
         """Format memory status display."""
 
     @abstractmethod
@@ -39,35 +39,35 @@ class IMemoryOutputFormatter(ABC):
 
     @abstractmethod
     def format_optimization_results(
-        self, results: Dict[str, Any], is_single_agent: bool = True
+        self, results: dict[str, Any], is_single_agent: bool = True
     ) -> str:
         """Format optimization output."""
 
     @abstractmethod
     def format_cross_reference(
-        self, cross_ref_data: Dict[str, Any], query: Optional[str] = None
+        self, cross_ref_data: dict[str, Any], query: str | None = None
     ) -> str:
         """Format pattern analysis output."""
 
     @abstractmethod
-    def format_as_json(self, data: Dict[str, Any], pretty: bool = True) -> str:
+    def format_as_json(self, data: dict[str, Any], pretty: bool = True) -> str:
         """Format data as JSON."""
 
     @abstractmethod
-    def format_as_yaml(self, data: Dict[str, Any]) -> str:
+    def format_as_yaml(self, data: dict[str, Any]) -> str:
         """Format data as YAML."""
 
     @abstractmethod
-    def format_as_table(self, headers: List[str], rows: List[List[Any]]) -> str:
+    def format_as_table(self, headers: list[str], rows: list[list[Any]]) -> str:
         """Format data as a table."""
 
     @abstractmethod
-    def format_build_results(self, results: Dict[str, Any]) -> str:
+    def format_build_results(self, results: dict[str, Any]) -> str:
         """Format memory build results."""
 
     @abstractmethod
     def format_agent_memories_summary(
-        self, agent_memories: Dict[str, Dict], format_type: str = "summary"
+        self, agent_memories: dict[str, dict], format_type: str = "summary"
     ) -> str:
         """Format summary of all agent memories."""
 
@@ -114,7 +114,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
             "note": "📝" if not quiet else "[NOTE]",
         }
 
-    def format_status(self, status_data: Dict[str, Any], verbose: bool = False) -> str:
+    def format_status(self, status_data: dict[str, Any], verbose: bool = False) -> str:
         """Format memory status display."""
         lines = []
         lines.append("Agent Memory System Status")
@@ -263,7 +263,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
         return "\n".join(lines)
 
     def format_optimization_results(
-        self, results: Dict[str, Any], is_single_agent: bool = True
+        self, results: dict[str, Any], is_single_agent: bool = True
     ) -> str:
         """Format optimization output."""
         lines = []
@@ -346,7 +346,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
         return "\n".join(lines)
 
     def format_cross_reference(
-        self, cross_ref_data: Dict[str, Any], query: Optional[str] = None
+        self, cross_ref_data: dict[str, Any], query: str | None = None
     ) -> str:
         """Format pattern analysis output."""
         lines = []
@@ -403,17 +403,17 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
 
         return "\n".join(lines)
 
-    def format_as_json(self, data: Dict[str, Any], pretty: bool = True) -> str:
+    def format_as_json(self, data: dict[str, Any], pretty: bool = True) -> str:
         """Format data as JSON."""
         if pretty:
             return json.dumps(data, indent=2, ensure_ascii=False)
         return json.dumps(data, ensure_ascii=False)
 
-    def format_as_yaml(self, data: Dict[str, Any]) -> str:
+    def format_as_yaml(self, data: dict[str, Any]) -> str:
         """Format data as YAML."""
         return yaml.dump(data, default_flow_style=False, allow_unicode=True)
 
-    def format_as_table(self, headers: List[str], rows: List[List[Any]]) -> str:
+    def format_as_table(self, headers: list[str], rows: list[list[Any]]) -> str:
         """Format data as a table."""
         lines = []
 
@@ -437,7 +437,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
 
         return "\n".join(lines)
 
-    def format_build_results(self, results: Dict[str, Any]) -> str:
+    def format_build_results(self, results: dict[str, Any]) -> str:
         """Format memory build results."""
         lines = []
         lines.append(f"{self.emojis['build']} Memory Building from Documentation")
@@ -483,7 +483,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
         return "\n".join(lines)
 
     def format_agent_memories_summary(
-        self, agent_memories: Dict[str, Dict], format_type: str = "summary"
+        self, agent_memories: dict[str, dict], format_type: str = "summary"
     ) -> str:
         """Format summary of all agent memories."""
         lines = []
@@ -544,7 +544,7 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
 
         return "\n".join(lines)
 
-    def _parse_memory_content(self, content: str) -> Dict[str, List[str]]:
+    def _parse_memory_content(self, content: str) -> dict[str, list[str]]:
         """Parse memory content into sections and items."""
         sections = {}
         current_section = None
@@ -573,8 +573,8 @@ class MemoryOutputFormatter(IMemoryOutputFormatter):
         return sections
 
     def _find_common_patterns(
-        self, agent_memories: Dict[str, Dict]
-    ) -> List[Tuple[str, int, List[str]]]:
+        self, agent_memories: dict[str, dict]
+    ) -> list[tuple[str, int, list[str]]]:
         """Find common patterns across agent memories."""
         pattern_agents = {}
 

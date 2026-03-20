@@ -34,7 +34,7 @@ Example Usage:
 import os
 import sys
 import time
-from typing import Any, Optional
+from typing import Any
 
 
 class ProgressBar:
@@ -65,7 +65,7 @@ class ProgressBar:
         bar_width: int = 20,
         show_percentage: bool = True,
         show_counter: bool = True,
-        enabled: Optional[bool] = None,
+        enabled: bool | None = None,
     ):
         """Initialize progress bar.
 
@@ -326,9 +326,9 @@ class ProgressBar:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[Any],
+        exc_type: type | None,
+        exc_val: BaseException | None,
+        exc_tb: Any | None,
     ) -> None:
         """Context manager exit - ensures finish() is called.
 
@@ -359,7 +359,7 @@ class ProgressBar:
 def create_progress_bar(
     total: int,
     prefix: str = "Progress",
-    enabled: Optional[bool] = None,
+    enabled: bool | None = None,
 ) -> ProgressBar:
     """Create a progress bar with sensible defaults.
 

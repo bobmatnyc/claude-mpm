@@ -17,9 +17,9 @@ import json
 import re
 import subprocess
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -40,7 +40,7 @@ class ProjectKnowledgeExtractor:
         self.claude_mpm_dir = project_path / ".claude-mpm"
         self.is_git_repo = (project_path / ".git").is_dir()
 
-    def extract_all(self, days: int = 90) -> Dict[str, Any]:
+    def extract_all(self, days: int = 90) -> dict[str, Any]:
         """
         Extract knowledge from all sources.
 
@@ -56,7 +56,7 @@ class ProjectKnowledgeExtractor:
             "memory_insights": self.extract_from_memory(),
         }
 
-    def extract_from_git(self, days: int = 90) -> Dict[str, Any]:
+    def extract_from_git(self, days: int = 90) -> dict[str, Any]:
         """
         Extract insights from git history.
 
@@ -88,9 +88,7 @@ class ProjectKnowledgeExtractor:
 
         try:
             # Get recent commits
-            since_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
-                "%Y-%m-%d"
-            )
+            since_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
             # Get commit messages with file stats
             result = subprocess.run(
@@ -144,7 +142,7 @@ class ProjectKnowledgeExtractor:
 
         return insights
 
-    def extract_from_logs(self) -> Dict[str, Any]:
+    def extract_from_logs(self) -> dict[str, Any]:
         """
         Extract learnings from session logs.
 
@@ -222,7 +220,7 @@ class ProjectKnowledgeExtractor:
 
         return insights
 
-    def extract_from_memory(self) -> Dict[str, Any]:
+    def extract_from_memory(self) -> dict[str, Any]:
         """
         Extract accumulated knowledge from memory files.
 
@@ -306,7 +304,7 @@ class ProjectKnowledgeExtractor:
 
     # Private helper methods
 
-    def _extract_architectural_patterns(self, git_log: str) -> List[str]:
+    def _extract_architectural_patterns(self, git_log: str) -> list[str]:
         """Extract architectural decisions from commit messages."""
         patterns = []
 
@@ -328,7 +326,7 @@ class ProjectKnowledgeExtractor:
 
         return patterns[:15]  # Limit to top 15
 
-    def _extract_tech_changes(self, git_log: str) -> List[str]:
+    def _extract_tech_changes(self, git_log: str) -> list[str]:
         """Extract tech stack changes from commit messages."""
         changes = []
 
@@ -351,7 +349,7 @@ class ProjectKnowledgeExtractor:
 
         return changes[:15]  # Limit to top 15
 
-    def _extract_workflow_patterns(self, git_log: str) -> List[str]:
+    def _extract_workflow_patterns(self, git_log: str) -> list[str]:
         """Extract common workflows from commit messages."""
         workflows = []
 
@@ -372,7 +370,7 @@ class ProjectKnowledgeExtractor:
 
         return workflows[:10]  # Limit to top 10
 
-    def _identify_hot_files(self, file_list: str) -> List[Dict[str, Any]]:
+    def _identify_hot_files(self, file_list: str) -> list[dict[str, Any]]:
         """Identify frequently modified files (hot spots)."""
         # Count file modifications
         files = [f.strip() for f in file_list.split("\n") if f.strip()]
@@ -397,7 +395,7 @@ class ProjectKnowledgeExtractor:
 
         return hot_files
 
-    def _identify_task_patterns(self, tasks: List[str]) -> List[str]:
+    def _identify_task_patterns(self, tasks: list[str]) -> list[str]:
         """Identify common patterns in completed tasks."""
         # Extract common words/phrases
         words = []
@@ -430,7 +428,7 @@ class ProjectKnowledgeExtractor:
 
         return patterns[:10]
 
-    def _parse_memory_sections(self, content: str) -> Dict[str, str]:
+    def _parse_memory_sections(self, content: str) -> dict[str, str]:
         """Parse markdown memory file into sections."""
         sections = {}
         current_section = None
@@ -455,7 +453,7 @@ class ProjectKnowledgeExtractor:
 
         return sections
 
-    def _extract_memory_items(self, section_content: str, agent_name: str) -> List[str]:
+    def _extract_memory_items(self, section_content: str, agent_name: str) -> list[str]:
         """Extract individual items from memory section."""
         items = []
 

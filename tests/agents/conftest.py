@@ -1,13 +1,13 @@
 """Shared fixtures for agent tests."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
 
 @pytest.fixture
-def mock_agent_data() -> Dict[str, Any]:
+def mock_agent_data() -> dict[str, Any]:
     """Create mock agent data matching the schema."""
     return {
         "schema_version": "1.1.0",

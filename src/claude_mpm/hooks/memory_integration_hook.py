@@ -14,7 +14,6 @@ agent outputs because:
 
 import re
 from datetime import datetime
-from typing import Dict, List
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
@@ -356,7 +355,7 @@ class MemoryPostDelegationHook(PostDelegationHook):
                 error=f"Learning extraction failed: {e!s}",
             )
 
-    def _extract_learnings(self, text: str) -> Dict[str, List[str]]:
+    def _extract_learnings(self, text: str) -> dict[str, list[str]]:
         """Extract structured learnings from text using explicit markers.
 
         WHY: We limit learnings to 100 characters to keep memory entries

@@ -21,9 +21,9 @@ DESIGN DECISIONS:
 import asyncio
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -53,7 +53,7 @@ class DataEngineerEventTest:
             logger.error(f"Failed to initialize emitter: {e}")
             return False
 
-    def create_test_event(self) -> Dict[str, Any]:
+    def create_test_event(self) -> dict[str, Any]:
         """
         Create a structured test event with data pipeline metadata.
 
@@ -66,7 +66,7 @@ class DataEngineerEventTest:
         return {
             "test_id": f"data_engineer_test_{self.test_number}",
             "agent": self.agent_type,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "message": f"{self.agent_type} - Event test #{self.test_number}: Event streaming operational. JSON parsing active. Data transformation pipelines ready. Schema validation enabled.",
             "pipeline_status": {
                 "event_streaming": "operational",

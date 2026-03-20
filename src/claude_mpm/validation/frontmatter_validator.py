@@ -8,7 +8,7 @@ Critical for ensuring agents work correctly with Claude Code.
 """
 
 import re
-from typing import ClassVar, Dict, List, Optional, Tuple
+from typing import ClassVar
 
 import yaml
 
@@ -47,7 +47,7 @@ class FrontmatterValidator:
     REQUIRED_FIELDS: ClassVar[set] = {"name", "description", "tools"}
 
     @classmethod
-    def validate_name(cls, name: str) -> Tuple[bool, Optional[str]]:
+    def validate_name(cls, name: str) -> tuple[bool, str | None]:
         """
         Validate agent name field against Claude Code spec.
 
@@ -72,7 +72,7 @@ class FrontmatterValidator:
         return True, None
 
     @classmethod
-    def validate_tools(cls, tools: str) -> Tuple[bool, Optional[str]]:
+    def validate_tools(cls, tools: str) -> tuple[bool, str | None]:
         """
         Validate tools field format and content.
 
@@ -107,7 +107,7 @@ class FrontmatterValidator:
         return True, None
 
     @classmethod
-    def validate_model(cls, model: str) -> Tuple[bool, Optional[str]]:
+    def validate_model(cls, model: str) -> tuple[bool, str | None]:
         """
         Validate model field.
 
@@ -126,7 +126,7 @@ class FrontmatterValidator:
         return True, None
 
     @classmethod
-    def validate_frontmatter(cls, frontmatter: Dict) -> List[str]:
+    def validate_frontmatter(cls, frontmatter: dict) -> list[str]:
         """
         Validate complete frontmatter structure.
 
@@ -172,7 +172,7 @@ class FrontmatterValidator:
         return errors
 
     @classmethod
-    def validate_agent_file(cls, file_path: Path) -> List[str]:
+    def validate_agent_file(cls, file_path: Path) -> list[str]:
         """
         Validate an agent markdown file.
 

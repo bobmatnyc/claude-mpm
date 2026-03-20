@@ -79,11 +79,14 @@ class TestMainEntryPoint:
         """Test exception handling in main."""
         from src.claude_mpm.hooks.claude_hooks import hook_handler
 
-        with patch.object(
-            hook_handler.ClaudeHookHandler,
-            "__init__",
-            side_effect=Exception("Init failed"),
-        ), patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+        with (
+            patch.object(
+                hook_handler.ClaudeHookHandler,
+                "__init__",
+                side_effect=Exception("Init failed"),
+            ),
+            patch("sys.stdout", new_callable=StringIO) as mock_stdout,
+        ):
             with patch("sys.exit") as mock_exit:
                 hook_handler.main()
 

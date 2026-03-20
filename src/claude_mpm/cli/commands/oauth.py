@@ -111,6 +111,16 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
                 console.print(
                     f"[dim]Fixed missing '{MCPSubcommand.MCP}' arg in config[/dim]"
                 )
+            # Ensure env block with OAuth credentials exists
+            if "env" not in existing:
+                cred_id, cred_secret, _src = _detect_google_credentials()
+                if cred_id and cred_secret:
+                    existing["env"] = {
+                        "GOOGLE_OAUTH_CLIENT_ID": cred_id,
+                        "GOOGLE_OAUTH_CLIENT_SECRET": cred_secret,
+                    }
+                    needs_save = True
+                    console.print("[dim]Added OAuth env vars to config[/dim]")
             config[mcp_servers_key][canonical_name] = existing
             # Save if we migrated or fixed fields
             if needs_save:
@@ -122,6 +132,14 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
                     pass  # Best effort save
             console.print("[dim]MCP server already configured in .mcp.json[/dim]")
             return False
+
+    # Inject OAuth credentials into env block
+    client_id, client_secret, _source = _detect_google_credentials()
+    if client_id and client_secret:
+        server_config["env"] = {
+            "GOOGLE_OAUTH_CLIENT_ID": client_id,
+            "GOOGLE_OAUTH_CLIENT_SECRET": client_secret,
+        }
 
     # Add/update with canonical name
     config[mcp_servers_key][canonical_name] = server_config
@@ -452,6 +470,7 @@ class OAuthCommand(BaseCommand):
                 )
 
         # Run OAuth flow
+        OAuthError = Exception  # fallback if import fails
         try:
             from claude_mpm.auth import OAuthManager
             from claude_mpm.auth.callback_server import DEFAULT_PORT
@@ -647,6 +666,7 @@ class OAuthCommand(BaseCommand):
         """Refresh OAuth tokens for a service."""
         service_name = args.service_name
 
+        OAuthError = Exception  # fallback if import fails
         try:
             from claude_mpm.auth import OAuthManager
             from claude_mpm.auth.providers.google import OAuthError

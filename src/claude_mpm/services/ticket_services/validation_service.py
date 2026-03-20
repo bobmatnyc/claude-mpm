@@ -11,7 +11,7 @@ DESIGN DECISIONS:
 - Provides sanitization for user inputs
 """
 
-from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from typing import Any, ClassVar
 
 
 class TicketValidationService:
@@ -46,7 +46,7 @@ class TicketValidationService:
         "blocked",
     ]
 
-    def validate_ticket_id(self, ticket_id: Any) -> Tuple[bool, Optional[str]]:
+    def validate_ticket_id(self, ticket_id: Any) -> tuple[bool, str | None]:
         """
         Validate a ticket ID.
 
@@ -64,7 +64,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_ticket_type(self, ticket_type: str) -> Tuple[bool, Optional[str]]:
+    def validate_ticket_type(self, ticket_type: str) -> tuple[bool, str | None]:
         """
         Validate a ticket type.
 
@@ -82,7 +82,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_status(self, status: str) -> Tuple[bool, Optional[str]]:
+    def validate_status(self, status: str) -> tuple[bool, str | None]:
         """
         Validate a ticket status.
 
@@ -100,7 +100,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_priority(self, priority: str) -> Tuple[bool, Optional[str]]:
+    def validate_priority(self, priority: str) -> tuple[bool, str | None]:
         """
         Validate a ticket priority.
 
@@ -118,7 +118,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_workflow_state(self, state: str) -> Tuple[bool, Optional[str]]:
+    def validate_workflow_state(self, state: str) -> tuple[bool, str | None]:
         """
         Validate a workflow state.
 
@@ -136,9 +136,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_pagination(
-        self, page: int, page_size: int
-    ) -> Tuple[bool, Optional[str]]:
+    def validate_pagination(self, page: int, page_size: int) -> tuple[bool, str | None]:
         """
         Validate pagination parameters.
 
@@ -156,9 +154,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_create_params(
-        self, params: Dict[str, Any]
-    ) -> Tuple[bool, Optional[str]]:
+    def validate_create_params(self, params: dict[str, Any]) -> tuple[bool, str | None]:
         """
         Validate parameters for ticket creation.
 
@@ -199,9 +195,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_update_params(
-        self, params: Dict[str, Any]
-    ) -> Tuple[bool, Optional[str]]:
+    def validate_update_params(self, params: dict[str, Any]) -> tuple[bool, str | None]:
         """
         Validate parameters for ticket update.
 
@@ -227,7 +221,7 @@ class TicketValidationService:
 
         return True, None
 
-    def sanitize_tags(self, tags: Any) -> List[str]:
+    def sanitize_tags(self, tags: Any) -> list[str]:
         """
         Sanitize and parse tags input.
 
@@ -264,7 +258,7 @@ class TicketValidationService:
 
         return str(description).strip()
 
-    def validate_search_query(self, query: str) -> Tuple[bool, Optional[str]]:
+    def validate_search_query(self, query: str) -> tuple[bool, str | None]:
         """
         Validate a search query.
 
@@ -282,7 +276,7 @@ class TicketValidationService:
 
         return True, None
 
-    def validate_comment(self, comment: Any) -> Tuple[bool, Optional[str]]:
+    def validate_comment(self, comment: Any) -> tuple[bool, str | None]:
         """
         Validate a comment.
 

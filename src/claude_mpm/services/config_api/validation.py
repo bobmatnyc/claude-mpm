@@ -6,14 +6,13 @@ other injection attacks in agent/skill deployment endpoints.
 
 import re
 from pathlib import Path
-from typing import Tuple
 
 # Names must start with an alphanumeric character and contain only
 # alphanumeric characters, hyphens, and underscores.
 SAFE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 
 
-def validate_safe_name(name: str, entity_type: str) -> Tuple[bool, str]:
+def validate_safe_name(name: str, entity_type: str) -> tuple[bool, str]:
     """Validate that *name* is safe for use in filesystem paths.
 
     Two-layer defence:
@@ -47,7 +46,7 @@ def validate_safe_name(name: str, entity_type: str) -> Tuple[bool, str]:
 
 def validate_path_containment(
     constructed_path: Path, parent_dir: Path, entity_type: str
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Verify that *constructed_path* resolves within *parent_dir*.
 
     This catches symlink tricks and edge cases that the regex alone

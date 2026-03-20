@@ -1,7 +1,7 @@
 """Loader for packaged installations using importlib.resources."""
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -24,10 +24,10 @@ class PackagedLoader:
     def __init__(self):
         """Initialize the packaged loader."""
         self.logger = get_logger("packaged_loader")
-        self.framework_version: Optional[str] = None
-        self.framework_last_modified: Optional[str] = None
+        self.framework_version: str | None = None
+        self.framework_last_modified: str | None = None
 
-    def load_packaged_file(self, filename: str) -> Optional[str]:
+    def load_packaged_file(self, filename: str) -> str | None:
         """Load a file from the packaged installation."""
         if not files:
             self.logger.warning("importlib.resources not available")
@@ -48,7 +48,7 @@ class PackagedLoader:
             self.logger.error(f"Failed to load {filename} from package: {e}")
             return None
 
-    def load_packaged_file_fallback(self, filename: str, resources) -> Optional[str]:
+    def load_packaged_file_fallback(self, filename: str, resources) -> str | None:
         """Load a file from the packaged installation using importlib.resources fallback."""
         try:
             # Try different resource loading methods
@@ -92,7 +92,7 @@ class PackagedLoader:
             self.framework_last_modified = timestamp_match.group(1).strip()
             self.logger.info(f"Last modified: {self.framework_last_modified}")
 
-    def load_framework_content(self, content: Dict[str, Any]) -> None:
+    def load_framework_content(self, content: dict[str, Any]) -> None:
         """Load framework content from packaged installation.
 
         Args:
@@ -150,6 +150,12 @@ class PackagedLoader:
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
 
+            # Load AGENT_DELEGATION.md
+            agent_delegation_content = self.load_packaged_file("AGENT_DELEGATION.md")
+            if agent_delegation_content:
+                content["agent_delegation"] = agent_delegation_content
+                content["agent_delegation_level"] = "system"
+
             # Load WORKFLOW.md
             workflow_content = self.load_packaged_file("WORKFLOW.md")
             if workflow_content:
@@ -166,7 +172,7 @@ class PackagedLoader:
             self.logger.error(f"Failed to load packaged framework content: {e}")
 
     def load_framework_content_fallback(
-        self, content: Dict[str, Any], resources
+        self, content: dict[str, Any], resources
     ) -> None:
         """Load framework content using importlib.resources fallback.
 
@@ -211,6 +217,14 @@ class PackagedLoader:
             base_pm_content = self.load_packaged_file_fallback("BASE_PM.md", resources)
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
+
+            # Load AGENT_DELEGATION.md
+            agent_delegation_content = self.load_packaged_file_fallback(
+                "AGENT_DELEGATION.md", resources
+            )
+            if agent_delegation_content:
+                content["agent_delegation"] = agent_delegation_content
+                content["agent_delegation_level"] = "system"
 
             # Load WORKFLOW.md
             workflow_content = self.load_packaged_file_fallback(

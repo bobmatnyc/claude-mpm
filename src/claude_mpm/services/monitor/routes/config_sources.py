@@ -13,9 +13,9 @@ All mutation endpoints:
 import asyncio
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from aiohttp import web
 
@@ -40,8 +40,8 @@ PROTECTED_AGENT_SOURCES = {"bobmatnyc/claude-mpm-agents/agents"}
 PROTECTED_SKILL_SOURCES = {"system", "anthropic-official"}
 
 # Module-level state for sync operations
-active_sync_tasks: Dict[str, asyncio.Task] = {}
-sync_status: Dict[str, Dict[str, Any]] = {}
+active_sync_tasks: dict[str, asyncio.Task] = {}
+sync_status: dict[str, dict[str, Any]] = {}
 
 # Maximum number of job entries retained in sync_status (prevents unbounded growth).
 # The special "last_results" key is excluded from this cap.
@@ -733,7 +733,7 @@ async def _run_sync(
     try:
         _prune_sync_status()
         sync_status[job_id] = {
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
             "sources_total": 1,
             "sources_completed": 0,
         }
@@ -762,7 +762,7 @@ async def _run_sync(
         sync_status["last_results"][results_key][source_id] = {
             "status": "completed",
             "items_discovered": result.get("items_discovered", 0),
-            "last_sync": datetime.now(timezone.utc).isoformat(),
+            "last_sync": datetime.now(UTC).isoformat(),
         }
 
         await handler.emit_config_event(
@@ -822,7 +822,7 @@ async def _run_sync_all(
 
         _prune_sync_status()
         sync_status[job_id] = {
-            "started_at": datetime.now(timezone.utc).isoformat(),
+            "started_at": datetime.now(UTC).isoformat(),
             "sources_total": total,
             "sources_completed": 0,
         }
@@ -855,7 +855,7 @@ async def _run_sync_all(
                 sync_status["last_results"][results_key][sid] = {
                     "status": "completed",
                     "items_discovered": result.get("items_discovered", 0),
-                    "last_sync": datetime.now(timezone.utc).isoformat(),
+                    "last_sync": datetime.now(UTC).isoformat(),
                 }
 
             except Exception as e:
@@ -897,7 +897,7 @@ async def _run_sync_all(
 
 def _sync_source_blocking(
     source_type: str, source_id: str, force: bool
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Blocking sync operation -- called via asyncio.to_thread."""
     import time as time_mod
 

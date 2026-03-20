@@ -32,9 +32,9 @@ Created for ISS-0118: Agent Registry and Hierarchical Discovery System
 
 import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_paths import get_path_manager
@@ -94,7 +94,7 @@ class AgentLifecycleManager(BaseService):
     - Performance monitoring and optimization
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the agent lifecycle manager."""
         super().__init__("agent_lifecycle_manager", config)
 
@@ -112,11 +112,11 @@ class AgentLifecycleManager(BaseService):
         )
 
         # Core external services
-        self.shared_cache: Optional[SharedPromptCache] = None
-        self.agent_registry: Optional[AgentRegistry] = None
-        self.modification_tracker: Optional[AgentModificationTracker] = None
-        self.persistence_service: Optional[AgentPersistenceService] = None
-        self.agent_manager: Optional[AgentManager] = None
+        self.shared_cache: SharedPromptCache | None = None
+        self.agent_registry: AgentRegistry | None = None
+        self.modification_tracker: AgentModificationTracker | None = None
+        self.persistence_service: AgentPersistenceService | None = None
+        self.agent_manager: AgentManager | None = None
 
         # Extracted internal services
         self.state_service = AgentStateService()
@@ -184,7 +184,7 @@ class AgentLifecycleManager(BaseService):
 
         self.logger.info("AgentLifecycleManager cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform lifecycle manager health checks."""
         from .lifecycle_health_checker import LifecycleHealthChecker
 
@@ -232,17 +232,17 @@ class AgentLifecycleManager(BaseService):
             self.logger.warning(f"Failed to setup some service integrations: {e}")
 
     @property
-    def agent_records(self) -> Dict[str, AgentLifecycleRecord]:
+    def agent_records(self) -> dict[str, AgentLifecycleRecord]:
         """Get agent records from state service (backward compatibility)."""
         return self.state_service.agent_records
 
     @property
-    def operation_history(self) -> List[LifecycleOperationResult]:
+    def operation_history(self) -> list[LifecycleOperationResult]:
         """Get operation history from operation service (backward compatibility)."""
         return self.operation_service.operation_history
 
     @property
-    def active_operations(self) -> Dict[str, LifecycleOperation]:
+    def active_operations(self) -> dict[str, LifecycleOperation]:
         """Get active operations from operation service (backward compatibility)."""
         return self.operation_service.active_operations
 
@@ -746,7 +746,7 @@ class AgentLifecycleManager(BaseService):
 
     async def _create_deletion_backup(
         self, agent_name: str, record: AgentLifecycleRecord
-    ) -> Optional[str]:
+    ) -> str | None:
         """Create backup before agent deletion."""
         try:
             source_path = Path(record.file_path)
@@ -756,7 +756,7 @@ class AgentLifecycleManager(BaseService):
             backup_dir = get_path_manager().get_cache_dir() / "tracking" / "backups"
             path_ops.ensure_dir(backup_dir)
 
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_filename = f"{agent_name}_deleted_{timestamp}{source_path.suffix}"
             backup_path = backup_dir / backup_filename
 
@@ -859,13 +859,13 @@ class AgentLifecycleManager(BaseService):
 
     # Public API Methods
 
-    async def get_agent_status(self, agent_name: str) -> Optional[AgentLifecycleRecord]:
+    async def get_agent_status(self, agent_name: str) -> AgentLifecycleRecord | None:
         """Get current status of an agent."""
         return self.agent_records.get(agent_name)
 
     async def list_agents(
-        self, state_filter: Optional[LifecycleState] = None
-    ) -> List[AgentLifecycleRecord]:
+        self, state_filter: LifecycleState | None = None
+    ) -> list[AgentLifecycleRecord]:
         """List agents with optional state filtering."""
         agents = list(self.agent_records.values())
 
@@ -875,8 +875,8 @@ class AgentLifecycleManager(BaseService):
         return sorted(agents, key=lambda x: x.last_modified, reverse=True)
 
     async def get_operation_history(
-        self, agent_name: Optional[str] = None, limit: int = 100
-    ) -> List[LifecycleOperationResult]:
+        self, agent_name: str | None = None, limit: int = 100
+    ) -> list[LifecycleOperationResult]:
         """Get operation history with optional filtering."""
         history = self.operation_history
 
@@ -885,7 +885,7 @@ class AgentLifecycleManager(BaseService):
 
         return sorted(history, key=lambda x: x.duration_ms, reverse=True)[:limit]
 
-    async def get_lifecycle_stats(self) -> Dict[str, Any]:
+    async def get_lifecycle_stats(self) -> dict[str, Any]:
         """Get comprehensive lifecycle statistics."""
         stats = {
             "total_agents": len(self.agent_records),
@@ -948,7 +948,7 @@ class AgentLifecycleManager(BaseService):
         return await loop.run_in_executor(None, func, *args, **kwargs)
 
     async def restore_agent(
-        self, agent_name: str, backup_path: Optional[str] = None
+        self, agent_name: str, backup_path: str | None = None
     ) -> LifecycleOperationResult:
         """Restore agent from backup."""
         from .agent_restore_handler import AgentRestoreHandler

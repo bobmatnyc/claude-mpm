@@ -2,7 +2,7 @@
 Orchestration principles section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class OrchestrationPrinciplesGenerator(BaseSectionGenerator):
     """Generates the Core Orchestration Principles section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the orchestration principles section."""
         return """
 ## 🚨 CORE ORCHESTRATION PRINCIPLES

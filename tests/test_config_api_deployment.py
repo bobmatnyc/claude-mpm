@@ -125,19 +125,25 @@ class TestDeployAgentEndpoint(AioHTTPTestCase):
         mock_backup = _mock_backup_result()
         mock_verification = _mock_verification_result()
 
-        with patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
-        ) as mock_svc, patch(
-            "claude_mpm.services.config_api.session_detector.detect_active_claude_sessions",
-            return_value=[],
-        ), patch("pathlib.Path.exists", return_value=False), patch(
-            "pathlib.Path.mkdir"
+        with (
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+            ) as mock_svc,
+            patch(
+                "claude_mpm.services.config_api.session_detector.detect_active_claude_sessions",
+                return_value=[],
+            ),
+            patch("pathlib.Path.exists", return_value=False),
+            patch("pathlib.Path.mkdir"),
         ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-1"
@@ -211,14 +217,18 @@ class TestUndeployAgentEndpoint(AioHTTPTestCase):
         mock_backup = _mock_backup_result()
         mock_verification = _mock_verification_result()
 
-        with patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch("pathlib.Path.exists", return_value=True), patch(
-            "pathlib.Path.unlink"
+        with (
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.unlink"),
         ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-2"
@@ -247,15 +257,21 @@ class TestBatchDeployEndpoint(AioHTTPTestCase):
         mock_backup = _mock_backup_result()
         mock_verification = _mock_verification_result()
 
-        with patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
-        ) as mock_svc, patch("pathlib.Path.mkdir"):
+        with (
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+            ) as mock_svc,
+            patch("pathlib.Path.mkdir"),
+        ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-batch"
             mock_svc.return_value.deploy_agent.return_value = True
@@ -278,15 +294,21 @@ class TestBatchDeployEndpoint(AioHTTPTestCase):
         mock_backup = _mock_backup_result()
         mock_verification = _mock_verification_result()
 
-        with patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
-        ) as mock_svc, patch("pathlib.Path.mkdir"):
+        with (
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+            ) as mock_svc,
+            patch("pathlib.Path.mkdir"),
+        ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-batch"
             # First succeeds, second fails
@@ -334,15 +356,20 @@ class TestSkillDeployEndpoint(AioHTTPTestCase):
         mock_backup = _mock_backup_result()
         mock_verification = _mock_verification_result()
 
-        with patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
-        ) as mock_svc:
+        with (
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
+            ) as mock_svc,
+        ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-skill"
             mock_svc.return_value.deploy_skills.return_value = {
@@ -403,24 +430,29 @@ class TestModeSwitchEndpoint(AioHTTPTestCase):
 
     async def test_mode_switch_preview(self):
         """PUT with preview=true returns impact data."""
-        with patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_config_path",
-            return_value=Path("/tmp/config.yaml"),
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._load_config",
-            return_value={
-                "skills": {
-                    "deployment_mode": "full",
-                    "agent_referenced": ["skill-a"],
-                    "user_defined": ["skill-b"],
+        with (
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_config_path",
+                return_value=Path("/tmp/config.yaml"),
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._load_config",
+                return_value={
+                    "skills": {
+                        "deployment_mode": "full",
+                        "agent_referenced": ["skill-a"],
+                        "user_defined": ["skill-b"],
+                    },
                 },
-            },
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_immutable_skills",
-            return_value={"core-skill"},
-        ), patch(
-            "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
-        ) as mock_svc:
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_immutable_skills",
+                return_value={"core-skill"},
+            ),
+            patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
+            ) as mock_svc,
+        ):
             mock_svc.return_value.check_deployed_skills.return_value = {
                 "skills": [
                     {"name": "skill-a"},
@@ -487,19 +519,25 @@ class TestAgentNameValidation(AioHTTPTestCase):
         mock_verification = _mock_verification_result()
 
         for name in ["my-agent", "agent_v2", "Research", "a1"]:
-            with patch(
-                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
-            ) as mock_bm, patch(
-                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
-            ) as mock_jl, patch(
-                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
-            ) as mock_dv, patch(
-                "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
-            ) as mock_svc, patch(
-                "claude_mpm.services.config_api.session_detector.detect_active_claude_sessions",
-                return_value=[],
-            ), patch("pathlib.Path.exists", return_value=False), patch(
-                "pathlib.Path.mkdir"
+            with (
+                patch(
+                    "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+                ) as mock_bm,
+                patch(
+                    "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+                ) as mock_jl,
+                patch(
+                    "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+                ) as mock_dv,
+                patch(
+                    "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+                ) as mock_svc,
+                patch(
+                    "claude_mpm.services.config_api.session_detector.detect_active_claude_sessions",
+                    return_value=[],
+                ),
+                patch("pathlib.Path.exists", return_value=False),
+                patch("pathlib.Path.mkdir"),
             ):
                 mock_bm.return_value.create_backup.return_value = mock_backup
                 mock_jl.return_value.begin_operation.return_value = "op-1"
@@ -579,15 +617,20 @@ class TestSkillNameValidation(AioHTTPTestCase):
         mock_verification = _mock_verification_result()
 
         for name in ["my-skill", "skill_v2", "Research", "a1"]:
-            with patch(
-                "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
-            ) as mock_bm, patch(
-                "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
-            ) as mock_jl, patch(
-                "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
-            ) as mock_dv, patch(
-                "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
-            ) as mock_svc:
+            with (
+                patch(
+                    "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
+                ) as mock_bm,
+                patch(
+                    "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
+                ) as mock_jl,
+                patch(
+                    "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
+                ) as mock_dv,
+                patch(
+                    "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
+                ) as mock_svc,
+            ):
                 mock_bm.return_value.create_backup.return_value = mock_backup
                 mock_jl.return_value.begin_operation.return_value = "op-skill"
                 mock_svc.return_value.deploy_skills.return_value = {
@@ -668,15 +711,21 @@ class TestBatchDeployValidation(AioHTTPTestCase):
         mock_backup = _mock_backup_result()
         mock_verification = _mock_verification_result()
 
-        with patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
-        ) as mock_bm, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
-        ) as mock_jl, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
-        ) as mock_dv, patch(
-            "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
-        ) as mock_svc, patch("pathlib.Path.mkdir"):
+        with (
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+            ) as mock_bm,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+            ) as mock_jl,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+            ) as mock_dv,
+            patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+            ) as mock_svc,
+            patch("pathlib.Path.mkdir"),
+        ):
             mock_bm.return_value.create_backup.return_value = mock_backup
             mock_jl.return_value.begin_operation.return_value = "op-batch"
             mock_svc.return_value.deploy_agent.return_value = True
@@ -782,11 +831,14 @@ class TestAutoConfigEndpoints(AioHTTPTestCase):
         mock_analysis.overall_confidence.value = "high"
         mock_analysis.metadata = {}
 
-        with patch(
-            "claude_mpm.services.config_api.autoconfig_handler._get_toolchain_analyzer"
-        ) as mock_analyzer, patch(
-            "pathlib.Path.exists",
-            return_value=True,
+        with (
+            patch(
+                "claude_mpm.services.config_api.autoconfig_handler._get_toolchain_analyzer"
+            ) as mock_analyzer,
+            patch(
+                "pathlib.Path.exists",
+                return_value=True,
+            ),
         ):
             mock_analyzer.return_value.analyze_toolchain.return_value = mock_analysis
 
@@ -813,11 +865,14 @@ class TestAutoConfigEndpoints(AioHTTPTestCase):
         mock_preview.detected_toolchain = None
         mock_preview.metadata = {}
 
-        with patch(
-            "claude_mpm.services.config_api.autoconfig_handler._get_auto_config_manager"
-        ) as mock_mgr, patch(
-            "pathlib.Path.exists",
-            return_value=True,
+        with (
+            patch(
+                "claude_mpm.services.config_api.autoconfig_handler._get_auto_config_manager"
+            ) as mock_mgr,
+            patch(
+                "pathlib.Path.exists",
+                return_value=True,
+            ),
         ):
             mock_mgr.return_value.preview_configuration.return_value = mock_preview
 

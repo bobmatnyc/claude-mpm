@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -15,9 +15,9 @@ class DeploymentConfig:
     """
 
     # Agent exclusion settings
-    excluded_agents: List[str] = field(default_factory=list)
+    excluded_agents: list[str] = field(default_factory=list)
     case_sensitive_exclusion: bool = True
-    user_excluded_agents: List[str] = field(default_factory=list)
+    user_excluded_agents: list[str] = field(default_factory=list)
 
     # Deployment behavior settings
     force_rebuild: bool = False
@@ -25,10 +25,10 @@ class DeploymentConfig:
     use_async: bool = False
 
     # Directory settings
-    target_dir: Optional[Path] = None
-    templates_dir: Optional[Path] = None
-    base_agent_path: Optional[Path] = None
-    working_directory: Optional[Path] = None
+    target_dir: Path | None = None
+    templates_dir: Path | None = None
+    base_agent_path: Path | None = None
+    working_directory: Path | None = None
 
     # System instructions settings
     deploy_system_instructions: bool = True
@@ -50,7 +50,7 @@ class DeploymentConfig:
     environment: str = "production"  # "development", "testing", "production"
 
     # Additional settings
-    extra_settings: Dict[str, Any] = field(default_factory=dict)
+    extra_settings: dict[str, Any] = field(default_factory=dict)
 
     def is_development_mode(self) -> bool:
         """Check if running in development mode.
@@ -89,7 +89,7 @@ class DeploymentConfig:
             return agent_name in self.excluded_agents
         return agent_name.lower() in [name.lower() for name in self.excluded_agents]
 
-    def get_effective_excluded_agents(self) -> List[str]:
+    def get_effective_excluded_agents(self) -> list[str]:
         """Get the effective list of excluded agents.
 
         Combines regular excluded agents with user-specific exclusions.
@@ -101,7 +101,7 @@ class DeploymentConfig:
         all_excluded.extend(self.user_excluded_agents)
         return list(set(all_excluded))  # Remove duplicates
 
-    def merge_with_dict(self, config_dict: Dict[str, Any]) -> "DeploymentConfig":
+    def merge_with_dict(self, config_dict: dict[str, Any]) -> "DeploymentConfig":
         """Merge this config with a dictionary of settings.
 
         Args:
@@ -143,7 +143,7 @@ class DeploymentConfig:
 
         return new_config
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary.
 
         Returns:

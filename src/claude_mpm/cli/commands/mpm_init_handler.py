@@ -4,6 +4,7 @@ MPM-Init command handler for claude-mpm CLI.
 This module handles the execution of the mpm-init command.
 """
 
+from datetime import UTC
 from pathlib import Path
 
 from rich.console import Console
@@ -62,7 +63,7 @@ def manage_mpm_init(args):
 
         if subcommand == "pause":
             # Handle pause subcommand
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             from claude_mpm.services.cli.session_pause_manager import (
                 SessionPauseManager,
@@ -89,7 +90,7 @@ def manage_mpm_init(args):
             console.print()
             console.print(f"[cyan]Session ID:[/cyan] {session_id}")
             console.print(
-                f"[cyan]Paused At:[/cyan] {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}"
+                f"[cyan]Paused At:[/cyan] {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S %Z')}"
             )
             console.print(f"[cyan]Location:[/cyan] .claude-mpm/sessions/{session_id}.*")
 

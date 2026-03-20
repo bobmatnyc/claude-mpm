@@ -736,8 +736,11 @@ class TestAgentMemoryManager:
         content = "Test content"
         file_path = Path("/test/memories/test_agent_memories.md")
 
-        with patch.object(Path, "mkdir"), patch.object(
-            Path, "write_text", side_effect=PermissionError("No permission")
+        with (
+            patch.object(Path, "mkdir"),
+            patch.object(
+                Path, "write_text", side_effect=PermissionError("No permission")
+            ),
         ):
             result = manager.file_service.save_memory_file(file_path, content)
 

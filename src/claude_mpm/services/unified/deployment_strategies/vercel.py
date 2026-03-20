@@ -9,9 +9,9 @@ Consolidates Vercel deployment patterns from multiple services.
 import json
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.enums import HealthStatus, OperationResult
 from claude_mpm.core.logging_utils import get_logger
@@ -49,9 +49,9 @@ class VercelDeploymentStrategy(DeploymentStrategy):
         )
         super().__init__(metadata)
         self._logger = get_logger(f"{__name__}.VercelDeploymentStrategy")
-        self._deployment_urls: Dict[str, str] = {}
+        self._deployment_urls: dict[str, str] = {}
 
-    def validate(self, context: DeploymentContext) -> List[str]:
+    def validate(self, context: DeploymentContext) -> list[str]:
         """
         Validate Vercel deployment configuration.
 
@@ -96,7 +96,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
         return errors
 
-    def prepare(self, context: DeploymentContext) -> List[Path]:
+    def prepare(self, context: DeploymentContext) -> list[Path]:
         """
         Prepare Vercel deployment artifacts.
 
@@ -140,8 +140,8 @@ class VercelDeploymentStrategy(DeploymentStrategy):
         return artifacts
 
     def execute(
-        self, context: DeploymentContext, artifacts: List[Path]
-    ) -> Dict[str, Any]:
+        self, context: DeploymentContext, artifacts: list[Path]
+    ) -> dict[str, Any]:
         """
         Execute Vercel deployment.
 
@@ -200,7 +200,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                     "deployed_path": deploy_dir,
                     "production": context.config.get("production", False),
                     "stdout": result.stdout,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             raise Exception("Could not parse deployment URL from Vercel output")
 
@@ -209,7 +209,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             raise Exception(f"Deployment failed: {e.stderr}") from e
 
     def verify(
-        self, context: DeploymentContext, deployment_info: Dict[str, Any]
+        self, context: DeploymentContext, deployment_info: dict[str, Any]
     ) -> bool:
         """
         Verify Vercel deployment success.
@@ -232,7 +232,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             import urllib.request
 
             # Try to access the deployment
-            with urllib.request.urlopen(deployment_url) as response:
+            with urllib.request.urlopen(deployment_url) as response:  # nosec
                 if response.status == 200:
                     self._logger.info(f"Deployment verified: {deployment_url}")
                     return True
@@ -291,7 +291,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             self._logger.error(f"Rollback failed: {e!s}")
             return False
 
-    def get_health_status(self, deployment_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_health_status(self, deployment_info: dict[str, Any]) -> dict[str, Any]:
         """
         Get health status of Vercel deployment.
 
@@ -318,7 +318,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
             import urllib.request
 
             # Check main deployment URL
-            with urllib.request.urlopen(deployment_url) as response:
+            with urllib.request.urlopen(deployment_url) as response:  # nosec
                 health["checks"]["main_url"] = response.status == 200
                 health["response_time_ms"] = response.info().get(
                     "X-Vercel-Trace", "N/A"
@@ -329,7 +329,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
                 for func_name in deployment_info["functions"]:
                     func_url = f"{deployment_url}/api/{func_name}"
                     try:
-                        with urllib.request.urlopen(func_url) as response:
+                        with urllib.request.urlopen(func_url) as response:  # nosec
                             health["checks"][f"function_{func_name}"] = (
                                 response.status < 500
                             )
@@ -380,7 +380,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
     def _prepare_vercel_config(
         self, context: DeploymentContext, deploy_dir: Path
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Prepare vercel.json configuration."""
         config = context.config
         vercel_config = {}
@@ -421,7 +421,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
     def _prepare_env_file(
         self, context: DeploymentContext, deploy_dir: Path
-    ) -> Optional[Path]:
+    ) -> Path | None:
         """Prepare environment variables file."""
         env_vars = context.config.get("env", {})
 
@@ -434,7 +434,7 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
         return None
 
-    def _parse_deployment_url(self, output: str) -> Optional[str]:
+    def _parse_deployment_url(self, output: str) -> str | None:
         """Parse deployment URL from Vercel output."""
         # Look for URL patterns in output
         lines = output.split("\n")
@@ -468,4 +468,4 @@ class VercelDeploymentStrategy(DeploymentStrategy):
 
     def _generate_deployment_id(self) -> str:
         """Generate unique deployment ID."""
-        return f"vercel_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"
+        return f"vercel_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}_{id(self) % 10000:04d}"

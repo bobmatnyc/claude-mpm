@@ -19,9 +19,8 @@ INTEGRATION:
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from claude_mpm.core.logger import get_logger
 
@@ -59,20 +58,20 @@ class SessionContext:
     git_branch: str
 
     # PM-specific data
-    tasks_completed: List[str]
-    files_affected: List[str]
-    next_steps: List[str]
-    context_management: Optional[str]
-    delegation_compliance: Optional[str]
+    tasks_completed: list[str]
+    files_affected: list[str]
+    next_steps: list[str]
+    context_management: str | None
+    delegation_compliance: str | None
 
     # Response logs used
-    response_files: List[str]
+    response_files: list[str]
 
 
 class ResumeService:
     """Service for reading and parsing stop event logs for resume functionality."""
 
-    def __init__(self, project_path: Optional[Path] = None):
+    def __init__(self, project_path: Path | None = None):
         """Initialize resume service.
 
         Args:
@@ -82,7 +81,7 @@ class ResumeService:
         self.responses_dir = self.project_path / ".claude-mpm" / "responses"
         self.resume_logs_dir = self.project_path / ".claude-mpm" / "resume-logs"
 
-    def list_sessions(self) -> List[SessionSummary]:
+    def list_sessions(self) -> list[SessionSummary]:
         """List all available sessions from response logs.
 
         Returns:
@@ -93,7 +92,7 @@ class ResumeService:
             return []
 
         # Group response files by session_id
-        sessions_map: Dict[str, List[Path]] = {}
+        sessions_map: dict[str, list[Path]] = {}
 
         for response_file in self.responses_dir.glob("*.json"):
             try:
@@ -146,7 +145,7 @@ class ResumeService:
         summaries.sort(key=lambda s: s.timestamp, reverse=True)
         return summaries
 
-    def get_session_context(self, session_id: str) -> Optional[SessionContext]:
+    def get_session_context(self, session_id: str) -> SessionContext | None:
         """Get full context for a specific session.
 
         Args:
@@ -163,7 +162,7 @@ class ResumeService:
         # Fallback to response logs
         return self._get_context_from_response_logs(session_id)
 
-    def get_latest_session(self) -> Optional[SessionContext]:
+    def get_latest_session(self) -> SessionContext | None:
         """Get context from most recent session.
 
         Returns:
@@ -177,7 +176,7 @@ class ResumeService:
         latest = sessions[0]
         return self.get_session_context(latest.session_id)
 
-    def _get_context_from_resume_log(self, session_id: str) -> Optional[SessionContext]:
+    def _get_context_from_resume_log(self, session_id: str) -> SessionContext | None:
         """Try to get context from structured resume log.
 
         Args:
@@ -200,9 +199,7 @@ class ResumeService:
 
         return None
 
-    def _get_context_from_response_logs(
-        self, session_id: str
-    ) -> Optional[SessionContext]:
+    def _get_context_from_response_logs(self, session_id: str) -> SessionContext | None:
         """Get context from response logs for a session.
 
         Args:
@@ -237,8 +234,8 @@ class ResumeService:
         return self._build_context_from_files(session_id, response_files)
 
     def _build_context_from_files(
-        self, session_id: str, response_files: List[Path]
-    ) -> Optional[SessionContext]:
+        self, session_id: str, response_files: list[Path]
+    ) -> SessionContext | None:
         """Build SessionContext from multiple response files.
 
         Args:
@@ -356,7 +353,7 @@ class ResumeService:
 
         return result
 
-    def _extract_completed_tasks(self, text: str) -> List[str]:
+    def _extract_completed_tasks(self, text: str) -> list[str]:
         """Extract completed tasks from response text."""
         tasks = []
 
@@ -369,7 +366,7 @@ class ResumeService:
 
         return tasks[:10]  # Limit to 10
 
-    def _extract_files(self, text: str) -> List[str]:
+    def _extract_files(self, text: str) -> list[str]:
         """Extract file paths from response text."""
         files = []
 
@@ -389,7 +386,7 @@ class ResumeService:
 
         return files[:20]  # Limit to 20
 
-    def _extract_next_steps(self, text: str) -> List[str]:
+    def _extract_next_steps(self, text: str) -> list[str]:
         """Extract next steps from response text."""
         steps = []
 
@@ -413,9 +410,7 @@ class ResumeService:
 
         return steps[:10]  # Limit to 10
 
-    def _parse_resume_log(
-        self, session_id: str, content: str
-    ) -> Optional[SessionContext]:
+    def _parse_resume_log(self, session_id: str, content: str) -> SessionContext | None:
         """Parse structured resume log markdown file.
 
         Args:
@@ -461,13 +456,13 @@ class ResumeService:
             logger.error(f"Failed to parse resume log: {e}")
             return None
 
-    def _extract_section(self, content: str, header: str) -> Optional[str]:
+    def _extract_section(self, content: str, header: str) -> str | None:
         """Extract content from a markdown section."""
         pattern = rf"##\s+{header}\s*\n(.+?)(?=\n##|\Z)"
         match = re.search(pattern, content, re.DOTALL)
         return match.group(1).strip() if match else None
 
-    def _extract_list_items(self, content: str, header: str) -> List[str]:
+    def _extract_list_items(self, content: str, header: str) -> list[str]:
         """Extract list items from a markdown section."""
         section = self._extract_section(content, header)
         if not section:
@@ -482,7 +477,7 @@ class ResumeService:
 
         return items
 
-    def _parse_timestamp(self, timestamp_str: Optional[str]) -> datetime:
+    def _parse_timestamp(self, timestamp_str: str | None) -> datetime:
         """Parse timestamp string to datetime object.
 
         Args:
@@ -492,18 +487,18 @@ class ResumeService:
             datetime object (defaults to epoch if parsing fails)
         """
         if not timestamp_str:
-            return datetime.fromtimestamp(0, tz=timezone.utc)
+            return datetime.fromtimestamp(0, tz=UTC)
 
         try:
             # Try ISO format
             dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
+                dt = dt.replace(tzinfo=UTC)
             return dt
         except Exception:
             # Fallback to epoch
             logger.warning(f"Failed to parse timestamp: {timestamp_str}")
-            return datetime.fromtimestamp(0, tz=timezone.utc)
+            return datetime.fromtimestamp(0, tz=UTC)
 
     def _calculate_time_ago(self, timestamp: datetime) -> str:
         """Calculate human-readable time elapsed.
@@ -514,7 +509,7 @@ class ResumeService:
         Returns:
             Human-readable string like "2 hours ago"
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         delta = now - timestamp
 
         days = delta.days

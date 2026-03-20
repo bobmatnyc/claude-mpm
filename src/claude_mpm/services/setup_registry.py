@@ -4,13 +4,12 @@ import json
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import Dict, List, Optional
 
 
 class SetupRegistry:
     """Registry for tracking configured services (MCP servers and CLI tools)."""
 
-    def __init__(self, registry_path: Optional[Path] = None):
+    def __init__(self, registry_path: Path | None = None):
         """Initialize setup registry.
 
         Args:
@@ -29,7 +28,7 @@ class SetupRegistry:
         if not self.registry_path.exists():
             self._save_registry({"services": {}})
 
-    def _load_registry(self) -> Dict:
+    def _load_registry(self) -> dict:
         """Load registry from disk (thread-safe)."""
         with self._lock:
             try:
@@ -38,7 +37,7 @@ class SetupRegistry:
             except (json.JSONDecodeError, OSError):
                 return {"services": {}}
 
-    def _save_registry(self, data: Dict) -> None:
+    def _save_registry(self, data: dict) -> None:
         """Save registry to disk (thread-safe)."""
         with self._lock:
             with open(self.registry_path, "w") as f:
@@ -49,7 +48,7 @@ class SetupRegistry:
         name: str,
         service_type: str,
         version: str = "",
-        tools: Optional[List[str]] = None,
+        tools: list[str] | None = None,
         cli_help: str = "",
         config_location: str = "user",
     ) -> None:
@@ -93,7 +92,7 @@ class SetupRegistry:
             return True
         return False
 
-    def get_service(self, name: str) -> Optional[Dict]:
+    def get_service(self, name: str) -> dict | None:
         """Get service details.
 
         Args:
@@ -105,7 +104,7 @@ class SetupRegistry:
         registry = self._load_registry()
         return registry["services"].get(name)
 
-    def list_services(self, service_type: Optional[str] = None) -> List[str]:
+    def list_services(self, service_type: str | None = None) -> list[str]:
         """List all services (optionally filtered by type).
 
         Args:
@@ -126,7 +125,7 @@ class SetupRegistry:
             if details.get("type") == service_type
         ]
 
-    def get_all_tools(self) -> Dict[str, List[str]]:
+    def get_all_tools(self) -> dict[str, list[str]]:
         """Get all tools grouped by service.
 
         Returns:
@@ -138,7 +137,7 @@ class SetupRegistry:
             for name, details in registry["services"].items()
         }
 
-    def get_services_with_details(self) -> Dict[str, Dict]:
+    def get_services_with_details(self) -> dict[str, dict]:
         """Get all services with full details.
 
         Returns:

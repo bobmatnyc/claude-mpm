@@ -15,8 +15,8 @@ Key Responsibilities:
 
 import time
 from dataclasses import dataclass, field
+from datetime import UTC
 from enum import Enum
-from typing import Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
@@ -44,12 +44,12 @@ class AgentLifecycleRecord:
     created_at: float
     last_modified: float
     version: str
-    modifications: List[str] = field(default_factory=list)  # Modification IDs
-    persistence_operations: List[str] = field(default_factory=list)  # Operation IDs
-    backup_paths: List[str] = field(default_factory=list)
+    modifications: list[str] = field(default_factory=list)  # Modification IDs
+    persistence_operations: list[str] = field(default_factory=list)  # Operation IDs
+    backup_paths: list[str] = field(default_factory=list)
     validation_status: str = "valid"
-    validation_errors: List[str] = field(default_factory=list)
-    metadata: Dict[str, any] = field(default_factory=dict)
+    validation_errors: list[str] = field(default_factory=list)
+    metadata: dict[str, any] = field(default_factory=dict)
 
     @property
     def age_days(self) -> float:
@@ -59,9 +59,9 @@ class AgentLifecycleRecord:
     @property
     def last_modified_datetime(self):
         """Get last modified as datetime."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        return datetime.fromtimestamp(self.last_modified, tz=timezone.utc)
+        return datetime.fromtimestamp(self.last_modified, tz=UTC)
 
 
 @dataclass
@@ -73,7 +73,7 @@ class StateTransition:
     to_state: LifecycleState
     timestamp: float
     reason: str
-    metadata: Dict[str, any] = field(default_factory=dict)
+    metadata: dict[str, any] = field(default_factory=dict)
 
 
 class AgentStateService(BaseService):
@@ -92,10 +92,10 @@ class AgentStateService(BaseService):
         super().__init__("agent_state_service")
 
         # Agent records storage
-        self.agent_records: Dict[str, AgentLifecycleRecord] = {}
+        self.agent_records: dict[str, AgentLifecycleRecord] = {}
 
         # State transition history
-        self.transition_history: List[StateTransition] = []
+        self.transition_history: list[StateTransition] = []
 
         # Valid state transitions
         self.valid_transitions = {
@@ -173,7 +173,7 @@ class AgentStateService(BaseService):
 
         return record
 
-    def get_record(self, agent_name: str) -> Optional[AgentLifecycleRecord]:
+    def get_record(self, agent_name: str) -> AgentLifecycleRecord | None:
         """Get lifecycle record for an agent."""
         return self.agent_records.get(agent_name)
 
@@ -239,8 +239,8 @@ class AgentStateService(BaseService):
         return to_state in valid_targets
 
     def list_agents_by_state(
-        self, state: Optional[LifecycleState] = None
-    ) -> List[AgentLifecycleRecord]:
+        self, state: LifecycleState | None = None
+    ) -> list[AgentLifecycleRecord]:
         """
         List agents filtered by state.
 
@@ -257,7 +257,7 @@ class AgentStateService(BaseService):
 
         return sorted(agents, key=lambda x: x.last_modified, reverse=True)
 
-    def get_state_statistics(self) -> Dict[str, int]:
+    def get_state_statistics(self) -> dict[str, int]:
         """Get count of agents in each state."""
         stats = {}
         for record in self.agent_records.values():
@@ -266,8 +266,8 @@ class AgentStateService(BaseService):
         return stats
 
     def get_transition_history(
-        self, agent_name: Optional[str] = None, limit: int = 100
-    ) -> List[StateTransition]:
+        self, agent_name: str | None = None, limit: int = 100
+    ) -> list[StateTransition]:
         """
         Get state transition history.
 
@@ -305,7 +305,7 @@ class AgentStateService(BaseService):
         record.last_modified = time.time()
         return True
 
-    def increment_version(self, agent_name: str) -> Optional[str]:
+    def increment_version(self, agent_name: str) -> str | None:
         """
         Increment the patch version of an agent.
 
@@ -357,7 +357,7 @@ class AgentStateService(BaseService):
         record.last_modified = time.time()
         return True
 
-    def get_tier_statistics(self) -> Dict[str, int]:
+    def get_tier_statistics(self) -> dict[str, int]:
         """Get count of agents in each tier."""
         stats = {}
         for record in self.agent_records.values():
@@ -373,7 +373,7 @@ class AgentStateService(BaseService):
         """Cleanup the state service."""
         self.logger.info("AgentStateService cleaned up")
 
-    async def _health_check(self) -> Dict[str, bool]:
+    async def _health_check(self) -> dict[str, bool]:
         """Perform health check."""
         return {
             "records_loaded": len(self.agent_records) > 0,

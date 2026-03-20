@@ -69,7 +69,7 @@ def write_json_version() -> None:
     return version_data
 
 
-def increment_version(component: str = "patch") -> Tuple[str, str]:
+def increment_version(component: str = "patch") -> tuple[str, str]:
     """
     Increment the semantic version.
 
@@ -105,7 +105,7 @@ def increment_version(component: str = "patch") -> Tuple[str, str]:
     return version, new_version
 
 
-def increment_build() -> Tuple[int, int]:
+def increment_build() -> tuple[int, int]:
     """
     Increment the build number.
 

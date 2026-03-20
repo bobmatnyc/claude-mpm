@@ -30,7 +30,7 @@ Example:
 """
 
 import re
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
@@ -55,7 +55,7 @@ class CodeMinimizationMetric(BaseMetric):
     """
 
     # Search-first patterns
-    SEARCH_PATTERNS: List[str] = [
+    SEARCH_PATTERNS: list[str] = [
         r"vector\s+search",
         r"search_code",
         r"mcp__mcp-vector-search",
@@ -70,7 +70,7 @@ class CodeMinimizationMetric(BaseMetric):
     ]
 
     # LOC delta patterns
-    LOC_DELTA_PATTERNS: List[str] = [
+    LOC_DELTA_PATTERNS: list[str] = [
         r"net\s+(?:LOC|lines)",
         r"added\s+\d+\s+lines?",
         r"removed\s+\d+\s+lines?",
@@ -85,7 +85,7 @@ class CodeMinimizationMetric(BaseMetric):
     ]
 
     # Reuse patterns
-    REUSE_PATTERNS: List[str] = [
+    REUSE_PATTERNS: list[str] = [
         r"extend(?:ed|ing)?",
         r"leverage\s+existing",
         r"reuse",
@@ -100,7 +100,7 @@ class CodeMinimizationMetric(BaseMetric):
     ]
 
     # Consolidation patterns
-    CONSOLIDATION_PATTERNS: List[str] = [
+    CONSOLIDATION_PATTERNS: list[str] = [
         r"consolidat(?:e|ed|ing)",
         r"merge(?:d|ing)?",
         r"combine(?:d|ing)?",
@@ -114,7 +114,7 @@ class CodeMinimizationMetric(BaseMetric):
     ]
 
     # Config vs code patterns
-    CONFIG_PATTERNS: List[str] = [
+    CONFIG_PATTERNS: list[str] = [
         r"configuration",
         r"config\s+file",
         r"settings",
@@ -135,21 +135,21 @@ class CodeMinimizationMetric(BaseMetric):
             threshold: Minimum score to pass (default: 0.8 for 80% compliance)
         """
         self.threshold = threshold
-        self._score: Optional[float] = None
-        self._reason: Optional[str] = None
-        self._success: Optional[bool] = None
+        self._score: float | None = None
+        self._reason: str | None = None
+        self._success: bool | None = None
 
     @property
     def __name__(self) -> str:
         return "Code Minimization"
 
     @property
-    def score(self) -> Optional[float]:
+    def score(self) -> float | None:
         """Get the computed score."""
         return self._score
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason for the score."""
         return self._reason
 

@@ -194,8 +194,9 @@ class TestHookInstaller(unittest.TestCase):
         mock_get_script.return_value = mock_script_path
 
         # Mock command installation
-        with patch.object(self.installer, "_install_commands"), patch.object(
-            self.installer, "_cleanup_old_deployment"
+        with (
+            patch.object(self.installer, "_install_commands"),
+            patch.object(self.installer, "_cleanup_old_deployment"),
         ):
             result = self.installer.install_hooks()
 
@@ -393,9 +394,14 @@ class TestHookInstaller(unittest.TestCase):
             json.dump(settings, f)
 
         # Mock version check
-        with patch.object(
-            self.installer, "is_version_compatible", return_value=(True, "Compatible")
-        ), patch("os.access", return_value=True):
+        with (
+            patch.object(
+                self.installer,
+                "is_version_compatible",
+                return_value=(True, "Compatible"),
+            ),
+            patch("os.access", return_value=True),
+        ):
             is_valid, issues = self.installer.verify_hooks()
 
             self.assertTrue(is_valid)
@@ -418,10 +424,15 @@ class TestHookInstaller(unittest.TestCase):
 
     def test_verify_hooks_missing_settings(self):
         """Test verification when settings file is missing."""
-        with patch.object(
-            self.installer, "is_version_compatible", return_value=(True, "Compatible")
-        ), patch.object(
-            self.installer, "get_hook_script_path", return_value=Path("/hook.sh")
+        with (
+            patch.object(
+                self.installer,
+                "is_version_compatible",
+                return_value=(True, "Compatible"),
+            ),
+            patch.object(
+                self.installer, "get_hook_script_path", return_value=Path("/hook.sh")
+            ),
         ):
             is_valid, issues = self.installer.verify_hooks()
 
@@ -456,11 +467,17 @@ class TestHookInstaller(unittest.TestCase):
         with self.installer.settings_file.open("w") as f:
             json.dump(settings, f)
 
-        with patch.object(
-            self.installer, "is_version_compatible", return_value=(True, "Compatible")
-        ), patch.object(
-            self.installer, "get_hook_command", return_value="/path/to/hook.sh"
-        ), patch("os.access", return_value=True):
+        with (
+            patch.object(
+                self.installer,
+                "is_version_compatible",
+                return_value=(True, "Compatible"),
+            ),
+            patch.object(
+                self.installer, "get_hook_command", return_value="/path/to/hook.sh"
+            ),
+            patch("os.access", return_value=True),
+        ):
             is_valid, issues = self.installer.verify_hooks()
 
             self.assertFalse(is_valid)

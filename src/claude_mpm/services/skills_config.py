@@ -38,9 +38,9 @@ Example config structure:
 }
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from claude_mpm.core.mixins import LoggerMixin
 from claude_mpm.utils.config_manager import ConfigurationManager
@@ -117,7 +117,7 @@ class SkillsConfig(LoggerMixin):
                 }
                 self._save_config(config)
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         """Load configuration from disk.
 
         Returns:
@@ -129,7 +129,7 @@ class SkillsConfig(LoggerMixin):
         """
         return self.config_manager.load_json(self.config_path)
 
-    def _save_config(self, config: Dict[str, Any]) -> None:
+    def _save_config(self, config: dict[str, Any]) -> None:
         """Save configuration to disk.
 
         Args:
@@ -138,7 +138,7 @@ class SkillsConfig(LoggerMixin):
         self.config_manager.save_json(config, self.config_path, indent=2)
         self.logger.debug(f"Configuration saved to {self.config_path}")
 
-    def get_collections(self) -> Dict[str, Dict[str, Any]]:
+    def get_collections(self) -> dict[str, dict[str, Any]]:
         """Get all collections.
 
         Returns:
@@ -164,7 +164,7 @@ class SkillsConfig(LoggerMixin):
         config = self._load_config()
         return config.get("skills", {}).get("collections", {})
 
-    def get_enabled_collections(self) -> Dict[str, Dict[str, Any]]:
+    def get_enabled_collections(self) -> dict[str, dict[str, Any]]:
         """Get only enabled collections.
 
         Returns:
@@ -179,7 +179,7 @@ class SkillsConfig(LoggerMixin):
 
     def get_collections_by_priority(
         self, enabled_only: bool = True
-    ) -> List[tuple[str, Dict[str, Any]]]:
+    ) -> list[tuple[str, dict[str, Any]]]:
         """Get collections sorted by priority (lower number = higher priority).
 
         Args:
@@ -200,7 +200,7 @@ class SkillsConfig(LoggerMixin):
         # Sort by priority (lower = higher priority)
         return sorted(collections.items(), key=lambda x: x[1].get("priority", 999))
 
-    def get_collection(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_collection(self, name: str) -> dict[str, Any] | None:
         """Get specific collection.
 
         Args:
@@ -227,7 +227,7 @@ class SkillsConfig(LoggerMixin):
         url: str,
         priority: int = 99,
         enabled: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Add new collection.
 
         Args:
@@ -281,7 +281,7 @@ class SkillsConfig(LoggerMixin):
             "collection": collections[name],
         }
 
-    def remove_collection(self, name: str) -> Dict[str, Any]:
+    def remove_collection(self, name: str) -> dict[str, Any]:
         """Remove collection.
 
         Args:
@@ -321,7 +321,7 @@ class SkillsConfig(LoggerMixin):
             "message": f"Collection '{name}' removed successfully",
         }
 
-    def update_collection(self, name: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+    def update_collection(self, name: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Update collection properties.
 
         Args:
@@ -362,7 +362,7 @@ class SkillsConfig(LoggerMixin):
             "collection": collections[name],
         }
 
-    def enable_collection(self, name: str) -> Dict[str, Any]:
+    def enable_collection(self, name: str) -> dict[str, Any]:
         """Enable a disabled collection.
 
         Args:
@@ -377,7 +377,7 @@ class SkillsConfig(LoggerMixin):
         """
         return self.update_collection(name, {"enabled": True})
 
-    def disable_collection(self, name: str) -> Dict[str, Any]:
+    def disable_collection(self, name: str) -> dict[str, Any]:
         """Disable a collection without removing it.
 
         Args:
@@ -417,7 +417,7 @@ class SkillsConfig(LoggerMixin):
         config = self._load_config()
         return config.get("skills", {}).get("default_collection", "claude-mpm")
 
-    def set_default_collection(self, name: str) -> Dict[str, Any]:
+    def set_default_collection(self, name: str) -> dict[str, Any]:
         """Set the default collection.
 
         Args:
@@ -463,7 +463,7 @@ class SkillsConfig(LoggerMixin):
             "new_default": name,
         }
 
-    def update_collection_timestamp(self, name: str) -> Dict[str, Any]:
+    def update_collection_timestamp(self, name: str) -> dict[str, Any]:
         """Update the last_update timestamp for a collection.
 
         Args:
@@ -480,7 +480,7 @@ class SkillsConfig(LoggerMixin):
                 "timestamp": "2025-11-21T15:30:00Z"
             }
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         result = self.update_collection(name, {"last_update": timestamp})
         result["timestamp"] = timestamp
@@ -501,8 +501,8 @@ class SkillsConfig(LoggerMixin):
         return self.config_path
 
     def validate_collection_config(
-        self, collection_config: Dict[str, Any]
-    ) -> List[str]:
+        self, collection_config: dict[str, Any]
+    ) -> list[str]:
         """Validate a collection configuration.
 
         Args:

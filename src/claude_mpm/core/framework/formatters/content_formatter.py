@@ -1,7 +1,7 @@
 """Framework content formatter for generating instructions."""
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -37,11 +37,11 @@ class ContentFormatter:
 
     def format_full_framework(
         self,
-        framework_content: Dict[str, Any],
+        framework_content: dict[str, Any],
         capabilities_section: str,
         context_section: str,
         inject_output_style: bool = False,
-        output_style_content: Optional[str] = None,
+        output_style_content: str | None = None,
     ) -> str:
         """Format complete framework instructions.
 
@@ -70,6 +70,19 @@ class ContentFormatter:
                     framework_content["custom_instructions"]
                 )
                 instructions += "\n"
+
+            # Add AGENT_DELEGATION.md after framework instructions, before workflow
+            if framework_content.get("agent_delegation"):
+                delegation_content = self.strip_metadata_comments(
+                    framework_content["agent_delegation"]
+                )
+                level = framework_content.get("agent_delegation_level", "system")
+                if level != "system":
+                    instructions += (
+                        f"\n\n## Agent Delegation Routing ({level} level)\n\n"
+                    )
+                    instructions += "**The following agent delegation rules override system defaults:**\n\n"
+                instructions += f"{delegation_content}\n"
 
             # Add WORKFLOW.md after instructions
             if framework_content.get("workflow_instructions"):
@@ -130,7 +143,7 @@ class ContentFormatter:
         # Otherwise generate minimal framework
         return self.format_minimal_framework(framework_content)
 
-    def format_minimal_framework(self, framework_content: Dict[str, Any]) -> str:
+    def format_minimal_framework(self, framework_content: dict[str, Any]) -> str:
         """Format minimal framework instructions when full framework not available.
 
         Args:

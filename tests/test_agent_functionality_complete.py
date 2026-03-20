@@ -8,7 +8,7 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 # Add src to path
 sys.path.insert(
@@ -27,7 +27,7 @@ class TestResult:
         self.passed = passed
         self.details = details
         self.error = error
-        self.timestamp = datetime.now(timezone.utc)
+        self.timestamp = datetime.now(UTC)
 
 
 class AgentFunctionalityTester:
@@ -41,7 +41,7 @@ class AgentFunctionalityTester:
     def run_all_tests(self):
         """Run all test suites"""
         print("=== Claude MPM Agent Functionality Test Suite ===")
-        print(f"Started at: {datetime.now(timezone.utc)}\n")
+        print(f"Started at: {datetime.now(UTC)}\n")
 
         # Test 1: AgentLoader initialization
         self.test_agent_loader_initialization()
@@ -454,7 +454,7 @@ class AgentFunctionalityTester:
                 if not result.passed:
                     print(f"  - {result.name}: {result.error or result.details}")
 
-        print("\nTest completed at:", datetime.now(timezone.utc))
+        print("\nTest completed at:", datetime.now(UTC))
 
 
 if __name__ == "__main__":

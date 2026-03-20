@@ -11,8 +11,9 @@ The cursor is a base64-encoded offset index for simplicity and stability.
 
 import base64
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +25,11 @@ DEFAULT_LIMIT = 50
 class PaginatedResponse:
     """Container for paginated results."""
 
-    items: List[Any]
+    items: list[Any]
     total: int
     has_more: bool
-    next_cursor: Optional[str]
-    limit: Optional[int]
+    next_cursor: str | None
+    limit: int | None
 
 
 def _encode_cursor(offset: int) -> str:
@@ -51,10 +52,10 @@ def _decode_cursor(cursor: str) -> int:
 
 
 def paginate(
-    items: List[Any],
-    limit: Optional[int] = None,
-    cursor: Optional[str] = None,
-    sort_key: Optional[Callable] = None,
+    items: list[Any],
+    limit: int | None = None,
+    cursor: str | None = None,
+    sort_key: Callable | None = None,
     sort_desc: bool = False,
 ) -> PaginatedResponse:
     """Apply cursor-based pagination to a list of items.

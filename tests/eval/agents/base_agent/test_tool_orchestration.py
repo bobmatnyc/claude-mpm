@@ -5,7 +5,8 @@ This test suite validates that BASE_AGENT tool orchestration protocols are
 properly enforced across all orchestration scenarios (ORC-001 to ORC-003).
 """
 
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -23,7 +24,7 @@ class TestToolOrchestration:
 
     def test_parallel_execution_compliant(
         self,
-        orchestration_scenarios: List[Dict[str, Any]],
+        orchestration_scenarios: list[dict[str, Any]],
         get_scenario_by_id: Callable,
     ) -> None:
         """Test that parallel tool execution works correctly.
@@ -46,7 +47,7 @@ class TestToolOrchestration:
 
     def test_parallel_execution_non_compliant(
         self,
-        orchestration_scenarios: List[Dict[str, Any]],
+        orchestration_scenarios: list[dict[str, Any]],
         get_scenario_by_id: Callable,
     ) -> None:
         """Test that sequential execution of independent ops fails.
@@ -70,7 +71,7 @@ class TestToolOrchestration:
 
     def test_error_recovery_compliant(
         self,
-        orchestration_scenarios: List[Dict[str, Any]],
+        orchestration_scenarios: list[dict[str, Any]],
         get_scenario_by_id: Callable,
     ) -> None:
         """Test that error recovery works correctly.
@@ -93,7 +94,7 @@ class TestToolOrchestration:
 
     def test_error_recovery_non_compliant(
         self,
-        orchestration_scenarios: List[Dict[str, Any]],
+        orchestration_scenarios: list[dict[str, Any]],
         get_scenario_by_id: Callable,
     ) -> None:
         """Test that poor error handling fails.
@@ -117,7 +118,7 @@ class TestToolOrchestration:
 
     def test_cascading_workflows_compliant(
         self,
-        orchestration_scenarios: List[Dict[str, Any]],
+        orchestration_scenarios: list[dict[str, Any]],
         get_scenario_by_id: Callable,
     ) -> None:
         """Test that cascading workflows work correctly.
@@ -141,7 +142,7 @@ class TestToolOrchestration:
 
     def test_cascading_workflows_non_compliant(
         self,
-        orchestration_scenarios: List[Dict[str, Any]],
+        orchestration_scenarios: list[dict[str, Any]],
         get_scenario_by_id: Callable,
     ) -> None:
         """Test that incorrect workflow order fails.

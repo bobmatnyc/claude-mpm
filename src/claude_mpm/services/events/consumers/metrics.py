@@ -7,7 +7,7 @@ Collects metrics and statistics from events.
 
 import time
 from collections import defaultdict, deque
-from typing import Any, Deque, Dict, List
+from typing import Any
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -53,17 +53,17 @@ class MetricsConsumer(IEventConsumer):
         self._last_report_time = time.time()
 
         # Metrics storage
-        self._event_counts: Dict[str, int] = defaultdict(int)
-        self._topic_counts: Dict[str, int] = defaultdict(int)
-        self._type_counts: Dict[str, int] = defaultdict(int)
-        self._source_counts: Dict[str, int] = defaultdict(int)
+        self._event_counts: dict[str, int] = defaultdict(int)
+        self._topic_counts: dict[str, int] = defaultdict(int)
+        self._type_counts: dict[str, int] = defaultdict(int)
+        self._source_counts: dict[str, int] = defaultdict(int)
 
         # Time-windowed metrics
-        self._recent_events: Deque[tuple] = deque()  # (timestamp, topic, type)
-        self._latencies: Deque[float] = deque(maxlen=1000)
+        self._recent_events: deque[tuple] = deque()  # (timestamp, topic, type)
+        self._latencies: deque[float] = deque(maxlen=1000)
 
         # Error tracking
-        self._error_counts: Dict[str, int] = defaultdict(int)
+        self._error_counts: dict[str, int] = defaultdict(int)
 
         # Performance metrics
         self._metrics = {
@@ -132,7 +132,7 @@ class MetricsConsumer(IEventConsumer):
             self.logger.error(f"Error processing event for metrics: {e}")
             return False
 
-    async def consume_batch(self, events: List[Event]) -> int:
+    async def consume_batch(self, events: list[Event]) -> int:
         """Process multiple events."""
         successful = 0
         for event in events:
@@ -160,7 +160,7 @@ class MetricsConsumer(IEventConsumer):
         """Check if consumer is healthy."""
         return self._initialized
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get consumer metrics."""
         # Calculate current metrics
         self._calculate_metrics()

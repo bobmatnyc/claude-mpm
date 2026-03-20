@@ -2,7 +2,7 @@
 Subprocess validation section generator for framework CLAUDE.md.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from . import BaseSectionGenerator
 
@@ -10,7 +10,7 @@ from . import BaseSectionGenerator
 class SubprocessValidationGenerator(BaseSectionGenerator):
     """Generates the Subprocess Validation Protocol section."""
 
-    def generate(self, data: Dict[str, Any]) -> str:
+    def generate(self, data: dict[str, Any]) -> str:
         """Generate the subprocess validation section."""
         return """
 ## 🔥🚨 CRITICAL: SUBPROCESS VALIDATION PROTOCOL 🚨🔥

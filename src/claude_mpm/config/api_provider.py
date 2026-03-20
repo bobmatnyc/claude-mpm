@@ -14,9 +14,9 @@ before Claude Code is launched.
 
 import os
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -25,7 +25,7 @@ from ..core.logging_utils import get_logger
 logger = get_logger(__name__)
 
 
-class APIBackend(str, Enum):
+class APIBackend(StrEnum):
     """API backend options for Claude Code."""
 
     BEDROCK = "bedrock"
@@ -69,7 +69,7 @@ class APIProviderConfig:
     anthropic: AnthropicConfig = field(default_factory=AnthropicConfig)
 
     @classmethod
-    def load(cls, config_path: Optional[Path] = None) -> "APIProviderConfig":
+    def load(cls, config_path: Path | None = None) -> "APIProviderConfig":
         """Load API provider configuration from configuration.yaml.
 
         Args:
@@ -128,7 +128,7 @@ class APIProviderConfig:
             logger.warning(f"Failed to load API provider config: {e}, using defaults")
             return cls()
 
-    def apply_environment(self) -> Dict[str, str]:
+    def apply_environment(self) -> dict[str, str]:
         """Apply environment variables for the selected backend.
 
         Sets appropriate environment variables based on the configured backend.
@@ -138,7 +138,7 @@ class APIProviderConfig:
         Returns:
             Dictionary of environment variables that were set/modified.
         """
-        changes: Dict[str, str] = {}
+        changes: dict[str, str] = {}
 
         if self.backend == APIBackend.BEDROCK:
             # Enable Bedrock mode
@@ -194,7 +194,7 @@ class APIProviderConfig:
 
         return changes
 
-    def save(self, config_path: Optional[Path] = None) -> None:
+    def save(self, config_path: Path | None = None) -> None:
         """Save current configuration to configuration.yaml.
 
         Args:
@@ -208,7 +208,7 @@ class APIProviderConfig:
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Load existing config to preserve other sections
-        existing_config: Dict[str, Any] = {}
+        existing_config: dict[str, Any] = {}
         if config_path.exists():
             try:
                 with open(config_path) as f:
@@ -237,7 +237,7 @@ class APIProviderConfig:
             logger.error(f"Failed to save API provider config: {e}")
             raise
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary for display.
 
         Returns:
@@ -255,7 +255,7 @@ class APIProviderConfig:
         }
 
 
-def apply_api_provider_config(config_path: Optional[Path] = None) -> Dict[str, str]:
+def apply_api_provider_config(config_path: Path | None = None) -> dict[str, str]:
     """Load and apply API provider configuration.
 
     Convenience function to load config and apply environment variables

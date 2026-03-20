@@ -16,7 +16,7 @@ DESIGN DECISIONS:
 
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
@@ -30,7 +30,7 @@ class IAgentOutputFormatter(ABC):
     @abstractmethod
     def format_agent_list(
         self,
-        agents: List[Dict[str, Any]],
+        agents: list[dict[str, Any]],
         output_format: str = "text",
         verbose: bool = False,
         quiet: bool = False,
@@ -39,14 +39,14 @@ class IAgentOutputFormatter(ABC):
 
     @abstractmethod
     def format_agent_details(
-        self, agent: Dict[str, Any], output_format: str = "text", verbose: bool = False
+        self, agent: dict[str, Any], output_format: str = "text", verbose: bool = False
     ) -> str:
         """Format single agent details."""
 
     @abstractmethod
     def format_dependency_report(
         self,
-        dependencies: Dict[str, Any],
+        dependencies: dict[str, Any],
         output_format: str = "text",
         show_status: bool = True,
     ) -> str:
@@ -54,13 +54,13 @@ class IAgentOutputFormatter(ABC):
 
     @abstractmethod
     def format_deployment_result(
-        self, result: Dict[str, Any], output_format: str = "text", verbose: bool = False
+        self, result: dict[str, Any], output_format: str = "text", verbose: bool = False
     ) -> str:
         """Format deployment results."""
 
     @abstractmethod
     def format_cleanup_result(
-        self, result: Dict[str, Any], output_format: str = "text", dry_run: bool = False
+        self, result: dict[str, Any], output_format: str = "text", dry_run: bool = False
     ) -> str:
         """Format cleanup results."""
 
@@ -74,19 +74,19 @@ class IAgentOutputFormatter(ABC):
 
     @abstractmethod
     def format_as_table(
-        self, headers: List[str], rows: List[List[str]], min_column_width: int = 10
+        self, headers: list[str], rows: list[list[str]], min_column_width: int = 10
     ) -> str:
         """Format data as table."""
 
     @abstractmethod
     def format_agents_by_tier(
-        self, agents_by_tier: Dict[str, List[str]], output_format: str = "text"
+        self, agents_by_tier: dict[str, list[str]], output_format: str = "text"
     ) -> str:
         """Format agents grouped by tier."""
 
     @abstractmethod
     def format_fix_result(
-        self, result: Dict[str, Any], output_format: str = "text"
+        self, result: dict[str, Any], output_format: str = "text"
     ) -> str:
         """Format fix operation results."""
 
@@ -104,7 +104,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
 
     def format_agent_list(
         self,
-        agents: List[Dict[str, Any]],
+        agents: list[dict[str, Any]],
         output_format: str = "text",
         verbose: bool = False,
         quiet: bool = False,
@@ -130,7 +130,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return self._format_agents_as_text(agents, verbose, quiet)
 
     def format_agent_details(
-        self, agent: Dict[str, Any], output_format: str = "text", verbose: bool = False
+        self, agent: dict[str, Any], output_format: str = "text", verbose: bool = False
     ) -> str:
         """Format single agent details.
 
@@ -179,7 +179,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
 
     def format_dependency_report(
         self,
-        dependencies: Dict[str, Any],
+        dependencies: dict[str, Any],
         output_format: str = "text",
         show_status: bool = True,
     ) -> str:
@@ -245,7 +245,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return "\n".join(lines)
 
     def format_deployment_result(
-        self, result: Dict[str, Any], output_format: str = "text", verbose: bool = False
+        self, result: dict[str, Any], output_format: str = "text", verbose: bool = False
     ) -> str:
         """Format deployment results.
 
@@ -303,7 +303,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return "\n".join(lines)
 
     def format_cleanup_result(
-        self, result: Dict[str, Any], output_format: str = "text", dry_run: bool = False
+        self, result: dict[str, Any], output_format: str = "text", dry_run: bool = False
     ) -> str:
         """Format cleanup results.
 
@@ -392,7 +392,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return yaml.dump(data, default_flow_style=False, sort_keys=True)
 
     def format_as_table(
-        self, headers: List[str], rows: List[List[str]], min_column_width: int = 10
+        self, headers: list[str], rows: list[list[str]], min_column_width: int = 10
     ) -> str:
         """Format data as table.
 
@@ -433,7 +433,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return "\n".join(lines)
 
     def _format_agents_as_text(
-        self, agents: List[Dict[str, Any]], verbose: bool, quiet: bool
+        self, agents: list[dict[str, Any]], verbose: bool, quiet: bool
     ) -> str:
         """Format agents as text output.
 
@@ -485,7 +485,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return "\n".join(lines)
 
     def _format_agents_as_table(
-        self, agents: List[Dict[str, Any]], verbose: bool, quiet: bool
+        self, agents: list[dict[str, Any]], verbose: bool, quiet: bool
     ) -> str:
         """Format agents as table output.
 
@@ -538,7 +538,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return self.format_as_table(headers, rows)
 
     def format_agents_by_tier(
-        self, agents_by_tier: Dict[str, List[str]], output_format: str = "text"
+        self, agents_by_tier: dict[str, list[str]], output_format: str = "text"
     ) -> str:
         """Format agents grouped by tier.
 
@@ -570,7 +570,7 @@ class AgentOutputFormatter(IAgentOutputFormatter):
         return "\n".join(lines)
 
     def format_fix_result(
-        self, result: Dict[str, Any], output_format: str = "text"
+        self, result: dict[str, Any], output_format: str = "text"
     ) -> str:
         """Format fix operation results.
 

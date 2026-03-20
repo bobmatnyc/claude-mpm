@@ -18,9 +18,8 @@ import asyncio
 import os
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Optional
 
 import socketio
 from aiohttp import web
@@ -124,7 +123,7 @@ class SvelteBuildWatcher(FileSystemEventHandler):
                 "reload",
                 {
                     "type": "reload",
-                    "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                    "timestamp": datetime.now(UTC).isoformat() + "Z",
                     "reason": "svelte-build-updated",
                 },
             )
@@ -172,8 +171,8 @@ class UnifiedMonitorServer:
         self.event_emitter = None
 
         # File watching (optional for dev mode)
-        self.file_observer: Optional[Observer] = None
-        self.file_watcher: Optional[SvelteBuildWatcher] = None
+        self.file_observer: Observer | None = None
+        self.file_watcher: SvelteBuildWatcher | None = None
 
         # State
         self.running = False
@@ -182,7 +181,7 @@ class UnifiedMonitorServer:
         self.startup_error = None  # Track startup errors
 
         # Heartbeat tracking
-        self.heartbeat_task: Optional[asyncio.Task] = None
+        self.heartbeat_task: asyncio.Task | None = None
         self.server_start_time = time.time()
         self.heartbeat_count = 0
 
@@ -677,7 +676,7 @@ class UnifiedMonitorServer:
                     event_timestamp = (
                         event_data.get("timestamp")
                         or actual_data.get("timestamp")
-                        or datetime.now(timezone.utc).isoformat() + "Z"
+                        or datetime.now(UTC).isoformat() + "Z"
                     )
 
                     wrapped_event = {
@@ -1062,7 +1061,7 @@ class UnifiedMonitorServer:
                 config = {
                     "workingDirectory": Path.cwd(),
                     "gitBranch": "Unknown",
-                    "serverTime": datetime.now(timezone.utc).isoformat() + "Z",
+                    "serverTime": datetime.now(UTC).isoformat() + "Z",
                     "service": "unified-monitor",
                 }
 
@@ -1545,7 +1544,7 @@ class UnifiedMonitorServer:
 
                 # Create heartbeat data
                 heartbeat_data = {
-                    "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                    "timestamp": datetime.now(UTC).isoformat() + "Z",
                     "type": "heartbeat",
                     "server_uptime": uptime_seconds,
                     "server_uptime_formatted": uptime_str,
@@ -1601,7 +1600,7 @@ class UnifiedMonitorServer:
                 self.heartbeat_task.cancel()
                 try:
                     await asyncio.wait_for(self.heartbeat_task, timeout=2.0)
-                except (asyncio.CancelledError, asyncio.TimeoutError):
+                except (TimeoutError, asyncio.CancelledError):
                     pass
                 self.logger.debug("Heartbeat task cancelled")
 
@@ -1658,7 +1657,7 @@ class UnifiedMonitorServer:
         except Exception as e:
             self.logger.error(f"Error during async cleanup: {e}")
 
-    def get_status(self) -> Dict:
+    def get_status(self) -> dict:
         """Get server status information.
 
         Returns:

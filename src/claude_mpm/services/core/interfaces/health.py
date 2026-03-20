@@ -27,7 +27,6 @@ USAGE:
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from claude_mpm.services.core.models.health import DeploymentHealth, HealthCheckResult
 
@@ -138,7 +137,7 @@ class IHealthCheckManager(ABC):
     @abstractmethod
     def get_health_history(
         self, deployment_id: str, limit: int = 10
-    ) -> List[DeploymentHealth]:
+    ) -> list[DeploymentHealth]:
         """
         Get historical health check results for a deployment.
 
