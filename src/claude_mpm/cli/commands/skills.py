@@ -221,7 +221,7 @@ class SkillsManagementCommand(BaseCommand):
             console.print("\n[bold cyan]Deploying skills...[/bold cyan]\n")
 
             # Initialize git skill source manager
-            config = SkillSourceConfiguration.load()
+            config = SkillSourceConfiguration()
             git_skill_manager = GitSkillSourceManager(config)
             project_dir = Path.cwd()
 
@@ -1620,7 +1620,7 @@ class SkillsManagementCommand(BaseCommand):
                 GitSkillSourceManager,
             )
 
-            config = SkillSourceConfiguration.load()
+            config = SkillSourceConfiguration()
             git_skill_manager = GitSkillSourceManager(config)
 
             # Sync sources first
