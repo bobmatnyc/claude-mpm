@@ -1,3 +1,15 @@
+## v5.10.12 (2026-03-20)
+
+### Feat
+
+- rebuild PM_INSTRUCTIONS_DEPLOYED.md on every startup
+- unify agent deployment pipelines (#343)
+
+### Fix
+
+- implement additive block override semantics and include AGENT_DELEGATION in deployer
+- implement additive block override semantics and include AGENT_DELEGATION in deployer
+
 ## v5.10.11 (2026-03-19)
 
 ### Feat
