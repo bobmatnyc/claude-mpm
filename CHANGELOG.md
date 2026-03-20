@@ -1,3 +1,9 @@
+## v5.10.11 (2026-03-19)
+
+### Feat
+
+- rebuild PM_INSTRUCTIONS_DEPLOYED.md on every startup
+
 ## v5.10.10 (2026-03-19)
 
 ### Fix
