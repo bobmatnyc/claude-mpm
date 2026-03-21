@@ -230,7 +230,9 @@ class SkillsManagementCommand(BaseCommand):
             sync_results = git_skill_manager.sync_all_sources(force=force)
 
             synced_count = sum(
-                1 for result in sync_results.values() if result.get("synced")
+                1
+                for result in sync_results.get("sources", {}).values()
+                if result.get("synced")
             )
             console.print(f"[dim]Synced {synced_count} skill source(s)[/dim]\n")
 
