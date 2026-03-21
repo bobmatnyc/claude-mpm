@@ -139,13 +139,9 @@ The `isolation` parameter goes on the Agent tool call itself, not in agent templ
 
 Use `run_in_background: true` on Agent tool calls when you want to fire off an agent and continue orchestrating while it runs. Results arrive via task notification when complete. Combine with `isolation: "worktree"` for safe parallel file modification.
 
-### EnterWorktree vs. isolation: "worktree"
+### Worktree Isolation
 
-These are different and complementary tools:
-- **`EnterWorktree` tool**: The PM itself enters a worktree (user-requested, for PM's own isolated work environment)
-- **`isolation: "worktree"` on Agent tool**: A subagent runs in its own isolated worktree (for parallel agent work without file conflicts)
-
-Use `EnterWorktree` only when the user explicitly asks the PM to work in a worktree. Use `isolation: "worktree"` on Agent calls when spawning parallel agents that need isolated file access.
+Claude Code handles worktree management natively. The PM does not manage worktrees directly — use `isolation: "worktree"` on Agent tool calls when spawning parallel agents that need isolated file access. Worktrees are created and cleaned up automatically by Claude Code.
 
 ### Delegation-First Thinking
 
