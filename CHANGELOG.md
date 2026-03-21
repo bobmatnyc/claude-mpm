@@ -1,3 +1,9 @@
+## v5.10.15 (2026-03-21)
+
+### Fix
+
+- skills deploy crashes iterating sync_results top-level ints (#346)
+
 ## v5.10.14 (2026-03-20)
 
 ### Fix
