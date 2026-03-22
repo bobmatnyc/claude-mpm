@@ -53,6 +53,7 @@ class InteractiveSession:
         self.logger = get_logger("interactive_session")
         self.session_id = None
         self._sdk_session_id: str | None = None
+        self._hook_event_bus: Any = None
         self.original_cwd = Path.cwd()
 
         # Initialize response tracking for interactive sessions
@@ -660,14 +661,49 @@ class InteractiveSession:
             if not skip_permissions_disabled():
                 permission_mode = "bypassPermissions"
 
+            # Set up hook event bus for sidecar agent injection
+            event_bus = None
+            pretooluse_hook = None
+            try:
+                from claude_mpm.services.agents.hook_event_bus import HookEventBus
+                from claude_mpm.services.agents.hook_factory import (
+                    create_pretooluse_hook,
+                )
+
+                event_bus = HookEventBus()
+                pretooluse_hook = create_pretooluse_hook(event_bus)
+            except Exception:
+                self.logger.debug(
+                    "Hook event bus setup failed; running without hooks",
+                    exc_info=True,
+                )
+
             # Build SDK options
+            hooks_config = None
+            if pretooluse_hook is not None:
+                from claude_agent_sdk import HookMatcher
+
+                hooks_config = {
+                    "PreToolUse": [
+                        HookMatcher(
+                            matcher=None,  # Match ALL tool uses
+                            hooks=[pretooluse_hook],
+                        ),
+                    ],
+                }
+
             options = ClaudeAgentOptions(
                 system_prompt=system_prompt,
                 cwd=cwd,
                 permission_mode=permission_mode,
+                hooks=hooks_config,
             )
             if mcp_servers:
                 options.mcp_servers = mcp_servers
+
+            # Store event bus so sidecar agents can reference it
+            if event_bus is not None:
+                self._hook_event_bus = event_bus
 
             # Check for --resume in claude_args
             claude_args = getattr(self.runner, "claude_args", []) or []
