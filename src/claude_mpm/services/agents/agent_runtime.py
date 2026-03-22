@@ -191,4 +191,8 @@ def create_runtime(
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
         return SDKAgentRunner.from_config(config or AgentConfig())
+    if runtime_type == "cli":
+        from claude_mpm.services.agents.cli_runtime import CLIAgentRunner
+
+        return CLIAgentRunner.from_config(config or AgentConfig())
     raise ValueError(f"Unknown runtime type: {runtime_type!r}")
