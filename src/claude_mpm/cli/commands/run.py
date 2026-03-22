@@ -484,6 +484,11 @@ class RunCommand(BaseCommand):
         if getattr(args, "subprocess", False):
             launch_method = "subprocess"
 
+        # SDK runtime selection: when --sdk sets CLAUDE_MPM_RUNTIME=sdk,
+        # launch the PM via ClaudeSDKClient instead of exec/subprocess.
+        if os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk":
+            launch_method = "sdk"
+
         # Configure WebSocket
         enable_websocket = monitor_mode
 

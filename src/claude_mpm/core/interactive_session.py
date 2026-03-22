@@ -52,6 +52,7 @@ class InteractiveSession:
         self.runner: ClaudeRunnerProtocol = runner
         self.logger = get_logger("interactive_session")
         self.session_id = None
+        self._sdk_session_id: str | None = None
         self.original_cwd = Path.cwd()
 
         # Initialize response tracking for interactive sessions
@@ -203,6 +204,8 @@ class InteractiveSession:
             # Launch using selected method
             if self.runner.launch_method == "subprocess":
                 return self._launch_subprocess_mode(cmd, env)
+            if self.runner.launch_method == "sdk":
+                return self._launch_sdk_mode()
             return self._launch_exec_mode(cmd, env)
 
         except FileNotFoundError as e:
@@ -613,6 +616,157 @@ class InteractiveSession:
         # Delegate to runner's existing method
         self.runner._launch_subprocess_interactive(cmd, env)
         return True
+
+    def _launch_sdk_mode(self) -> bool:
+        """Launch PM via ClaudeSDKClient with persistent session.
+
+        Instead of os.execvpe (which replaces the process with Claude Code's REPL),
+        this keeps the MPM process alive and runs a user input loop that sends
+        messages through ClaudeSDKClient.
+        """
+        import asyncio
+
+        async def _run_sdk_session() -> int:
+            try:
+                from claude_agent_sdk import (
+                    AssistantMessage,
+                    ClaudeAgentOptions,
+                    ClaudeSDKClient,
+                    ResultMessage,
+                    SystemMessage,
+                    TextBlock,
+                    ToolUseBlock,
+                )
+            except ImportError:
+                print(
+                    "Error: claude-agent-sdk is not installed. "
+                    "Install it with: pip install claude-agent-sdk"
+                )
+                return 1
+
+            # Build system prompt from the runner (same as CLI mode)
+            system_prompt = self.runner._create_system_prompt()
+
+            # Get working directory
+            cwd = os.environ.get("CLAUDE_MPM_USER_PWD", str(Path.cwd()))
+
+            # Parse MCP config if available
+            mcp_servers = self._load_mcp_config(cwd)
+
+            # Determine permission mode
+            from .constants import skip_permissions_disabled
+
+            permission_mode = None
+            if not skip_permissions_disabled():
+                permission_mode = "bypassPermissions"
+
+            # Build SDK options
+            options = ClaudeAgentOptions(
+                system_prompt=system_prompt,
+                cwd=cwd,
+                permission_mode=permission_mode,
+            )
+            if mcp_servers:
+                options.mcp_servers = mcp_servers
+
+            # Check for --resume in claude_args
+            claude_args = getattr(self.runner, "claude_args", []) or []
+            if "--resume" in claude_args:
+                idx = claude_args.index("--resume")
+                if idx + 1 < len(claude_args) and not claude_args[idx + 1].startswith(
+                    "-"
+                ):
+                    options.resume = claude_args[idx + 1]
+
+            print("SDK Mode -- persistent session active")
+            print("   Type /exit or /quit to end session")
+            print()
+
+            async with ClaudeSDKClient(options=options) as client:
+                while True:
+                    try:
+                        user_input = input("> ")
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nSession ended.")
+                        break
+
+                    if not user_input.strip():
+                        continue
+
+                    if user_input.strip() in ("/exit", "/quit"):
+                        print("Session ended.")
+                        break
+
+                    try:
+                        await client.query(user_input)
+                        async for message in client.receive_response():
+                            if isinstance(message, AssistantMessage):
+                                for block in message.content:
+                                    if isinstance(block, TextBlock):
+                                        print(block.text)
+                                    elif isinstance(block, ToolUseBlock):
+                                        print(f"  [tool] {block.name}...")
+                            elif isinstance(message, ResultMessage):
+                                if message.session_id:
+                                    self._sdk_session_id = message.session_id
+                            elif isinstance(message, SystemMessage):
+                                self.logger.debug(
+                                    "SDK system message: %s", message.subtype
+                                )
+                    except KeyboardInterrupt:
+                        print("\nInterrupted. Type /exit to quit.")
+                        continue
+                    except Exception as e:
+                        print(f"\nError: {e}")
+                        self.logger.exception("SDK session error")
+                        continue
+
+            return 0
+
+        return asyncio.run(_run_sdk_session()) == 0
+
+    def _load_mcp_config(self, cwd: str) -> dict | None:
+        """Load MCP server configuration from .mcp.json files.
+
+        Claude Code normally reads these itself. In SDK mode, we need to
+        parse and pass them explicitly.
+
+        Args:
+            cwd: Working directory to search for project-level .mcp.json
+
+        Returns:
+            Dict of MCP server configs, or None if none found
+        """
+        import json
+
+        mcp_config: dict = {}
+
+        # Check project-level .mcp.json
+        project_mcp = Path(cwd) / ".mcp.json"
+        if project_mcp.exists():
+            try:
+                with open(project_mcp) as f:
+                    data = json.load(f)
+                    if "mcpServers" in data:
+                        mcp_config.update(data["mcpServers"])
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Check user-level ~/.claude/.mcp.json
+        user_mcp = Path.home() / ".claude" / ".mcp.json"
+        if user_mcp.exists():
+            try:
+                with open(user_mcp) as f:
+                    data = json.load(f)
+                    if "mcpServers" in data:
+                        # Project config takes precedence
+                        for k, v in data["mcpServers"].items():
+                            if k not in mcp_config:
+                                mcp_config[k] = v
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        return mcp_config if mcp_config else None
 
     def _handle_launch_error(self, error_type: str, error: Exception) -> None:
         """Handle errors during Claude launch."""
