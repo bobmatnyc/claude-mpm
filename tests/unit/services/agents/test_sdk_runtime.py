@@ -1,13 +1,17 @@
-"""Tests for SDK-based agent runtime prototype.
+"""Tests for SDK-based agent runtime (with AgentRuntime ABC integration).
 
 All tests use mocks to avoid requiring a live Claude Code installation.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 import pytest
 
@@ -133,6 +137,7 @@ class TestExtractResult:
             ),
             FakeResultMessage(),
         ]
+        # _extract_result returns SDKAgentResult with ToolCallRecord objects
         result = SDKAgentRunner._extract_result(messages)
         assert len(result.tool_calls) == 1
         assert result.tool_calls[0].tool_name == "Bash"
@@ -154,6 +159,32 @@ class TestExtractResult:
         ]
         result = SDKAgentRunner._extract_result(messages)
         assert result.tool_calls[0].output == "file contents here"
+
+    def test_static_to_agent_result_converts_correctly(self) -> None:
+        from claude_mpm.services.agents.sdk_runtime import (
+            SDKAgentResult,
+            SDKAgentRunner,
+            ToolCallRecord,
+        )
+
+        sdk_result = SDKAgentResult(
+            text="hello",
+            session_id="s1",
+            tool_calls=[
+                ToolCallRecord(tool_name="Bash", input={"cmd": "ls"}, output="files")
+            ],
+            cost_usd=0.01,
+            num_turns=2,
+            duration_ms=500,
+            is_error=False,
+        )
+        agent_result = SDKAgentRunner._static_to_agent_result(sdk_result)
+        assert agent_result.text == "hello"
+        assert agent_result.session_id == "s1"
+        assert agent_result.cost_usd == 0.01
+        assert len(agent_result.tool_calls) == 1
+        assert agent_result.tool_calls[0]["tool_name"] == "Bash"
+        assert agent_result.tool_calls[0]["output"] == "files"
 
     def test_marks_error_from_result_message(self) -> None:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
@@ -240,7 +271,7 @@ class TestRun:
         result = await runner.run("find python files")
 
         assert len(result.tool_calls) == 1
-        assert result.tool_calls[0].tool_name == "Glob"
+        assert result.tool_calls[0]["tool_name"] == "Glob"
 
 
 # ---------------------------------------------------------------------------
@@ -638,3 +669,351 @@ class TestInterruptibleSession:
         session = InterruptibleSession(runner)
         # Should not raise even without a client
         await session.interrupt()
+
+
+# ---------------------------------------------------------------------------
+# Tests for AgentRuntime ABC compliance
+# ---------------------------------------------------------------------------
+
+
+class TestAgentRuntimeABC:
+    """Verify SDKAgentRunner satisfies the AgentRuntime ABC."""
+
+    def test_is_instance_of_agent_runtime(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentRuntime
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runner = SDKAgentRunner()
+        assert isinstance(runner, AgentRuntime)
+
+    def test_runtime_name_is_sdk(self) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runner = SDKAgentRunner()
+        assert runner.runtime_name == "sdk"
+
+    @pytest.mark.asyncio
+    async def test_run_returns_agent_result(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentResult
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        async def fake_query(*, prompt: str, options: Any) -> Any:
+            yield FakeAssistantMessage(content=[FakeTextBlock(text="abc")])
+            yield FakeResultMessage(session_id="s1")
+
+        monkeypatch.setattr(
+            "claude_mpm.services.agents.sdk_runtime.sdk_query", fake_query
+        )
+
+        runner = SDKAgentRunner(system_prompt="test")
+        result = await runner.run("hello")
+        assert isinstance(result, AgentResult)
+        assert result.text == "abc"
+
+
+# ---------------------------------------------------------------------------
+# Tests for from_config()
+# ---------------------------------------------------------------------------
+
+
+class TestFromConfig:
+    """Tests for the from_config classmethod."""
+
+    def test_creates_runner_from_config(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentConfig
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        config = AgentConfig(
+            system_prompt="You are helpful.",
+            model="sonnet",
+            max_turns=10,
+        )
+        runner = SDKAgentRunner.from_config(config)
+        assert runner.system_prompt == "You are helpful."
+        assert runner.model == "claude-sonnet-4-20250514"
+        assert runner.max_turns == 10
+
+    def test_resolves_mpm_model_names(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentConfig
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        for short, full in [
+            ("sonnet", "claude-sonnet-4-20250514"),
+            ("opus", "claude-opus-4-20250514"),
+            ("haiku", "claude-haiku-3-20250307"),
+        ]:
+            runner = SDKAgentRunner.from_config(AgentConfig(model=short))
+            assert runner.model == full
+
+    def test_passes_through_full_model_name(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentConfig
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runner = SDKAgentRunner.from_config(
+            AgentConfig(model="claude-sonnet-4-20250514")
+        )
+        assert runner.model == "claude-sonnet-4-20250514"
+
+    def test_none_model_stays_none(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentConfig
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runner = SDKAgentRunner.from_config(AgentConfig())
+        assert runner.model is None
+
+    def test_mcp_servers_passed_through(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentConfig
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        mcp = {"my-server": {"command": "npx", "args": ["my-server"]}}
+        runner = SDKAgentRunner.from_config(AgentConfig(mcp_servers=mcp))
+        assert runner.mcp_servers == mcp
+
+
+# ---------------------------------------------------------------------------
+# Tests for from_agent_template()
+# ---------------------------------------------------------------------------
+
+
+class TestFromAgentTemplate:
+    """Tests for the from_agent_template classmethod."""
+
+    def test_loads_v3_template(self, tmp_path: Path) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        template = {
+            "version": 3,
+            "narrative_fields": {"instructions": "You are a test agent."},
+            "capabilities": {
+                "model": "sonnet",
+                "tools": ["Bash", "Read"],
+            },
+            "configuration_fields": {
+                "timeout": 120,
+                "max_budget_usd": 0.50,
+            },
+        }
+        path = tmp_path / "agent.json"
+        path.write_text(json.dumps(template))
+
+        runner = SDKAgentRunner.from_agent_template(path)
+        assert runner.system_prompt == "You are a test agent."
+        assert runner.model == "claude-sonnet-4-20250514"
+        assert runner.allowed_tools == ["Bash", "Read"]
+        assert runner.max_turns == 120  # fallback from timeout
+        assert runner.max_budget_usd == 0.50
+
+    def test_loads_template_with_system_prompt_key(self, tmp_path: Path) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        template = {
+            "system_prompt": "Legacy system prompt.",
+            "configuration_fields": {"model": "opus"},
+        }
+        path = tmp_path / "agent.json"
+        path.write_text(json.dumps(template))
+
+        runner = SDKAgentRunner.from_agent_template(path)
+        assert runner.system_prompt == "Legacy system prompt."
+        assert runner.model == "claude-opus-4-20250514"
+
+    def test_wildcard_tools_not_set(self, tmp_path: Path) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        template = {
+            "capabilities": {"tools": "*"},
+        }
+        path = tmp_path / "agent.json"
+        path.write_text(json.dumps(template))
+
+        runner = SDKAgentRunner.from_agent_template(path)
+        assert runner.allowed_tools is None
+
+    def test_mcp_servers_passthrough(self, tmp_path: Path) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        template = {"narrative_fields": {"instructions": "test"}}
+        path = tmp_path / "agent.json"
+        path.write_text(json.dumps(template))
+
+        mcp = {"vector-search": {"command": "node", "args": ["server.js"]}}
+        runner = SDKAgentRunner.from_agent_template(path, mcp_servers=mcp)
+        assert runner.mcp_servers == mcp
+
+    def test_no_model_returns_none(self, tmp_path: Path) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        template = {"narrative_fields": {"instructions": "test"}}
+        path = tmp_path / "agent.json"
+        path.write_text(json.dumps(template))
+
+        runner = SDKAgentRunner.from_agent_template(path)
+        assert runner.model is None
+
+    def test_max_turns_preferred_over_timeout(self, tmp_path: Path) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        template = {
+            "configuration_fields": {
+                "max_turns": 50,
+                "timeout": 300,
+            },
+        }
+        path = tmp_path / "agent.json"
+        path.write_text(json.dumps(template))
+
+        runner = SDKAgentRunner.from_agent_template(path)
+        assert runner.max_turns == 50
+
+    def test_file_not_found_raises(self) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        with pytest.raises(FileNotFoundError):
+            SDKAgentRunner.from_agent_template("/nonexistent/agent.json")
+
+
+# ---------------------------------------------------------------------------
+# Tests for MCP server passthrough in _build_options
+# ---------------------------------------------------------------------------
+
+
+class TestMCPPassthrough:
+    """Tests for MCP server configuration passthrough."""
+
+    def test_mcp_servers_in_build_options(self) -> None:
+        from claude_mpm.services.agents import sdk_runtime
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        mcp = {"my-server": {"command": "npx", "args": ["srv"]}}
+        runner = SDKAgentRunner(mcp_servers=mcp)
+
+        # Use a fresh mock to inspect call_args
+        mock_opts = MagicMock()
+        original = sdk_runtime.ClaudeAgentOptions
+        sdk_runtime.ClaudeAgentOptions = mock_opts
+        try:
+            runner._build_options()
+            call_kwargs = mock_opts.call_args[1]
+            assert call_kwargs["mcp_servers"] == mcp
+        finally:
+            sdk_runtime.ClaudeAgentOptions = original
+
+    def test_mcp_servers_none_omitted(self) -> None:
+        from claude_mpm.services.agents import sdk_runtime
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runner = SDKAgentRunner()
+        mock_opts = MagicMock()
+        original = sdk_runtime.ClaudeAgentOptions
+        sdk_runtime.ClaudeAgentOptions = mock_opts
+        try:
+            runner._build_options()
+            call_kwargs = mock_opts.call_args[1]
+            assert "mcp_servers" not in call_kwargs
+        finally:
+            sdk_runtime.ClaudeAgentOptions = original
+
+
+# ---------------------------------------------------------------------------
+# Tests for create_runtime() factory
+# ---------------------------------------------------------------------------
+
+
+class TestCreateRuntime:
+    """Tests for the create_runtime factory function."""
+
+    def test_creates_sdk_runtime(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import (
+            AgentConfig,
+            AgentRuntime,
+            create_runtime,
+        )
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runtime = create_runtime("sdk", AgentConfig(system_prompt="hi"))
+        assert isinstance(runtime, SDKAgentRunner)
+        assert isinstance(runtime, AgentRuntime)
+        assert runtime.system_prompt == "hi"
+
+    def test_default_is_sdk(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import (
+            AgentRuntime,
+            create_runtime,
+        )
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        runtime = create_runtime()
+        assert isinstance(runtime, SDKAgentRunner)
+
+    def test_unknown_type_raises(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import create_runtime
+
+        with pytest.raises(ValueError, match="Unknown runtime type"):
+            create_runtime("unknown")
+
+
+# ---------------------------------------------------------------------------
+# Tests for model mapping helpers
+# ---------------------------------------------------------------------------
+
+
+class TestModelMapping:
+    """Tests for resolve_model_to_sdk and resolve_model_to_mpm."""
+
+    def test_resolve_short_to_sdk(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import resolve_model_to_sdk
+
+        assert resolve_model_to_sdk("sonnet") == "claude-sonnet-4-20250514"
+        assert resolve_model_to_sdk("opus") == "claude-opus-4-20250514"
+        assert resolve_model_to_sdk("haiku") == "claude-haiku-3-20250307"
+
+    def test_resolve_full_passthrough(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import resolve_model_to_sdk
+
+        full = "claude-sonnet-4-20250514"
+        assert resolve_model_to_sdk(full) == full
+
+    def test_resolve_sdk_to_mpm(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import resolve_model_to_mpm
+
+        assert resolve_model_to_mpm("claude-sonnet-4-20250514") == "sonnet"
+        assert resolve_model_to_mpm("claude-opus-4-20250514") == "opus"
+
+    def test_resolve_mpm_fallback_extraction(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import resolve_model_to_mpm
+
+        assert resolve_model_to_mpm("some-custom-sonnet-model") == "sonnet"
+        assert resolve_model_to_mpm("future-opus-v9") == "opus"
+
+    def test_resolve_mpm_unknown_returns_original(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import resolve_model_to_mpm
+
+        assert resolve_model_to_mpm("gpt-4") == "gpt-4"
+
+
+# ---------------------------------------------------------------------------
+# Tests for AgentConfig and AgentResult dataclasses
+# ---------------------------------------------------------------------------
+
+
+class TestRuntimeDataClasses:
+    """Tests for AgentConfig and AgentResult."""
+
+    def test_agent_config_defaults(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentConfig
+
+        cfg = AgentConfig()
+        assert cfg.system_prompt is None
+        assert cfg.model is None
+        assert cfg.mcp_servers is None
+
+    def test_agent_result_defaults(self) -> None:
+        from claude_mpm.services.agents.agent_runtime import AgentResult
+
+        result = AgentResult(text="hello")
+        assert result.tool_calls == []
+        assert result.session_id is None
+        assert result.is_error is False
+        assert result.cost_usd is None
