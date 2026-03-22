@@ -99,6 +99,7 @@ def _patch_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sdk_runtime, "PermissionResultAllow", FakePermissionResultAllow)
     monkeypatch.setattr(sdk_runtime, "PermissionResultDeny", FakePermissionResultDeny)
     monkeypatch.setattr(sdk_runtime, "ClaudeAgentOptions", MagicMock)
+    monkeypatch.setattr(sdk_runtime, "ClaudeSDKClient", MagicMock)
 
 
 # ---------------------------------------------------------------------------
@@ -406,3 +407,234 @@ class TestDataClasses:
         assert result.session_id is None
         assert result.is_error is False
         assert result.raw_messages == []
+
+
+# ---------------------------------------------------------------------------
+# Tests for resume() and fork()
+# ---------------------------------------------------------------------------
+
+
+class TestResumeFork:
+    """Tests for session resume and fork."""
+
+    @pytest.mark.asyncio
+    async def test_resume_passes_session_id(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents import sdk_runtime
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        # Use a fresh MagicMock so we can inspect call_args reliably
+        mock_options_cls = MagicMock()
+        monkeypatch.setattr(sdk_runtime, "ClaudeAgentOptions", mock_options_cls)
+
+        async def fake_query(*, prompt: str, options: Any) -> Any:
+            yield FakeAssistantMessage(content=[FakeTextBlock(text="resumed")])
+            yield FakeResultMessage(session_id="s-resumed")
+
+        monkeypatch.setattr(sdk_runtime, "sdk_query", fake_query)
+
+        runner = SDKAgentRunner(system_prompt="test")
+        result = await runner.resume("old-session-id", "follow-up")
+
+        assert result.text == "resumed"
+        assert result.session_id == "s-resumed"
+        # Verify resume kwarg was passed to ClaudeAgentOptions
+        call_kwargs = mock_options_cls.call_args[1]
+        assert call_kwargs["resume"] == "old-session-id"
+
+    @pytest.mark.asyncio
+    async def test_fork_passes_session_id_and_flag(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents import sdk_runtime
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        mock_options_cls = MagicMock()
+        monkeypatch.setattr(sdk_runtime, "ClaudeAgentOptions", mock_options_cls)
+
+        async def fake_query(*, prompt: str, options: Any) -> Any:
+            yield FakeAssistantMessage(content=[FakeTextBlock(text="forked")])
+            yield FakeResultMessage(session_id="s-forked")
+
+        monkeypatch.setattr(sdk_runtime, "sdk_query", fake_query)
+
+        runner = SDKAgentRunner(system_prompt="test")
+        result = await runner.fork("original-session", "branched prompt")
+
+        assert result.text == "forked"
+        assert result.session_id == "s-forked"
+        call_kwargs = mock_options_cls.call_args[1]
+        assert call_kwargs["resume"] == "original-session"
+        assert call_kwargs["fork_session"] is True
+
+
+# ---------------------------------------------------------------------------
+# Tests for run_streaming()
+# ---------------------------------------------------------------------------
+
+
+class TestRunStreaming:
+    """Tests for streaming output with callbacks."""
+
+    @pytest.mark.asyncio
+    async def test_on_text_called_for_text_blocks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        async def fake_query(*, prompt: str, options: Any) -> Any:
+            yield FakeAssistantMessage(
+                content=[
+                    FakeTextBlock(text="chunk1"),
+                    FakeTextBlock(text="chunk2"),
+                ]
+            )
+            yield FakeResultMessage()
+
+        monkeypatch.setattr(
+            "claude_mpm.services.agents.sdk_runtime.sdk_query", fake_query
+        )
+
+        text_chunks: list[str] = []
+
+        async def on_text(text: str) -> None:
+            text_chunks.append(text)
+
+        runner = SDKAgentRunner()
+        result = await runner.run_streaming("hello", on_text=on_text)
+
+        assert text_chunks == ["chunk1", "chunk2"]
+        assert "chunk1" in result.text
+        assert "chunk2" in result.text
+
+    @pytest.mark.asyncio
+    async def test_on_tool_call_called_for_tool_blocks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        async def fake_query(*, prompt: str, options: Any) -> Any:
+            yield FakeAssistantMessage(
+                content=[
+                    FakeToolUseBlock(id="t1", name="Read", input={"file": "x.py"}),
+                ]
+            )
+            yield FakeResultMessage()
+
+        monkeypatch.setattr(
+            "claude_mpm.services.agents.sdk_runtime.sdk_query", fake_query
+        )
+
+        tool_calls: list[tuple[str, dict[str, Any]]] = []
+
+        async def on_tool_call(name: str, inp: dict[str, Any]) -> None:
+            tool_calls.append((name, inp))
+
+        runner = SDKAgentRunner()
+        result = await runner.run_streaming("read file", on_tool_call=on_tool_call)
+
+        assert len(tool_calls) == 1
+        assert tool_calls[0] == ("Read", {"file": "x.py"})
+        assert len(result.tool_calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_streaming_works_without_callbacks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        async def fake_query(*, prompt: str, options: Any) -> Any:
+            yield FakeAssistantMessage(content=[FakeTextBlock(text="no-cb")])
+            yield FakeResultMessage()
+
+        monkeypatch.setattr(
+            "claude_mpm.services.agents.sdk_runtime.sdk_query", fake_query
+        )
+
+        runner = SDKAgentRunner()
+        result = await runner.run_streaming("hello")
+
+        assert result.text == "no-cb"
+
+
+# ---------------------------------------------------------------------------
+# Tests for InterruptibleSession
+# ---------------------------------------------------------------------------
+
+
+class TestInterruptibleSession:
+    """Tests for the interruptible session context manager."""
+
+    @pytest.mark.asyncio
+    async def test_query_collects_result(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        async def fake_receive() -> Any:
+            yield FakeAssistantMessage(content=[FakeTextBlock(text="interrupted-ok")])
+            yield FakeResultMessage(session_id="s-int")
+
+        mock_client.receive_response = fake_receive
+
+        monkeypatch.setattr(
+            "claude_mpm.services.agents.sdk_runtime.ClaudeSDKClient",
+            MagicMock(return_value=mock_client),
+        )
+
+        runner = SDKAgentRunner()
+        async with runner.interruptible() as session:
+            result = await session.query("do work")
+
+        assert result.text == "interrupted-ok"
+        assert result.session_id == "s-int"
+        assert session.session_id == "s-int"
+
+    @pytest.mark.asyncio
+    async def test_interrupt_calls_client(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.interrupt = AsyncMock()
+
+        monkeypatch.setattr(
+            "claude_mpm.services.agents.sdk_runtime.ClaudeSDKClient",
+            MagicMock(return_value=mock_client),
+        )
+
+        runner = SDKAgentRunner()
+        async with runner.interruptible() as session:
+            await session.interrupt()
+
+        mock_client.interrupt.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_query_raises_when_not_open(self) -> None:
+        from claude_mpm.services.agents.sdk_runtime import (
+            InterruptibleSession,
+            SDKAgentRunner,
+        )
+
+        runner = SDKAgentRunner()
+        session = InterruptibleSession(runner)
+        with pytest.raises(RuntimeError, match="Session is not open"):
+            await session.query("hello")
+
+    @pytest.mark.asyncio
+    async def test_interrupt_noop_when_no_client(self) -> None:
+        from claude_mpm.services.agents.sdk_runtime import (
+            InterruptibleSession,
+            SDKAgentRunner,
+        )
+
+        runner = SDKAgentRunner()
+        session = InterruptibleSession(runner)
+        # Should not raise even without a client
+        await session.interrupt()

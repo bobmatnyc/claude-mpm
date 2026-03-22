@@ -10,6 +10,21 @@ Usage:
         model="claude-sonnet-4-20250514",
     )
     result = await runner.run("Explain dependency injection.")
+
+    # Resume a previous session
+    result2 = await runner.resume(result.session_id, "Follow-up question.")
+
+    # Streaming with callbacks
+    result3 = await runner.run_streaming(
+        "Explain DI.",
+        on_text=my_text_handler,
+        on_tool_call=my_tool_handler,
+    )
+
+    # Interruptible session
+    async with runner.interruptible() as session:
+        r = await session.query("Do something long-running.")
+        await session.interrupt()  # cancel if needed
 """
 
 from __future__ import annotations
@@ -312,6 +327,155 @@ class SDKAgentRunner:
                     logger.debug("inject message: %s", type(msg).__name__)
 
         return self._extract_result(all_messages)
+
+    # -- session resume / fork -----------------------------------------------
+
+    async def resume(
+        self,
+        session_id: str,
+        prompt: str,
+        **option_overrides: Any,
+    ) -> SDKAgentResult:
+        """Resume a previous session by ID and send a new prompt.
+
+        The conversation history from *session_id* is restored and the new
+        *prompt* is appended as the next user turn.
+        """
+        options = self._build_options(resume=session_id, **option_overrides)
+        messages: list[Any] = []
+
+        async for msg in sdk_query(prompt=prompt, options=options):
+            messages.append(msg)
+            logger.debug("resume message: %s", type(msg).__name__)
+
+        return self._extract_result(messages)
+
+    async def fork(
+        self,
+        session_id: str,
+        prompt: str,
+        **option_overrides: Any,
+    ) -> SDKAgentResult:
+        """Fork from a previous session and send a new prompt (branches history).
+
+        This creates a new branch of the conversation starting from
+        *session_id* without modifying the original session.
+        """
+        options = self._build_options(
+            resume=session_id, fork_session=True, **option_overrides
+        )
+        messages: list[Any] = []
+
+        async for msg in sdk_query(prompt=prompt, options=options):
+            messages.append(msg)
+            logger.debug("fork message: %s", type(msg).__name__)
+
+        return self._extract_result(messages)
+
+    # -- streaming output ----------------------------------------------------
+
+    async def run_streaming(
+        self,
+        prompt: str,
+        on_text: Callable[[str], Coroutine[Any, Any, None]] | None = None,
+        on_tool_call: Callable[[str, dict[str, Any]], Coroutine[Any, Any, None]]
+        | None = None,
+        **option_overrides: Any,
+    ) -> SDKAgentResult:
+        """Run with real-time callbacks for text and tool-call events.
+
+        Args:
+            prompt: The user prompt.
+            on_text: Async callback invoked for each ``TextBlock`` as it
+                arrives.  Receives the text content as its sole argument.
+            on_tool_call: Async callback invoked for each ``ToolUseBlock``.
+                Receives ``(tool_name, tool_input)`` as arguments.
+            **option_overrides: Extra options forwarded to ``ClaudeAgentOptions``.
+
+        Returns:
+            The final aggregated ``SDKAgentResult``.
+        """
+        options = self._build_options(**option_overrides)
+        messages: list[Any] = []
+
+        async for msg in sdk_query(prompt=prompt, options=options):
+            messages.append(msg)
+            logger.debug("stream message: %s", type(msg).__name__)
+
+            # Fire callbacks for assistant content blocks as they arrive
+            if isinstance(msg, AssistantMessage):
+                for block in msg.content:
+                    if isinstance(block, TextBlock) and on_text is not None:
+                        await on_text(block.text)
+                    elif isinstance(block, ToolUseBlock) and on_tool_call is not None:
+                        tool_input = (
+                            block.input if isinstance(block.input, dict) else {}
+                        )
+                        await on_tool_call(block.name, tool_input)
+
+        return self._extract_result(messages)
+
+    # -- interrupt support ---------------------------------------------------
+
+    def interruptible(self, **option_overrides: Any) -> InterruptibleSession:
+        """Create an interruptible session context manager."""
+        return InterruptibleSession(self, **option_overrides)
+
+
+# ---------------------------------------------------------------------------
+# InterruptibleSession
+# ---------------------------------------------------------------------------
+
+
+class InterruptibleSession:
+    """Wraps a ``ClaudeSDKClient`` with interrupt capability.
+
+    Usage::
+
+        async with runner.interruptible() as session:
+            result = await session.query("Do work.")
+            # In another coroutine: await session.interrupt()
+    """
+
+    def __init__(self, runner: SDKAgentRunner, **option_overrides: Any) -> None:
+        self._runner = runner
+        self._option_overrides = option_overrides
+        self._client: Any | None = None
+        self._session_id: str | None = None
+
+    async def __aenter__(self) -> InterruptibleSession:
+        options = self._runner._build_options(**self._option_overrides)
+        self._client = ClaudeSDKClient(options=options)
+        await self._client.__aenter__()
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        if self._client is not None:
+            await self._client.__aexit__(*exc)
+            self._client = None
+
+    async def query(self, prompt: str) -> SDKAgentResult:
+        """Send a prompt and collect the response."""
+        if self._client is None:
+            raise RuntimeError("Session is not open. Use 'async with' block.")
+        await self._client.query(prompt)
+        messages: list[Any] = []
+        async for msg in self._client.receive_response():
+            messages.append(msg)
+            logger.debug("interruptible message: %s", type(msg).__name__)
+        result = SDKAgentRunner._extract_result(messages)
+        self._session_id = result.session_id
+        return result
+
+    async def interrupt(self) -> None:
+        """Interrupt the currently running agent."""
+        if self._client is not None:
+            await self._client.interrupt()
+
+    @property
+    def session_id(self) -> str | None:
+        """Get session ID for later resume/fork."""
+        return self._session_id
 
 
 # ---------------------------------------------------------------------------
