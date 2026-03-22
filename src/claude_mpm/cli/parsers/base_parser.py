@@ -341,6 +341,25 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         "Use in security-sensitive environments (CI/CD, DevOps, SRE). "
         "Also controlled by CLAUDE_MPM_NO_SKIP_PERMISSIONS=1 env var.",
     )
+    run_group.add_argument(
+        "--sdk",
+        action="store_true",
+        default=False,
+        help="Use Agent SDK runtime instead of CLI subprocess (requires claude-agent-sdk)",
+    )
+    run_group.add_argument(
+        "--cli",
+        action="store_true",
+        default=False,
+        help="Force CLI subprocess runtime (default when claude-agent-sdk not installed)",
+    )
+    run_group.add_argument(
+        "--inject-port",
+        type=int,
+        default=None,
+        metavar="PORT",
+        help="Start message injection endpoint on PORT (default: 7856)",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(

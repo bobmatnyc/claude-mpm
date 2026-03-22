@@ -81,6 +81,14 @@ def main(argv: list | None = None):
         logging_level = getattr(args, "logging", "OFF")
         display_startup_banner(__version__, logging_level, applied_migrations)
 
+        # Show runtime mode if explicitly selected via --sdk or --cli
+        use_sdk = getattr(args, "sdk", False)
+        use_cli = getattr(args, "cli", False)
+        if use_sdk:
+            logger.info("Runtime: sdk")
+        elif use_cli:
+            logger.info("Runtime: cli")
+
     if not should_skip_background_services(args, processed_argv):
         # Check for --force-sync flag or environment variable
         force_sync = getattr(args, "force_sync", False) or os.environ.get(
@@ -102,6 +110,28 @@ def main(argv: list | None = None):
         # through all intermediate startup functions)
         if skip_compat_check:
             os.environ["CLAUDE_MPM_SKIP_COMPAT_CHECK"] = "1"
+
+        # Check for --sdk / --cli flags to select runtime
+        use_sdk = getattr(args, "sdk", False)
+        if use_sdk:
+            os.environ["CLAUDE_MPM_RUNTIME"] = "sdk"
+
+        use_cli = getattr(args, "cli", False)
+        if use_cli:
+            os.environ["CLAUDE_MPM_RUNTIME"] = "cli"
+
+        # Check for --inject-port flag to start injection endpoint
+        inject_port = getattr(args, "inject_port", None)
+        if inject_port is not None:
+            os.environ["CLAUDE_MPM_INJECT_PORT"] = str(inject_port)
+            import threading
+
+            from ..services.agents.message_endpoint import MessageEndpoint
+
+            endpoint = MessageEndpoint(port=inject_port)
+            thread = threading.Thread(target=endpoint.run, daemon=True)
+            thread.start()
+            logger.info(f"Message injection endpoint started on port {inject_port}")
 
         # Check if running in headless mode
         is_headless = getattr(args, "headless", False)
