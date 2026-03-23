@@ -41,6 +41,10 @@ class MonitorConfig:
     # Auto-pause threshold (percentage) -- suggest pause at this level
     auto_pause_threshold: int = 95
 
+    # Consecutive tool call detection thresholds
+    consecutive_bash_threshold: int = 5  # Warn after 5+ consecutive Bash calls
+    consecutive_read_threshold: int = 3  # Warn after 3+ consecutive Read calls
+
 
 class MonitorAgent:
     """Background watchdog that monitors PM session health.
@@ -134,6 +138,7 @@ class MonitorAgent:
         self._check_context_pressure(state)
         self._check_session_duration(state)
         self._check_idle_too_long(state)
+        self._check_tool_call_patterns()
         self._check_incoming_messages()
 
     def _check_context_pressure(self, state: dict[str, Any]) -> None:
@@ -204,6 +209,76 @@ class MonitorAgent:
                 f"Session appears stuck -- no activity for {int(idle_seconds)}s "
                 "while in 'processing' state.",
                 priority="high",
+            )
+
+    def _check_tool_call_patterns(self) -> None:
+        """Detect when PM makes too many consecutive direct tool calls.
+
+        Walks recent activity in reverse chronological order, counting
+        consecutive Bash or Read calls. Resets when a delegation tool
+        (Agent, Task, TaskCreate, TaskUpdate) is encountered, or when
+        hitting a non-tool event or a different tool type.
+        """
+        from .session_state_tracker import get_global_tracker
+
+        tracker = get_global_tracker()
+        if tracker is None:
+            return
+
+        events = tracker.get_activity(limit=30)
+
+        delegation_tools = {"Agent", "Task", "TaskCreate", "TaskUpdate"}
+
+        consecutive_bash = 0
+        consecutive_read = 0
+
+        for event in reversed(events):
+            if event.get("type") != "tool_call":
+                break
+
+            tool = event.get("tool", "")
+
+            if tool in delegation_tools:
+                break
+
+            if tool == "Bash":
+                consecutive_bash += 1
+                # Different tool type resets the Read counter
+                consecutive_read = 0
+            elif tool == "Read":
+                consecutive_read += 1
+                # Different tool type resets the Bash counter
+                consecutive_bash = 0
+            else:
+                # Any other tool resets both counters
+                break
+
+        # Check Bash threshold
+        warn_key_bash = "consecutive_bash"
+        if (
+            consecutive_bash >= self.config.consecutive_bash_threshold
+            and warn_key_bash not in self._warnings_sent
+        ):
+            self._warnings_sent.add(warn_key_bash)
+            self._inject_message(
+                f"PM has made {consecutive_bash} consecutive Bash calls "
+                "without delegating. Consider using Agent/Task tools to "
+                "delegate this work to specialist agents.",
+                priority="high",
+            )
+
+        # Check Read threshold
+        warn_key_read = "consecutive_read"
+        if (
+            consecutive_read >= self.config.consecutive_read_threshold
+            and warn_key_read not in self._warnings_sent
+        ):
+            self._warnings_sent.add(warn_key_read)
+            self._inject_message(
+                f"PM has made {consecutive_read} consecutive Read calls "
+                "(deep investigation pattern). Consider delegating to a "
+                "Research agent via Task tool.",
+                priority="normal",
             )
 
     # ------------------------------------------------------------------

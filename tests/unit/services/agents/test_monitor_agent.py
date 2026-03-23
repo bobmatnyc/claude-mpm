@@ -578,3 +578,184 @@ class TestIncomingMessageBridge:
         agent._check_incoming_messages()
         msg = mock_bus.send.call_args[0][0]
         assert "standalone-project" in msg.text
+
+
+# ---------------------------------------------------------------------------
+# Consecutive tool call detection tests
+# ---------------------------------------------------------------------------
+
+
+def _make_tool_event(tool: str, ts: float | None = None) -> dict:
+    """Build a serialized ActivityEvent dict for a tool_call."""
+    return {
+        "type": "tool_call",
+        "timestamp": ts or time.time(),
+        "preview": "",
+        "tool": tool,
+        "status": "complete",
+    }
+
+
+def _make_non_tool_event(event_type: str = "user_input") -> dict:
+    """Build a serialized ActivityEvent dict for a non-tool event."""
+    return {
+        "type": event_type,
+        "timestamp": time.time(),
+        "preview": "some input",
+    }
+
+
+class TestConsecutiveToolCallDetection:
+    def test_consecutive_bash_triggers_warning(self) -> None:
+        """6 consecutive Bash tool_call events -> warning sent."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        events = [_make_tool_event("Bash") for _ in range(6)]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        mock_bus.send.assert_called_once()
+        msg = mock_bus.send.call_args[0][0]
+        assert "6" in msg.text
+        assert "Bash" in msg.text
+        assert "consecutive_bash" in agent._warnings_sent
+
+    def test_consecutive_read_triggers_warning(self) -> None:
+        """4 consecutive Read tool_call events -> warning sent."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        events = [_make_tool_event("Read") for _ in range(4)]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        mock_bus.send.assert_called_once()
+        msg = mock_bus.send.call_args[0][0]
+        assert "4" in msg.text
+        assert "Read" in msg.text
+        assert "consecutive_read" in agent._warnings_sent
+
+    def test_below_threshold_no_warning(self) -> None:
+        """3 Bash calls (below default threshold of 5) -> no warning."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        events = [_make_tool_event("Bash") for _ in range(3)]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        mock_bus.send.assert_not_called()
+
+    def test_delegation_resets_counter(self) -> None:
+        """Bash, Bash, Agent, Bash, Bash, Bash -> no warning (Agent resets)."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        # Events are in chronological order; method walks in reverse
+        events = [
+            _make_tool_event("Bash"),
+            _make_tool_event("Bash"),
+            _make_tool_event("Agent"),
+            _make_tool_event("Bash"),
+            _make_tool_event("Bash"),
+            _make_tool_event("Bash"),
+        ]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        # Only 3 consecutive Bash after Agent (below threshold of 5)
+        mock_bus.send.assert_not_called()
+
+    def test_mixed_tools_reset_counter(self) -> None:
+        """Bash, Read, Bash, Read -> no warning (different tools reset)."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        events = [
+            _make_tool_event("Bash"),
+            _make_tool_event("Read"),
+            _make_tool_event("Bash"),
+            _make_tool_event("Read"),
+        ]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        mock_bus.send.assert_not_called()
+
+    def test_warning_dedup(self) -> None:
+        """Call check twice with same pattern -> only one warning sent."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        events = [_make_tool_event("Bash") for _ in range(6)]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+            assert mock_bus.send.call_count == 1
+
+            mock_bus.reset_mock()
+            agent._check_tool_call_patterns()
+            mock_bus.send.assert_not_called()
+
+    def test_task_tool_resets_counter(self) -> None:
+        """Bash x4, TaskCreate, Bash x4 -> no warning."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        events = (
+            [_make_tool_event("Bash") for _ in range(4)]
+            + [_make_tool_event("TaskCreate")]
+            + [_make_tool_event("Bash") for _ in range(4)]
+        )
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        # Only 4 consecutive Bash after TaskCreate (below threshold of 5)
+        mock_bus.send.assert_not_called()
+
+    def test_custom_thresholds(self) -> None:
+        """Set threshold to 2, verify 2 Bash calls trigger warning."""
+        config = MonitorConfig(consecutive_bash_threshold=2)
+        agent, mock_bus = _make_agent_with_mock_bus(config)
+        events = [_make_tool_event("Bash") for _ in range(2)]
+
+        mock_tracker = MagicMock()
+        mock_tracker.get_activity.return_value = events
+        with patch(
+            "claude_mpm.services.agents.session_state_tracker.get_global_tracker",
+            return_value=mock_tracker,
+        ):
+            agent._check_tool_call_patterns()
+
+        mock_bus.send.assert_called_once()
+        msg = mock_bus.send.call_args[0][0]
+        assert "2" in msg.text
+        assert "Bash" in msg.text
