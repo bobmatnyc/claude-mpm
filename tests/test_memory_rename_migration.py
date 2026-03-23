@@ -145,16 +145,20 @@ class TestMemoryRenameMigration:
         self,
         tmp_path: Path,
         memory_service: MemoryFileService,
-        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Migration logs both old and new paths."""
+        from unittest.mock import patch
+
         (tmp_path / "content-agent_memories.md").write_text("# Content")
 
-        with caplog.at_level(logging.INFO):
+        with patch.object(memory_service, "logger") as mock_logger:
             memory_service.get_memory_file_with_migration(tmp_path, "content")
 
-        assert "content-agent_memories.md" in caplog.text
-        assert "content_memories.md" in caplog.text
+        # Verify the info log was called with both old and new filenames
+        mock_logger.info.assert_called_once()
+        log_msg = mock_logger.info.call_args[0][0]
+        assert "content-agent_memories.md" in log_msg
+        assert "content_memories.md" in log_msg
 
     def test_no_file_returns_canonical_path(
         self,

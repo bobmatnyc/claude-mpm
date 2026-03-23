@@ -13,14 +13,15 @@ from claude_mpm.services.communication.message_service import MessageService
 
 @pytest.fixture
 def tmp_projects(tmp_path):
-    """Create two temporary project directories with isolated registry."""
+    """Create two temporary project directories with isolated databases."""
     project1 = tmp_path / "project1"
     project2 = tmp_path / "project2"
     project1.mkdir(parents=True)
     project2.mkdir(parents=True)
-    # Use isolated registry to avoid polluting global session-registry.db
+    # Use isolated databases to avoid polluting global state
     registry = tmp_path / "test-registry.db"
-    return project1, project2, registry
+    messaging_db = tmp_path / "test-messaging.db"
+    return project1, project2, registry, messaging_db
 
 
 class TestMessageServiceIntegration:
@@ -28,11 +29,15 @@ class TestMessageServiceIntegration:
 
     def test_send_and_receive_message(self, tmp_projects):
         """Test sending a message from one project to another."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
         # Create services for both projects
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Send message from project1 to project2
         message = service1.send_message(
@@ -66,10 +71,14 @@ class TestMessageServiceIntegration:
 
     def test_read_message_marks_as_read(self, tmp_projects):
         """Test that reading a message marks it as read."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Send message
         message = service1.send_message(
@@ -93,10 +102,14 @@ class TestMessageServiceIntegration:
 
     def test_archive_message(self, tmp_projects):
         """Test archiving a message."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Send message
         message = service1.send_message(
@@ -124,10 +137,14 @@ class TestMessageServiceIntegration:
 
     def test_reply_to_message(self, tmp_projects):
         """Test replying to a message."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Send original message
         original = service1.send_message(
@@ -164,10 +181,14 @@ class TestMessageServiceIntegration:
 
     def test_filter_messages_by_agent(self, tmp_projects):
         """Test filtering messages by target agent."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Send messages to different agents
         service1.send_message(
@@ -209,10 +230,14 @@ class TestMessageServiceIntegration:
 
     def test_high_priority_messages(self, tmp_projects):
         """Test getting high priority messages."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Send messages with different priorities
         service1.send_message(
@@ -261,11 +286,15 @@ class TestMessageServiceIntegration:
 
     def test_session_registry(self, tmp_projects):
         """Test that sessions are registered in global registry."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
         # Create services (automatically registers sessions)
-        service1 = MessageService(project1, registry_path=registry)
-        service2 = MessageService(project2, registry_path=registry)
+        service1 = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2 = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Check global registry
         sessions = service1.global_registry.list_active_sessions()
@@ -285,11 +314,15 @@ class TestMessageServiceIntegration:
 
     def test_database_persistence(self, tmp_projects):
         """Test that messages persist across service instances."""
-        project1, project2, registry = tmp_projects
+        project1, project2, registry, messaging_db = tmp_projects
 
         # First service instance sends message
-        service1_a = MessageService(project1, registry_path=registry)
-        service2_a = MessageService(project2, registry_path=registry)
+        service1_a = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2_a = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         message = service1_a.send_message(
             to_project=str(project2),
@@ -300,8 +333,12 @@ class TestMessageServiceIntegration:
         )
 
         # Create new service instances (simulating restart)
-        service1_b = MessageService(project1, registry_path=registry)
-        service2_b = MessageService(project2, registry_path=registry)
+        service1_b = MessageService(
+            project1, registry_path=registry, messaging_db_path=messaging_db
+        )
+        service2_b = MessageService(
+            project2, registry_path=registry, messaging_db_path=messaging_db
+        )
 
         # Should still see the message
         messages = service2_b.list_messages()
