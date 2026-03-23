@@ -1,5 +1,2226 @@
 ## v5.11.0 (2026-03-23)
 
+### Feat
+
+- Agent SDK runtime adapter (v5.11.0) (#366)
+
+## v5.10.15 (2026-03-21)
+
+### Fix
+
+- skills deploy crashes iterating sync_results top-level ints (#346)
+
+## v5.10.14 (2026-03-20)
+
+### Fix
+
+- SkillSourceConfiguration.load() called on class without instance (#345)
+
+## v5.10.13 (2026-03-20)
+
+## v5.10.12 (2026-03-20)
+
+### Feat
+
+- rebuild PM_INSTRUCTIONS_DEPLOYED.md on every startup
+- unify agent deployment pipelines (#343)
+
+### Fix
+
+- implement additive block override semantics and include AGENT_DELEGATION in deployer
+- implement additive block override semantics and include AGENT_DELEGATION in deployer
+
+## v5.10.9 (2026-03-19)
+
+## v5.10.8 (2026-03-19)
+
+### Fix
+
+- **tests**: patch _get_agent_list in hash mismatch test to isolate mock responses
+
+## v5.10.7 (2026-03-19)
+
+### Feat
+
+- implement PM instruction override system with self-awareness
+
+## v5.10.6 (2026-03-18)
+
+### Fix
+
+- correct broken imports and type errors in dashboard launcher and process_manager
+
+### Refactor
+
+- move MCP utilities and rate_limiter from scripts/ to src/ services
+
+## v5.10.5 (2026-03-18)
+
+### Feat
+
+- **mcp**: add internal MCP server for messaging system
+
+## v5.10.4 (2026-03-18)
+
+### Fix
+
+- add UP042 to .ruff.toml ignore list
+
+### Refactor
+
+- modernize type hints to Python 3.12+ style (ruff UP auto-fix)
+
+## v5.10.3 (2026-03-18)
+
+### Feat
+
+- **messaging**: add directory shortcuts CLI for message send command
+- prohibit direct gh ticket reads and multi-bash tasks - must delegate (v0012)
+
+### Fix
+
+- **tests**: update agent list assertions to match renamed fallback agents
+- **tests**: update upgrade message assertion to match new installation-method-agnostic wording
+- address review recommendations for DISABLE_TELEMETRY handling
+- address review — type annotation, registry fallback, test assertions
+
+### Refactor
+
+- centralize DISABLE_TELEMETRY handling via env_defaults module
+
+## v5.10.2 (2026-03-17)
+
+## v5.10.1 (2026-03-17)
+
+### Fix
+
+- correct OAuthError fallback and _ensure_mcp_configured call in setup/oauth
+- resolve type errors in setup.py and oauth.py (failure_result, OAuthError)
+- validate gworkspace-mcp tokens and include OAuth env vars in .mcp.json (#344)
+
+## v5.10.0 (2026-03-16)
+
+### Feat
+
+- add threshold guard to orphan detection to prevent mass deletion
+- add one-time migration to clean up renamed agent files (Phase 3)
+- unify startup sync pipeline and add console manifest warnings
+- add configurable --branch flag to agent-source add
+- wire ManifestCache and DeploymentVersionGate into production pipeline
+- add manifest-based version coordination (Phase 1 & 2)
+
+### Fix
+
+- correct PM memory filename docs (PM_memories.md not PM.md), mark dead MemoryProcessor code (#337)
+- add missing aws-ops and data-scientist to AGENT_NAME_MAP
+- add rename-aware memory migration for 4 renamed agents
+- add provenance checks to all orphan detection paths and fix or-agent_id bug
+- replace shutil.copy2 with deploy_agent_file() in DeploymentReconciler
+- normalize cache stems in orphan detection to prevent false agent deletion
+- prevent tests from deleting real deployed agents during make test
+- unify agent provenance detection to prevent user agent deletion
+- default --subdirectory to 'agents' in agent-source add
+- omit None/default values from agent_sources.yaml serialization
+- remove broken cache_path assignment in _test_repository_sync
+- pass GITHUB_TOKEN to API calls in agent-source add
+- align ruff target-version with requires-python (py38 -> py312)
+- clarify mpm-message skill - msg.type vs message_type trap, CLI-first usage
+
+## v5.9.69 (2026-03-14)
+
+### Fix
+
+- update PR template test assertion to match markdown link format
+
+## v5.9.68 (2026-03-14)
+
+### Fix
+
+- resolve type errors in agent_manager, configure, and state_manager
+
+## v5.9.67 (2026-03-14)
+
+### Fix
+
+- auto-fix ruff PLC0207 lint errors (use rsplit instead of split[-1])
+
+## v5.9.66 (2026-03-14)
+
+### Feat
+
+- promote kuzu-memory/mcp-vector-search to mandatory PM behavior (v0011)
+- phase 4 - remove legacy AgentType, finalize clean separation
+- phase 3 - migrate consumers from .type to .role/.source
+- phase 2 - add role + source to AgentMetadata, dual-populate
+- phase 1 - introduce AgentRole enum (purely additive)
+- phase 0 - clean up AgentSourceType prerequisites
+- add canonical normalize_agent_id() and apply boundary normalization
+- add authoritative agent name registry (v8 Phase 2)
+- promote kuzu-memory/mcp-vector-search to mandatory PM behavior (v0011)
+
+### Fix
+
+- resolve all remaining Pyright warnings (unused vars, deprecated iscoroutinefunction)
+- resolve IAgentRegistry undefined and lazy.py type errors
+- suppress unresolvable import warning in agent_name_normalizer
+- resolve type errors and import warning from #333 handoff_agents fix
+- address non-blocking review issues from PR #334 review
+- resolve import path and dead code in agent_name_normalizer
+- converge all agent name normalizers onto canonical normalize_agent_id()
+- replace inline agent normalization with canonical normalize_agent_id()
+- isolate unified_agent_registry tests from real filesystem agents
+- guard against malformed frontmatter in _extract_md_body()
+- move normalization into get_deployed_agent_ids() at source
+- update brittle test assertions in startup and config tests
+- move router.initialize() inside mock context in model router tests
+- normalize source names in deployment idempotency check
+- add .claude/agents/ and cache to discovery paths, add .md body extraction
+- normalize both sides in filter_deployed_agents comparison
+- normalize agent IDs in removal/undeploy path to match deployed filenames
+- normalize agent IDs at all comparison points so deployed agents show as Installed
+- normalize agent IDs before deployment status comparison
+- resolve 5 critical agent naming issues (C1-C5)
+- complete from_frontmatter alias coverage and agent_listing_service standardization
+- add filename normalization to legacy and configure deployment paths
+- standardize frontmatter field 'agent_type' over 'type'
+- complete Phase 1 agent naming audit (Changes 4, 5, 7, 10)
+- align CANONICAL_NAMES with upstream agent name: frontmatter values
+- PM references agents by name: field values (v8 Phase 3)
+- agents deploy command calls correct sync method (v8 Phase 1)
+
+### Refactor
+
+- remove dead code from templates/__init__.py
+- consolidate CORE_AGENTS into registry and add dynamic refresh
+- extend AgentType enum with role categories, rename registry AgentType to AgentSourceType
+
+## v5.9.65 (2026-03-11)
+
+### Fix
+
+- use sys.executable for package verification in UV tool installs
+
+## v5.9.64 (2026-03-11)
+
+### Fix
+
+- fix progress bar restarting multiple times during multi-source skill sync
+
+## v5.9.63 (2026-03-10)
+
+### Fix
+
+- remove Notion Database ID prompt from setup wizard
+
+## v5.9.62 (2026-03-10)
+
+### Fix
+
+- add missing NOTION_MPM entry to get_package_specs()
+
+## v5.9.61 (2026-03-10)
+
+### Feat
+
+- add app icon (pixel-art robot pyramid)
+
+### Fix
+
+- search parent dirs for .env.local in notion setup
+
+## v5.9.60 (2026-03-10)
+
+### Feat
+
+- re-add notion-mpm as autonomous setup target using official MCP server
+- remove notion-mcp server and all notion references
+
+## v5.9.59 (2026-03-10)
+
+### Feat
+
+- replace one-off notion tool with autonomous notion-mpm setup
+
+## v5.9.58 (2026-03-10)
+
+### Fix
+
+- update Claude Code footers to Claude MPM across the board
+
+## v5.9.57 (2026-03-10)
+
+### Feat
+
+- **skills**: port Superpowers skills and update PR footers
+
+### Refactor
+
+- **tests**: remove 4 remaining permanently-skipped dead test files
+
+## v5.9.56 (2026-03-09)
+
+### Feat
+
+- **install**: add claude-mpm install lsp command
+
+## v5.9.55 (2026-03-09)
+
+### Fix
+
+- **release**: auto-switch gh CLI account in release-publish target
+
+### Refactor
+
+- **setup**: replace bespoke _setup_mcp_ticketer with declarative registry
+
+## v5.9.54 (2026-03-09)
+
+### Refactor
+
+- **tests**: consolidate duplicate test files and strengthen assertions
+- **tests**: remove 53 permanently-skipped dead test files
+
+## v5.9.53 (2026-03-08)
+
+### Feat
+
+- add --no-dangerously-skip-permissions opt-out for DevOps/SRE environments
+- Environmental Awareness System for PM command routing (#296)
+
+## v5.9.52 (2026-03-06)
+
+### Refactor
+
+- rename setup 'slack' service to 'slack-mpm' to match library name
+
+## v5.9.51 (2026-03-06)
+
+### Feat
+
+- banner agent & skill counts per scope (proj/user/total)
+
+### Fix
+
+- add --dangerously-skip-permissions to resume command path (#326)
+
+### Refactor
+
+- rename slack-mcp → slack-mpm throughout
+
+## v5.9.50 (2026-03-05)
+
+### Feat
+
+- add slack-mcp setup support to claude-mpm
+
+## v5.9.49 (2026-03-05)
+
+### Feat
+
+- add migration to auto-remove unsupported v2.1.47+ hook events
+
+## v5.9.48 (2026-03-05)
+
+### Fix
+
+- guard v2.1.47+ hook events behind version check to prevent startup warnings
+
+## v5.9.47 (2026-03-04)
+
+## v5.9.46 (2026-03-04)
+
+### Fix
+
+- optimize sync TTL defaults and PM skills verification gating
+
+## v5.9.45 (2026-03-04)
+
+### Feat
+
+- add --no-sync flag, TTL-based sync caching, and provider setup flags
+
+## v5.9.44 (2026-03-03)
+
+### Feat
+
+- align with Claude Code v2.1.47+ native capabilities
+
+### Fix
+
+- update e2e tests to match refactored AgentLoader and multi-source deployment API
+
+## v5.9.43 (2026-03-02)
+
+### Fix
+
+- test case stability corrections (PR #325)
+
+## v5.9.42 (2026-03-01)
+
+### Feat
+
+- DeploymentContext scope-aware abstraction for agents and skills (#322)
+
+### Fix
+
+- critical cwd bug - stale CLAUDE_MPM_USER_PWD causes wrong project directory
+- clean stale hook paths from all settings files (#324)
+- add quotes around package extras in install commands to prevent zsh glob expansion
+
+## v5.9.41 (2026-02-28)
+
+### Fix
+
+- repair remaining 23 eval test failures in agent infrastructure and research suites
+- repair 90+ eval test failures in PM behavioral compliance suite
+- repair E2E test_agent_discovery_and_loading for schema/API changes
+- stop forcing ANTHROPIC_MODEL and detect active model in banner (#321)
+
+## v5.9.40 (2026-02-27)
+
+### Feat
+
+- add Java core skill and integrate with java-engineer and code-analyzer
+- add language core skills and best-practice matching to code-analyzer
+
+## v5.9.39 (2026-02-27)
+
+### Feat
+
+- add language-specific core skills paired with engineer agents
+- move language-specific perf directives from BASE_AGENT to each engineer
+- add Performance-First Engineering directive to BASE_AGENT
+
+## v5.9.38 (2026-02-26)
+
+### Fix
+
+- provider anthropic no longer requires API key for Claude.ai login
+
+## v5.9.37 (2026-02-26)
+
+### Feat
+
+- expand mpm core skill to comprehensive framework guide (v2.0.0)
+
+## v5.9.36 (2026-02-26)
+
+### Fix
+
+- align mpm-message skill frontmatter with standard schema
+
+## v5.9.35 (2026-02-25)
+
+### Fix
+
+- restore correlation_id, cwd, and subtype in monitor event processing
+
+## v5.9.34 (2026-02-25)
+
+### Feat
+
+- migrate to single-key output style model
+
+## v5.9.33 (2026-02-25)
+
+### Fix
+
+- **agents**: complete agent naming standardization
+- **agents**: fix messaging from address bug and agent naming inconsistencies
+
+## v5.9.32 (2026-02-24)
+
+### Fix
+
+- **setup**: replace blocking mcp-vector-search setup with non-interactive sub-commands
+
+## v5.9.31 (2026-02-24)
+
+### Fix
+
+- **messaging**: resolve macOS path case mismatch causing messages not received
+
+## v5.9.30 (2026-02-24)
+
+### Feat
+
+- **config**: add --role parameter to /mpm-configure command
+
+### Fix
+
+- **homebrew**: anchor sed patterns to top-level formula fields only
+
+## v5.9.29 (2026-02-24)
+
+### Fix
+
+- **output-style**: use native Claude Code outputStyle key instead of activeOutputStyle
+- **release**: add pyproject.toml to commitizen version_files and sync to 5.9.28
+
+## v5.9.28 (2026-02-24)
+
+### Feat
+
+- **auth**: add claude-mpm auth refresh command for OAuth token refresh
+- add --body-file flag to message send/reply for shell quoting safety
+
+### Fix
+
+- **tests**: skip interactive test_logging_integration.py
+- **tests**: skip 18 stale integration tests with v5+ API contract changes
+- AgentDeploymentService working_directory override removed
+- AgentMetadata is no longer subscriptable (was dict, now dataclass)
+- HookService import path changed; AgentLoader constructor changed
+- Markdown template YAML frontmatter now required (v4.26.0+)
+- Various other v5+ API changes in schema, socketio, startup tests
+- **tests**: fix flaky test_mcp_stdio.py ProcessLookupError in teardown
+- **tests**: Phase 3 batch 10 - socketio handler registry and configuration fixes
+- **tests**: Phase 3 batch 10 - ZeroDivisionError and timeout fixes
+- **tests**: Phase 3 batch 9 - gitignore entry count and dashboard timeout fixes
+- **tests**: Phase 3 batch 8 - health monitoring, heartbeat, local templates, and isolation fixes
+- **agent_loader**: Fix AgentMetadata dict compat and agent_loader.py API alignment
+- **tests**: Phase 3 batch 7 - skills, socketio, telemetry, and remaining fixes
+- **tests**: Phase 3 batch 6 - socketio, startup, tickets, validation, stream tests
+- **tests**: Phase 3 batch 6 - response tracker, logging, resume, refactored deployment
+- **tests**: Phase 3 batch 5 - path, output style, pack, pid, pm memory tests
+- **tests**: Phase 3 batch 4 - memory system integration and QA tests
+- **tests**: Phase 3 batch 3 - hook, http integration, and response logging tests
+- **tests**: Phase 3 batch 2 continued - git sync, git source sync, event flow, example tests
+- **tests**: Phase 3 batch 2 - env manager, deployment hooks, e2e, pid validation, hook service, memory integration
+- **tests**: Fix environment manager, deployment hooks, e2e, pid validation tests
+- **tests**: Fix state detection and skip deprecated unified interface tests
+- **tests**: Fix deployment tests - metrics fields, strategy selection, template validation
+- **tests**: Fix test_agent_configuration_manager and skip pending_autotodos test
+- **tests**: Phase 3 test fixes - config, cache, schema, and directory loading
+- **tests**: Fix root-level test failures - hook event processing and version parser
+- **tests**: Phase 3 final fixes - security, version control, and logging tests
+- **tests**: align test_git_source_sync_service.py with Tree API implementation
+- **tests**: fix agent capabilities and system instructions tests (38 tests)
+- **tests**: fix test_runner_configuration_service.py (25 tests passing)
+- **tests**: align memory manager tests with refactored service architecture
+- **tests**: align monitoring and CLI utility tests with refactored API
+- **tests**: fix all 54 failures in test_socketio_handlers.py
+- **tests**: resolve KeyboardInterrupt propagation and mcp module shadowing
+- **tests**: Phase 2 file and module infrastructure remediation
+- add PathEncoder to prevent PosixPath JSON serialization errors
+- **tests**: Phase 1 test infrastructure remediation (~650 fixes)
+- add CONFIG_DIR property and fix __getattr__ submodule resolution
+- remove raw SQLite guidance from bundled messaging skill
+
+## v5.9.27 (2026-02-22)
+
+### Feat
+
+- integrate cross-project messages with native task system
+- Stop hook surfaces unread messages as actionable startup tasks
+- add directory shortcuts service for messaging system
+
+### Fix
+
+- dashboard tools and files views not receiving events
+- dashboard agents view only showing PM and Code Analyzer
+- make MCP optional dependency imports lazy to prevent test failures
+- message CLI bugs - path validation, full IDs, sessions subcommand
+
+### Refactor
+
+- Stop hook directly blocks Claude when unread messages exist
+
+## v5.9.26 (2026-02-22)
+
+### Fix
+
+- align version files to 5.9.24
+
+## v5.9.25 (2026-02-22)
+
+### Fix
+
+- message reply subject handling to prevent NoneType errors
+- truncate model info text to prevent left column overflow
+- startup banner border characters outside ANSI color codes
+
+## v5.9.24 (2026-02-22)
+
+### Fix
+
+- output style auto-activation on subsequent startups
+
+## v5.9.23 (2026-02-22)
+
+### Feat
+
+- cost-conscious delegation thresholds in PM instructions
+- cost-optimized model routing in PM instructions
+- **messaging**: Huey message bus + shared DB + all bug fixes
+- **messaging**: migrate cross-project messaging to Huey message bus
+- check for unread messages on Stop hook
+
+### Fix
+
+- never override model in Task tool delegation
+- use UnifiedPathManager() singleton not get_instance()
+- register message as lightweight CLI command
+- handle self-messages without duplicate ID collision
+- move mpm-message to REQUIRED_PM_SKILLS tier
+- add mpm-message to RECOMMENDED_PM_SKILLS for auto-deployment
+- deploy bundled skills flat without category prefix (#310)
+- isolate test registry and bump to 5.9.21-beta.2
+
+## v5.9.21-beta.1 (2026-02-21)
+
+### BREAKING CHANGE
+
+- MPM now respects where user launches from.
+
+### Feat
+
+- Cross-project messaging system with task injection (#309)
+- add claude-mpm gh command for multi-account management
+
+### Fix
+
+- **cli**: use shell PWD instead of Path.cwd() for launch directory
+- **cli**: capture launch directory before any code changes cwd
+- **core**: simplify project root detection to always prefer launch directory
+- use launch directory as project root, not search markers
+- actually call _find_project_root during initialization
+- **project-root**: prioritize .claude/project-root marker in discovery
+- update init.py to use centralized command config
+- resolve PR #303 test issues - clean test suite and fix bugs
+- **setup**: Pin python to a minimum of 3.12 (#303)
+
+### Refactor
+
+- centralize lightweight command configuration
+- remove deprecated google_workspace_server
+
+### Perf
+
+- make gh command lightweight (skip framework init)
+
+## v5.9.10 (2026-02-18)
+
+### Fix
+
+- **security**: address critical bugs from code review
+
+## v5.9.9 (2026-02-18)
+
+### Fix
+
+- **installer**: respect uv projects in PackageInstallerService
+
+## v5.9.8 (2026-02-18)
+
+### Fix
+
+- **setup**: delegate mcp-vector-search setup to native command
+
+## v5.9.7 (2026-02-18)
+
+### Fix
+
+- **agents**: unify agent discovery for list and deployment
+- **agents**: hide None-valued fields in non-verbose list output
+
+## v5.9.6 (2026-02-18)
+
+### Fix
+
+- **agents**: integrate git cache discovery into system agent listing
+- **agents**: normalize git-nested cache paths for discovery and deployment
+
+## v5.9.5 (2026-02-18)
+
+### Perf
+
+- **agents**: make 'agents list' and 'skills list' fast read-only commands
+
+## v5.9.4 (2026-02-18)
+
+### Feat
+
+- **agents**: add --filter option to agents list command
+- **config**: add project-level API provider switch
+- **integrate**: Implement community & batch features (Phase 3)
+- **integrate**: Implement MCP server generation (Phase 2)
+- **integrate**: Implement CLI commands and catalog structure (ISS-0011,0012,0013)
+- **integrate**: Implement core integration modules (ISS-0008,0009,0010,0014)
+- **tickets**: Add project/user levels and agent/skill pairing to EP-0003
+- **tickets**: Add Phase 1 sub-tasks for EP-0003
+- **epic**: /mpm-integrate - Community-Driven API Integration Framework (EP-0003)
+
+### Fix
+
+- **config**: change default API backend from Bedrock to Anthropic
+- **autoconf**: resolve three interconnected recommender bugs (#2) (#300)
+- **cli**: Remove startup configuration prompt
+- **agents**: Phase 3 - Unify deployment paths (#299)
+- **agents**: Phase 2 - Standardize deployment filenames (#299)
+- **agents**: Phase 1 - Fix agent naming inconsistencies (#299)
+
+## v5.8.20 (2026-02-15)
+
+## v5.8.19 (2026-02-15)
+
+### Feat
+
+- **setup**: add .gworkspace-mcp/ to .gitignore on setup
+
+### Fix
+
+- **setup**: migrate old gworkspace-mcp key names in .mcp.json
+- **setup**: migrate old gworkspace-mcp key names in .mcp.json
+- **tests**: comprehensive test fixes for CLI commands
+- remove quotes from type annotations in package_installer.py
+
+### Refactor
+
+- rename google-workspace-mcp to gworkspace-mcp
+
+## v5.8.14 (2026-02-13)
+
+## v5.8.13 (2026-02-13)
+
+### Fix
+
+- remove interactive prompts from setup commands
+
+## v5.8.12 (2026-02-13)
+
+### Feat
+
+- add PackageInstallerService for declarative package installation
+
+## v5.8.11 (2026-02-13)
+
+### Feat
+
+- add --upgrade flag and adaptive installer to all setup commands
+
+### Refactor
+
+- use enums in mcp_service_commands, mcp_setup_external, tickets_parser
+- add MCP config enums and update oauth.py
+
+## v5.8.10 (2026-02-13)
+
+### Fix
+
+- add --no-launch as proper argparse argument to setup command
+
+### Refactor
+
+- use enums instead of magic strings for setup flags/services
+
+## v5.8.9 (2026-02-13)
+
+### Fix
+
+- use native google-workspace-mcp setup for OAuth
+
+## v5.8.8 (2026-02-13)
+
+### Fix
+
+- add 'mcp' arg to gworkspace-mcp config
+
+## v5.8.7 (2026-02-13)
+
+### Fix
+
+- add missing type:stdio to gworkspace-mcp config
+
+## v5.8.6 (2026-02-13)
+
+### Fix
+
+- support global --no-launch flag at end of setup command
+
+## v5.8.5 (2026-02-13)
+
+### Refactor
+
+- consolidate --no-start into --no-launch for all setup services
+
+## v5.8.4 (2026-02-13)
+
+### Fix
+
+- save .mcp.json after migration before early return
+
+## v5.8.3 (2026-02-13)
+
+### Fix
+
+- normalize .mcp.json key to gworkspace-mcp in all code paths
+
+## v5.8.2 (2026-02-13)
+
+### Fix
+
+- use gworkspace-mcp consistently in OAuth setup
+
+### Refactor
+
+- standardize on gworkspace-mcp, remove google-workspace-mcp alias
+
+## v5.8.1 (2026-02-13)
+
+## v5.8.0 (2026-02-13)
+
+### Feat
+
+- implement dynamic domain authority system for agents and tools
+- add mcp-skillset as optional user-level MCP server for skills optimization
+- **skills**: add intelligent skills optimization command
+
+## v5.7.34 (2026-02-12)
+
+### Feat
+
+- **skills**: Add PM and research workflow skills (#298)
+
+### Fix
+
+- install gworkspace-mcp package before OAuth setup
+
+### Refactor
+
+- standardize to gworkspace-mcp naming across codebase
+
+## v5.7.33 (2026-02-11)
+
+## v5.7.32 (2026-02-11)
+
+### Fix
+
+- Add numpy dependency to kuzu-memory uv tool install
+
+## v5.7.31 (2026-02-11)
+
+### Feat
+
+- Add mcp-ticketer and comma-separated service support
+
+### Fix
+
+- prevent reinstalling hooks on every startup to avoid file lock conflicts
+- Prevent auto-config from running after configure launches
+
+## v5.7.30 (2026-02-11)
+
+### Feat
+
+- Add mcp-skillset to setup command
+
+### Fix
+
+- Improve setup command error messages for invalid arguments
+
+## v5.7.29 (2026-02-11)
+
+### Fix
+
+- Prevent auto-config from interfering with setup command
+
+## v5.7.28 (2026-02-11)
+
+### Feat
+
+- Add external system bug routing to pm-bug-reporting skill
+
+### Fix
+
+- update [project] version to match commitizen version
+
+## v5.7.27 (2026-02-11)
+
+### Fix
+
+- Archive migrated memory files to prevent re-import
+
+## v5.7.26 (2026-02-11)
+
+### Feat
+
+- Migrate google-workspace-mcp to external gworkspace-mcp package
+- Add mcp-vector-search to setup command
+
+### Fix
+
+- Remove kuzu-memory independent hooks during setup
+- Add 4 critical PM instruction improvements to prevent thrashing
+- Make kuzu-memory setup installation-mode aware
+- Match installation method for mcp-vector-search setup
+
+## v5.7.25 (2026-02-10)
+
+### Feat
+
+- Add Google Docs tabs and Mermaid diagram support to google-workspace-mcp
+- **setup**: Fix kuzu-memory setup and add startup documentation
+- **kuzu**: Update integration for kuzu-memory v1.6.33 subservient mode
+- **setup**: Add kuzu-memory setup command
+- **config**: Add memory configuration schema
+- **memory**: Add memory backend abstraction layer
+
+### Fix
+
+- **hooks**: Use async kuzu-memory learn for non-blocking storage
+- **kuzu**: Improve setup with memory migration and project-local config
+
+## v5.7.22 (2026-02-09)
+
+### Feat
+
+- **setup**: Add 'setup confluence' command with credential collection
+- **setup**: Register Confluence service in MCP registry and tools CLI
+- **tools**: Add Confluence bulk operations tools
+- **mcp**: Add Confluence MCP server for page and space operations
+- **setup**: Add 'setup notion' command with credential collection
+- **setup**: Register Notion service in MCP registry and tools CLI
+- **tools**: Add Notion bulk operations tools
+- **mcp**: Add Notion MCP server with database and page operations
+- **tools**: Implement Slack bulk operations (TSK-0005)
+- **mcp**: Add calendar management tools to google-workspace-mcp
+- **tools**: Implement Drive bulk operations (TSK-0004)
+- **tools**: Implement Calendar bulk operations (TSK-0003)
+- **tools**: Implement Gmail bulk operations (TSK-0002)
+- **tools**: Implement core claude-mpm tools framework (TSK-0001)
+- **setup**: Check .env.local for Slack tokens before prompting
+- **cli**: Add service-specific options for multi-service setup
+- **cli**: Add deprecation warnings and multi-service setup support
+- **cli**: Add unified setup command architecture
+
+### Fix
+
+- **setup**: Remove unused project_root variable
+- **setup**: Skip banner for setup/slack commands and print error messages
+- **setup**: Slack setup now auto-launches claude-mpm and fixes instructions
+- **cli**: Setup commands now run BEFORE Claude Code launch
+- remove unused sys import and unnecessary else in slack.py
+
+## v5.7.11 (2026-02-08)
+
+### Feat
+
+- **cli**: Add 'claude-mpm slack setup' command
+
+## v5.7.10 (2026-02-08)
+
+### Feat
+
+- **dashboard**: Hide Tokens tab until data source resolved
+- **agents**: Deploy Tavily agent; complete token tracking debug
+
+### Fix
+
+- **packaging**: Distribute setup-slack-app.sh with package
+
+## v5.7.9 (2026-02-07)
+
+### Feat
+
+- **dashboard**: Add token tracking UI with TokensView component
+- **mcp**: Add @axivo/mcp-lsp for Language Server Protocol support
+- **mcp**: Auto-load env vars from .env.local/.env files
+- **mcp**: Add official Notion MCP server to service registry
+
+## v5.7.8 (2026-02-07)
+
+### Fix
+
+- **mcp**: Auto-wrap bare search terms in search_drive_files (#294)
+
+## v5.7.7 (2026-02-06)
+
+### Feat
+
+- **mcp**: Add Slack User Proxy MCP server
+- **auth**: Add Slack OAuth provider for user proxy
+- Add delegation matrix generator PoC (#292) (#293)
+- **google-workspace**: Add 16 Gmail email management tools
+- **google-workspace**: Add rclone-based Google Drive sync tools
+- **mcp-session**: Add HTTP transport with ngrok integration
+
+### Fix
+
+- **oauth**: Add missing Google Tasks API scope to OAuth configuration
+- **pm**: Allow direct execution of simple operational commands (#291)
+- **mcp-session**: Switch from ngrok to pyngrok for Python 3.11 support
+
+## v5.7.1 (2026-02-04)
+
+### Fix
+
+- **mcp-session**: Handle process cleanup when already exited
+- **mcp-session**: Handle Claude's content block format in output formatting
+
+## v5.7.0 (2026-02-04)
+
+### Feat
+
+- **mcp-session**: MCP server with 5 session management tools (#287)
+- **mcp-session**: Session lifecycle manager with concurrency limits (#286)
+- **mcp-session**: Async subprocess wrapper for claude-mpm headless (#285)
+- **mcp-session**: Core infrastructure - models, errors, NDJSON parser (#284)
+
+## v5.6.111 (2026-02-04)
+
+## v5.6.110 (2026-02-04)
+
+### Feat
+
+- **workspace-mcp**: add Google Docs comment tools with style guidelines
+- **headless**: add headless mode with exec-based execution (#238)
+- **headless**: Add headless mode with exec-based execution for full MPM features
+- **mcp**: add Google Tasks API support to Workspace MCP
+- **mcp**: expand Google Workspace MCP with full CRUD and markdown conversion
+- **#268**: integrate Homebrew tap update into PyPI publish workflow
+- add PM-level memory integration with kuzu-memory
+- add guardrails to sticky @alias - visual confirmation, staleness warning, confirm mode
+- add CLI adapters for Codex, Auggie, and Gemini CLI
+- add immediate command acknowledgment for long-running requests
+- add sticky @project context with claude-sticky wrapper
+- add customizable workflow system with local overrides
+- **oauth**: auto-launch claude-mpm after successful OAuth setup
+- **mcp**: add document comments support and clean up OAuth help
+
+### Fix
+
+- **skills**: Sync full skill directories including scripts and references (#282)
+- **headless**: Fix tests to mock os.execvpe and add system prompt injection
+- **packaging**: include config/*.yaml in package data (#281)
+- add timeout to keyring operations to prevent indefinite hangs
+- Additional Installation and Doctor Issues (Epic #255) (#279)
+- Installation and Onboarding Issues (Epic #255) (#267)
+- workflow loader fallback path resolution
+- correct cached agents count using path components instead of substring
+
+### Refactor
+
+- remove commander module (extracted to ai-commander)
+
+## v5.6.96 (2026-01-27)
+
+### Fix
+
+- extract timestamp from correct event_data level
+
+## v5.6.95 (2026-01-26)
+
+### Feat
+
+- add migration to update Co-Authored-By email
+- add version-based migration system
+- Migrations run automatically on first startup of new version
+- State tracked in ~/.claude-mpm/migrations.json
+- add version-based migration system
+- migrate hooks to async execution mode
+
+### Fix
+
+- change Edit operation color from amber to yellow
+- monitor dashboard timestamp and event history issues
+
+## v5.6.90 (2026-01-25)
+
+### Feat
+
+- add --slack CLI flag to start Slack MPM bot
+
+## v5.6.89 (2026-01-24)
+
+### Feat
+
+- integrate TaskList with session pause/resume (#245)
+- add graceful port conflict handling for commander daemon
+
+## v5.6.88 (2026-01-23)
+
+### Feat
+
+- add Slack MPM client scaffold
+- add startup migration to upgrade hooks to fast hook
+- add startup migration to clean duplicate user-level hooks
+
+### Fix
+
+- recognize fast hook in is_our_hook() for proper upgrade handling
+- dashboard tools/files view and event routing improvements
+- dashboard event routing for proper client-side filtering
+- hook event extraction and add cleanup migration
+- flatten nested data structures in event handler
+- resolve event subtype variable and workspace-mcp naming issues
+
+### Refactor
+
+- update remaining workspace-mcp references to google-workspace-mcp
+
+## v5.6.79 (2026-01-23)
+
+### Feat
+
+- **oauth**: auto-detect credentials and configure MCP on setup
+- auto-configure MCP on oauth setup, rename to google-workspace-mcp
+- enhance migration visibility with banner and verbose output
+- add startup migrations for automatic config fixes
+- add @instance prefix support for slash commands
+- **commander**: add /send command to send literal text to tmux session
+- **repl**: implement bottom_toolbar spinner for startup wait
+- Add integrated Google Workspace MCP server
+- enhance /list command to show running instances and saved registrations
+- **commander**: add /cleanup command to kill orphan tmux panes
+- add instance cleanup to run() method before exit
+- **oauth**: Rename to /mpm-oauth and add .env file support
+- **oauth**: Add interactive credential prompts for /oauth setup
+- Add /oauth command for MCP service authentication
+- Persistent Commander registrations - connect by name on restart
+
+### Fix
+
+- Resolve Commander REPL message handling issues
+- move session skills to REQUIRED_PM_SKILLS tier
+- add mpm-session-pause to skill deployment and headless resume skip
+- pass _get_prompt function to prompt_async instead of calling it
+- replace sys.stdout.write with print in spinner to work with patch_stdout
+- clear spinner line before printing prompt in REPL startup
+- **oauth**: Set env vars after loading from .env files
+- Update spinner to use carriage return for in-place updates
+- **oauth**: Fix CLI to match OAuthManager API
+- ensure background ready detection always runs
+- improve ready detection patterns and reduce timeout latency
+- **oauth**: Skip startup ceremony for oauth commands
+- clean up all tmux instances on REPL exit
+- Simplify spinner - use print() with 5s updates to avoid cursor conflicts
+- Spinner updates above prompt line - prompt returns immediately
+- Use sys.__stdout__ for in-place spinner to bypass patch_stdout
+- Add more ready detection patterns for MPM instances
+- In-place spinner updates using ANSI escape codes
+- Use print() for background spinner - _print_above_prompt didn't exist
+- Non-blocking spinner - prompt returns immediately with background updates
+- Use blocking spinner animation for register/connect/start commands
+- correct google_workspace_mcp package name to workspace-mcp
+- Commander REPL improvements - remove emojis, fix prompt, improve ready detection
+- Commander console output cleanup and MPM ready detection
+- Commander REPL returns control immediately during startup
+- /start <path> now creates worktrees like /register
+
+## v5.6.49 (2026-01-22)
+
+### Feat
+
+- Async event-driven command model with pending request tracking
+- Non-blocking command dispatch (cursor returns immediately)
+- Pending requests shown above cursor with status icons
+- Responses appear above cursor when ready
+- Can continue issuing commands while waiting
+- Async event-driven command model with pending request tracking
+
+## v5.6.48 (2026-01-21)
+
+### Feat
+
+- Add animated spinner while waiting for instance ready
+
+## v5.6.47 (2026-01-21)
+
+### Fix
+
+- Commander wait for instance ready before auto-connect
+
+## v5.6.46 (2026-01-21)
+
+### Feat
+
+- Add autocomplete for slash commands and instance names
+- Add /close command and unify @name/(name) syntax
+- Integrate worktree creation into instance registration
+- Extend RegisteredInstance with worktree tracking fields
+- Add WorktreeManager for git worktree session isolation
+- Direct @mention messaging to instances without connecting
+- LLM-mediated intent detection for Commander
+- Auto-connect after register, use /slash commands
+- Add register/start/stop commands to Commander REPL
+- Add register/start-by-name/unregister to InstanceManager
+- Add instance persistence to StateStore
+- Add RegisteredInstance model for persistent instance config
+- Add interrupt-driven instance notifications to REPL
+- Add ready detection with event emission for instances
+- Add pub/sub subscriber mechanism to EventManager
+- Add instance lifecycle event types
+
+### Fix
+
+- Emit events to subscribers for ready detection
+- Show instance name in prompt when ready
+- Use tmux new-window to avoid 'no space for new pane' error
+- MPM framework uses claude-mpm command
+
+## v5.6.45 (2026-01-21)
+
+### Feat
+
+- Add RAG-powered capabilities search to Commander
+- Add intent detection for greetings and capability queries
+
+## v5.6.44 (2026-01-21)
+
+## v5.6.43 (2026-01-21)
+
+### Fix
+
+- Add missing httpx dependency for commander
+
+## v5.6.42 (2026-01-21)
+
+### Fix
+
+- Extract subtype for event classification
+- Remove invalid SubagentStart hook event
+
+## v5.6.41 (2026-01-20)
+
+### Fix
+
+- add early logging suppression to prevent REPL pollution
+
+## v5.6.40 (2026-01-20)
+
+### Fix
+
+- suppress RuntimeWarning to prevent REPL pollution
+
+## v5.6.39 (2026-01-20)
+
+### Feat
+
+- add direct Python entry point for faster hook execution
+
+## v5.6.38 (2026-01-20)
+
+### Feat
+
+- add detailed hook installation output
+
+## v5.6.37 (2026-01-20)
+
+### Refactor
+
+- consolidate startup deployment and clean up SessionStart
+
+## v5.6.36 (2026-01-19)
+
+### Fix
+
+- run hook handler as module to fix relative imports
+
+## v5.6.35 (2026-01-19)
+
+### Fix
+
+- convert relative imports to absolute in DI container (#233) (#235)
+
+## v5.6.34 (2026-01-19)
+
+### Fix
+
+- make port detection non-blocking in SocketIO pool (#232) (#234)
+
+## v5.6.33 (2026-01-19)
+
+### Fix
+
+- resolve runtime relative import errors in hook handler
+
+### Refactor
+
+- implement Dependency Injection for hook handler (#230) (#231)
+
+## v5.6.32 (2026-01-19)
+
+## v5.6.31 (2026-01-19)
+
+## v5.6.30 (2026-01-19)
+
+### Fix
+
+- **hooks**: use correct JSON response format for Claude Code
+
+## v5.6.29 (2026-01-19)
+
+### Fix
+
+- **hooks**: default DEBUG to false in all hook modules
+
+## v5.6.28 (2026-01-19)
+
+### Fix
+
+- **startup**: add TTY detection to all progress messages
+
+## v5.6.27 (2026-01-19)
+
+### Fix
+
+- **deploy**: disable user-level command deployment, use project skills only
+
+## v5.6.26 (2026-01-19)
+
+### Fix
+
+- **startup**: remove blank line printing in non-TTY mode
+
+## v5.6.25 (2026-01-19)
+
+### Fix
+
+- **logging**: preserve FileHandlers in LoggerFactory.initialize()
+
+## v5.6.24 (2026-01-19)
+
+### Fix
+
+- **output-style**: treat 'default' as no preference in deployer
+
+## v5.6.23 (2026-01-19)
+
+### Fix
+
+- **startup**: add TTY detection for progress clearing to prevent CR in REPL
+
+## v5.6.22 (2026-01-19)
+
+### Fix
+
+- **skills**: include core 'mpm' skill in discovery filter
+
+## v5.6.21 (2026-01-19)
+
+### Feat
+
+- **commander**: add instance management features
+- **network**: centralize port configuration with service-specific defaults
+
+### Fix
+
+- **commander**: skip signal handlers when running in background thread
+
+## v5.6.19 (2026-01-18)
+
+### Fix
+
+- **startup**: remove redundant setup_agents calls - reconciliation handles deployment
+- **startup**: skip setup_agents if agents already deployed by reconciliation
+
+## v5.6.18 (2026-01-18)
+
+### Fix
+
+- **startup**: fix deployment state path mismatch between startup and runner
+
+## v5.6.17 (2026-01-18)
+
+### Fix
+
+- **startup**: prevent duplicate agent deployment after sync
+
+## v5.6.16 (2026-01-18)
+
+### Fix
+
+- **startup**: move deployment state to .claude-mpm directory
+
+## v5.6.15 (2026-01-18)
+
+### Feat
+
+- **skills**: add /mpm-pause skill for chat-accessible session saving
+
+### Fix
+
+- **startup**: skip agent redeployment if already deployed (#225) (#226)
+
+## v5.6.14 (2026-01-18)
+
+### Feat
+
+- **commander**: add conversation memory system with semantic search
+- **cli**: add auto-starting daemon to commander subcommand
+- **commander**: add multi-runtime adapter architecture
+- **commander**: complete full-cycle work execution and fix API integration
+
+### Fix
+
+- **startup**: preserve user output style preferences (#222) (#223)
+- **commander**: count agents/skills from user-level cache repos
+- **commander**: use correct agent/skill counting methods
+- **commander**: add Commander-specific banner and skip MPM startup
+- **adapters**: correct capability declarations for Claude Code and Auggie
+
+## v5.6.13 (2026-01-17)
+
+### Feat
+
+- **skills**: add agentskills.io specification support (#221)
+
+## v5.6.12 (2026-01-17)
+
+### Fix
+
+- **hooks**: wire up auto-pause integration in event handlers (#220)
+
+## v5.6.11 (2026-01-17)
+
+### Feat
+
+- **commander**: Add BlockManager and ResponseManager for automatic blocking system (#177, #178) (#218)
+
+## v5.6.10 (2026-01-17)
+
+### Fix
+
+- **pm**: add claude-in-chrome and playwright to forbidden tools (#214) (#215)
+
+## v5.6.9 (2026-01-17)
+
+### Fix
+
+- **commander**: handle tmux pane exhaustion gracefully (#209) (#213)
+
+## v5.6.8 (2026-01-17)
+
+### Feat
+
+- **skills**: add private repo support with token authentication (#208)
+
+### Fix
+
+- **imports**: remove src. prefix from import paths (#197)
+
+## v5.6.7 (2026-01-17)
+
+### Fix
+
+- **hooks**: auto-fix status line for output style schema mismatch
+- **tests**: update output style test for renamed file
+
+## v5.6.6 (2026-01-17)
+
+### Feat
+
+- **skills**: add --all flag to deploy-github command (#184)
+
+### Fix
+
+- **skills**: add debug logging and private repo auth (#186, #182)
+- **skills**: always deploy PM core skills (#181)
+- **skills**: warn when unknown manifest categories are encountered
+- **hooks**: add --directory flag to uv run for cross-project execution (#212)
+- **config**: lazy import yaml to prevent hook errors (#211)
+
+### Refactor
+
+- **hooks**: consolidate logging with _log() and fix bandit nosec placement
+
+## v5.6.4 (2026-01-16)
+
+### Fix
+
+- **hooks**: fix DEBUG default mismatch causing SessionStart errors
+
+## v5.6.3 (2026-01-16)
+
+### Fix
+
+- **hooks**: suppress RuntimeWarning and fix Stop handler stderr
+- **logging**: comprehensive suppression of all INFO logs at startup
+
+## v5.6.2 (2026-01-16)
+
+### Fix
+
+- **core**: path resolution and logging suppression bugs
+- resolve unused variable linting errors
+
+## v5.6.1 (2026-01-16)
+
+### Fix
+
+- **hooks**: replace all stderr output with log file
+- **hooks**: disable DEBUG by default to prevent hook errors on new installs
+- **logging**: respect user log level instead of hard-coding INFO
+
+## v5.6.0 (2026-01-16)
+
+### Feat
+
+- **commander**: MPM Commander Phase 2 & 3 - Interactive Multi-Project Orchestration (#207)
+
+### Fix
+
+- **skills**: preserve custom user skills during sync cleanup
+
+## v5.5.1 (2026-01-12)
+
+### BREAKING CHANGE
+
+- "Founder Mode" renamed to "Research Mode"
+
+### Feat
+
+- add --chrome passthrough and web-qa to core agents
+- convert MPM slash commands to user-invocable skills (CC 2.1.3+)
+- standardize 6 core default agents across codebase
+- auto-inject pending autotodos on PM session start
+
+### Fix
+
+- resolve hook stdout contamination causing systemic failures
+- redirect all logging to stderr to preserve stdout for hooks
+- correct Click command invocation in hook-errors executor
+- regex in claude-hook-handler and update uv.lock
+- add UV tools detection to hook handler script
+- pass working_dir to autotodos to fix hook errors
+- exclude documentation files from skill discovery to eliminate spurious warnings
+- remove async emission path from hook connection manager
+- **pm-instructions**: eliminate Circuit Breaker #4 verification command contradiction
+- sync pyproject.toml version to 5.4.96
+
+### Refactor
+
+- enforce delegation-by-default model in PM instructions
+- rename Founder Mode to Research Mode
+
+## v5.4.96 (2026-01-07)
+
+### Feat
+
+- **autotodos**: wire delegation detector into hook pipeline
+- **autotodos**: add delegation pattern detector
+- **autotodos**: add POC for error-to-todo injection system
+
+### Fix
+
+- **autotodos**: correct event type model
+- sync pyproject.toml version to 5.4.95
+
+### Refactor
+
+- **autotodos**: use event-driven architecture
+
+## v5.4.95 (2026-01-07)
+
+### Fix
+
+- **release**: use twine instead of uv for PyPI publishing
+- sync pyproject.toml version to 5.4.94
+
+## v5.4.94 (2026-01-07)
+
+### Fix
+
+- **startup**: resolve 4 startup issues
+
+## v5.4.93 (2026-01-07)
+
+### Fix
+
+- **monitor**: resolve unsourced hook events and missing tools in dashboard
+
+## v5.4.92 (2026-01-07)
+
+### Feat
+
+- **doctor**: enhance troubleshooting output with severity and explanations
+- **dashboard**: add All Streams filter and fix project default
+- **dashboard**: fix event categorization, file tree enhancements
+
+### Fix
+
+- **dashboard**: improve event categorization and display
+- add nosec annotations for bandit false positives
+- sync pyproject.toml version to 5.4.91
+
+## v5.4.91 (2026-01-07)
+
+### Feat
+
+- **banner**: add MPM skills count, clarify skills vs commands
+- framework improvements, dashboard fix, README reorganization
+- extract tool usage guide to mpm-tool-usage-guide skill
+
+### Fix
+
+- **dashboard**: emit todo_updated events for proper tracking
+- sync pyproject.toml version to 5.4.90
+- **dashboard**: track all agents used in session instead of only last one
+- ruff linting errors in validate_context_tracker.py
+
+### Refactor
+
+- extract session management to mpm-session-management skill
+- rename PM skills to mpm-* and deploy to .claude/skills/
+
+## v5.4.89 (2026-01-07)
+
+### Fix
+
+- **session**: add .md file pattern to SessionResumeHelper
+
+## v5.4.88 (2026-01-06)
+
+### Feat
+
+- **pm**: strengthen localhost deployment verification rules
+
+### Fix
+
+- **scripts**: extract PyPI token from ~/.pypirc for uv publish
+
+## v5.4.87 (2026-01-06)
+
+### Feat
+
+- **auto-pause**: implement automatic session pausing at 90% context
+- **dashboard**: improve radial tree labels and interactions
+- **dashboard**: add D3.js radial tree view for modified files
+- **hooks**: default unknown agent_type to pm in SubagentStop
+
+### Fix
+
+- **dashboard**: remove radar pulse feature to fix Tree view freeze
+- **dashboard**: fix Tree view infinite loop freeze
+- **dashboard**: prevent Tree view freeze on file fetch errors
+- **dashboard**: fix Agents tab display and add radar pulse to Files tree
+- **dashboard**: fix Agents tab by using consistent namespace for events
+- **security**: add nosec annotations for bandit warnings
+- **dashboard**: use relative paths from project root in tree view
+- **dashboard**: use direct x/y positioning for radial tree labels
+- **dashboard**: rewrite radial tree with root at center
+- **dashboard**: ensure radial tree labels are truly horizontal
+- **hooks**: add dedicated SubagentStart handler with agent_type
+- **dashboard**: reorder tabs and add agent debugging
+- auto-deploy founders output style on startup
+- prefix unused skill_result variable with underscore
+
+## v5.4.83 (2026-01-05)
+
+### Feat
+
+- add bug reporting system for MPM repositories
+
+### Fix
+
+- agent deployment now respects configuration.yaml settings
+
+## v5.4.82 (2026-01-05)
+
+## v5.4.81 (2026-01-05)
+
+## v5.4.80 (2026-01-05)
+
+### Fix
+
+- correct output style name case-sensitivity
+
+## v5.4.79 (2026-01-04)
+
+## v5.4.78 (2026-01-04)
+
+### Feat
+
+- add required agents that are always installed
+
+## v5.4.77 (2026-01-02)
+
+### Fix
+
+- handle FileNotFoundError when cwd doesn't exist
+
+## v5.4.76 (2026-01-02)
+
+### Feat
+
+- add group selection for skill pattern groups
+- add pattern detection for skill grouping in UI
+- add spacebar toggle selection to skills management
+- fix skills UI to show all skills grouped by category
+- update skills management to show table like agents
+- update skill selector UI to match agent selector
+- simplify agent/skill deployment model and fix UV install
+- add --force-sync flag to bypass ETag cache for agents/skills
+- make selective skill deployment the default
+
+### Fix
+
+- correct config import for skills GitSkillSourceManager
+- remove menu items and update skills table to match agents
+- strengthen PM delegation enforcement to prevent direct source code reading
+- deploy output styles to correct directory (~/.claude/output-styles/)
+- resolve startup issues with cache, output styles, and dependency verification
+- deploy output styles to user-level directory
+- auto-update output styles when source changes
+- add YAML frontmatter to teacher output style
+- include PM skills subdirectories in package distribution
+- preserve skills field in agent frontmatter during deployment
+- **skills**: empty skill list deploys 0 skills, fix PM skills display
+- **agents**: use content comparison instead of mtime for deployment
+- **skills**: add skills status display and improve cleanup logging
+- skill deployment to project-only and always run cleanup
+- use dict iteration directly in test
+- final linting fixes for tests
+- resolve linting errors for safe-release-build
+- skill orphan detection - reduce over-deployment by fixing mappings
+- skill cleanup now auto-populates agent_referenced and removes orphans
+- **skills**: auto-populate agent_referenced to enable orphan cleanup
+- agent count display and skill deployment optimization
+- selective skill deployment path matching
+- agent count display and PM delegation enforcement
+- add agent exclusion filtering to GitSourceSyncService
+- **agents**: exclusion matching, model optional, duplicate entries
+- **agents**: support nested {owner}/{repo}/agents/ cache structure
+
+### Refactor
+
+- unify TUI styling for agent and skill selectors
+- condense output styles to ~4KB, move detail to PM skills
+- move skill mappings from static YAML to agent frontmatter
+
+## v5.4.43 (2025-12-29)
+
+### Fix
+
+- **deps**: make kuzu-memory optional to avoid cmake requirement
+
+## v5.4.42 (2025-12-29)
+
+### Fix
+
+- **skills**: use package-relative path for bundled PM skills
+
+## v5.4.41 (2025-12-29)
+
+### Feat
+
+- **startup**: auto-cleanup legacy agent cache directories
+- **agents**: make model field optional for dynamic selection
+- **profiles**: implement automatic profile-based agent/skill filtering
+- add PM skills status display on startup
+- add progress bar for PM skills deployment
+- **pm-skills**: add PM skills deployment infrastructure
+- populate PM skill files with extracted content
+- add automatic log rotation to monitor daemon
+- reinforce autonomous PM operation and fix logging levels
+
+### Fix
+
+- **profile**: use full enabled list for agent cleanup, not filtered
+- **profile**: add agent cleanup to remove excluded agents
+- **profile**: canonical_id matching + skill cleanup
+- **profile**: add fuzzy matching for skill filtering
+- **profile**: use Config.set() for singleton to enable agent filtering
+- **profiles**: pass config to deploy_agents() for profile filtering
+- **profiles**: auto-detect project root for profile loading
+- **profiles**: support short skill names in profile filtering
+- remove MCP service verification warning on startup
+- add installed/total count summary to agent list display
+- detect UV tool environments and use uv pip for installations
+- apply default agents when scoring produces empty recommendations
+- reinforce PM delegation rules and fix agent template references
+
+### Refactor
+
+- **commands**: optimize slash command content for 86% token reduction
+- **pm-instructions**: consolidate with skill references
+- **pm-instructions**: holistic cleanup reducing 313 lines (22%)
+
+## v5.4.30 (2025-12-23)
+
+### Fix
+
+- use explicit conversion flag for error message (ruff RUF010)
+- **dashboard**: add image display and project isolation
+
+## v5.4.29 (2025-12-23)
+
+### Fix
+
+- include dashboard svelte-build in package data
+
+## v5.4.28 (2025-12-23)
+
+### Feat
+
+- **dashboard**: add Agents tab with hierarchical agent tracking
+
+## v5.4.27 (2025-12-23)
+
+### Fix
+
+- **dashboard**: improve stream selector and diff viewer UX
+
+## v5.4.26 (2025-12-23)
+
+### Feat
+
+- **dashboard**: historical diff viewer with commit dropdown
+- **dashboard**: show project name + session ID in Stream selector
+- **dashboard**: add favicon with dashboard grid icon
+- **dashboard**: add diff toggle to FileViewer
+
+### Fix
+
+- **dashboard**: fix working-directory API and favicon path
+- **cache**: correct inflated agent count from stale repository files
+- **dashboard**: convert Path.cwd() to string for API response
+- **dashboard**: filename header and diff debug logging
+- resolve linting issues for pre-publish checks
+- **dashboard**: show filename in list, relative path in viewer
+- **dashboard**: extract cwd from root level of events for project name
+- **dashboard**: relative paths, git diff, theme-aware code, stream filtering
+- **dashboard**: theme toggle and always-visible diff toggle
+- **dashboard**: favicon route and git-based diff viewer
+- **dashboard**: show diff toggle and add filename filter
+
+## v5.4.24 (2025-12-23)
+
+### Fix
+
+- remove unused imports in monitor and socketio servers
+- default test_mode to False for production PM enforcement
+- add GET /api/file/read endpoint for file browser
+- add missing base_agent.json to source directory
+- add claude_event to dashboard relay whitelist
+- clarify agent counting terminology (deployed vs cached)
+- **dashboard**: remove custom slot for Svelte 5 compatibility
+- **dashboard**: use explicit slot pattern for svelte-highlight
+- **dashboard**: fix SSR-safe escapeHtml for Python/Svelte fallback
+
+### Refactor
+
+- **dashboard**: convert Files tab to session-specific touched files tracker
+- **dashboard**: direct file browser instead of hook events
+- **dashboard**: replace Shiki with svelte-highlight
+
+## v5.4.23 (2025-12-23)
+
+### BREAKING CHANGE
+
+- Cache directory moved from ~/.claude-mpm/cache/remote-agents/
+to ~/.claude-mpm/cache/agents/. Existing cache will be re-synced automatically.
+
+### Feat
+
+- **dashboard**: add git history display to FileViewer
+- **agents**: add Proactive Code Quality Improvements to BASE_AGENT
+- **pm**: implement ops agent consolidation and verification delegation
+
+### Fix
+
+- apply ruff linting fixes for pre-publish quality gate
+- **dashboard**: use Shiki full bundle for Python/Svelte highlighting
+- **dashboard**: fetch file content from server API instead of events
+- **dashboard**: correct content extraction path for FileViewer
+- **dashboard**: extract file content from nested event data structure
+- **dashboard**: add type=hook check to files store extraction
+- **dashboard**: files reload on source change + FileViewer layout
+- **dashboard**: update static file serving for Svelte-only structure
+- **dashboard**: preserve full event structure in HTTP POST handler
+- **dashboard**: ensure events persist in history for new clients
+- **dashboard**: correct file viewer schema to match backend format
+- **dashboard**: enhance file content extraction with multi-path fallback
+- **dashboard**: resolve file viewer data extraction mismatch
+
+### Refactor
+
+- **pm**: consolidate instructions + fix deepeval tests
+- **agents**: standardize cache directory from remote-agents to agents
+
+## v5.4.21 (2025-12-22)
+
+### Feat
+
+- **pm**: mandate Chrome DevTools MCP for browser verification
+- **skills**: add user skill override via configuration.yaml
+- **startup**: add skill statistics to progress display
+- **skills**: implement selective skill deployment based on agent references
+- **dashboard**: fix file tracking, viewer, and styling
+
+### Fix
+
+- resolve ruff linting errors for pre-publish gate
+
+## v5.4.20 (2025-12-21)
+
+### Feat
+
+- expand /mpm-organize to full project organization
+- refocus /mpm-organize on documentation-only organization
+
+## v5.4.17 (2025-12-21)
+
+### Feat
+
+- add agent count summary to startup output
+
+### Refactor
+
+- remove redundant agent commands, consolidate into /mpm-configure
+
+## v5.4.16 (2025-12-21)
+
+### Feat
+
+- add chrome-devtools-mcp auto-install on startup
+
+## v5.4.14 (2025-12-20)
+
+### Feat
+
+- add engineer to core agents list
+
+### Refactor
+
+- remove auto gitignore rewriting, add config recommendation
+
+## v5.4.13 (2025-12-20)
+
+### Feat
+
+- add UV tool and Homebrew detection for auto-upgrade
+
+### Fix
+
+- resolve linting issues for pre-publish quality gate
+- prefix final unused stdout variable with underscore
+- prefix all unused stdout variables with underscore in git_operations_service
+- prefix unused stdout variable with underscore
+- auto-recover from divergent branches in git sync
+- add defensive error handling to hook event handlers
+- add matcher field for UserPromptSubmit hook
+- make memory_integration logging install-type-aware
+
+### Refactor
+
+- use runtime hooks for agent memory, add observability
+- fix agent memory injection flow
+- remove unused base_agent_loader infrastructure
+- remove redundant CLI commands
+
+## v5.4.10 (2025-12-19)
+
+### Fix
+
+- sort imports in logger.py for ruff compliance
+- add matcher field for SessionStart hook subtypes
+- resolve SessionStart hook errors and install-type-aware logging
+
+## v5.4.8 (2025-12-19)
+
+### Feat
+
+- unified /mpm-config with agent review and startup command sync
+- add automatic stale command cleanup on startup
+- migrate to uv for build/publish and add hook auto-sync
+
+### Fix
+
+- resolve critical hook installation bug causing immediate deletion
+- add UV support and robustness to hook handler
+- normalize skill IDs for agent-skill matching
+- improve deployment progress messages and add architecture suggestions
+
+### Refactor
+
+- remove claude-mpm-dev script, use uv run instead
+
+## v5.4.7 (2025-12-18)
+
+### Feat
+
+- improve agent display and add orphaned agent cleanup
+
+## v5.4.6 (2025-12-17)
+
+### Fix
+
+- correct agent ID mismatch in configure CLI agent selection
+
+## v5.4.5 (2025-12-16)
+
+### Feat
+
+- add skill-to-agent auto-inference mapping (#120)
+
+### Fix
+
+- resolve linting errors in skill_to_agent_mapper.py
+
+## v5.4.4 (2025-12-16)
+
+### Feat
+
+- selective skill deployment based on agent requirements
+- **deployment**: implement selective skill deployment
+
+### Fix
+
+- apply ruff linting fixes for release
+- show correct agent count when deployment reports 0 configured
+- show configured agent count in deployment progress bar
+- use agent_id for deployment status detection in configure
+- exclude claude-mpm-skills repo from agent discovery
+
+## v5.4.3 (2025-12-15)
+
+### Refactor
+
+- rename /mpm-ticket-organize to /mpm-organize
+
+## v5.4.2 (2025-12-15)
+
+## v5.4.1 (2025-12-15)
+
+### Feat
+
+- auto-update package.json, pyproject.toml, and CHANGELOG.md in automated release
+- **release**: add agent repository sync to automated release
+- **dashboard**: implement file viewer with Shiki syntax highlighting
+- **dashboard**: fix FilesView styling and add 50-event cache per stream
+
+### Fix
+
+- correct project root path calculation in automated_release.py
+- **cli**: use display name instead of agent_id in agent selection UI
+- **agents**: resolve agent count discrepancy and missing list_sources method
+- **dashboard**: extract file paths from tool_parameters
+- **dashboard**: debug files display + remove Path column
+- **dashboard**: Files tab now displays file operations correctly
+- **dashboard**: simplify Files tab to scan all events for file paths
+
+## v5.4.0 (2025-12-13)
+
+### Feat
+
+- **dashboard**: add Files tab with syntax highlighting and diff viewing
+- **dashboard**: add Tools view with pre/post tool correlation
+- improve EventStream table layout with grid-based design
+- add PM delegation rules for mpm-skills-manager agent
+- enhance event list with detailed display fields
+- add hot reload for dashboard development
+- enhance Svelte dashboard with JSON explorer and stream filtering
+- add SvelteKit 5 dashboard with real-time event monitoring
+
+### Fix
+
+- replace os.getcwd() with Path.cwd() (PTH109)
+- **dashboard**: extract file paths from tool_parameters in hook events
+- **dashboard**: add type guards to files.svelte.ts and tools.svelte.ts
+- **agents**: prioritize dist/agents/ over source agents/ in discovery
+- **monitor**: improve exit code messaging for daemon termination
+- add proper type guards for event.data property access in EventStream
+- remove unused contextlib import
+- use raw strings for pytest regex patterns
+- use $effect for store subscription in runes mode
+- use traditional Svelte stores for static adapter compatibility
+- stream dropdown reactivity in Svelte 5
+- convert Svelte 5 socket store to factory function pattern
+- serve Svelte assets at /svelte/_app/ to match base path
+- configure SvelteKit base path for /svelte mount point
+- disable redundant DirectSocketIORelay to prevent event duplication
+- improve hook event naming with comprehensive mapping
+
+## v5.3.0 (2025-12-11)
+
+### BREAKING CHANGE
+
+- MCP gateway service has been archived and is no longer active.
+Use direct MCP server integrations (mcp-ticketer, mcp-vector-search, etc.) instead.
+
+### Feat
+
+- deprecate MCP gateway, add summarize CLI command
+- add EventBus integration and health endpoints to Socket.IO server
+
+### Fix
+
+- resolve ruff linting errors before release
+
+## v5.2.3 (2025-12-11)
+
+### Fix
+
+- make agent dependencies optional via frontmatter
+
+## v5.2.2 (2025-12-10)
+
+### Fix
+
+- make pylint import optional for clone detection
+
+## v5.2.1 (2025-12-10)
+
+### Feat
+
+- add multi-language clone detection support
+- add code clone detection to code-analyzer agent
+
+### Fix
+
+- agent deployment path and test fixes
+- apply ruff linting and formatting fixes
+- use correct pylint API for duplicate detection
+
+## v5.1.12 (2025-12-10)
+
+### Feat
+
+- auto-deploy agents when saving selection in configure
+- show Installed status with green highlight for deployed agents
+
+### Fix
+
+- use grey color and properly format YAML name for display
+- use YAML name in agent list and improve table colors
+- deploy output styles to project-level directory
+- deploy output styles to correct directory with both styles
+- auto-fix linting errors before publish
+- deploy agents to project directory instead of user-level
+- show Installed status for deployed agents in initial list
+- show asterisk for deployed agents instead of recommended agents
+- update AgentRecommendationService.CORE_AGENTS to match ToolchainDetector
+
+## v5.1.11 (2025-12-10)
+
+### Feat
+
+- add branch protection for main branch
+- add visual feedback loop for agent selection controls
+- add recommended agents feature with toolchain detection
+- **ui**: implement two-step agent selection with collection-level toggles
+- **ui**: change Select All to Toggle All for select/deselect behavior
+- **ui**: group agent selection by collection with Select All option
+- **styles**: rename output styles and deploy to ~/.claude/styles/
+- **agents**: enhance agent matching with collection-based selection and frontmatter
+
+### Fix
+
+- update CORE_AGENTS to use correct agent IDs and add local-ops-agent
+- correct agent count in sources table and add loading spinner
+- prioritize frontmatter metadata for agent name/description extraction
+- resolve datetime timezone mismatch in socketio health monitor
+- reload menu after agent selection and fix loading state
+- use YAML frontmatter agent_id for deployment matching
+- **ui**: show actual deployment state in individual agent selection
+- **ui**: show actual deployment state in agent selection
+- **agents**: remove redundant Path import causing scoping error
+- **agents**: verify file existence before adding to removal set
+- **agents**: extract leaf name for agent removal to match deployed files
+- **ui**: normalize agent path formats for accurate change detection
+- **ui**: patch correct module for questionary checkbox symbols
+
+### Refactor
+
+- simplify agent management to unified selection view
+- simplify agent architecture to 2-location model
+
+## v5.1.8 (2025-12-09)
+
+### Feat
+
+- auto-gitignore user-specific config files during mpm-init
+
+### Fix
+
+- **ui**: fix questionary import scoping for checkbox symbols
+- remove unnecessary f-string prefixes in error messages
+- **ui**: add exception handling for questionary menu failures
+- **ui**: improve configurator feedback and error handling
+- **ui**: improve agent configurator checkbox visibility and state tracking
+
+## v5.1.6 (2025-12-08)
+
+### Fix
+
+- enable auto-push for Homebrew tap updates in releases
+
+## v5.1.5 (2025-12-08)
+
+### Feat
+
+- enforce mandatory QA verification gate in PM instructions
+- **deepeval**: add PM Proactive Verification test suite
+
+### Fix
+
+- **lint**: combine implicitly concatenated strings
+- **lint**: apply ruff auto-fixes for eval tests
+- **ci**: add pytest-timeout to eval dependencies
+- **deepeval**: calibrate BASE_AGENT and Engineer tests for CI (#105)
+
+## v5.1.4 (2025-12-08)
+
+### Fix
+
+- **deepeval**: calibrate Documentation Agent scenarios to 100% pass rate (#112)
+- **deepeval**: calibrate Ops Agent scenarios to 100% pass rate (#111)
+- **deepeval**: calibrate QA Agent scenarios to 100% pass rate (#110)
+- **deepeval**: calibrate Engineer Agent scenarios to 100% pass rate (#109)
+
+## v5.1.3 (2025-12-07)
+
+### Feat
+
+- **deepeval**: add Prompt-Engineer Agent test suite (#113)
+- **deepeval**: add CI/CD and documentation for Documentation Agent tests (#112)
+- **deepeval**: implement Documentation Agent test harness and 3 integration tests (#112)
+- **deepeval**: add 12 Documentation Agent test scenarios (#112)
+- **deepeval**: implement Documentation Agent custom metrics (#112)
+- **deepeval**: add CI/CD and documentation for Ops Agent tests (#111)
+- **deepeval**: implement Ops Agent test harness and 5 integration tests (#111)
+- **deepeval**: add 18 Ops Agent test scenarios (#111)
+- **deepeval**: implement Ops Agent custom metrics (#111)
+- **pm**: add documentation routing protocol to PM instructions
+- **deepeval**: add CI/CD and documentation for QA Agent tests (#110)
+- **deepeval**: implement QA Agent test harness and 5 integration tests (#110)
+- **deepeval**: add 20 QA Agent test scenarios (#110)
+- **deepeval**: implement QA Agent custom metrics (#110)
+- **deepeval**: add CI/CD and documentation for Engineer Agent tests (#109)
+- **deepeval**: add 6 Engineer Agent workflow integration tests (#109)
+- **deepeval**: implement Engineer Agent test harness (#109)
+- **deepeval**: add 25 Engineer Agent test scenarios (#109)
+- **deepeval**: implement Engineer Agent custom metrics (#109)
+- **deepeval**: add Research Agent scenarios and test harness (#108)
+- **deepeval**: implement Research Agent custom metrics (#108)
+- add CI/CD for DeepEval tests and TkDD protocol (#107)
+- **deepeval**: add 5 BASE_AGENT integration tests (#107)
+- **deepeval**: implement BASE_AGENT test harness (#107)
+- **deepeval**: add 20 BASE_AGENT behavioral scenarios (#107)
+- **deepeval**: implement BASE_AGENT custom metrics (#107)
+
+## v5.1.2 (2025-12-06)
+
+### BREAKING CHANGE
+
+- None (additive enforcement, backward compatible)
+
+### Feat
+
+- implement 1M-445 logging fix and 1M-502 UX improvements
+- upgrade Circuit Breaker #2 to proactive blocking (40% → 95%)
+
+### Fix
+
+- remove duplicate "Launching Claude" progress bar at startup
+- add corrupt git repository detection to Homebrew update script
+
+## v5.1.1 (2025-12-05)
+
+## v5.11.0 (2026-03-23)
+
 ### SDK Runtime
 
 - **Agent SDK runtime adapter** — PM runs via `ClaudeSDKClient` programmatically instead of CLI subprocess, enabling direct in-process communication with Claude Code
