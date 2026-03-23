@@ -101,6 +101,11 @@ def main(argv: list | None = None):
         endpoint = MessageEndpoint(port=inject_port)
         thread = threading.Thread(target=endpoint.run, daemon=True)
         thread.start()
+
+        # Register shutdown handler for clean port release
+        import atexit
+
+        atexit.register(endpoint.shutdown)
         logger.info(f"Message injection endpoint started on port {inject_port}")
 
     if not should_skip_background_services(args, processed_argv):
