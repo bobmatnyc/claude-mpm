@@ -9,6 +9,15 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+# Markers that uniquely identify content belonging to specific blocks.
+# Used to detect stale override files that contain previously-deployed merged content.
+BLOCK_MARKERS: dict[str, list[str]] = {
+    "PM_INSTRUCTIONS.md": ["## PM Core Identity"],
+    "AGENT_DELEGATION.md": ["## Available Agent Capabilities"],
+    "WORKFLOW.md": ["## Mandatory 5-Phase Sequence"],
+    "MEMORY.md": ["## Static Memory Management"],
+}
+
 
 class SystemInstructionsDeployer:
     """Handles deployment of system instructions and framework files."""
@@ -17,6 +26,28 @@ class SystemInstructionsDeployer:
         """Initialize the deployer with logger and working directory."""
         self.logger = logger
         self.working_directory = working_directory
+
+    def _detect_stale_override(self, block_name: str, content: str) -> bool:
+        """Detect if an override file contains content from other blocks.
+
+        A project or user override is considered "stale" if it contains
+        marker strings that belong to OTHER blocks. This typically happens
+        when a previously-deployed merged file (PM_INSTRUCTIONS_DEPLOYED.md)
+        is copied/renamed to serve as an override, causing content duplication.
+
+        Args:
+            block_name: The block this override is for (e.g. "PM_INSTRUCTIONS.md")
+            content: The content of the override file
+
+        Returns:
+            True if the override appears to be a stale deployed file
+        """
+        other_markers: list[str] = []
+        for other_block, markers in BLOCK_MARKERS.items():
+            if other_block != block_name:
+                other_markers.extend(markers)
+
+        return any(marker in content for marker in other_markers)
 
     def _resolve_block(self, block_name: str, agents_path: Path) -> str:
         """Resolve a block file with additive project+user override semantics.
@@ -37,9 +68,31 @@ class SystemInstructionsDeployer:
 
         parts = []
         if user_path.exists():
-            parts.append(user_path.read_text(encoding="utf-8"))
+            user_content = user_path.read_text(encoding="utf-8")
+            if self._detect_stale_override(block_name, user_content):
+                self.logger.warning(
+                    "Stale override detected: ~/.claude-mpm/%s contains "
+                    "content from other blocks. Ignoring override and using "
+                    "system default. Remove ~/.claude-mpm/%s to suppress "
+                    "this warning.",
+                    block_name,
+                    block_name,
+                )
+            else:
+                parts.append(user_content)
         if project_path.exists():
-            parts.append(project_path.read_text(encoding="utf-8"))
+            project_content = project_path.read_text(encoding="utf-8")
+            if self._detect_stale_override(block_name, project_content):
+                self.logger.warning(
+                    "Stale override detected: .claude-mpm/%s contains "
+                    "content from other blocks. Ignoring override and using "
+                    "system default. Remove .claude-mpm/%s to suppress "
+                    "this warning.",
+                    block_name,
+                    block_name,
+                )
+            else:
+                parts.append(project_content)
         if not parts and system_path.exists():
             parts.append(system_path.read_text(encoding="utf-8"))
         return "\n\n".join(parts)

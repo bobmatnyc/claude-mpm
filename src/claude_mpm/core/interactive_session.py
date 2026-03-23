@@ -52,6 +52,9 @@ class InteractiveSession:
         self.runner: ClaudeRunnerProtocol = runner
         self.logger = get_logger("interactive_session")
         self.session_id = None
+        self._sdk_session_id: str | None = None
+        self._hook_event_bus: Any = None
+        self._session_state_tracker: Any = None
         self.original_cwd = Path.cwd()
 
         # Initialize response tracking for interactive sessions
@@ -203,6 +206,8 @@ class InteractiveSession:
             # Launch using selected method
             if self.runner.launch_method == "subprocess":
                 return self._launch_subprocess_mode(cmd, env)
+            if self.runner.launch_method == "sdk":
+                return self._launch_sdk_mode()
             return self._launch_exec_mode(cmd, env)
 
         except FileNotFoundError as e:
@@ -613,6 +618,234 @@ class InteractiveSession:
         # Delegate to runner's existing method
         self.runner._launch_subprocess_interactive(cmd, env)
         return True
+
+    def _launch_sdk_mode(self) -> bool:
+        """Launch PM via ClaudeSDKClient with persistent session.
+
+        Instead of os.execvpe (which replaces the process with Claude Code's REPL),
+        this keeps the MPM process alive and runs a user input loop that sends
+        messages through ClaudeSDKClient.
+        """
+        import asyncio
+
+        async def _run_sdk_session() -> int:
+            try:
+                from claude_agent_sdk import (
+                    AssistantMessage,
+                    ClaudeAgentOptions,
+                    ClaudeSDKClient,
+                    ResultMessage,
+                    SystemMessage,
+                    TextBlock,
+                    ToolUseBlock,
+                )
+            except ImportError:
+                print(
+                    "Error: claude-agent-sdk is not installed. "
+                    "Install it with: pip install claude-agent-sdk"
+                )
+                return 1
+
+            # Build system prompt from the runner (same as CLI mode)
+            system_prompt = self.runner._create_system_prompt()
+
+            # Get working directory
+            cwd = os.environ.get("CLAUDE_MPM_USER_PWD", str(Path.cwd()))
+
+            # Parse MCP config if available
+            mcp_servers = self._load_mcp_config(cwd)
+
+            # Determine permission mode
+            from .constants import skip_permissions_disabled
+
+            permission_mode = None
+            if not skip_permissions_disabled():
+                permission_mode = "bypassPermissions"
+
+            # Set up hook event bus for sidecar agent injection
+            event_bus = None
+            pretooluse_hook = None
+            try:
+                from claude_mpm.services.agents.hook_event_bus import HookEventBus
+                from claude_mpm.services.agents.hook_factory import (
+                    create_pretooluse_hook,
+                )
+
+                event_bus = HookEventBus()
+                pretooluse_hook = create_pretooluse_hook(event_bus)
+            except Exception:
+                self.logger.debug(
+                    "Hook event bus setup failed; running without hooks",
+                    exc_info=True,
+                )
+
+            # Build SDK options
+            hooks_config = None
+            if pretooluse_hook is not None:
+                from claude_agent_sdk import HookMatcher
+
+                hooks_config = {
+                    "PreToolUse": [
+                        HookMatcher(
+                            matcher=None,  # Match ALL tool uses
+                            hooks=[pretooluse_hook],
+                        ),
+                    ],
+                }
+
+            options = ClaudeAgentOptions(
+                system_prompt=system_prompt,
+                cwd=cwd,
+                permission_mode=permission_mode,
+                hooks=hooks_config,
+            )
+            if mcp_servers:
+                options.mcp_servers = mcp_servers
+
+            # Store event bus so sidecar agents can reference it
+            if event_bus is not None:
+                self._hook_event_bus = event_bus
+
+            # Initialize session state tracker for observability endpoints
+            from claude_mpm.services.agents.session_state_tracker import (
+                SessionStateTracker,
+                set_global_tracker,
+            )
+
+            tracker = SessionStateTracker()
+            self._session_state_tracker = tracker
+            set_global_tracker(tracker)
+
+            # Check for --resume in claude_args
+            claude_args = getattr(self.runner, "claude_args", []) or []
+            if "--resume" in claude_args:
+                idx = claude_args.index("--resume")
+                if idx + 1 < len(claude_args) and not claude_args[idx + 1].startswith(
+                    "-"
+                ):
+                    options.resume = claude_args[idx + 1]
+
+            print("SDK Mode -- persistent session active")
+            print("   Type /exit or /quit to end session")
+            print()
+
+            from claude_mpm.services.agents.session_state_tracker import SessionState
+
+            tracker.set_state(SessionState.IDLE)
+
+            # Start monitor agent (best-effort; failure must not kill session)
+            monitor = None
+            try:
+                from claude_mpm.services.agents.monitor_agent import MonitorAgent
+
+                monitor = MonitorAgent()
+                monitor.start()
+            except Exception:
+                self.logger.debug("Monitor agent failed to start", exc_info=True)
+
+            async with ClaudeSDKClient(options=options) as client:
+                while True:
+                    try:
+                        user_input = input("> ")
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nSession ended.")
+                        break
+
+                    if not user_input.strip():
+                        continue
+
+                    if user_input.strip() in ("/exit", "/quit"):
+                        print("Session ended.")
+                        break
+
+                    tracker.record_user_input(user_input)
+
+                    try:
+                        await client.query(user_input)
+                        async for message in client.receive_response():
+                            if isinstance(message, AssistantMessage):
+                                if hasattr(message, "model") and message.model:
+                                    tracker.set_model(message.model)
+                                for block in message.content:
+                                    if isinstance(block, TextBlock):
+                                        print(block.text)
+                                        tracker.record_assistant_message(
+                                            block.text,
+                                            usage=getattr(message, "usage", None),
+                                        )
+                                    elif isinstance(block, ToolUseBlock):
+                                        print(f"  [tool] {block.name}...")
+                                        tracker.record_tool_call(block.name)
+                            elif isinstance(message, ResultMessage):
+                                if message.session_id:
+                                    self._sdk_session_id = message.session_id
+                                tracker.record_result(
+                                    session_id=getattr(message, "session_id", None),
+                                    cost=getattr(message, "total_cost_usd", None),
+                                    num_turns=getattr(message, "num_turns", None),
+                                    usage=getattr(message, "usage", None),
+                                )
+                            elif isinstance(message, SystemMessage):
+                                self.logger.debug(
+                                    "SDK system message: %s", message.subtype
+                                )
+                    except KeyboardInterrupt:
+                        print("\nInterrupted. Type /exit to quit.")
+                        continue
+                    except Exception as e:
+                        print(f"\nError: {e}")
+                        self.logger.exception("SDK session error")
+                        continue
+
+            tracker.record_stopped()
+            if monitor is not None:
+                monitor.stop()
+            return 0
+
+        return asyncio.run(_run_sdk_session()) == 0
+
+    def _load_mcp_config(self, cwd: str) -> dict | None:
+        """Load MCP server configuration from .mcp.json files.
+
+        Claude Code normally reads these itself. In SDK mode, we need to
+        parse and pass them explicitly.
+
+        Args:
+            cwd: Working directory to search for project-level .mcp.json
+
+        Returns:
+            Dict of MCP server configs, or None if none found
+        """
+        import json
+
+        mcp_config: dict = {}
+
+        # Check project-level .mcp.json
+        project_mcp = Path(cwd) / ".mcp.json"
+        if project_mcp.exists():
+            try:
+                with open(project_mcp) as f:
+                    data = json.load(f)
+                    if "mcpServers" in data:
+                        mcp_config.update(data["mcpServers"])
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Check user-level ~/.claude/.mcp.json
+        user_mcp = Path.home() / ".claude" / ".mcp.json"
+        if user_mcp.exists():
+            try:
+                with open(user_mcp) as f:
+                    data = json.load(f)
+                    if "mcpServers" in data:
+                        # Project config takes precedence
+                        for k, v in data["mcpServers"].items():
+                            if k not in mcp_config:
+                                mcp_config[k] = v
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        return mcp_config if mcp_config else None
 
     def _handle_launch_error(self, error_type: str, error: Exception) -> None:
         """Handle errors during Claude launch."""

@@ -484,6 +484,11 @@ class RunCommand(BaseCommand):
         if getattr(args, "subprocess", False):
             launch_method = "subprocess"
 
+        # SDK runtime selection: when --sdk sets CLAUDE_MPM_RUNTIME=sdk,
+        # launch the PM via ClaudeSDKClient instead of exec/subprocess.
+        if os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk":
+            launch_method = "sdk"
+
         # Configure WebSocket
         enable_websocket = monitor_mode
 
@@ -1110,6 +1115,11 @@ def run_session_legacy(args):
 
     # Use the specified launch method (default: exec)
     launch_method = getattr(args, "launch_method", "exec")
+
+    # SDK runtime selection: when --sdk sets CLAUDE_MPM_RUNTIME=sdk,
+    # override launch_method so the SDK path is used instead of exec/subprocess.
+    if os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk":
+        launch_method = "sdk"
 
     enable_websocket = getattr(args, "monitor", False) or monitor_mode
     websocket_port = getattr(args, "websocket_port", 8765)

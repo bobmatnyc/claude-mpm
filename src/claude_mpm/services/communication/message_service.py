@@ -136,6 +136,7 @@ class MessageService:
         self,
         project_root: Path,
         registry_path: Path | None = None,
+        messaging_db_path: Path | None = None,
     ):
         """
         Initialize message service.
@@ -143,13 +144,16 @@ class MessageService:
         Args:
             project_root: Root directory of the current project
             registry_path: Override for global session registry path (for testing)
+            messaging_db_path: Override for shared messaging database path (for testing)
         """
         # Normalize project root with FS-canonical case (see _canonical_path docstring)
         self.project_root = Path(self._canonical_path(str(project_root)))
 
         # Use SHARED database for all projects (not per-project)
         # This is the key change for the Huey migration
-        self.messaging_db_path = Path.home() / ".claude-mpm" / "messaging.db"
+        self.messaging_db_path = (
+            messaging_db_path or Path.home() / ".claude-mpm" / "messaging.db"
+        )
         self.messaging_db = MessagingDatabase(self.messaging_db_path)
 
         # Global session registry (use override or default)

@@ -450,14 +450,15 @@ class TestDeploySkills:
         assert call_kwargs["skill_list"] == ["skill1", "skill2"]
 
     @patch("claude_mpm.cli.commands.skills.console")
-    @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
-    def test_deploy_skills_handles_errors(self, mock_config_class, mock_console):
+    def test_deploy_skills_handles_errors(self, mock_console):
         """Test error handling in deploy command."""
         args = Namespace(force=False, skills=None)
 
-        mock_config_class.load.side_effect = Exception("Config error")
-
-        result = self.command._deploy_skills(args)
+        with patch(
+            "claude_mpm.config.skill_sources.SkillSourceConfiguration",
+            side_effect=Exception("Config error"),
+        ):
+            result = self.command._deploy_skills(args)
 
         assert result.success is False
         assert result.exit_code == 1

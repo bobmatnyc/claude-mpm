@@ -315,6 +315,106 @@ claude-mpm cleanup-memory
 
 ---
 
+## SDK Runtime Mode (Experimental)
+
+**New in v5.11.0** -- Claude MPM can now run the PM agent via the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk) instead of spawning a CLI subprocess. This enables programmatic control, real-time event streaming, and live session observability.
+
+> **Backward Compatible**: The default runtime is still CLI mode. Existing users do not need to change anything.
+
+### Enabling SDK Mode
+
+```bash
+# Via CLI flag
+claude-mpm run --sdk
+
+# Via environment variable
+export CLAUDE_MPM_RUNTIME=sdk
+claude-mpm run
+
+# Force CLI mode explicitly (useful to override auto-detection)
+claude-mpm run --cli
+```
+
+**Auto-detection**: If the `claude-agent-sdk` Python package is installed and no flag or env var is set, SDK mode is selected automatically. Otherwise, CLI mode is used as the fallback.
+
+### New CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| `--sdk` | Use Agent SDK runtime (requires `claude-agent-sdk`) |
+| `--cli` | Force CLI subprocess runtime |
+| `--inject-port <PORT>` | Start message injection endpoint on PORT (default: 7856) |
+
+**Environment variable**: `CLAUDE_MPM_RUNTIME=sdk` or `CLAUDE_MPM_RUNTIME=cli`
+
+### Key Capabilities
+
+**Monitor Agent** -- A background watchdog thread that monitors PM session health:
+- Context pressure warnings at configurable thresholds (70%, 80%, 90%, 95%)
+- Session duration and idle/stuck detection
+- Automatic warnings injected via the hook event bus
+
+**Message Injection** -- External systems can send prompts to the running PM session:
+```bash
+# Start the injection endpoint
+claude-mpm run --sdk --inject-port 7856
+
+# From another terminal or script
+curl -X POST http://localhost:7856/inject \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Check the status of PR #123"}'
+```
+
+The `/mpm-message` slash command also bridges messages to the PM session via the monitor agent's `systemMessage` channel.
+
+**Session Observability** -- Live session state and activity feed via HTTP:
+```bash
+# Current session state (idle, processing, tool_call, etc.)
+curl http://localhost:7856/session
+
+# Recent activity feed
+curl http://localhost:7856/activity
+```
+
+### Architecture Overview
+
+The SDK runtime is built on an adapter pattern with clean separation of concerns:
+
+- **`AgentRuntime` ABC** -- Runtime-agnostic interface with `run()`, `resume()`, `fork()`, and `run_with_hooks()` methods
+- **`SDKAgentRunner`** -- In-process SDK implementation using `claude-agent-sdk`
+- **`CLIAgentRunner`** -- Subprocess adapter wrapping the existing `ClaudeAdapter`
+- **`create_runtime()` factory** -- Instantiates the correct backend based on config
+- **`RuntimeConfig`** -- Resolves runtime type from `CLAUDE_MPM_RUNTIME` env var or auto-detection
+- **`HookEventBus`** -- File-based message queue for sidecar agent to PM communication
+- **`SDKEventBridge`** -- Translates SDK events into MPM monitoring dashboard emissions
+- **`SessionStateTracker`** -- Thread-safe state machine for session observability
+
+```
+                  ┌─────────────────┐
+                  │  create_runtime │
+                  └────────┬────────┘
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+     ┌────────▼────────┐      ┌────────▼────────┐
+     │  SDKAgentRunner  │      │  CLIAgentRunner  │
+     │  (in-process)    │      │  (subprocess)    │
+     └────────┬────────┘      └─────────────────┘
+              │
+   ┌──────────┼──────────┐
+   │          │          │
+   ▼          ▼          ▼
+Monitor    EventBridge  StateTracker
+Agent      (SocketIO)   (/session)
+```
+
+### Requirements
+
+- **`claude-agent-sdk`** Python package (optional -- only needed for SDK mode)
+- SDK mode is experimental and may change in future releases
+
+---
+
 ## What's New in v5.9.46
 
 ### Near-Instant Startup (Daily Sync)
