@@ -1,3 +1,42 @@
+## v5.11.0 (2026-03-23)
+
+### SDK Runtime
+
+- **Agent SDK runtime adapter** — PM runs via `ClaudeSDKClient` programmatically instead of CLI subprocess, enabling direct in-process communication with Claude Code
+- **AgentRuntime ABC** with runtime-agnostic `AgentConfig` / `AgentResult` data classes, template loading, and MCP passthrough for a clean runtime abstraction layer
+- **CLI runtime adapter** — refactored the legacy subprocess execution path into the `CLIAgentRunner` adapter implementing the same `AgentRuntime` ABC
+- **Runtime config and factory wiring** — `runtime_config.py` resolves runtime type from env/auto-detect; `create_runtime()` factory instantiates the correct backend
+- **Runtime bridge** for optional SDK dependency with graceful fallback when `claude-agent-sdk` is not installed
+
+### CLI Enhancements
+
+- **`--sdk` flag** — select Agent SDK runtime: `claude-mpm run --sdk`
+- **`--cli` flag** — force CLI subprocess runtime: `claude-mpm run --cli`
+- **`--inject-port <PORT>` flag** — start the message injection HTTP endpoint on the given port (default: 7856)
+- **`CLAUDE_MPM_RUNTIME` env var** — set to `sdk` or `cli` to select runtime mode without CLI flags
+
+### Session Infrastructure
+
+- **Monitor agent** — background session watchdog that tracks context pressure, session duration, and idle/stuck detection with configurable thresholds and auto-warnings
+- **SDK event bridge** — translates `claude-agent-sdk` message types into MPM `AgentEvent` emissions for the SocketIO monitoring dashboard
+- **Hook-based event bus** — file-based message queue (`HookEventBus`) for sidecar agent to PM communication via `PreToolUse` hook injection
+- **Message injection endpoint** — local HTTP server (`POST /inject`) for external systems (webhooks, CI, scripts, cURL) to send prompts to the running PM session
+- **Live session observability** — `SessionStateTracker` with thread-safe state machine (`IDLE`, `PROCESSING`, `TOOL_CALL`, `STARTING`, `STOPPED`) and activity feed exposed via HTTP endpoints (`/session`, `/activity`)
+- **`/mpm-message` bridge** — the `/mpm-message` slash command now routes messages to the PM session via `systemMessage` through the monitor agent
+
+### Fix
+
+- Legacy run path now respects `CLAUDE_MPM_RUNTIME=sdk` environment variable
+- Detect and skip stale PM instruction overrides
+- Move inject-port startup outside background services block
+- Resolve 9 test failures — 8,052/8,052 passing (100%)
+
+### Stats
+
+- 17 commits, 6,926 lines added across 39 files
+- 72 new tests added (8,124 total, all passing)
+- Fully backward compatible — default remains CLI mode
+
 ## v5.10.15 (2026-03-21)
 
 ### Fix
