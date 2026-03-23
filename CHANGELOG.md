@@ -1,3 +1,9 @@
+## v5.11.2 (2026-03-23)
+
+### Feat
+
+- remove hardcoded privileged git user — all users use PRs
+
 ## v5.11.1 (2026-03-23)
 
 ### Feat
