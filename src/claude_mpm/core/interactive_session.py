@@ -733,6 +733,16 @@ class InteractiveSession:
 
             tracker.set_state(SessionState.IDLE)
 
+            # Start monitor agent (best-effort; failure must not kill session)
+            monitor = None
+            try:
+                from claude_mpm.services.agents.monitor_agent import MonitorAgent
+
+                monitor = MonitorAgent()
+                monitor.start()
+            except Exception:
+                self.logger.debug("Monitor agent failed to start", exc_info=True)
+
             async with ClaudeSDKClient(options=options) as client:
                 while True:
                     try:
@@ -788,6 +798,8 @@ class InteractiveSession:
                         continue
 
             tracker.record_stopped()
+            if monitor is not None:
+                monitor.stop()
             return 0
 
         return asyncio.run(_run_sdk_session()) == 0

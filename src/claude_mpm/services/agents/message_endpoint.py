@@ -209,6 +209,23 @@ class MessageEndpoint:
                 return {"events": [], "error": "No active SDK session"}
             return {"events": tracker.get_activity(limit=limit)}
 
+        @app.get("/monitor")
+        async def monitor_status() -> dict[str, Any]:
+            """Return monitor agent status if available."""
+            try:
+                import importlib.util
+
+                available = (
+                    importlib.util.find_spec("claude_mpm.services.agents.monitor_agent")
+                    is not None
+                )
+                return {
+                    "available": available,
+                    "note": "Monitor runs in-process with SDK session",
+                }
+            except ImportError:
+                return {"available": False, "note": "Monitor module not found"}
+
         @app.get("/history")
         async def history() -> dict[str, Any]:
             return {"history": self._history[-50:]}  # Last 50
