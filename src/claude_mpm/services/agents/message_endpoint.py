@@ -187,6 +187,28 @@ class MessageEndpoint:
                     content={"error": str(e), "is_error": True},
                 )
 
+        @app.get("/session")
+        async def session() -> dict[str, Any]:
+            from claude_mpm.services.agents.session_state_tracker import (
+                get_global_tracker,
+            )
+
+            tracker = get_global_tracker()
+            if tracker is None:
+                return {"error": "No active SDK session", "state": "unavailable"}
+            return tracker.get_session_state()
+
+        @app.get("/activity")
+        async def activity(limit: int = 50) -> dict[str, Any]:
+            from claude_mpm.services.agents.session_state_tracker import (
+                get_global_tracker,
+            )
+
+            tracker = get_global_tracker()
+            if tracker is None:
+                return {"events": [], "error": "No active SDK session"}
+            return {"events": tracker.get_activity(limit=limit)}
+
         @app.get("/history")
         async def history() -> dict[str, Any]:
             return {"history": self._history[-50:]}  # Last 50
@@ -195,12 +217,21 @@ class MessageEndpoint:
         return app
 
     def run(self) -> None:
-        """Start the server."""
+        """Start the server with clean shutdown support."""
         import uvicorn
 
         app = self.create_app()
         logger.info("Starting message injection endpoint on port %d", self.port)
-        uvicorn.run(app, host="127.0.0.1", port=self.port, log_level="info")
+
+        config = uvicorn.Config(app, host="127.0.0.1", port=self.port, log_level="info")
+        self._server = uvicorn.Server(config)
+
+        self._server.run()
+
+    def shutdown(self) -> None:
+        """Signal the server to shut down gracefully."""
+        if hasattr(self, "_server") and self._server:
+            self._server.should_exit = True
 
 
 if __name__ == "__main__":

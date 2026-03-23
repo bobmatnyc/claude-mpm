@@ -54,6 +54,7 @@ class InteractiveSession:
         self.session_id = None
         self._sdk_session_id: str | None = None
         self._hook_event_bus: Any = None
+        self._session_state_tracker: Any = None
         self.original_cwd = Path.cwd()
 
         # Initialize response tracking for interactive sessions
@@ -705,6 +706,16 @@ class InteractiveSession:
             if event_bus is not None:
                 self._hook_event_bus = event_bus
 
+            # Initialize session state tracker for observability endpoints
+            from claude_mpm.services.agents.session_state_tracker import (
+                SessionStateTracker,
+                set_global_tracker,
+            )
+
+            tracker = SessionStateTracker()
+            self._session_state_tracker = tracker
+            set_global_tracker(tracker)
+
             # Check for --resume in claude_args
             claude_args = getattr(self.runner, "claude_args", []) or []
             if "--resume" in claude_args:
@@ -717,6 +728,10 @@ class InteractiveSession:
             print("SDK Mode -- persistent session active")
             print("   Type /exit or /quit to end session")
             print()
+
+            from claude_mpm.services.agents.session_state_tracker import SessionState
+
+            tracker.set_state(SessionState.IDLE)
 
             async with ClaudeSDKClient(options=options) as client:
                 while True:
@@ -733,18 +748,33 @@ class InteractiveSession:
                         print("Session ended.")
                         break
 
+                    tracker.record_user_input(user_input)
+
                     try:
                         await client.query(user_input)
                         async for message in client.receive_response():
                             if isinstance(message, AssistantMessage):
+                                if hasattr(message, "model") and message.model:
+                                    tracker.set_model(message.model)
                                 for block in message.content:
                                     if isinstance(block, TextBlock):
                                         print(block.text)
+                                        tracker.record_assistant_message(
+                                            block.text,
+                                            usage=getattr(message, "usage", None),
+                                        )
                                     elif isinstance(block, ToolUseBlock):
                                         print(f"  [tool] {block.name}...")
+                                        tracker.record_tool_call(block.name)
                             elif isinstance(message, ResultMessage):
                                 if message.session_id:
                                     self._sdk_session_id = message.session_id
+                                tracker.record_result(
+                                    session_id=getattr(message, "session_id", None),
+                                    cost=getattr(message, "total_cost_usd", None),
+                                    num_turns=getattr(message, "num_turns", None),
+                                    usage=getattr(message, "usage", None),
+                                )
                             elif isinstance(message, SystemMessage):
                                 self.logger.debug(
                                     "SDK system message: %s", message.subtype
@@ -757,6 +787,7 @@ class InteractiveSession:
                         self.logger.exception("SDK session error")
                         continue
 
+            tracker.record_stopped()
             return 0
 
         return asyncio.run(_run_sdk_session()) == 0
