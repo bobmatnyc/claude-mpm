@@ -556,17 +556,38 @@ class TestMergeOperations:
     """Tests for merge operations."""
 
     @patch("subprocess.run")
-    def test_merge_branch_success(self, mock_run, git_manager):
-        """Test successful branch merge."""
+    def test_merge_branch_to_protected_branch_denied(self, mock_run, git_manager):
+        """Test that merge to protected branch (main) is always denied."""
+        # Arrange
+        mock_run.side_effect = [
+            Mock(
+                returncode=0, stdout="feature-branch\n"
+            ),  # get_current_branch (in merge_branch)
+            Mock(
+                returncode=0, stdout="feature-branch\n"
+            ),  # get_current_branch (branch_before in _enforce)
+            Mock(
+                returncode=0, stdout="feature-branch\n"
+            ),  # get_current_branch (branch_after in _enforce)
+        ]
+
+        # Act
+        result = git_manager.merge_branch("feature-branch", "main")
+
+        # Assert
+        assert result.success is False
+        assert "branch_protection" in result.operation
+        assert "denied" in result.message
+
+    @patch("subprocess.run")
+    def test_merge_branch_to_non_protected_branch_success(self, mock_run, git_manager):
+        """Test successful branch merge to non-protected branch."""
         # Arrange
         mock_run.side_effect = [
             Mock(returncode=0, stdout="feature-branch\n"),  # get_current_branch
-            Mock(
-                returncode=0, stdout="bobmatnyc@users.noreply.github.com\n"
-            ),  # git config user.email (privileged)
-            Mock(returncode=0, stdout="main\n"),  # get_current_branch in switch
+            Mock(returncode=0, stdout="develop\n"),  # get_current_branch in switch
             Mock(returncode=0, stdout=""),  # status --porcelain
-            Mock(returncode=0, stdout="Switched\n"),  # checkout main
+            Mock(returncode=0, stdout="Switched\n"),  # checkout develop
             Mock(returncode=0, stdout="Already up to date\n"),  # pull
             Mock(returncode=0, stdout="Merge made\n"),  # merge
             Mock(returncode=0, stdout="Deleted branch\n"),  # branch -d
@@ -574,7 +595,7 @@ class TestMergeOperations:
         ]
 
         # Act
-        result = git_manager.merge_branch("feature-branch", "main")
+        result = git_manager.merge_branch("feature-branch", "develop")
 
         # Assert
         assert result.success is True
@@ -582,13 +603,10 @@ class TestMergeOperations:
 
     @patch("subprocess.run")
     def test_merge_branch_with_squash(self, mock_run, git_manager):
-        """Test merge with squash strategy."""
+        """Test merge with squash strategy to non-protected branch."""
         # Arrange
         mock_run.side_effect = [
-            Mock(returncode=0, stdout="main\n"),  # get_current_branch
-            Mock(
-                returncode=0, stdout="bobmatnyc@users.noreply.github.com\n"
-            ),  # git config user.email (privileged)
+            Mock(returncode=0, stdout="develop\n"),  # get_current_branch
             Mock(returncode=0, stdout="Already up to date\n"),  # pull
             Mock(returncode=0, stdout="Squash commit\n"),  # merge --squash
             Mock(returncode=0, stdout="Deleted branch\n"),  # branch -d
@@ -597,7 +615,7 @@ class TestMergeOperations:
 
         # Act
         result = git_manager.merge_branch(
-            "feature-branch", "main", merge_strategy="squash"
+            "feature-branch", "develop", merge_strategy="squash"
         )
 
         # Assert
@@ -605,13 +623,10 @@ class TestMergeOperations:
 
     @patch("subprocess.run")
     def test_merge_branch_with_rebase(self, mock_run, git_manager):
-        """Test merge with rebase strategy."""
+        """Test merge with rebase strategy to non-protected branch."""
         # Arrange
         mock_run.side_effect = [
-            Mock(returncode=0, stdout="main\n"),  # get_current_branch
-            Mock(
-                returncode=0, stdout="bobmatnyc@users.noreply.github.com\n"
-            ),  # git config user.email (privileged)
+            Mock(returncode=0, stdout="develop\n"),  # get_current_branch
             Mock(returncode=0, stdout="Already up to date\n"),  # pull
             Mock(returncode=0, stdout="Successfully rebased\n"),  # rebase
             Mock(returncode=0, stdout="Deleted branch\n"),  # branch -d
@@ -620,7 +635,7 @@ class TestMergeOperations:
 
         # Act
         result = git_manager.merge_branch(
-            "feature-branch", "main", merge_strategy="rebase"
+            "feature-branch", "develop", merge_strategy="rebase"
         )
 
         # Assert
@@ -631,21 +646,43 @@ class TestMergeOperations:
         """Test merge doesn't delete source branch when requested."""
         # Arrange
         mock_run.side_effect = [
-            Mock(returncode=0, stdout="main\n"),  # get_current_branch
-            Mock(
-                returncode=0, stdout="bobmatnyc@users.noreply.github.com\n"
-            ),  # git config user.email (privileged)
+            Mock(returncode=0, stdout="develop\n"),  # get_current_branch
             Mock(returncode=0, stdout="Already up to date\n"),  # pull
             Mock(returncode=0, stdout="Merge made\n"),  # merge
         ]
 
         # Act
-        result = git_manager.merge_branch("feature-branch", "main", delete_source=False)
+        result = git_manager.merge_branch(
+            "feature-branch", "develop", delete_source=False
+        )
 
         # Assert
         assert result.success is True
-        # Should not call branch -d (4 calls: get_current_branch + user.email + pull + merge)
-        assert len(mock_run.call_args_list) == 4
+        # Should not call branch -d (3 calls: get_current_branch + pull + merge)
+        assert len(mock_run.call_args_list) == 3
+
+    @patch("subprocess.run")
+    def test_merge_branch_to_master_also_denied(self, mock_run, git_manager):
+        """Test that merge to master branch is also denied."""
+        # Arrange
+        mock_run.side_effect = [
+            Mock(
+                returncode=0, stdout="feature-branch\n"
+            ),  # get_current_branch (in merge_branch)
+            Mock(
+                returncode=0, stdout="feature-branch\n"
+            ),  # get_current_branch (branch_before in _enforce)
+            Mock(
+                returncode=0, stdout="feature-branch\n"
+            ),  # get_current_branch (branch_after in _enforce)
+        ]
+
+        # Act
+        result = git_manager.merge_branch("feature-branch", "master")
+
+        # Assert
+        assert result.success is False
+        assert "branch_protection" in result.operation
 
 
 # ============================================================================
@@ -657,14 +694,28 @@ class TestRemoteOperations:
     """Tests for remote operations."""
 
     @patch("subprocess.run")
-    def test_push_to_remote_success(self, mock_run, git_manager):
-        """Test successful push to remote."""
+    def test_push_to_remote_protected_branch_denied(self, mock_run, git_manager):
+        """Test that push to protected branch (main) is always denied."""
         # Arrange
         mock_run.side_effect = [
             Mock(returncode=0, stdout="main\n"),  # get_current_branch
-            Mock(
-                returncode=0, stdout="bobmatnyc@users.noreply.github.com\n"
-            ),  # git config user.email (privileged)
+            Mock(returncode=0, stdout="main\n"),  # get_current_branch (in _enforce)
+            Mock(returncode=0, stdout="main\n"),  # get_current_branch (in _enforce)
+        ]
+
+        # Act
+        result = git_manager.push_to_remote()
+
+        # Assert
+        assert result.success is False
+        assert "branch_protection" in result.operation
+
+    @patch("subprocess.run")
+    def test_push_to_remote_feature_branch_success(self, mock_run, git_manager):
+        """Test successful push to non-protected branch."""
+        # Arrange
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="feature/my-feature\n"),  # get_current_branch
             Mock(returncode=0, stdout="Everything up-to-date\n"),  # push
         ]
 
@@ -676,13 +727,10 @@ class TestRemoteOperations:
 
     @patch("subprocess.run")
     def test_push_to_remote_with_upstream(self, mock_run, git_manager):
-        """Test push with upstream tracking."""
+        """Test push with upstream tracking on non-protected branch."""
         # Arrange
         mock_run.side_effect = [
-            Mock(returncode=0, stdout="main\n"),  # get_current_branch
-            Mock(
-                returncode=0, stdout="bobmatnyc@users.noreply.github.com\n"
-            ),  # git config user.email (privileged)
+            Mock(returncode=0, stdout="feature/my-feature\n"),  # get_current_branch
             Mock(returncode=0, stdout="Branch set up\n"),  # push -u
         ]
 

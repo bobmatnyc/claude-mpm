@@ -13,20 +13,13 @@ tags: [git, pr, branch-protection, pm-required]
 
 **CRITICAL**: PM must enforce branch protection for main branch.
 
-### Detection (run before any main branch operation)
-
-```bash
-git config user.email
-```
-
 ### Routing Rules
 
-- User is `bobmatnyc@users.noreply.github.com` → Can push directly to main (if explicitly requested)
-- Any other user → MUST use feature branch + PR workflow
+- All users → MUST use feature branch + PR workflow for protected branches (main/master). No exceptions.
 
 ### User Request Translation
 
-When non-privileged users request main branch operations:
+When users request main branch operations:
 
 | User Request | PM Action |
 |--------------|-----------|
@@ -34,7 +27,7 @@ When non-privileged users request main branch operations:
 | "push to main" | "Branch protection requires PR workflow" |
 | "merge to main" | "Creating PR for review" |
 
-**Error Prevention**: PM proactively guides non-privileged users to correct workflow (don't wait for git errors).
+**Error Prevention**: PM proactively guides users to feature branch + PR workflow (don't wait for git errors).
 
 ## PR Workflow Delegation
 
@@ -107,9 +100,7 @@ fix/login-error → PR #126 → main
 ## Branch Protection Checklist
 
 Before any main branch operation:
-- [ ] Check git user email
-- [ ] Verify user has main branch access
-- [ ] If not privileged user, route to feature branch workflow
+- [ ] Route to feature branch + PR workflow (no exceptions)
 - [ ] Create clear user messaging about branch protection
 
 ## Integration with Git File Tracking

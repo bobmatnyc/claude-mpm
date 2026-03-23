@@ -18,9 +18,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-# Privileged users who can push directly to main branch
-# All other users must use feature branches and PRs
-PRIVILEGED_GIT_USERS = ["bobmatnyc@users.noreply.github.com"]
+# All users must use feature branch + PR workflow for protected branches.
+# No exceptions — direct pushes to main/master are not allowed.
 PROTECTED_BRANCHES = ["main", "master"]
 
 
@@ -106,50 +105,14 @@ class GitOperationsManager:
         if not self._is_git_repository():
             raise GitOperationError(f"Not a Git repository: {project_root}")
 
-    def _get_current_git_user(self) -> str:
-        """
-        Get the current Git user email.
-
-        Returns:
-            Git user email configured in repository or globally
-
-        Raises:
-            GitOperationError: If git user.email is not configured
-        """
-        try:
-            result = self._run_git_command(["config", "user.email"])
-            email = result.stdout.strip()
-            if not email:
-                raise GitOperationError(
-                    "Git user.email is not configured. "
-                    "Please configure it with: git config user.email 'your@email.com'"
-                )
-            return email
-        except GitOperationError as e:
-            raise GitOperationError(
-                "Git user.email is not configured. "
-                "Please configure it with: git config user.email 'your@email.com'"
-            ) from e
-
-    def _is_privileged_user(self) -> bool:
-        """
-        Check if the current Git user is privileged to push to protected branches.
-
-        Returns:
-            True if user email is in PRIVILEGED_GIT_USERS, False otherwise
-        """
-        try:
-            current_user = self._get_current_git_user()
-            return current_user in PRIVILEGED_GIT_USERS
-        except GitOperationError:
-            # If we can't determine user, assume not privileged
-            return False
-
     def _enforce_branch_protection(
         self, target_branch: str, operation: str
     ) -> GitOperationResult | None:
         """
         Enforce branch protection rules for protected branches.
+
+        All users must use feature branch + PR workflow for protected branches.
+        No exceptions.
 
         Args:
             target_branch: Branch being operated on
@@ -162,21 +125,10 @@ class GitOperationsManager:
         if target_branch not in PROTECTED_BRANCHES:
             return None
 
-        # Check if user is privileged
-        if self._is_privileged_user():
-            return None
-
-        # Get current user for error message
-        try:
-            current_user = self._get_current_git_user()
-        except GitOperationError:
-            current_user = "unknown"
-
-        # Build helpful error message
+        # All direct operations to protected branches are denied
         error_message = (
-            f"Direct {operation} to '{target_branch}' branch is restricted.\n"
-            f"Only {', '.join(PRIVILEGED_GIT_USERS)} can {operation} directly to protected branches.\n"
-            f"Current user: {current_user}\n\n"
+            f"Direct {operation} to '{target_branch}' branch is not allowed.\n"
+            f"All users must use feature branch + PR workflow for protected branches.\n\n"
             f"Please use the feature branch workflow:\n"
             f"  1. git checkout -b feature/your-feature-name\n"
             f"  2. Make your changes and commit\n"

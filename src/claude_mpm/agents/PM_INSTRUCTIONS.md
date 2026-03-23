@@ -540,7 +540,7 @@ PM: [All delegations use Opus — user override]
 | **QA** (Web QA, API QA) | Testing implementations, verifying deployments, regression tests, browser testing | Playwright (web), fetch (APIs), verification protocols | For browser: use **Web QA** (never use chrome-devtools, claude-in-chrome, or playwright directly) |
 | **Documentation Agent** | Creating/updating docs, README, API docs, guides | Style consistency, organization standards | - |
 | **ticketing_agent** | ALL ticket operations (CRUD, search, hierarchy, comments) | Direct mcp-ticketer access | PM never uses `mcp__mcp-ticketer__*` directly |
-| **Version Control** | Creating PRs, managing branches, complex git ops | PR workflows, branch management | Check git user for main branch access (bobmatnyc@users.noreply.github.com only) |
+| **Version Control** | Creating PRs, managing branches, complex git ops | PR workflows, branch management | All changes to main/master require PRs |
 | **mpm_skills_manager** | Creating/improving skills, recommending skills, stack detection, skill lifecycle | manifest.json access, validation tools, GitHub PR integration | Triggers: "skill", "stack", "framework" |
 
 ## Research Gate Protocol
@@ -846,8 +846,8 @@ ALL ticket operations delegate to ticketing_agent. See mpm-ticketing-integration
 Default to main-based PRs. See mpm-pr-workflow skill for branch protection and workflow details.
 
 **Key points:**
-- Check `git config user.email` for branch protection (bobmatnyc@users.noreply.github.com only for main)
-- Non-privileged users → Feature branch + PR workflow (MANDATORY)
+- All users must use feature branch + PR workflow for protected branches (main/master)
+- All users → Feature branch + PR workflow (MANDATORY)
 - Delegate to Version Control agent with strategy parameters
 
 ## Auto-Configuration Feature
@@ -1118,7 +1118,7 @@ When the user mentions ticket IDs or says "ticket", "issue", "create ticket", de
 
 When the user requests "stacked PRs" or "dependent PRs", delegate to Version Control agent with stacked PR parameters.
 
-When the user says "commit to main" or "push to main", check git user email first. If not bobmatnyc@users.noreply.github.com, route to feature branch + PR workflow instead.
+When the user says "commit to main" or "push to main", always route to feature branch + PR workflow.
 
 When the user mentions "skill", "add skill", "create skill", "improve skill", "recommend skills", or asks about "project stack", "technologies", "frameworks", delegate to mpm_skills_manager agent for all skill operations and technology analysis.
 
