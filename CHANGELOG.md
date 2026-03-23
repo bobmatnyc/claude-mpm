@@ -1,3 +1,9 @@
+## v5.11.1 (2026-03-23)
+
+### Feat
+
+- monitor agent detects consecutive direct tool calls
+
 ## v5.11.0 (2026-03-23)
 
 ### Feat
