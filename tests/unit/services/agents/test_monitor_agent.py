@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from claude_mpm.services.agents.hook_event_bus import MessagePriority
 from claude_mpm.services.agents.monitor_agent import MonitorAgent, MonitorConfig
 
 # ---------------------------------------------------------------------------
@@ -369,3 +370,211 @@ class TestCheckSessionHealth:
             agent._check_session_health()
         # 75% tokens -> fires 70% threshold
         assert mock_bus.send.call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# Incoming message bridge tests
+# ---------------------------------------------------------------------------
+
+
+def _make_task(
+    task_id: str = "msg-abc123",
+    title: str = "Test message",
+    status: str = "pending",
+    from_project: str = "/home/user/other-project",
+    priority: str = "normal",
+    message_type: str = "notification",
+    description: str = "",
+) -> dict:
+    """Build a fake task dict matching TaskInjector output."""
+    return {
+        "id": task_id,
+        "title": title,
+        "description": description,
+        "status": status,
+        "priority": "medium",
+        "metadata": {
+            "source": "mpm-messaging",
+            "message_id": task_id.replace("msg-", ""),
+            "from_project": from_project,
+            "message_type": message_type,
+            "priority": priority,
+        },
+    }
+
+
+class TestIncomingMessageBridge:
+    def test_no_tasks_no_injection(self) -> None:
+        """No messages in queue -- nothing injected."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = []
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        mock_bus.send.assert_not_called()
+
+    def test_new_message_injected(self) -> None:
+        """New message task -> injected via hook event bus."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [
+            _make_task(title="Build failed")
+        ]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        mock_bus.send.assert_called_once()
+        msg = mock_bus.send.call_args[0][0]
+        assert "other-project" in msg.text
+        assert "Build failed" in msg.text
+
+    def test_duplicate_message_not_reinjected(self) -> None:
+        """Same message ID on second poll -> not injected again."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        task = _make_task(task_id="msg-dup1")
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [task]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        assert mock_bus.send.call_count == 1
+
+        mock_bus.reset_mock()
+        agent._check_incoming_messages()
+        mock_bus.send.assert_not_called()
+
+    def test_completed_task_skipped(self) -> None:
+        """Tasks with status 'completed' are not injected."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [_make_task(status="completed")]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        mock_bus.send.assert_not_called()
+
+    def test_done_task_skipped(self) -> None:
+        """Tasks with status 'done' are not injected."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [_make_task(status="done")]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        mock_bus.send.assert_not_called()
+
+    def test_urgent_priority_mapped_to_critical(self) -> None:
+        """Urgent mpm-message -> CRITICAL hook priority."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [_make_task(priority="urgent")]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        msg = mock_bus.send.call_args[0][0]
+        assert msg.priority == MessagePriority.CRITICAL
+
+    def test_high_priority_mapped(self) -> None:
+        """High mpm-message -> HIGH hook priority."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [_make_task(priority="high")]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        msg = mock_bus.send.call_args[0][0]
+        assert msg.priority == MessagePriority.HIGH
+
+    def test_normal_priority_mapped(self) -> None:
+        """Normal mpm-message -> NORMAL hook priority."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [_make_task(priority="normal")]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        msg = mock_bus.send.call_args[0][0]
+        assert msg.priority == MessagePriority.NORMAL
+
+    def test_message_includes_project_name(self) -> None:
+        """Injection text includes sending project name extracted from path."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [
+            _make_task(from_project="/Users/dev/my-cool-project")
+        ]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        msg = mock_bus.send.call_args[0][0]
+        assert "my-cool-project" in msg.text
+
+    def test_message_includes_description_truncated(self) -> None:
+        """Description is included but truncated at 300 chars."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        long_desc = "A" * 500
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [
+            _make_task(description=long_desc)
+        ]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        msg = mock_bus.send.call_args[0][0]
+        # Should contain first 300 chars of description
+        assert "A" * 300 in msg.text
+        assert "A" * 301 not in msg.text
+
+    def test_import_error_handled_gracefully(self) -> None:
+        """If TaskInjector is not importable, no crash."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        # Ensure _task_injector is None so the lazy import path is taken
+        agent._task_injector = None
+
+        with patch(
+            "claude_mpm.services.agents.monitor_agent.MonitorAgent._check_incoming_messages",
+            wraps=agent._check_incoming_messages,
+        ):
+            # Simulate ImportError on the lazy import
+            with patch.dict(
+                "sys.modules", {"claude_mpm.services.communication.task_injector": None}
+            ):
+                # This should not raise
+                agent._check_incoming_messages()
+        mock_bus.send.assert_not_called()
+
+    def test_bridged_count_in_status(self) -> None:
+        """get_status() includes bridged_messages count."""
+        agent = MonitorAgent()
+        assert agent.get_status()["bridged_messages"] == 0
+
+        agent._bridged_message_ids.add("msg-1")
+        agent._bridged_message_ids.add("msg-2")
+        assert agent.get_status()["bridged_messages"] == 2
+
+    def test_task_injector_cached(self) -> None:
+        """TaskInjector is created once and reused."""
+        agent, _mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = []
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        agent._check_incoming_messages()
+        # Same injector instance used both times
+        assert agent._task_injector is mock_injector
+        assert mock_injector.list_message_tasks.call_count == 2
+
+    def test_project_name_without_slash(self) -> None:
+        """Project name without slash is used as-is."""
+        agent, mock_bus = _make_agent_with_mock_bus()
+        mock_injector = MagicMock()
+        mock_injector.list_message_tasks.return_value = [
+            _make_task(from_project="standalone-project")
+        ]
+        agent._task_injector = mock_injector
+
+        agent._check_incoming_messages()
+        msg = mock_bus.send.call_args[0][0]
+        assert "standalone-project" in msg.text

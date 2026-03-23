@@ -58,6 +58,8 @@ class MonitorAgent:
         self._stop_event = threading.Event()
         self._warnings_sent: set[str] = set()  # Track which warnings already sent
         self._event_bus: Any = None  # Lazily initialised HookEventBus
+        self._bridged_message_ids: set[str] = set()  # Track bridged /mpm-message IDs
+        self._task_injector: Any = None  # Lazily initialised TaskInjector
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -132,6 +134,7 @@ class MonitorAgent:
         self._check_context_pressure(state)
         self._check_session_duration(state)
         self._check_idle_too_long(state)
+        self._check_incoming_messages()
 
     def _check_context_pressure(self, state: dict[str, Any]) -> None:
         """Check token usage against thresholds."""
@@ -204,6 +207,67 @@ class MonitorAgent:
             )
 
     # ------------------------------------------------------------------
+    # Incoming message bridge (/mpm-message -> hook injection)
+    # ------------------------------------------------------------------
+
+    def _check_incoming_messages(self) -> None:
+        """Bridge incoming /mpm-message tasks to SDK session via hook injection."""
+        try:
+            if self._task_injector is None:
+                from claude_mpm.services.communication.task_injector import TaskInjector
+
+                self._task_injector = TaskInjector()
+        except ImportError:
+            return
+
+        try:
+            tasks = self._task_injector.list_message_tasks()
+        except Exception:
+            logger.debug("Failed to list message tasks", exc_info=True)
+            return
+
+        for task in tasks:
+            task_id = task.get("id", "")
+            if task_id in self._bridged_message_ids:
+                continue
+
+            # Skip already-completed tasks
+            status = task.get("status", "").lower()
+            if status in ("completed", "done"):
+                continue
+
+            self._bridged_message_ids.add(task_id)
+
+            # Extract message info
+            title = task.get("title", "Unknown message")
+            metadata = task.get("metadata", {})
+            from_project = metadata.get("from_project", "unknown")
+            priority = metadata.get("priority", "normal")
+            message_type = metadata.get("message_type", "notification")
+
+            # Map priority
+            if priority == "urgent":
+                inject_priority = "critical"
+            elif priority == "high":
+                inject_priority = "high"
+            else:
+                inject_priority = "normal"
+
+            # Format injection message
+            project_name = (
+                from_project.rsplit("/", 1)[-1] if "/" in from_project else from_project
+            )
+            description = task.get("description", "")
+
+            # Build concise message for PM
+            msg = f"Cross-project {message_type} from '{project_name}': {title}"
+            if description:
+                # Include first 300 chars of description
+                msg += f"\n{description[:300]}"
+
+            self._inject_message(msg, priority=inject_priority)
+
+    # ------------------------------------------------------------------
     # Message injection
     # ------------------------------------------------------------------
 
@@ -245,6 +309,7 @@ class MonitorAgent:
         return {
             "running": self.is_running,
             "warnings_sent": sorted(self._warnings_sent),
+            "bridged_messages": len(self._bridged_message_ids),
             "config": {
                 "poll_interval": self.config.poll_interval,
                 "token_limit": self.config.token_limit,
