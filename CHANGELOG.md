@@ -1,3 +1,9 @@
+## v5.11.4 (2026-03-24)
+
+### Feat
+
+- slash command router for SDK mode (/login, /model, /help, etc.)
+
 ## v5.11.3 (2026-03-24)
 
 ### Feat
