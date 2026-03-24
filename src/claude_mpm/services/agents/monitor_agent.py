@@ -43,7 +43,11 @@ class MonitorConfig:
 
     # Consecutive tool call detection thresholds
     consecutive_bash_threshold: int = 5  # Warn after 5+ consecutive Bash calls
-    consecutive_read_threshold: int = 3  # Warn after 3+ consecutive Read calls
+    consecutive_read_threshold: int = (
+        3  # Warn after 3+ consecutive Read/Grep/Glob calls
+    )
+    consecutive_write_threshold: int = 3  # Warn after 3+ consecutive Write/Edit calls
+    consecutive_direct_threshold: int = 8  # Warn after 8+ total direct tool calls
 
 
 class MonitorAgent:
@@ -211,13 +215,25 @@ class MonitorAgent:
                 priority="high",
             )
 
+    # Tool categories for pattern detection
+    _DELEGATION_TOOLS = frozenset({"Agent", "Task", "TaskCreate", "TaskUpdate"})
+    _IMPLEMENTATION_TOOLS = frozenset({"Write", "Edit", "NotebookEdit"})
+    _INVESTIGATION_TOOLS = frozenset({"Read", "Grep", "Glob"})
+    _EXECUTION_TOOLS = frozenset({"Bash"})
+    _PASSIVE_TOOLS = frozenset(
+        {"TodoWrite", "TaskList", "TaskGet", "ToolSearch", "AskUserQuestion"}
+    )
+
     def _check_tool_call_patterns(self) -> None:
         """Detect when PM makes too many consecutive direct tool calls.
 
-        Walks recent activity in reverse chronological order, counting
-        consecutive Bash or Read calls. Resets when a delegation tool
-        (Agent, Task, TaskCreate, TaskUpdate) is encountered, or when
-        hitting a non-tool event or a different tool type.
+        Walks recent activity in reverse chronological order, categorising
+        tools into implementation (Write/Edit), investigation (Read/Grep/Glob),
+        execution (Bash), delegation (Agent/Task), and passive (TodoWrite etc.).
+
+        Tracks per-category streaks AND a total direct-work streak.  Passive
+        tools are skipped (don't count and don't reset).  Delegation tools or
+        non-tool events terminate the walk.
         """
         from .session_state_tracker import get_global_tracker
 
@@ -225,12 +241,22 @@ class MonitorAgent:
         if tracker is None:
             return
 
-        events = tracker.get_activity(limit=30)
+        events = tracker.get_activity(limit=50)
 
-        delegation_tools = {"Agent", "Task", "TaskCreate", "TaskUpdate"}
-
+        consecutive_write = 0
         consecutive_bash = 0
         consecutive_read = 0
+        consecutive_direct = 0
+
+        # Track peak per-category values so a category switch doesn't
+        # erase a streak that already exceeded a threshold.
+        peak_write = 0
+        peak_bash = 0
+        peak_read = 0
+
+        # Track which category was last seen to reset per-category counters
+        # when switching between categories.
+        last_category: str | None = None
 
         for event in reversed(events):
             if event.get("type") != "tool_call":
@@ -238,47 +264,109 @@ class MonitorAgent:
 
             tool = event.get("tool", "")
 
-            if tool in delegation_tools:
+            # Delegation -> stop walk
+            if tool in self._DELEGATION_TOOLS:
                 break
 
-            if tool == "Bash":
-                consecutive_bash += 1
-                # Different tool type resets the Read counter
-                consecutive_read = 0
-            elif tool == "Read":
-                consecutive_read += 1
-                # Different tool type resets the Bash counter
-                consecutive_bash = 0
+            # Passive -> skip entirely
+            if tool in self._PASSIVE_TOOLS:
+                continue
+
+            # Categorise the tool
+            if tool in self._IMPLEMENTATION_TOOLS:
+                category = "implementation"
+            elif tool in self._INVESTIGATION_TOOLS:
+                category = "investigation"
+            elif tool in self._EXECUTION_TOOLS:
+                category = "execution"
             else:
-                # Any other tool resets both counters
-                break
+                # Unknown tool -- treat as direct work but reset per-category
+                category = "other"
 
-        # Check Bash threshold
+            # Always increment total direct-work counter
+            consecutive_direct += 1
+
+            # Reset per-category counters when switching categories,
+            # but save peak values first.
+            if last_category is not None and category != last_category:
+                peak_write = max(peak_write, consecutive_write)
+                peak_bash = max(peak_bash, consecutive_bash)
+                peak_read = max(peak_read, consecutive_read)
+                consecutive_write = 0
+                consecutive_bash = 0
+                consecutive_read = 0
+
+            last_category = category
+
+            if category == "implementation":
+                consecutive_write += 1
+            elif category == "investigation":
+                consecutive_read += 1
+            elif category == "execution":
+                consecutive_bash += 1
+
+        # Final peak update
+        peak_write = max(peak_write, consecutive_write)
+        peak_bash = max(peak_bash, consecutive_bash)
+        peak_read = max(peak_read, consecutive_read)
+
+        # --- Emit warnings ---
+
+        # Write/Edit threshold (critical)
+        warn_key_write = "consecutive_write"
+        if (
+            peak_write >= self.config.consecutive_write_threshold
+            and warn_key_write not in self._warnings_sent
+        ):
+            self._warnings_sent.add(warn_key_write)
+            self._inject_message(
+                f"PM has made {peak_write} consecutive Write/Edit "
+                "calls without delegating. This looks like implementation "
+                "work -- delegate to an Engineer agent.",
+                priority="critical",
+            )
+
+        # Bash threshold (high)
         warn_key_bash = "consecutive_bash"
         if (
-            consecutive_bash >= self.config.consecutive_bash_threshold
+            peak_bash >= self.config.consecutive_bash_threshold
             and warn_key_bash not in self._warnings_sent
         ):
             self._warnings_sent.add(warn_key_bash)
             self._inject_message(
-                f"PM has made {consecutive_bash} consecutive Bash calls "
+                f"PM has made {peak_bash} consecutive Bash calls "
                 "without delegating. Consider using Agent/Task tools to "
                 "delegate this work to specialist agents.",
                 priority="high",
             )
 
-        # Check Read threshold
+        # Read/Grep/Glob threshold (normal)
         warn_key_read = "consecutive_read"
         if (
-            consecutive_read >= self.config.consecutive_read_threshold
+            peak_read >= self.config.consecutive_read_threshold
             and warn_key_read not in self._warnings_sent
         ):
             self._warnings_sent.add(warn_key_read)
             self._inject_message(
-                f"PM has made {consecutive_read} consecutive Read calls "
-                "(deep investigation pattern). Consider delegating to a "
-                "Research agent via Task tool.",
+                f"PM has made {peak_read} consecutive Read/search "
+                "calls (deep investigation pattern). Consider delegating "
+                "to a Research agent.",
                 priority="normal",
+            )
+
+        # Total direct work threshold (critical)
+        warn_key_direct = "consecutive_direct"
+        if (
+            consecutive_direct >= self.config.consecutive_direct_threshold
+            and warn_key_direct not in self._warnings_sent
+        ):
+            self._warnings_sent.add(warn_key_direct)
+            self._inject_message(
+                f"PM has made {consecutive_direct} consecutive direct tool "
+                "calls without any delegation. The PM should be "
+                "orchestrating via Agent/Task tools, not doing work "
+                "directly.",
+                priority="critical",
             )
 
     # ------------------------------------------------------------------
