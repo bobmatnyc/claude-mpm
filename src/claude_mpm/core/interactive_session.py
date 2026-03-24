@@ -726,7 +726,7 @@ class InteractiveSession:
                     options.resume = claude_args[idx + 1]
 
             print("SDK Mode -- persistent session active")
-            print("   Type /exit or /quit to end session")
+            print("   Type /help for commands, /exit to end session")
             print()
 
             from claude_mpm.services.agents.session_state_tracker import SessionState
@@ -743,7 +743,11 @@ class InteractiveSession:
             except Exception:
                 self.logger.debug("Monitor agent failed to start", exc_info=True)
 
+            from claude_mpm.core.sdk_command_router import SDKCommandRouter
+
             async with ClaudeSDKClient(options=options) as client:
+                command_router = SDKCommandRouter(client=client, tracker=tracker)
+
                 while True:
                     try:
                         user_input = input("> ")
@@ -754,9 +758,14 @@ class InteractiveSession:
                     if not user_input.strip():
                         continue
 
-                    if user_input.strip() in ("/exit", "/quit"):
-                        print("Session ended.")
-                        break
+                    if user_input.strip().startswith("/"):
+                        result = command_router.route(user_input)
+                        if result.handled:
+                            if result.output:
+                                print(result.output)
+                            if result.should_exit:
+                                break
+                            continue
 
                     tracker.record_user_input(user_input)
 
