@@ -1,3 +1,10 @@
+## v5.11.3 (2026-03-24)
+
+### Feat
+
+- generalize monitor tool-call detection to Write/Edit/Grep/Glob
+- add UI service — REST+SSE+WebSocket API for Claude Code REPL features
+
 ## v5.11.2 (2026-03-23)
 
 ### Feat
