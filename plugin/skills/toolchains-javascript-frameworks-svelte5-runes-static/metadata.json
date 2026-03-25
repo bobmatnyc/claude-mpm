@@ -1,0 +1,67 @@
+{
+  "name": "svelte5-runes-static",
+  "version": "1.0.0",
+  "category": "toolchain",
+  "toolchain": "javascript",
+  "framework": "sveltekit",
+  "tags": [
+    "svelte",
+    "svelte5",
+    "runes",
+    "adapter-static",
+    "ssr",
+    "ssg",
+    "stores",
+    "reactivity",
+    "hydration",
+    "sveltekit",
+    "prerendering",
+    "typescript"
+  ],
+  "entry_point_tokens": 90,
+  "full_tokens": 3952,
+  "related_skills": [
+    "svelte",
+    "sveltekit",
+    "vite",
+    "typescript-core",
+    "vitest",
+    "tailwind"
+  ],
+  "author": "Claude MPM Team",
+  "license": "MIT",
+  "description": "Svelte 5 runes + SvelteKit adapter-static (SSG/SSR) patterns for hydration-safe state, store bridges, and reactivity that survives prerendering",
+  "requires": [],
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills",
+  "created": "2025-12-17",
+  "updated": "2025-12-17",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": true,
+  "self_contained": true,
+  "trigger_patterns": [
+    "svelte 5",
+    "svelte runes",
+    "adapter-static",
+    "svelte ssg",
+    "svelte ssr",
+    "svelte state management",
+    "svelte hydration",
+    "svelte prerendering"
+  ],
+  "when_to_use": [
+    "Building static-first Svelte 5 applications",
+    "Implementing Svelte 5 runes with adapter-static",
+    "Managing global state in SSG/SSR Svelte apps",
+    "Bridging traditional stores with runes",
+    "Preventing hydration mismatches",
+    "Migrating from Svelte 4 to Svelte 5 with static adapter"
+  ],
+  "key_learnings": [
+    "Runes don't work in module scope with adapter-static",
+    "Traditional writable() stores required for global state in SSG",
+    "Cannot use $ auto-subscription inside $derived in runes mode",
+    "Store factory getters break reactivity",
+    "Bridge pattern: $effect() subscription → $state() → $derived()",
+    "Hybrid approach: stores for global, runes for component-local"
+  ]
+}

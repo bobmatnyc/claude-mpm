@@ -1,0 +1,34 @@
+{
+  "name": "sveltekit",
+  "version": "1.0.0",
+  "category": "toolchain",
+  "toolchain": "javascript",
+  "framework": "sveltekit",
+  "tags": [
+    "sveltekit",
+    "svelte",
+    "ssr",
+    "ssg",
+    "routing",
+    "forms",
+    "fullstack",
+    "framework",
+    "adapters",
+    "typescript"
+  ],
+  "entry_point_tokens": 80,
+  "full_tokens": 8391,
+  "related_skills": [
+    "../svelte",
+    "../../testing/vitest",
+    "../../testing/playwright"
+  ],
+  "author": "claude-mpm-skills",
+  "license": "MIT",
+  "requires": [
+    "../svelte"
+  ],
+  "created": "2025-11-30",
+  "updated": "2025-11-30",
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}

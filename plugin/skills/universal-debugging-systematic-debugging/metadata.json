@@ -1,0 +1,26 @@
+{
+  "name": "systematic-debugging",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": null,
+  "framework": null,
+  "tags": [
+    "debugging",
+    "frontend",
+    "security",
+    "testing"
+  ],
+  "entry_point_tokens": 58,
+  "full_tokens": 11799,
+  "author": "bobmatnyc",
+  "license": "MIT",
+  "requires": [],
+  "updated": "2025-11-21",
+  "source_path": "debugging/systematic-debugging/test-pressure-3.md",
+  "source": "https://github.com/bobmatnyc/claude-mpm",
+  "created": "2025-11-21",
+  "modified": "2025-11-21",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": true,
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}

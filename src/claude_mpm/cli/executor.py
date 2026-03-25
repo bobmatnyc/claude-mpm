@@ -29,6 +29,7 @@ from .commands import (
 from .commands.analyze_code import manage_analyze_code
 from .commands.config import manage_config
 from .commands.dashboard import manage_dashboard
+from .commands.migrate import manage_migrate
 from .commands.skills import manage_skills
 from .commands.upgrade import upgrade
 
@@ -407,6 +408,7 @@ def execute_command(command: str, args) -> int:
         CLICommands.DOCTOR.value: run_doctor,
         CLICommands.UPGRADE.value: upgrade,
         CLICommands.SKILLS.value: manage_skills,
+        "migrate": manage_migrate,  # Configuration migration command
         "debug": manage_debug,  # Add debug command
         "gh": manage_gh,  # GitHub multi-account management
         "message": manage_messages,  # Cross-project messaging

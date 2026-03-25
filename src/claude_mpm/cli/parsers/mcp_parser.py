@@ -193,6 +193,20 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # =========================================================================
+    # Serve command - launch MCP servers by name
+    # =========================================================================
+
+    serve_parser = mcp_subparsers.add_parser(
+        MCPCommands.SERVE.value,
+        help="Launch an MCP server by name (stdio mode)",
+        description="Start a specific MCP server for stdio communication with Claude Code",
+    )
+    serve_parser.add_argument(
+        "server_name",
+        help="Server to launch: messaging, slack-proxy, session, session-http, confluence",
+    )
+
+    # =========================================================================
     # Service Management Commands (enable/disable/list)
     # =========================================================================
 

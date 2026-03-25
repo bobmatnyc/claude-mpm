@@ -1,0 +1,16 @@
+{
+  "name": "bug-fix-verification",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": null,
+  "framework": null,
+  "tags": ["verification", "bug-fix", "debugging", "testing", "regression", "root-cause"],
+  "entry_point_tokens": 160,
+  "full_tokens": 3200,
+  "requires": ["universal-debugging-systematic-debugging"],
+  "author": "claude-mpm-skills",
+  "updated": "2025-12-08",
+  "source_path": "universal/verification/bug-fix/SKILL.md",
+  "license": "MIT",
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}

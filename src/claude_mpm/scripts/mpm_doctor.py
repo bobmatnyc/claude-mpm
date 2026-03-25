@@ -213,6 +213,13 @@ def main():
 
     WHY: Allows the script to be run directly for testing or debugging.
     """
+    import sys as _sys
+
+    print(
+        "Warning: 'claude-mpm-doctor' is deprecated. Use 'claude-mpm doctor' instead.",
+        file=_sys.stderr,
+    )
+
     parser = argparse.ArgumentParser(
         description="Claude MPM Doctor - Diagnostic Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,

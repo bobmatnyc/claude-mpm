@@ -1,0 +1,68 @@
+{
+  "name": "flask",
+  "version": "1.0.0",
+  "category": "toolchain",
+  "toolchain": "python",
+  "framework": "flask",
+  "tags": [
+    "web-framework",
+    "flask",
+    "microservices",
+    "rest-api",
+    "lightweight",
+    "blueprints",
+    "sqlalchemy",
+    "flask-restful",
+    "jwt",
+    "marshmallow"
+  ],
+  "entry_point_tokens": 75,
+  "full_tokens": 9864,
+  "related_skills": [
+    "../../testing/pytest",
+    "../../data/sqlalchemy",
+    "../django",
+    "../fastapi"
+  ],
+  "author": "Claude MPM",
+  "license": "MIT",
+  "description": "Lightweight Python web framework for microservices and REST APIs",
+  "keywords": [
+    "microservices",
+    "rest-api",
+    "web-framework",
+    "blueprints",
+    "flask-restful",
+    "application-factory",
+    "sqlalchemy",
+    "jwt-auth",
+    "request-validation"
+  ],
+  "progressive_loading": {
+    "enabled": true,
+    "entry_tokens": 75,
+    "full_tokens": 4300,
+    "sections": [
+      "overview",
+      "basic-patterns",
+      "blueprints",
+      "flask-restful",
+      "validation",
+      "sqlalchemy",
+      "authentication",
+      "configuration",
+      "error-handling",
+      "testing",
+      "deployment",
+      "microservices"
+    ]
+  },
+  "market_share": "20%",
+  "use_cases": [
+    "microservices-architecture",
+    "rest-api-development",
+    "lightweight-web-apps",
+    "rapid-prototyping",
+    "flexible-architecture"
+  ]
+}

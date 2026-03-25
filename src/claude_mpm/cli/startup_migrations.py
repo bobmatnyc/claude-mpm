@@ -890,6 +890,45 @@ def _remove_unsupported_hook_events() -> bool:
 
 
 # =============================================================================
+# Migration: v5.12.0-binary-consolidation
+# =============================================================================
+
+
+def _check_binary_consolidation_needed() -> bool:
+    """Check if .mcp.json has old-format binary/module invocations.
+
+    Returns:
+        True if any server entry uses deprecated invocation patterns.
+    """
+    try:
+        from ..migrations.migrate_binary_consolidation import check_needs_migration
+
+        return check_needs_migration()
+    except Exception as e:
+        logger.debug(f"Failed to check binary consolidation: {e}")
+        return False
+
+
+def _migrate_binary_consolidation() -> bool:
+    """Migrate .mcp.json from old binary/module invocations to consolidated format.
+
+    Updates server entries to use 'claude-mpm mcp serve <name>' instead of
+    deprecated standalone binaries or 'python -m' invocations.
+
+    Returns:
+        True if migration succeeded.
+    """
+    try:
+        from ..migrations.migrate_binary_consolidation import run_migration
+
+        return run_migration()
+    except Exception as e:
+        logger.warning(f"Binary consolidation migration failed: {e}")
+        print(f"   Migration failed: {e}")
+        return False
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -1112,6 +1151,12 @@ MIGRATIONS: list[Migration] = [
         description="Remove old-format agent files replaced by naming standardization",
         check=_check_agent_naming_migration_needed,
         migrate=_migrate_agent_naming_standardization,
+    ),
+    Migration(
+        id="v5.12.0-binary-consolidation",
+        description="Migrate .mcp.json to consolidated 'claude-mpm mcp serve' format",
+        check=_check_binary_consolidation_needed,
+        migrate=_migrate_binary_consolidation,
     ),
 ]
 

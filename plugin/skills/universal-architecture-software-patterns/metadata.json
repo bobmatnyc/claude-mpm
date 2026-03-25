@@ -1,0 +1,26 @@
+{
+  "name": "software-patterns",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": null,
+  "framework": null,
+  "tags": [
+    "architecture",
+    "patterns",
+    "design",
+    "dependency-injection",
+    "service-oriented"
+  ],
+  "entry_point_tokens": 75,
+  "full_tokens": 15814,
+  "author": "masa",
+  "license": "MIT",
+  "requires": [],
+  "updated": "2025-11-30",
+  "source_path": "architecture/software-patterns/SKILL.md",
+  "created": "2025-11-30",
+  "modified": "2025-11-30",
+  "maintainer": "masa",
+  "attribution_required": false,
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}

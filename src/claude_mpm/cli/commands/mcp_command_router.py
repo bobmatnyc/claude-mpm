@@ -57,6 +57,9 @@ class MCPCommandRouter:
         if args.mcp_command == MCPCommands.LIST.value:
             return self._list_services(args)
 
+        if args.mcp_command == MCPCommands.SERVE.value:
+            return self._serve_mcp_server(args)
+
         if args.mcp_command == "cleanup":
             return self._cleanup_locks(args)
 
@@ -164,6 +167,31 @@ class MCPCommandRouter:
         handler = MCPServiceCommands(self.logger)
         return handler.list_services(args)
 
+    def _serve_mcp_server(self, args) -> int:
+        """Launch an MCP server by name (stdio mode).
+
+        This consolidates multiple binary entry points into a single
+        'claude-mpm mcp serve <name>' command.
+        """
+        SERVE_MAP = {
+            "messaging": "claude_mpm.mcp.messaging_server",
+            "slack-proxy": "claude_mpm.mcp.slack_user_proxy_server",
+            "session": "claude_mpm.mcp.session_server",
+            "session-http": "claude_mpm.mcp.session_server_http",
+            "confluence": "claude_mpm.mcp.confluence_server",
+        }
+        server_name = getattr(args, "server_name", None)
+        if not server_name or server_name not in SERVE_MAP:
+            available = ", ".join(sorted(SERVE_MAP.keys()))
+            print(f"Unknown server: {server_name}. Available: {available}")
+            return 1
+
+        import importlib
+
+        module = importlib.import_module(SERVE_MAP[server_name])
+        module.main()
+        return 0
+
     def _show_help(self):
         """Show available MCP commands."""
         print("\nAvailable MCP commands:")
@@ -178,6 +206,8 @@ class MCPCommandRouter:
         print("  config   - View and manage configuration")
         print("  external - Manage external MCP services")
         print("  cleanup  - Clean up legacy files")
+        print("\nServer launchers:")
+        print("  serve    - Launch an MCP server by name (stdio mode)")
         print("\nService management:")
         print("  enable   - Enable an MCP service in configuration")
         print("  disable  - Disable an MCP service from configuration")
@@ -193,6 +223,8 @@ class MCPCommandRouter:
         print("  claude-mpm mcp tools")
         print("  claude-mpm mcp register my-tool")
         print("  claude-mpm mcp test my-tool")
+        print("  claude-mpm mcp serve messaging        # Launch messaging MCP server")
+        print("  claude-mpm mcp serve slack-proxy      # Launch Slack proxy MCP server")
         print("\nService management examples:")
         print("  claude-mpm mcp list --available       # List all available services")
         print("  claude-mpm mcp enable kuzu-memory     # Enable a service")

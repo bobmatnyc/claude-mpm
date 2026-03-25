@@ -1,0 +1,20 @@
+{
+  "name": "google-workspace-auth",
+  "version": "1.0.0",
+  "description": "Re-authenticate Google Workspace MCP in-flight - refresh tokens, setup OAuth, check status",
+  "category": "mpm",
+  "tags": ["google", "oauth", "gmail", "calendar", "drive", "docs", "tasks", "authentication", "mcp"],
+  "triggers": [
+    "google.*auth",
+    "workspace.*auth",
+    "gmail.*auth",
+    "oauth.*google",
+    "re-?auth.*google",
+    "token.*expired",
+    "refresh.*token"
+  ],
+  "slash_command": "/google-workspace-auth",
+  "compatibility": "claude-code",
+  "author": "Claude MPM Team",
+  "license": "MIT"
+}

@@ -15,6 +15,40 @@
 
 ---
 
+## Quick Start
+
+### Plugin Install (recommended for most users)
+
+The fastest way to get started. No pip install required — provides hooks, 56 skills, slash commands, and MCP server config directly inside Claude Code.
+
+```bash
+# Add the MPM marketplace
+claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
+
+# Install the plugin
+claude plugin install claude-mpm@claude-mpm-marketplace
+```
+
+This gives you: **6 hook events**, **56 skills**, **2 slash commands** (`/mpm-status`, `/mpm-help`), and **MCP server configuration** — all without pip install.
+
+### Full Install (for power users)
+
+For CLI commands, multi-agent orchestration, monitoring dashboard, and all integrations:
+
+```bash
+# Install the full package (from home directory)
+cd ~
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
+
+# Then also install the plugin for Claude Code integration
+claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
+claude plugin install claude-mpm@claude-mpm-marketplace
+```
+
+See [Installation](#quick-installation) below for all installation methods.
+
+---
+
 ## Who Should Use Claude MPM?
 
 - 👥 **[Non-Technical Users (Founders/PMs)](docs/usecases/non-technical-users.md)** - Research and understand codebases using Research Mode - no coding experience required
@@ -33,7 +67,7 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 - **Agent Sources** - Deploy agents from Git repositories with ETag-based caching
 
 ### 🎯 Skills Framework
-- **44+ Bundled Skills** - TDD, debugging, Docker, API design, security scanning, Git workflows
+- **56+ Bundled Skills** - TDD, debugging, Docker, API design, security scanning, Git workflows
 - **Progressive Disclosure** - Skills load on-demand to optimize context usage
 - **Three-Tier Organization** - Bundled → User → Project priority resolution
 - **Domain Authority System** - Auto-generated agent/tool discovery skills for intelligent PM delegation
@@ -87,6 +121,18 @@ export GITHUB_TOKEN=your_github_token
 ```
 
 ### Install Claude MPM
+
+#### Option A: Plugin Only (no pip required)
+
+```bash
+# Add the MPM marketplace and install the plugin
+claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
+claude plugin install claude-mpm@claude-mpm-marketplace
+```
+
+This provides hooks, 56 skills, slash commands, and MCP config. For the full CLI, agents, monitor, and dashboard, continue with Option B.
+
+#### Option B: Full Install (pip + plugin)
 
 **IMPORTANT**: Install from your **home directory**, NOT from within a cloned git repository.
 
@@ -143,7 +189,7 @@ claude-mpm auto-configure
 
 **What You Should See:**
 - 47+ agents deployed to `~/.claude/agents/`
-- 44+ bundled skills (in Python package)
+- 56+ bundled skills (in Python package)
 - Agent sources configured
 - All doctor checks passing
 
@@ -178,7 +224,7 @@ uv tool install mcp-browser --python 3.13
 [→ Learn more: Agent Sources](docs/user/agent-sources.md)
 
 ### 🎯 Skills System
-- **44+ Bundled Skills** covering Git, TDD, Docker, API design, security, debugging, and more
+- **56+ Bundled Skills** covering Git, TDD, Docker, API design, security, debugging, and more
 - **Three-Tier Organization**: Bundled/user/project with priority resolution
 - **Auto-Linking** to relevant agents based on roles
 - **Progressive Disclosure** - Skills load on-demand to optimize context
@@ -206,7 +252,7 @@ uv tool install mcp-browser --python 3.13
 
 ### 🔌 Advanced Integration
 - **MCP Integration** with full Model Context Protocol support
-- **MCP Session Server** (`mpm-session-server`) for programmatic session management
+- **MCP Session Server** (`claude-mpm mcp serve session`) for programmatic session management
 - **Real-Time Monitoring** via `--monitor` flag and web dashboard
 - **Multi-Project Support** with per-session working directories
 - **Git Integration** with diff viewing and change tracking
@@ -415,39 +461,71 @@ Agent      (SocketIO)   (/session)
 
 ---
 
-## What's New in v5.9.46
+## What's New in v6.0
 
-### Near-Instant Startup (Daily Sync)
+### Plugin System (NEW)
 
-Starting in v5.9.46, Claude MPM syncs agents and skills **once per day** instead of checking GitHub on every launch. Subsequent startups skip all network requests and launch in approximately 100ms.
-
-**Before**: 500ms–2s on every launch (HTTP HEAD requests to GitHub for each file).
-**After**: ~100ms after the first daily sync (no network activity).
+Claude MPM can now be installed as a **Claude Code plugin** — no pip install required for core functionality:
 
 ```bash
-# Normal launch — uses cached content if synced within 24 hours
-claude-mpm
-
-# Force an immediate sync of agents and skills from GitHub
-claude-mpm --force-sync
-
-# Skip sync entirely (use cached content regardless of age)
-claude-mpm --no-sync
+claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
+claude plugin install claude-mpm@claude-mpm-marketplace
 ```
 
-**Configuration**: Override the 24-hour default with the `CLAUDE_MPM_SYNC_TTL` environment variable (value in seconds):
+The plugin provides **6 hook events**, **56 skills**, **2 slash commands** (`/mpm-status`, `/mpm-help`), and **MCP server configuration**. For the full CLI, agents, monitor, and dashboard, a pip install is still needed.
 
+### Binary Consolidation (BREAKING)
+
+10 standalone binaries have been consolidated to **2**:
+
+| Binary | Purpose |
+|--------|---------|
+| `claude-mpm` | All CLI commands + `mcp serve <name>` for MCP servers |
+| `claude-hook` | Hook handler (performance-critical, stays separate) |
+
+**Removed standalone binaries**: `claude-mpm-doctor`, `claude-mpm-monitor`, `claude-mpm-socketio`, `claude-mpm-ui`, `confluence-mcp`, `notion-mpm`, `mpm-session-server`, `mpm-session-server-http`
+
+The new `claude-mpm mcp serve <name>` subcommand replaces direct binary invocations. For example:
 ```bash
-# Sync every 12 hours instead of 24
-export CLAUDE_MPM_SYNC_TTL=43200
+# Before (v5.x)
+mpm-session-server --port 8080
 
-# Sync every 7 days
-export CLAUDE_MPM_SYNC_TTL=604800
+# After (v6.0)
+claude-mpm mcp serve session --port 8080
 ```
 
-Sync state is stored in `~/.claude-mpm/cache/sync-state.json`. All five startup skill operations — bundled deploy, remote sync, discovery, summary, and PM skills verify — are gated and only run when content has actually changed.
+### Auto-Migration
 
-[→ Full sync documentation: Agent Synchronization Guide](docs/guides/agent-synchronization.md)
+Run `claude-mpm migrate` to automatically update old `.mcp.json` configurations to the new binary names. Migration also runs automatically on startup.
+
+### 56 Bundled Skills
+
+The skills library has grown from 44 to **56 bundled skills**, covering additional development patterns and workflows.
+
+---
+
+## Migration from v5.x
+
+If you are upgrading from v5.x, follow these steps:
+
+1. **Update the package**:
+   ```bash
+   uv tool install "claude-mpm[monitor,data-processing]" --python 3.13 --force
+   ```
+
+2. **Run the migration command** to update `.mcp.json` and other configs:
+   ```bash
+   claude-mpm migrate
+   ```
+   This rewrites references to removed binaries (e.g., `mpm-session-server` becomes `claude-mpm mcp serve session`). The migration also runs automatically on startup.
+
+3. **Install the plugin** (optional but recommended):
+   ```bash
+   claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
+   claude plugin install claude-mpm@claude-mpm-marketplace
+   ```
+
+4. **Backward compatibility**: `claude-mpm-doctor` still works but prints a deprecation warning. Use `claude-mpm doctor` instead. All other removed binaries require updating to `claude-mpm mcp serve <name>`.
 
 ---
 

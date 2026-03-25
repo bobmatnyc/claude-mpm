@@ -39,6 +39,13 @@ def _run_remove_unsupported_hooks_migration() -> bool:
     return migrate_all_settings()
 
 
+def _run_binary_consolidation_migration() -> bool:
+    """Migrate .mcp.json to consolidated 'claude-mpm mcp serve' format."""
+    from .migrate_binary_consolidation import run_migration
+
+    return run_migration()
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -58,6 +65,12 @@ MIGRATIONS: list[Migration] = [
         version="5.9.48",
         description="Remove unsupported v2.1.47+ hook events (WorktreeCreate, WorktreeRemove, TeammateIdle, TaskCompleted, ConfigChange) from Claude settings on older Claude Code installations",
         run=_run_remove_unsupported_hooks_migration,
+    ),
+    Migration(
+        id="5.12.0_binary_consolidation",
+        version="5.12.0",
+        description="Migrate .mcp.json to consolidated 'claude-mpm mcp serve' format",
+        run=_run_binary_consolidation_migration,
     ),
 ]
 

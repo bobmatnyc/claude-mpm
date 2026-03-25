@@ -1,0 +1,41 @@
+{
+  "name": "biome",
+  "version": "1.0.0",
+  "category": "toolchain",
+  "toolchain": "javascript",
+  "framework": null,
+  "tags": [
+    "linting",
+    "formatting",
+    "biome",
+    "tooling",
+    "code-quality",
+    "typescript",
+    "javascript",
+    "rust"
+  ],
+  "entry_point_tokens": 169,
+  "full_tokens": 5014,
+  "related_skills": [
+    "../../typescript/typescript-core",
+    "../build/vite",
+    "../../frameworks/react"
+  ],
+  "author": "Claude MPM",
+  "license": "MIT",
+  "updated": "2025-12-31",
+  "source_path": "toolchains/javascript/tooling/biome/SKILL.md",
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills",
+  "description": "Fast all-in-one linter and formatter (Rust-based replacement for ESLint + Prettier)",
+  "when_to_use": [
+    "When you need fast linting and formatting",
+    "When replacing ESLint + Prettier",
+    "When working with TypeScript/JavaScript",
+    "When you want zero-config setup"
+  ],
+  "quick_start": [
+    "npm install --save-dev @biomejs/biome",
+    "npx @biomejs/biome init",
+    "npx @biomejs/biome check --write ."
+  ]
+}

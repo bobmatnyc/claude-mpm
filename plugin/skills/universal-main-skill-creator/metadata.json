@@ -1,0 +1,27 @@
+{
+  "name": "skill-creator",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": null,
+  "framework": null,
+  "tags": [
+    "performance",
+    "frontend",
+    "database",
+    "api",
+    "testing"
+  ],
+  "entry_point_tokens": 65,
+  "full_tokens": 16583,
+  "author": "bobmatnyc",
+  "license": "MIT",
+  "requires": [],
+  "updated": "2025-11-21",
+  "source_path": "main/skill-creator/SKILL.md",
+  "source": "https://github.com/bobmatnyc/claude-mpm",
+  "created": "2025-11-21",
+  "modified": "2025-11-21",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": true,
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "claude-mpm",
+  "description": "Multi-Agent Project Manager - Orchestrate Claude with specialized agents for research, engineering, QA, ops, and more",
+  "author": {
+    "name": "Bob Matsuoka",
+    "email": "bobmatnyc@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/bobmatnyc/claude-mpm",
+  "version": "6.0.0b1"
+}

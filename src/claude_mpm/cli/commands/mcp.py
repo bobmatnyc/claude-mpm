@@ -39,6 +39,7 @@ def manage_mcp(args):
         MCPCommands.ENABLE.value,
         MCPCommands.DISABLE.value,
         MCPCommands.LIST.value,
+        MCPCommands.SERVE.value,
     }
 
     # Route service management commands directly without any MCP dependencies

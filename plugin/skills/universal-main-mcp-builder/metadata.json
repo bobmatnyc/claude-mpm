@@ -1,0 +1,27 @@
+{
+  "name": "mcp-builder",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": null,
+  "framework": null,
+  "tags": [
+    "performance",
+    "api",
+    "security",
+    "testing",
+    "debugging"
+  ],
+  "entry_point_tokens": 79,
+  "full_tokens": 5341,
+  "author": "bobmatnyc",
+  "license": "MIT",
+  "requires": [],
+  "created": "2025-11-21",
+  "updated": "2025-12-31",
+  "source_path": "universal/main/mcp-builder/SKILL.md",
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills",
+  "source": "https://github.com/bobmatnyc/claude-mpm",
+  "modified": "2025-11-21",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": true
+}

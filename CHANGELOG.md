@@ -1,3 +1,27 @@
+## [6.0.0b1] - 2026-03-25
+
+### Breaking Changes
+- **Binary consolidation**: Removed 8 standalone binaries. All functionality now accessible through `claude-mpm` main binary:
+  - `mpm-session-server` → `claude-mpm mcp serve session`
+  - `mpm-session-server-http` → `claude-mpm mcp serve session-http`
+  - `confluence-mcp` → `claude-mpm mcp serve confluence`
+  - `claude-mpm-monitor` → `claude-mpm monitor` (already existed)
+  - `claude-mpm-socketio` → `claude-mpm monitor`
+  - `claude-mpm-ui` → `claude-mpm dashboard`
+  - `claude-mpm-doctor` deprecated (still works with warning, use `claude-mpm doctor`)
+- **MCP server invocation**: `.mcp.json` entries using `python -m claude_mpm.mcp.*` should use `claude-mpm mcp serve <name>` instead
+
+### Added
+- **Plugin system**: MPM can now be installed as a Claude Code plugin via `claude plugin install claude-mpm@claude-mpm-marketplace`
+- **Plugin marketplace**: Published at `bobmatnyc/claude-mpm-marketplace` on GitHub
+- **56 bundled skills**: All MPM skills bundled in the plugin (no pip required for skills)
+- **`claude-mpm mcp serve`**: New subcommand to launch any MPM MCP server by name
+- **`claude-mpm migrate`**: New command to migrate old configs to v6 format
+- **Auto-migration**: Old `.mcp.json` configs automatically migrated on startup
+
+### Migration
+Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
+
 ## v5.11.4 (2026-03-24)
 
 ### Feat

@@ -145,6 +145,7 @@ class MCPCommands(StrEnum):
     CONFIG = "config"
     SERVER = "server"
     EXTERNAL = "external"
+    SERVE = "serve"
     # Service management commands
     ENABLE = "enable"
     DISABLE = "disable"

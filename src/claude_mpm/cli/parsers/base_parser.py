@@ -710,6 +710,11 @@ def create_parser(
 
         add_upgrade_parser(subparsers)
 
+        # Add migrate command for configuration migrations
+        from ..commands.migrate import add_migrate_parser
+
+        add_migrate_parser(subparsers)
+
         # Add verify command for MCP service verification
         from ..commands.verify import add_parser as add_verify_parser
 

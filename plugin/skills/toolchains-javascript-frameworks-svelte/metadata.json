@@ -1,0 +1,40 @@
+{
+  "name": "svelte",
+  "version": "1.0.0",
+  "category": "toolchain",
+  "toolchain": "javascript",
+  "framework": "svelte",
+  "tags": [
+    "svelte",
+    "svelte5",
+    "sveltekit",
+    "runes",
+    "reactivity",
+    "ssr",
+    "ssg",
+    "compiler",
+    "performance",
+    "frontend",
+    "typescript",
+    "vite",
+    "animations",
+    "transitions"
+  ],
+  "entry_point_tokens": 85,
+  "full_tokens": 5054,
+  "related_skills": [
+    "vite",
+    "typescript",
+    "vitest"
+  ],
+  "author": "Claude MPM Team",
+  "license": "MIT",
+  "requires": [],
+  "updated": "2025-11-30",
+  "created": "2025-11-30",
+  "modified": "2025-11-30",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": true,
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills",
+  "sub_skills": []
+}

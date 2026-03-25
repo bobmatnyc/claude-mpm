@@ -1,0 +1,28 @@
+{
+  "name": "dependency-audit",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": "universal",
+  "tags": [
+    "dependencies",
+    "security",
+    "maintenance",
+    "npm",
+    "pip",
+    "audit",
+    "cleanup"
+  ],
+  "entry_point_tokens": 90,
+  "full_tokens": 3800,
+  "related_skills": [
+    "github-actions",
+    "nodejs-backend",
+    "python-frameworks"
+  ],
+  "author": "claude-mpm-skills",
+  "license": "MIT",
+  "subcategory": "dependency",
+  "created": "2025-12-08",
+  "updated": "2025-12-08",
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}
