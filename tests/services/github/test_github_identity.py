@@ -157,7 +157,7 @@ class TestGetTokenFallback(unittest.TestCase):
             patch.object(mgr, "get_active_account", return_value=None),
             patch.object(mgr, "_load_token", return_value=None),
             patch(
-                "subprocess.run",
+                "claude_mpm.services.github.identity_manager.subprocess.run",
                 return_value=MagicMock(returncode=1, stdout=""),
             ),
             patch.dict(os.environ, {"GITHUB_TOKEN": "env_token"}),

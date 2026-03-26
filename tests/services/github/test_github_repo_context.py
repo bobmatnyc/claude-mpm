@@ -13,8 +13,13 @@ from claude_mpm.services.github.system_prompt_injector import (
 
 
 def run_async(coro):
-    """Helper to run an async coroutine in a synchronous test."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    """Helper to run an async coroutine in a synchronous test.
+
+    Uses asyncio.run() to create a fresh event loop for each call, preventing
+    event loop state from leaking between tests when running in parallel with
+    pytest-xdist workers.
+    """
+    return asyncio.run(coro)
 
 
 class TestParseRemoteUrl(unittest.TestCase):
