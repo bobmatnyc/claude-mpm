@@ -611,6 +611,7 @@ class InteractiveSession:
 
         # This will not return if successful
         os.execvpe(cmd[0], cmd, env)  # nosec B606
+        return False  # type: ignore[unreachable]  # reached when os.execvpe is mocked in tests
 
     def _launch_subprocess_mode(self, cmd: list, env: dict) -> bool:
         """Launch Claude as subprocess with PTY."""
