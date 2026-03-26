@@ -6,7 +6,6 @@ Verify that all imports in the codebase follow the standards.
 import ast
 import sys
 from pathlib import Path
-from typing import List
 
 
 class ImportVerifier:
@@ -17,7 +16,7 @@ class ImportVerifier:
         self.src_path = project_root / "src"
         self.issues = []
 
-    def verify_file(self, file_path: Path) -> List[str]:
+    def verify_file(self, file_path: Path) -> list[str]:
         """Verify imports in a single file."""
         issues = []
 
@@ -174,7 +173,6 @@ class ImportVerifier:
             "pinecone",
             "weaviate",
             "qdrant",
-            "ai_trackdown_pytools",
             "psutil",
             "tomllib",
             "tomli",

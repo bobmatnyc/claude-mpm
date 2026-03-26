@@ -11,7 +11,6 @@ DESIGN DECISIONS:
 - Provide comprehensive system information for troubleshooting
 """
 
-import importlib.util
 import shutil
 from pathlib import Path
 from typing import Any
@@ -28,7 +27,8 @@ class InfoCommand(BaseCommand):
     def validate_args(self, args) -> str:
         """Validate command arguments."""
         # Info command doesn't require specific validation
-        return None
+        _ = args
+        return ""
 
     def run(self, args) -> CommandResult:
         """Execute the info command."""
@@ -118,18 +118,6 @@ class InfoCommand(BaseCommand):
             "path": claude_path,
             "status": "✓ Installed" if claude_path else "✗ Not found in PATH",
         }
-
-        # Check ai-trackdown-pytools
-        if importlib.util.find_spec("ai_trackdown_pytools") is not None:
-            dependencies["ai_trackdown_pytools"] = {
-                "installed": True,
-                "status": "✓ Installed",
-            }
-        else:
-            dependencies["ai_trackdown_pytools"] = {
-                "installed": False,
-                "status": "✗ Not installed",
-            }
 
         # Check Claude Code hooks
         claude_settings = Path.home() / ".claude" / "settings.json"

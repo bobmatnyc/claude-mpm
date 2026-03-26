@@ -43,7 +43,7 @@ class Config:
     )
     _lock = threading.Lock()  # Thread safety for singleton initialization
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *_args, **_kwargs):
         """Implement singleton pattern to ensure single configuration instance.
 
         WHY: Configuration was being loaded 11 times during startup, once for each service.
@@ -395,10 +395,6 @@ class Config:
             # Service management
             "graceful_shutdown_timeout": 30,
             "startup_timeout": 60,
-            # ai-trackdown-tools integration
-            "use_ai_trackdown_tools": False,
-            "ai_trackdown_tools_timeout": 30,
-            "ai_trackdown_tools_fallback_logging": True,
             # Claude PM specific - dynamic path resolution
             "base_path": base_path,
             "claude_pm_path": claude_pm_path,

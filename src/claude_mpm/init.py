@@ -596,7 +596,6 @@ class ProjectInitializer:
 
         # Check required Python packages
         required_packages = [
-            "ai_trackdown_pytools",
             "yaml",
             "dotenv",
             "click",
