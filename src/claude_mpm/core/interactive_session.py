@@ -277,7 +277,7 @@ class InteractiveSession:
                         hasattr(self.response_tracker, "session_logger")
                         and self.response_tracker.session_logger
                     ):
-                        self.response_tracker.session_logger.set_session_id(None)
+                        self.response_tracker.session_logger.set_session_id("")
                         self.logger.debug("Response tracker session cleared")
                 except Exception as e:
                     self.logger.debug(f"Error clearing response tracker session: {e}")
@@ -359,11 +359,11 @@ class InteractiveSession:
         """Get output style status for display."""
         try:
             # Check if output style manager is available through framework loader
-            if (
-                hasattr(self.runner, "framework_loader")
-                and self.runner.framework_loader
-            ) and hasattr(self.runner.framework_loader, "output_style_manager"):
-                osm = self.runner.framework_loader.output_style_manager
+            framework_loader = getattr(self.runner, "framework_loader", None)
+            if (framework_loader is not None) and hasattr(
+                framework_loader, "output_style_manager"
+            ):
+                osm = framework_loader.output_style_manager
                 if osm:
                     if osm.claude_version and osm.supports_output_styles():
                         # Check if Claude MPM style is active
@@ -420,7 +420,7 @@ class InteractiveSession:
                 "🔄 Resume mode detected - using minimal Claude command to preserve conversation selection"
             )
             # has_resume guarantees claude_args is non-empty and contains --resume
-            cmd.extend(self.runner.claude_args)
+            cmd.extend(self.runner.claude_args or [])
             self.logger.info(f"Resume command: {cmd}")
             return cmd
         # Normal mode - full command with all claude-mpm enhancements
@@ -680,7 +680,7 @@ class InteractiveSession:
                 )
 
             # Build SDK options
-            hooks_config = None
+            hooks_config: dict | None = None
             if pretooluse_hook is not None:
                 from claude_agent_sdk import HookMatcher
 
@@ -725,9 +725,11 @@ class InteractiveSession:
                 ):
                     options.resume = claude_args[idx + 1]
 
-            print("SDK Mode -- persistent session active")
-            print("   Type /help for commands, /exit to end session")
-            print()
+            # Only print banner if not already shown before the progress bar
+            if not os.environ.get("CLAUDE_MPM_SDK_BANNER_SHOWN"):
+                print("SDK Mode -- persistent session active")
+                print("   Type /help for commands, /exit to end session")
+                print()
 
             from claude_mpm.services.agents.session_state_tracker import SessionState
 
@@ -769,12 +771,22 @@ class InteractiveSession:
 
                     tracker.record_user_input(user_input)
 
+                    # Agent tracking: maps tool_use_id -> agent name for sub-agents
+                    tool_id_to_agent: dict[str, str] = {}
+                    current_agent: str = "PM"
+
                     try:
                         await client.query(user_input)
                         async for message in client.receive_response():
                             if isinstance(message, AssistantMessage):
                                 if hasattr(message, "model") and message.model:
                                     tracker.set_model(message.model)
+                                # Determine which agent produced this message
+                                parent_id = getattr(message, "parent_tool_use_id", None)
+                                if parent_id and parent_id in tool_id_to_agent:
+                                    current_agent = tool_id_to_agent[parent_id]
+                                else:
+                                    current_agent = "PM"
                                 for block in message.content:
                                     if isinstance(block, TextBlock):
                                         print(block.text)
@@ -783,7 +795,22 @@ class InteractiveSession:
                                             usage=getattr(message, "usage", None),
                                         )
                                     elif isinstance(block, ToolUseBlock):
-                                        print(f"  [tool] {block.name}...")
+                                        if block.name == "Task":
+                                            # Agent delegation — extract the sub-agent name
+                                            block_input = (
+                                                getattr(block, "input", {}) or {}
+                                            )
+                                            agent_name = (
+                                                block_input.get("subagent_type")
+                                                or block_input.get("description")
+                                                or "Agent"
+                                            )
+                                            tool_id_to_agent[block.id] = agent_name
+                                            print(
+                                                f"  [{current_agent}:Task → {agent_name}]"
+                                            )
+                                        else:
+                                            print(f"  [{current_agent}:{block.name}]")
                                         tracker.record_tool_call(block.name)
                             elif isinstance(message, ResultMessage):
                                 if message.session_id:

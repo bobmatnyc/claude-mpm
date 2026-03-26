@@ -142,6 +142,25 @@ def main(argv: list | None = None):
         # Check if running in headless mode
         is_headless = getattr(args, "headless", False)
 
+        # Detect if SDK mode will be used (explicit --sdk flag OR auto-detect)
+        _will_use_sdk = False
+        if os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk":
+            _will_use_sdk = True
+        elif os.environ.get("CLAUDE_MPM_RUNTIME") != "cli":
+            # Auto-detect: SDK if claude_agent_sdk is importable
+            try:
+                import claude_agent_sdk
+
+                _will_use_sdk = True
+            except ImportError:
+                _will_use_sdk = False
+
+        if _will_use_sdk:
+            print("SDK Mode -- persistent session active")
+            print("   Type /help for commands, /exit to end session")
+            print()
+            os.environ["CLAUDE_MPM_SDK_BANNER_SHOWN"] = "1"
+
         if is_headless:
             # Headless mode: Run services quietly (stdout -> stderr)
             # No progress bar - stdout must stay clean for JSON streaming
@@ -180,10 +199,11 @@ def main(argv: list | None = None):
             # Inform user about Claude Code initialization delay (3-5 seconds)
             # This message appears before os.execvpe() replaces our process
             # See: docs/research/claude-startup-delay-analysis-2025-12-01.md
-            print(
-                "⏳ Starting Claude Code... (this may take a few seconds)",
-                flush=True,
-            )
+            if not _will_use_sdk:
+                print(
+                    "⏳ Starting Claude Code... (this may take a few seconds)",
+                    flush=True,
+                )
 
     if hasattr(args, "debug") and args.debug:
         logger.debug(f"Command: {args.command}")
