@@ -622,7 +622,7 @@ class TestConsecutiveToolCallDetection:
         mock_bus.send.assert_called()
         assert "consecutive_read" in agent._warnings_sent
         msg = mock_bus.send.call_args[0][0]
-        assert "Read/search" in msg.text
+        assert "Read/Grep/Glob" in msg.text
 
     def test_below_threshold_no_warning(self) -> None:
         agent, mock_bus = _make_agent_with_mock_bus()

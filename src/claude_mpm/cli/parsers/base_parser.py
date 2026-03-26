@@ -1,5 +1,3 @@
-from pathlib import Path
-
 """
 Base parser module for claude-mpm CLI.
 
@@ -12,6 +10,8 @@ and reduce duplication across command parsers.
 
 import argparse
 import sys
+from pathlib import Path
+from typing import NoReturn
 
 from ...constants import CLICommands, CLIPrefix, LogLevel
 
@@ -28,7 +28,7 @@ class SuggestingArgumentParser(argparse.ArgumentParser):
     invalid options.
     """
 
-    def error(self, message: str) -> None:
+    def error(self, message: str) -> NoReturn:
         """
         Override error method to add command suggestions.
 
@@ -360,6 +360,13 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="PORT",
         help="Start message injection endpoint on PORT (default: 7856)",
     )
+    run_group.add_argument(
+        "--channels",
+        metavar="CHANNELS",
+        help="Comma-separated channel list to enable with --sdk (e.g. telegram,slack). "
+        "Activates the ChannelHub. Requires --sdk.",
+        default=None,
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(
@@ -674,6 +681,14 @@ def create_parser(
         from .search_parser import add_search_subparser
 
         add_search_subparser(subparsers)
+    except ImportError:
+        pass
+
+    # Add channels command parser
+    try:
+        from ..commands.channels import add_channels_subcommand
+
+        add_channels_subcommand(subparsers)
     except ImportError:
         pass
 

@@ -184,7 +184,12 @@ class TestInteractiveResponseLogging(unittest.TestCase):
                 and session.response_tracker.session_logger
             )
         ):
-            self.assertIsNone(session.response_tracker.session_logger.session_id)
+            # After cleanup, session_id is cleared to empty string or None
+            session_id = session.response_tracker.session_logger.session_id
+            self.assertFalse(
+                session_id,
+                f"Expected session_id to be falsy after cleanup, got: {session_id!r}",
+            )
 
     @pytest.mark.skip(
         reason="@patch injects mock but method doesn't accept it; also session.response_tracker is not None after failure (behavior changed)"

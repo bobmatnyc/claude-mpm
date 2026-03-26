@@ -644,7 +644,7 @@ def deploy_bundled_skills(force_deploy: bool = False):
 
     try:
         # Check if auto-deploy is disabled in config
-        from ..config.config_loader import ConfigLoader
+        from ..config.config_loader import ConfigLoader  # type: ignore
 
         config_loader = ConfigLoader()
         try:
@@ -1840,7 +1840,7 @@ def auto_install_chrome_devtools_on_startup():
     """
     try:
         # Check if auto-install is disabled in config
-        from ..config.config_loader import ConfigLoader
+        from ..config.config_loader import ConfigLoader  # type: ignore
 
         config_loader = ConfigLoader()
         try:
@@ -2168,7 +2168,9 @@ def check_mcp_auto_configuration():
         return
 
     try:
-        from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
+        from ..services.mcp_gateway.auto_configure import (
+            check_and_configure_mcp,  # type: ignore
+        )
 
         # Show progress feedback - this operation can take 10+ seconds
         # Only show progress message in TTY mode to avoid interfering with Claude Code's status display
@@ -2223,7 +2225,7 @@ def verify_mcp_gateway_startup():
         import asyncio
 
         from ..core.logger import get_logger
-        from ..services.mcp_gateway.core.startup_verification import (
+        from ..services.mcp_gateway.core.startup_verification import (  # type: ignore
             is_mcp_gateway_configured,
             verify_mcp_gateway_on_startup,
         )
@@ -2314,10 +2316,10 @@ def check_for_updates_async():
 
     def run_update_check():
         """Inner function to run in background thread."""
+        import asyncio
+
         loop = None
         try:
-            import asyncio
-
             from ..core.config import Config
             from ..core.logger import get_logger
             from ..services.self_upgrade_service import SelfUpgradeService

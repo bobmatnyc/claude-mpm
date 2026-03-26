@@ -5,15 +5,81 @@ WHY: Provides CLI interface for managing GitHub account switching and verificati
 in projects with multi-account setups using .gh-account file markers.
 
 DESIGN DECISIONS:
-- Subcommands: switch, verify, setup, status
+- Subcommands: switch, verify, setup, status, whoami, accounts, sync
 - Uses rich for colored output matching claude-mpm style
-- Integrates with GitHubAccountManager service
+- Integrates with GitHubAccountManager and GitHubIdentityManager services
 """
+
+import asyncio
+from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
 from ...services.github import GitHubAccountManager
+
+
+def gh_whoami_command(args) -> int:
+    """Show current GitHub identity and repo context."""
+    from claude_mpm.services.github.identity_manager import GitHubIdentityManager
+
+    cwd = getattr(args, "cwd", None) or str(Path.cwd())
+    mgr = GitHubIdentityManager()
+    account = mgr.get_active_account(Path(cwd))
+    token = mgr.get_token(account)
+
+    print(f"Account:  {account or 'unknown'}")
+    print(f"Token:    {'stored' if token else 'not found'}")
+
+    # Repo context (best-effort)
+    try:
+        from claude_mpm.services.github.repo_context import GitHubRepoContext
+
+        ctx = asyncio.run(GitHubRepoContext.detect(cwd))
+        if ctx:
+            print(f"Repo:     {ctx.full_name}")
+            print(f"Branch:   {ctx.current_branch} (default: {ctx.default_branch})")
+            if ctx.open_prs:
+                for pr in ctx.open_prs:
+                    print(f"PR:       #{pr.number} {pr.title}")
+        else:
+            print("Repo:     (not a GitHub repository)")
+    except Exception:
+        pass
+    return 0
+
+
+def gh_accounts_command(_args) -> int:
+    """List all registered GitHub accounts."""
+    from claude_mpm.services.github.identity_manager import GitHubIdentityManager
+
+    mgr = GitHubIdentityManager()
+    accounts = mgr.list_accounts()
+    if not accounts:
+        print("No accounts registered. Run 'claude-mpm gh sync' to discover accounts.")
+        return 0
+    print(f"{'Username':<20} {'Active':<8} {'Token':<8}")
+    print("-" * 40)
+    for acc in accounts:
+        active = "yes" if acc.is_active else ""
+        token_str = "yes" if acc.token_stored else "no"
+        print(f"{acc.username:<20} {active:<8} {token_str:<8}")
+    return 0
+
+
+def gh_sync_command(_args) -> int:
+    """Sync accounts from gh CLI."""
+    from claude_mpm.services.github.identity_manager import GitHubIdentityManager
+
+    mgr = GitHubIdentityManager()
+    accounts = mgr.sync_from_gh_cli()
+    if accounts:
+        print(f"Synced {len(accounts)} account(s):")
+        for acc in accounts:
+            print(f"  {acc.username}")
+    else:
+        print("No accounts found. Run 'gh auth login' first.")
+    return 0
 
 
 def add_gh_parser(subparsers):
@@ -53,6 +119,23 @@ def add_gh_parser(subparsers):
     )
     status_parser.set_defaults(func=gh_status_command)
 
+    # gh whoami
+    whoami_p = gh_subparsers.add_parser(
+        "whoami", help="Show current GitHub identity and repo context"
+    )
+    whoami_p.add_argument("--cwd", default=None, help="Directory to inspect")
+    whoami_p.set_defaults(func=gh_whoami_command)
+
+    # gh accounts
+    accounts_p = gh_subparsers.add_parser(
+        "accounts", help="List all registered GitHub accounts"
+    )
+    accounts_p.set_defaults(func=gh_accounts_command)
+
+    # gh sync
+    sync_p = gh_subparsers.add_parser("sync", help="Sync accounts from gh CLI")
+    sync_p.set_defaults(func=gh_sync_command)
+
     parser.set_defaults(func=gh_command)
 
 
@@ -63,13 +146,18 @@ def gh_command(args):
         console.print("\n[yellow]No subcommand specified.[/yellow]")
         console.print("\nAvailable subcommands:")
         console.print(
-            "  [cyan]switch[/cyan]  - Switch gh CLI to account in .gh-account"
+            "  [cyan]switch[/cyan]    - Switch gh CLI to account in .gh-account"
         )
-        console.print("  [cyan]verify[/cyan]  - Verify GitHub configuration")
+        console.print("  [cyan]verify[/cyan]    - Verify GitHub configuration")
         console.print(
-            "  [cyan]setup[/cyan]   - Setup GitHub account for current project"
+            "  [cyan]setup[/cyan]     - Setup GitHub account for current project"
         )
-        console.print("  [cyan]status[/cyan]  - Show current account status")
+        console.print("  [cyan]status[/cyan]    - Show current account status")
+        console.print(
+            "  [cyan]whoami[/cyan]    - Show current GitHub identity and repo context"
+        )
+        console.print("  [cyan]accounts[/cyan]  - List all registered GitHub accounts")
+        console.print("  [cyan]sync[/cyan]      - Sync accounts from gh CLI")
         console.print(
             "\nRun [cyan]claude-mpm gh <subcommand> --help[/cyan] for more info.\n"
         )

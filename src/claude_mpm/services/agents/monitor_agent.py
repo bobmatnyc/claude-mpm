@@ -143,6 +143,9 @@ class MonitorAgent:
         self._check_session_duration(state)
         self._check_idle_too_long(state)
         self._check_tool_call_patterns()
+        # Per-query investigation check (catches full investigation sequences
+        # that complete before any delegation interrupts the streak counter).
+        self._check_per_query_limits(tracker.get_activity(limit=100))
         self._check_incoming_messages()
 
     def _check_context_pressure(self, state: dict[str, Any]) -> None:
@@ -223,6 +226,9 @@ class MonitorAgent:
     _PASSIVE_TOOLS = frozenset(
         {"TodoWrite", "TaskList", "TaskGet", "ToolSearch", "AskUserQuestion"}
     )
+    # MCP tool namespace prefixes that count as investigation/vector-search
+    _MCP_VECTOR_SEARCH_PREFIX = "mcp__mcp-vector-search__"
+    _MCP_KUZU_RECALL_TOOL = "mcp__kuzu-memory__kuzu_recall"
 
     def _check_tool_call_patterns(self) -> None:
         """Detect when PM makes too many consecutive direct tool calls.
@@ -276,6 +282,9 @@ class MonitorAgent:
             if tool in self._IMPLEMENTATION_TOOLS:
                 category = "implementation"
             elif tool in self._INVESTIGATION_TOOLS:
+                category = "investigation"
+            elif tool.startswith(self._MCP_VECTOR_SEARCH_PREFIX):
+                # MCP vector-search tools are investigation work
                 category = "investigation"
             elif tool in self._EXECUTION_TOOLS:
                 category = "execution"
@@ -348,9 +357,10 @@ class MonitorAgent:
         ):
             self._warnings_sent.add(warn_key_read)
             self._inject_message(
-                f"PM has made {peak_read} consecutive Read/search "
-                "calls (deep investigation pattern). Consider delegating "
-                "to a Research agent.",
+                f"⚠️ PM CIRCUIT BREAKER #2: Direct investigation detected "
+                f"({peak_read} consecutive Read/Grep/Glob calls). "
+                "STOP. Delegate to Research agent instead of using "
+                "Read/Grep/vector-search directly.",
                 priority="normal",
             )
 
@@ -368,6 +378,109 @@ class MonitorAgent:
                 "directly.",
                 priority="critical",
             )
+
+    def _check_per_query_limits(self, events: list[dict]) -> None:
+        """Detect direct investigation work within a single query.
+
+        Finds the most recent ``user_input`` event in the activity buffer
+        (which marks the start of the current query) and counts all tool
+        calls since that boundary.  This catches the case where a PM does
+        a full investigation sequence in one query — before any delegation
+        event interrupts the streak counter in ``_check_tool_call_patterns``.
+
+        Thresholds:
+        - investigation_count >= 4 (Grep + Read + vector-search combined)
+        - read_count >= 3 (Read/Grep/Glob only)
+        - vector_search_count >= 2 (should delegate to Research instead)
+        """
+        # Find the index of the most recent user_input event — that is the
+        # query boundary.  Events are in chronological order (oldest first).
+        query_start_idx: int | None = None
+        for i in range(len(events) - 1, -1, -1):
+            if events[i].get("type") == "user_input":
+                query_start_idx = i
+                break
+
+        if query_start_idx is None:
+            # No user_input boundary found — can't determine query scope
+            return
+
+        # Slice events after the query boundary
+        since_query = events[query_start_idx + 1 :]
+
+        investigation_count = 0
+        read_count = 0
+        vector_search_count = 0
+        kuzu_recall_count = 0
+
+        for event in since_query:
+            if event.get("type") != "tool_call":
+                continue
+
+            tool = event.get("tool", "")
+
+            # Delegation resets the concern — PM delegated at some point
+            if tool in self._DELEGATION_TOOLS:
+                investigation_count = 0
+                read_count = 0
+                vector_search_count = 0
+                kuzu_recall_count = 0
+                continue
+
+            if tool in self._PASSIVE_TOOLS:
+                continue
+
+            if tool in self._INVESTIGATION_TOOLS:
+                investigation_count += 1
+                read_count += 1
+            elif tool.startswith(self._MCP_VECTOR_SEARCH_PREFIX):
+                investigation_count += 1
+                vector_search_count += 1
+            elif tool == self._MCP_KUZU_RECALL_TOOL:
+                # kuzu_recall is OK for context (context-first protocol),
+                # but repeated calls (>2) suggest substituting for Research
+                kuzu_recall_count += 1
+                if kuzu_recall_count > 2:
+                    investigation_count += 1
+
+        # Use query-scoped warning keys based on the position of user_input
+        # so that the same warning can fire again in a new query.
+        query_key = str(query_start_idx)
+
+        if investigation_count >= 4:
+            warn_key = f"per_query_investigation_{query_key}"
+            if warn_key not in self._warnings_sent:
+                self._warnings_sent.add(warn_key)
+                self._inject_message(
+                    f"⚠️ PM CIRCUIT BREAKER #2: Direct investigation detected "
+                    f"({investigation_count} investigation tools used in this "
+                    "query). "
+                    "STOP. Delegate to Research agent instead of using "
+                    "Grep/Read/vector-search directly.",
+                    priority="high",
+                )
+        elif read_count >= 3:
+            warn_key = f"per_query_read_{query_key}"
+            if warn_key not in self._warnings_sent:
+                self._warnings_sent.add(warn_key)
+                self._inject_message(
+                    f"⚠️ PM CIRCUIT BREAKER #2: Direct investigation detected "
+                    f"({read_count} Read/Grep/Glob calls in this query). "
+                    "STOP. Delegate to Research agent instead of using "
+                    "Grep/Read/vector-search directly.",
+                    priority="normal",
+                )
+        elif vector_search_count >= 2:
+            warn_key = f"per_query_vector_{query_key}"
+            if warn_key not in self._warnings_sent:
+                self._warnings_sent.add(warn_key)
+                self._inject_message(
+                    f"⚠️ PM CIRCUIT BREAKER #2: Direct investigation detected "
+                    f"({vector_search_count} vector-search calls in this query). "
+                    "STOP. Delegate to Research agent instead of using "
+                    "mcp__mcp-vector-search__ tools directly.",
+                    priority="normal",
+                )
 
     # ------------------------------------------------------------------
     # Incoming message bridge (/mpm-message -> hook injection)

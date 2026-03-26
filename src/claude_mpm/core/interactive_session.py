@@ -626,6 +626,13 @@ class InteractiveSession:
         this keeps the MPM process alive and runs a user input loop that sends
         messages through ClaudeSDKClient.
         """
+        # Check if --channels flag was passed to activate ChannelHub
+        channels_arg = getattr(self.runner, "channels", None) or os.environ.get(
+            "CLAUDE_MPM_CHANNELS"
+        )
+        if channels_arg:
+            return self._launch_channel_hub_mode(channels_arg)
+
         import asyncio
 
         async def _run_sdk_session() -> int:
@@ -924,6 +931,38 @@ class InteractiveSession:
             self.runner._log_session_event(
                 {"event": "session_interrupted", "reason": "user_interrupt"}
             )
+
+    def _launch_channel_hub_mode(self, channels_str: str) -> bool:
+        """Launch the multi-channel hub instead of a single-channel session.
+
+        Args:
+            channels_str: Comma-separated channel names (e.g. "terminal,telegram")
+
+        Returns:
+            bool: True if the hub ran and exited cleanly
+        """
+        import asyncio
+
+        from claude_mpm.services.channels.channel_config import load_channels_config
+        from claude_mpm.services.channels.channel_hub import ChannelHub
+
+        config = load_channels_config()
+
+        async def _run() -> None:
+            hub = ChannelHub(runner=self.runner, config=config)
+            await hub.start()
+            try:
+                await hub.run_until_stopped()
+            except KeyboardInterrupt:
+                pass
+            finally:
+                await hub.stop()
+
+        try:
+            asyncio.run(_run())
+        except KeyboardInterrupt:
+            pass
+        return True
 
     def _attempt_fallback_launch(self, environment: dict[str, Any]) -> bool:
         """Attempt fallback launch using subprocess."""

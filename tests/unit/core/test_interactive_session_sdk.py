@@ -21,6 +21,7 @@ def mock_runner():
     runner.session_log_file = None
     runner.claude_args = []
     runner.config = {}
+    runner.channels = None
     runner._create_system_prompt.return_value = "You are a PM."
     return runner
 

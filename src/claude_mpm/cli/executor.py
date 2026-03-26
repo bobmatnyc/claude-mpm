@@ -293,7 +293,8 @@ def execute_command(command: str, args) -> int:
                 handler(click_args, standalone_mode=False)
                 return 0
             except SystemExit as e:
-                return e.code if e.code is not None else 0
+                code = e.code
+                return int(code) if isinstance(code, int) else (1 if code else 0)
             except Exception as e:
                 print(f"Error: {e}")
                 return 1
@@ -376,7 +377,8 @@ def execute_command(command: str, args) -> int:
                 handler(click_args, standalone_mode=False)
                 return 0
             except SystemExit as e:
-                return e.code if e.code is not None else 0
+                code = e.code
+                return int(code) if isinstance(code, int) else (1 if code else 0)
             except Exception as e:
                 print(f"Error: {e}")
                 import traceback
@@ -386,6 +388,13 @@ def execute_command(command: str, args) -> int:
         else:
             print(f"Unknown autotodos subcommand: {subcommand}")
             return 1
+
+    # Handle channels command with lazy import
+    if command == "channels":
+        from .commands.channels import handle_channels_command
+
+        result = handle_channels_command(args)
+        return result if result is not None else 0
 
     # Map stable commands to their implementations
     command_map = {

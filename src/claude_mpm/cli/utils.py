@@ -7,6 +7,7 @@ for common CLI operations.
 """
 
 import difflib
+import logging
 import sys
 from pathlib import Path
 
@@ -152,7 +153,7 @@ def list_agent_versions_at_startup() -> None:
         logging.getLogger("claude_mpm").setLevel(original_level)
 
 
-def setup_logging(args) -> object:
+def setup_logging(args) -> logging.Logger:
     """
     Set up logging based on parsed arguments.
 
