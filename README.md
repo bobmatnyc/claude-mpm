@@ -13,6 +13,24 @@
 >
 > **Quick Start**: See [Getting Started Guide](docs/getting-started/README.md) to get running in 5 minutes!
 
+> 🧪 **Beta available — v6.0.0b1**: A new major version is ready for testing. It introduces a plugin install path, binary consolidation, and auto-migration. Stable users on v5.11.4 are unaffected — pre-releases do not auto-install.
+>
+> **Try the beta (plugin install — no pip needed):**
+> ```bash
+> claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
+> claude plugin install claude-mpm@claude-mpm-marketplace
+> ```
+> **Try the beta (pip, explicit pin required):**
+> ```bash
+> pip install claude-mpm==6.0.0b1
+> ```
+> **Stay on stable (v5.11.4):**
+> ```bash
+> pip install claude-mpm        # installs latest stable automatically
+> uv tool install claude-mpm    # same — pre-releases are never selected
+> ```
+> See [Beta Guide](docs/beta-6.0.md) for the full details.
+
 ---
 
 ## Quick Start
@@ -462,6 +480,15 @@ Agent      (SocketIO)   (/session)
 ---
 
 ## What's New in v6.0
+
+> **Beta status**: v6.0.0b1 is currently in beta. See [Beta Guide](docs/beta-6.0.md) for install instructions and known limitations.
+
+**Validated in testing:**
+- ✅ Binary consolidation
+- ✅ Auto-migration of `.mcp.json` configs
+- ✅ Plugin install and uninstall
+- ✅ Stop hook stale count fix
+- ✅ Agent workflow end-to-end
 
 ### Plugin System (NEW)
 
