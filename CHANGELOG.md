@@ -22,6 +22,23 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.0 (2026-03-26)
+
+### Feat
+
+- Phase 4 - hub IPC bridge, GitHub in SDK mode, exports, tests
+- multi-channel hub + GitHub first-class features (Phase 1-3)
+- single-line startup progress bar
+- v6.0.0b1 — Plugin system, binary consolidation, auto-migration
+
+### Fix
+
+- restore return False after os.execvpe for test mock compatibility
+- resolve parallel test isolation issues in github service tests
+- show SDK Mode banner before startup progress bar
+- add migrate and queue to LIGHTWEIGHT_COMMANDS; fix CommandResult usage
+- stop hook stale message count — always query fresh, reset throttle on block
+
 ## v5.11.4 (2026-03-24)
 
 ### Feat
