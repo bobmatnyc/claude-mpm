@@ -583,6 +583,58 @@ claude-mpm agent-source add https://github.com/yourorg/your-agents --test
 
 ---
 
+## Strategic Direction: Delegated Automation & Cloud Dev Environments
+
+Claude MPM is moving beyond local orchestration toward being the **control plane for delegated agentic automation** — where the PM spawns and manages Claude Code instances running in cloud dev environments rather than only on the local machine.
+
+### The Vision
+
+Today, claude-mpm runs everything on your local machine. The next evolution: the PM stays as a lightweight controller while heavy implementation work is delegated to **cloud-hosted Claude Code agents** with isolated workspaces, full repo access, test runners, and deployment tools.
+
+Each agent gets its own ephemeral environment (a GitHub Codespace, a Gitpod workspace, a remote Docker container, a CI runner) — pre-configured, disposable, and purpose-built for the task.
+
+### Foundation: What's Already Built
+
+The pieces are in place:
+
+| Capability | How It's Used |
+|-----------|--------------|
+| **SDK mode** (`--sdk`) | Runs Claude programmatically without a local terminal — the bridge to headless/remote execution |
+| **Channel Hub** (`--channels`) | Multi-session message bus connecting the local PM to agent sessions |
+| **GitHub first-class context** | Automatic PR/branch/repo state injection — cloud agents understand the codebase on arrival |
+| **MCP server auto-detection** | Agents discover available tools at session start, no manual configuration |
+
+### Phase 5+: Cloud Dev Sled Integration
+
+The next major phases build on the channel hub:
+
+**Phase 5 — Remote Channel Adapters**: Telegram and Slack adapters connect the PM to agents running anywhere. A message sent to the PM via Slack routes to the correct cloud agent session and streams the response back.
+
+**Phase 6 — Cloud Sled Launch**: The PM can provision an ephemeral cloud dev environment (Codespaces, Gitpod, Daytona, remote container), launch Claude Code in SDK mode inside it, and register the session with the local Channel Hub. The PM delegates a task; the cloud agent does the work; results flow back through the channel.
+
+**Phase 7 — Fleet Coordination**: Multiple cloud agents working in parallel on independent tasks, coordinated by the local PM. The PM owns task routing, progress tracking, and result aggregation. Individual agents are disposable — the PM is the persistent state.
+
+### Design Principles
+
+- **Local PM, remote workers**: The controller stays lightweight and local. Execution scales out to cloud environments.
+- **Channels as the backbone**: The Channel Hub (already built) is the messaging layer that connects PM to remote agents — no new protocol needed.
+- **GitHub-native by default**: Cloud agents start with full repo context automatically. No setup required per task.
+- **SDK mode is the execution primitive**: All remote agent execution goes through `--sdk`. The programmatic API is stable and already supports headless operation.
+- **Ephemeral environments, persistent coordination**: Cloud workspaces are created and destroyed per task. The PM's session state and task history persist locally.
+
+### Near-Term Milestones (Phase 4)
+
+Before cloud sled work begins, Phase 4 completes the channel hub foundation:
+
+1. Telegram and Slack adapters (channel hub variants)
+2. Hub-CLI IPC bridge (`channels list`, `channels auth` talk to running hub)
+3. GitHub context injection in plain `--sdk` mode (not just channels mode)
+4. Test coverage for the channels and GitHub service layers
+
+See [`docs/research/multi-channel-github-phase4-analysis-2026-03-26.md`](docs/research/multi-channel-github-phase4-analysis-2026-03-26.md) for the detailed Phase 4 analysis.
+
+---
+
 ## Documentation
 
 **📚 [Complete Documentation Hub](docs/README.md)** - Start here for all documentation!
