@@ -479,7 +479,8 @@ class GitSourceSyncService:
 
                 if status == 200:
                     # New content downloaded - save and track
-                    self._save_to_cache(agent_filename, content)
+                    if content is not None:
+                        self._save_to_cache(agent_filename, content)
 
                     # Track file with content hash in SQLite
                     cache_file = self.cache_dir / agent_filename
@@ -490,7 +491,9 @@ class GitSourceSyncService:
                             file_path=agent_filename,
                             content_sha=content_sha,
                             local_path=str(cache_file),
-                            file_size=len(content.encode("utf-8")),
+                            file_size=len(content.encode("utf-8"))
+                            if content is not None
+                            else 0,
                         )
 
                     results["synced"].append(agent_filename)
@@ -683,7 +686,8 @@ class GitSourceSyncService:
             content, status = self._fetch_with_etag(url)
 
             if status == 200:
-                self._save_to_cache(filename, content)
+                if content is not None:
+                    self._save_to_cache(filename, content)
                 return content
             if status == 304:
                 # Load from cache
