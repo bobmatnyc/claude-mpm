@@ -41,6 +41,10 @@ LIGHTWEIGHT_COMMANDS = {
     "info",
     # Cross-project messaging
     "message",
+    # Migration management
+    "migrate",
+    # Message queue management
+    "queue",
 }
 
 

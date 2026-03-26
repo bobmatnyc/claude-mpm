@@ -81,16 +81,13 @@ class MigrateCommand(BaseCommand):
         print(f"\nSummary: {total_applied} migrated, {total_errors} errors")
 
         if total_errors > 0:
-            return CommandResult(exit_code=1, message="Some migrations failed")
+            return CommandResult.error_result("Some migrations failed")
 
         if total_applied == 0:
-            return CommandResult(
-                exit_code=0, message="All configurations are up to date"
-            )
+            return CommandResult.success_result("All configurations are up to date")
 
-        return CommandResult(
-            exit_code=0,
-            message=f"Successfully applied {total_applied} migration(s)",
+        return CommandResult.success_result(
+            f"Successfully applied {total_applied} migration(s)"
         )
 
 
