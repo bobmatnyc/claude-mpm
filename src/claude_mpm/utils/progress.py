@@ -355,6 +355,183 @@ class ProgressBar:
         # Don't suppress exceptions (returning None is equivalent to returning False)
 
 
+class StartupProgressBar:
+    """Single-line animated progress bar for CLI startup sequences.
+
+    Displays a single overwriting line showing overall startup progress
+    with a spinner, visual bar, percentage, and current step name.
+
+    Output format (TTY):
+        ⣾ Loading claude-mpm  [████████░░░░░░░]  53%  Syncing agents...
+
+    Design decisions:
+    - Uses \\r to overwrite the same line — no scrollback noise.
+    - Suppresses sub-step stdout during the loading phase so the
+      single-line summary is the only visible output.
+    - Automatically disabled in non-TTY environments (pipes, CI/CD).
+    - On completion the line is cleared so Claude's normal output is clean.
+
+    Usage::
+
+        steps = ["Syncing hooks & agents", "Loading project registry", ...]
+        with StartupProgressBar(steps) as pb:
+            pb.step("Syncing hooks & agents")
+            sync_deployment_on_startup(...)
+            pb.step("Loading project registry")
+            initialize_project_registry()
+            ...
+    """
+
+    # Braille spinner frames (high visual density, smooth animation)
+    _SPINNER_FRAMES: list[str] = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
+
+    def __init__(
+        self,
+        steps: list[str],
+        title: str = "Loading claude-mpm",
+        bar_width: int = 15,
+        enabled: bool | None = None,
+    ) -> None:
+        """Initialise the startup progress bar.
+
+        Args:
+            steps: Ordered list of step labels — used to derive percentage.
+            title: Fixed prefix shown before the progress bar.
+            bar_width: Width of the ████░░░ portion in characters.
+            enabled: Override TTY auto-detection (None = auto, True/False = force).
+        """
+        self.steps = steps
+        self.total = max(len(steps), 1)
+        self.title = title
+        self.bar_width = bar_width
+
+        self._current_step = 0
+        self._current_label = ""
+        self._spinner_idx = 0
+        self._last_render_time = 0.0
+        self._render_throttle = 0.08  # ~12 Hz max render rate
+
+        # TTY detection
+        if enabled is None:
+            try:
+                self.enabled = sys.stdout.isatty()
+            except AttributeError:
+                self.enabled = False
+        else:
+            self.enabled = enabled
+
+        # Terminal width (for truncation)
+        try:
+            self._term_width = os.get_terminal_size().columns
+        except (OSError, AttributeError, ValueError):
+            self._term_width = 80
+
+        # stdout suppression state
+        self._real_stdout: Any | None = None
+        self._devnull: Any | None = None
+
+    # ------------------------------------------------------------------ #
+    # Public API
+    # ------------------------------------------------------------------ #
+
+    def step(self, label: str) -> None:
+        """Advance the bar by one step and display the given label.
+
+        Args:
+            label: Human-readable description of the step now starting.
+        """
+        self._current_step = min(self._current_step + 1, self.total)
+        self._current_label = label
+        self._spinner_idx = (self._spinner_idx + 1) % len(self._SPINNER_FRAMES)
+        self._render(force=True)
+
+    def clear(self) -> None:
+        """Erase the progress line from the terminal."""
+        if not self.enabled:
+            return
+        blank = " " * (self._term_width - 1)
+        sys.stdout.write(f"\r{blank}\r")
+        sys.stdout.flush()
+
+    # ------------------------------------------------------------------ #
+    # Context manager
+    # ------------------------------------------------------------------ #
+
+    def __enter__(self) -> "StartupProgressBar":
+        if self.enabled:
+            self._suppress_stdout()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type | None,
+        exc_val: BaseException | None,
+        exc_tb: "Any | None",
+    ) -> None:
+        if self.enabled:
+            self._restore_stdout()
+            self.clear()
+
+    # ------------------------------------------------------------------ #
+    # Internal helpers
+    # ------------------------------------------------------------------ #
+
+    def _render(self, *, force: bool = False) -> None:
+        """Write the current progress line to stdout using \\r."""
+        if not self.enabled:
+            return
+
+        now = time.time()
+        if not force and (now - self._last_render_time) < self._render_throttle:
+            return
+        self._last_render_time = now
+
+        percentage = int(self._current_step / self.total * 100)
+        filled = int(self.bar_width * self._current_step / self.total)
+        bar = "█" * filled + "░" * (self.bar_width - filled)
+        spinner = self._SPINNER_FRAMES[self._spinner_idx % len(self._SPINNER_FRAMES)]
+
+        line = (
+            f"{spinner} {self.title}  [{bar}]  {percentage:3d}%  {self._current_label}"
+        )
+
+        # Truncate to terminal width (leave 1 char margin)
+        max_w = self._term_width - 1
+        if len(line) > max_w:
+            line = line[: max_w - 3] + "..."
+
+        # Pad to clear previous longer content, then overwrite
+        padded = line.ljust(max_w)
+
+        # Write directly to the real stdout (bypassing suppression)
+        target = self._real_stdout if self._real_stdout is not None else sys.stdout
+        target.write(f"\r{padded}")
+        target.flush()
+
+    def _suppress_stdout(self) -> None:
+        """Redirect sys.stdout to /dev/null to suppress sub-step output."""
+        try:
+            self._real_stdout = sys.stdout
+            self._devnull = open(os.devnull, "w")
+            sys.stdout = self._devnull
+        except Exception:
+            # If suppression fails, continue without it
+            self._real_stdout = None
+            self._devnull = None
+
+    def _restore_stdout(self) -> None:
+        """Restore sys.stdout to its original value."""
+        if self._real_stdout is not None:
+            sys.stdout = self._real_stdout
+            self._real_stdout = None
+        if self._devnull is not None:
+            try:
+                self._devnull.close()
+            except Exception:
+                pass
+            self._devnull = None
+
+
 # Convenience function for simple use cases
 def create_progress_bar(
     total: int,
