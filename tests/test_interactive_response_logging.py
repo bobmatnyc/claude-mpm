@@ -76,6 +76,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
 
         # Verify response tracker was initialized
         self.assertIsNotNone(session.response_tracker)
+        assert session.response_tracker is not None
         self.assertTrue(session.response_tracker.enabled)
         self.assertIsNotNone(session.response_tracker.session_logger)
 

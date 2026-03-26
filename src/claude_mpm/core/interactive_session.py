@@ -226,7 +226,7 @@ class InteractiveSession:
             self._handle_launch_error("Exception", e)
             return self._attempt_fallback_launch(environment)
 
-    def process_interactive_command(self, prompt: str) -> bool | None:
+    def process_interactive_command(self, _prompt: str) -> bool | None:
         """Process special interactive commands.
 
         NOTE: As of v4.1.2, MPM slash commands are deployed as markdown files
@@ -611,7 +611,6 @@ class InteractiveSession:
 
         # This will not return if successful
         os.execvpe(cmd[0], cmd, env)  # nosec B606
-        return False  # Only reached on failure
 
     def _launch_subprocess_mode(self, cmd: list, env: dict) -> bool:
         """Launch Claude as subprocess with PTY."""
@@ -668,6 +667,62 @@ class InteractiveSession:
             permission_mode = None
             if not skip_permissions_disabled():
                 permission_mode = "bypassPermissions"
+
+            # Inject GitHub context into system prompt (best-effort)
+            try:
+                from claude_mpm.services.github.repo_context import GitHubRepoContext
+                from claude_mpm.services.github.system_prompt_injector import (
+                    GitHubSystemPromptInjector,
+                )
+
+                github_ctx = await GitHubRepoContext.detect(cwd, timeout_ms=3000)
+                if github_ctx is not None:
+                    system_prompt = GitHubSystemPromptInjector().inject_into_prompt(
+                        system_prompt, github_ctx
+                    )
+                    self.logger.debug(
+                        "GitHub context injected: %s/%s",
+                        github_ctx.owner,
+                        github_ctx.repo,
+                    )
+                    # Probe GitHub MCP server and add to mcp_servers if available
+                    try:
+                        from claude_mpm.services.github.mcp_probe import (
+                            probe_github_mcp,
+                        )
+
+                        identity_manager = None
+                        try:
+                            from claude_mpm.services.github.identity_manager import (
+                                GitHubIdentityManager,
+                            )
+
+                            identity_manager = GitHubIdentityManager()
+                        except ImportError:
+                            pass
+
+                        github_mcp_cfg = await probe_github_mcp(
+                            cwd, identity_manager, timeout_ms=2000
+                        )
+                        if github_mcp_cfg is not None:
+                            if mcp_servers is None:
+                                mcp_servers = {}
+                            mcp_servers[github_mcp_cfg.server_name] = (
+                                github_mcp_cfg.config
+                            )
+                            self.logger.debug(
+                                "GitHub MCP server added: %s",
+                                github_mcp_cfg.server_name,
+                            )
+                    except ImportError:
+                        pass
+            except ImportError:
+                pass
+            except Exception:
+                self.logger.debug(
+                    "GitHub context detection failed; continuing without it",
+                    exc_info=True,
+                )
 
             # Set up hook event bus for sidecar agent injection
             event_bus = None
@@ -932,7 +987,7 @@ class InteractiveSession:
                 {"event": "session_interrupted", "reason": "user_interrupt"}
             )
 
-    def _launch_channel_hub_mode(self, channels_str: str) -> bool:
+    def _launch_channel_hub_mode(self, _channels_str: str) -> bool:
         """Launch the multi-channel hub instead of a single-channel session.
 
         Args:

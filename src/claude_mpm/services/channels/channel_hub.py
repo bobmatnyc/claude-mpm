@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import os
+import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .channel_config import load_channels_config
@@ -17,6 +21,19 @@ if TYPE_CHECKING:
     from .models import ChannelMessage, ChannelSession
 
 logger = logging.getLogger(__name__)
+
+# Path for hub state file used by CLI IPC
+_HUB_STATE_PATH = Path.home() / ".claude-mpm" / "channels" / "hub-state.json"
+
+
+def read_hub_state() -> dict | None:
+    """Read hub state file; return None if not present or unreadable."""
+    try:
+        if _HUB_STATE_PATH.exists():
+            return json.loads(_HUB_STATE_PATH.read_text())
+    except Exception:
+        pass
+    return None
 
 
 class ChannelHub:
@@ -33,6 +50,7 @@ class ChannelHub:
         self._workers: dict[str, SessionWorker] = {}
         self._adapters: list[Any] = []
         self._running = False
+        self._started_at: float = 0.0
         try:
             from claude_mpm.services.github.identity_manager import (
                 GitHubIdentityManager,
@@ -42,13 +60,57 @@ class ChannelHub:
         except Exception:
             self._identity_manager = None
 
+    def _write_hub_state(self) -> None:
+        """Write hub state to disk for CLI IPC."""
+        try:
+            _HUB_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            sessions = []
+            for sess in self.registry._sessions.values():
+                sessions.append(
+                    {
+                        "id": sess.session_id or "",
+                        "name": sess.name,
+                        "cwd": sess.cwd,
+                        "state": sess.state.value,
+                        "created_at": sess.created_at,
+                    }
+                )
+            state = {
+                "pid": os.getpid(),
+                "started_at": self._started_at,
+                "version": self._get_version(),
+                "sessions": sessions,
+            }
+            _HUB_STATE_PATH.write_text(json.dumps(state, indent=2))
+        except Exception:
+            logger.debug("Failed to write hub state", exc_info=True)
+
+    def _clear_hub_state(self) -> None:
+        """Remove hub state file on clean shutdown."""
+        try:
+            if _HUB_STATE_PATH.exists():
+                _HUB_STATE_PATH.unlink()
+        except Exception:
+            logger.debug("Failed to clear hub state", exc_info=True)
+
+    @staticmethod
+    def _get_version() -> str:
+        try:
+            from claude_mpm import __version__
+
+            return __version__
+        except Exception:
+            return "unknown"
+
     async def start(self) -> None:
         """Start the hub and all enabled adapters."""
         self._running = True
+        self._started_at = time.time()
         # Terminal adapter is always enabled in SDK+channels mode
         terminal = TerminalAdapter(self)
         self._adapters.append(terminal)
         await terminal.start()
+        self._write_hub_state()
         logger.info("ChannelHub started")
 
     async def stop(self) -> None:
@@ -65,6 +127,7 @@ class ChannelHub:
             except Exception:
                 logger.exception("Error stopping worker for session '%s'", name)
         self._workers.clear()
+        self._clear_hub_state()
         logger.info("ChannelHub stopped")
 
     async def create_session(
@@ -105,9 +168,11 @@ class ChannelHub:
                 ),
                 return_exceptions=True,
             )
-            github_ctx = results[0] if not isinstance(results[0], Exception) else None
+            github_ctx = (
+                results[0] if not isinstance(results[0], BaseException) else None
+            )
             github_mcp_cfg = (
-                results[1] if not isinstance(results[1], Exception) else None
+                results[1] if not isinstance(results[1], BaseException) else None
             )
         except Exception:
             pass
@@ -126,6 +191,7 @@ class ChannelHub:
         )
         self._workers[name] = worker
         await worker.start()
+        self._write_hub_state()
         return session
 
     async def join_session(
