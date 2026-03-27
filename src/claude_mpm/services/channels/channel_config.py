@@ -39,6 +39,8 @@ class SlackChannelConfig:
     default_cwd: str = "~"
     session_mode: str = "per_user"
     auth_required: bool = True
+    use_block_kit: bool = True
+    update_interval_ms: int = 3000
 
 
 @dataclass

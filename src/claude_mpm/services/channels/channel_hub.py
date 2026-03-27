@@ -126,6 +126,14 @@ class ChannelHub:
             self._adapters.append(telegram_adapter)
             await telegram_adapter.start()
             logger.info("Telegram channel adapter started")
+        # Slack adapter (optional, enabled via config)
+        if self.config.slack.enabled:
+            from .slack_adapter import SlackAdapter
+
+            slack_adapter = SlackAdapter(hub=self, config=self.config.slack)
+            self._adapters.append(slack_adapter)
+            await slack_adapter.start()
+            logger.info("Slack channel adapter started")
         self._write_hub_state()
         logger.info("ChannelHub started")
 
