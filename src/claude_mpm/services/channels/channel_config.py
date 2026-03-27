@@ -40,6 +40,25 @@ class SlackChannelConfig:
 
 
 @dataclass
+class GitHubChannelConfig:
+    enabled: bool = False
+    pat_env: str = "GITHUB_TOKEN"
+    owner: str | None = None  # repo owner, e.g. "bobmatnyc"
+    repo: str | None = None  # repo name, e.g. "claude-mpm"
+    label_gate: str = "mpm:run"
+    mode: str = "polling"  # "polling" | "webhook" | "both"
+    poll_interval_seconds: int = 30
+    webhook_port: int = 9876
+    webhook_secret_env: str = "GITHUB_WEBHOOK_SECRET"
+    output_mode: str = "streaming"  # "streaming" | "summary"
+    comment_debounce_seconds: float = 5.0
+    allowed_user_types: list[str] = field(
+        default_factory=lambda: ["member", "owner", "collaborator"]
+    )
+    max_prompt_chars: int = 2000
+
+
+@dataclass
 class SecurityConfig:
     pairing_token_length: int = 32
     token_rotation_days: int = 90
@@ -73,6 +92,7 @@ class ChannelsConfig:
     terminal: TerminalChannelConfig = field(default_factory=TerminalChannelConfig)
     telegram: TelegramChannelConfig = field(default_factory=TelegramChannelConfig)
     slack: SlackChannelConfig = field(default_factory=SlackChannelConfig)
+    github: GitHubChannelConfig = field(default_factory=GitHubChannelConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
     vector_search: VectorSearchConfig = field(default_factory=VectorSearchConfig)
@@ -95,6 +115,26 @@ def load_channels_config(config_dir: Path | None = None) -> ChannelsConfig:
         return ChannelsConfig()
 
 
+def _parse_github_config_from_env(cfg: GitHubChannelConfig) -> GitHubChannelConfig:
+    """Override GitHubChannelConfig fields from environment variables."""
+    import os
+
+    if val := os.environ.get("CLAUDE_MPM_GITHUB_OWNER"):
+        cfg.owner = val
+    if val := os.environ.get("CLAUDE_MPM_GITHUB_REPO"):
+        cfg.repo = val
+    if val := os.environ.get("CLAUDE_MPM_GITHUB_LABEL"):
+        cfg.label_gate = val
+    if val := os.environ.get("CLAUDE_MPM_GITHUB_MODE"):
+        cfg.mode = val
+    if val := os.environ.get("CLAUDE_MPM_GITHUB_POLL_INTERVAL"):
+        try:
+            cfg.poll_interval_seconds = int(val)
+        except ValueError:
+            pass
+    return cfg
+
+
 def _parse_config(data: dict[str, Any]) -> ChannelsConfig:
     cfg = ChannelsConfig()
     if hub_data := data.get("hub"):
@@ -114,6 +154,11 @@ def _parse_config(data: dict[str, Any]) -> ChannelsConfig:
             cfg.slack = SlackChannelConfig(
                 **{k: v for k, v in sl.items() if hasattr(SlackChannelConfig, k)}
             )  # type: ignore[call-arg]
+        if gh := ch.get("github"):
+            cfg.github = GitHubChannelConfig(
+                **{k: v for k, v in gh.items() if hasattr(GitHubChannelConfig, k)}
+            )  # type: ignore[call-arg]
+    cfg.github = _parse_github_config_from_env(cfg.github)
     if sec := data.get("security"):
         cfg.security = SecurityConfig(
             **{k: v for k, v in sec.items() if hasattr(SecurityConfig, k)}

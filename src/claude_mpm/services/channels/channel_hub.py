@@ -110,6 +110,14 @@ class ChannelHub:
         terminal = TerminalAdapter(self)
         self._adapters.append(terminal)
         await terminal.start()
+        # GitHub adapter (optional, enabled via config)
+        if self.config.github.enabled:
+            from .github_adapter import GitHubAdapter
+
+            github_adapter = GitHubAdapter(hub=self, config=self.config.github)
+            self._adapters.append(github_adapter)
+            await github_adapter.start()
+            logger.info("GitHub channel adapter started")
         self._write_hub_state()
         logger.info("ChannelHub started")
 
