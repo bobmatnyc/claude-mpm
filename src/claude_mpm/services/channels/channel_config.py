@@ -24,6 +24,8 @@ class TelegramChannelConfig:
     default_cwd: str = "~"
     session_mode: str = "per_user"  # "per_user" | "shared"
     auth_required: bool = True
+    stream_edits: bool = True
+    edit_interval_ms: int = 2000
 
 
 @dataclass

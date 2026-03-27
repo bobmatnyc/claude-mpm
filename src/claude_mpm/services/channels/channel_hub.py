@@ -118,6 +118,14 @@ class ChannelHub:
             self._adapters.append(github_adapter)
             await github_adapter.start()
             logger.info("GitHub channel adapter started")
+        # Telegram adapter (optional, enabled via config)
+        if self.config.telegram.enabled:
+            from .telegram_adapter import TelegramAdapter
+
+            telegram_adapter = TelegramAdapter(hub=self, config=self.config.telegram)
+            self._adapters.append(telegram_adapter)
+            await telegram_adapter.start()
+            logger.info("Telegram channel adapter started")
         self._write_hub_state()
         logger.info("ChannelHub started")
 

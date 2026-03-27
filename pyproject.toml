@@ -134,6 +134,8 @@ slack = [ "slack-bolt>=1.18.0", "slack-sdk>=3.23.0",]
 http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "pyngrok>=7.0.0",]
 # Claude Agent SDK for in-process agent execution (alternative to CLI subprocess)
 sdk = [ "claude-agent-sdk>=0.1.48",]
+# Telegram bot client for remote Claude control via Telegram
+telegram = [ "python-telegram-bot>=20.0",]
 # Google Workspace extended features (rclone for Drive sync)
 # NOTE: Requires rclone CLI binary installed separately (https://rclone.org/downloads/)
 # The implementation uses rclone via subprocess, not a Python package.
