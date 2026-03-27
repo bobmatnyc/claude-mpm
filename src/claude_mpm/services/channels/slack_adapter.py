@@ -259,7 +259,7 @@ class SlackAdapter(BaseAdapter):
 
         lines = ["Active sessions:"]
         for name in user_sessions:
-            session = self.hub.registry._sessions.get(name)
+            session = await self.hub.get_session(name)
             if session:
                 import datetime
 
@@ -294,15 +294,8 @@ class SlackAdapter(BaseAdapter):
             await say(text=f"Session '{target}' is not owned by you.")
             return
 
-        # Stop the worker
-        worker = self.hub._workers.get(target)
-        if worker is not None:
-            try:
-                await worker.stop()
-            except Exception:
-                logger.warning(
-                    "SlackAdapter: error stopping worker '%s'", target, exc_info=True
-                )
+        # Stop the worker via public API
+        await self.hub.stop_session(target)
         self._cleanup_session(target)
         await say(text=f"Session '{target}' stopped.")
 

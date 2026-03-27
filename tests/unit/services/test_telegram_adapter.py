@@ -52,6 +52,8 @@ def _make_hub_mock() -> MagicMock:
     hub.registry.unsubscribe = AsyncMock()
     hub.create_session = AsyncMock()
     hub.route_message = AsyncMock()
+    hub.stop_session = AsyncMock(return_value=True)
+    hub.get_session = AsyncMock(return_value=None)
     hub._workers = {}
     return hub
 
@@ -457,10 +459,6 @@ class TestTelegramAdapterCommands:
         adapter._session_owners[session_name] = 100
         adapter._session_messages[session_name] = (200, 42)
 
-        worker_mock = MagicMock()
-        worker_mock.stop = AsyncMock()
-        hub._workers[session_name] = worker_mock
-
         update = MagicMock()
         update.effective_user = MagicMock()
         update.effective_user.id = 100
@@ -472,7 +470,7 @@ class TestTelegramAdapterCommands:
 
         await adapter._cmd_kill(update, context)
 
-        worker_mock.stop.assert_called_once()
+        hub.stop_session.assert_called_once_with(session_name)
         assert session_name not in adapter._session_owners
 
     @pytest.mark.asyncio

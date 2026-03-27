@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from .channel_config import load_channels_config
+from .permissions import PermissionManager
 from .session_registry import SessionRegistry
 from .session_worker import SessionWorker
 from .terminal_adapter import TerminalAdapter
@@ -49,6 +50,7 @@ class ChannelHub:
         self.registry = SessionRegistry()
         self._workers: dict[str, SessionWorker] = {}
         self._adapters: list[Any] = []
+        self._perm_mgr = PermissionManager()
         self._running = False
         self._started_at: float = 0.0
         try:
@@ -169,13 +171,13 @@ class ChannelHub:
         all checks pass (default = allow all).
         """
         from .git_requirements import GitRequirementsChecker
-        from .permissions import PermissionManager
 
         # ── Permission gate ──────────────────────────────────────────
-        perm_mgr = PermissionManager()
-        perm_mgr.load(project_root=Path(cwd) if cwd else None)
+        # Reload config each call (picks up file changes) but reuse the
+        # singleton so rate/concurrent trackers persist across sessions.
+        self._perm_mgr.load(project_root=Path(cwd) if cwd else None)
 
-        allowed, reason = perm_mgr.check(
+        allowed, reason = self._perm_mgr.check(
             platform=channel, identity=user_id, project_root=cwd
         )
         if not allowed:
@@ -183,14 +185,16 @@ class ChannelHub:
                 f"Permission denied for {channel}:{user_id}: {reason}"
             )
 
-        allowed, reason = perm_mgr.check_rate_limit(platform=channel, identity=user_id)
+        allowed, reason = self._perm_mgr.check_rate_limit(
+            platform=channel, identity=user_id
+        )
         if not allowed:
             raise PermissionError(
                 f"Rate limit exceeded for {channel}:{user_id}: {reason}"
             )
 
         # Git requirements (only when the permission entry defines them)
-        role_perm = perm_mgr._find_permission(channel, user_id)
+        role_perm = self._perm_mgr._find_permission(channel, user_id)
         if role_perm and role_perm.git and cwd:
             checker = GitRequirementsChecker()
             allowed, reason = await checker.check(
@@ -202,7 +206,7 @@ class ChannelHub:
                 raise PermissionError(f"Git requirements not met: {reason}")
 
         # Record session start for rate limiting
-        perm_mgr.record_session_start(platform=channel, identity=user_id)
+        self._perm_mgr.record_session_start(platform=channel, identity=user_id)
 
         # ── Original session-creation logic ──────────────────────────
         session = await self.registry.create(
@@ -259,6 +263,21 @@ class ChannelHub:
         await worker.start()
         self._write_hub_state()
         return session
+
+    async def stop_session(self, name: str) -> bool:
+        """Stop a session's worker. Returns True if stopped, False if not found."""
+        worker = self._workers.get(name)
+        if worker is None:
+            return False
+        try:
+            await worker.stop()
+        except Exception:
+            logger.warning("Error stopping worker '%s'", name, exc_info=True)
+        return True
+
+    async def get_session(self, name: str) -> ChannelSession | None:
+        """Get session info by name. Returns None if not found."""
+        return await self.registry.get(name)
 
     async def join_session(
         self,

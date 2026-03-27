@@ -512,11 +512,9 @@ class TestPostComment:
         mock_response.json.return_value = {"id": 12345}
 
         mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch.object(adapter, "_make_client", return_value=mock_client):
+        with patch.object(adapter, "_get_client", return_value=mock_client):
             result = await adapter._post_comment(42, "issues", "Hello from MPM")
 
         assert result == 12345
@@ -531,11 +529,9 @@ class TestPostComment:
         mock_response.status_code = 422
 
         mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch.object(adapter, "_make_client", return_value=mock_client):
+        with patch.object(adapter, "_get_client", return_value=mock_client):
             result = await adapter._post_comment(42, "issues", "body")
 
         assert result is None
@@ -544,11 +540,9 @@ class TestPostComment:
     async def test_post_comment_exception_returns_none(self) -> None:
         adapter = self._adapter()
         mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(side_effect=RuntimeError("network"))
 
-        with patch.object(adapter, "_make_client", return_value=mock_client):
+        with patch.object(adapter, "_get_client", return_value=mock_client):
             result = await adapter._post_comment(42, "issues", "body")
 
         assert result is None
@@ -576,11 +570,9 @@ class TestUpdateComment:
         mock_response.status_code = 200
 
         mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.patch = AsyncMock(return_value=mock_response)
 
-        with patch.object(adapter, "_make_client", return_value=mock_client):
+        with patch.object(adapter, "_get_client", return_value=mock_client):
             result = await adapter._update_comment(999, "Updated body")
 
         assert result is True
@@ -593,11 +585,9 @@ class TestUpdateComment:
         mock_response.status_code = 404
 
         mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.patch = AsyncMock(return_value=mock_response)
 
-        with patch.object(adapter, "_make_client", return_value=mock_client):
+        with patch.object(adapter, "_get_client", return_value=mock_client):
             result = await adapter._update_comment(999, "body")
 
         assert result is False
@@ -606,11 +596,9 @@ class TestUpdateComment:
     async def test_update_comment_exception_returns_false(self) -> None:
         adapter = self._adapter()
         mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.patch = AsyncMock(side_effect=RuntimeError("timeout"))
 
-        with patch.object(adapter, "_make_client", return_value=mock_client):
+        with patch.object(adapter, "_get_client", return_value=mock_client):
             result = await adapter._update_comment(999, "body")
 
         assert result is False

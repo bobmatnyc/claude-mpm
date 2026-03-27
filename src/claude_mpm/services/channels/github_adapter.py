@@ -83,12 +83,16 @@ class GitHubAdapter(BaseAdapter):
         self._poll_task: asyncio.Task | None = None
         self._webhook_task: asyncio.Task | None = None
         self._webhook_runner: Any = None  # aiohttp AppRunner
-        # Output buffer: session_name -> list[str]
+        # Output buffer: session_name -> list[str] (new chunks since last flush)
         self._output_buffers: dict[str, list[str]] = {}
+        # Accumulated text: session_name -> str (full text for the comment)
+        self._accumulated_text: dict[str, str] = {}
         # Last PATCH time: session_name -> float
         self._last_patch: dict[str, float] = {}
         # Debounce tasks: session_name -> asyncio.Task
         self._debounce_tasks: dict[str, asyncio.Task] = {}
+        # Persistent HTTP client (lazy-initialized)
+        self._client: httpx.AsyncClient | None = None
         # Permission cache: username -> (allowed, expires_at)
         self._permission_cache: dict[str, tuple[bool, float]] = {}
         self._permission_cache_ttl = 300.0  # 5 minutes
@@ -131,6 +135,14 @@ class GitHubAdapter(BaseAdapter):
                 await self._webhook_runner.cleanup()
             except Exception:
                 pass
+
+        # Close persistent HTTP client
+        if self._client is not None:
+            try:
+                await self._client.aclose()
+            except Exception:
+                pass
+            self._client = None
 
         # Cancel pending debounce tasks
         for task in list(self._debounce_tasks.values()):
@@ -300,6 +312,16 @@ class GitHubAdapter(BaseAdapter):
 
     async def _start_webhook_server(self) -> None:
         """Start an aiohttp webhook server on the configured port."""
+        secret_env = self.config.webhook_secret_env
+        secret = os.environ.get(secret_env, "")
+        if not secret:
+            logger.error(
+                "GitHubAdapter: webhook mode requires %s to be set. "
+                "Refusing to start webhook server without signature verification.",
+                secret_env,
+            )
+            return
+
         try:
             from aiohttp import web
 
@@ -327,14 +349,12 @@ class GitHubAdapter(BaseAdapter):
 
         body = await request.read()
 
-        # Verify signature
-        secret_env = self.config.webhook_secret_env
-        secret = os.environ.get(secret_env, "")
-        if secret:
-            signature = request.headers.get("X-Hub-Signature-256", "")
-            if not self._verify_signature(body, signature, secret):
-                logger.warning("GitHub webhook signature verification failed")
-                return web.Response(status=403, text="Forbidden")
+        # Always verify signature (webhook server refuses to start without secret)
+        secret = os.environ.get(self.config.webhook_secret_env, "")
+        signature = request.headers.get("X-Hub-Signature-256", "")
+        if not self._verify_signature(body, signature, secret):
+            logger.warning("GitHub webhook signature verification failed")
+            return web.Response(status=403, text="Forbidden")
 
         event_type = request.headers.get("X-GitHub-Event", "")
         try:
@@ -379,22 +399,26 @@ class GitHubAdapter(BaseAdapter):
 
     # ── GitHub API helpers ─────────────────────────────────────────────────
 
-    def _make_client(self) -> httpx.AsyncClient:
-        """Create a configured httpx async client."""
-        pat = os.environ.get(self.config.pat_env, "")
-        headers = {
-            "Authorization": f"token {pat}",
-            "Accept": _ACCEPT_HEADER,
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-        return httpx.AsyncClient(headers=headers, timeout=30.0)
+    def _get_client(self) -> httpx.AsyncClient:
+        """Return a persistent httpx async client, creating one lazily."""
+        if self._client is None or self._client.is_closed:
+            pat = os.environ.get(self.config.pat_env, "")
+            self._client = httpx.AsyncClient(
+                headers={
+                    "Authorization": f"token {pat}",
+                    "Accept": _ACCEPT_HEADER,
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                timeout=30.0,
+            )
+        return self._client
 
     async def _gh_get_list(self, url: str) -> list[dict[str, Any]]:
         """Perform a GitHub GET request returning a JSON list with exponential backoff on 429."""
         backoff = 1.0
         for _ in range(5):
-            async with self._make_client() as client:
-                resp = await client.get(url)
+            client = self._get_client()
+            resp = await client.get(url)
             if resp.status_code == 429:
                 logger.warning("GitHub rate limit hit, waiting %.1fs", backoff)
                 await asyncio.sleep(backoff)
@@ -409,8 +433,8 @@ class GitHubAdapter(BaseAdapter):
         """Perform a GitHub GET request returning a JSON object."""
         backoff = 1.0
         for _ in range(5):
-            async with self._make_client() as client:
-                resp = await client.get(url)
+            client = self._get_client()
+            resp = await client.get(url)
             if resp.status_code == 429:
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 60)
@@ -430,8 +454,8 @@ class GitHubAdapter(BaseAdapter):
         # Both issues and PRs use the issues comments endpoint
         url = f"{_GITHUB_API}/repos/{owner}/{repo}/issues/{number}/comments"
         try:
-            async with self._make_client() as client:
-                resp = await client.post(url, json={"body": body})
+            client = self._get_client()
+            resp = await client.post(url, json={"body": body})
             if resp.status_code in (201, 200):
                 data = resp.json()
                 comment_id = data.get("id")
@@ -454,8 +478,8 @@ class GitHubAdapter(BaseAdapter):
         repo = self.config.repo or ""
         url = f"{_GITHUB_API}/repos/{owner}/{repo}/issues/comments/{comment_id}"
         try:
-            async with self._make_client() as client:
-                resp = await client.patch(url, json={"body": body})
+            client = self._get_client()
+            resp = await client.patch(url, json={"body": body})
             return resp.status_code == 200
         except Exception:
             logger.warning(
@@ -484,17 +508,27 @@ class GitHubAdapter(BaseAdapter):
     async def _flush_output(
         self, entity_key: str, session_name: str, final: bool = False
     ) -> None:
-        """Flush buffered output to the GitHub comment via PATCH."""
+        """Flush buffered output to the GitHub comment via PATCH.
+
+        Accumulates all text across flushes so the PATCH always contains the
+        full conversation output.  Only clears accumulated text on final flush.
+        """
         comment_id = self._mapper.get_comment_id(entity_key)
         if comment_id is None:
             # No comment to update (initial POST failed); skip streaming
             return
 
-        buffer = self._output_buffers.pop(session_name, [])
-        if not buffer and not final:
+        # Drain new chunks and append to accumulated text
+        new_chunks = self._output_buffers.pop(session_name, [])
+        if new_chunks:
+            self._accumulated_text[session_name] = self._accumulated_text.get(
+                session_name, ""
+            ) + "".join(new_chunks)
+
+        combined = self._accumulated_text.get(session_name, "")
+        if not combined and not final:
             return
 
-        combined = "".join(buffer)
         if final:
             body = f"🤖 MPM session output:\n\n```\n{combined}\n```\n\n✅ Session complete."
         else:
@@ -503,6 +537,11 @@ class GitHubAdapter(BaseAdapter):
         success = await self._update_comment(comment_id, body)
         if success:
             self._last_patch[session_name] = time.time()
+
+        # Only clear accumulated text when session is done
+        if final:
+            self._accumulated_text.pop(session_name, None)
+
         # Clean up debounce task reference
         self._debounce_tasks.pop(session_name, None)
 

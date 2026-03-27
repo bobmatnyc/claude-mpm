@@ -251,7 +251,7 @@ class TelegramAdapter(BaseAdapter):
         lines = ["Active sessions:"]
         for name in user_sessions:
             # Look up session info from hub registry
-            session = self.hub.registry._sessions.get(name)
+            session = await self.hub.get_session(name)
             if session:
                 import datetime
 
@@ -290,15 +290,8 @@ class TelegramAdapter(BaseAdapter):
             await update.message.reply_text(f"Session '{target}' is not owned by you.")
             return
 
-        # Stop the worker
-        worker = self.hub._workers.get(target)
-        if worker is not None:
-            try:
-                await worker.stop()
-            except Exception:
-                logger.warning(
-                    "TelegramAdapter: error stopping worker '%s'", target, exc_info=True
-                )
+        # Stop the worker via public API
+        await self.hub.stop_session(target)
         self._cleanup_session(target)
         await update.message.reply_text(f"Session '{target}' stopped.")
 

@@ -57,6 +57,8 @@ def _make_hub_mock() -> MagicMock:
     hub.registry._sessions = {}
     hub.create_session = AsyncMock()
     hub.route_message = AsyncMock()
+    hub.stop_session = AsyncMock(return_value=True)
+    hub.get_session = AsyncMock(return_value=None)
     hub._workers = {}
     return hub
 
@@ -763,10 +765,6 @@ class TestSlackAdapterSessionOwnership:
             "thread_ts": None,
         }
 
-        worker_mock = MagicMock()
-        worker_mock.stop = AsyncMock()
-        hub._workers[session_name] = worker_mock
-
         ack = AsyncMock()
         body = {
             "user_id": "U100",
@@ -777,7 +775,7 @@ class TestSlackAdapterSessionOwnership:
         await adapter._handle_kill_command(ack, body, say)
 
         ack.assert_called_once()
-        worker_mock.stop.assert_called_once()
+        hub.stop_session.assert_called_once_with(session_name)
         assert session_name not in adapter._session_owners
 
     @pytest.mark.asyncio

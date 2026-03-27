@@ -498,20 +498,17 @@ class TestChannelHubPermissionIntegration:
 
         hub = ChannelHub(runner=MagicMock())
 
-        with patch(
-            "claude_mpm.services.channels.permissions.PermissionManager"
-        ) as MockPM:
-            instance = MockPM.return_value
-            instance.load = MagicMock()
-            instance.check.return_value = (False, "denied for testing")
+        hub._perm_mgr = MagicMock()
+        hub._perm_mgr.load = MagicMock()
+        hub._perm_mgr.check.return_value = (False, "denied for testing")
 
-            with pytest.raises(PermissionError, match="Permission denied"):
-                await hub.create_session(
-                    name="test-sess",
-                    cwd="/tmp/test",
-                    channel="github",
-                    user_id="baduser",
-                )
+        with pytest.raises(PermissionError, match="Permission denied"):
+            await hub.create_session(
+                name="test-sess",
+                cwd="/tmp/test",
+                channel="github",
+                user_id="baduser",
+            )
 
     @pytest.mark.asyncio
     async def test_rate_limit_denied_raises(self) -> None:
@@ -520,24 +517,21 @@ class TestChannelHubPermissionIntegration:
 
         hub = ChannelHub(runner=MagicMock())
 
-        with patch(
-            "claude_mpm.services.channels.permissions.PermissionManager"
-        ) as MockPM:
-            instance = MockPM.return_value
-            instance.load = MagicMock()
-            instance.check.return_value = (True, "")
-            instance.check_rate_limit.return_value = (
-                False,
-                "Rate limit exceeded",
-            )
+        hub._perm_mgr = MagicMock()
+        hub._perm_mgr.load = MagicMock()
+        hub._perm_mgr.check.return_value = (True, "")
+        hub._perm_mgr.check_rate_limit.return_value = (
+            False,
+            "Rate limit exceeded",
+        )
 
-            with pytest.raises(PermissionError, match="Rate limit"):
-                await hub.create_session(
-                    name="test-sess",
-                    cwd="/tmp/test",
-                    channel="github",
-                    user_id="ratelimited",
-                )
+        with pytest.raises(PermissionError, match="Rate limit"):
+            await hub.create_session(
+                name="test-sess",
+                cwd="/tmp/test",
+                channel="github",
+                user_id="ratelimited",
+            )
 
     @pytest.mark.asyncio
     async def test_git_requirements_denied_raises(self) -> None:
@@ -549,20 +543,15 @@ class TestChannelHubPermissionIntegration:
         git_req = GitRequirements(branch_pattern="main", require_clean="block")
         perm = BotPermission(platform="github", identity="dev1", git=git_req)
 
-        with (
-            patch(
-                "claude_mpm.services.channels.permissions.PermissionManager"
-            ) as MockPM,
-            patch(
-                "claude_mpm.services.channels.git_requirements.GitRequirementsChecker"
-            ) as MockGRC,
-        ):
-            pm_instance = MockPM.return_value
-            pm_instance.load = MagicMock()
-            pm_instance.check.return_value = (True, "")
-            pm_instance.check_rate_limit.return_value = (True, "")
-            pm_instance._find_permission.return_value = perm
+        hub._perm_mgr = MagicMock()
+        hub._perm_mgr.load = MagicMock()
+        hub._perm_mgr.check.return_value = (True, "")
+        hub._perm_mgr.check_rate_limit.return_value = (True, "")
+        hub._perm_mgr._find_permission.return_value = perm
 
+        with patch(
+            "claude_mpm.services.channels.git_requirements.GitRequirementsChecker"
+        ) as MockGRC:
             grc_instance = MockGRC.return_value
             grc_instance.check = AsyncMock(return_value=(False, "dirty working tree"))
 
@@ -581,48 +570,45 @@ class TestChannelHubPermissionIntegration:
 
         hub = ChannelHub(runner=MagicMock())
 
-        with patch(
-            "claude_mpm.services.channels.permissions.PermissionManager"
-        ) as MockPM:
-            pm_instance = MockPM.return_value
-            pm_instance.load = MagicMock()
-            # No permissions loaded -> allow all
-            pm_instance.check.return_value = (True, "")
-            pm_instance.check_rate_limit.return_value = (True, "")
-            pm_instance._find_permission.return_value = None
-            pm_instance.record_session_start = MagicMock()
+        hub._perm_mgr = MagicMock()
+        hub._perm_mgr.load = MagicMock()
+        # No permissions loaded -> allow all
+        hub._perm_mgr.check.return_value = (True, "")
+        hub._perm_mgr.check_rate_limit.return_value = (True, "")
+        hub._perm_mgr._find_permission.return_value = None
+        hub._perm_mgr.record_session_start = MagicMock()
 
-            # Mock registry.create to avoid real session creation
-            hub.registry.create = AsyncMock(
-                return_value=MagicMock(
-                    session_id="sess-1",
-                    name="test-sess",
-                    cwd="/tmp/test",
-                    state=MagicMock(value="idle"),
-                    created_at=0.0,
-                    github_context=None,
-                )
+        # Mock registry.create to avoid real session creation
+        hub.registry.create = AsyncMock(
+            return_value=MagicMock(
+                session_id="sess-1",
+                name="test-sess",
+                cwd="/tmp/test",
+                state=MagicMock(value="idle"),
+                created_at=0.0,
+                github_context=None,
             )
+        )
 
-            # Mock the rest of the session setup
-            with (
-                patch.object(hub, "_write_hub_state"),
-                patch(
-                    "claude_mpm.services.channels.channel_hub.probe_vector_search",
-                    new_callable=AsyncMock,
-                    return_value=False,
-                ),
-                patch(
-                    "claude_mpm.services.channels.channel_hub.SessionWorker"
-                ) as MockWorker,
-            ):
-                worker_instance = MockWorker.return_value
-                worker_instance.start = AsyncMock()
+        # Mock the rest of the session setup
+        with (
+            patch.object(hub, "_write_hub_state"),
+            patch(
+                "claude_mpm.services.channels.channel_hub.probe_vector_search",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+            patch(
+                "claude_mpm.services.channels.channel_hub.SessionWorker"
+            ) as MockWorker,
+        ):
+            worker_instance = MockWorker.return_value
+            worker_instance.start = AsyncMock()
 
-                session = await hub.create_session(
-                    name="test-sess",
-                    cwd="/tmp/test",
-                    channel="github",
-                    user_id="anyuser",
-                )
-                assert session is not None
+            session = await hub.create_session(
+                name="test-sess",
+                cwd="/tmp/test",
+                channel="github",
+                user_id="anyuser",
+            )
+            assert session is not None
