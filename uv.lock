@@ -763,6 +763,9 @@ slack = [
     { name = "slack-bolt" },
     { name = "slack-sdk" },
 ]
+telegram = [
+    { name = "python-telegram-bot" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -844,6 +847,7 @@ requires-dist = [
     { name = "python-frontmatter", specifier = ">=1.0.0" },
     { name = "python-socketio", specifier = ">=5.14.0" },
     { name = "python-socketio", marker = "extra == 'monitor'", specifier = ">=5.14.0" },
+    { name = "python-telegram-bot", marker = "extra == 'telegram'", specifier = ">=20.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "questionary", specifier = ">=2.0.0" },
     { name = "redis", marker = "extra == 'data-processing'", specifier = ">=5.0.0" },
@@ -871,7 +875,7 @@ requires-dist = [
     { name = "xlsxwriter", marker = "extra == 'data-processing'", specifier = ">=3.1.0" },
     { name = "xlwt", marker = "extra == 'data-processing'", specifier = ">=1.3.0" },
 ]
-provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory", "slack", "http", "sdk", "google"]
+provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory", "slack", "http", "sdk", "telegram", "google"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -4313,6 +4317,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/59/81/cf8284f45e32efa18d3848ed82cdd4dcc1b657b082458fbe01ad3e1f2f8d/python_socketio-5.16.1.tar.gz", hash = "sha256:f863f98eacce81ceea2e742f6388e10ca3cdd0764be21d30d5196470edf5ea89", size = 128508, upload-time = "2026-02-06T23:42:07Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/c7/deb8c5e604404dbf10a3808a858946ca3547692ff6316b698945bb72177e/python_socketio-5.16.1-py3-none-any.whl", hash = "sha256:a3eb1702e92aa2f2b5d3ba00261b61f062cce51f1cfb6900bf3ab4d1934d2d35", size = 82054, upload-time = "2026-02-06T23:42:05.772Z" },
+]
+
+[[package]]
+name = "python-telegram-bot"
+version = "22.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpcore", marker = "python_full_version >= '3.14'" },
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e4/25/2258161b1069e66d6c39c0a602dbe57461d4767dc0012539970ea40bc9d6/python_telegram_bot-22.7.tar.gz", hash = "sha256:784b59ea3852fe4616ad63b4a0264c755637f5d725e87755ecdee28300febf61", size = 1516454, upload-time = "2026-03-16T09:36:03.174Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/f7/0e2f89dd62f45d46d4ea0d8aec5893ce5b37389638db010c117f46f11450/python_telegram_bot-22.7-py3-none-any.whl", hash = "sha256:d72eed532cf763758cd9331b57a6d790aff0bb4d37d8f4e92149436fe21c6475", size = 745365, upload-time = "2026-03-16T09:36:01.498Z" },
 ]
 
 [[package]]

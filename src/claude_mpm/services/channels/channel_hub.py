@@ -162,7 +162,49 @@ class ChannelHub:
         user_id: str,
         user_display: str = "",
     ) -> ChannelSession:
-        """Create a new named session and start its worker."""
+        """Create a new named session and start its worker.
+
+        Performs permission, rate-limit, and git-requirements checks
+        before proceeding.  If no bot-permissions.yaml files exist,
+        all checks pass (default = allow all).
+        """
+        from .git_requirements import GitRequirementsChecker
+        from .permissions import PermissionManager
+
+        # ── Permission gate ──────────────────────────────────────────
+        perm_mgr = PermissionManager()
+        perm_mgr.load(project_root=Path(cwd) if cwd else None)
+
+        allowed, reason = perm_mgr.check(
+            platform=channel, identity=user_id, project_root=cwd
+        )
+        if not allowed:
+            raise PermissionError(
+                f"Permission denied for {channel}:{user_id}: {reason}"
+            )
+
+        allowed, reason = perm_mgr.check_rate_limit(platform=channel, identity=user_id)
+        if not allowed:
+            raise PermissionError(
+                f"Rate limit exceeded for {channel}:{user_id}: {reason}"
+            )
+
+        # Git requirements (only when the permission entry defines them)
+        role_perm = perm_mgr._find_permission(channel, user_id)
+        if role_perm and role_perm.git and cwd:
+            checker = GitRequirementsChecker()
+            allowed, reason = await checker.check(
+                project_root=cwd,
+                branch_pattern=role_perm.git.branch_pattern,
+                require_clean=role_perm.git.require_clean,
+            )
+            if not allowed:
+                raise PermissionError(f"Git requirements not met: {reason}")
+
+        # Record session start for rate limiting
+        perm_mgr.record_session_start(platform=channel, identity=user_id)
+
+        # ── Original session-creation logic ──────────────────────────
         session = await self.registry.create(
             name=name,
             cwd=cwd,
