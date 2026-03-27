@@ -25,6 +25,8 @@ class SessionCreate(BaseModel):
         bare: Pass --bare flag to suppress system prompt.
         cwd: Working directory for the subprocess.
         permission_mode: Initial permission mode (default, acceptEdits, etc.).
+        project_root: Optional project root directory; used as cwd default when
+            cwd is not explicitly set.
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -34,6 +36,7 @@ class SessionCreate(BaseModel):
     bare: bool = Field(False, description="Pass --bare to claude CLI")
     cwd: str | None = Field(None, description="Working directory for subprocess")
     permission_mode: str = Field("default", description="Initial permission mode")
+    project_root: str | None = Field(None, description="Project root directory")
 
 
 class SessionUpdate(BaseModel):
@@ -61,6 +64,7 @@ class ManagedSessionState(BaseModel):
         status: Current lifecycle status.
         model: Active model identifier.
         cwd: Working directory.
+        project_root: Project root directory (may differ from cwd).
         created_at: Session creation timestamp.
         last_activity: Timestamp of last input/output.
         context_tokens_used: Tokens consumed in current context window.
@@ -76,6 +80,7 @@ class ManagedSessionState(BaseModel):
     status: SessionStatus = SessionStatus.idle
     model: str = "claude-opus-4-5"
     cwd: str = "."
+    project_root: str | None = None
     created_at: datetime
     last_activity: datetime
     context_tokens_used: int = 0

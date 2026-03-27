@@ -153,6 +153,7 @@ claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 # claude-mpm-monitor = "claude_mpm.scripts.launch_monitor:main"
 # claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 # claude-mpm-ui = "claude_mpm.services.ui_service.main:main"
+claude-mpm-serve = "claude_mpm.services.ui_service.main:main"
 
 [dependency-groups]
 dev = [

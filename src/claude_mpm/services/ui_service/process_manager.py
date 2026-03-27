@@ -14,6 +14,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from claude_mpm.services.ui_service.models.message import StreamEvent
 from claude_mpm.services.ui_service.models.session import (
@@ -57,6 +58,7 @@ class ManagedSession:
     context_tokens_used: int
     context_tokens_total: int
     permission_mode: str
+    project_root: str | None = None
     message_history: list[dict] = field(default_factory=list)
     output_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     _stdin_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -74,6 +76,7 @@ class ManagedSession:
             status=self.status,
             model=self.model,
             cwd=self.cwd,
+            project_root=self.project_root,
             created_at=self.created_at,
             last_activity=self.last_activity,
             context_tokens_used=self.context_tokens_used,
@@ -152,7 +155,8 @@ class ProcessManager:
 
         session_id = str(uuid.uuid4())
         now = datetime.now(tz=UTC)
-        cwd = config.cwd or str(Path.cwd())
+        # Use project_root as cwd fallback when cwd is not explicitly provided.
+        cwd = config.cwd or config.project_root or str(Path.cwd())
         model = config.model or "claude-opus-4-5"
 
         # Build subprocess command
@@ -191,6 +195,7 @@ class ProcessManager:
             status=SessionStatus.idle if process else SessionStatus.starting,
             model=model,
             cwd=cwd,
+            project_root=config.project_root,
             created_at=now,
             last_activity=now,
             context_tokens_used=0,
@@ -199,6 +204,7 @@ class ProcessManager:
         )
 
         self._sessions[session_id] = session
+        self._persist_session(session)
 
         if process:
             # Start background stdout reader
@@ -254,6 +260,91 @@ class ProcessManager:
         logger.info("Terminated session %s", session_id)
 
     # ------------------------------------------------------------------
+    # Session persistence
+    # ------------------------------------------------------------------
+
+    def _get_global_sessions_dir(self) -> Path:
+        """Return the global sessions directory, creating it if needed.
+
+        Returns:
+            Path to ~/.claude-mpm/sessions/
+        """
+        sessions_dir = Path.home() / ".claude-mpm" / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        return sessions_dir
+
+    def _persist_session(self, session: "ManagedSession") -> None:
+        """Write session state to ~/.claude-mpm/sessions/{session_id}.json.
+
+        Errors are logged but never raised — persistence is best-effort.
+
+        Args:
+            session: The session to persist.
+        """
+        try:
+            sessions_dir = self._get_global_sessions_dir()
+            session_file = sessions_dir / f"{session.id}.json"
+            state: dict[str, Any] = {
+                "id": session.id,
+                "claude_session_id": session.claude_session_id,
+                "status": session.status.value,
+                "model": session.model,
+                "cwd": session.cwd,
+                "project_root": session.project_root,
+                "created_at": session.created_at.isoformat(),
+                "last_activity": session.last_activity.isoformat(),
+                "context_tokens_used": session.context_tokens_used,
+                "context_tokens_total": session.context_tokens_total,
+                "permission_mode": session.permission_mode,
+            }
+            session_file.write_text(json.dumps(state, indent=2))
+        except Exception as exc:
+            logger.warning("Failed to persist session %s: %s", session.id, exc)
+
+    def _load_persisted_sessions(self) -> None:
+        """Load previously persisted session metadata from disk on startup.
+
+        Only metadata is loaded; subprocesses are not reattached.  Sessions
+        are marked as 'terminated' so the caller knows a restart occurred.
+        """
+        try:
+            sessions_dir = self._get_global_sessions_dir()
+            for session_file in sessions_dir.glob("*.json"):
+                try:
+                    data = json.loads(session_file.read_text())
+                    session_id = data.get("id")
+                    if not session_id or session_id in self._sessions:
+                        continue
+
+                    now = datetime.now(tz=UTC)
+                    session = ManagedSession(
+                        id=session_id,
+                        claude_session_id=data.get("claude_session_id"),
+                        process=None,
+                        status=SessionStatus.terminated,
+                        model=data.get("model", "claude-opus-4-5"),
+                        cwd=data.get("cwd", str(Path.cwd())),
+                        project_root=data.get("project_root"),
+                        created_at=datetime.fromisoformat(
+                            data.get("created_at", now.isoformat())
+                        ),
+                        last_activity=datetime.fromisoformat(
+                            data.get("last_activity", now.isoformat())
+                        ),
+                        context_tokens_used=data.get("context_tokens_used", 0),
+                        context_tokens_total=data.get("context_tokens_total", 200000),
+                        permission_mode=data.get("permission_mode", "default"),
+                    )
+                    self._sessions[session_id] = session
+                    logger.debug("Loaded persisted session %s", session_id)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to load session file %s: %s", session_file, exc
+                    )
+        except Exception as exc:
+            logger.warning("Failed to load persisted sessions: %s", exc)
+
+    # ------------------------------------------------------------------
     # Messaging
     # ------------------------------------------------------------------
 
@@ -289,8 +380,10 @@ class ProcessManager:
             session.status = SessionStatus.busy
             try:
                 payload = json.dumps({"type": "user", "message": content}) + "\n"
-                session.process.stdin.write(payload.encode())
-                await session.process.stdin.drain()
+                _stdin = session.process.stdin
+                assert _stdin is not None, "process stdin is None"
+                _stdin.write(payload.encode())
+                await _stdin.drain()
             except (BrokenPipeError, ConnectionResetError) as exc:
                 logger.error("Stdin write failed for session %s: %s", session_id, exc)
                 session.status = SessionStatus.terminated
@@ -330,6 +423,7 @@ class ProcessManager:
             return
 
         async with session._stdin_lock:
+            assert session.process.stdin is not None, "process stdin is None"
             session.process.stdin.write((command + "\n").encode())
             await session.process.stdin.drain()
         session.last_activity = datetime.now(tz=UTC)

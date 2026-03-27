@@ -396,6 +396,13 @@ def execute_command(command: str, args) -> int:
         result = handle_channels_command(args)
         return result if result is not None else 0
 
+    # Handle serve command with lazy import
+    if command == "serve":
+        from .commands.serve import manage_serve
+
+        result = manage_serve(args)
+        return result if result is not None else 0
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,

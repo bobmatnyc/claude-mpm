@@ -692,6 +692,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add serve command parser
+    try:
+        from .serve_parser import add_serve_subparser
+
+        add_serve_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Import and add additional command parsers from commands module
     try:
         from ..commands.aggregate import add_aggregate_parser

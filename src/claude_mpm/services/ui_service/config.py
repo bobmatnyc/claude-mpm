@@ -6,6 +6,7 @@ established in claude_mpm/config/socketio_config.py.
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
@@ -36,6 +37,12 @@ class UIServiceConfig:
     anthropic_api_key: str | None = None
     max_sessions: int = 10
     session_timeout_minutes: int = 60
+    global_sessions_dir: Path = field(
+        default_factory=lambda: Path.home() / ".claude-mpm" / "sessions"
+    )
+    channels_config_path: Path = field(
+        default_factory=lambda: Path.home() / ".claude-mpm" / "channels.yaml"
+    )
 
     @classmethod
     def from_env(cls) -> "UIServiceConfig":
@@ -61,5 +68,17 @@ class UIServiceConfig:
             max_sessions=int(os.getenv("CLAUDE_MPM_UI_MAX_SESSIONS", "10")),
             session_timeout_minutes=int(
                 os.getenv("CLAUDE_MPM_UI_SESSION_TIMEOUT", "60")
+            ),
+            global_sessions_dir=Path(
+                os.getenv(
+                    "CLAUDE_MPM_UI_SESSIONS_DIR",
+                    str(Path.home() / ".claude-mpm" / "sessions"),
+                )
+            ),
+            channels_config_path=Path(
+                os.getenv(
+                    "CLAUDE_MPM_UI_CHANNELS_CONFIG",
+                    str(Path.home() / ".claude-mpm" / "channels.yaml"),
+                )
             ),
         )
