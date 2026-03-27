@@ -256,6 +256,54 @@ class SDKAgentRunner(AgentRuntime):
 
     # -- helpers -------------------------------------------------------------
 
+    # Reverse mapping from outputStyle IDs (settings.json) to OutputStyleType keys
+    _STYLE_ID_TO_TYPE: dict[str, str] = {
+        "claude_mpm": "professional",
+        "claude_mpm_teacher": "teaching",
+        "claude_mpm_research": "research",
+    }
+
+    def _get_output_style_content(self) -> str | None:
+        """Load the configured output style content for injection into system prompt.
+
+        Reads ``outputStyle`` from ``~/.claude/settings.json``, then loads the
+        corresponding style file via
+        ``OutputStyleManager.get_injectable_content()``.
+
+        Returns:
+            The style content without YAML frontmatter, or ``None`` if no style
+            is configured or the style file cannot be read.
+        """
+        try:
+            from claude_mpm.core.output_style_manager import OutputStyleManager
+
+            settings_path = Path.home() / ".claude" / "settings.json"
+            if not settings_path.exists():
+                return None
+
+            settings = json.loads(settings_path.read_text())
+            style_id = settings.get("outputStyle")
+            if not style_id:
+                return None
+
+            style_type = self._STYLE_ID_TO_TYPE.get(style_id)
+            if style_type is None:
+                logger.debug("Unknown output style '%s', skipping injection", style_id)
+                return None
+
+            manager = OutputStyleManager()
+            content = manager.get_injectable_content(style=style_type)  # type: ignore[arg-type]
+            if content:
+                logger.debug(
+                    "Injecting output style '%s' (%s) into SDK system prompt",
+                    style_id,
+                    style_type,
+                )
+            return content
+        except Exception:
+            logger.debug("Could not load output style, skipping", exc_info=True)
+            return None
+
     def _build_options(self, **overrides: Any) -> ClaudeAgentOptions:
         """Build a ``ClaudeAgentOptions`` from stored config + overrides."""
         kwargs: dict[str, Any] = {}
@@ -276,6 +324,19 @@ class SDKAgentRunner(AgentRuntime):
         if self.mcp_servers is not None:
             kwargs["mcp_servers"] = self.mcp_servers
         kwargs.update(overrides)
+
+        # Inject output style into system prompt if configured.
+        # SDK sessions don't load user settings, so outputStyle from
+        # ~/.claude/settings.json must be injected manually.
+        system_prompt = kwargs.get("system_prompt", "")
+        style_content = self._get_output_style_content()
+        if style_content:
+            kwargs["system_prompt"] = (
+                f"{style_content}\n\n{system_prompt}"
+                if system_prompt
+                else style_content
+            )
+
         return ClaudeAgentOptions(**kwargs)
 
     @staticmethod
