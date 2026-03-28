@@ -47,16 +47,20 @@ NC := \033[0m # No Color
 ENV ?= development
 export ENV
 
+# Test worker configuration
+# Set CLAUDE_MPM_TEST_WORKERS to an integer > 0 to override parallel test workers (default: auto)
+TEST_WORKERS := $(or $(CLAUDE_MPM_TEST_WORKERS),auto)
+
 # Environment-specific settings
 ifeq ($(ENV),production)
-    PYTEST_ARGS := -n auto -v --tb=short --strict-markers
+    PYTEST_ARGS := -n $(TEST_WORKERS) -v --tb=short --strict-markers
     BUILD_FLAGS := --no-isolation
 else ifeq ($(ENV),staging)
-    PYTEST_ARGS := -n auto -v --tb=line
+    PYTEST_ARGS := -n $(TEST_WORKERS) -v --tb=line
     BUILD_FLAGS :=
 else
     # development (default)
-    PYTEST_ARGS := -n auto -v --tb=long
+    PYTEST_ARGS := -n $(TEST_WORKERS) -v --tb=long
     BUILD_FLAGS :=
 endif
 
@@ -513,25 +517,25 @@ test-serial: ## Run tests serially for debugging (disables parallelization)
 
 test-fast: ## Run unit tests only in parallel (fastest)
 	@echo "$(YELLOW)⚡ Running unit tests in parallel...$(NC)"
-	@uv run pytest tests/ -n auto -m unit -v
+	@uv run pytest tests/ -n $(TEST_WORKERS) -m unit -v
 	@echo "$(GREEN)✓ Unit tests completed$(NC)"
 
 test-coverage: ## Run tests with coverage report (parallel)
 	@echo "$(YELLOW)📊 Running tests with coverage...$(NC)"
-	@uv run pytest tests/ -n auto --cov=src/claude_mpm --cov-report=html --cov-report=term
+	@uv run pytest tests/ -n $(TEST_WORKERS) --cov=src/claude_mpm --cov-report=html --cov-report=term
 	@echo "$(GREEN)✓ Coverage report generated in htmlcov/$(NC)"
 
 test-unit: ## Run unit tests only
 	@echo "$(YELLOW)🧪 Running unit tests...$(NC)"
-	@uv run pytest tests/ -n auto -m unit -v
+	@uv run pytest tests/ -n $(TEST_WORKERS) -m unit -v
 
 test-integration: ## Run integration tests only
 	@echo "$(YELLOW)🧪 Running integration tests...$(NC)"
-	@uv run pytest tests/integration/ -n auto -v
+	@uv run pytest tests/integration/ -n $(TEST_WORKERS) -v
 
 test-e2e: ## Run end-to-end tests only
 	@echo "$(YELLOW)🧪 Running e2e tests...$(NC)"
-	@uv run pytest tests/e2e/ -n auto -v
+	@uv run pytest tests/e2e/ -n $(TEST_WORKERS) -v
 
 deprecation-check: ## Check for obsolete files according to deprecation policy
 	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
@@ -675,7 +679,7 @@ quality-ci: ## Quality checks for CI/CD (strict, fail fast)
 	echo "$(YELLOW)🔍 Type checking...$(NC)"; \
 	mypy src/ --ignore-missing-imports; \
 	echo "$(YELLOW)🧪 Running tests (parallel)...$(NC)"; \
-	pytest tests/ -n auto -v --tb=short
+	pytest tests/ -n $(TEST_WORKERS) -v --tb=short
 	@echo ""
 	@echo "$(GREEN)════════════════════════════════════════$(NC)"
 	@echo "$(GREEN)✅ CI quality checks passed!$(NC)"
@@ -703,7 +707,7 @@ pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publ
 	@if [ -f "scripts/run_all_tests.sh" ]; then \
 		bash scripts/run_all_tests.sh || exit 1; \
 	elif command -v pytest >/dev/null 2>&1; then \
-		python -m pytest tests/ -n auto -v || exit 1; \
+		python -m pytest tests/ -n $(TEST_WORKERS) -v || exit 1; \
 	else \
 		echo "$(YELLOW)⚠ No test runner found, skipping tests$(NC)"; \
 	fi
@@ -841,7 +845,7 @@ release-test: ## Run test suite before release
 	@if [ -f "scripts/run_all_tests.sh" ]; then \
 		bash scripts/run_all_tests.sh; \
 	elif command -v pytest >/dev/null 2>&1; then \
-		python -m pytest tests/ -n auto -v; \
+		python -m pytest tests/ -n $(TEST_WORKERS) -v; \
 	else \
 		echo "$(YELLOW)⚠ No test runner found, skipping tests$(NC)"; \
 	fi
