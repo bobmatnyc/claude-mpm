@@ -52,6 +52,7 @@ class ChannelHub:
         self._adapters: list[Any] = []
         self._perm_mgr = PermissionManager()
         self._running = False
+        self._stop_event = asyncio.Event()
         self._started_at: float = 0.0
         try:
             from claude_mpm.services.github.identity_manager import (
@@ -142,6 +143,7 @@ class ChannelHub:
     async def stop(self) -> None:
         """Gracefully stop all workers and adapters."""
         self._running = False
+        self._stop_event.set()
         for adapter in self._adapters:
             try:
                 await adapter.stop()
@@ -303,5 +305,4 @@ class ChannelHub:
 
     async def run_until_stopped(self) -> None:
         """Block until hub is stopped."""
-        while self._running:
-            await asyncio.sleep(0.1)
+        await self._stop_event.wait()

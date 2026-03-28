@@ -6,15 +6,18 @@ state changes and maintaining workflow integrity.
 
 DESIGN DECISIONS:
 - Enforces valid state transitions
-- Handles workflow-specific operations (comments, notifications)
+- Direct aitrackdown CLI calls have been removed; ticket operations
+  should go through the mcp-ticketer MCP server via the ticketing_agent.
 - Provides workflow history tracking
-- Abstracts aitrackdown workflow commands
+- Workflow state validation is kept for reference/documentation.
 """
 
-import subprocess
+import logging
 from typing import Any
 
 from ...core.logger import get_logger
+
+_deprecation_logger = logging.getLogger(__name__)
 
 
 class TicketWorkflowService:
@@ -56,6 +59,9 @@ class TicketWorkflowService:
         """
         Transition a ticket to a new workflow state.
 
+        Direct aitrackdown CLI transitions have been removed.
+        Use mcp-ticketer MCP tools via the ticketing_agent instead.
+
         Args:
             ticket_id: ID of the ticket
             new_state: Target workflow state
@@ -65,48 +71,15 @@ class TicketWorkflowService:
         Returns:
             Dict with success status and message
         """
-        try:
-            # Validate the transition if not forced
-            if not force:
-                valid, error = self.validate_transition(ticket_id, new_state)
-                if not valid:
-                    return {"success": False, "error": error}
-
-            # Use aitrackdown CLI for the transition
-            result = self._transition_via_aitrackdown(ticket_id, new_state, comment)
-
-            if result["success"]:
-                # Log successful transition
-                self.logger.info(f"Transitioned {ticket_id} to {new_state}")
-
-            return result
-
-        except Exception as e:
-            self.logger.error(f"Error transitioning ticket {ticket_id}: {e}")
-            return {"success": False, "error": str(e)}
-
-    def _transition_via_aitrackdown(
-        self, ticket_id: str, state: str, comment: str | None
-    ) -> dict[str, Any]:
-        """Transition ticket using aitrackdown CLI."""
-        try:
-            cmd = ["aitrackdown", "transition", ticket_id, state]
-
-            if comment:
-                cmd.extend(["--comment", comment])
-
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
-
-            return {
-                "success": True,
-                "message": f"Updated workflow state for {ticket_id} to: {state}",
-            }
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Failed to transition via CLI: {e}")
-            return {
-                "success": False,
-                "error": f"Failed to update workflow state for ticket: {ticket_id}",
-            }
+        _deprecation_logger.warning(
+            "Direct ticket transitions deprecated. "
+            "Use mcp-ticketer MCP tools via ticketing_agent."
+        )
+        return {
+            "success": False,
+            "error": "Direct ticket transitions deprecated. "
+            "Use mcp-ticketer MCP tools via ticketing_agent.",
+        }
 
     def validate_transition(
         self, ticket_id: str, new_state: str
@@ -117,23 +90,17 @@ class TicketWorkflowService:
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # For now, we assume all transitions are valid since we don't
-        # have access to current state without fetching the ticket
-        # In a real implementation, this would check current state
-
         if new_state not in self.WORKFLOW_TRANSITIONS:
             return False, f"Invalid workflow state: {new_state}"
-
-        # TODO: Fetch current state and validate transition
-        # current_state = self._get_current_state(ticket_id)
-        # if new_state not in self.WORKFLOW_TRANSITIONS.get(current_state, []):
-        #     return False, f"Cannot transition from {current_state} to {new_state}"
 
         return True, None
 
     def add_comment(self, ticket_id: str, comment: str) -> dict[str, Any]:
         """
         Add a comment to a ticket.
+
+        Direct aitrackdown CLI comments have been removed.
+        Use mcp-ticketer MCP tools via the ticketing_agent instead.
 
         Args:
             ticket_id: ID of the ticket
@@ -142,18 +109,15 @@ class TicketWorkflowService:
         Returns:
             Dict with success status and message
         """
-        try:
-            cmd = ["aitrackdown", "comment", ticket_id, comment]
-
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
-
-            return {"success": True, "message": f"Added comment to ticket: {ticket_id}"}
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Failed to add comment: {e}")
-            return {
-                "success": False,
-                "error": f"Failed to add comment to ticket: {ticket_id}",
-            }
+        _deprecation_logger.warning(
+            "Direct ticket comments deprecated. "
+            "Use mcp-ticketer MCP tools via ticketing_agent."
+        )
+        return {
+            "success": False,
+            "error": "Direct ticket comments deprecated. "
+            "Use mcp-ticketer MCP tools via ticketing_agent.",
+        }
 
     def get_workflow_states(self) -> list[str]:
         """
@@ -194,6 +158,9 @@ class TicketWorkflowService:
         """
         Transition multiple tickets to a new state.
 
+        Direct aitrackdown CLI transitions have been removed.
+        Use mcp-ticketer MCP tools via the ticketing_agent instead.
+
         Args:
             ticket_ids: List of ticket IDs
             new_state: Target workflow state
@@ -202,22 +169,20 @@ class TicketWorkflowService:
         Returns:
             Dict with results for each ticket
         """
-        results = {"succeeded": [], "failed": [], "total": len(ticket_ids)}
-
-        for ticket_id in ticket_ids:
-            result = self.transition_ticket(ticket_id, new_state, comment)
-
-            if result["success"]:
-                results["succeeded"].append(ticket_id)
-            else:
-                results["failed"].append(
-                    {
-                        "ticket_id": ticket_id,
-                        "error": result.get("error", "Unknown error"),
-                    }
-                )
-
-        return {"success": len(results["failed"]) == 0, "results": results}
+        _deprecation_logger.warning(
+            "Direct bulk ticket transitions deprecated. "
+            "Use mcp-ticketer MCP tools via ticketing_agent."
+        )
+        return {
+            "success": False,
+            "results": {
+                "succeeded": [],
+                "failed": [
+                    {"ticket_id": tid, "error": "Deprecated"} for tid in ticket_ids
+                ],
+                "total": len(ticket_ids),
+            },
+        }
 
     def get_workflow_summary(self, tickets: list[dict[str, Any]]) -> dict[str, int]:
         """

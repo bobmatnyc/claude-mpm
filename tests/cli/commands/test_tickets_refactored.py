@@ -339,15 +339,11 @@ class TestTicketLegacyFunctions:
         )
         mock_print.assert_called_with("✅ Created ticket: TSK-001")
 
-    @patch("subprocess.run")
     @patch("claude_mpm.services.ticket_manager.TicketManager")
-    def test_list_tickets_legacy_with_aitrackdown(
-        self, mock_manager_class, mock_subprocess
-    ):
-        """Test ticket listing using aitrackdown CLI."""
+    def test_list_tickets_legacy_via_manager(self, mock_manager_class):
+        """Test ticket listing via TicketManager (aitrackdown fallback removed)."""
         from claude_mpm.cli.commands.tickets import list_tickets_legacy
 
-        # Mock aitrackdown output
         tickets_data = [
             {
                 "id": "TSK-001",
@@ -369,9 +365,9 @@ class TestTicketLegacyFunctions:
             },
         ]
 
-        mock_result = Mock()
-        mock_result.stdout = json.dumps(tickets_data)
-        mock_subprocess.return_value = mock_result
+        mock_manager = Mock()
+        mock_manager.list_recent_tickets.return_value = tickets_data
+        mock_manager_class.return_value = mock_manager
 
         args = Namespace(
             page=1, page_size=20, limit=20, type="all", status="all", verbose=False
@@ -381,7 +377,7 @@ class TestTicketLegacyFunctions:
             result = list_tickets_legacy(args)
 
         assert result == 0
-        mock_subprocess.assert_called_once()
+        mock_manager.list_recent_tickets.assert_called_once()
         # Check that tickets are displayed
         calls = mock_print.call_args_list
         assert any("TSK-001" in str(call) for call in calls)
@@ -465,19 +461,14 @@ class TestTicketLegacyFunctions:
         assert result == 1
         mock_print.assert_called_with("❌ Ticket TSK-999 not found")
 
-    @patch("subprocess.run")
     @patch("claude_mpm.services.ticket_manager.TicketManager")
-    def test_update_ticket_legacy_with_aitrackdown(
-        self, mock_manager_class, mock_subprocess
-    ):
-        """Test updating ticket with aitrackdown fallback."""
+    def test_update_ticket_legacy_via_manager(self, mock_manager_class):
+        """Test updating ticket via TicketManager (aitrackdown fallback removed)."""
         from claude_mpm.cli.commands.tickets import update_ticket_legacy
 
         mock_manager = Mock()
-        mock_manager.update_task.return_value = False  # Force fallback
+        mock_manager.update_task.return_value = True
         mock_manager_class.return_value = mock_manager
-
-        mock_subprocess.return_value = Mock()
 
         args = Namespace(
             ticket_id="TSK-001",
@@ -492,7 +483,7 @@ class TestTicketLegacyFunctions:
             result = update_ticket_legacy(args)
 
         assert result == 0
-        mock_subprocess.assert_called_once()
+        mock_manager.update_task.assert_called_once()
         mock_print.assert_called_with("✅ Updated ticket: TSK-001")
 
     @patch("sys.stdin.isatty", return_value=True)
@@ -571,54 +562,33 @@ class TestTicketLegacyFunctions:
         assert any("TSK-001" in str(call) for call in calls)
         assert not any("TSK-002" in str(call) for call in calls)
 
-    @patch("subprocess.run")
-    def test_add_comment_legacy_success(self, mock_subprocess):
-        """Test adding comment to ticket."""
+    def test_add_comment_legacy_deprecated(self):
+        """Test adding comment returns deprecation warning (aitrackdown removed)."""
         from claude_mpm.cli.commands.tickets import add_comment_legacy
-
-        mock_subprocess.return_value = Mock()
 
         args = Namespace(ticket_id="TSK-001", comment=["This", "is", "a", "comment"])
 
         with patch("builtins.print") as mock_print:
             result = add_comment_legacy(args)
 
-        assert result == 0
-        mock_subprocess.assert_called_once_with(
-            ["aitrackdown", "comment", "TSK-001", "This is a comment"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        mock_print.assert_called_with("✅ Added comment to ticket: TSK-001")
+        # Should fail gracefully with deprecation message
+        assert result == 1
+        calls = str(mock_print.call_args_list)
+        assert "deprecated" in calls.lower() or "failed" in calls.lower()
 
-    @patch("subprocess.run")
-    def test_update_workflow_legacy_success(self, mock_subprocess):
-        """Test updating workflow state."""
+    def test_update_workflow_legacy_deprecated(self):
+        """Test updating workflow state returns deprecation warning (aitrackdown removed)."""
         from claude_mpm.cli.commands.tickets import update_workflow_legacy
-
-        mock_subprocess.return_value = Mock()
 
         args = Namespace(ticket_id="TSK-001", state="ready", comment="Ready for review")
 
         with patch("builtins.print") as mock_print:
             result = update_workflow_legacy(args)
 
-        assert result == 0
-        mock_subprocess.assert_called_once_with(
-            [
-                "aitrackdown",
-                "transition",
-                "TSK-001",
-                "ready",
-                "--comment",
-                "Ready for review",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        mock_print.assert_called_with("✅ Updated workflow state for TSK-001 to: ready")
+        # Should fail gracefully with deprecation message
+        assert result == 1
+        calls = str(mock_print.call_args_list)
+        assert "deprecated" in calls.lower() or "failed" in calls.lower()
 
 
 class TestManageTicketsBackwardCompatibility:
@@ -660,9 +630,9 @@ class TestManageTicketsBackwardCompatibility:
 class TestTicketsPagination:
     """Test pagination functionality in ticket listing."""
 
-    @patch("subprocess.run")
-    def test_pagination_calculation(self, mock_subprocess):
-        """Test pagination offset calculation."""
+    @patch("claude_mpm.services.ticket_manager.TicketManager")
+    def test_pagination_calculation(self, mock_manager_class):
+        """Test pagination offset calculation via TicketManager."""
         from claude_mpm.cli.commands.tickets import list_tickets_legacy
 
         # Create enough tickets for multiple pages
@@ -679,9 +649,9 @@ class TestTicketsPagination:
             for i in range(1, 51)
         ]
 
-        mock_result = Mock()
-        mock_result.stdout = json.dumps(tickets)
-        mock_subprocess.return_value = mock_result
+        mock_manager = Mock()
+        mock_manager.list_recent_tickets.return_value = tickets
+        mock_manager_class.return_value = mock_manager
 
         # Test page 2 with page_size=10
         args = Namespace(

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
-from .base_adapter import BaseAdapter
+from .base_adapter import BaseAdapter, BufferedOutputMixin
 from .github_session_mapper import GitHubSessionMapper
 from .models import ChannelMessage
 
@@ -57,7 +57,7 @@ def _strip_markdown(text: str, max_chars: int = 2000) -> str:
     return text.strip()[:max_chars]
 
 
-class GitHubAdapter(BaseAdapter):
+class GitHubAdapter(BaseAdapter, BufferedOutputMixin):
     """GitHub channel adapter.
 
     Polling mode (default):
@@ -77,20 +77,19 @@ class GitHubAdapter(BaseAdapter):
 
     def __init__(self, hub: ChannelHub, config: GitHubChannelConfig) -> None:
         super().__init__(hub)
+        self._init_buffered_output()
         self.config = config
         self._mapper = GitHubSessionMapper()
         self._running = False
         self._poll_task: asyncio.Task | None = None
         self._webhook_task: asyncio.Task | None = None
         self._webhook_runner: Any = None  # aiohttp AppRunner
-        # Output buffer: session_name -> list[str] (new chunks since last flush)
-        self._output_buffers: dict[str, list[str]] = {}
+        # GitHub-specific: chunk-based buffer for incremental PATCH
+        self._output_chunk_buffers: dict[str, list[str]] = {}
         # Accumulated text: session_name -> str (full text for the comment)
         self._accumulated_text: dict[str, str] = {}
         # Last PATCH time: session_name -> float
         self._last_patch: dict[str, float] = {}
-        # Debounce tasks: session_name -> asyncio.Task
-        self._debounce_tasks: dict[str, asyncio.Task] = {}
         # Persistent HTTP client (lazy-initialized)
         self._client: httpx.AsyncClient | None = None
         # Permission cache: username -> (allowed, expires_at)
@@ -144,11 +143,7 @@ class GitHubAdapter(BaseAdapter):
                 pass
             self._client = None
 
-        # Cancel pending debounce tasks
-        for task in list(self._debounce_tasks.values()):
-            if not task.done():
-                task.cancel()
-        self._debounce_tasks.clear()
+        self._cancel_all_debounce_tasks()
 
     # ── Event handler ──────────────────────────────────────────────────────
 
@@ -163,7 +158,7 @@ class GitHubAdapter(BaseAdapter):
         if event.event_type == "assistant_message":
             text = event.data.get("text", "")
             if text:
-                self._output_buffers.setdefault(session_name, []).append(text)
+                self._output_chunk_buffers.setdefault(session_name, []).append(text)
                 await self._schedule_debounced_patch(entity_key, session_name)
 
         elif event.event_type == "state_change":
@@ -519,7 +514,7 @@ class GitHubAdapter(BaseAdapter):
             return
 
         # Drain new chunks and append to accumulated text
-        new_chunks = self._output_buffers.pop(session_name, [])
+        new_chunks = self._output_chunk_buffers.pop(session_name, [])
         if new_chunks:
             self._accumulated_text[session_name] = self._accumulated_text.get(
                 session_name, ""

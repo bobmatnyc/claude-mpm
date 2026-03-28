@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .base_adapter import BaseAdapter
+from .base_adapter import BaseAdapter, BufferedOutputMixin
 from .models import ChannelMessage
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ def _session_name(user_id: str) -> str:
     return f"slack-{user_id}"
 
 
-class SlackAdapter(BaseAdapter):
+class SlackAdapter(BaseAdapter, BufferedOutputMixin):
     """Slack channel adapter via Socket Mode.
 
     Commands:
@@ -54,18 +54,11 @@ class SlackAdapter(BaseAdapter):
 
     def __init__(self, hub: ChannelHub, config: SlackChannelConfig) -> None:
         super().__init__(hub)
+        self._init_buffered_output()
         self.config = config
         self._app: Any = None
         self._handler: Any = None
         self._running = False
-        # session_name -> {"channel": str, "ts": str, "thread_ts": str | None}
-        self._session_messages: dict[str, dict[str, Any]] = {}
-        # session_name -> accumulated text
-        self._output_buffers: dict[str, str] = {}
-        # session_name -> asyncio.Task (debounce edit tasks)
-        self._debounce_tasks: dict[str, asyncio.Task[None]] = {}
-        # session_name -> owner user_id
-        self._session_owners: dict[str, str] = {}
 
     # -- Lifecycle -------------------------------------------------------------
 
@@ -118,11 +111,7 @@ class SlackAdapter(BaseAdapter):
                     "SlackAdapter: error during handler shutdown", exc_info=True
                 )
 
-        # Cancel pending debounce tasks
-        for task in list(self._debounce_tasks.values()):
-            if not task.done():
-                task.cancel()
-        self._debounce_tasks.clear()
+        self._cancel_all_debounce_tasks()
 
         try:
             await self.hub.registry.unsubscribe(self.on_event)
@@ -404,9 +393,7 @@ class SlackAdapter(BaseAdapter):
         if event.event_type == "assistant_message":
             text = event.data.get("text", "")
             if text:
-                self._output_buffers[session_name] = (
-                    self._output_buffers.get(session_name, "") + text
-                )
+                self._append_output(session_name, text)
                 await self._schedule_debounced_update(session_name)
 
         elif event.event_type == "state_change":
@@ -518,9 +505,4 @@ class SlackAdapter(BaseAdapter):
 
     def _cleanup_session(self, session_name: str) -> None:
         """Remove all tracking state for a finished session."""
-        self._session_messages.pop(session_name, None)
-        self._output_buffers.pop(session_name, None)
-        self._session_owners.pop(session_name, None)
-        task = self._debounce_tasks.pop(session_name, None)
-        if task and not task.done():
-            task.cancel()
+        self._cleanup_session_buffers(session_name)

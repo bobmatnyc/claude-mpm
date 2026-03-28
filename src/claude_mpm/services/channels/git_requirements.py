@@ -6,6 +6,7 @@ bot-permissions.yaml git requirements.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import subprocess
@@ -42,8 +43,8 @@ class GitRequirementsChecker:
         if not (root / ".git").exists():
             return True, ""  # Not a git repo, no requirements apply
 
-        # Check branch pattern
-        current_branch = self._get_current_branch(root)
+        # Check branch pattern (run blocking subprocess in thread)
+        current_branch = await asyncio.to_thread(self._get_current_branch, root)
         if current_branch and not re.match(branch_pattern, current_branch):
             return (
                 False,
@@ -52,7 +53,7 @@ class GitRequirementsChecker:
 
         # Check clean state
         if require_clean != "ignore":
-            is_clean = self._is_clean(root)
+            is_clean = await asyncio.to_thread(self._is_clean, root)
             if not is_clean:
                 if require_clean == "block":
                     return (

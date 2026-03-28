@@ -32,6 +32,61 @@ OutputStyleType = Literal[
 ]  # "founders" is deprecated, use "research"
 
 
+# Reverse mapping from outputStyle IDs (settings.json) to OutputStyleType keys.
+# Used by get_output_style_for_injection() and SDK/session code.
+_STYLE_ID_TO_TYPE: dict[str, str] = {
+    "claude_mpm": "professional",
+    "claude_mpm_teacher": "teaching",
+    "claude_mpm_research": "research",
+}
+
+_logger = safe_import("claude_mpm.core.logger", "core.logger", ["get_logger"])
+
+
+def get_output_style_for_injection() -> str | None:
+    """Load the configured output style content for injection into system prompts.
+
+    Reads ``outputStyle`` from ``~/.claude/settings.json``, maps it to an
+    ``OutputStyleType``, and returns the style content (without YAML
+    frontmatter) via ``OutputStyleManager.get_injectable_content()``.
+
+    This is the single source of truth for output-style injection logic,
+    used by both ``SessionWorker`` and ``SDKAgentRunner``.
+
+    Returns:
+        The style content string, or ``None`` if no style is configured or
+        the style file cannot be read.
+    """
+    try:
+        settings_path = Path.home() / ".claude" / "settings.json"
+        if not settings_path.exists():
+            return None
+
+        settings = json.loads(settings_path.read_text())
+        style_id = settings.get("outputStyle")
+        if not style_id:
+            return None
+
+        style_type = _STYLE_ID_TO_TYPE.get(style_id)
+        if style_type is None:
+            _log = _logger("output_style_manager")  # type: ignore[misc]
+            _log.debug("Unknown output style '%s', skipping injection", style_id)
+            return None
+
+        manager = OutputStyleManager()
+        content = manager.get_injectable_content(style=style_type)  # type: ignore[arg-type]
+        if content:
+            _log = _logger("output_style_manager")  # type: ignore[misc]
+            _log.debug(
+                "Loaded output style '%s' (%s) for injection",
+                style_id,
+                style_type,
+            )
+        return content
+    except Exception:
+        return None
+
+
 class StyleConfig(TypedDict):
     """Configuration for an output style."""
 

@@ -226,13 +226,11 @@ class TestSDKAgentRunnerOutputStyleInjection:
 
     def test_style_id_mapping(self, tmp_path: Path) -> None:
         """Verify the reverse mapping from style IDs to types."""
-        from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+        from claude_mpm.core.output_style_manager import _STYLE_ID_TO_TYPE
 
-        runner = SDKAgentRunner()
-
-        assert runner._STYLE_ID_TO_TYPE["claude_mpm"] == "professional"
-        assert runner._STYLE_ID_TO_TYPE["claude_mpm_teacher"] == "teaching"
-        assert runner._STYLE_ID_TO_TYPE["claude_mpm_research"] == "research"
+        assert _STYLE_ID_TO_TYPE["claude_mpm"] == "professional"
+        assert _STYLE_ID_TO_TYPE["claude_mpm_teacher"] == "teaching"
+        assert _STYLE_ID_TO_TYPE["claude_mpm_research"] == "research"
 
     def test_settings_file_missing_returns_none(self, tmp_path: Path) -> None:
         """No crash when settings.json is missing."""
