@@ -22,6 +22,13 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.3 (2026-03-28)
+
+### Fix
+
+- rename mcp skill in SKILL.md frontmatter + manifests + caches
+- tighten PM delegation rules — eliminate direct execution loopholes
+
 ## v6.0.2 (2026-03-28)
 
 ### Fix
