@@ -44,6 +44,41 @@ else:
         __version__ = "0.0.0"
 
 
+def _apply_project_dir_override(args) -> None:
+    """Override CLAUDE_MPM_USER_PWD if --project-dir was specified.
+
+    WHY: CLAUDE_MPM_USER_PWD is captured from shell PWD in setup_early_environment()
+    during module import, BEFORE argparse runs. So args.project_dir is available
+    too late — run sessions use the wrong working directory. This centralized
+    post-parse override fixes it for ALL commands.
+
+    Args:
+        args: Parsed arguments from argparse
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    project_dir = getattr(args, "project_dir", None)
+    if not project_dir:
+        return
+
+    resolved = Path(project_dir).resolve()
+    if not resolved.is_dir():
+        from rich.console import Console
+
+        console = Console(stderr=True)
+        console.print(
+            f"\n[red]Error:[/red] --project-dir path does not exist: {resolved}\n",
+            style="bold",
+        )
+        sys.exit(1)
+
+    os.environ["CLAUDE_MPM_USER_PWD"] = str(resolved)
+    os.chdir(resolved)
+    logger.debug("--project-dir override: CLAUDE_MPM_USER_PWD=%s", resolved)
+
+
 def main(argv: list | None = None):
     """Main CLI entry point orchestrating argument parsing and command execution."""
     argv = setup_early_environment(argv)
@@ -51,6 +86,10 @@ def main(argv: list | None = None):
     parser = create_parser(version=__version__)
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
+
+    # CRITICAL: Override CLAUDE_MPM_USER_PWD if --project-dir was specified.
+    # Must happen AFTER argparse but BEFORE any command handler or service init.
+    _apply_project_dir_override(args)
 
     # Configuration prompt removed - users can run `/mpm-configure` manually
     # See: handle_missing_configuration() in helpers.py if re-enabling
