@@ -1,0 +1,40 @@
+{
+  "name": "mcp-builder",
+  "version": "1.0.0",
+  "category": "toolchain",
+  "toolchain": "ai",
+  "framework": null,
+  "tags": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "llm",
+    "claude",
+    "tools",
+    "resources",
+    "prompts",
+    "typescript",
+    "python",
+    "integration",
+    "server",
+    "client",
+    "api",
+    "claude-desktop"
+  ],
+  "entry_point_tokens": 78,
+  "full_tokens": 4850,
+  "requires": [],
+  "sub_skills": [],
+  "related_skills": [
+    "../../../typescript/core",
+    "../../../python/core",
+    "../../services/openrouter"
+  ],
+  "author": "Claude MPM Team",
+  "license": "MIT",
+  "created": "2025-11-30",
+  "updated": "2025-11-30",
+  "source_path": "toolchains/ai/protocols/mcp",
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills",
+  "description": "MCP (Model Context Protocol) - Build AI-native servers with tools, resources, and prompts. TypeScript/Python SDKs for Claude Desktop integration."
+}
