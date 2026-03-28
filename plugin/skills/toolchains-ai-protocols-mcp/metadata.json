@@ -1,5 +1,5 @@
 {
-  "name": "mcp",
+  "name": "mcp-builder",
   "version": "1.0.0",
   "category": "toolchain",
   "toolchain": "ai",
