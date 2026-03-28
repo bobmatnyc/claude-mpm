@@ -22,6 +22,8 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.6 (2026-03-28)
+
 ## v6.0.5 (2026-03-28)
 
 ### Feat
