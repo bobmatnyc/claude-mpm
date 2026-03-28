@@ -22,6 +22,16 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.4 (2026-03-28)
+
+### Feat
+
+- add 'provider anthropic-login' for OAuth-only auth + enhanced status
+
+### Fix
+
+- improve auth guidance after provider switch + add preflight check
+
 ## v6.0.3 (2026-03-28)
 
 ### Fix
