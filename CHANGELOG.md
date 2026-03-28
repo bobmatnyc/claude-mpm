@@ -22,6 +22,27 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.1 (2026-03-27)
+
+### Feat
+
+- inject outputStyle into SDK session system prompts (#397)
+- add unified permission model for bot clients (Phase 5, #373)
+- add Slack client adapter for session triggering (Phase 4, #372)
+- add Telegram client adapter for session triggering (Phase 3, #371)
+- add GitHub client adapter for session triggering (Phase 2, #370)
+- add claude-mpm serve daemon (Phase 1, #369)
+
+### Fix
+
+- 5 critical fixes from code review (Batch A)
+- tighten PM delegation rules + add deepeval metrics for enforcement
+- inject GITHUB_TOKEN into git_source_sync_service session
+
+### Refactor
+
+- Batch B optimizations — dedup, async fixes, aitrackdown removal
+
 ## v6.0.0 (2026-03-26)
 
 ### Feat
