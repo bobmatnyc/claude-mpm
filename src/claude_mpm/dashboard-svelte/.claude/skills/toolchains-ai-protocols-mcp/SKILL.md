@@ -1434,47 +1434,6 @@ if __name__ == "__main__":
 
 [Full TypeScript, Python async, and OpenRouter patterns available in respective skills if deployed together]
 
-## Local MCP Integration Patterns (Your Repos)
-
-### .mcp.json Layout (Project-Scoped)
-
-```json
-{
-  "mcpServers": {
-    "kuzu-memory": {
-      "type": "stdio",
-      "command": "kuzu-memory",
-      "args": ["mcp"]
-    },
-    "mcp-vector-search": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "mcp-vector-search", "mcp"],
-      "env": {
-        "MCP_ENABLE_FILE_WATCHING": "true"
-      }
-    }
-  }
-}
-```
-
-### CLI Conventions
-
-- Provide a `mcp` subcommand for stdio servers.
-- Use `setup` for end-to-end init + integration (mcp-vector-search, kuzu-memory).
-- Use `install` / `uninstall` to target specific clients (mcp-ticketer).
-- Provide `doctor` commands to validate dependencies.
-
-### Environment Conventions
-
-- File watching: `MCP_ENABLE_FILE_WATCHING=true`
-- Kuzu memory: `KUZU_MEMORY_PROJECT_ROOT`, `KUZU_MEMORY_DB`
-- Ticketer adapters: `MCP_TICKETER_ADAPTER`, `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`
-
-### Common Server Names
-
-`kuzu-memory`, `mcp-vector-search`, `mcp-ticketer`, `mcp-skillset`, `mcp-browser`
-
 ## Summary
 
 - **MCP** enables AI-native server development with tools, resources, and prompts
