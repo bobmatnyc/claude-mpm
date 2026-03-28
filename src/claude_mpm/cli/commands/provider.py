@@ -190,12 +190,19 @@ class ProviderCommand(BaseCommand):
             console.print(
                 "\n[dim]Note:[/dim] ANTHROPIC_API_KEY not found in environment."  # pragma: allowlist secret
             )
-            console.print("       Claude Code supports two authentication methods:")
+            console.print("       To authenticate, choose one method:")
+            console.print("")
             console.print(
-                "       • [green]Claude.ai login[/green] (Pro/Max) — run [bold]claude[/bold] to log in via browser (no API key needed)"
+                "         1. [green]Browser login[/green] (recommended for Pro/Max subscribers):"
             )
+            console.print("            Run: [bold]claude auth login[/bold]")
             console.print(
-                "       • [yellow]API key[/yellow] — set ANTHROPIC_API_KEY environment variable"  # pragma: allowlist secret
+                "            Or use [bold]/login[/bold] inside your next claude-mpm session"
+            )
+            console.print("")
+            console.print("         2. [yellow]API key[/yellow]:")
+            console.print(
+                "            export ANTHROPIC_API_KEY=sk-ant-..."  # pragma: allowlist secret
             )
 
         console.print(

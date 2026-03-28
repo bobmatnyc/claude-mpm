@@ -452,6 +452,58 @@ def cleanup_legacy_agent_cache() -> None:
         logger.info(f"Cleaned up legacy agent cache: {', '.join(removed)}")
 
 
+def _check_anthropic_auth(env_changes: dict | None = None) -> None:
+    """Warn if using Anthropic backend without authentication.
+
+    Performs a lightweight, fail-open check so that users who switch to the
+    Anthropic backend are reminded to authenticate before their first session
+    fails with a confusing auth error.
+
+    Args:
+        env_changes: Dictionary returned by apply_api_provider_config(),
+                     or None if config loading failed.
+    """
+    # Only check if backend is anthropic (Bedrock uses AWS credentials instead)
+    if os.environ.get("CLAUDE_CODE_USE_BEDROCK") == "1":
+        return
+
+    # If apply_api_provider_config didn't run or returned no changes,
+    # try to determine the backend from the config file directly.
+    if env_changes is None:
+        # Cannot determine backend — skip check (fail-open)
+        return
+
+    # If API key is set, auth is handled
+    if os.environ.get("ANTHROPIC_API_KEY"):  # pragma: allowlist secret
+        return
+
+    # Check if authenticated via `claude auth status`
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["claude", "auth", "status"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and "logged in" in result.stdout.lower():
+            return
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        pass
+
+    # Not authenticated — warn the user (only in interactive terminals)
+    if not sys.stdout.isatty():
+        return
+
+    print()
+    print("\u26a0\ufe0f  Not authenticated with Anthropic.")
+    print("  Run: claude auth login")
+    print("  Or use /login inside your session.")
+    print()
+
+
 def setup_early_environment(argv):
     """
     Set up early environment variables and logging suppression.
@@ -531,13 +583,17 @@ def setup_early_environment(argv):
 
     # Apply API provider configuration early (before Claude Code launches)
     # This sets CLAUDE_CODE_USE_BEDROCK, ANTHROPIC_MODEL, etc.
+    config: dict | None = None
     try:
         from ..config.api_provider import apply_api_provider_config
 
-        apply_api_provider_config()
+        config = apply_api_provider_config()
     except Exception:  # nosec B110
         # Non-critical - if config loading fails, use defaults
         pass
+
+    # Pre-flight auth check: warn if using Anthropic without authentication
+    _check_anthropic_auth(config)
 
     return argv
 
