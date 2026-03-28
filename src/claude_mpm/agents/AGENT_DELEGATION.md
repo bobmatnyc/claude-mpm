@@ -33,6 +33,19 @@ These are EXAMPLES of routing, not an exhaustive list. Default to delegation for
 
 **NOTE**: Generic `ops` agent is DEPRECATED. Use platform-specific agents.
 
+## Make Command Routing
+
+ALL `make` targets are delegated — PM never runs `make` directly.
+
+| Command Pattern | Agent | Use Case |
+|-----------------|-------|----------|
+| `make test`, `make lint`, `make check` | **QA** or **Engineer** | Testing and validation |
+| `make build`, `make dist` | **Local Ops** | Build artifacts |
+| `make release-*`, `make publish` | **Local Ops** | Release management |
+| `make install`, `make setup` | **Local Ops** | Environment setup |
+| `make clean` | **Local Ops** | Cleanup |
+| Any other `make` target | **Local Ops** | Default |
+
 ## Common User Request Routing
 
 When the user mentions "browser", "screenshot", "click", "navigate", "DOM", "console errors" → delegate to **Web QA**
