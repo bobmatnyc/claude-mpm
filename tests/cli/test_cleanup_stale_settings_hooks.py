@@ -16,7 +16,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -123,9 +122,7 @@ class TestCleanupStaleSettingsJsonHooks:
 
         original_data = {
             "hooks": {
-                "SessionStart": [
-                    _make_hook_entry(str(script), with_matcher=True)
-                ]
+                "SessionStart": [_make_hook_entry(str(script), with_matcher=True)]
             }
         }
         settings_file = claude_dir / "settings.json"
@@ -144,15 +141,18 @@ class TestCleanupStaleSettingsJsonHooks:
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir(parents=True)
 
-        stale_path = str(tmp_path / "pipx" / "venvs" / "claude-mpm" / "scripts" / "claude-hook-fast.sh")
+        stale_path = str(
+            tmp_path
+            / "pipx"
+            / "venvs"
+            / "claude-mpm"
+            / "scripts"
+            / "claude-hook-fast.sh"
+        )
         # stale_path does NOT exist on disk
 
         data = {
-            "hooks": {
-                "SessionStart": [
-                    _make_hook_entry(stale_path, with_matcher=True)
-                ]
-            }
+            "hooks": {"SessionStart": [_make_hook_entry(stale_path, with_matcher=True)]}
         }
         settings_file = claude_dir / "settings.json"
         settings_file.write_text(json.dumps(data))
@@ -181,7 +181,10 @@ class TestCleanupStaleSettingsJsonHooks:
                     {
                         "matcher": "*",
                         "hooks": [
-                            {"type": "command", "command": "/usr/local/bin/some-other-hook"},
+                            {
+                                "type": "command",
+                                "command": "/usr/local/bin/some-other-hook",
+                            },
                             {"type": "command", "command": stale_path},
                         ],
                     }
@@ -237,9 +240,7 @@ class TestCleanupStaleSettingsJsonHooks:
             "permissions": {"allow": ["Bash"]},
             "enableAllProjectMcpServers": True,
             "outputStyle": "claude_mpm",
-            "hooks": {
-                "Stop": [_make_hook_entry(stale_path)]
-            },
+            "hooks": {"Stop": [_make_hook_entry(stale_path)]},
         }
         settings_file = claude_dir / "settings.json"
         settings_file.write_text(json.dumps(data))
@@ -258,11 +259,7 @@ class TestCleanupStaleSettingsJsonHooks:
         claude_dir = tmp_path / ".claude"
         claude_dir.mkdir(parents=True)
 
-        data = {
-            "hooks": {
-                "Stop": [_make_hook_entry("claude-hook")]
-            }
-        }
+        data = {"hooks": {"Stop": [_make_hook_entry("claude-hook")]}}
         settings_file = claude_dir / "settings.json"
         settings_file.write_text(json.dumps(data))
 
@@ -397,9 +394,7 @@ class TestCleanupUserLevelHooksIntegration:
 
         stale_path = str(tmp_path / "claude-mpm" / "hook.sh")
         data = {
-            "hooks": {
-                "SessionStart": [_make_hook_entry(stale_path, with_matcher=True)]
-            }
+            "hooks": {"SessionStart": [_make_hook_entry(stale_path, with_matcher=True)]}
         }
         settings_file = claude_dir / "settings.json"
         settings_file.write_text(json.dumps(data))
@@ -420,11 +415,7 @@ class TestCleanupUserLevelHooksIntegration:
 
         # Stale settings entry
         stale_path = str(tmp_path / "claude-mpm" / "hook.sh")
-        data = {
-            "hooks": {
-                "Stop": [_make_hook_entry(stale_path)]
-            }
-        }
+        data = {"hooks": {"Stop": [_make_hook_entry(stale_path)]}}
         settings_file = tmp_path / ".claude" / "settings.json"
         settings_file.write_text(json.dumps(data))
 
