@@ -22,6 +22,12 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.2 (2026-03-28)
+
+### Fix
+
+- rename mcp skill to mcp-builder to stop shadowing CC /mcp builtin
+
 ## v6.0.1 (2026-03-27)
 
 ### Feat
