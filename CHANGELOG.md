@@ -22,6 +22,19 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.0.5 (2026-03-28)
+
+### Feat
+
+- add DISABLE_PROMPT_CACHING support + surface cache metrics
+- add CLAUDE_MPM_TEST_WORKERS env var to configure pytest parallelism (#347)
+
+### Fix
+
+- rename mcp skill in plugin source metadata (final /mcp fix)
+- --project-dir flag now correctly sets working directory
+- clean stale claude-mpm hook entries from ~/.claude/settings.json on startup (#409)
+
 ## v6.0.4 (2026-03-28)
 
 ### Feat
