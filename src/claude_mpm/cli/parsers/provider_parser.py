@@ -58,6 +58,17 @@ def add_provider_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Anthropic model ID (default: sonnet)",
     )
 
+    # anthropic-login subcommand
+    provider_subparsers.add_parser(
+        "anthropic-login",
+        help="Switch to Anthropic and force OAuth login (clears stale API keys)",
+        description=(
+            "Aggressively clear any ANTHROPIC_API_KEY configuration and trigger "
+            "the Claude.ai OAuth login flow via 'claude auth login'. Use this when "
+            "'claude-mpm provider anthropic' fails due to stale API key remnants."
+        ),
+    )
+
     # status subcommand
     provider_subparsers.add_parser(
         "status",
