@@ -258,10 +258,16 @@ class ContextUsageTracker:
         """Get human-readable usage summary.
 
         Returns:
-            Dictionary with usage statistics
+            Dictionary with usage statistics including cache metrics.
         """
         state = self.get_current_state()
         total_tokens = state.cumulative_input_tokens + state.cumulative_output_tokens
+
+        # Calculate cache metrics
+        cache_metrics = self.calculate_cache_metrics(
+            cache_read=state.cache_read_tokens,
+            cache_creation=state.cache_creation_tokens,
+        )
 
         return {
             "session_id": state.session_id,
@@ -276,5 +282,62 @@ class ContextUsageTracker:
                 "cache_creation_tokens": state.cache_creation_tokens,
                 "cache_read_tokens": state.cache_read_tokens,
             },
+            "cache": cache_metrics,
             "last_updated": state.last_updated,
         }
+
+    @staticmethod
+    def calculate_cache_metrics(
+        cache_read: int,
+        cache_creation: int,
+    ) -> dict:
+        """Calculate cache hit ratio and related metrics.
+
+        Args:
+            cache_read: Total tokens read from prompt cache.
+            cache_creation: Total tokens written to prompt cache.
+
+        Returns:
+            Dictionary with cache metrics including hit_rate, formatted summary,
+            and a warning flag when caching appears broken.
+        """
+        total_cache = cache_read + cache_creation
+        hit_rate = (cache_read / total_cache * 100) if total_cache > 0 else 0.0
+
+        # Determine if caching appears broken: writes happening but zero reads
+        zero_reads_warning = cache_creation > 0 and cache_read == 0
+
+        return {
+            "cache_read_tokens": cache_read,
+            "cache_creation_tokens": cache_creation,
+            "total_cache_tokens": total_cache,
+            "hit_rate": round(hit_rate, 1),
+            "zero_reads_warning": zero_reads_warning,
+        }
+
+    @staticmethod
+    def format_cache_summary(cache_metrics: dict) -> str:
+        """Format cache metrics into a human-readable summary line.
+
+        Args:
+            cache_metrics: Dictionary from calculate_cache_metrics().
+
+        Returns:
+            Formatted string such as:
+              "Cache: 45,230 read / 12,100 written (78.9% hit rate)"
+            or with warning:
+              "Cache: 0 reads / 12,100 written (0.0% hit rate -- caching may not be working)"
+        """
+        cache_read = cache_metrics["cache_read_tokens"]
+        cache_creation = cache_metrics["cache_creation_tokens"]
+        hit_rate = cache_metrics["hit_rate"]
+        zero_reads_warning = cache_metrics["zero_reads_warning"]
+
+        read_str = f"{cache_read:,}"
+        write_str = f"{cache_creation:,}"
+
+        summary = f"Cache: {read_str} read / {write_str} written ({hit_rate}% hit rate)"
+        if zero_reads_warning:
+            summary += " -- caching may not be working"
+
+        return summary

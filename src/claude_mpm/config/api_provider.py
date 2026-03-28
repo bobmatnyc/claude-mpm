@@ -62,11 +62,16 @@ class APIProviderConfig:
         backend: Selected API backend (bedrock or anthropic)
         bedrock: Bedrock-specific configuration
         anthropic: Anthropic-specific configuration
+        disable_prompt_caching: When True, sets DISABLE_PROMPT_CACHING=1 env var
+            to prevent Claude Code from using prompt caching. Useful when caching
+            is broken (e.g. Bedrock with Claude 4 models where cache reads are
+            always zero but the 25% cache write surcharge still applies).
     """
 
     backend: APIBackend = APIBackend.ANTHROPIC
     bedrock: BedrockConfig = field(default_factory=BedrockConfig)
     anthropic: AnthropicConfig = field(default_factory=AnthropicConfig)
+    disable_prompt_caching: bool = False
 
     @classmethod
     def load(cls, config_path: Path | None = None) -> "APIProviderConfig":
@@ -86,6 +91,7 @@ class APIProviderConfig:
 
         if not config_path.exists():
             logger.debug(f"Config file not found: {config_path}, using defaults")
+            config._apply_env_overrides()
             return config
 
         try:
@@ -95,6 +101,7 @@ class APIProviderConfig:
             api_provider = yaml_content.get("api_provider", {})
             if not api_provider:
                 logger.debug("No api_provider section found, using defaults")
+                config._apply_env_overrides()
                 return config
 
             # Parse backend
@@ -121,12 +128,32 @@ class APIProviderConfig:
                     model=anthropic_section.get("model", config.anthropic.model),
                 )
 
+            # Parse disable_prompt_caching from YAML
+            if "disable_prompt_caching" in api_provider:
+                config.disable_prompt_caching = bool(
+                    api_provider["disable_prompt_caching"]
+                )
+
+            config._apply_env_overrides()
+
             logger.debug(f"Loaded API provider config: backend={config.backend.value}")
             return config
 
         except Exception as e:
             logger.warning(f"Failed to load API provider config: {e}, using defaults")
-            return cls()
+            fallback = cls()
+            fallback._apply_env_overrides()
+            return fallback
+
+    def _apply_env_overrides(self) -> None:
+        """Apply environment variable overrides to configuration.
+
+        Called after YAML parsing to let env vars take precedence.
+        Currently handles CLAUDE_MPM_DISABLE_PROMPT_CACHING.
+        """
+        env_disable_cache = os.environ.get("CLAUDE_MPM_DISABLE_PROMPT_CACHING", "")
+        if env_disable_cache.strip().lower() in ("1", "true", "yes"):
+            self.disable_prompt_caching = True
 
     def apply_environment(self) -> dict[str, str]:
         """Apply environment variables for the selected backend.
@@ -192,6 +219,16 @@ class APIProviderConfig:
                     "Claude Code will use Claude.ai login or prompt for authentication."
                 )
 
+        # Handle prompt caching control
+        if self.disable_prompt_caching:
+            os.environ["DISABLE_PROMPT_CACHING"] = "1"
+            changes["DISABLE_PROMPT_CACHING"] = "1"
+            logger.info("Prompt caching disabled via configuration")
+        # Clean up env var if it was previously set by us
+        elif os.environ.get("DISABLE_PROMPT_CACHING") == "1":
+            del os.environ["DISABLE_PROMPT_CACHING"]
+            changes["DISABLE_PROMPT_CACHING"] = "(unset)"
+
         return changes
 
     def save(self, config_path: Path | None = None) -> None:
@@ -217,7 +254,7 @@ class APIProviderConfig:
                 logger.warning(f"Failed to read existing config: {e}")
 
         # Update api_provider section
-        existing_config["api_provider"] = {
+        api_provider_data: dict[str, Any] = {
             "backend": self.backend.value,
             "bedrock": {
                 "region": self.bedrock.region,
@@ -227,6 +264,9 @@ class APIProviderConfig:
                 "model": self.anthropic.model,
             },
         }
+        if self.disable_prompt_caching:
+            api_provider_data["disable_prompt_caching"] = True
+        existing_config["api_provider"] = api_provider_data
 
         # Write back
         try:
@@ -243,7 +283,7 @@ class APIProviderConfig:
         Returns:
             Dictionary representation of the configuration.
         """
-        return {
+        result: dict[str, Any] = {
             "backend": self.backend.value,
             "bedrock": {
                 "region": self.bedrock.region,
@@ -252,7 +292,9 @@ class APIProviderConfig:
             "anthropic": {
                 "model": self.anthropic.model,
             },
+            "disable_prompt_caching": self.disable_prompt_caching,
         }
+        return result
 
 
 def apply_api_provider_config(config_path: Path | None = None) -> dict[str, str]:

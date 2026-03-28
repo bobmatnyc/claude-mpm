@@ -84,6 +84,18 @@ class ProviderCommand(BaseCommand):
         # Anthropic settings
         table.add_row("Anthropic Model", config.anthropic.model)
 
+        # Prompt caching
+        if config.disable_prompt_caching:
+            table.add_row(
+                "Prompt Caching",
+                "[red]disabled[/red]",
+            )
+        else:
+            table.add_row(
+                "Prompt Caching",
+                "[green]enabled[/green] (default)",
+            )
+
         # Environment status
         bedrock_env = os.environ.get("CLAUDE_CODE_USE_BEDROCK", "not set")
         api_key_status = (
