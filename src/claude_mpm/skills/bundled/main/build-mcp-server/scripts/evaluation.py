@@ -55,7 +55,7 @@ Response Requirements:
 def parse_evaluation_file(file_path: Path) -> list[dict[str, Any]]:
     """Parse XML evaluation file with qa_pair elements."""
     try:
-        tree = ET.parse(file_path)
+        tree = ET.parse(file_path)  # nosec B314 - file is local MCP evaluation XML, not untrusted
         root = tree.getroot()
         evaluations = []
 

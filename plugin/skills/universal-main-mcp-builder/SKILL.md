@@ -1,5 +1,5 @@
 ---
-name: mcp-builder
+name: build-mcp-server
 description: "MCP (Model Context Protocol) server build and evaluation guide, including local conventions for tool surfaces, config, and testing"
 progressive_disclosure:
   entry_point:

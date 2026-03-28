@@ -478,7 +478,7 @@ skill_mappings:
 
   universal/main/internal-comms: *all_agents
 
-  universal/main/mcp-builder:
+  universal/main/build-mcp-server:
     - python-engineer
     - typescript-engineer
     - mpm-agent-manager

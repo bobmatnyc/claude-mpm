@@ -111,6 +111,60 @@ CORE_SKILLS = {
 }
 
 
+# Claude Code native slash commands that skills should not shadow.
+# Claude Code uses prefix matching, so a skill named "mcp-builder" will intercept
+# the native "/mcp" command because "mcp-builder" starts with "mcp".
+CLAUDE_CODE_RESERVED_COMMANDS = {
+    "mcp",
+    "help",
+    "exit",
+    "quit",
+    "clear",
+    "cost",
+    "model",
+    "permissions",
+    "login",
+    "logout",
+    "doctor",
+}
+
+
+def warn_if_skill_conflicts_with_native_command(skill_name: str) -> None:
+    """Emit a warning if a skill name shadows a Claude Code native slash command.
+
+    Claude Code uses prefix matching when resolving slash commands. A skill
+    whose name starts with a reserved native command (e.g., "mcp-builder" starts
+    with "mcp") will intercept that native command, preventing users from
+    invoking the built-in handler.
+
+    This function produces a warning — it does NOT block deployment — so that
+    operators can rename the offending skill at their own pace.
+
+    Args:
+        skill_name: The skill's declared name (from SKILL.md frontmatter).
+
+    Example:
+        >>> warn_if_skill_conflicts_with_native_command("mcp-builder")
+        # emits WARNING: skill 'mcp-builder' shadows native '/mcp' command
+        >>> warn_if_skill_conflicts_with_native_command("build-mcp-server")
+        # no warning emitted
+    """
+    for reserved in CLAUDE_CODE_RESERVED_COMMANDS:
+        if skill_name == reserved or skill_name.startswith(f"{reserved}-"):
+            logger.warning(
+                "Skill '%s' shadows Claude Code native command '/%s'. "
+                "Claude Code prefix-matches skill names, so typing '/%s' will trigger "
+                "this skill instead of the built-in handler. "
+                "Rename the skill to avoid the '%s' prefix (e.g., 'build-%s-...').",
+                skill_name,
+                reserved,
+                reserved,
+                reserved,
+                reserved,
+            )
+            return
+
+
 def parse_agent_frontmatter(agent_file: Path) -> dict[str, Any]:
     """Parse YAML frontmatter from agent markdown file.
 
@@ -391,6 +445,10 @@ def get_required_skills_from_agents(agents_dir: Path) -> set[str]:
             f"Normalized {len(all_skills)} skills to {len(normalized_skills)} "
             "(converted slashes to dashes)"
         )
+
+    # Validate that no skill name shadows a Claude Code native slash command
+    for skill in normalized_skills:
+        warn_if_skill_conflicts_with_native_command(skill)
 
     # Always include PM core skills to ensure PM_INSTRUCTIONS.md markers are resolved
     # These skills are referenced in PM_INSTRUCTIONS.md and must be deployed

@@ -1,5 +1,5 @@
 ---
-name: mcp-builder
+name: build-mcp-server
 description: Create high-quality MCP servers that enable LLMs to effectively interact with external services. Use when building MCP integrations for APIs or services in Python (FastMCP) or Node/TypeScript (MCP SDK).
 license: Complete terms in LICENSE.txt
 progressive_disclosure:

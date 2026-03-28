@@ -1,5 +1,5 @@
 ---
-name: mcp-builder
+name: build-mcp-server
 description: MCP (Model Context Protocol) - Build AI-native servers with tools, resources, and prompts. TypeScript/Python SDKs for Claude Desktop integration.
 version: 1.0.0
 category: toolchain
