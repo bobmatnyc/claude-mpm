@@ -12,7 +12,7 @@ claude-mpm setup <integration-name>
 claude-mpm setup kuzu-memory
 claude-mpm setup mcp-vector-search
 claude-mpm setup google-workspace-mcp
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 claude-mpm setup confluence
 ```
 
@@ -117,7 +117,7 @@ upload_markdown_as_doc(markdown_content="# Title\n\nContent...", title="Doc")
 - Message search across workspace
 
 ```bash
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 ```
 
 **Requires**: Slack app with user OAuth token
@@ -282,7 +282,7 @@ claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
 ```bash
 # Setup with flags
 claude-mpm setup gworkspace-mcp --no-launch --no-browser
-claude-mpm setup slack --no-launch
+claude-mpm setup slack-mpm --no-launch
 claude-mpm setup mcp-vector-search --force
 ```
 
@@ -311,7 +311,7 @@ claude-mpm setup kuzu-memory mcp-vector-search
 
 ```bash
 # Team communication + documentation
-claude-mpm setup slack confluence gworkspace-mcp
+claude-mpm setup slack-mpm confluence gworkspace-mcp
 ```
 
 ---

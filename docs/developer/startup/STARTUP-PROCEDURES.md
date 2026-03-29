@@ -370,7 +370,7 @@ skills:
 4. Create `.kuzu-memory-config` (subservient mode)
 5. Launch claude-mpm (unless `--no-start`)
 
-### `claude-mpm setup slack`
+### `claude-mpm setup slack-mpm`
 
 **Flow**:
 1. Run `scripts/setup/setup-slack-app.sh`

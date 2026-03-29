@@ -13,23 +13,7 @@
 >
 > **Quick Start**: See [Getting Started Guide](docs/getting-started/README.md) to get running in 5 minutes!
 
-> 🧪 **Beta available — v6.0.0b1**: A new major version is ready for testing. It introduces a plugin install path, binary consolidation, and auto-migration. Stable users on v5.11.4 are unaffected — pre-releases do not auto-install.
->
-> **Try the beta (plugin install — no pip needed):**
-> ```bash
-> claude plugin marketplace add bobmatnyc/claude-mpm-marketplace
-> claude plugin install claude-mpm@claude-mpm-marketplace
-> ```
-> **Try the beta (pip, explicit pin required):**
-> ```bash
-> pip install claude-mpm==6.0.0b1
-> ```
-> **Stay on stable (v5.11.4):**
-> ```bash
-> pip install claude-mpm        # installs latest stable automatically
-> uv tool install claude-mpm    # same — pre-releases are never selected
-> ```
-> See [Beta Guide](docs/beta-6.0.md) for the full details.
+> **Current stable version: v6.1.0** — plugin install path, binary consolidation, and auto-migration. See [Beta Guide](docs/beta-6.0.md) for v6.0 release notes.
 
 ---
 
@@ -293,7 +277,7 @@ uv tool install mcp-browser --python 3.13
   - Setup: `claude-mpm setup confluence`
 - **Slack MCP** user proxy with **12 tools**:
   - Channels, messages, DMs, search - acts as authenticated user
-  - Setup: `claude-mpm setup slack`
+  - Setup: `claude-mpm setup slack-mpm`
 - **Encrypted Token Storage** using Fernet encryption with system keychain
 - **Automatic Token Refresh** handles expiration seamlessly
 
@@ -308,7 +292,7 @@ claude-mpm setup notion
 claude-mpm setup confluence
 
 # Set up Slack (OAuth user token)
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 
 # Check token status
 claude-mpm oauth status workspace-mcp
@@ -481,9 +465,7 @@ Agent      (SocketIO)   (/session)
 
 ## What's New in v6.0
 
-> **Beta status**: v6.0.0b1 is currently in beta. See [Beta Guide](docs/beta-6.0.md) for install instructions and known limitations.
-
-**Validated in testing:**
+**Released in v6.0:**
 - ✅ Binary consolidation
 - ✅ Auto-migration of `.mcp.json` configs
 - ✅ Plugin install and uninstall
@@ -692,7 +674,7 @@ claude-mpm setup kuzu-memory
 claude-mpm setup mcp-vector-search
 claude-mpm setup gworkspace-mcp         # Canonical name (preferred)
 claude-mpm setup google-workspace-mcp   # Legacy alias (also works)
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 claude-mpm setup notion
 claude-mpm setup confluence
 

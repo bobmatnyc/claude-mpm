@@ -134,7 +134,7 @@ SLACK_OAUTH_CLIENT_SECRET=your-client-secret-here
 Use the unified setup command that handles OAuth authentication **and** MCP configuration:
 
 ```bash
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 ```
 
 This will:
@@ -149,7 +149,7 @@ This will:
 If you prefer to handle MCP configuration separately:
 
 ```bash
-claude-mpm oauth login slack-user-proxy --provider slack
+claude-mpm oauth setup slack-user-proxy
 ```
 
 This will:
@@ -169,7 +169,7 @@ You should see output indicating successful authentication:
 
 ## Step 6: Run the MCP Server
 
-> **Quick Setup:** If you used `claude-mpm setup slack` (which handles OAuth authentication), the MCP server was automatically configured in your `.mcp.json` file. You can skip the manual configuration below and verify with `claude mcp list`.
+> **Quick Setup:** If you used `claude-mpm setup slack-mpm` (which handles OAuth authentication), the MCP server was automatically configured in your `.mcp.json` file. You can skip the manual configuration below and verify with `claude mcp list`.
 
 ### Standalone (for testing)
 
@@ -271,7 +271,7 @@ Once configured, these 12 MCP tools are available:
 **Solution**: Re-authenticate:
 
 ```bash
-claude-mpm oauth login slack-user-proxy --provider slack
+claude-mpm oauth setup slack-user-proxy
 ```
 
 ### "missing_scope" Error

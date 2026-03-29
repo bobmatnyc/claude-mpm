@@ -64,7 +64,7 @@ From "Basic Information":
 
 ```bash
 # From your project directory
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 ```
 
 The setup wizard will:
@@ -79,10 +79,10 @@ The setup wizard will:
 
 ```bash
 # Setup without auto-launch
-claude-mpm setup slack --no-launch
+claude-mpm setup slack-mpm --no-launch
 
 # Setup without browser auto-open (manual token entry)
-claude-mpm setup slack --no-browser
+claude-mpm setup slack-mpm --no-browser
 ```
 
 ## Configuration
@@ -382,7 +382,7 @@ except RateLimitError as e:
 cat .env.local | grep SLACK_OAUTH
 
 # Re-run setup with force flag
-claude-mpm setup slack --force
+claude-mpm setup slack-mpm --force
 
 # Verify redirect URL in Slack app settings
 # Must be: http://localhost:8765/slack/oauth/callback
@@ -404,7 +404,7 @@ claude-mpm setup slack --force
 **Solutions**:
 1. Go to Slack App "OAuth & Permissions"
 2. Add missing User Token Scopes
-3. Re-authorize app: `claude-mpm setup slack --force`
+3. Re-authorize app: `claude-mpm setup slack-mpm --force`
 4. User must reinstall app with new scopes
 
 ### Rate Limit Exceeded
@@ -452,7 +452,7 @@ Periodically rotate tokens:
 claude-mpm oauth revoke slack
 
 # Re-authorize
-claude-mpm setup slack --force
+claude-mpm setup slack-mpm --force
 ```
 
 ## CLI Tools

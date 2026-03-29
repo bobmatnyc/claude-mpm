@@ -13,7 +13,7 @@ Scripts that are included in the PyPI package and available to users after insta
 **Usage:**
 
 ```bash
-claude-mpm setup slack
+claude-mpm setup slack-mpm
 ```
 
 See [docs/slack-setup.md](/docs/slack-setup.md) for detailed instructions.
