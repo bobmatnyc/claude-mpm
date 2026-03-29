@@ -53,6 +53,13 @@ def _run_core_skills_to_user_level_migration() -> bool:
     return run_migration()
 
 
+def _run_core_agents_to_user_level_migration() -> bool:
+    """Move CORE agents to user level, remove project-level duplicates."""
+    from .migrate_core_agents_to_user_level import run_migration
+
+    return run_migration()
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -84,6 +91,12 @@ MIGRATIONS: list[Migration] = [
         version="6.1.0",
         description="Move CORE mpm-* skills to user level, remove project-level duplicates",
         run=_run_core_skills_to_user_level_migration,
+    ),
+    Migration(
+        id="6.2.0_core_agents_to_user_level",
+        version="6.2.0",
+        description="Move CORE agents to user level, remove project-level duplicates",
+        run=_run_core_agents_to_user_level_migration,
     ),
 ]
 

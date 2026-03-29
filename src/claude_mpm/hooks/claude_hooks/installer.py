@@ -632,6 +632,9 @@ main "$@"
             # Deploy user-level PM skills to ~/.claude/skills/
             self._deploy_user_level_skills()
 
+            # Deploy USER_LEVEL_AGENTS to ~/.claude/agents/
+            self._deploy_user_level_agents()
+
             # Clean up old deployed scripts if they exist
             self._cleanup_old_deployment()
 
@@ -674,6 +677,42 @@ main "$@"
         except Exception as exc:
             self.logger.warning(
                 f"User-level skill deployment skipped (non-critical): {exc}"
+            )
+
+    def _deploy_user_level_agents(self) -> None:
+        """Deploy USER_LEVEL_AGENTS to ~/.claude/agents/ during hook installation.
+
+        These are the CORE engineering/PM/ops agents that should be shared across
+        all projects at the user level.  Deployment is non-blocking: errors are
+        logged as warnings but do not fail hook install.
+        """
+        try:
+            from claude_mpm.services.agents.deployment.agent_deployment import (
+                AgentDeploymentService,
+            )
+
+            deployer = AgentDeploymentService(working_directory=self.project_root)
+            # Deploy agents; USER_LEVEL_AGENTS will automatically be routed to
+            # ~/.claude/agents/ by the updated routing logic in deploy_agents().
+            results = deployer.deploy_agents(force_rebuild=False)
+
+            deployed_count = len(results.get("deployed", []))
+            updated_count = len(results.get("updated", []))
+            error_count = len(results.get("errors", []))
+
+            if deployed_count or updated_count:
+                self.logger.info(
+                    f"User-level agent deployment: deployed={deployed_count}, "
+                    f"updated={updated_count}"
+                )
+            if error_count:
+                self.logger.warning(
+                    f"User-level agent deployment had {error_count} errors: "
+                    f"{results.get('errors', [])}"
+                )
+        except Exception as exc:
+            self.logger.warning(
+                f"User-level agent deployment skipped (non-critical): {exc}"
             )
 
     def _cleanup_old_deployment(self) -> None:

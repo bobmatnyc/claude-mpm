@@ -21,7 +21,6 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 # Project root detection
@@ -47,8 +46,8 @@ class StructureRule:
         self,
         name: str,
         pattern: str,
-        allowed_locations: List[str],
-        forbidden_locations: Optional[List[str]] = None,
+        allowed_locations: list[str],
+        forbidden_locations: list[str] | None = None,
         description: str = "",
     ):
         self.name = name
@@ -57,7 +56,7 @@ class StructureRule:
         self.forbidden_locations = [Path(loc) for loc in (forbidden_locations or [])]
         self.description = description
 
-    def check_file(self, file_path: Path) -> Tuple[bool, str]:
+    def check_file(self, file_path: Path) -> tuple[bool, str]:
         """Check if file matches this rule and is in correct location."""
         if not self.pattern.match(file_path.name):
             return True, ""  # Rule doesn't apply
@@ -120,7 +119,7 @@ class StructureLinter:
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
-        self.violations: List[Dict] = []
+        self.violations: list[dict] = []
         self.rules = self._load_rules()
         self.changelog_sections = [
             "Added",
@@ -131,7 +130,7 @@ class StructureLinter:
             "Security",
         ]
 
-    def _load_rules(self) -> List[StructureRule]:
+    def _load_rules(self) -> list[StructureRule]:
         """Load structure validation rules based on STRUCTURE.md."""
         return [
             # Python scripts should not be in project root (except setup.py)
@@ -168,7 +167,7 @@ class StructureLinter:
             ),
         ]
 
-    def lint_project(self, target_path: Optional[Path] = None) -> bool:
+    def lint_project(self, target_path: Path | None = None) -> bool:
         """Lint the entire project or specific path."""
         if target_path is None:
             target_path = PROJECT_ROOT
@@ -201,6 +200,7 @@ class StructureLinter:
         """Check if file should be ignored during linting."""
         ignore_patterns = [
             r"\.git/.*",
+            r"\.claude/worktrees/.*",  # Git worktrees — separate working trees
             r"\.venv/.*",
             r"\.venv-.*/.*",  # Additional venv patterns
             r"venv/.*",
@@ -280,7 +280,7 @@ class StructureLinter:
         print(f"\nFixed {fixed}/{len(self.violations)} violations")
         return fixed == len(self.violations)
 
-    def _can_auto_fix(self, violation: Dict) -> bool:
+    def _can_auto_fix(self, violation: dict) -> bool:
         """Check if violation can be automatically fixed."""
         # Only auto-fix simple file moves for now
         return violation["rule"] in [
@@ -290,7 +290,7 @@ class StructureLinter:
             "old_release_notes_in_root",
         ]
 
-    def _auto_fix_violation(self, violation: Dict) -> bool:
+    def _auto_fix_violation(self, violation: dict) -> bool:
         """Attempt to automatically fix a violation."""
         try:
             source_path = PROJECT_ROOT / violation["file"]
