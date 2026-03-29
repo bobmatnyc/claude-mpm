@@ -629,6 +629,9 @@ main "$@"
             # Install commands if available
             self._install_commands()
 
+            # Deploy user-level PM skills to ~/.claude/skills/
+            self._deploy_user_level_skills()
+
             # Clean up old deployed scripts if they exist
             self._cleanup_old_deployment()
 
@@ -638,6 +641,40 @@ main "$@"
         except Exception as e:
             self.logger.error(f"Hook installation failed: {e}")
             return False
+
+    def _deploy_user_level_skills(self) -> None:
+        """Deploy USER_LEVEL_SKILLS to ~/.claude/skills/ during hook installation.
+
+        These are the mpm-* framework skills and universal core skills that should
+        be shared across all projects at the user level.  Deployment is
+        non-blocking: errors are logged as warnings but do not fail hook install.
+        """
+        try:
+            from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
+
+            deployer = PMSkillsDeployerService()
+            result = deployer.deploy_pm_skills(
+                self.project_root, force=False, tier="standard"
+            )
+
+            if result.deployed:
+                self.logger.info(
+                    f"Deployed {len(result.deployed)} user-level PM skills to ~/.claude/skills/: "
+                    f"{result.deployed}"
+                )
+            if result.skipped:
+                self.logger.debug(
+                    f"Skipped {len(result.skipped)} already-deployed user-level PM skills"
+                )
+            if result.errors:
+                self.logger.warning(
+                    f"User-level PM skill deployment had {len(result.errors)} errors: "
+                    f"{result.errors}"
+                )
+        except Exception as exc:
+            self.logger.warning(
+                f"User-level skill deployment skipped (non-critical): {exc}"
+            )
 
     def _cleanup_old_deployment(self) -> None:
         """Clean up old deployed hook scripts if they exist."""

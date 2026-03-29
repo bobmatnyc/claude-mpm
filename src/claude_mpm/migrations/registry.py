@@ -46,6 +46,13 @@ def _run_binary_consolidation_migration() -> bool:
     return run_migration()
 
 
+def _run_core_skills_to_user_level_migration() -> bool:
+    """Move CORE mpm-* skills to user level, remove project-level duplicates."""
+    from .migrate_core_skills_to_user_level import run_migration
+
+    return run_migration()
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -71,6 +78,12 @@ MIGRATIONS: list[Migration] = [
         version="5.12.0",
         description="Migrate .mcp.json to consolidated 'claude-mpm mcp serve' format",
         run=_run_binary_consolidation_migration,
+    ),
+    Migration(
+        id="6.1.0_core_skills_to_user_level",
+        version="6.1.0",
+        description="Move CORE mpm-* skills to user level, remove project-level duplicates",
+        run=_run_core_skills_to_user_level_migration,
     ),
 ]
 

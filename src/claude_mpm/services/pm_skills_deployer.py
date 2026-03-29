@@ -1,20 +1,21 @@
-"""PM Skills Deployer Service - Deploy bundled PM skills to projects.
+"""PM Skills Deployer Service - Deploy bundled PM skills to user level.
 
 WHY: PM agents require specific framework management skills for proper operation.
 This service manages deployment of bundled PM skills from the claude-mpm
-package to the Claude Code skills directory with version tracking.
+package to the Claude Code user-level skills directory with version tracking.
 
 DESIGN DECISIONS:
-- Deploys from src/claude_mpm/skills/bundled/pm/ to .claude/skills/
-- Skills named mpm-* (framework management skills)
+- Deploys from src/claude_mpm/skills/bundled/pm/ to ~/.claude/skills/
+- Skills named mpm-* (framework management skills) and universal-* core skills
 - Direct deployment (no intermediate .claude-mpm/skills/pm/ step)
 - Uses package-relative paths (works for both installed and dev mode)
 - Supports directory structure: mpm-skill-name/SKILL.md
-- Per-project deployment to .claude/skills/ (Claude Code location)
-- Version tracking via .claude-mpm/pm_skills_registry.yaml
+- User-level deployment to ~/.claude/skills/ (shared across all projects)
+- Only skills in USER_LEVEL_SKILLS frozenset are deployed to user level
+- Version tracking via .claude-mpm/pm_skills_registry.yaml (in project root)
 - Checksum validation for integrity verification
 - Conflict resolution: mpm-* skills from src WIN (overwrite existing)
-- Non-mpm-* skills in .claude/skills/ are untouched (user/git managed)
+- Non-mpm-* skills in ~/.claude/skills/ are untouched (user/git managed)
 - Non-blocking verification (returns warnings, doesn't halt execution)
 - Force flag to redeploy even if versions match
 
@@ -289,15 +290,20 @@ class PMSkillsDeployerService(LoggerMixin):
         return project_dir / ".claude-mpm" / self.REGISTRY_FILENAME
 
     def _get_deployment_dir(self, project_dir: Path) -> Path:
-        """Get deployment directory for PM skills.
+        """Get deployment directory for PM skills (user level).
+
+        PM skills in USER_LEVEL_SKILLS are deployed to the user-level Claude
+        skills directory (~/.claude/skills/) so they are shared across all
+        projects. The project_dir argument is accepted for API compatibility
+        but is not used to compute the deployment path.
 
         Args:
-            project_dir: Project root directory
+            project_dir: Project root directory (unused; kept for API compat)
 
         Returns:
-            Path to .claude/skills/
+            Path to ~/.claude/skills/
         """
-        return project_dir / ".claude" / "skills"
+        return Path.home() / ".claude" / "skills"
 
     def _load_registry(self, project_dir: Path) -> dict[str, Any]:
         """Load PM skills registry with security checks.
@@ -510,8 +516,9 @@ class PMSkillsDeployerService(LoggerMixin):
         deployment_dir = self._get_deployment_dir(project_dir)
         deployment_dir.mkdir(parents=True, exist_ok=True)
 
-        # SECURITY: Validate deployment path
-        if not self._validate_safe_path(project_dir, deployment_dir):
+        # SECURITY: Validate deployment path is within home directory
+        # (deployment_dir is ~/.claude/skills/, not under project_dir)
+        if not self._validate_safe_path(Path.home(), deployment_dir):
             return DeploymentResult(
                 success=False,
                 deployed=[],
@@ -552,7 +559,7 @@ class PMSkillsDeployerService(LoggerMixin):
                 # Target path: .claude/skills/{skill_name}/SKILL.md
                 target_path = skill_dir / "SKILL.md"
 
-                # SECURITY: Validate target path
+                # SECURITY: Validate target path is within user-level deployment dir
                 if not self._validate_safe_path(deployment_dir, target_path):
                     raise ValueError(f"Path traversal attempt detected: {target_path}")
 

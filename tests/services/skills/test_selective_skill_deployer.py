@@ -17,6 +17,7 @@ import pytest
 
 from claude_mpm.services.skills.selective_skill_deployer import (
     PM_CORE_SKILLS,
+    USER_LEVEL_SKILLS,
     add_user_requested_skill,
     cleanup_orphan_skills,
     get_required_skills_from_agents,
@@ -208,8 +209,9 @@ name: agent3
 
         result = get_required_skills_from_agents(agents_dir)
 
-        # Should collect unique skills across all agents + PM_CORE_SKILLS
-        expected = {"skill-a", "skill-b", "skill-c", "skill-d"} | PM_CORE_SKILLS
+        # Should collect unique skills across all agents, excluding USER_LEVEL_SKILLS
+        # (USER_LEVEL_SKILLS are deployed at ~/.claude/skills/, not project level)
+        expected = {"skill-a", "skill-b", "skill-c", "skill-d"} - USER_LEVEL_SKILLS
         assert result == expected
 
     def test_scan_empty_directory(self, tmp_path):
@@ -218,8 +220,8 @@ name: agent3
         agents_dir.mkdir()
 
         result = get_required_skills_from_agents(agents_dir)
-        # Even empty directory should have PM_CORE_SKILLS
-        assert result == PM_CORE_SKILLS
+        # Empty directory returns empty set; USER_LEVEL_SKILLS are at user level
+        assert result == set()
 
     def test_scan_nonexistent_directory(self, tmp_path):
         """Test scanning nonexistent directory."""
@@ -248,7 +250,8 @@ skills:
         (agents_dir / "readme.txt").write_text("Not an agent")
 
         result = get_required_skills_from_agents(agents_dir)
-        expected = {"skill-a"} | PM_CORE_SKILLS
+        # skill-a is not in USER_LEVEL_SKILLS so it stays at project level
+        expected = {"skill-a"} - USER_LEVEL_SKILLS
         assert result == expected
 
     def test_scan_handles_invalid_frontmatter(self, tmp_path):
@@ -277,8 +280,8 @@ invalid: yaml: syntax:
         )
 
         result = get_required_skills_from_agents(agents_dir)
-        # Should only get skills from valid agent + PM_CORE_SKILLS
-        expected = {"skill-a"} | PM_CORE_SKILLS
+        # Should only get skills from valid agent, excluding USER_LEVEL_SKILLS
+        expected = {"skill-a"} - USER_LEVEL_SKILLS
         assert result == expected
 
     def test_deduplication_across_agents(self, tmp_path):
@@ -304,8 +307,8 @@ skills: [skill-a, skill-c]
         )
 
         result = get_required_skills_from_agents(agents_dir)
-        # skill-a should appear only once + PM_CORE_SKILLS
-        expected = {"skill-a", "skill-b", "skill-c"} | PM_CORE_SKILLS
+        # skill-a should appear only once; USER_LEVEL_SKILLS filtered to user level
+        expected = {"skill-a", "skill-b", "skill-c"} - USER_LEVEL_SKILLS
         assert result == expected
 
     def test_slash_to_dash_normalization(self, tmp_path):
@@ -332,34 +335,39 @@ skills:
 
         result = get_required_skills_from_agents(agents_dir)
 
-        # Verify slash-separated paths are normalized to dashes
+        # Verify slash-separated paths are normalized to dashes.
+        # Note: universal-collaboration-git-workflow is in USER_LEVEL_SKILLS so it
+        # is excluded from project-level deployment (lives at ~/.claude/skills/).
         expected = {
             "explicit-skill",
             "toolchains-python-frameworks-django",
-            "universal-collaboration-git-workflow",
-        } | PM_CORE_SKILLS
+            # "universal-collaboration-git-workflow" filtered to user level
+        } - USER_LEVEL_SKILLS
         assert result == expected
 
         # Ensure no slash-separated paths remain
         for skill in result:
             assert "/" not in skill, f"Skill {skill} contains unprocessed slashes"
 
-    def test_pm_core_skills_always_included(self, tmp_path):
-        """Test that PM_CORE_SKILLS are always included in results.
+    def test_user_level_skills_excluded_from_project_level(self, tmp_path):
+        """Test that USER_LEVEL_SKILLS are excluded from project-level deployment.
 
-        WHY: PM_INSTRUCTIONS.md contains [SKILL: name] markers referencing PM core skills.
-        Without these skills deployed, PM only sees placeholders, not actual content.
-        This test ensures PM core skills are always included regardless of agent declarations.
+        WHY: mpm-* framework skills and the four universal core skills now live at
+        ~/.claude/skills/ (user level) and must NOT appear in the project-level
+        deployment result.  Any skill declared in agent frontmatter that also appears
+        in USER_LEVEL_SKILLS should be silently filtered out.
         """
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
 
-        # Create agent with no PM skills declared
+        # Declare a mix of project-level and user-level skills
+        some_user_level_skill = next(iter(USER_LEVEL_SKILLS))  # pick one
         (agents_dir / "agent1.md").write_text(
-            """---
+            f"""---
 name: agent1
 skills:
-  - some-other-skill
+  - some-project-skill
+  - {some_user_level_skill}
 ---
 # Agent 1
 """
@@ -367,17 +375,22 @@ skills:
 
         result = get_required_skills_from_agents(agents_dir)
 
-        # Verify all PM_CORE_SKILLS are present
-        for pm_skill in PM_CORE_SKILLS:
-            assert pm_skill in result, (
-                f"PM core skill {pm_skill} should always be included"
+        # Project-level skill should be present
+        assert "some-project-skill" in result
+
+        # User-level skills must NOT appear in the result
+        for skill in USER_LEVEL_SKILLS:
+            assert skill not in result, (
+                f"USER_LEVEL_SKILL '{skill}' must not appear in project-level deployment result"
             )
 
-        # Verify the agent's skill is also present
-        assert "some-other-skill" in result
+    def test_pm_core_skills_excluded_at_project_level(self, tmp_path):
+        """Test that all PM_CORE_SKILLS are excluded from project-level results.
 
-    def test_pm_core_skills_included_even_with_empty_agents(self, tmp_path):
-        """Test PM_CORE_SKILLS included even when no agents have skills."""
+        WHY: PM_CORE_SKILLS are a subset of USER_LEVEL_SKILLS.  They are deployed
+        by PMSkillsDeployerService to ~/.claude/skills/ and must not create
+        duplicate entries at .claude/skills/.
+        """
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
 
@@ -392,9 +405,10 @@ name: agent1
 
         result = get_required_skills_from_agents(agents_dir)
 
-        # PM_CORE_SKILLS should still be present
-        assert PM_CORE_SKILLS.issubset(result), (
-            "PM core skills should be included even with no agent-declared skills"
+        # All PM_CORE_SKILLS are in USER_LEVEL_SKILLS and must NOT appear
+        assert not PM_CORE_SKILLS.intersection(result), (
+            "PM core skills should be excluded from project-level deployment results; "
+            f"found: {PM_CORE_SKILLS.intersection(result)}"
         )
 
 
