@@ -22,6 +22,12 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.1.0 (2026-03-28)
+
+### Feat
+
+- move CORE mpm-* skills to user level, remove project-level duplicates
+
 ## v6.0.7 (2026-03-28)
 
 ### Fix
