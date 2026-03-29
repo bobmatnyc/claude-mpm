@@ -22,6 +22,12 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.2.0 (2026-03-29)
+
+### Feat
+
+- split CORE agents into user-level vs project-level storage (closes #412)
+
 ## v6.1.0 (2026-03-28)
 
 ### Feat

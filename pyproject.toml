@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "6.1.0"
+version = "6.2.0"
 description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -314,7 +314,7 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "6.1.0"
+version = "6.2.0"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version", "pyproject.toml:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true
