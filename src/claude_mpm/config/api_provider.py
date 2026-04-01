@@ -72,6 +72,7 @@ class APIProviderConfig:
     bedrock: BedrockConfig = field(default_factory=BedrockConfig)
     anthropic: AnthropicConfig = field(default_factory=AnthropicConfig)
     disable_prompt_caching: bool = False
+    _loaded_from_file: bool = field(default=False, repr=False)
 
     @classmethod
     def load(cls, config_path: Path | None = None) -> "APIProviderConfig":
@@ -85,7 +86,9 @@ class APIProviderConfig:
             APIProviderConfig instance with loaded or default values.
         """
         if config_path is None:
-            config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+            user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
+            base_dir = Path(user_pwd) if user_pwd else Path.cwd()
+            config_path = base_dir / ".claude-mpm" / "configuration.yaml"
 
         config = cls()
 
@@ -134,6 +137,7 @@ class APIProviderConfig:
                     api_provider["disable_prompt_caching"]
                 )
 
+            config._loaded_from_file = True
             config._apply_env_overrides()
 
             logger.debug(f"Loaded API provider config: backend={config.backend.value}")
@@ -186,8 +190,11 @@ class APIProviderConfig:
             )
 
         elif self.backend == APIBackend.ANTHROPIC:
-            # Disable Bedrock mode
-            if "CLAUDE_CODE_USE_BEDROCK" in os.environ:
+            # Only remove CLAUDE_CODE_USE_BEDROCK if this config was explicitly
+            # loaded from a file. When no config file exists and defaults are
+            # used, we must NOT delete env vars that the user set in their shell
+            # (e.g. CLAUDE_CODE_USE_BEDROCK=1 for Bedrock access).
+            if self._loaded_from_file and "CLAUDE_CODE_USE_BEDROCK" in os.environ:
                 del os.environ["CLAUDE_CODE_USE_BEDROCK"]
                 changes["CLAUDE_CODE_USE_BEDROCK"] = "(unset)"
 
@@ -239,7 +246,9 @@ class APIProviderConfig:
                         .claude-mpm/configuration.yaml in current directory.
         """
         if config_path is None:
-            config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+            user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
+            base_dir = Path(user_pwd) if user_pwd else Path.cwd()
+            config_path = base_dir / ".claude-mpm" / "configuration.yaml"
 
         # Ensure directory exists
         config_path.parent.mkdir(parents=True, exist_ok=True)
