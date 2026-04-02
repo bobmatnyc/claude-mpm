@@ -30,7 +30,6 @@ from packaging import version
 
 from ..core.logger import get_logger
 from ..core.unified_paths import PathContext
-from .mcp_gateway.utils.package_version_checker import PackageVersionChecker
 
 
 class InstallationMethod:
@@ -65,7 +64,6 @@ class SelfUpgradeService:
     def __init__(self):
         """Initialize the self-upgrade service."""
         self.logger = get_logger("SelfUpgradeService")
-        self.version_checker = PackageVersionChecker()
         self.current_version = self._get_current_version()
         self.installation_method = self._detect_installation_method()
         self.claude_code_version = self._get_claude_code_version()
@@ -356,9 +354,7 @@ class SelfUpgradeService:
             InstallationMethod.UV_TOOL,
             InstallationMethod.HOMEBREW,
         ]:
-            result = await self.version_checker.check_for_update(
-                "claude-mpm", self.current_version, cache_ttl
-            )
+            result = await self._check_pypi_for_update(cache_ttl)
             if result and result.get("update_available"):
                 result["installation_method"] = self.installation_method
                 result["upgrade_command"] = self._get_upgrade_command()
@@ -381,6 +377,42 @@ class SelfUpgradeService:
                     }
 
         return None
+
+    async def _check_pypi_for_update(
+        self, cache_ttl: int | None = None
+    ) -> dict[str, any] | None:
+        """Check PyPI for the latest version of claude-mpm.
+
+        Args:
+            cache_ttl: Unused, kept for interface compatibility.
+
+        Returns:
+            Dict with update info or None.
+        """
+        try:
+            import json
+            import urllib.request
+
+            url = "https://pypi.org/pypi/claude-mpm/json"
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+                data = json.loads(resp.read().decode())
+
+            latest = data.get("info", {}).get("version", "")
+            if not latest:
+                return None
+
+            current_ver = version.parse(self.current_version)
+            latest_ver = version.parse(latest)
+
+            return {
+                "current": self.current_version,
+                "latest": latest,
+                "update_available": latest_ver > current_ver,
+            }
+        except Exception as e:
+            self.logger.debug(f"PyPI version check failed: {e}")
+            return None
 
     async def _check_npm_version(self) -> str | None:
         """

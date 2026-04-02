@@ -255,7 +255,6 @@ def verify_environment(logger, project_root):
     required_files = [
         project_root / "pyproject.toml",
         claude_mpm_dir / "__init__.py",
-        claude_mpm_dir / "services" / "mcp_gateway" / "server" / "stdio_server.py",
     ]
 
     for file_path in required_files:
@@ -308,23 +307,9 @@ def test_imports(logger):
     except ImportError as e:
         raise ImportError(f"Failed to import claude_mpm: {e}") from e
 
-    try:
-        from claude_mpm.services.mcp_gateway.server import (
-            stdio_server,  # type: ignore[import-untyped]
-        )
-
-        logger.info(f"  ✓ stdio_server imported from: {stdio_server.__file__}")
-    except ImportError as e:
-        raise ImportError(f"Failed to import stdio_server: {e}") from e
-
-    try:
-        from claude_mpm.services.mcp_gateway.server.stdio_server import (  # type: ignore[import-untyped]
-            SimpleMCPServer,  # noqa: F401
-        )
-
-        logger.info("  ✓ SimpleMCPServer class imported successfully")
-    except ImportError as e:
-        raise ImportError(f"Failed to import SimpleMCPServer: {e}") from e
+    # MCP gateway sub-package was removed in v6.x.
+    # Skip stdio_server / SimpleMCPServer import checks.
+    logger.info("  - MCP gateway imports skipped (removed in v6.x)")
 
     try:
         import asyncio  # noqa: F401
@@ -354,34 +339,11 @@ def run_mcp_server(logger):
     """
     logger.info("Starting MCP Gateway Server...")
 
-    try:
-        import asyncio
-
-        from claude_mpm.services.mcp_gateway.server.stdio_server import (
-            SimpleMCPServer,  # type: ignore[import-untyped]
-        )
-
-        async def run_server():
-            """Async function to run the server."""
-            try:
-                server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
-                logger.info("Server instance created successfully")
-                await server.run()
-            except Exception as e:
-                logger.error(f"Server runtime error: {e}")
-                logger.error(traceback.format_exc())
-                raise
-
-        # Run the async server
-        asyncio.run(run_server())
-
-    except KeyboardInterrupt:
-        logger.info("Server shutdown requested (KeyboardInterrupt)")
-        sys.exit(0)
-    except Exception as e:
-        logger.error(f"Failed to run MCP server: {e}")
-        logger.error(traceback.format_exc())
-        raise
+    logger.error(
+        "MCP Gateway server was removed in v6.x. "
+        "Use Claude Code's native MCP management instead."
+    )
+    raise RuntimeError("MCP Gateway server removed in v6.x")
 
 
 def main():

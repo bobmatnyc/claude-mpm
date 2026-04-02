@@ -2386,138 +2386,18 @@ def check_mcp_auto_configuration():
     if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure", "setup"):
         return
 
-    try:
-        from ..services.mcp_gateway.auto_configure import (
-            check_and_configure_mcp,  # type: ignore
-        )
-
-        # Show progress feedback - this operation can take 10+ seconds
-        # Only show progress message in TTY mode to avoid interfering with Claude Code's status display
-        if sys.stdout.isatty():
-            print("Checking MCP configuration...", end="", flush=True)
-
-        # This function handles all the logic:
-        # - Checks if already configured
-        # - Checks if pipx installation
-        # - Checks if already asked before
-        # - Prompts user if needed
-        # - Configures if user agrees
-        check_and_configure_mcp()
-
-        # Clear the "Checking..." message by overwriting with spaces
-        # Only use carriage return clearing if stdout is a real TTY
-        if sys.stdout.isatty():
-            print("\r" + " " * 30 + "\r", end="", flush=True)
-        # In non-TTY mode, don't print anything - the "Checking..." message will just remain on its line
-
-    except Exception as e:
-        # Clear progress message on error
-        # Only use carriage return clearing if stdout is a real TTY
-        if sys.stdout.isatty():
-            print("\r" + " " * 30 + "\r", end="", flush=True)
-        # In non-TTY mode, don't print anything - the "Checking..." message will just remain on its line
-
-        # Non-critical - log but don't fail
-        from ..core.logger import get_logger
-
-        logger = get_logger("cli")
-        logger.debug(f"MCP auto-configuration check failed: {e}")
+    # MCP gateway auto-configuration was removed in v6.x.
+    # Claude Code handles MCP natively; no auto-configure needed.
 
 
 def verify_mcp_gateway_startup():
     """
-    Verify MCP Gateway configuration on startup and pre-warm MCP services.
+    Verify MCP Gateway configuration on startup.
 
-    WHY: The MCP gateway should be automatically configured and verified on startup
-    to provide a seamless experience with diagnostic tools, file summarizer, and
-    ticket service. Pre-warming MCP services eliminates the 11.9s delay on first use.
-
-    DESIGN DECISION: This is non-blocking - failures are logged but don't prevent
-    startup to ensure claude-mpm remains functional even if MCP gateway has issues.
+    NOTE: The MCP gateway sub-package was removed in v6.x. Claude Code handles
+    MCP natively. This function is now a no-op kept for call-site compatibility.
     """
-    # DISABLED: MCP service verification removed - Claude Code handles MCP natively
-    # The previous check warned about missing MCP services, but users should configure
-    # MCP servers through Claude Code's native MCP management, not through claude-mpm.
-    # See: https://docs.anthropic.com/en/docs/claude-code/mcp
-
-    try:
-        import asyncio
-
-        from ..core.logger import get_logger
-        from ..services.mcp_gateway.core.startup_verification import (  # type: ignore
-            is_mcp_gateway_configured,
-            verify_mcp_gateway_on_startup,
-        )
-
-        logger = get_logger("mcp_prewarm")
-
-        # Quick check first - if already configured, skip detailed verification
-        gateway_configured = is_mcp_gateway_configured()
-
-        # DISABLED: Pre-warming MCP servers can interfere with Claude Code's MCP management
-        # This was causing issues with MCP server initialization and stderr handling
-        # Pre-warming functionality has been removed. Gateway verification only runs
-        # if MCP gateway is not already configured.
-
-        # Run gateway verification in background if not configured
-        if not gateway_configured:
-
-            def run_verification():
-                """Background thread to verify MCP gateway configuration."""
-                loop = None
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    results = loop.run_until_complete(verify_mcp_gateway_on_startup())
-
-                    # Log results but don't block
-                    from ..core.logger import get_logger
-
-                    logger = get_logger("cli")
-
-                    if results.get("gateway_configured"):
-                        logger.debug("MCP Gateway verification completed successfully")
-                    else:
-                        logger.debug("MCP Gateway verification completed with warnings")
-
-                except Exception as e:
-                    from ..core.logger import get_logger
-
-                    logger = get_logger("cli")
-                    logger.debug(f"MCP Gateway verification failed: {e}")
-                finally:
-                    # Properly clean up event loop to prevent kqueue warnings
-                    if loop is not None:
-                        try:
-                            # Cancel all running tasks
-                            pending = asyncio.all_tasks(loop)
-                            for task in pending:
-                                task.cancel()
-                            # Wait for tasks to complete cancellation
-                            if pending:
-                                loop.run_until_complete(
-                                    asyncio.gather(*pending, return_exceptions=True)
-                                )
-                        except Exception:  # nosec B110
-                            pass  # Ignore cleanup errors
-                        finally:
-                            loop.close()
-                            # Clear the event loop reference to help with cleanup
-                            asyncio.set_event_loop(None)
-
-            # Run in background thread to avoid blocking startup
-            import threading
-
-            verification_thread = threading.Thread(target=run_verification, daemon=True)
-            verification_thread.start()
-
-    except Exception as e:
-        # Import logger here to avoid circular imports
-        from ..core.logger import get_logger
-
-        logger = get_logger("cli")
-        logger.debug(f"Failed to start MCP Gateway verification: {e}")
-        # Continue execution - MCP gateway issues shouldn't block startup
+    # MCP gateway was removed in v6.x — nothing to verify.
 
 
 def check_for_updates_async():

@@ -4,7 +4,6 @@ This module provides MCP server management commands.
 Extracted from mcp.py to reduce complexity and improve maintainability.
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -92,46 +91,15 @@ class MCPServerCommands:
             )
             print("   Press Ctrl+C to stop.\n", file=sys.stderr)
 
-        try:
-            # Import and run the server directly
-            from claude_mpm.services.mcp_gateway.server.stdio_server import (
-                SimpleMCPServer,
-            )
-
-            # Set environment variable if in test mode
-            if test_mode:
-                os.environ["MCP_MODE"] = "test"
-            else:
-                os.environ["MCP_MODE"] = "production"
-
-            # Create and run the server
-            self.logger.info("Starting MCP Gateway Server directly...")
-            server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
-
-            # Run the server asynchronously
-            await server.run()
-
-            return 0
-
-        except ImportError as e:
-            self.logger.error(f"Failed to import MCP server: {e}")
-            # Don't print to stdout as it would interfere with JSON-RPC protocol
-            # Log to stderr instead
-            print(
-                f"❌ Error: Could not import MCP server components: {e}",
-                file=sys.stderr,
-            )
-            print("\nMake sure the MCP package is installed:", file=sys.stderr)
-            print("  pip install mcp", file=sys.stderr)
-            return 1
-        except KeyboardInterrupt:
-            # Graceful shutdown
-            self.logger.info("MCP server interrupted")
-            return 0
-        except Exception as e:
-            self.logger.error(f"Server error: {e}")
-            print(f"❌ Error running server: {e}", file=sys.stderr)
-            return 1
+        # MCP Gateway server was removed in v6.x.
+        # Claude Code handles MCP natively.
+        print(
+            "The MCP Gateway server was removed in v6.x.\n"
+            "Claude Code handles MCP natively. See:\n"
+            "  https://docs.anthropic.com/en/docs/claude-code/mcp",
+            file=sys.stderr,
+        )
+        return 1
 
     def stop_server(self, args):
         """Stop MCP server command."""

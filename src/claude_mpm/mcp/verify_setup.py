@@ -149,16 +149,6 @@ def main() -> int:
         ("Wrapper Module", wrapper_module),
         ("Server script", server_script),
         ("pyproject.toml", project_root / "pyproject.toml"),
-        (
-            "stdio_server.py",
-            project_root
-            / "src"
-            / "claude_mpm"
-            / "services"
-            / "mcp_gateway"
-            / "server"
-            / "stdio_server.py",
-        ),
     ]
 
     all_exist = True
@@ -196,14 +186,7 @@ def main() -> int:
         )
     )
 
-    # Test 3: Module invocation
-    results.append(
-        test_method(
-            "Module invocation (-m)",
-            ["python3", "-m", "claude_mpm.services.mcp_gateway.server.stdio_server"],
-            cwd=str(project_root),
-        )
-    )
+    # Test 3: Module invocation (mcp_gateway removed in v6.x, skip)
 
     # Test 4: Wrapper from different working directory
     results.append(
