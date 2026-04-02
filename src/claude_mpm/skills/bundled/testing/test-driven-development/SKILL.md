@@ -23,6 +23,7 @@ tags:
   - testing
   - red-green-refactor
   - test-first
+effort: high
 ---
 
 # Test-Driven Development (TDD)

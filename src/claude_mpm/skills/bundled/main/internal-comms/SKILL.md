@@ -13,6 +13,7 @@ progressive_disclosure:
       Available: examples/3p-updates.md, examples/company-newsletter.md, examples/faq-answers.md, examples/general-comms.md
     note: "Already optimal at 32 lines - examples/ directory provides all format guidelines, no fragmentation needed"
   references: []
+effort: medium
 ---
 
 ## When to use this skill

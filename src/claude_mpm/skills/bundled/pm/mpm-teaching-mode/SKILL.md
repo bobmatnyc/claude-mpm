@@ -5,6 +5,7 @@ description: Comprehensive teaching templates and progressive disclosure pattern
 when_to_use: teaching mode active, explaining MPM concepts, user guidance
 category: pm-reference
 tags: [teaching, onboarding, progressive-disclosure, pm-required]
+effort: high
 ---
 
 # PM Teaching Mode - Detailed Content

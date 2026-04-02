@@ -19,6 +19,7 @@ tags:
   - mocking
   - e2e
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Testing Strategies

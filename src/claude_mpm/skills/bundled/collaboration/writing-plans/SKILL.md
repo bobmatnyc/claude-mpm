@@ -12,6 +12,7 @@ progressive_disclosure:
     - path: references/best-practices.md
       title: Best Practices & Guidelines
       description: Writing for zero-context engineers, code completeness, test design patterns
+effort: medium
 ---
 
 # Writing Plans

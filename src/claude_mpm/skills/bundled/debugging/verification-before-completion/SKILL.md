@@ -23,6 +23,7 @@ tags:
   - honesty
   - evidence
 requires_tools: []
+effort: medium
 ---
 
 # Verification Before Completion

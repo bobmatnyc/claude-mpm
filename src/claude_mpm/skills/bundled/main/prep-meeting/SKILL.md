@@ -7,6 +7,7 @@ progressive_disclosure:
   level: 1
   references: []
   note: Single-file workflow. Intentionally linear, not reference-heavy.
+effort: medium
 ---
 
 # Meeting Prep

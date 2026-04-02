@@ -4,6 +4,7 @@ description: "JavaScript ES2024+ and Node.js 22+ core patterns for minimalism, e
 version: "1.0.0"
 category: toolchains-javascript
 tags: [javascript, nodejs, patterns, performance, minimalism, efficiency]
+effort: medium
 ---
 
 # JavaScript Core Patterns (ES2024+ / Node.js 22+)

@@ -7,6 +7,7 @@ progressive_disclosure:
   level: 1
   references: []
   note: Single-file skill. The workflow itself is the deliverable.
+effort: high
 ---
 
 # Cross-Source Research

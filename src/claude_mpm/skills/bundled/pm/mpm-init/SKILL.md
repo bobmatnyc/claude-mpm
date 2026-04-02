@@ -5,6 +5,7 @@ user-invocable: true
 version: "1.0.0"
 category: mpm-command
 tags: [mpm-command, system, pm-required, setup]
+effort: low
 ---
 
 # /mpm-init

@@ -4,6 +4,7 @@ skill_version: 1.0.0
 description: Create and manage stacked (dependent) pull requests for complex features
 tags: [git, pull-requests, branching, workflow, collaboration]
 related_agents: [version-control]
+effort: low
 ---
 
 # Stacked Pull Requests

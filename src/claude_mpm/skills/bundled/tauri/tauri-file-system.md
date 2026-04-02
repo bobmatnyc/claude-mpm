@@ -18,6 +18,7 @@ tags:
   - file-operations
   - path-validation
 requires_tools: []
+effort: medium
 ---
 
 # Tauri File System Operations

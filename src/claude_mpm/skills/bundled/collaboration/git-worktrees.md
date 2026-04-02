@@ -4,6 +4,7 @@ skill_version: 1.0.0
 description: Use git worktrees for parallel development on multiple branches simultaneously
 tags: [git, worktrees, parallel-development, productivity]
 related_agents: [version-control, engineer]
+effort: low
 ---
 
 # Git Worktrees

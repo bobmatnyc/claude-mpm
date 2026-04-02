@@ -20,6 +20,7 @@ tags:
   - root-cause
   - tracing
   - call-stack
+effort: high
 ---
 
 # Root Cause Tracing

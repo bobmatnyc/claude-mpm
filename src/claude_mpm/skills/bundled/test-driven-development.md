@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Comprehensive TDD patterns and practices for all programming languages, eliminating redundant testing guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [testing, tdd, best-practices, quality-assurance]
+effort: high
 ---
 
 # Test-Driven Development (TDD)

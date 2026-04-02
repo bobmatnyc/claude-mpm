@@ -26,6 +26,7 @@ tags:
   - cross-platform
   - native
 requires_tools: []
+effort: high
 ---
 
 # Rust Desktop Applications

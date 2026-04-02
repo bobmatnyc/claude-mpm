@@ -5,6 +5,7 @@ description: Bug reporting protocol for PM and agents to file GitHub issues
 when_to_use: Framework bugs, agent errors, skill content errors detected
 category: pm-workflow
 tags: [bug-reporting, github, issues, pm-required]
+effort: high
 ---
 
 # PM Bug Reporting Protocol

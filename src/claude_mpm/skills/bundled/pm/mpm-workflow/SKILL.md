@@ -5,6 +5,7 @@ description: Manage and customize MPM workflow configurations with local overrid
 when_to_use: workflow customization, phase configuration, verification gates, agent routing
 category: pm-configuration
 tags: [workflow, configuration, customization, phases, verification]
+effort: medium
 ---
 
 # MPM Workflow Configuration

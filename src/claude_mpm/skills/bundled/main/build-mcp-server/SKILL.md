@@ -14,6 +14,7 @@ progressive_disclosure:
     - python_mcp_server.md
     - node_mcp_server.md
     - evaluation.md
+effort: high
 ---
 
 # MCP Server Development Guide

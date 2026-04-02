@@ -5,6 +5,7 @@ user-invocable: true
 version: "1.0.0"
 category: mpm-command
 tags: [mpm-command, analysis, pm-recommended]
+effort: high
 ---
 
 # /mpm-postmortem

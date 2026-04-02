@@ -13,6 +13,7 @@ tags:
   - duplication
   - code-quality
   - analysis
+effort: medium
 ---
 
 # Finding Duplicate-Intent Functions

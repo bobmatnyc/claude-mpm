@@ -4,6 +4,7 @@ description: "Go 1.22+ core patterns for minimalism, efficiency, code reuse, and
 version: "1.0.0"
 category: toolchains-golang
 tags: [golang, go, patterns, performance, minimalism, efficiency]
+effort: medium
 ---
 
 # Go Core Patterns

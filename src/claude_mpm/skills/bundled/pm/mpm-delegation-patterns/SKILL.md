@@ -5,6 +5,7 @@ description: Common delegation patterns for PM agent
 when_to_use: delegation questions, agent selection, workflow patterns
 category: pm-reference
 tags: [delegation, agents, patterns, pm-required]
+effort: high
 ---
 
 # Common Delegation Patterns

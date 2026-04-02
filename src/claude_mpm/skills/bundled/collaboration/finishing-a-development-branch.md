@@ -6,6 +6,7 @@ tags: [git, workflow, pull-requests, merge, worktrees, collaboration]
 related_agents: [version-control, engineer]
 source: https://github.com/obra/superpowers/tree/main/skills/finishing-a-development-branch
 license: MIT
+effort: low
 ---
 
 # Finishing a Development Branch

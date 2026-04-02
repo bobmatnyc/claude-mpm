@@ -20,6 +20,7 @@ tags:
   - dashboard
   - flexlayout
 requires_tools: []
+effort: medium
 ---
 
 # FlexLayout-React - Professional Docking Layouts

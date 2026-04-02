@@ -5,6 +5,7 @@ user-invocable: true
 version: "3.0.0"
 category: mpm-command
 tags: [mpm-command, communication, pm-required]
+effort: low
 ---
 
 # Cross-Project Messaging

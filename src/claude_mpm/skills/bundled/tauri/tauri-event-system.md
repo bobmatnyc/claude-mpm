@@ -18,6 +18,7 @@ tags:
   - streaming
   - real-time
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Advanced Event System

@@ -18,6 +18,7 @@ tags:
   - debugging
   - production
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Error Handling

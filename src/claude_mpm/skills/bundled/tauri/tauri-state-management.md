@@ -20,6 +20,7 @@ tags:
   - rwlock
   - dashmap
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Advanced State Management

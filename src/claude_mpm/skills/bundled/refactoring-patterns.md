@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Common refactoring techniques to improve code quality without changing behavior.
 updated_at: 2025-10-30T17:00:00Z
 tags: [refactoring, code-quality, patterns, maintainability]
+effort: medium
 ---
 
 # Refactoring Patterns

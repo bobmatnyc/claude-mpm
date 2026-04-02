@@ -25,6 +25,7 @@ tags:
   - metadata-driven
   - orm
 requires_tools: []
+effort: high
 ---
 
 # EspoCRM Development

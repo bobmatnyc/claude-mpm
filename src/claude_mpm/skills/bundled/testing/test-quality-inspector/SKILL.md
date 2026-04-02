@@ -13,6 +13,7 @@ progressive_disclosure:
     - assertion-quality.md
     - coverage-analysis.md
     - red-flags.md
+effort: medium
 ---
 
 # Test Quality Inspector

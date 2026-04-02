@@ -5,6 +5,7 @@ description: Protocol for tracking files immediately after agent creation
 when_to_use: after agent creates files, before marking todo complete, git operations
 category: pm-workflow
 tags: [git, file-tracking, workflow, pm-required]
+effort: medium
 ---
 
 # Git File Tracking Protocol

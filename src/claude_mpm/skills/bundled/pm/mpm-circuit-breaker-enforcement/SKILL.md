@@ -5,6 +5,7 @@ description: Complete circuit breaker enforcement patterns with examples and rem
 when_to_use: when circuit breaker violation detected, when understanding enforcement levels, when validating PM behavior
 category: pm-framework
 tags: [circuit-breaker, enforcement, pm-required, validation]
+effort: high
 ---
 
 # Circuit Breaker Enforcement

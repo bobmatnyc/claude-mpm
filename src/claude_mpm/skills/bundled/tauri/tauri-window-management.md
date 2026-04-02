@@ -18,6 +18,7 @@ tags:
   - window-management
   - modals
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Window Management

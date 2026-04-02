@@ -4,6 +4,7 @@ description: "Rust 2024 edition core patterns for minimalism, efficiency, code r
 version: "1.0.0"
 category: toolchains-rust
 tags: [rust, patterns, performance, minimalism, efficiency, safety]
+effort: medium
 ---
 
 # Rust 2024 Core Patterns

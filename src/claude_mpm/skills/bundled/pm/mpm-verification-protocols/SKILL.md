@@ -5,6 +5,7 @@ description: QA verification gate and evidence requirements
 when_to_use: verification needed, QA delegation, evidence collection
 category: pm-workflow
 tags: [qa, verification, evidence, pm-required]
+effort: high
 ---
 
 # QA Verification Gate Protocol

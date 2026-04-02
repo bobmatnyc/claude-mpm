@@ -20,6 +20,7 @@ tags:
   - typescript
   - integration
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Frontend Integration

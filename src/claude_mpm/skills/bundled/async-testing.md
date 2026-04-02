@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Patterns for testing asynchronous code across languages, eliminating redundant async testing guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [testing, async, asynchronous, concurrency]
+effort: medium
 ---
 
 # Async Testing

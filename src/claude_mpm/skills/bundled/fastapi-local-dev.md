@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Running FastAPI development servers effectively using Uvicorn, managing production deployments with Gunicorn, and avoiding common pitfalls.
 updated_at: 2025-10-30T17:00:00Z
 tags: [fastapi, python, development, server, api]
+effort: medium
 ---
 
 # FastAPI Local Development Server

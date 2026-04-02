@@ -13,6 +13,7 @@ progressive_disclosure:
     - progressive-disclosure.md
     - best-practices.md
     - examples.md
+effort: medium
 ---
 
 # Skill Creator
