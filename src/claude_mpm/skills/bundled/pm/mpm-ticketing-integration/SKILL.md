@@ -5,6 +5,7 @@ description: Ticket-driven development protocol
 when_to_use: ticket IDs mentioned, issue URLs, work tracking
 category: pm-workflow
 tags: [tickets, integration, workflow, pm-required]
+effort: medium
 ---
 
 # Ticketing Integration Protocol

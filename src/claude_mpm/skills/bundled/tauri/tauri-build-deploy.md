@@ -19,6 +19,7 @@ tags:
   - code-signing
   - updater
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Build and Deployment

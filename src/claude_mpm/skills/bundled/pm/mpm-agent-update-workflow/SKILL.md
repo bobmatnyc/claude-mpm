@@ -1,3 +1,7 @@
+---
+effort: medium
+---
+
 # PM Skill: Agent Update Workflow
 
 ## Trigger Patterns

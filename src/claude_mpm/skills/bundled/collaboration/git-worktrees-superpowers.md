@@ -6,6 +6,7 @@ tags: [git, worktrees, parallel-development, isolation, workflow, collaboration]
 related_agents: [version-control, engineer]
 source: https://github.com/obra/superpowers/tree/main/skills/using-git-worktrees
 license: MIT
+effort: low
 ---
 
 # Using Git Worktrees

@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Safe patterns for evolving database schemas in production.
 updated_at: 2025-10-30T17:00:00Z
 tags: [database, migration, schema, production]
+effort: medium
 ---
 
 # Database Migration

@@ -5,6 +5,7 @@ user-invocable: true
 version: "1.0.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
+effort: medium
 ---
 
 # /mpm-pause

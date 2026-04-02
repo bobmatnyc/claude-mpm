@@ -15,6 +15,7 @@ progressive_disclosure:
     - reconnaissance-pattern.md
     - decision-tree.md
     - troubleshooting.md
+effort: medium
 ---
 
 # Webapp Testing

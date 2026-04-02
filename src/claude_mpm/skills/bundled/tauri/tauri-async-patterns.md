@@ -18,6 +18,7 @@ tags:
   - concurrency
   - background-tasks
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Async Patterns

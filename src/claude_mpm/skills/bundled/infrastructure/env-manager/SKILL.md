@@ -28,6 +28,7 @@ tags:
   - vercel
   - railway
 context_limit: 800
+effort: medium
 ---
 
 # Environment Variable Manager

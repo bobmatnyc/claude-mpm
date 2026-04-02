@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Comprehensive guide to optimizing web performance using Lighthouse metrics and Core Web Vitals, covering modern optimization techniques and measurement strategies.
 updated_at: 2025-10-30T17:00:00Z
 tags: [performance, optimization, lighthouse, core-web-vitals, frontend]
+effort: high
 ---
 
 # Web Performance Optimization

@@ -4,6 +4,7 @@ description: "Java 21+ core patterns for minimalism, efficiency, code reuse, and
 version: "1.0.0"
 category: toolchains-java
 tags: [java, patterns, performance, minimalism, efficiency, virtual-threads]
+effort: medium
 ---
 
 # Java Core Patterns

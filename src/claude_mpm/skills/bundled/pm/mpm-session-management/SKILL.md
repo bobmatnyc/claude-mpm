@@ -1,3 +1,7 @@
+---
+effort: medium
+---
+
 # PM Session Management
 
 **Type**: Framework

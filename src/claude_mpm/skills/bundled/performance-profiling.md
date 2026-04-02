@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Systematic approach to identifying and optimizing performance bottlenecks, eliminating redundant profiling guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [performance, profiling, optimization, benchmarking]
+effort: medium
 ---
 
 # Performance Profiling

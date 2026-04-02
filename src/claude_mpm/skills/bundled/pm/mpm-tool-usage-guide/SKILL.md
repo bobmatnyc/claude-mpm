@@ -1,3 +1,7 @@
+---
+effort: medium
+---
+
 # MPM Tool Usage Guide
 
 Detailed tool usage patterns and examples for PM agents.

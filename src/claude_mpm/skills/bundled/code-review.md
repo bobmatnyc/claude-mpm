@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Systematic approach to reviewing code for quality, correctness, and maintainability.
 updated_at: 2025-10-30T17:00:00Z
 tags: [code-review, quality, collaboration, best-practices]
+effort: medium
 ---
 
 # Code Review

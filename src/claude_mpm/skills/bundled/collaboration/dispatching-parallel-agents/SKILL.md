@@ -13,6 +13,7 @@ progressive_disclosure:
     - agent-prompts.md
     - examples.md
     - troubleshooting.md
+effort: medium
 ---
 
 # Dispatching Parallel Agents

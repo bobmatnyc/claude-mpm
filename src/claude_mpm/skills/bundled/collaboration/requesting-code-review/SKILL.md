@@ -12,6 +12,7 @@ progressive_disclosure:
     - path: references/review-examples.md
       title: Review Examples & Workflows
       description: Good vs bad reviews, severity guidelines, complete workflow examples
+effort: medium
 ---
 
 # Requesting Code Review

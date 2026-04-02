@@ -4,6 +4,7 @@ description: "Python 3.12+ core patterns for minimalism, efficiency, code reuse,
 version: "1.0.0"
 category: toolchains-python
 tags: [python, patterns, performance, minimalism, efficiency]
+effort: medium
 ---
 
 # Python Core Patterns

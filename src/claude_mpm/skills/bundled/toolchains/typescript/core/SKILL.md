@@ -4,6 +4,7 @@ description: "TypeScript 5.6+ core patterns for minimalism, efficiency, type saf
 version: "2.0.0"
 category: toolchains-typescript
 tags: [typescript, patterns, performance, minimalism, type-safety]
+effort: medium
 ---
 
 # TypeScript Core Patterns

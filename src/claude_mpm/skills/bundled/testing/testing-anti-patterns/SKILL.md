@@ -13,6 +13,7 @@ progressive_disclosure:
     - completeness-anti-patterns.md
     - detection-guide.md
     - tdd-connection.md
+effort: medium
 ---
 
 # Testing Anti-Patterns

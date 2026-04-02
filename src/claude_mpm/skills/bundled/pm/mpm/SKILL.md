@@ -5,6 +5,7 @@ user-invocable: true
 version: "2.0.0"
 category: mpm-command
 tags: [mpm-command, system, pm-required, framework]
+effort: medium
 ---
 
 # /mpm - Claude MPM Framework Guide

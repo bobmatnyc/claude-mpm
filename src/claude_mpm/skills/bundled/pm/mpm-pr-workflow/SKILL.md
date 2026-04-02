@@ -5,6 +5,7 @@ description: Branch protection and PR creation workflow
 when_to_use: PR creation, branch operations, git push to main
 category: pm-workflow
 tags: [git, pr, branch-protection, pm-required]
+effort: medium
 ---
 
 # PR Workflow and Branch Protection

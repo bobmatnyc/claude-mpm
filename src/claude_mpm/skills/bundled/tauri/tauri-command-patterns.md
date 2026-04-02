@@ -18,6 +18,7 @@ tags:
   - parameters
   - rust
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Advanced Command Patterns

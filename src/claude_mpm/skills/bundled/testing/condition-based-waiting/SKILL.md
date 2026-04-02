@@ -23,6 +23,7 @@ progressive_disclosure:
     - path: references/patterns-and-implementation.md
       purpose: Detailed waiting patterns, implementation guide, and common mistakes
       when_to_read: When implementing waitFor or debugging timing issues
+effort: medium
 ---
 
 # Condition-Based Waiting

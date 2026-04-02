@@ -6,6 +6,7 @@ tags: [code-review, workflow, quality, collaboration, feedback]
 related_agents: [engineer, qa, version-control]
 source: https://github.com/obra/superpowers/tree/main/skills/receiving-code-review
 license: MIT
+effort: low
 ---
 
 # Code Review Reception

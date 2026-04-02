@@ -18,6 +18,7 @@ tags:
   - profiling
   - caching
 requires_tools: []
+effort: medium
 ---
 
 # Tauri Performance Optimization

@@ -14,6 +14,7 @@ progressive_disclosure:
       Stack: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui
     note: "Already optimal at 73 lines - scripts/ directory provides implementation details, no fragmentation needed"
   references: []
+effort: medium
 ---
 
 # Artifacts Builder

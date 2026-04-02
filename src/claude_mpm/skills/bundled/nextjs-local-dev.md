@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Managing Next.js development servers effectively, including direct dev server usage, PM2 for production deployments, and troubleshooting.
 updated_at: 2025-10-30T17:00:00Z
 tags: [nextjs, react, development, server]
+effort: medium
 ---
 
 # Next.js Local Development Server

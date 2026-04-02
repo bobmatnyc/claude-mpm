@@ -7,6 +7,7 @@ progressive_disclosure:
   level: 1
   references: []
   note: Single-file protocol. Value is in the checklist structure.
+effort: medium
 ---
 
 # End-of-Session Protocol

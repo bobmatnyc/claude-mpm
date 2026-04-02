@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Essential Docker patterns for containerizing applications.
 updated_at: 2025-10-30T17:00:00Z
 tags: [docker, containers, deployment, devops]
+effort: medium
 ---
 
 # Docker Containerization

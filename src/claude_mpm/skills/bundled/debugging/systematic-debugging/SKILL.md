@@ -24,6 +24,7 @@ tags:
   - systematic
 requires_tools:
   - debugger
+effort: high
 ---
 
 # Systematic Debugging

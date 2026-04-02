@@ -6,6 +6,7 @@ tags: [agents, workflow, implementation, review, quality, collaboration]
 related_agents: [engineer, qa, version-control]
 source: https://github.com/obra/superpowers/tree/main/skills/subagent-driven-development
 license: MIT
+effort: low
 ---
 
 # Subagent-Driven Development

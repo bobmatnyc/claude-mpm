@@ -7,6 +7,7 @@ progressive_disclosure:
   level: 1
   references: []
   note: Intentionally compact. The protocol is the value, not reference depth.
+effort: high
 ---
 
 # MCP Security Review

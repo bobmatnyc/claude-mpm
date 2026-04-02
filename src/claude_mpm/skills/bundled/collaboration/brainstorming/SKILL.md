@@ -7,6 +7,7 @@ progressive_disclosure:
   level: 1
   references: []
   note: Already optimal at 75 lines - intentionally compact, no references needed
+effort: medium
 ---
 
 # Brainstorming Ideas Into Designs

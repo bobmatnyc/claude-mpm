@@ -4,6 +4,7 @@ skill_version: 0.1.0
 description: Image manipulation and optimization techniques using ImageMagick.
 updated_at: 2025-10-30T17:00:00Z
 tags: [imagemagick, image-processing, optimization, media]
+effort: low
 ---
 
 # ImageMagick/Image Optimization
