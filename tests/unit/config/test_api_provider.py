@@ -135,19 +135,42 @@ class TestAPIProviderConfig:
         for var in ["CLAUDE_CODE_USE_BEDROCK", "ANTHROPIC_MODEL", "AWS_REGION"]:
             os.environ.pop(var, None)
 
-    def test_apply_environment_anthropic(self):
-        """Test applying environment for Anthropic backend."""
+    def test_apply_environment_anthropic_from_file(self):
+        """Test applying environment for Anthropic backend loaded from file.
+
+        When config is loaded from a file, CLAUDE_CODE_USE_BEDROCK should be
+        removed to honor the explicit file-based configuration.
+        """
         # Set bedrock var to test it gets removed
         os.environ["CLAUDE_CODE_USE_BEDROCK"] = "1"
         os.environ.pop("ANTHROPIC_MODEL", None)
 
-        config = APIProviderConfig(backend=APIBackend.ANTHROPIC)
+        config = APIProviderConfig(backend=APIBackend.ANTHROPIC, _loaded_from_file=True)
         changes = config.apply_environment()
 
         assert "CLAUDE_CODE_USE_BEDROCK" not in os.environ
         # ANTHROPIC_MODEL is not set when model is empty (default)
         assert "ANTHROPIC_MODEL" not in os.environ
         assert changes.get("CLAUDE_CODE_USE_BEDROCK") == "(unset)"
+
+    def test_apply_environment_anthropic_from_defaults_preserves_bedrock(self):
+        """Test that default config does NOT delete user's CLAUDE_CODE_USE_BEDROCK.
+
+        When no config file exists and defaults are used (_loaded_from_file=False),
+        the user's shell env vars must be preserved.
+        """
+        os.environ["CLAUDE_CODE_USE_BEDROCK"] = "1"
+        os.environ.pop("ANTHROPIC_MODEL", None)
+
+        config = APIProviderConfig(backend=APIBackend.ANTHROPIC)
+        changes = config.apply_environment()
+
+        # Should NOT have deleted the user's env var
+        assert os.environ.get("CLAUDE_CODE_USE_BEDROCK") == "1"
+        assert "CLAUDE_CODE_USE_BEDROCK" not in changes
+
+        # Cleanup
+        os.environ.pop("CLAUDE_CODE_USE_BEDROCK", None)
 
     def test_apply_environment_anthropic_with_model(self):
         """Test applying environment for Anthropic backend with explicit model."""
