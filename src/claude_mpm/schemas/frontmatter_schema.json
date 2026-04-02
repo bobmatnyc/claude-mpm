@@ -122,6 +122,12 @@
         "type": "string"
       },
       "description": "List of agent capabilities"
+    },
+    "initialPrompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Auto-submitted first turn when agent is spawned, eliminating one round-trip in delegation"
     }
   },
   "additionalProperties": true,

@@ -16,6 +16,72 @@ import yaml
 
 from claude_mpm.core.logging_config import get_logger
 
+# Mapping of agent names and types to their initialPrompt for self-starting delegation.
+# When an agent is spawned, the initialPrompt auto-submits as the first turn,
+# eliminating one round-trip in delegation.
+# See: https://github.com/bobmatnyc/claude-mpm/issues/418
+INITIAL_PROMPT_BY_NAME: dict[str, str] = {
+    # Research agents
+    "research": "Begin investigation. Analyze the task context, search for relevant files, and report findings.",
+    "code-analyzer": "Begin investigation. Analyze the task context, search for relevant files, and report findings.",
+    # Documentation agents
+    "documentation": "Begin documentation. Read the task context and start writing immediately.",
+    # Security agents
+    "security": "Begin security analysis. Read the task context and start scanning immediately.",
+    # Memory manager and special agents intentionally excluded (interactive/special purpose)
+    # prompt-engineer excluded (needs user interaction)
+    # real-user excluded (persona-based, needs configuration)
+    # memory-manager excluded (special purpose)
+}
+
+INITIAL_PROMPT_BY_TYPE: dict[str, str] = {
+    "engineer": "Begin implementation. Read the task context and start coding immediately.",
+    "refactoring": "Begin implementation. Read the task context and start coding immediately.",
+    "qa": "Begin verification. Read the task context and start testing immediately.",
+    "ops": "Begin operations. Read the task context and execute immediately.",
+    "research": "Begin investigation. Analyze the task context, search for relevant files, and report findings.",
+    "documentation": "Begin documentation. Read the task context and start writing immediately.",
+    "security": "Begin security analysis. Read the task context and start scanning immediately.",
+}
+
+# Agents that should NOT get initialPrompt (interactive/special purpose)
+INITIAL_PROMPT_EXCLUDED_NAMES: set[str] = {
+    "prompt-engineer",
+    "real-user",
+    "memory-manager",
+    "memory-manager-agent",
+    "mpm-agent-manager",
+    "mpm-skills-manager",
+    "ticketing",
+}
+
+
+def get_initial_prompt(agent_name: str, agent_type: str | None) -> str | None:
+    """Get the initialPrompt for an agent based on name or type.
+
+    Name-based lookup takes precedence over type-based lookup.
+    Excluded agents never get an initialPrompt.
+
+    Args:
+        agent_name: The kebab-case agent name
+        agent_type: The agent type category
+
+    Returns:
+        The initialPrompt string, or None if the agent should not have one
+    """
+    if agent_name in INITIAL_PROMPT_EXCLUDED_NAMES:
+        return None
+
+    # Name-based lookup first (highest priority)
+    if agent_name in INITIAL_PROMPT_BY_NAME:
+        return INITIAL_PROMPT_BY_NAME[agent_name]
+
+    # Type-based lookup (fallback)
+    if agent_type and agent_type in INITIAL_PROMPT_BY_TYPE:
+        return INITIAL_PROMPT_BY_TYPE[agent_type]
+
+    return None
+
 
 class AgentTemplateBuilder:
     """Service for building agent templates from JSON and base agent data.
@@ -593,6 +659,16 @@ class AgentTemplateBuilder:
             frontmatter_lines.append("skills:")
             for skill in skills:
                 frontmatter_lines.append(f"- {skill}")
+
+        # Add initialPrompt for self-starting delegation (issue #418)
+        # Check template data first (explicit override), then use type/name mapping
+        initial_prompt = template_data.get("initialPrompt")
+        if not initial_prompt:
+            initial_prompt = get_initial_prompt(claude_code_name, agent_type)
+        if initial_prompt:
+            # Quote the value to ensure valid YAML
+            escaped = initial_prompt.replace('"', '\\"')
+            frontmatter_lines.append(f'initialPrompt: "{escaped}"')
 
         frontmatter_lines.extend(
             [
