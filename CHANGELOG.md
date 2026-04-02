@@ -22,6 +22,20 @@
 ### Migration
 Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
 
+## v6.2.1 (2026-04-02)
+
+### Feat
+
+- add initialPrompt frontmatter to agent deployment pipeline (closes #418) (#424)
+- add effort frontmatter to skills for token optimization (closes #419) (#422)
+- add non-destructive startup cleanup for agent/skill overlap (#416)
+
+### Fix
+
+- mark messages as read after stop hook notification (closes #413) (#423)
+- remove dangling mcp_gateway references (closes #414) (#417)
+- preserve CLAUDE_CODE_USE_BEDROCK env var when config loaded from defaults (#415)
+
 ## v6.2.0 (2026-03-29)
 
 ### Feat
