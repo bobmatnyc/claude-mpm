@@ -60,6 +60,22 @@ def _run_core_agents_to_user_level_migration() -> bool:
     return run_migration()
 
 
+def _run_overlap_cleanup_migration() -> bool:
+    """Clean up agent/skill overlap between user-level and project-level."""
+    from pathlib import Path
+
+    from .cleanup_overlap import run_overlap_cleanup
+
+    result = run_overlap_cleanup(project_dir=Path.cwd())
+    # Consider it successful if there are no errors
+    total_errors = (
+        len(result["agents"]["errors"])
+        + len(result["skills"]["errors"])
+        + len(result["stale_agents"]["errors"])
+    )
+    return total_errors == 0
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -97,6 +113,12 @@ MIGRATIONS: list[Migration] = [
         version="6.2.0",
         description="Move CORE agents to user level, remove project-level duplicates",
         run=_run_core_agents_to_user_level_migration,
+    ),
+    Migration(
+        id="6.2.1_overlap_cleanup",
+        version="6.2.1",
+        description="Archive project-level duplicates of user-level agents/skills and stale -agent suffixed names",
+        run=_run_overlap_cleanup_migration,
     ),
 ]
 
