@@ -31,20 +31,16 @@ class MCPSearchInterface:
         self.vector_search_available = False
 
     async def initialize(self):
-        """Initialize the MCP gateway connection."""
+        """Initialize the MCP gateway connection.
+
+        NOTE: The MCP gateway sub-package was removed in v6.x.
+        This method now only checks vector search availability directly.
+        """
         try:
-            from claude_mpm.services.mcp_gateway import MCPGatewayService
-
-            self.mcp_gateway = self.container.resolve(MCPGatewayService)
-            if not self.mcp_gateway:
-                self.mcp_gateway = MCPGatewayService()
-                await self.mcp_gateway.initialize()
-
-            # Check if vector search is available
+            # MCP gateway was removed in v6.x — check vector search directly
             self.vector_search_available = await self._check_vector_search_available()
-
         except Exception as e:
-            console.print(f"[red]Failed to initialize MCP gateway: {e}[/red]")
+            console.print(f"[red]Failed to initialize search interface: {e}[/red]")
             raise
 
     async def _check_vector_search_available(self) -> bool:

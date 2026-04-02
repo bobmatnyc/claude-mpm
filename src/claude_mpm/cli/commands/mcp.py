@@ -68,25 +68,12 @@ def manage_mcp(args):
             return 1
 
     try:
-        # Import MCP Gateway services with error handling
-        try:
-            from ...services.mcp_gateway import (
-                MCPConfiguration,
-                MCPServiceRegistry,
-                ToolRegistry,
-            )
-            from ...services.mcp_gateway.server.mcp_gateway import MCPGateway
-        except ImportError as e:
-            # Provide minimal fallbacks for basic commands
-            logger.warning(f"Some MCP Gateway services not available: {e}")
-            print(
-                "\nError: MCP Gateway services not fully available",
-                file=sys.stderr,
-            )
-            print(f"Details: {e}", file=sys.stderr)
-            print("\nTry running:", file=sys.stderr)
-            print("  claude-mpm mcp install", file=sys.stderr)
-            return 1
+        # MCP Gateway was removed in v6.x. Set services to None so
+        # downstream handlers can detect the absence gracefully.
+        MCPConfiguration = None
+        MCPServiceRegistry = None
+        ToolRegistry = None
+        MCPGateway = None
 
         if not args.mcp_command:
             # No subcommand - show status by default

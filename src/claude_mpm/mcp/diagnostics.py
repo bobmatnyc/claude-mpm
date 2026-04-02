@@ -109,16 +109,6 @@ def diagnose():
             "Server Script",
             project_root / "src" / "claude_mpm" / "scripts" / "mcp_server.py",
         ),
-        (
-            "stdio_server.py",
-            project_root
-            / "src"
-            / "claude_mpm"
-            / "services"
-            / "mcp_gateway"
-            / "server"
-            / "stdio_server.py",
-        ),
         ("claude_mpm __init__", project_root / "src" / "claude_mpm" / "__init__.py"),
         ("VERSION file", project_root / "VERSION"),
     ]

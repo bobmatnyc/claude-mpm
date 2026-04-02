@@ -111,24 +111,10 @@ def __getattr__(name):
         ),
         # Project services
         "ProjectRegistry": ("claude_mpm.services.project.registry", "ProjectRegistry"),
-        # MCP Gateway services
-        "MCPConfiguration": (
-            "claude_mpm.services.mcp_gateway.config.configuration",
-            "MCPConfiguration",
-        ),
-        "MCPConfigLoader": (
-            "claude_mpm.services.mcp_gateway.config.config_loader",
-            "MCPConfigLoader",
-        ),
-        "MCPServer": ("claude_mpm.services.mcp_gateway.server.mcp_server", "MCPServer"),
-        "MCPToolRegistry": (
-            "claude_mpm.services.mcp_gateway.tools.tool_registry",
-            "MCPToolRegistry",
-        ),
-        "BaseMCPService": (
-            "claude_mpm.services.mcp_gateway.core.base",
-            "BaseMCPService",
-        ),
+        # MCP Gateway services (removed in v6.x — kept as stubs for backward compat)
+        # The mcp_gateway sub-package was deprecated and removed.
+        # These entries are intentionally absent so __getattr__ falls through
+        # to the AttributeError at the bottom of this function.
         # Other services
         "TicketManager": ("claude_mpm.services.ticket_manager", "TicketManager"),
     }
@@ -147,15 +133,13 @@ def __getattr__(name):
         except ImportError as e:
             raise AttributeError(f"Recovery management not available: {name}") from e
 
-    # Handle MCP interfaces (names starting with "IMCP")
-    if name.startswith("IMCP"):
-        module = import_module("claude_mpm.services.mcp_gateway.core.interfaces")
-        return getattr(module, name)
-
-    # Handle MCP exceptions (names starting with "MCP" and containing "Error")
-    if name.startswith("MCP") and "Error" in name:
-        module = import_module("claude_mpm.services.mcp_gateway.core.exceptions")
-        return getattr(module, name)
+    # MCP Gateway interfaces/exceptions were removed in v6.x.
+    # Raise clear error for any remaining references.
+    if name.startswith("IMCP") or (name.startswith("MCP") and "Error" in name):
+        raise AttributeError(
+            f"'{name}' is no longer available. "
+            "The MCP gateway sub-package was removed in v6.x."
+        )
 
     # Handle core interfaces and base classes
     if name.startswith("I") or name in [
@@ -185,7 +169,6 @@ __all__ = [
     "AgentRegistry",
     "AgentVersionManager",
     "BaseAgentManager",
-    "BaseMCPService",
     # Core exports
     "BaseService",
     "DeployedAgentDiscovery",
@@ -194,11 +177,6 @@ __all__ = [
     "HookService",
     # Infrastructure services
     "LoggingService",  # New service
-    "MCPConfigLoader",
-    # MCP Gateway services
-    "MCPConfiguration",
-    "MCPServer",
-    "MCPToolRegistry",
     # Memory services (backward compatibility)
     "MemoryBuilder",
     "MemoryOptimizer",
