@@ -986,6 +986,17 @@ class EventHandlers:
                     f"Read and act on them with: `claude-mpm message list --status unread`"
                 )
 
+                # Mark notified messages as read so they are not recounted
+                # on subsequent session stops (fixes #413)
+                try:
+                    for msg in unread:
+                        service.read_message(msg.id)
+                except Exception as mark_err:
+                    if DEBUG:
+                        _log(
+                            f"Failed to mark stop-notified messages as read: {mark_err}"
+                        )
+
                 # Reset the message check throttle so the next UserPromptSubmit
                 # gets a fresh notification (fixes stale count after block)
                 try:
