@@ -78,6 +78,156 @@ def ensure_run_attributes(args):
     args.force_prompt = getattr(args, "force_prompt", False)
 
 
+def _handle_hook_errors(args) -> int:
+    # Lazy import to avoid loading unless needed
+    from .commands.hook_errors import (
+        clear_errors,
+        diagnose_errors,
+        list_errors,
+        show_status,
+        show_summary,
+    )
+
+    # Get subcommand
+    subcommand = getattr(args, "hook_errors_command", "status")
+    if not subcommand:
+        subcommand = "status"
+
+    # Map subcommands to functions
+    handlers = {
+        "list": list_errors,
+        "summary": show_summary,
+        "clear": clear_errors,
+        "diagnose": diagnose_errors,
+        "status": show_status,
+    }
+
+    # Get handler and call it with argument list (same pattern as autotodos)
+    handler = handlers.get(subcommand)
+    if handler:
+        try:
+            # Build argument list for Click command based on subcommand
+            click_args = []
+
+            # list command: --format, --hook-type
+            if subcommand == "list":
+                if hasattr(args, "format") and args.format:
+                    click_args.extend(["--format", args.format])
+                if hasattr(args, "hook_type") and args.hook_type:
+                    click_args.extend(["--hook-type", args.hook_type])
+            # clear command: --hook-type, -y
+            elif subcommand == "clear":
+                if hasattr(args, "hook_type") and args.hook_type:
+                    click_args.extend(["--hook-type", args.hook_type])
+                if hasattr(args, "yes") and args.yes:
+                    click_args.append("-y")
+            # diagnose command: hook_type (positional argument)
+            elif subcommand == "diagnose":
+                if hasattr(args, "hook_type") and args.hook_type:
+                    click_args.append(args.hook_type)
+            # status and summary commands: no options
+
+            # Call Click command with argument list and standalone_mode=False
+            handler(click_args, standalone_mode=False)
+            return 0
+        except SystemExit as e:
+            code = e.code
+            return int(code) if isinstance(code, int) else (1 if code else 0)
+        except Exception as e:
+            print(f"Error: {e}")
+            return 1
+    else:
+        print(f"Unknown hook-errors subcommand: {subcommand}")
+        return 1
+
+
+def _handle_autotodos(args) -> int:
+    # Lazy import to avoid loading unless needed
+    from .commands.autotodos import (
+        clear_autotodos,
+        inject_autotodos,
+        list_autotodos,
+        list_pm_violations,
+        scan_delegation_patterns,
+        show_autotodos_status,
+    )
+
+    # Get subcommand
+    subcommand = getattr(args, "autotodos_command", "status")
+    if not subcommand:
+        subcommand = "status"
+
+    # Map subcommands to functions
+    handlers = {
+        "list": list_autotodos,
+        "inject": inject_autotodos,
+        "clear": clear_autotodos,
+        "status": show_autotodos_status,
+        "scan": scan_delegation_patterns,
+        "violations": list_pm_violations,
+    }
+
+    # Get handler and call it with standalone_mode=False
+    handler = handlers.get(subcommand)
+    if handler:
+        try:
+            # Build argument list for Click command
+            click_args = []
+
+            if subcommand == "list":
+                fmt = getattr(args, "format", "table")
+                click_args = ["--format", fmt]
+            elif subcommand == "inject":
+                output = getattr(args, "output", None)
+                if output:
+                    click_args = ["--output", output]
+            elif subcommand == "clear":
+                error_key = getattr(args, "error_key", None)
+                event_type = getattr(args, "event_type", "all")
+                if error_key:
+                    click_args.append("--error-key")
+                    click_args.append(error_key)
+                if event_type != "all":
+                    click_args.append("--event-type")
+                    click_args.append(event_type)
+                if getattr(args, "yes", False):
+                    click_args.append("-y")
+            elif subcommand == "scan":
+                text = getattr(args, "text", None)
+                file = getattr(args, "file", None)
+                fmt = getattr(args, "format", "table")
+                save = getattr(args, "save", False)
+
+                if text:
+                    click_args.append(text)
+                if file:
+                    click_args.extend(["--file", file])
+                if fmt != "table":
+                    click_args.extend(["--format", fmt])
+                if save:
+                    click_args.append("--save")
+            elif subcommand == "violations":
+                fmt = getattr(args, "format", "table")
+                if fmt != "table":
+                    click_args.extend(["--format", fmt])
+
+            # Call Click command with argument list and standalone_mode=False
+            handler(click_args, standalone_mode=False)
+            return 0
+        except SystemExit as e:
+            code = e.code
+            return int(code) if isinstance(code, int) else (1 if code else 0)
+        except Exception as e:
+            print(f"Error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return 1
+    else:
+        print(f"Unknown autotodos subcommand: {subcommand}")
+        return 1
+
+
 def execute_command(command: str, args) -> int:
     """
     Execute the specified command.
@@ -241,153 +391,11 @@ def execute_command(command: str, args) -> int:
 
     # Handle hook-errors command with lazy import
     if command == "hook-errors":
-        # Lazy import to avoid loading unless needed
-        from .commands.hook_errors import (
-            clear_errors,
-            diagnose_errors,
-            list_errors,
-            show_status,
-            show_summary,
-        )
-
-        # Get subcommand
-        subcommand = getattr(args, "hook_errors_command", "status")
-        if not subcommand:
-            subcommand = "status"
-
-        # Map subcommands to functions
-        handlers = {
-            "list": list_errors,
-            "summary": show_summary,
-            "clear": clear_errors,
-            "diagnose": diagnose_errors,
-            "status": show_status,
-        }
-
-        # Get handler and call it with argument list (same pattern as autotodos)
-        handler = handlers.get(subcommand)
-        if handler:
-            try:
-                # Build argument list for Click command based on subcommand
-                click_args = []
-
-                # list command: --format, --hook-type
-                if subcommand == "list":
-                    if hasattr(args, "format") and args.format:
-                        click_args.extend(["--format", args.format])
-                    if hasattr(args, "hook_type") and args.hook_type:
-                        click_args.extend(["--hook-type", args.hook_type])
-                # clear command: --hook-type, -y
-                elif subcommand == "clear":
-                    if hasattr(args, "hook_type") and args.hook_type:
-                        click_args.extend(["--hook-type", args.hook_type])
-                    if hasattr(args, "yes") and args.yes:
-                        click_args.append("-y")
-                # diagnose command: hook_type (positional argument)
-                elif subcommand == "diagnose":
-                    if hasattr(args, "hook_type") and args.hook_type:
-                        click_args.append(args.hook_type)
-                # status and summary commands: no options
-
-                # Call Click command with argument list and standalone_mode=False
-                handler(click_args, standalone_mode=False)
-                return 0
-            except SystemExit as e:
-                code = e.code
-                return int(code) if isinstance(code, int) else (1 if code else 0)
-            except Exception as e:
-                print(f"Error: {e}")
-                return 1
-        else:
-            print(f"Unknown hook-errors subcommand: {subcommand}")
-            return 1
+        return _handle_hook_errors(args)
 
     # Handle autotodos command with lazy import
     if command == "autotodos":
-        # Lazy import to avoid loading unless needed
-        from .commands.autotodos import (
-            clear_autotodos,
-            inject_autotodos,
-            list_autotodos,
-            list_pm_violations,
-            scan_delegation_patterns,
-            show_autotodos_status,
-        )
-
-        # Get subcommand
-        subcommand = getattr(args, "autotodos_command", "status")
-        if not subcommand:
-            subcommand = "status"
-
-        # Map subcommands to functions
-        handlers = {
-            "list": list_autotodos,
-            "inject": inject_autotodos,
-            "clear": clear_autotodos,
-            "status": show_autotodos_status,
-            "scan": scan_delegation_patterns,
-            "violations": list_pm_violations,
-        }
-
-        # Get handler and call it with standalone_mode=False
-        handler = handlers.get(subcommand)
-        if handler:
-            try:
-                # Build argument list for Click command
-                click_args = []
-
-                if subcommand == "list":
-                    fmt = getattr(args, "format", "table")
-                    click_args = ["--format", fmt]
-                elif subcommand == "inject":
-                    output = getattr(args, "output", None)
-                    if output:
-                        click_args = ["--output", output]
-                elif subcommand == "clear":
-                    error_key = getattr(args, "error_key", None)
-                    event_type = getattr(args, "event_type", "all")
-                    if error_key:
-                        click_args.append("--error-key")
-                        click_args.append(error_key)
-                    if event_type != "all":
-                        click_args.append("--event-type")
-                        click_args.append(event_type)
-                    if getattr(args, "yes", False):
-                        click_args.append("-y")
-                elif subcommand == "scan":
-                    text = getattr(args, "text", None)
-                    file = getattr(args, "file", None)
-                    fmt = getattr(args, "format", "table")
-                    save = getattr(args, "save", False)
-
-                    if text:
-                        click_args.append(text)
-                    if file:
-                        click_args.extend(["--file", file])
-                    if fmt != "table":
-                        click_args.extend(["--format", fmt])
-                    if save:
-                        click_args.append("--save")
-                elif subcommand == "violations":
-                    fmt = getattr(args, "format", "table")
-                    if fmt != "table":
-                        click_args.extend(["--format", fmt])
-
-                # Call Click command with argument list and standalone_mode=False
-                handler(click_args, standalone_mode=False)
-                return 0
-            except SystemExit as e:
-                code = e.code
-                return int(code) if isinstance(code, int) else (1 if code else 0)
-            except Exception as e:
-                print(f"Error: {e}")
-                import traceback
-
-                traceback.print_exc()
-                return 1
-        else:
-            print(f"Unknown autotodos subcommand: {subcommand}")
-            return 1
+        return _handle_autotodos(args)
 
     # Handle channels command with lazy import
     if command == "channels":
@@ -429,7 +437,6 @@ def execute_command(command: str, args) -> int:
         "gh": manage_gh,  # GitHub multi-account management
         "message": manage_messages,  # Cross-project messaging
         "queue": message_queue,  # Message queue management
-        "mpm-init": None,  # Will be handled separately with lazy import
     }
 
     # Execute command if found
