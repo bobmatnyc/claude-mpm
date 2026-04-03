@@ -133,7 +133,7 @@ def safe_import_multiple(
     Example:
         imports = [
             ('..utils.logger', 'utils.logger', ['get_logger']),
-            {'primary': '..core.agent_registry', 'fallback': 'core.agent_registry',
+            {'primary': '..core.unified_agent_registry', 'fallback': 'core.unified_agent_registry',
              'from_list': ['AgentRegistry'], 'as': 'registry'}
         ]
 

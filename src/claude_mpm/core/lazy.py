@@ -12,6 +12,7 @@ WHY lazy loading:
 
 import asyncio
 import functools
+import inspect
 import threading
 import time
 from collections.abc import Callable
@@ -65,7 +66,7 @@ class LazyService[T]:
 
     def __init__(
         self,
-        service_class: type[T],
+        service_class: type[T] | Callable[..., T],
         init_args: tuple = (),
         init_kwargs: dict | None = None,
         name: str | None = None,
@@ -204,7 +205,7 @@ class LazyServiceRegistry:
     def register(
         self,
         name: str,
-        service_class: type,
+        service_class: type | Callable[..., Any],
         init_args: tuple = (),
         init_kwargs: dict | None = None,
         eager: bool = False,
@@ -290,7 +291,7 @@ _registry = LazyServiceRegistry()
 
 
 def lazy_load(
-    service_class: type,
+    service_class: type | Callable[..., Any],
     name: str | None = None,
     init_args: tuple = (),
     init_kwargs: dict | None = None,
@@ -373,7 +374,7 @@ class lazy_property:
         self.lock = threading.RLock()
         functools.update_wrapper(self, func)  # type: ignore[arg-type]
 
-    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
+    def __get__(self, obj: Any, _objtype: type | None = None) -> Any:
         """Return the cached value, computing it on first access.
 
         WHY: Implements the descriptor protocol so the lazy property behaves like a
@@ -459,7 +460,7 @@ class AsyncLazyService[T]:
                 self._logger.debug(f"Async initializing: {self._name}")
 
                 # Handle both async and sync initialization
-                if asyncio.iscoroutinefunction(self._service_class):
+                if inspect.iscoroutinefunction(self._service_class):
                     self._instance = await self._service_class(
                         *self._init_args, **self._init_kwargs
                     )
@@ -512,7 +513,7 @@ class AsyncLazyService[T]:
             instance = await self._ensure_initialized()
             self._metrics.access_count += 1
             attr = getattr(instance, name)
-            if asyncio.iscoroutinefunction(attr):
+            if inspect.iscoroutinefunction(attr):
                 return await attr(*args, **kwargs)
             return attr(*args, **kwargs)
 

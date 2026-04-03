@@ -26,8 +26,9 @@ Architecture:
 
 import contextlib
 import json
+import re
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
@@ -83,12 +84,12 @@ class AgentMetadata:
     format: AgentFormat
     last_modified: float
     description: str = ""
-    specializations: list[str] = None
-    memory_files: list[str] = None
-    dependencies: list[str] = None
+    specializations: list[str] = field(default_factory=list)
+    memory_files: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
     version: str = "1.0.0"
     author: str = ""
-    tags: list[str] = None
+    tags: list[str] = field(default_factory=list)
     is_memory_aware: bool = False
     # NEW: Collection-based identification fields
     collection_id: str | None = None  # Format: owner/repo-name
@@ -534,7 +535,7 @@ class UnifiedAgentRegistry:
 
         # Look for frontmatter
         if lines and lines[0].strip() == "---":
-            for _i, line in enumerate(lines[1:], 1):
+            for _, line in enumerate(lines[1:], 1):
                 if line.strip() == "---":
                     break
                 if line.strip().startswith("description:"):
@@ -555,7 +556,7 @@ class UnifiedAgentRegistry:
         # Look for frontmatter
         lines = content.split("\n")
         if lines and lines[0].strip() == "---":
-            for _i, line in enumerate(lines[1:], 1):
+            for _, line in enumerate(lines[1:], 1):
                 if line.strip() == "---":
                     break
                 if line.startswith("specializations:"):
@@ -572,7 +573,7 @@ class UnifiedAgentRegistry:
         """Apply tier precedence rules to resolve conflicts."""
         # Group agents by their actual name (without tier suffix)
         agent_groups = {}
-        for _registry_key, metadata in self.registry.items():
+        for _, metadata in self.registry.items():
             # Extract the actual agent name (registry_key is "name_tier")
             agent_name = metadata.name  # Use the actual name from metadata
             if agent_name not in agent_groups:
@@ -944,6 +945,438 @@ def get_agent_by_canonical_id(canonical_id: str) -> AgentMetadata | None:
     return get_agent_registry().get_agent_by_canonical_id(canonical_id)
 
 
+# ============================================================================
+# DynamicAgentRegistry - canonical naming and normalization (Phase 3, #299)
+# ============================================================================
+
+
+class DynamicAgentRegistry:
+    """Dynamic agent registry with canonical naming and normalization.
+
+    This class provides consistent agent naming and discovery across the
+    codebase. It is the authority for:
+    - Agent discovery from deployed locations
+    - Canonical name resolution (handles aliases and variants)
+    - Agent ID normalization (dash-based convention)
+
+    Usage:
+        >>> registry = DynamicAgentRegistry()
+        >>> agents = registry.discover_agents()
+        >>> canonical = registry.get_canonical_name("python_engineer")
+        'python-engineer'
+        >>> normalized = registry.normalize_agent_id("Python Engineer")
+        'python-engineer'
+    """
+
+    # Known agent name aliases (maps variants to canonical names)
+    AGENT_ALIASES: dict[str, str] = {
+        # Underscore variants
+        "python_engineer": "python-engineer",
+        "qa_engineer": "qa-engineer",
+        "data_engineer": "data-engineer",
+        "version_control": "version-control",
+        "product_owner": "product-owner",
+        "project_organizer": "project-organizer",
+        # Space variants
+        "python engineer": "python-engineer",
+        "qa engineer": "qa-engineer",
+        "data engineer": "data-engineer",
+        "version control": "version-control",
+        "product owner": "product-owner",
+        "project organizer": "project-organizer",
+        # Common short forms
+        "eng": "engineer",
+        "doc": "documentation",
+        "docs": "documentation",
+        "sec": "security",
+        "vc": "version-control",
+        "po": "product-owner",
+    }
+
+    def __init__(self, deployment_dirs: list[Path] | None = None):
+        """Initialize dynamic agent registry.
+
+        Args:
+            deployment_dirs: List of directories to search for agents.
+                           If None, uses default locations:
+                           - .claude/agents/ (project)
+                           - ~/.claude/agents/ (user)
+                           - ~/.claude-mpm/cache/agents/ (cache)
+        """
+        self._logger = get_logger("dynamic_agent_registry")
+
+        if deployment_dirs is None:
+            self.deployment_dirs = [
+                Path.cwd() / ".claude" / "agents",
+                Path.home() / ".claude" / "agents",
+                Path.home() / ".claude-mpm" / "cache" / "agents",
+            ]
+        else:
+            self.deployment_dirs = deployment_dirs
+
+        self._agent_cache: dict[str, dict[str, Any]] = {}
+        self._cache_valid = False
+
+    def discover_agents(self, force_refresh: bool = False) -> dict[str, dict[str, Any]]:
+        """Discover all deployed agents from configured directories.
+
+        Scans deployment directories for .md files and extracts agent metadata
+        from YAML frontmatter. Priority is based on directory order (first wins).
+
+        Args:
+            force_refresh: Force re-scan even if cache is valid
+
+        Returns:
+            Dictionary mapping canonical agent names to metadata.
+        """
+        if self._cache_valid and not force_refresh:
+            return self._agent_cache
+
+        agents: dict[str, dict[str, Any]] = {}
+
+        for idx, deployment_dir in enumerate(self.deployment_dirs):
+            if not deployment_dir.exists():
+                self._logger.debug(
+                    f"Deployment directory does not exist: {deployment_dir}"
+                )
+                continue
+
+            if ".claude-mpm/cache" in str(deployment_dir):
+                source_type = "cache"
+            elif str(Path.home()) in str(deployment_dir):
+                source_type = "user"
+            else:
+                source_type = "project"
+
+            for md_file in deployment_dir.glob("*.md"):
+                if md_file.name.startswith(".") or md_file.name.upper() == "README.MD":
+                    continue
+
+                agent_id = self.normalize_agent_id(md_file.stem)
+
+                if agent_id in agents:
+                    self._logger.debug(
+                        f"Skipping {md_file.name} (already found in higher priority location)"
+                    )
+                    continue
+
+                try:
+                    content = md_file.read_text(encoding="utf-8")
+                    metadata = self._extract_metadata(content, md_file)
+                    metadata["source_dir"] = source_type
+                    metadata["priority"] = idx
+                    agents[agent_id] = metadata
+                except Exception as e:
+                    self._logger.warning(
+                        f"Failed to read agent file {md_file.name}: {e}"
+                    )
+
+        self._agent_cache = agents
+        self._cache_valid = True
+
+        self._logger.info(
+            f"Discovered {len(agents)} agents from {len(self.deployment_dirs)} directories"
+        )
+        return agents
+
+    def get_canonical_name(self, name: str) -> str:
+        """Get canonical agent name from any variant.
+
+        Handles underscore, space, alias, and case normalization.
+
+        Args:
+            name: Any agent name variant
+
+        Returns:
+            Canonical dash-based agent name
+        """
+        normalized = self.normalize_agent_id(name)
+
+        if normalized in self.AGENT_ALIASES:
+            return self.AGENT_ALIASES[normalized]
+
+        lower_name = name.lower()
+        if lower_name in self.AGENT_ALIASES:
+            return self.AGENT_ALIASES[lower_name]
+
+        return normalized
+
+    def normalize_agent_id(self, agent_id: str) -> str:
+        """Normalize agent ID to dash-based convention.
+
+        Algorithm:
+        1. Lowercase
+        2. Replace underscores with dashes
+        3. Replace spaces with dashes
+        4. Strip -agent suffix
+        5. Collapse multiple dashes
+
+        Args:
+            agent_id: Raw agent ID
+
+        Returns:
+            Normalized dash-based agent ID
+        """
+        normalized = agent_id.lower()
+        normalized = normalized.replace("_", "-")
+        normalized = normalized.replace(" ", "-")
+
+        while "--" in normalized:
+            normalized = normalized.replace("--", "-")
+
+        normalized = normalized.strip("-")
+
+        if normalized.endswith("-agent"):
+            normalized = normalized[:-6]
+
+        return normalized
+
+    def get_agent(self, agent_id: str) -> dict[str, Any] | None:
+        """Get agent metadata by ID or alias.
+
+        Args:
+            agent_id: Agent ID or alias
+
+        Returns:
+            Agent metadata dictionary or None if not found
+        """
+        agents = self.discover_agents()
+
+        canonical = self.get_canonical_name(agent_id)
+        if canonical in agents:
+            return agents[canonical]
+
+        normalized = self.normalize_agent_id(agent_id)
+        if normalized in agents:
+            return agents[normalized]
+
+        return None
+
+    def _extract_metadata(self, content: str, file_path: Path) -> dict[str, Any]:
+        """Extract agent metadata from file content.
+
+        Args:
+            content: File content (with optional YAML frontmatter)
+            file_path: Path to the file
+
+        Returns:
+            Metadata dictionary with name, agent_id, path, has_frontmatter
+        """
+        try:
+            import yaml as _yaml
+        except ImportError:
+            _yaml = None  # type: ignore[assignment]
+
+        metadata: dict[str, Any] = {
+            "name": file_path.stem.replace("-", " ").title(),
+            "agent_id": self.normalize_agent_id(file_path.stem),
+            "path": str(file_path),
+            "has_frontmatter": False,
+        }
+
+        if content.startswith("---"):
+            metadata["has_frontmatter"] = True
+            frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+            if frontmatter_match and _yaml is not None:
+                with contextlib.suppress(Exception):
+                    parsed = _yaml.safe_load(frontmatter_match.group(1))
+                    if isinstance(parsed, dict):
+                        if "name" in parsed:
+                            metadata["name"] = parsed["name"]
+                        if "agent_id" in parsed:
+                            metadata["agent_id"] = self.normalize_agent_id(
+                                parsed["agent_id"]
+                            )
+                        if "description" in parsed:
+                            metadata["description"] = parsed["description"]
+                        if "model" in parsed:
+                            metadata["model"] = parsed["model"]
+
+        return metadata
+
+
+# ============================================================================
+# AgentRegistryAdapter and SimpleAgentRegistry compatibility classes
+# ============================================================================
+
+
+class SimpleAgentRegistry:
+    """Thin wrapper around UnifiedAgentRegistry for backward compatibility.
+
+    Callers that need the old dict-based list_agents() format should use this
+    class rather than importing the deleted agent_registry.py shim.
+    """
+
+    def __init__(self, framework_path: Path | None = None):
+        """Initialize with optional framework path (ignored)."""
+        self.framework_path = framework_path
+        self._unified_registry = get_agent_registry()
+        self.agents: dict[str, Any] = {}
+        self._refresh()
+
+    def _refresh(self) -> None:
+        """Populate the agents dict from the unified registry."""
+        unified_agents = self._unified_registry.discover_agents()
+        self.agents = {
+            name: {
+                "name": meta.name,
+                "type": meta.agent_type.value,
+                "path": meta.path,
+                "last_modified": meta.last_modified,
+                "tier": meta.tier.value,
+                "specializations": meta.specializations,
+                "description": meta.description,
+            }
+            for name, meta in unified_agents.items()
+        }
+
+    def list_agents(self, **_kwargs: Any) -> dict[str, Any]:
+        """List all agents as a name->dict mapping."""
+        return self.agents
+
+    def get_agent(self, agent_name: str) -> AgentMetadata | None:
+        """Get a specific agent's unified metadata."""
+        return self._unified_registry.get_agent(agent_name)
+
+    def discover_agents(self, force_refresh: bool = False) -> dict[str, AgentMetadata]:
+        """Discover agents and return as name->UnifiedAgentMetadata mapping."""
+        return self._unified_registry.discover_agents(force_refresh=force_refresh)
+
+
+class AgentRegistryAdapter:
+    """Adapter providing the AgentRegistryAdapter interface over UnifiedAgentRegistry.
+
+    Drop-in replacement for the deleted agent_registry.py shim's AgentRegistryAdapter.
+    """
+
+    def __init__(self, framework_path: Path | None = None):
+        """Initialize the adapter."""
+        self._logger = get_logger("agent_registry_adapter")
+        self.framework_path = framework_path
+        self._unified_registry = get_agent_registry()
+        # Expose registry attribute that some callers access directly
+        self.registry = SimpleAgentRegistry(framework_path)
+
+    def list_agents(self, **kwargs: Any) -> dict[str, Any]:
+        """List available agents (compatibility method)."""
+        try:
+            return self.registry.list_agents(**kwargs)
+        except Exception as e:
+            self._logger.error(f"Error listing agents: {e}")
+            return {}
+
+    def get_agent_definition(self, agent_name: str) -> str | None:
+        """Get agent file content by name."""
+        try:
+            unified_agent = self._unified_registry.get_agent(agent_name)
+            if unified_agent:
+                agent_path = Path(unified_agent.path)
+                if agent_path.exists():
+                    return agent_path.read_text()
+            return None
+        except Exception as e:
+            self._logger.error(f"Error getting agent definition: {e}")
+            return None
+
+    def get_core_agents(self) -> list[str]:
+        """Get list of core system agent names."""
+        try:
+            return [a.name for a in self._unified_registry.get_core_agents()]
+        except Exception as e:
+            self._logger.error(f"Error getting core agents: {e}")
+            return [
+                "documentation",
+                "engineer",
+                "qa",
+                "research",
+                "ops",
+                "security",
+                "version_control",
+                "data_engineer",
+            ]
+
+    def get_agent_hierarchy(self) -> dict[str, list[str]]:
+        """Get agent hierarchy grouped by tier."""
+        try:
+            hierarchy: dict[str, list[str]] = {"project": [], "user": [], "system": []}
+            for tier in [AgentTier.PROJECT, AgentTier.USER, AgentTier.SYSTEM]:
+                agents = self._unified_registry.list_agents(tier=tier)
+                hierarchy[tier.value] = [a.name for a in agents]
+            return hierarchy
+        except Exception as e:
+            self._logger.error(f"Error getting hierarchy: {e}")
+            return {"project": [], "user": [], "system": []}
+
+    def select_agent_for_task(
+        self,
+        task_description: str,
+        required_specializations: list[str] | None = None,
+    ) -> dict[str, Any] | None:
+        """Select optimal agent for a task."""
+        # Interface parameter - not used by this implementation
+        try:
+            unified_agents = self._unified_registry.list_agents()
+
+            if required_specializations:
+                unified_agents = [
+                    a
+                    for a in unified_agents
+                    if any(s in a.specializations for s in required_specializations)
+                ]
+
+            if not unified_agents:
+                return None
+
+            agent = unified_agents[0]
+            return {
+                "id": agent.name,
+                "metadata": {
+                    "name": agent.name,
+                    "type": agent.agent_type.value,
+                    "path": agent.path,
+                    "tier": agent.tier.value,
+                    "specializations": agent.specializations,
+                    "description": agent.description,
+                },
+            }
+        except Exception as e:
+            self._logger.error(f"Error selecting agent: {e}")
+            return None
+
+    def format_agent_for_task_tool(
+        self, agent_name: str, task: str, context: str = ""
+    ) -> str:
+        """Format agent delegation for Task Tool."""
+        nicknames = {
+            "documentation": "Documenter",
+            "engineer": "Engineer",
+            "qa": "QA",
+            "research": "Researcher",
+            "ops": "Ops",
+            "security": "Security",
+            "version_control": "Versioner",
+            "data_engineer": "Data Engineer",
+        }
+        nickname = nicknames.get(agent_name, agent_name.title())
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        return (
+            f"**{nickname}**: {task}\n\n"
+            f"TEMPORAL CONTEXT: Today is {today}. Apply date awareness to task execution.\n\n"
+            f"**Task**: {task}\n\n"
+            f"**Context**: {context}\n\n"
+            f"**Authority**: Agent has full authority for {agent_name} operations\n"
+            f"**Expected Results**: Completed task with operational insights"
+        )
+
+
+# ============================================================================
+# Backward-compat: AgentRegistry alias and module-level functions
+# ============================================================================
+
+# Alias used by some callers
+AgentRegistry = SimpleAgentRegistry
+
+
 # Legacy function names for backward compatibility
 def listAgents() -> list[str]:
     """Legacy function: Get list of agent names."""
@@ -967,8 +1400,12 @@ def list_agents_all() -> list[AgentMetadata]:
 __all__ = [
     "AgentFormat",
     "AgentMetadata",
+    "AgentRegistry",
+    "AgentRegistryAdapter",
     "AgentSourceType",
     "AgentTier",
+    "DynamicAgentRegistry",
+    "SimpleAgentRegistry",
     "UnifiedAgentRegistry",
     "discover_agents",
     "discover_agents_sync",

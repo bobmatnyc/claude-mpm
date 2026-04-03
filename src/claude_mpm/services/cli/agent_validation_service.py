@@ -20,8 +20,8 @@ from pathlib import Path
 from typing import Any
 
 from ...agents.frontmatter_validator import FrontmatterValidator
-from ...core.agent_registry import AgentRegistryAdapter
 from ...core.logger import get_logger
+from ...core.unified_agent_registry import AgentRegistryAdapter
 
 
 class IAgentValidationService(ABC):
@@ -418,16 +418,13 @@ class AgentValidationService(IAgentValidationService):
 
                 # Extract frontmatter to check fields
                 try:
-                    frontmatter_match = self.validator._extract_frontmatter(content)
-                    if frontmatter_match:
-                        import yaml
-
-                        frontmatter = yaml.safe_load(frontmatter_match[0])
-
+                    result = self.validator._extract_frontmatter(content)
+                    if result:
+                        frontmatter_str, _ = result
                         # Check required fields
                         required = ["name", "type", "description"]
                         for field in required:
-                            if field in frontmatter:
+                            if field in frontmatter_str:
                                 checks["required_fields"].append(field)
                             else:
                                 checks["missing_fields"].append(field)
@@ -586,5 +583,6 @@ class AgentValidationService(IAgentValidationService):
         pattern = r"^---\n(.*?)\n---\n(.*)$"
         match = re.match(pattern, content, re.DOTALL)
         if match:
-            return match.groups()
+            fm, body = match.groups()
+            return (fm, body)
         return None

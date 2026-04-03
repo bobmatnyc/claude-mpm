@@ -71,6 +71,10 @@ class DeploymentServiceWrapper:
             "target_dir": str(project_dir),
         }
 
+    def __getattr__(self, name: str) -> Any:
+        """Proxy attribute access to the underlying deployment service."""
+        return getattr(self.service, name)
+
     def get_agent_details(self, agent_name: str) -> dict[str, Any]:
         """Get detailed information for a specific agent.
 

@@ -49,7 +49,7 @@ claude-pm init --verify
 
 4. **MANDATORY: Agent Registry Health Check**:
    ```bash
-   python -c "from claude_mpm.core.agent_registry import AgentRegistry; registry = get_agent_registry(); print(f'Registry health: {registry.health_check()}')"
+   python -c "from claude_mpm.core.unified_agent_registry import AgentRegistry; registry = get_agent_registry(); print(f'Registry health: {registry.health_check()}')"
    ```
 
 5. **MANDATORY: Initialize Core Agents with Registry Discovery**:

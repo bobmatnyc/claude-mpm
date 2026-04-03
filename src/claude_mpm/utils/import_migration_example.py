@@ -11,14 +11,20 @@ from claude_mpm.utils.imports import safe_import, safe_import_multiple
 # Method 1: Individual imports
 get_logger = safe_import("..utils.logger", "utils.logger", from_list=["get_logger"])
 AgentRegistryAdapter = safe_import(
-    "..core.agent_registry", "core.agent_registry", from_list=["AgentRegistryAdapter"]
+    "..core.unified_agent_registry",
+    "core.unified_agent_registry",
+    from_list=["AgentRegistryAdapter"],
 )
 
 # Method 2: Batch imports (recommended for multiple imports)
 imports = safe_import_multiple(
     [
         ("..utils.logger", "utils.logger", ["get_logger"]),
-        ("..core.agent_registry", "core.agent_registry", ["AgentRegistryAdapter"]),
+        (
+            "..core.unified_agent_registry",
+            "core.unified_agent_registry",
+            ["AgentRegistryAdapter"],
+        ),
     ]
 )
 

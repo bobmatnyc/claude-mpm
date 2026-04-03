@@ -10,7 +10,7 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from claude_mpm.core.agent_registry import AgentRegistryAdapter
+from claude_mpm.core.unified_agent_registry import AgentRegistryAdapter
 
 
 def main():

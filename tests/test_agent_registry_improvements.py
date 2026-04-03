@@ -7,7 +7,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from claude_mpm.core.agent_registry import AgentRegistryAdapter
+from claude_mpm.core.unified_agent_registry import AgentRegistryAdapter
 
 
 def test_agent_registry():
@@ -82,7 +82,7 @@ def test_agent_registry():
         "architect": "pm-orchestrator-agent.md",
     }
 
-    for json_key, _expected_file in expected_mappings.items():
+    for json_key, _ in expected_mappings.items():
         if json_key in agents:
             print(f"   ✓ {json_key} correctly mapped")
         else:

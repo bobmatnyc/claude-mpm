@@ -357,7 +357,7 @@ TEMPORAL CONTEXT: Today is [date]. Apply date awareness to data operations.
 
 **Comprehensive Agent Discovery API:**
 ```python
-from claude_mpm.core.agent_registry import AgentRegistry
+from claude_mpm.core.unified_agent_registry import AgentRegistry
 
 # Initialize registry with directory precedence
 registry = get_agent_registry()

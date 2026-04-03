@@ -408,7 +408,7 @@ class OptimizedStartup:
         """Create agent registry when needed."""
         from pathlib import Path
 
-        from ..core.agent_registry import SimpleAgentRegistry
+        from ..core.unified_agent_registry import SimpleAgentRegistry
 
         return SimpleAgentRegistry(Path.cwd())
 

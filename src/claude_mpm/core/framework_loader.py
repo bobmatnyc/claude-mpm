@@ -23,7 +23,9 @@ from claude_mpm.utils.imports import safe_import
 
 # Import with fallback support
 AgentRegistryAdapter = safe_import(
-    "claude_mpm.core.agent_registry", "core.agent_registry", ["AgentRegistryAdapter"]
+    "claude_mpm.core.unified_agent_registry",
+    "core.unified_agent_registry",
+    ["AgentRegistryAdapter"],
 )
 
 # Import API validator

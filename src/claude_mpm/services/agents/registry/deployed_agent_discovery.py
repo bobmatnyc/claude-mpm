@@ -8,8 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from claude_mpm.core.agent_registry import AgentRegistryAdapter
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.core.unified_agent_registry import AgentRegistryAdapter
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.shared import ConfigServiceBase
 

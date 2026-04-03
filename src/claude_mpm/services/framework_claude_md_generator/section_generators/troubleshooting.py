@@ -31,7 +31,7 @@ class TroubleshootingGenerator(BaseSectionGenerator):
 9. **Core System Performance Issues**: Implement system optimization
 
 ### Agent Registry Issues
-10. **Agent Registry Discovery Failures**: Run `python -c "from claude_mpm.core.agent_registry import AgentRegistry; get_agent_registry().health_check()"`
+10. **Agent Registry Discovery Failures**: Run `python -c "from claude_mpm.core.unified_agent_registry import AgentRegistry; get_agent_registry().health_check()"`
 11. **Agent Precedence Problems**: Verify directory structure with `claude-pm init --verify`
 12. **Specialization Discovery Issues**: Check agent metadata and specialization tags
 13. **Performance Cache Problems**: Clear SharedPromptCache and reinitialize registry

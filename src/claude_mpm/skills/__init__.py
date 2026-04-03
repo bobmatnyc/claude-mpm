@@ -12,10 +12,10 @@ Skills can be:
 New Skills Integration System:
 - SkillsService: Core service for skill management
 - AgentSkillsInjector: Dynamic skill injection into agent templates
-- SkillsRegistry: Helper class for registry operations
 
 Legacy System (maintained for compatibility):
 - Skill: Dataclass for skill representation
+- SkillsRegistry: Markdown-based skill file registry
 - SkillManager: Legacy skill manager
 - get_registry: Legacy registry access
 """
@@ -26,7 +26,6 @@ from .agent_skills_injector import AgentSkillsInjector
 # Legacy System (maintained for compatibility)
 from .registry import Skill, SkillsRegistry, get_registry, validate_agentskills_spec
 from .skill_manager import SkillManager
-from .skills_registry import SkillsRegistry as SkillsRegistryHelper
 from .skills_service import SkillsService
 
 __all__ = [
@@ -35,7 +34,6 @@ __all__ = [
     "Skill",
     "SkillManager",
     "SkillsRegistry",
-    "SkillsRegistryHelper",
     # New Skills Integration System
     "SkillsService",
     "get_registry",

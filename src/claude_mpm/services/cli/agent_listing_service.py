@@ -20,8 +20,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ...core.agent_registry import AgentRegistryAdapter
 from ...core.logger import get_logger
+from ...core.unified_agent_registry import AgentRegistryAdapter
 from ...services.agents.deployment import AgentDeploymentService
 from ...services.agents.deployment.deployment_wrapper import DeploymentServiceWrapper
 
@@ -146,7 +146,12 @@ class IAgentListingService(ABC):
 class AgentListingService(IAgentListingService):
     """Implementation of agent listing service."""
 
-    def __init__(self, deployment_service: AgentDeploymentService | None = None):
+    def __init__(
+        self,
+        deployment_service: AgentDeploymentService
+        | DeploymentServiceWrapper
+        | None = None,
+    ):
         """
         Initialize agent listing service.
 
@@ -154,14 +159,19 @@ class AgentListingService(IAgentListingService):
             deployment_service: Optional deployment service instance
         """
         self.logger = get_logger(self.__class__.__name__)
-        self._deployment_service = deployment_service
+        if isinstance(deployment_service, AgentDeploymentService):
+            self._deployment_service: DeploymentServiceWrapper | None = (
+                DeploymentServiceWrapper(deployment_service)
+            )
+        else:
+            self._deployment_service = deployment_service
         self._registry_adapter = None
         self._cache = {}
         self._cache_ttl = 60  # Cache for 60 seconds
         self._cache_times = {}
 
     @property
-    def deployment_service(self) -> AgentDeploymentService:
+    def deployment_service(self) -> DeploymentServiceWrapper:
         """Get deployment service instance (lazy loaded)."""
         if self._deployment_service is None:
             try:
