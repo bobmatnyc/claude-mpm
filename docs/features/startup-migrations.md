@@ -27,6 +27,7 @@ Migrations handle various configuration and cache updates:
 | Migration ID | Version | Description |
 |--------------|---------|-------------|
 | `v5.6.76-cache-dir-rename` | 5.6.76 | Renames `remote-agents/` to `agents/` in cache directory |
+| `skill_scope_v1` | 6.2.1+ | Detects user-scoped Claude Code plugins bleeding into unrelated project sessions; offers opt-in auto-fix to move them to project scope |
 
 ### v5.6.76-cache-dir-rename
 
@@ -34,6 +35,24 @@ This migration:
 1. Moves `~/.claude-mpm/cache/remote-agents/` contents to `~/.claude-mpm/cache/agents/`
 2. Removes the old `remote-agents` directory
 3. Updates `configuration.yaml` if it references the old path
+
+### skill_scope_v1
+
+This migration addresses a problem where Claude Code plugins installed at user scope can appear in sessions for unrelated projects, potentially injecting unexpected context or tools.
+
+**What it checks:**
+- Reads the global `~/.claude/plugins/installed_plugins.json`
+- Identifies plugins scoped as `"scope": "user"` whose plugin name does not match the current project name
+
+**What it does (opt-in):**
+For each foreign user-scoped plugin found, the user is prompted to move it to project scope:
+1. Removes the entry from the user-scope list in the global `installed_plugins.json`
+2. Adds a project-scoped entry in `{CWD}/.claude/plugins/installed_plugins.json`
+
+**When it applies:**
+- Only runs once per project (tracked by migration ID)
+- Only triggers if foreign user-scoped plugins are present
+- All moves are opt-in; the user is prompted for each plugin
 
 ## Migration History
 

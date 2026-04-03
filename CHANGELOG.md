@@ -1,3 +1,27 @@
+## [Unreleased]
+
+### Added
+
+- **`skill_scope_v1` startup migration**: Detects user-scoped Claude Code plugins that are bleeding into unrelated project sessions and offers an opt-in auto-fix to move them to project scope
+
+### Changed
+
+- **Phase 4 refactor**: `project_organizer.py` (1,007-line God Class) decomposed into six focused collaborators; the original file is retained as a thin coordinator (~115 lines):
+  - `services/project/structure_policy.py` — defines directory layout rules
+  - `services/project/structure_verifier.py` — validates existing project structure
+  - `services/project/directory_creator.py` — creates missing directories
+  - `services/project/gitignore_manager.py` — manages `.gitignore` entries
+  - `services/project/file_organizer.py` — moves/organizes files
+  - `services/project/structure_reporter.py` — produces human-readable structure reports
+- **Phase 3b refactor**: `multi_source_deployment_service.py` decomposed into focused collaborators
+- **Phase 3a refactor**: `hook-errors` and `autotodos` handlers extracted from `executor.py` into dedicated modules
+- **Phase 2 refactor**: Registry shim consolidated into single path; skills registry and type issues fixed
+- **Phase 1 refactor**: Dead code removed; build artifact `.gitignore` entries added
+
+### Removed
+
+- Dead code eliminated across executor, deployment service, and registry modules (Phase 1–3 refactors)
+
 ## [6.0.0b1] - 2026-03-25
 
 ### Breaking Changes
