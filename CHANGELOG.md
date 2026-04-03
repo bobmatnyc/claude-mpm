@@ -1,50 +1,16 @@
-## [Unreleased]
+## v6.2.2 (2026-04-03)
 
-### Added
+### Feat
 
-- **`skill_scope_v1` startup migration**: Detects user-scoped Claude Code plugins that are bleeding into unrelated project sessions and offers an opt-in auto-fix to move them to project scope
+- add startup migration for user-scoped plugin overlap detection
 
-### Changed
+### Refactor
 
-- **Phase 4 refactor**: `project_organizer.py` (1,007-line God Class) decomposed into six focused collaborators; the original file is retained as a thin coordinator (~115 lines):
-  - `services/project/structure_policy.py` — defines directory layout rules
-  - `services/project/structure_verifier.py` — validates existing project structure
-  - `services/project/directory_creator.py` — creates missing directories
-  - `services/project/gitignore_manager.py` — manages `.gitignore` entries
-  - `services/project/file_organizer.py` — moves/organizes files
-  - `services/project/structure_reporter.py` — produces human-readable structure reports
-- **Phase 3b refactor**: `multi_source_deployment_service.py` decomposed into focused collaborators
-- **Phase 3a refactor**: `hook-errors` and `autotodos` handlers extracted from `executor.py` into dedicated modules
-- **Phase 2 refactor**: Registry shim consolidated into single path; skills registry and type issues fixed
-- **Phase 1 refactor**: Dead code removed; build artifact `.gitignore` entries added
-
-### Removed
-
-- Dead code eliminated across executor, deployment service, and registry modules (Phase 1–3 refactors)
-
-## [6.0.0b1] - 2026-03-25
-
-### Breaking Changes
-- **Binary consolidation**: Removed 8 standalone binaries. All functionality now accessible through `claude-mpm` main binary:
-  - `mpm-session-server` → `claude-mpm mcp serve session`
-  - `mpm-session-server-http` → `claude-mpm mcp serve session-http`
-  - `confluence-mcp` → `claude-mpm mcp serve confluence`
-  - `claude-mpm-monitor` → `claude-mpm monitor` (already existed)
-  - `claude-mpm-socketio` → `claude-mpm monitor`
-  - `claude-mpm-ui` → `claude-mpm dashboard`
-  - `claude-mpm-doctor` deprecated (still works with warning, use `claude-mpm doctor`)
-- **MCP server invocation**: `.mcp.json` entries using `python -m claude_mpm.mcp.*` should use `claude-mpm mcp serve <name>` instead
-
-### Added
-- **Plugin system**: MPM can now be installed as a Claude Code plugin via `claude plugin install claude-mpm@claude-mpm-marketplace`
-- **Plugin marketplace**: Published at `bobmatnyc/claude-mpm-marketplace` on GitHub
-- **56 bundled skills**: All MPM skills bundled in the plugin (no pip required for skills)
-- **`claude-mpm mcp serve`**: New subcommand to launch any MPM MCP server by name
-- **`claude-mpm migrate`**: New command to migrate old configs to v6 format
-- **Auto-migration**: Old `.mcp.json` configs automatically migrated on startup
-
-### Migration
-Run `claude-mpm migrate` to update your `.mcp.json` files, or let it run automatically on next startup. See README for full migration guide.
+- decompose project_organizer.py God Class into focused collaborators (Phase 4)
+- decompose multi_source_deployment_service and fix lint warnings (Phase 3b)
+- extract hook-errors and autotodos handlers from executor.py (Phase 3a)
+- single-path consolidation — registry shim, skills registry, type fixes (Phase 2)
+- remove dead code and add build artifact gitignore (Phase 1)
 
 ## v6.2.1 (2026-04-02)
 
