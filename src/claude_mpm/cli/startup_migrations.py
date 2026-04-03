@@ -1103,6 +1103,203 @@ def _migrate_agent_naming_standardization() -> bool:
     return len(errors) == 0
 
 
+# Module-level cache for plugin scope check results (populated by check, used by migrate)
+_plugin_scope_check_result: dict = {}
+
+
+def _get_installed_plugins_file() -> Path:
+    """Get the path to Claude Code's global plugin installation registry."""
+    return Path.home() / ".claude" / "plugins" / "installed_plugins.json"
+
+
+def _load_installed_plugins() -> dict:
+    """Load installed plugins JSON.
+
+    Returns:
+        Parsed JSON dict, or empty structure on error/missing file.
+    """
+    plugins_file = _get_installed_plugins_file()
+    if not plugins_file.exists():
+        return {"version": 2, "plugins": {}}
+    try:
+        with open(plugins_file) as f:
+            return json.load(f)
+    except Exception as e:
+        logger.debug(f"Failed to load installed_plugins.json: {e}")
+        return {"version": 2, "plugins": {}}
+
+
+def check_plugin_scope_v1() -> bool:
+    """Check whether any user-scoped Claude Code plugins are foreign to this project.
+
+    A plugin is considered "foreign" when:
+    - It is installed at user scope (appears in every session), AND
+    - Its name (the part before '@' in the plugin key) does NOT match the
+      current project directory name.
+
+    The check result is cached in _plugin_scope_check_result so that the
+    migrate function can use it without re-parsing the file.
+
+    Returns:
+        True if at least one foreign user-scoped plugin is found.
+    """
+    global _plugin_scope_check_result
+
+    project_name = Path.cwd().name
+    data = _load_installed_plugins()
+    plugins: dict = data.get("plugins", {})
+
+    foreign: list[dict] = []
+    for plugin_key, installations in plugins.items():
+        plugin_name = plugin_key.split("@")[0]
+        for entry in installations:
+            if entry.get("scope") == "user" and plugin_name != project_name:
+                foreign.append(
+                    {
+                        "key": plugin_key,
+                        "name": plugin_name,
+                        "entry": entry,
+                    }
+                )
+
+    _plugin_scope_check_result = {
+        "project_name": project_name,
+        "foreign_plugins": foreign,
+    }
+
+    if foreign:
+        logger.debug(
+            f"Found {len(foreign)} user-scoped plugin(s) foreign to '{project_name}': "
+            + ", ".join(p["key"] for p in foreign)
+        )
+
+    return len(foreign) > 0
+
+
+def migrate_plugin_scope_v1() -> bool:
+    """Offer to move foreign user-scoped plugins to project scope (opt-in).
+
+    For each plugin identified by check_plugin_scope_v1, the user is prompted
+    interactively. If confirmed, the plugin entry is:
+    1. Removed from the user-scope list in the global installed_plugins.json
+    2. Added as a project-scoped entry in {CWD}/.claude/plugins/installed_plugins.json
+
+    This function is non-destructive: it always returns True (the migration is
+    considered "done" once the user has been given the opportunity to act).
+
+    Returns:
+        True always (non-destructive; skipping a prompt is not a failure).
+    """
+    foreign_plugins: list[dict] = _plugin_scope_check_result.get("foreign_plugins", [])
+    project_name: str = _plugin_scope_check_result.get("project_name", Path.cwd().name)
+
+    if not foreign_plugins:
+        return True
+
+    global_plugins_file = _get_installed_plugins_file()
+    project_plugins_file = Path.cwd() / ".claude" / "plugins" / "installed_plugins.json"
+
+    # Load current global registry (may have changed since check)
+    global_data = _load_installed_plugins()
+
+    # Load or initialise project-level registry
+    if project_plugins_file.exists():
+        try:
+            with open(project_plugins_file) as f:
+                project_data: dict = json.load(f)
+        except Exception:
+            project_data = {"version": 2, "plugins": {}}
+    else:
+        project_data = {"version": 2, "plugins": {}}
+
+    moved_any = False
+
+    for plugin_info in foreign_plugins:
+        plugin_key: str = plugin_info["key"]
+        plugin_name: str = plugin_info["name"]
+        original_entry: dict = plugin_info["entry"]
+
+        try:
+            answer = (
+                input(
+                    f"\n  Plugin '{plugin_name}' is user-scoped but not relevant to "
+                    f"this project ('{project_name}').\n"
+                    f"  Move to project-scope? [y/N] "
+                )
+                .strip()
+                .lower()
+            )
+        except EOFError:
+            # Non-interactive environment — skip silently
+            answer = ""
+
+        if answer != "y":
+            logger.debug(f"Skipped scope move for plugin '{plugin_key}'")
+            continue
+
+        # Remove the user-scoped entry from the global registry
+        global_installations: list = global_data.get("plugins", {}).get(plugin_key, [])
+        updated_installations = [
+            e
+            for e in global_installations
+            if not (
+                e.get("scope") == "user"
+                and e.get("installPath") == original_entry.get("installPath")
+            )
+        ]
+        if updated_installations:
+            global_data["plugins"][plugin_key] = updated_installations
+        else:
+            global_data["plugins"].pop(plugin_key, None)
+
+        # Add a project-scoped entry in the project registry
+        project_entry = dict(original_entry)
+        project_entry["scope"] = "project"
+        project_entry["projectPath"] = str(Path.cwd())
+
+        project_plugins: dict = project_data.setdefault("plugins", {})
+        existing_project_entries: list = project_plugins.get(plugin_key, [])
+        # Avoid adding a duplicate project-scoped entry
+        already_present = any(
+            e.get("scope") == "project" and e.get("projectPath") == str(Path.cwd())
+            for e in existing_project_entries
+        )
+        if not already_present:
+            existing_project_entries.append(project_entry)
+            project_plugins[plugin_key] = existing_project_entries
+
+        moved_any = True
+        print(f"   Moved '{plugin_name}' from user-scope to project-scope.")
+        logger.info(
+            f"Moved plugin '{plugin_key}' to project scope for '{project_name}'"
+        )
+
+    if moved_any:
+        # Persist global registry changes
+        try:
+            with open(global_plugins_file, "w") as f:
+                json.dump(global_data, f, indent=2)
+            logger.debug(f"Updated global plugins registry: {global_plugins_file}")
+        except Exception as e:
+            logger.warning(f"Failed to write global plugins registry: {e}")
+            print(f"   Warning: could not update global plugins file: {e}")
+
+        # Persist project registry changes
+        try:
+            project_plugins_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(project_plugins_file, "w") as f:
+                json.dump(project_data, f, indent=2)
+            logger.debug(f"Updated project plugins registry: {project_plugins_file}")
+        except Exception as e:
+            logger.warning(f"Failed to write project plugins registry: {e}")
+            print(f"   Warning: could not update project plugins file: {e}")
+    else:
+        print("   No plugins moved (all skipped or none selected).")
+
+    print("   ✓ Plugin scope check complete")
+    return True
+
+
 MIGRATIONS: list[Migration] = [
     Migration(
         id="v5.6.76-cache-dir-rename",
@@ -1157,6 +1354,12 @@ MIGRATIONS: list[Migration] = [
         description="Migrate .mcp.json to consolidated 'claude-mpm mcp serve' format",
         check=_check_binary_consolidation_needed,
         migrate=_migrate_binary_consolidation,
+    ),
+    Migration(
+        id="skill_scope_v1",
+        description="Detect user-scoped Claude Code plugins bleeding into unrelated project sessions",
+        check=check_plugin_scope_v1,
+        migrate=migrate_plugin_scope_v1,
     ),
 ]
 
