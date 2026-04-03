@@ -641,9 +641,9 @@ def _check_anthropic_auth(env_changes: dict | None = None) -> None:
         return
 
     # Check if authenticated via `claude auth status`
-    try:
-        import subprocess
+    import subprocess
 
+    try:
         result = subprocess.run(
             ["claude", "auth", "status"],
             check=False,
@@ -1103,7 +1103,8 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
 
 
 def _save_deployment_state_after_reconciliation(
-    agent_result, project_path: Path
+    agent_result,
+    project_path: Path,
 ) -> None:
     """Save deployment state after reconciliation to prevent duplicate deployment.
 
@@ -1936,7 +1937,7 @@ def show_skill_summary():
                 # Count skill directories (those with SKILL.md)
                 # Skills can be nested in: skills/category/skill-name/SKILL.md
                 # or in flat structure: skill-name/SKILL.md
-                for root, dirs, files in os.walk(repo_dir):
+                for root, _, files in os.walk(repo_dir):
                     if "SKILL.md" in files:
                         # Exclude build artifacts and hidden directories
                         root_path = Path(root)

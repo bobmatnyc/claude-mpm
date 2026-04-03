@@ -9,23 +9,32 @@ Key Features:
 - Deploys the highest version for each agent
 - Tracks which source provided the deployed agent
 - Maintains backward compatibility with existing deployment modes
+
+Implementation note
+-------------------
+The heavy lifting is delegated to three focused collaborators:
+
+* ManifestFetcher       — reads version metadata from .md / .json template files
+* AgentMerger           — discovers agents from the 4-tier hierarchy and selects winners
+* CompatibilityChecker  — diffs deployed agents against candidates; detects orphans
+
+This class is the thin pipeline coordinator that wires them together and owns
+the public API consumed by callers outside this package.
 """
 
-import json
 import os
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.deployment_utils import normalize_deployment_filename
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
-from .agent_discovery_service import AgentDiscoveryService
+from .agent_merger import AgentMerger
 from .agent_version_manager import AgentVersionManager
-from .remote_agent_discovery_service import RemoteAgentDiscoveryService
+from .compatibility_checker import CompatibilityChecker
+from .manifest_fetcher import ManifestFetcher
 
 
 def _normalize_agent_name(name: str) -> str:
@@ -65,131 +74,34 @@ class MultiSourceAgentDeploymentService:
     will be removed in v5.0.0. Use project-level agents instead.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the multi-source deployment service."""
         self.logger = get_logger(__name__)
         self.version_manager = AgentVersionManager()
+        self._manifest_fetcher = ManifestFetcher()
+        self._merger = AgentMerger(version_manager=self.version_manager)
+        self._checker = CompatibilityChecker(
+            version_manager=self.version_manager,
+            manifest_fetcher=self._manifest_fetcher,
+        )
+
+    # ------------------------------------------------------------------
+    # Delegated methods (kept for public API / backward compat)
+    # ------------------------------------------------------------------
 
     def _read_template_version(self, template_path: Path) -> str | None:
         """Read version from template file (supports both .md and .json formats).
 
-        For .md files: Extract version from YAML frontmatter
-        For .json files: Extract version from JSON structure
-
-        Args:
-            template_path: Path to template file
-
-        Returns:
-            Version string or None if version cannot be extracted
+        Delegates to ManifestFetcher.read_template_version.
         """
-        try:
-            if template_path.suffix == ".md":
-                # Parse markdown with YAML frontmatter
-                content = template_path.read_text()
-
-                # Extract YAML frontmatter (between --- markers)
-                if not content.strip().startswith("---"):
-                    return None
-
-                parts = content.split("---", 2)
-                if len(parts) < 3:
-                    return None
-
-                # Parse YAML frontmatter
-                frontmatter = yaml.safe_load(parts[1])
-                if not frontmatter:
-                    return None
-
-                # Extract version from frontmatter
-                version = frontmatter.get("version")
-                return version if version else None
-
-            if template_path.suffix == ".json":
-                # Parse JSON template
-                template_data = json.loads(template_path.read_text())
-                metadata = template_data.get("metadata", {})
-                version = (
-                    template_data.get("agent_version")
-                    or template_data.get("version")
-                    or metadata.get("version")
-                )
-                return version if version else None
-
-            self.logger.warning(
-                f"Unknown template format: {template_path.suffix} for {template_path.name}"
-            )
-            return None
-
-        except yaml.YAMLError as e:
-            self.logger.warning(
-                f"Invalid YAML frontmatter in {template_path.name}: {e}"
-            )
-            return None
-        except json.JSONDecodeError as e:
-            self.logger.warning(f"Invalid JSON in {template_path.name}: {e}")
-            return None
-        except Exception as e:
-            self.logger.warning(
-                f"Error reading template version from {template_path.name}: {e}"
-            )
-            return None
+        return self._manifest_fetcher.read_template_version(template_path)
 
     def _build_canonical_id_for_agent(self, agent_info: dict[str, Any]) -> str:
         """Build or retrieve canonical_id for an agent.
 
-        NEW: Supports enhanced agent matching via canonical_id.
-
-        Priority:
-        1. Use existing canonical_id from agent_info if present
-        2. Generate from collection_id + agent_id if available
-        3. Fallback to legacy:{filename} for backward compatibility
-
-        Args:
-            agent_info: Agent dictionary with metadata
-
-        Returns:
-            Canonical ID string for matching
-
-        Example:
-            Remote agent: "bobmatnyc/claude-mpm-agents:pm"
-            Legacy agent: "legacy:custom-agent"
+        Delegates to AgentMerger._build_canonical_id_for_agent.
         """
-        # Priority 1: Existing canonical_id
-        if "canonical_id" in agent_info:
-            return agent_info["canonical_id"]
-
-        # Priority 2: Generate from collection_id + agent_id
-        collection_id = agent_info.get("collection_id")
-        agent_id = agent_info.get("agent_id")
-
-        if collection_id and agent_id:
-            canonical_id = f"{collection_id}:{agent_id}"
-            # Cache it in agent_info for future use
-            agent_info["canonical_id"] = canonical_id
-            return canonical_id
-
-        # Priority 3: Fallback to legacy format
-        # Use filename or agent name
-        agent_name = agent_info.get("name") or agent_info.get("metadata", {}).get(
-            "name", "unknown"
-        )
-
-        # Extract filename from path
-        path_str = (
-            agent_info.get("path")
-            or agent_info.get("file_path")
-            or agent_info.get("source_file")
-        )
-
-        if path_str:
-            filename = Path(path_str).stem
-            canonical_id = f"legacy:{filename}"
-        else:
-            canonical_id = f"legacy:{agent_name}"
-
-        # Cache it
-        agent_info["canonical_id"] = canonical_id
-        return canonical_id
+        return self._merger._build_canonical_id_for_agent(agent_info)
 
     def discover_agents_from_all_sources(
         self,
@@ -201,142 +113,15 @@ class MultiSourceAgentDeploymentService:
     ) -> dict[str, list[dict[str, Any]]]:
         """Discover agents from all 4 tiers (system, user, cache, project).
 
-        Priority hierarchy (highest to lowest):
-        4. Project agents - Highest priority, project-specific customizations
-        3. Cached agents - GitHub-synced agents from cache
-        2. User agents - DEPRECATED, user-level customizations
-        1. System templates - Lowest priority, built-in agents
-
-        Args:
-            system_templates_dir: Directory containing system agent templates
-            project_agents_dir: Directory containing project-specific agents
-            user_agents_dir: Directory containing user custom agents (DEPRECATED)
-            agents_cache_dir: Directory containing cached agents from Git sources
-            working_directory: Current working directory for finding project agents
-
-        Returns:
-            Dictionary mapping agent names to list of agent info from different sources
-
-        Deprecation Warning:
-            User-level agents are deprecated and will show a warning if found.
-            Use 'claude-mpm agents migrate-to-project' to migrate them.
+        Delegates to AgentMerger.discover_agents_from_all_sources.
         """
-        agents_by_name = {}
-
-        # Determine directories if not provided
-        if not system_templates_dir:
-            # Use default system templates location
-            from claude_mpm.config.paths import paths
-
-            system_templates_dir = paths.agents_dir / "templates"
-
-        if not project_agents_dir and working_directory:
-            # Check for project agents in working directory
-            project_agents_dir = working_directory / ".claude-mpm" / "agents"
-            if not project_agents_dir.exists():
-                project_agents_dir = None
-
-        if not user_agents_dir:
-            # Check for user agents in home directory
-            user_agents_dir = Path.home() / ".claude-mpm" / "agents"
-            if not user_agents_dir.exists():
-                user_agents_dir = None
-
-        if not agents_cache_dir:
-            # Check for agents in cache directory
-            cache_dir = Path.home() / ".claude-mpm" / "cache"
-            agents_cache_dir = cache_dir / "agents"
-            if not agents_cache_dir.exists():
-                agents_cache_dir = None
-
-        # Discover agents from each source in priority order
-        # Note: We process in reverse priority order (system first) and build up the dictionary
-        # The select_highest_version_agents() method will handle the actual prioritization
-        sources = [
-            ("system", system_templates_dir),
-            ("user", user_agents_dir),
-            ("remote", agents_cache_dir),
-            ("project", project_agents_dir),
-        ]
-
-        # Track if we found user agents for deprecation warning
-        user_agents_found = False
-
-        for source_name, source_dir in sources:
-            if source_dir and source_dir.exists():
-                self.logger.debug(
-                    f"Discovering agents from {source_name} source: {source_dir}"
-                )
-
-                # Use AgentDiscoveryService for all sources (unified discovery)
-                discovery_service = AgentDiscoveryService(source_dir)
-
-                if source_name == "remote":
-                    # For remote (git cache), use shared git discovery method
-                    agents = discovery_service.discover_git_cached_agents(
-                        cache_dir=source_dir, log_discovery=False
-                    )
-                else:
-                    # For other sources, use standard discovery
-                    agents = discovery_service.list_available_agents(
-                        log_discovery=False
-                    )
-
-                # Track user agents for deprecation warning
-                if source_name == "user" and agents:
-                    user_agents_found = True
-
-                for agent_info in agents:
-                    agent_name = agent_info.get("name") or agent_info.get(
-                        "metadata", {}
-                    ).get("name")
-                    if not agent_name:
-                        continue
-
-                    # Add source information
-                    agent_info["source"] = source_name
-                    agent_info["source_dir"] = str(source_dir)
-
-                    # NEW: Build canonical_id for enhanced matching
-                    canonical_id = self._build_canonical_id_for_agent(agent_info)
-
-                    # Group by canonical_id (PRIMARY) for enhanced matching
-                    # This allows matching agents from different sources with same canonical_id
-                    # while maintaining backward compatibility with name-based matching
-                    matching_key = canonical_id
-
-                    # Initialize list if this is the first occurrence of this agent
-                    if matching_key not in agents_by_name:
-                        agents_by_name[matching_key] = []
-
-                    agents_by_name[matching_key].append(agent_info)
-
-                # Use more specific log message
-                self.logger.info(
-                    f"Discovered {len(agents)} {source_name} agent templates from {source_dir.name}"
-                )
-
-        # Show deprecation warning if user agents found
-        if user_agents_found:
-            self.logger.warning(
-                "\n"
-                "⚠️  DEPRECATION WARNING: User-level agents found in ~/.claude-mpm/agents/\n"
-                "   User-level agent deployment is deprecated and will be removed in v5.0.0\n"
-                "\n"
-                "   Why this change?\n"
-                "   - Project isolation: Agents should be project-specific\n"
-                "   - Version control: Project agents can be versioned with your code\n"
-                "   - Team consistency: All team members use the same agents\n"
-                "\n"
-                "   Migration:\n"
-                "   1. Run: claude-mpm agents migrate-to-project\n"
-                "   2. Verify agents work in .claude-mpm/agents/\n"
-                "   3. Remove: rm -rf ~/.claude-mpm/agents/\n"
-                "\n"
-                "   Learn more: https://docs.claude-mpm.dev/agents/migration\n"
-            )
-
-        return agents_by_name
+        return self._merger.discover_agents_from_all_sources(
+            system_templates_dir=system_templates_dir,
+            project_agents_dir=project_agents_dir,
+            user_agents_dir=user_agents_dir,
+            agents_cache_dir=agents_cache_dir,
+            working_directory=working_directory,
+        )
 
     def get_agents_by_collection(
         self,
@@ -345,141 +130,81 @@ class MultiSourceAgentDeploymentService:
     ) -> list[dict[str, Any]]:
         """Get all agents from a specific collection.
 
-        NEW: Enables collection-based agent selection.
-
-        Args:
-            collection_id: Collection identifier (e.g., "bobmatnyc/claude-mpm-agents")
-            agents_cache_dir: Directory containing agents cache
-
-        Returns:
-            List of agent dictionaries from the specified collection
-
-        Example:
-            >>> service = MultiSourceAgentDeploymentService()
-            >>> agents = service.get_agents_by_collection("bobmatnyc/claude-mpm-agents")
-            >>> len(agents)
-            45
+        Delegates to AgentMerger.get_agents_by_collection.
         """
-        if not agents_cache_dir:
-            cache_dir = Path.home() / ".claude-mpm" / "cache"
-            agents_cache_dir = cache_dir / "agents"
-
-        if not agents_cache_dir.exists():
-            self.logger.warning(f"Agents cache directory not found: {agents_cache_dir}")
-            return []
-
-        # Use RemoteAgentDiscoveryService to get collection agents
-        remote_service = RemoteAgentDiscoveryService(agents_cache_dir)
-        collection_agents = remote_service.get_agents_by_collection(collection_id)
-
-        self.logger.info(
-            f"Retrieved {len(collection_agents)} agents from collection '{collection_id}'"
+        return self._merger.get_agents_by_collection(
+            collection_id=collection_id,
+            agents_cache_dir=agents_cache_dir,
         )
-
-        return collection_agents
 
     def select_highest_version_agents(
         self, agents_by_name: dict[str, list[dict[str, Any]]]
     ) -> dict[str, dict[str, Any]]:
         """Select the highest version agent from multiple sources.
 
-        Args:
-            agents_by_name: Dictionary mapping agent names to list of agent info
-
-        Returns:
-            Dictionary mapping agent names to the highest version agent info
+        Delegates to AgentMerger.select_highest_version_agents.
         """
-        selected_agents = {}
+        return self._merger.select_highest_version_agents(agents_by_name)
 
-        for agent_name, agent_versions in agents_by_name.items():
-            if not agent_versions:
-                continue
+    def compare_deployed_versions(
+        self,
+        deployed_agents_dir: Path,
+        agents_to_deploy: dict[str, Path],
+        agent_sources: dict[str, str],
+    ) -> dict[str, Any]:
+        """Compare deployed agent versions with candidates for deployment.
 
-            # If only one version exists, use it
-            if len(agent_versions) == 1:
-                selected_agents[agent_name] = agent_versions[0]
-                self.logger.debug(
-                    f"Agent '{agent_name}' has single source: {agent_versions[0]['source']}"
-                )
-                continue
+        Delegates to CompatibilityChecker.compare_deployed_versions.
+        """
+        return self._checker.compare_deployed_versions(
+            deployed_agents_dir=deployed_agents_dir,
+            agents_to_deploy=agents_to_deploy,
+            agent_sources=agent_sources,
+        )
 
-            # Compare versions to find the highest
-            highest_version_agent = None
-            highest_version_tuple = (0, 0, 0)
+    def detect_orphaned_agents(
+        self, deployed_agents_dir: Path, available_agents: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Detect deployed agents that don't have corresponding templates.
 
-            for agent_info in agent_versions:
-                version_str = agent_info.get("version", "0.0.0")
-                version_tuple = self.version_manager.parse_version(version_str)
+        DEPRECATED: retained for backward compatibility.
+        Delegates to CompatibilityChecker.detect_orphaned_agents which uses
+        is_mpm_managed_file() for provenance filtering so only MPM-managed
+        agents are reported as orphans.
+        """
+        # Provenance guard: is_mpm_managed_file filtering lives in CompatibilityChecker
+        return self._checker.detect_orphaned_agents(
+            deployed_agents_dir=deployed_agents_dir,
+            available_agents=available_agents,
+        )
 
-                self.logger.debug(
-                    f"Agent '{agent_name}' from {agent_info['source']}: "
-                    f"version {version_str} -> {version_tuple}"
-                )
+    def _infer_agent_source_from_context(
+        self, agent_name: str, deployed_agents_dir: Path
+    ) -> str:
+        """Infer the source of a deployed agent when source metadata is missing.
 
-                # Compare with current highest
-                if (
-                    self.version_manager.compare_versions(
-                        version_tuple, highest_version_tuple
-                    )
-                    > 0
-                ):
-                    highest_version_agent = agent_info
-                    highest_version_tuple = version_tuple
+        Delegates to CompatibilityChecker._infer_agent_source_from_context.
+        """
+        return self._checker._infer_agent_source_from_context(
+            agent_name=agent_name,
+            deployed_agents_dir=deployed_agents_dir,
+        )
 
-            if highest_version_agent:
-                selected_agents[agent_name] = highest_version_agent
-                self.logger.info(
-                    f"Selected agent '{agent_name}' version {highest_version_agent['version']} "
-                    f"from {highest_version_agent['source']} source"
-                )
+    def _detect_orphaned_agents_simple(
+        self, deployed_agents_dir: Path, agents_to_deploy: dict[str, Path]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Simple orphan detection.
 
-                # Log if a higher priority source was overridden by version
-                for other_agent in agent_versions:
-                    if other_agent != highest_version_agent:
-                        # Parse both versions for comparison
-                        other_version = self.version_manager.parse_version(
-                            other_agent.get("version", "0.0.0")
-                        )
-                        highest_version = self.version_manager.parse_version(
-                            highest_version_agent.get("version", "0.0.0")
-                        )
+        Delegates to CompatibilityChecker._detect_orphaned_agents_simple.
+        """
+        return self._checker._detect_orphaned_agents_simple(
+            deployed_agents_dir=deployed_agents_dir,
+            agents_to_deploy=agents_to_deploy,
+        )
 
-                        # Compare the versions
-                        version_comparison = self.version_manager.compare_versions(
-                            other_version, highest_version
-                        )
-
-                        # Only warn if the other version is actually lower
-                        if version_comparison < 0:
-                            if (
-                                other_agent["source"] == "project"
-                                and highest_version_agent["source"] == "system"
-                            ):
-                                self.logger.warning(
-                                    f"Project agent '{agent_name}' v{other_agent['version']} "
-                                    f"overridden by higher system version v{highest_version_agent['version']}"
-                                )
-                            elif other_agent[
-                                "source"
-                            ] == "user" and highest_version_agent["source"] in [
-                                "system",
-                                "project",
-                            ]:
-                                self.logger.warning(
-                                    f"User agent '{agent_name}' v{other_agent['version']} "
-                                    f"overridden by higher {highest_version_agent['source']} version v{highest_version_agent['version']}"
-                                )
-                        elif (
-                            version_comparison == 0
-                            and other_agent["source"] != highest_version_agent["source"]
-                        ):
-                            # Log info when versions are equal but different sources
-                            self.logger.info(
-                                f"Using {highest_version_agent['source']} source for '{agent_name}' "
-                                f"(same version v{highest_version_agent['version']} as {other_agent['source']} source)"
-                            )
-
-        return selected_agents
+    # ------------------------------------------------------------------
+    # Pipeline coordinator methods (owned by this class)
+    # ------------------------------------------------------------------
 
     def get_agents_for_deployment(
         self,
@@ -523,7 +248,7 @@ class MultiSourceAgentDeploymentService:
         selected_agents = self.select_highest_version_agents(agents_by_name)
 
         # Clean up outdated user agents if enabled
-        cleanup_results = {"removed": [], "preserved": [], "errors": []}
+        cleanup_results: dict[str, Any] = {"removed": [], "preserved": [], "errors": []}
         if cleanup_outdated:
             # Check if cleanup is enabled in config or environment
             cleanup_enabled = True
@@ -591,8 +316,8 @@ class MultiSourceAgentDeploymentService:
             selected_agents = self._apply_config_filters(selected_agents, config)
 
         # Create deployment mappings
-        agents_to_deploy = {}
-        agent_sources = {}
+        agents_to_deploy: dict[str, Path] = {}
+        agent_sources: dict[str, str] = {}
 
         for agent_name, agent_info in selected_agents.items():
             # Defensive: Try multiple path fields for backward compatibility (ticket 1M-480)
@@ -656,7 +381,7 @@ class MultiSourceAgentDeploymentService:
             - removed: List of removed agent names
             - errors: List of errors during cleanup
         """
-        cleanup_results = {"removed": [], "errors": []}
+        cleanup_results: dict[str, Any] = {"removed": [], "errors": []}
 
         # Safety check - only operate on deployed agents directory
         if not deployed_agents_dir.exists():
@@ -759,7 +484,7 @@ class MultiSourceAgentDeploymentService:
             - preserved: List of preserved agent info with reasons
             - errors: List of errors during cleanup
         """
-        cleanup_results = {"removed": [], "preserved": [], "errors": []}
+        cleanup_results: dict[str, Any] = {"removed": [], "preserved": [], "errors": []}
 
         # Get user agents directory
         user_agents_dir = Path.home() / ".claude-mpm" / "agents"
@@ -920,9 +645,7 @@ class MultiSourceAgentDeploymentService:
 
     def _is_user_created_agent(self, agent_file: Path) -> bool:
         """Check if an agent is user-created (not MPM-managed)."""
-        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
-
-        return not is_mpm_managed_file(agent_file)
+        return self._checker._is_user_created_agent(agent_file)
 
     def _apply_config_filters(
         self, selected_agents: dict[str, dict[str, Any]], config: Config
@@ -936,7 +659,7 @@ class MultiSourceAgentDeploymentService:
         Returns:
             Filtered dictionary of agents
         """
-        filtered_agents = {}
+        filtered_agents: dict[str, dict[str, Any]] = {}
 
         # Get exclusion patterns from config
         exclusion_patterns = config.get("agent_deployment.exclusion_patterns", [])
@@ -968,435 +691,6 @@ class MultiSourceAgentDeploymentService:
                 filtered_agents[agent_name] = agent_info
 
         return filtered_agents
-
-    def compare_deployed_versions(
-        self,
-        deployed_agents_dir: Path,
-        agents_to_deploy: dict[str, Path],
-        agent_sources: dict[str, str],
-    ) -> dict[str, Any]:
-        """Compare deployed agent versions with candidates for deployment.
-
-        Args:
-            deployed_agents_dir: Directory containing currently deployed agents
-            agents_to_deploy: Dictionary mapping agent names to template paths
-            agent_sources: Dictionary mapping agent names to their sources
-
-        Returns:
-            Dictionary with comparison results including which agents need updates
-        """
-        comparison_results = {
-            "needs_update": [],
-            "up_to_date": [],
-            "new_agents": [],
-            "orphaned_agents": [],  # System agents without templates
-            "user_agents": [],  # User-created agents (no templates required)
-            "version_upgrades": [],
-            "version_downgrades": [],
-            "source_changes": [],
-        }
-
-        for agent_name, template_path in agents_to_deploy.items():
-            deployed_file = deployed_agents_dir / f"{agent_name}.md"
-
-            if not deployed_file.exists():
-                comparison_results["new_agents"].append(
-                    {
-                        "name": agent_name,
-                        "source": agent_sources[agent_name],
-                        "template": str(template_path),
-                    }
-                )
-                comparison_results["needs_update"].append(agent_name)
-                continue
-
-            # Read template version using format-aware helper
-            version_string = self._read_template_version(template_path)
-            if not version_string:
-                self.logger.warning(
-                    f"Could not extract version from template for '{agent_name}', skipping"
-                )
-                continue
-
-            try:
-                template_version = self.version_manager.parse_version(version_string)
-            except Exception as e:
-                self.logger.warning(
-                    f"Error parsing version '{version_string}' for '{agent_name}': {e}"
-                )
-                continue
-
-            # Read deployed version
-            try:
-                deployed_content = deployed_file.read_text()
-                deployed_version, _, _ = (
-                    self.version_manager.extract_version_from_frontmatter(
-                        deployed_content
-                    )
-                )
-
-                # Extract source from deployed agent if available
-                deployed_source = "unknown"
-                if "source:" in deployed_content:
-                    import re
-
-                    source_match = re.search(
-                        r"^source:\s*(.+)$", deployed_content, re.MULTILINE
-                    )
-                    if source_match:
-                        deployed_source = source_match.group(1).strip()
-
-                # If source is still unknown, try to infer it from deployment context
-                if deployed_source == "unknown":
-                    deployed_source = self._infer_agent_source_from_context(
-                        agent_name, deployed_agents_dir
-                    )
-            except Exception as e:
-                self.logger.warning(f"Error reading deployed agent '{agent_name}': {e}")
-                comparison_results["needs_update"].append(agent_name)
-                continue
-
-            # Compare versions
-            version_comparison = self.version_manager.compare_versions(
-                template_version, deployed_version
-            )
-
-            if version_comparison > 0:
-                # Template version is higher
-                comparison_results["version_upgrades"].append(
-                    {
-                        "name": agent_name,
-                        "deployed_version": self.version_manager.format_version_display(
-                            deployed_version
-                        ),
-                        "new_version": self.version_manager.format_version_display(
-                            template_version
-                        ),
-                        "source": agent_sources[agent_name],
-                        "previous_source": deployed_source,
-                    }
-                )
-                comparison_results["needs_update"].append(agent_name)
-
-                if deployed_source != agent_sources[agent_name]:
-                    comparison_results["source_changes"].append(
-                        {
-                            "name": agent_name,
-                            "from_source": deployed_source,
-                            "to_source": agent_sources[agent_name],
-                        }
-                    )
-            elif version_comparison < 0:
-                # Deployed version is higher (shouldn't happen with proper version management)
-                comparison_results["version_downgrades"].append(
-                    {
-                        "name": agent_name,
-                        "deployed_version": self.version_manager.format_version_display(
-                            deployed_version
-                        ),
-                        "template_version": self.version_manager.format_version_display(
-                            template_version
-                        ),
-                        "warning": "Deployed version is higher than template",
-                    }
-                )
-                # Don't add to needs_update - keep the higher version
-            else:
-                # Versions are equal
-                comparison_results["up_to_date"].append(
-                    {
-                        "name": agent_name,
-                        "version": self.version_manager.format_version_display(
-                            deployed_version
-                        ),
-                        "source": agent_sources[agent_name],
-                    }
-                )
-
-        # Check for orphaned agents (deployed but no template)
-        system_orphaned, user_orphaned = self._detect_orphaned_agents_simple(
-            deployed_agents_dir, agents_to_deploy
-        )
-        comparison_results["orphaned_agents"] = system_orphaned
-        comparison_results["user_agents"] = user_orphaned
-
-        # Log summary
-        summary_parts = [
-            f"{len(comparison_results['needs_update'])} need updates",
-            f"{len(comparison_results['up_to_date'])} up to date",
-            f"{len(comparison_results['new_agents'])} new agents",
-        ]
-        if comparison_results["orphaned_agents"]:
-            summary_parts.append(
-                f"{len(comparison_results['orphaned_agents'])} system orphaned"
-            )
-        if comparison_results["user_agents"]:
-            summary_parts.append(
-                f"{len(comparison_results['user_agents'])} user agents"
-            )
-
-        self.logger.info(f"Version comparison complete: {', '.join(summary_parts)}")
-
-        # Don't log upgrades here - let the caller decide when to log
-        # This prevents repeated upgrade messages on every startup
-        if comparison_results["version_upgrades"]:
-            for upgrade in comparison_results["version_upgrades"]:
-                self.logger.debug(
-                    f"  Upgrade available: {upgrade['name']} "
-                    f"{upgrade['deployed_version']} -> {upgrade['new_version']} "
-                    f"(from {upgrade['source']})"
-                )
-
-        if comparison_results["source_changes"]:
-            for change in comparison_results["source_changes"]:
-                self.logger.debug(
-                    f"  Source change available: {change['name']} "
-                    f"from {change['from_source']} to {change['to_source']}"
-                )
-
-        if comparison_results["version_downgrades"]:
-            for downgrade in comparison_results["version_downgrades"]:
-                # Changed from warning to debug - deployed versions higher than templates
-                # are not errors, just informational
-                self.logger.debug(
-                    f"  Note: {downgrade['name']} deployed version "
-                    f"{downgrade['deployed_version']} is higher than template "
-                    f"{downgrade['template_version']} (keeping deployed version)"
-                )
-
-        # Log system orphaned agents if found
-        if comparison_results["orphaned_agents"]:
-            self.logger.info(
-                f"Found {len(comparison_results['orphaned_agents'])} system orphaned agent(s) "
-                f"(deployed without templates):"
-            )
-            for orphan in comparison_results["orphaned_agents"]:
-                self.logger.info(
-                    f"  - {orphan['name']} v{orphan['version']} "
-                    f"(consider removing or creating a template)"
-                )
-
-        # Log user agents at debug level if found
-        if comparison_results["user_agents"]:
-            self.logger.debug(
-                f"Found {len(comparison_results['user_agents'])} user-created agent(s) "
-                f"(no templates required):"
-            )
-            for user_agent in comparison_results["user_agents"]:
-                self.logger.debug(
-                    f"  - {user_agent['name']} v{user_agent['version']} "
-                    f"(user-created agent)"
-                )
-
-        return comparison_results
-
-    def _infer_agent_source_from_context(
-        self, agent_name: str, deployed_agents_dir: Path
-    ) -> str:
-        """Infer the source of a deployed agent when source metadata is missing.
-
-        This method attempts to determine the agent source based on:
-        1. Deployment context (development vs pipx)
-        2. Agent naming patterns
-        3. Known system agents
-
-        Args:
-            agent_name: Name of the agent
-            deployed_agents_dir: Directory where agent is deployed
-
-        Returns:
-            Inferred source string (system/project/user)
-        """
-        # List of known system agents that ship with claude-mpm
-        system_agents = {
-            "pm",
-            "engineer",
-            "qa",
-            "research",
-            "documentation",
-            "ops",
-            "security",
-            "web-ui",
-            "api-qa",
-            "version-control",
-        }
-
-        # If this is a known system agent, it's from system
-        if agent_name in system_agents:
-            return "system"
-
-        # Check deployment context
-        from ....core.unified_paths import get_path_manager
-
-        path_manager = get_path_manager()
-
-        # If deployed_agents_dir is under user home/.claude/agents, check context
-        user_claude_dir = Path.home() / ".claude" / "agents"
-        if deployed_agents_dir == user_claude_dir:
-            # Check if we're in development mode
-            try:
-                from ....core.unified_paths import DeploymentContext, PathContext
-
-                deployment_context = PathContext.detect_deployment_context()
-
-                if deployment_context in (
-                    DeploymentContext.DEVELOPMENT,
-                    DeploymentContext.EDITABLE_INSTALL,
-                ):
-                    # In development mode, unknown agents are likely system agents being tested
-                    return "system"
-                if (
-                    deployment_context == DeploymentContext.PIPX_INSTALL
-                    and agent_name.count("-") <= 2
-                    and len(agent_name) <= 20
-                ):
-                    # In pipx mode, check if agent follows system naming patterns
-                    return "system"
-            except Exception:
-                pass
-
-        # Check if deployed to project-specific directory
-        try:
-            project_root = path_manager.project_root
-            if str(deployed_agents_dir).startswith(str(project_root)):
-                return "project"
-        except Exception:
-            pass
-
-        # Default inference based on naming patterns
-        # System agents typically have simple names
-        if "-" not in agent_name or agent_name.count("-") <= 1:
-            return "system"
-
-        # Complex names are more likely to be user/project agents
-        return "user"
-
-    def detect_orphaned_agents(
-        self, deployed_agents_dir: Path, available_agents: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Detect deployed agents that don't have corresponding templates.
-
-        DEPRECATED: This method is retained only for backward compatibility.
-        All orphan detection and removal should use the canonical System A in
-        startup_reconciliation.py::_detect_and_remove_orphaned_agents().
-
-        Unlike System A, this method includes proper provenance filtering via
-        is_mpm_managed_file() so only MPM-managed agents are reported as orphans.
-
-        Args:
-            deployed_agents_dir: Directory containing deployed agents
-            available_agents: Dictionary of available agents from all sources
-
-        Returns:
-            List of orphaned agent information (only MPM-managed agents)
-        """
-        from claude_mpm.utils.agent_provenance import is_mpm_managed_file
-
-        orphaned = []
-
-        if not deployed_agents_dir.exists():
-            return orphaned
-
-        # Build a mapping of file stems to agent names for comparison
-        available_stems = set()
-
-        for agent_name, agent_sources in available_agents.items():
-            if (
-                agent_sources
-                and isinstance(agent_sources, list)
-                and len(agent_sources) > 0
-            ):
-                first_source = agent_sources[0]
-                if "file_path" in first_source:
-                    file_path = Path(first_source["file_path"])
-                    available_stems.add(file_path.stem)
-
-        for deployed_file in deployed_agents_dir.glob("*.md"):
-            agent_stem = deployed_file.stem
-
-            # Skip if this agent has a template
-            if agent_stem in available_stems:
-                continue
-
-            # Only report MPM-managed agents as orphans (provenance check)
-            if not is_mpm_managed_file(deployed_file):
-                continue
-
-            # This is an orphaned MPM-managed agent
-            try:
-                deployed_content = deployed_file.read_text()
-                deployed_version, _, _ = (
-                    self.version_manager.extract_version_from_frontmatter(
-                        deployed_content
-                    )
-                )
-                version_str = self.version_manager.format_version_display(
-                    deployed_version
-                )
-            except Exception:
-                version_str = "unknown"
-
-            orphaned.append(
-                {"name": agent_stem, "file": str(deployed_file), "version": version_str}
-            )
-
-        return orphaned
-
-    def _detect_orphaned_agents_simple(
-        self, deployed_agents_dir: Path, agents_to_deploy: dict[str, Path]
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        """Simple orphan detection that works with agents_to_deploy structure.
-
-        Args:
-            deployed_agents_dir: Directory containing deployed agents
-            agents_to_deploy: Dictionary mapping file stems to template paths
-
-        Returns:
-            Tuple of (system_orphaned_agents, user_orphaned_agents)
-        """
-        system_orphaned = []
-        user_orphaned = []
-
-        if not deployed_agents_dir.exists():
-            return system_orphaned, user_orphaned
-
-        # agents_to_deploy already contains file stems as keys
-        available_stems = set(agents_to_deploy.keys())
-
-        for deployed_file in deployed_agents_dir.glob("*.md"):
-            agent_stem = deployed_file.stem
-
-            # Skip if this agent has a template (check by stem)
-            if agent_stem in available_stems:
-                continue
-
-            # This is an orphaned agent - determine if it's user-created or system
-            try:
-                deployed_content = deployed_file.read_text()
-                deployed_version, _, _ = (
-                    self.version_manager.extract_version_from_frontmatter(
-                        deployed_content
-                    )
-                )
-                version_str = self.version_manager.format_version_display(
-                    deployed_version
-                )
-            except Exception:
-                version_str = "unknown"
-
-            orphan_info = {
-                "name": agent_stem,
-                "file": str(deployed_file),
-                "version": version_str,
-            }
-
-            # Determine if this is a user-created agent
-            if self._is_user_created_agent(deployed_file):
-                user_orphaned.append(orphan_info)
-            else:
-                system_orphaned.append(orphan_info)
-
-        return system_orphaned, user_orphaned
 
     def cleanup_orphaned_agents(
         self, deployed_agents_dir: Path, dry_run: bool = True
