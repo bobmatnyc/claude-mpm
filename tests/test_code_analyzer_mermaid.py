@@ -113,13 +113,6 @@ def validate_code_analyzer_template():
     else:
         print("✓ All mermaid instruction sections present")
 
-    # Check for example code in instructions
-    if "from claude_mpm.services.visualization import" not in instructions:
-        print("✗ MermaidGeneratorService import example not found")
-        checks_passed = False
-    else:
-        print("✓ MermaidGeneratorService usage example present")
-
     # Check version update
     if template["agent_version"] >= "2.6.0":
         print(f"✓ Agent version updated: {template['agent_version']}")

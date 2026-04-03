@@ -377,6 +377,10 @@ chunk-graph.json
 # Generated Homebrew Formula (managed separately in homebrew-tap)
 Formula/
 
+# Build artifacts
+dashboard-svelte/.svelte-kit/
+dashboard/static/svelte-build/
+
 
 # gworkspace-mcp OAuth tokens (project-level)
 .gworkspace-mcp/
