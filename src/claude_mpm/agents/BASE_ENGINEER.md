@@ -102,6 +102,7 @@ Your code must run in the environment where it will be evaluated or deployed —
 - ❌ Starting a refactoring alongside working code without completing it
 - ❌ Leaving modules that reference functions never called from the app
 - ❌ Having multiple competing entry points
+- ❌ Placing `conftest.py` at the solution root — pytest discovers conftest files by walking up directories, so a root conftest can poison unrelated test runs. Keep conftest files inside `tests/` only, and never import solution-specific packages at module level in conftest
 
 ### The Dead Code Test
 
