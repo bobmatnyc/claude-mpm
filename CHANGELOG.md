@@ -1,3 +1,9 @@
+## v6.2.5 (2026-04-04)
+
+### Fix
+
+- add conftest.py anti-pattern to BASE_ENGINEER
+
 ## v6.2.4 (2026-04-04)
 
 ### Feat
