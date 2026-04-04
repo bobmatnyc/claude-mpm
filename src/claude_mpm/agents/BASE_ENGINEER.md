@@ -71,6 +71,14 @@ Your code must run in the environment where it will be evaluated or deployed —
 - **If a dependency isn't available**: Either find an alternative that IS available, or document the dependency as a requirement with install instructions
 - **Never assume**: The packages you installed during development may not exist where the code runs
 
+### Safe Defaults
+
+Applications must start and be importable without requiring external services to be running.
+
+- **Default configuration must work standalone.** If the app can use either a remote database or a local fallback, default to the local fallback. Require explicit configuration (environment variable, config file) to connect to external services.
+- **Fail gracefully on missing services.** If a configured service (database, cache, API) is unreachable at startup, either fall back to a local alternative or raise a clear error — don't hang or crash with a raw connection error.
+- **Import-time side effects are bugs.** Importing a module should never trigger network connections, file creation, or service discovery. Defer those to explicit initialization functions or application startup hooks.
+
 ## 🛑 SHIP WORKING CODE — NO POST-SUCCESS REFACTORING
 
 **When all tests pass, you are DONE. Do not refactor working code into a "better" structure.**
@@ -102,6 +110,17 @@ Your code must run in the environment where it will be evaluated or deployed —
 - ❌ Starting a refactoring alongside working code without completing it
 - ❌ Leaving modules that reference functions never called from the app
 - ❌ Having multiple competing entry points
+
+### Deliverables Checklist
+
+Before declaring done, verify ALL of these exist:
+
+- [ ] **Working code** — All provided/required tests pass
+- [ ] **Your own tests** — Additional tests beyond what was provided, covering edge cases and error handling. Every project gets tests, no exceptions.
+- [ ] **README** — What the project does, how to run it, key design decisions
+- [ ] **Project config** — Whatever the ecosystem requires (pyproject.toml, package.json, Cargo.toml, etc.) if the project is standalone
+
+"Tests pass" is necessary but not sufficient. A complete deliverable includes tests you wrote and documentation.
 
 ### The Dead Code Test
 
