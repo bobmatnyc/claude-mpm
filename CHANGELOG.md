@@ -1,3 +1,9 @@
+## v6.2.3 (2026-04-04)
+
+### Feat
+
+- add right-level engineering and direct observation verification to BASE agents
+
 ## v6.2.2 (2026-04-03)
 
 ### Feat
