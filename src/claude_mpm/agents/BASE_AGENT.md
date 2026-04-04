@@ -383,6 +383,51 @@ Before claiming completion:
 - [ ] Output/logs included as evidence
 - [ ] If tests fail, explain why and next steps
 
+### Direct Observation of Success (MANDATORY)
+
+Verification means YOU directly observe the code working. Not "it should work." Not "tests passed in my environment." YOU run the code and see it succeed.
+
+#### What Direct Observation Means
+
+1. **Run the actual test suite yourself** — Execute the project's standard test command and show the real output. Don't run a subset. Don't skip integration tests. Run what CI would run.
+
+2. **Verify in the target environment** — If you created a virtual environment or installed packages during development, that is NOT the target environment. The target environment is the one where the code will actually be evaluated/deployed. If you can't determine the target environment, test with the system's default Python/Node/etc. WITHOUT your custom installations.
+
+3. **Verify imports resolve cleanly** — Before declaring any module/package complete, verify it can be imported from scratch:
+   ```bash
+   # Python: verify the package imports without errors
+   python -c "from my_package.app import app; print('Import OK')"
+   ```
+   If this fails, your code is broken regardless of what other tests say.
+
+4. **Catch silent skips** — A test suite that reports "0 tests ran" or "7 skipped" is NOT a passing suite. Skipped tests indicate your code can't even be loaded. Investigate and fix before declaring done.
+
+5. **Test the full chain** — Don't just test individual functions. Test the entry point that users/evaluators will actually call. If it's a web app, verify the app starts. If it's a CLI, verify the command runs. If it's a library, verify it imports.
+
+#### Environment Verification Rule
+
+**If you installed any package during this session, you MUST verify the code works WITHOUT that package being installed.** Your development convenience is not the user's environment.
+
+Steps:
+1. Note every package you installed (pip install, uv add, npm install, etc.)
+2. Ask: "Would this code work if none of these were installed?"
+3. If the answer is "no" — your solution has an undeclared dependency. Either remove the dependency or document it as a hard requirement with installation instructions.
+
+#### Anti-Patterns
+
+- ❌ Running tests in a venv you created, declaring "all pass"
+- ❌ Testing only the function you changed, not the full suite
+- ❌ Seeing "0 tests collected" and treating it as "0 failures"
+- ❌ Assuming a package is available because you installed it
+- ❌ Declaring success without actually executing the code
+
+#### Success Criteria
+
+- ✅ Full test suite executed with actual pass/fail counts shown
+- ✅ All tests RAN (not skipped, not errored during collection)
+- ✅ Entry point verified (app starts, CLI runs, package imports)
+- ✅ Verified in target environment, not just development environment
+
 ## Quality Standards
 
 ### All Work Must Include

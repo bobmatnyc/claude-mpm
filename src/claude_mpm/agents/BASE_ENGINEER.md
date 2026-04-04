@@ -28,6 +28,91 @@ All Engineer agents inherit these common patterns and requirements.
 - **Merge implementations when same domain AND >80% similarity**
 - **Extract abstractions when different domains AND >50% similarity**
 
+## 🎯 RIGHT-LEVEL ENGINEERING
+
+**Match solution complexity to problem complexity. Over-engineering is a bug, not a feature.**
+
+### The Principle
+
+A solution that uses 3 stdlib modules and works is BETTER than a solution that uses 5 third-party packages and might not work. Architectural elegance means nothing if the code doesn't run in the target environment.
+
+### Dependency Decision Tree
+
+Before adding ANY dependency, ask:
+
+1. **Can stdlib do this?** → Use stdlib. Always prefer `sqlite3` over ORMs, `hashlib` over crypto libraries, `json` over serialization frameworks, `asyncio` over task schedulers, `http.server` over web frameworks (for simple cases).
+
+2. **Is this dependency available in the target environment?** → If you don't know, check. Run `python -c "import package_name"` before writing code that depends on it. If it's not available and you can't install it, use an alternative.
+
+3. **Is the added complexity justified?** → A 200-line app doesn't need SQLAlchemy, Alembic, and a migration framework. It needs `sqlite3` and 20 lines of SQL.
+
+4. **What happens if this dependency is missing?** → If one missing package breaks the entire app at import time, that's a fragile design. Consider lazy imports or stdlib fallbacks.
+
+### Right-Sizing Examples
+
+| Problem | Over-Engineered | Right-Sized |
+|---------|----------------|-------------|
+| Store data in SQLite | SQLAlchemy ORM + Alembic migrations | `sqlite3` with raw SQL |
+| Hash passwords | `passlib` + `bcrypt` | `hashlib.pbkdf2_hmac` |
+| Sign tokens | `python-jose` or `PyJWT` | `hmac` + `hashlib` + `base64` |
+| Run periodic task | `APScheduler` or `Celery` | `asyncio` loop with `sleep` |
+| Parse JSON config | `pydantic` + `yaml` | `json.load` + dataclass |
+| HTTP client | `requests` + `retry` adapter | `urllib.request` (stdlib) |
+
+### When Heavy Dependencies ARE Justified
+
+- The project already uses them (match existing patterns)
+- The problem genuinely requires their capabilities (e.g., complex ORM queries across 20 tables)
+- The target environment is known to have them installed
+- The dependency is a core framework requirement (e.g., FastAPI for a web API)
+
+### The Litmus Test
+
+> "If I deleted my venv and ran this with just the system Python, would it work?"
+
+If the answer is "no" and the missing packages aren't core to the project's requirements, you've over-engineered.
+
+## 🔍 DEPENDENCY VERIFICATION PROTOCOL
+
+**Before using any package, verify it's available. Before declaring done, verify imports work clean.**
+
+### Before Writing Code
+
+For every `import` statement you plan to write that isn't stdlib:
+```bash
+python -c "import package_name"  # Must succeed or don't use it
+```
+
+### After Writing Code
+
+Verify the complete import chain resolves:
+```bash
+python -c "from my_package.main import app; print('OK')"
+```
+
+If this fails with `ModuleNotFoundError`, your code is broken. Fix the dependency — either:
+1. Replace with a stdlib alternative, OR
+2. Document it as a required dependency with clear install instructions
+
+### Import Hygiene
+
+- **No unconditional imports of optional packages** — If a package might not be available, guard the import:
+  ```python
+  # WRONG: breaks entire app if apscheduler missing
+  from apscheduler.schedulers.background import BackgroundScheduler
+  
+  # RIGHT: graceful handling
+  try:
+      from apscheduler.schedulers.background import BackgroundScheduler
+      HAS_SCHEDULER = True
+  except ImportError:
+      HAS_SCHEDULER = False
+  ```
+
+- **Keep import chains shallow** — If `app.py` imports `scheduler.py` which imports `apscheduler`, then `app.py` can't be imported without `apscheduler`. Either make the scheduler import lazy or remove the dependency.
+
+---
+
 ## 🚫 ANTI-PATTERN: Mock Data and Fallback Behavior
 
 **CRITICAL RULE: Mock data and fallbacks are engineering anti-patterns.**
