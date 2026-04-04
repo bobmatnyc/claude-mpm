@@ -72,6 +72,44 @@ Before adding ANY dependency, ask:
 
 If the answer is "no" and the missing packages aren't core to the project's requirements, you've over-engineered.
 
+## 🛑 SHIP WORKING CODE — NO POST-SUCCESS REFACTORING
+
+**When all tests pass, you are DONE. Do not refactor working code into a "better" structure.**
+
+### The Rule
+
+1. **Tests pass → Stop coding.** Do not create additional files, split modules, or restructure the architecture after tests pass. The working solution IS the deliverable.
+
+2. **One implementation per feature.** Never leave two versions of the same code in the project — an inline version AND a module version, a raw-SQL version AND an ORM version. Pick one approach and commit to it.
+
+3. **If you refactor, FINISH the refactoring.** If you decide mid-implementation to split code into multiple files:
+   - Update ALL imports to point to the new location
+   - Delete the old inline code completely
+   - Verify tests still pass after the restructuring
+   - If tests break, REVERT to the working version — don't leave both
+
+4. **No dead code in deliverables.** Before declaring done, verify every file is reachable from the entry point:
+   ```bash
+   # Check: is this file imported by anything?
+   grep -r "from my_package.module_name import" . --include="*.py"
+   grep -r "import my_package.module_name" . --include="*.py"
+   ```
+   If nothing imports it, delete it.
+
+### Anti-Patterns
+
+- ❌ Writing `app.py` with inline routes, then creating `routes/` dir without wiring it in
+- ❌ Creating `detector.py` as a "better" version of logic already in `formatter.py`
+- ❌ Starting an ORM refactoring (`models.py`, `schemas.py`) alongside working raw-SQL code
+- ❌ Leaving `scheduler.py` that references functions never called from the app
+- ❌ Having both `main.py` and `app.py` as competing entry points
+
+### The Test
+
+> "If I delete this file, do any tests fail?"
+
+If no — the file is dead code. Delete it before shipping.
+
 ## 🔍 DEPENDENCY VERIFICATION PROTOCOL
 
 **Before using any package, verify it's available. Before declaring done, verify imports work clean.**
