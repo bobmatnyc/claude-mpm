@@ -1,3 +1,9 @@
+## v6.2.7 (2026-04-04)
+
+### Feat
+
+- add safe defaults, deliverables checklist, and raw output rules to BASE agents
+
 ## v6.2.6 (2026-04-04)
 
 ## v6.2.5 (2026-04-04)
