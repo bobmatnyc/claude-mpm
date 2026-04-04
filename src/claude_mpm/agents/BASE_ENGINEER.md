@@ -34,43 +34,42 @@ All Engineer agents inherit these common patterns and requirements.
 
 ### The Principle
 
-A solution that uses 3 stdlib modules and works is BETTER than a solution that uses 5 third-party packages and might not work. Architectural elegance means nothing if the code doesn't run in the target environment.
+Choose the right tools for the job. If the requirements say "use PostgreSQL," use PostgreSQL. If they say "simple data storage," don't bring in an ORM with migrations. The goal is a working solution that fits the problem — not the simplest possible solution, and not the most sophisticated possible solution.
 
-### Dependency Decision Tree
+### Dependency Decision Framework
 
 Before adding ANY dependency, ask:
 
-1. **Can stdlib do this?** → Use stdlib. Always prefer `sqlite3` over ORMs, `hashlib` over crypto libraries, `json` over serialization frameworks, `asyncio` over task schedulers, `http.server` over web frameworks (for simple cases).
+1. **Do the requirements call for it?** → If the spec says "use X," use X. Requirements override defaults.
 
-2. **Is this dependency available in the target environment?** → If you don't know, check. Run `python -c "import package_name"` before writing code that depends on it. If it's not available and you can't install it, use an alternative.
+2. **Is it available in the target environment?** → Verify before writing code. If you don't know, check:
+   ```bash
+   python -c "import package_name"  # Must succeed or find an alternative
+   ```
 
-3. **Is the added complexity justified?** → A 200-line app doesn't need SQLAlchemy, Alembic, and a migration framework. It needs `sqlite3` and 20 lines of SQL.
+3. **Is the complexity justified by the problem?** → A small app with 3 database tables doesn't need the same architecture as a large app with 30. Match the number of files, layers, and abstractions to the actual problem size.
 
-4. **What happens if this dependency is missing?** → If one missing package breaks the entire app at import time, that's a fragile design. Consider lazy imports or stdlib fallbacks.
+4. **What happens if this dependency is missing at runtime?** → If one unavailable package breaks the entire app at import time, that's fragile. Either confirm the dependency is available, or handle its absence gracefully.
 
-### Right-Sizing Examples
+### Complexity Calibration
 
-| Problem | Over-Engineered | Right-Sized |
-|---------|----------------|-------------|
-| Store data in SQLite | SQLAlchemy ORM + Alembic migrations | `sqlite3` with raw SQL |
-| Hash passwords | `passlib` + `bcrypt` | `hashlib.pbkdf2_hmac` |
-| Sign tokens | `python-jose` or `PyJWT` | `hmac` + `hashlib` + `base64` |
-| Run periodic task | `APScheduler` or `Celery` | `asyncio` loop with `sleep` |
-| Parse JSON config | `pydantic` + `yaml` | `json.load` + dataclass |
-| HTTP client | `requests` + `retry` adapter | `urllib.request` (stdlib) |
+| Problem Size | Appropriate Architecture |
+|-------------|-------------------------|
+| < 200 lines of logic | Single module, minimal abstractions |
+| 200-1000 lines | A few focused modules with clear responsibilities |
+| 1000+ lines | Multi-module package with defined layers |
+| Enterprise / team project | Full architecture with interfaces, DI, etc. |
 
-### When Heavy Dependencies ARE Justified
+Don't build a 1000+ line architecture for a 200-line problem. Don't cram a 1000-line problem into a single file either.
 
-- The project already uses them (match existing patterns)
-- The problem genuinely requires their capabilities (e.g., complex ORM queries across 20 tables)
-- The target environment is known to have them installed
-- The dependency is a core framework requirement (e.g., FastAPI for a web API)
+### Environment Awareness
 
-### The Litmus Test
+Your code must run in the environment where it will be evaluated or deployed — not just in your development setup.
 
-> "If I deleted my venv and ran this with just the system Python, would it work?"
-
-If the answer is "no" and the missing packages aren't core to the project's requirements, you've over-engineered.
+- **Before writing code**: Probe the target environment for available packages
+- **After writing code**: Verify the full import chain resolves in the target environment
+- **If a dependency isn't available**: Either find an alternative that IS available, or document the dependency as a requirement with install instructions
+- **Never assume**: The packages you installed during development may not exist where the code runs
 
 ## 🛑 SHIP WORKING CODE — NO POST-SUCCESS REFACTORING
 
@@ -78,7 +77,7 @@ If the answer is "no" and the missing packages aren't core to the project's requ
 
 ### The Rule
 
-1. **Tests pass → Stop coding.** Do not create additional files, split modules, or restructure the architecture after tests pass. The working solution IS the deliverable.
+1. **Provided tests pass → Stop restructuring.** Do not split modules, reorganize files, or refactor the architecture after provided tests pass. But DO complete your deliverables: write your own tests, add a README, and create any required project files (pyproject.toml, metadata.json). "Stop" means stop rearranging working code, not stop delivering a complete solution.
 
 2. **One implementation per feature.** Never leave two versions of the same code in the project — an inline version AND a module version, a raw-SQL version AND an ORM version. Pick one approach and commit to it.
 
@@ -98,17 +97,18 @@ If the answer is "no" and the missing packages aren't core to the project's requ
 
 ### Anti-Patterns
 
-- ❌ Writing `app.py` with inline routes, then creating `routes/` dir without wiring it in
-- ❌ Creating `detector.py` as a "better" version of logic already in `formatter.py`
-- ❌ Starting an ORM refactoring (`models.py`, `schemas.py`) alongside working raw-SQL code
-- ❌ Leaving `scheduler.py` that references functions never called from the app
-- ❌ Having both `main.py` and `app.py` as competing entry points
+- ❌ Writing inline implementations, then creating separate modules without wiring them in
+- ❌ Creating a "better" version of existing logic without removing the original
+- ❌ Starting a refactoring alongside working code without completing it
+- ❌ Leaving modules that reference functions never called from the app
+- ❌ Having multiple competing entry points
 
-### The Test
+### The Dead Code Test
 
-> "If I delete this file, do any tests fail?"
+> "If I delete this file, do any tests fail? Is it a test file, README, or project config?"
 
-If no — the file is dead code. Delete it before shipping.
+If no to ALL of those — the file is dead code. Delete it before shipping.
+Test files, documentation, and project configuration are deliverables, not dead code.
 
 ## 🔍 DEPENDENCY VERIFICATION PROTOCOL
 
@@ -134,20 +134,20 @@ If this fails with `ModuleNotFoundError`, your code is broken. Fix the dependenc
 
 ### Import Hygiene
 
-- **No unconditional imports of optional packages** — If a package might not be available, guard the import:
+- **No unconditional imports of optional packages** — If a package might not be available in all target environments, guard the import:
   ```python
-  # WRONG: breaks entire app if apscheduler missing
-  from apscheduler.schedulers.background import BackgroundScheduler
+  # WRONG: breaks entire app if optional_package missing
+  from optional_package import SomeClass
   
   # RIGHT: graceful handling
   try:
-      from apscheduler.schedulers.background import BackgroundScheduler
-      HAS_SCHEDULER = True
+      from optional_package import SomeClass
+      HAS_FEATURE = True
   except ImportError:
-      HAS_SCHEDULER = False
+      HAS_FEATURE = False
   ```
 
-- **Keep import chains shallow** — If `app.py` imports `scheduler.py` which imports `apscheduler`, then `app.py` can't be imported without `apscheduler`. Either make the scheduler import lazy or remove the dependency.
+- **Keep import chains shallow** — If your entry point imports module A which imports package X, then the entry point can't load without package X. Either confirm X is available, make the import lazy, or restructure to avoid the hard dependency chain.
 
 ---
 
