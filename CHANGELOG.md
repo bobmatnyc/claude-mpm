@@ -1,3 +1,13 @@
+## v6.2.4 (2026-04-04)
+
+### Feat
+
+- add ship-working-code discipline to BASE_ENGINEER
+
+### Refactor
+
+- make BASE_ENGINEER instructions generic and toolchain-neutral
+
 ## v6.2.3 (2026-04-04)
 
 ### Feat
