@@ -1,3 +1,9 @@
+## v6.2.15 (2026-04-06)
+
+### Feat
+
+- **#444**: aggressive model tiering — always pass model parameter
+
 ## v6.2.14 (2026-04-06)
 
 ### Feat
