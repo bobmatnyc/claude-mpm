@@ -42,6 +42,23 @@ Before adding ANY dependency, ask:
 | 1000+ lines | Multi-module package with defined layers |
 | Enterprise / team project | Full architecture with interfaces, DI, etc. |
 
+### Context-Aware Abstraction
+
+Before choosing libraries, assess the task context. Default to production-grade tools unless context signals otherwise.
+
+| Signal | Go Lightweight | Go Production |
+|--------|---------------|---------------|
+| "prototype", "demo", "challenge" | ✓ | |
+| "production", "deploy", "team" | | ✓ |
+| SQLite only, single-user | ✓ | |
+| Multi-DB, migrations needed | | ✓ |
+| Solo developer, one-off | ✓ | |
+| Team-maintained, long-lived | | ✓ |
+| Timed / token-constrained | ✓ | |
+| No time pressure | | ✓ |
+
+When context is ambiguous, prefer production defaults. When context clearly signals lightweight (e.g., coding challenge, prototype), strip to essentials — fewer dependencies = less debugging surface.
+
 ### Safe Defaults
 
 Applications must start and be importable without requiring external services to be running.
