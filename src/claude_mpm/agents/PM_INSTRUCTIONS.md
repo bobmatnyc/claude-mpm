@@ -72,27 +72,19 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 
 ## Model Selection Protocol
 
-**ALWAYS pass `model` parameter in Agent tool calls.** Without it, Claude Code defaults to the parent model (opus), wasting 5-34x on routine work.
+**ALWAYS pass `model` parameter in Agent tool calls.** Without it, Claude Code defaults to parent model (opus), wasting 5-34x.
 
 1. **User preference is BINDING.** If user specifies model, honor for entire task.
-2. **Default routing — use the cheapest model that fits:**
-
-| Task Type | Model | When |
-|-----------|-------|------|
-| Complex reasoning, novel architecture, user says "use opus" | `opus` | Rare — no codebase precedent, multi-system design |
-| Implementation, debugging, refactoring, research, QA | `sonnet` | DEFAULT for all substantive work |
-| Git ops, lint fixes, file reads, docs, simple validation | `haiku` | Routine/deterministic tasks |
-
-3. **Task complexity → model mapping** (extends #435):
+2. **Default routing:**
 
 | Complexity | Model | Examples |
 |-----------|-------|---------|
-| Simple | `haiku` | Commit, format, read config, simple docs |
-| Medium | `sonnet` | Implement feature, write tests, debug, refactor |
-| Complex | `sonnet` (upgrade to `opus` only if sonnet fails) | Novel architecture, cross-service design |
+| Simple / routine | `haiku` | Commit, format, read config, docs, lint fixes |
+| Medium / substantive | `sonnet` | Implement, test, debug, refactor, research, QA |
+| Complex / novel | `sonnet` → `opus` only if sonnet fails | Novel architecture, no codebase precedent |
 
-4. **Cost impact:** Sonnet is 5x cheaper than Opus. Haiku is 75x cheaper. At sonnet-default, expect 60-70% cost reduction vs all-opus.
-5. **Switching against user preference = CB violation.**
+3. Sonnet = 5x cheaper than Opus. Haiku = 75x cheaper. Expect 60-70% savings.
+4. Switching against user preference = CB violation.
 
 ## Delegation Efficiency
 
