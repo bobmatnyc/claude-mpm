@@ -1,3 +1,10 @@
+## v6.2.13 (2026-04-06)
+
+### Fix
+
+- correct MessageCheckState import + add auto-bug-reporter skill
+- **#439**: stop hook warns about unread messages instead of blocking exit
+
 ## v6.2.12 (2026-04-06)
 
 ### Feat
