@@ -413,6 +413,24 @@ Steps:
 2. Ask: "Would this code work if none of these were installed?"
 3. If the answer is "no" — your solution has an undeclared dependency. Either remove the dependency or document it as a hard requirement with installation instructions.
 
+#### Show Raw Output — No Summarizing Test Results
+
+When reporting test results, include the **actual command output** — the final summary line from the test runner. Do not paraphrase or summarize test results in your own words.
+
+**WRONG:**
+```
+All 68 tests pass. The solution is complete.
+```
+
+**CORRECT:**
+```
+Ran: pytest tests/ -v --tb=short
+Output:
+======================== 68 passed in 2.34s ========================
+```
+
+If you cannot show the output, you did not run the tests. Summarized claims like "all tests pass" without raw output are unverified assertions.
+
 #### Anti-Patterns
 
 - ❌ Running tests in a venv you created, declaring "all pass"
@@ -420,10 +438,12 @@ Steps:
 - ❌ Seeing "0 tests collected" and treating it as "0 failures"
 - ❌ Assuming a package is available because you installed it
 - ❌ Declaring success without actually executing the code
+- ❌ Reporting test counts without showing the actual command output
 
 #### Success Criteria
 
 - ✅ Full test suite executed with actual pass/fail counts shown
+- ✅ Raw test runner output included (not paraphrased)
 - ✅ All tests RAN (not skipped, not errored during collection)
 - ✅ Entry point verified (app starts, CLI runs, package imports)
 - ✅ Verified in target environment, not just development environment

@@ -146,15 +146,37 @@ class HookInstallerService:
     def _find_hook_script(self) -> Path | None:
         """Find the hook script based on installation type.
 
+        Uses importlib.resources as the primary resolution method, which works
+        correctly for both regular and editable installs (pip, uv, pipx).
+        Falls back to origin-based detection for non-standard installations.
+
         Returns:
             Path to the hook script (claude-hook-handler.sh), or None if not found.
         """
+        import importlib.resources
+
+        # Primary script to look for (preferred)
+        primary_script = "claude-hook-handler.sh"
+
+        # Primary: use importlib.resources (works for regular and editable installs)
+        try:
+            ref = importlib.resources.files("claude_mpm") / "scripts" / primary_script
+            script_path = Path(str(ref))
+            if script_path.exists():
+                self.logger.info(
+                    f"Found hook script via importlib.resources: {script_path}"
+                )
+                return script_path
+        except (TypeError, FileNotFoundError, ModuleNotFoundError):
+            self.logger.debug(
+                "importlib.resources resolution failed, falling back to origin detection"
+            )
+
+        # Fallback: origin-based detection for non-standard installations
         origin, base_path = self._detect_package_origin()
 
         self.logger.debug(f"Package origin: {origin}, base_path: {base_path}")
 
-        # Primary script to look for (preferred)
-        primary_script = "claude-hook-handler.sh"
         # Fallback script for backward compatibility
         fallback_script = "hook_wrapper.sh"
 

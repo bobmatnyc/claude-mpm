@@ -470,54 +470,68 @@ main "$@"
         - Sends events to dashboard via fire-and-forget HTTP POST
         - Returns immediately to not block Claude Code
 
+        Uses importlib.resources for path resolution, which works correctly
+        for both regular and editable installs (pip, uv, pipx).
+
         Returns:
             Path to the claude-hook-fast.sh script
 
         Raises:
             FileNotFoundError: If the script cannot be found
         """
+        import importlib.resources
+
+        # Primary: use importlib.resources (works for regular and editable installs)
+        try:
+            ref = (
+                importlib.resources.files("claude_mpm")
+                / "scripts"
+                / "claude-hook-fast.sh"
+            )
+            script_path = Path(str(ref))
+            if script_path.exists():
+                st = script_path.stat()
+                script_path.chmod(st.st_mode | stat.S_IEXEC)
+                return script_path
+        except (TypeError, FileNotFoundError, ModuleNotFoundError):
+            pass
+
+        # Fallback: resolve via __file__ (original behavior)
         import claude_mpm
 
-        # Get the claude_mpm package directory
         package_dir = Path(claude_mpm.__file__).parent
-
-        # Check if we're in a development environment (src structure)
-        if "src/claude_mpm" in str(package_dir):
-            # Development install - script is in src/claude_mpm/scripts
-            script_path = package_dir / "scripts" / "claude-hook-fast.sh"
-        else:
-            # Pip install - script should be in package/scripts
-            script_path = package_dir / "scripts" / "claude-hook-fast.sh"
-
-        # Verify the script exists
-        if not script_path.exists():
-            # Try alternative location for editable installs
-            project_root = package_dir.parent.parent
-            alt_path = (
-                project_root / "src" / "claude_mpm" / "scripts" / "claude-hook-fast.sh"
-            )
-            if alt_path.exists():
-                script_path = alt_path
-            else:
-                raise FileNotFoundError(
-                    f"Fast hook script not found. Searched:\n"
-                    f"  - {script_path}\n"
-                    f"  - {alt_path}"
-                )
-
-        # Make sure it's executable
+        script_path = package_dir / "scripts" / "claude-hook-fast.sh"
         if script_path.exists():
-            st = Path(script_path).stat()
-            Path(script_path).chmod(st.st_mode | stat.S_IEXEC)
+            st = script_path.stat()
+            script_path.chmod(st.st_mode | stat.S_IEXEC)
             return script_path
 
-        raise FileNotFoundError(f"Fast hook script not found at {script_path}")
+        # Last resort: check source tree
+        src_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "scripts"
+            / "claude-hook-fast.sh"
+        )
+        if src_path.exists():
+            st = src_path.stat()
+            src_path.chmod(st.st_mode | stat.S_IEXEC)
+            return src_path
+
+        raise FileNotFoundError(
+            f"Could not find claude-hook-fast.sh in any expected location. Searched:\n"
+            f"  - importlib.resources('claude_mpm')/scripts/claude-hook-fast.sh\n"
+            f"  - {package_dir / 'scripts' / 'claude-hook-fast.sh'}\n"
+            f"  - {src_path}"
+        )
 
     def _get_hook_script_path(self) -> Path:
         """Get the path to the fallback bash hook handler script.
 
         This is used when the claude-hook entry point is not available
         (e.g., development installs without uv tool install).
+
+        Uses importlib.resources for path resolution, which works correctly
+        for both regular and editable installs (pip, uv, pipx).
 
         Returns:
             Path to the claude-hook-handler.sh script
@@ -528,47 +542,53 @@ main "$@"
         if self._hook_script_path and self._hook_script_path.exists():
             return self._hook_script_path
 
-        import claude_mpm
+        import importlib.resources
 
-        # Get the claude_mpm package directory
-        package_dir = Path(claude_mpm.__file__).parent
-
-        # Check if we're in a development environment (src structure)
-        if "src/claude_mpm" in str(package_dir):
-            # Development install - script is in src/claude_mpm/scripts
-            script_path = package_dir / "scripts" / "claude-hook-handler.sh"
-        else:
-            # Pip install - script should be in package/scripts
-            script_path = package_dir / "scripts" / "claude-hook-handler.sh"
-
-        # Verify the script exists
-        if not script_path.exists():
-            # Try alternative location for editable installs
-            project_root = package_dir.parent.parent
-            alt_path = (
-                project_root
-                / "src"
-                / "claude_mpm"
+        # Primary: use importlib.resources (works for regular and editable installs)
+        try:
+            ref = (
+                importlib.resources.files("claude_mpm")
                 / "scripts"
                 / "claude-hook-handler.sh"
             )
-            if alt_path.exists():
-                script_path = alt_path
-            else:
-                raise FileNotFoundError(
-                    f"Hook handler script not found. Searched:\n"
-                    f"  - {script_path}\n"
-                    f"  - {alt_path}"
-                )
+            script_path = Path(str(ref))
+            if script_path.exists():
+                st = script_path.stat()
+                script_path.chmod(st.st_mode | stat.S_IEXEC)
+                self._hook_script_path = script_path
+                return script_path
+        except (TypeError, FileNotFoundError, ModuleNotFoundError):
+            pass
 
-        # Make sure it's executable
+        # Fallback: resolve via __file__
+        import claude_mpm
+
+        package_dir = Path(claude_mpm.__file__).parent
+        script_path = package_dir / "scripts" / "claude-hook-handler.sh"
         if script_path.exists():
-            st = Path(script_path).stat()
-            Path(script_path).chmod(st.st_mode | stat.S_IEXEC)
+            st = script_path.stat()
+            script_path.chmod(st.st_mode | stat.S_IEXEC)
             self._hook_script_path = script_path
             return script_path
 
-        raise FileNotFoundError(f"Hook handler script not found at {script_path}")
+        # Last resort: check source tree
+        src_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "scripts"
+            / "claude-hook-handler.sh"
+        )
+        if src_path.exists():
+            st = src_path.stat()
+            src_path.chmod(st.st_mode | stat.S_IEXEC)
+            self._hook_script_path = src_path
+            return src_path
+
+        raise FileNotFoundError(
+            f"Could not find claude-hook-handler.sh in any expected location. Searched:\n"
+            f"  - importlib.resources('claude_mpm')/scripts/claude-hook-handler.sh\n"
+            f"  - {package_dir / 'scripts' / 'claude-hook-handler.sh'}\n"
+            f"  - {src_path}"
+        )
 
     def get_hook_script_path(self) -> Path:
         """Get the path to the hook handler script based on installation method.
