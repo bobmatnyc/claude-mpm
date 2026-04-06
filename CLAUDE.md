@@ -42,6 +42,20 @@ Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation an
 - Query context with kuzu-memory recall when needed
 - Keep memories project-specific and relevant
 
+## Caveman Prompt Compression (MANDATORY)
+
+After ANY change to agent instructions (PM_INSTRUCTIONS.md, BASE_AGENT.md, BASE_ENGINEER.md, or agent definitions), apply caveman compression before committing:
+
+- **Tables over prose** — convert lists and rules to tables
+- **Terse imperative voice** — "Do X" not "You should consider doing X"
+- **No filler** — remove "It's important to...", "You should always...", "Please note that..."
+- **Remove generic advice** — Claude already knows "write clear code" and "handle errors"
+- **One-line rules** — if a rule needs 3 sentences to explain, it's too complex or too obvious
+- **Keep code examples ONLY where the rule is ambiguous without one**
+- **Target: ≤300 lines** for PM_INSTRUCTIONS, ≤150 for BASE_AGENT, ≤300 for BASE_ENGINEER
+
+Every token in agent instructions is multiplied by N delegations. Bloat = cost.
+
 ## Memory Guidelines
 
 - Store project decisions and conventions
