@@ -131,6 +131,70 @@ def ensure_agent_id_in_frontmatter(content: str, filename: str) -> str:
     return f"---\n{new_yaml_content}\n---{frontmatter_match.group(2)}{rest_of_content}"
 
 
+def ensure_model_in_frontmatter(content: str, agent_name: str) -> str:
+    """Inject a default model into YAML frontmatter if none is set.
+
+    Haiku is used for ops, docs, and simple/deterministic agents.
+    Everything else defaults to sonnet.  If the source template already
+    carries a ``model:`` field, this function is a no-op.
+
+    Args:
+        content: Markdown file content (may have YAML frontmatter).
+        agent_name: Kebab-case agent name derived from the filename stem
+            (e.g. ``"python-engineer"``).
+
+    Returns:
+        Content with ``model:`` added to frontmatter when missing, or
+        the original content unchanged if ``model:`` was already present.
+    """
+    # Fast-path: model already present anywhere in frontmatter block
+    if re.search(r"^model:\s", content, re.MULTILINE):
+        return content
+
+    # Agents that warrant haiku — ops/docs/simple tasks
+    _HAIKU_AGENTS: frozenset[str] = frozenset(
+        {
+            "ops",
+            "local-ops",
+            "vercel-ops",
+            "gcp-ops",
+            "clerk-ops",
+            "documentation",
+            "ticketing",
+            "version-control",
+            "project-organizer",
+            "memory-manager",
+            "memory-manager-agent",
+            "tmux-agent",
+            "tmux",
+            "content-agent",
+            "content",
+            "imagemagick",
+            "agentic-coder-optimizer",
+            "mpm-agent-manager",
+            "mpm-skills-manager",
+            "base",
+        }
+    )
+
+    name_lower = agent_name.lower().replace("_", "-")
+    default_model = "haiku" if name_lower in _HAIKU_AGENTS else "sonnet"
+
+    # Insert ``model:`` on the line immediately after the opening ``---``
+    if content.startswith("---"):
+        first_newline = content.index("\n")
+        return (
+            content[: first_newline + 1]
+            + f"model: {default_model}\n"
+            + content[first_newline + 1 :]
+        )
+
+    # No frontmatter at all — create a minimal one then re-run to get model in place
+    # (ensure_agent_id_in_frontmatter will have already added --- if needed, but handle
+    # the edge case defensively)
+    return f"---\nmodel: {default_model}\n---\n{content}"
+
+
 def get_underscore_variant_filename(normalized_filename: str) -> str | None:
     """Get underscore variant of a dash-based filename.
 
@@ -408,6 +472,10 @@ def deploy_agent_file(
                 modified_content = ensure_agent_id_in_frontmatter(
                     source_content, normalized_filename
                 )
+                _agent_name = Path(normalized_filename).stem
+                modified_content = ensure_model_in_frontmatter(
+                    modified_content, _agent_name
+                )
             should_deploy = modified_content != existing_content
         else:
             should_deploy = True
@@ -427,6 +495,10 @@ def deploy_agent_file(
             deploy_content = ensure_agent_id_in_frontmatter(
                 source_content, normalized_filename
             )
+            # Derive agent name from filename stem (e.g. "python-engineer" from
+            # "python-engineer.md") and inject a default model when missing.
+            agent_name = Path(normalized_filename).stem
+            deploy_content = ensure_model_in_frontmatter(deploy_content, agent_name)
 
         # Step 7: Ensure deployment directory exists
         deployment_dir.mkdir(parents=True, exist_ok=True)
