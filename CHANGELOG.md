@@ -1,3 +1,10 @@
+## v6.2.17 (2026-04-06)
+
+### Feat
+
+- **#444**: enforce model tiering in deploy_agent_file — the actual deploy path
+- **#444**: enforce model tiering at deploy time — sonnet default, haiku for ops
+
 ## v6.2.16 (2026-04-06)
 
 ### Refactor
