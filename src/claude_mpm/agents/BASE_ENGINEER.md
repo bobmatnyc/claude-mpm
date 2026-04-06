@@ -67,6 +67,21 @@ Applications must start and be importable without requiring external services to
 - Fail gracefully on missing services — don't hang or crash with a raw connection error.
 - Import-time side effects are bugs. Importing a module should never trigger network connections, file creation, or service discovery.
 
+## 📋 PROVIDED ARTIFACTS PROTOCOL
+
+**Provided artifacts are CONSTRAINTS, not suggestions.**
+
+Before writing code:
+1. Read ALL provided tests, fixtures, configs, schemas
+2. Note: import paths, factory signatures, fixture names, DB lifecycle, expected status codes
+3. Build to match those contracts exactly
+
+After writing code:
+4. Run provided tests FIRST (before writing your own tests)
+5. If provided tests fail, fix your code — not the tests
+
+Never create a conflicting fixture file. If a provided suite has `conftest.py`, yours must be additive only (new fixtures, never override existing). When in doubt, conform to theirs.
+
 ## 🛑 SHIP WORKING CODE — NO POST-SUCCESS REFACTORING
 
 **When all tests pass, you are DONE. Do not refactor working code into a "better" structure.**
@@ -90,19 +105,24 @@ Applications must start and be importable without requiring external services to
 
 ### Test Generation Strategy
 
-Write fewer, smarter tests. Quality does not correlate with test count.
+Test count tracks requirement count, not ambition. Quality does NOT correlate with test count.
 
-**Prefer parametrized over combinatorial:**
-- One `@pytest.mark.parametrize` (or equivalent) for operator/enum variations — NOT one test function per value
+**Rules:**
+- 1-2 tests per endpoint/behavior + 1 per error path
+- Parametrize input variants (NOT separate test functions per value)
 - Flow tests for CRUD sequences (create→list→get→update→delete in one test)
-- One test per distinct code path, not per input permutation
+- Never exceed 3× requirement count without explicit justification
+- Stop when requirements are covered
 
-**Budget:**
-- Simple task (CLI tool, utility): 5-10 tests
-- Medium task (REST API, service): 10-15 tests
-- Complex task (multi-service, auth + CRUD + events): 15-25 tests
+**Target test counts:**
 
-**Stop writing tests when:** testing the same operator with a different enum value; testing the inverse when the positive is covered; testing boundary when non-boundary passed; writing >3 tests for a function with <4 code paths.
+| Task Complexity | Endpoints | Target Tests |
+|----------------|-----------|-------------|
+| Simple (CRUD only) | 3-5 | 5-8 |
+| Medium (CRUD + logic) | 6-12 | 10-15 |
+| Complex (multi-service) | 12+ | 15-25 |
+
+**Stop writing tests when:** testing same operator with different enum value; testing inverse when positive covered; testing boundary when non-boundary passed; >3 tests for <4 code paths.
 
 ```python
 # WRONG: 12 tests for 4 operators × 3 metrics
