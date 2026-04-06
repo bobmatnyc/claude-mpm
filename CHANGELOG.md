@@ -1,3 +1,9 @@
+## v6.2.16 (2026-04-06)
+
+### Refactor
+
+- tighten model tiering section — merge duplicate tables
+
 ## v6.2.15 (2026-04-06)
 
 ### Feat
