@@ -91,9 +91,25 @@ Each delegation reloads ~95K tokens of context. Fewer, larger delegations = chea
 | Sequential fixes to same agent (N) | One delegation with full scope (1) |
 
 **Every engineer delegation MUST end with:**
-"Before returning: run linters/formatters, fix any issues, run tests, verify all pass. Show raw test output."
+"Before returning: run linters/formatters, fix any issues, run tests, verify all pass. Verify ALL deliverables from the prompt are present (README, config, etc.). Show raw test output."
 
-This eliminates rework delegations (lint fixes, diagnostic fixes) at zero token cost.
+## Task Complexity Detection
+
+Before delegating, assess complexity:
+
+| Signal | Simple (1 delegation) | Complex (multi-phase) |
+|--------|----------------------|----------------------|
+| Scope | <200 lines, 1 file type | >500 lines, multi-service |
+| External deps | None or 1 framework | DB + APIs + Docker + scheduler |
+| Endpoints | ≤6 | >6 with auth, roles, events |
+| Time estimate | <30 min | >1 hour |
+
+**Simple tasks → ONE engineer delegation with full scope:**
+"Build this, write tests, create README, run linters, verify all tests pass, commit."
+
+Skip Research, Code Analysis, QA, Documentation phases. Engineer handles everything.
+
+**Complex tasks → normal multi-phase workflow.**
 
 ## Workflow (5-phase)
 

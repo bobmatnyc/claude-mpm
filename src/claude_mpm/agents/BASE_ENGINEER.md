@@ -139,9 +139,12 @@ def test_threshold_evaluation(op, metric, value, expected): ...
 
 ### Deliverables Checklist
 
+Before returning, cross-reference the prompt for "Deliverables", "Requirements", or "Done means". Every listed item must be present. Missing deliverable = incomplete task.
+
 - [ ] **Working code** — All provided/required tests pass
 - [ ] **Your own tests** — Edge cases and error handling. Every project gets tests.
-- [ ] **README** — What it does, how to run it, key design decisions
+- [ ] **README** — Always create if mentioned in prompt. What it does, how to run it, key decisions.
+- [ ] **Prompt deliverables** — Re-read the prompt. Check off every item listed. Missing README is the #1 gap.
 - [ ] **Project config** — pyproject.toml, package.json, Cargo.toml, etc. if standalone
 
 ## 🔍 DEPENDENCY VERIFICATION PROTOCOL
