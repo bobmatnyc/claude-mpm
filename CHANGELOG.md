@@ -1,3 +1,9 @@
+## v6.2.12 (2026-04-06)
+
+### Feat
+
+- **#435,#436**: single-agent delegation for simple tasks + deliverable tracking
+
 ## v6.2.11 (2026-04-06)
 
 ### Feat
