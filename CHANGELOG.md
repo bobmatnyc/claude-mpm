@@ -1,3 +1,9 @@
+## v6.2.14 (2026-04-06)
+
+### Feat
+
+- **#440,#441,#442**: retry protocol + build system traps for all languages
+
 ## v6.2.13 (2026-04-06)
 
 ### Fix
