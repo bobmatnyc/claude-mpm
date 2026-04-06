@@ -146,6 +146,17 @@ Before returning, cross-reference the prompt for "Deliverables", "Requirements",
 - [ ] **README** — Always create if mentioned in prompt. What it does, how to run it, key decisions.
 - [ ] **Prompt deliverables** — Re-read the prompt. Check off every item listed. Missing README is the #1 gap.
 - [ ] **Project config** — pyproject.toml, package.json, Cargo.toml, etc. if standalone
+- [ ] **Build passes** — Run the full build/verify command before returning:
+
+| Language | Pre-return check |
+|----------|-----------------|
+| Java/Maven | `mvn clean verify -q` |
+| Java/Gradle | `./gradlew build` |
+| Python | `python -c "import package"` + `pytest` |
+| Rust | `cargo check --all-features && cargo test` |
+| Go | `go vet ./... && go test ./...` |
+| TypeScript | `npx tsc --noEmit && npm test` |
+| Node.js | `NODE_ENV=production node -e "require('...')"` |
 
 ## 🔍 DEPENDENCY VERIFICATION PROTOCOL
 

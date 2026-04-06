@@ -93,6 +93,22 @@ Each delegation reloads ~95K tokens of context. Fewer, larger delegations = chea
 **Every engineer delegation MUST end with:**
 "Before returning: run linters/formatters, fix any issues, run tests, verify all pass. Verify ALL deliverables from the prompt are present (README, config, etc.). Show raw test output."
 
+## Retry Protocol
+
+When delegated work fails (build error, test failure, lint issue):
+1. **SendMessage to the SAME agent** — never spawn a new delegation to fix a previous one
+2. Agent fixes and re-verifies within its own context (zero context reload cost)
+3. Only re-delegate if agent has failed 3+ times on the same issue
+
+| Scenario | Action |
+|----------|--------|
+| Build/test/lint failure | SendMessage to originating agent with error output |
+| Engineer reports "tests pass" but no raw output | SendMessage: "show raw test output" |
+| Agent failed 3+ times on same issue | Re-delegate to different agent or escalate |
+| README missing from deliverables | SendMessage: "prompt requires README, please create" |
+
+**Never spawn a separate docs agent for a per-task README** — include it in the engineer delegation.
+
 ## Task Complexity Detection
 
 Before delegating, assess complexity:
