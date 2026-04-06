@@ -963,27 +963,29 @@ class EventHandlers:
             stop_hook_active = event.get("stop_hook_active", False)
 
             if unread and not stop_hook_active:
-                _log(
-                    f"📬 {len(unread)} unread cross-project message(s) at session end - blocking stop"
-                )
+                _log(f"📬 {len(unread)} unread cross-project message(s) at session end")
 
-                # Build summary
-                from collections import Counter
-
-                sources = Counter(Path(m.from_project).name for m in unread)
-                source_summary = ", ".join(
-                    f"{count} from {name}" for name, count in sources.most_common()
-                )
-
-                high_priority = [m for m in unread if m.priority in ("high", "urgent")]
-                priority_note = (
-                    f" ({len(high_priority)} high priority)" if high_priority else ""
-                )
+                # Build per-message preview (up to 3 messages)
+                preview_lines = []
+                for msg in unread[:3]:
+                    sender = (
+                        Path(msg.from_project).name if msg.from_project else "unknown"
+                    )
+                    subject = getattr(msg, "subject", None) or "No subject"
+                    priority = getattr(msg, "priority", "normal") or "normal"
+                    if priority in ("high", "urgent"):
+                        preview_lines.append(
+                            f'  \u2022 [{priority}] from {sender}: "{subject}"'
+                        )
+                    else:
+                        preview_lines.append(f'  \u2022 from {sender}: "{subject}"')
+                if len(unread) > 3:
+                    preview_lines.append(f"  \u2022 ... and {len(unread) - 3} more")
+                preview = "\n".join(preview_lines)
 
                 reason = (
-                    f"📬 {len(unread)} unread cross-project message(s){priority_note}: "
-                    f"{source_summary}. "
-                    f"Read and act on them with: `claude-mpm message list --status unread`"
+                    f"📬 {len(unread)} unread message(s):\n{preview}\n"
+                    f"Read with: claude-mpm message list --status unread"
                 )
 
                 # Mark notified messages as read so they are not recounted
@@ -1011,7 +1013,7 @@ class EventHandlers:
                 except Exception:
                     pass
 
-                return {"decision": "block", "reason": reason}
+                return {"decision": "allow", "reason": reason}
         except Exception as e:
             if DEBUG:
                 _log(f"Message check on stop error: {e}")
