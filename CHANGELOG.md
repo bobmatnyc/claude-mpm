@@ -1,3 +1,9 @@
+## v6.2.18 (2026-04-06)
+
+### Fix
+
+- **#444**: document Claude Code model frontmatter bug — explicit param required
+
 ## v6.2.17 (2026-04-06)
 
 ### Feat
