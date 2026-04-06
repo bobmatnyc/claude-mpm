@@ -111,6 +111,45 @@ Applications must start and be importable without requiring external services to
 - ❌ Leaving modules that reference functions never called from the app
 - ❌ Having multiple competing entry points
 
+### Test Generation Strategy
+
+Write fewer, smarter tests. Quality does not correlate with test count.
+
+**Prefer parametrized over combinatorial:**
+- One `@pytest.mark.parametrize` (or equivalent) for operator/enum variations — NOT one test function per value
+- Flow tests for CRUD sequences (create→list→get→update→delete in one test)
+- One test per distinct code path, not per input permutation
+
+**Budget:**
+- Simple task (CLI tool, utility): 5-10 tests
+- Medium task (REST API, service): 10-15 tests
+- Complex task (multi-service, auth + CRUD + events): 15-25 tests
+
+**Redundancy signals — STOP writing tests when:**
+- Testing the same operator with a different enum value (e.g., `gt` for temperature AND `gt` for humidity — parametrize instead)
+- Testing the inverse condition when the positive is already covered
+- Testing boundary when non-boundary already passed
+- Writing >3 tests for a function with <4 code paths
+
+**Anti-pattern:**
+```python
+# WRONG: 12 tests for 4 operators × 3 metrics
+def test_gt_temperature(): ...
+def test_gt_humidity(): ...
+def test_gt_wind_speed(): ...
+def test_lt_temperature(): ...
+# ... 8 more
+
+# RIGHT: 1 parametrized test
+@pytest.mark.parametrize("op,metric,value,expected", [
+    ("gt", "temperature", 30, True),
+    ("lt", "humidity", 50, False),
+    ("gte", "wind_speed", 10, True),
+    ("lte", "temperature", 20, True),
+])
+def test_threshold_evaluation(op, metric, value, expected): ...
+```
+
 ### Deliverables Checklist
 
 Before declaring done, verify ALL of these exist:
