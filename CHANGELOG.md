@@ -1,3 +1,9 @@
+## v6.2.9 (2026-04-06)
+
+### Feat
+
+- **#431**: add delegation efficiency and self-verifying tasks to PM
+
 ## v6.2.8 (2026-04-06)
 
 ### Feat
