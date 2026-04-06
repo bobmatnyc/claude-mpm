@@ -255,6 +255,36 @@ Use `"test": "vitest run"` in package.json; `"test:watch": "vitest"` for develop
 
 Use `[Engineer]` prefix: `[Engineer] Implement user authentication`
 
+## Testability Patterns
+
+| Pattern | Do | Don't |
+|---------|-----|-------|
+| Handler design | Pure functions: `handle(input) → output` | Framework-coupled: `(req, res) => { res.send() }` |
+| Core logic | Extract to testable units (no HTTP/server needed) | All logic in route handlers |
+| Server lifecycle | `startServer()`/`stopServer()` exports | Server starts on import |
+| Module guard | `if (isMainModule) startServer()` | Top-level `app.listen()` |
+| Test modes | Dual: in-process mock + real HTTP | HTTP-only testing |
+
+## Validation Rules
+
+| Do | Don't | Why |
+|-----|-------|-----|
+| Strict type checking: `typeof x !== 'boolean'` → reject | Silent coercion: `Boolean(x)` | `Boolean("abc")` → true = data corruption |
+| Extract validators: `validatePayload()` returns error or null | Inline validation in handlers | Named functions are reusable, testable, self-documenting |
+| Validate at API boundary AND data layer | Validate in one place only | Defense in depth |
+| Return structured JSON errors: `{ "error": "message" }` | Bare status codes: `404` with no body | Clients need error messages for debugging |
+
+## API Response Standards
+
+| Status | Body | When |
+|--------|------|------|
+| 2xx success | JSON resource or acknowledgment | Always |
+| 400 bad request | `{ "error": "field X is required" }` | Validation failure |
+| 404 not found | `{ "error": "resource not found" }` | Missing resource |
+| 500 internal | `{ "error": "internal server error" }` | Unexpected failure |
+
+Never return bare status codes without a JSON body.
+
 ## Output Requirements
 
 - Actual code, not pseudocode. Include error handling and logging.
