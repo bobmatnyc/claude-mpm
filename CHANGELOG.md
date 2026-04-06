@@ -1,3 +1,9 @@
+## v6.2.11 (2026-04-06)
+
+### Feat
+
+- add cursor agent + unified external agents + fix copilot agent
+
 ## v6.2.10 (2026-04-06)
 
 ### Feat
