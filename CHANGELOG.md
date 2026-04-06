@@ -1,3 +1,10 @@
+## v6.2.10 (2026-04-06)
+
+### Feat
+
+- **#432,#433**: add provided artifacts protocol and strengthen test discipline
+- add GitHub Copilot CLI agent POC for delegating simple tasks
+
 ## v6.2.9 (2026-04-06)
 
 ### Feat
