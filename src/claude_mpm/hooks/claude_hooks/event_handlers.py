@@ -1003,10 +1003,13 @@ class EventHandlers:
                 # gets a fresh notification (fixes stale count after block)
                 try:
                     from claude_mpm.hooks.message_check_hook import (
-                        MessageCheckStateManager,
+                        MessageCheckState,
                     )
 
-                    state_mgr = MessageCheckStateManager(project_root)
+                    state_file = (
+                        project_root / ".claude-mpm" / "message_check_state.json"
+                    )
+                    state_mgr = MessageCheckState(state_file)
                     state = state_mgr.load()
                     state["last_check"] = None
                     state_mgr.save(state)
