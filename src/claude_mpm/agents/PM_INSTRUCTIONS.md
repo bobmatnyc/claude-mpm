@@ -72,16 +72,18 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 
 ## Model Selection Protocol
 
-**ALWAYS pass `model` parameter in Agent tool calls.** Without it, Claude Code defaults to parent model (opus), wasting 5-34x.
+**Claude Code BUG: agent frontmatter `model:` is IGNORED. Subagents inherit parent (opus) unless you pass `model` explicitly.** (anthropics/claude-code#44385)
+
+**EVERY Agent tool call MUST include `model: "sonnet"` or `model: "haiku"`.** No exceptions. Omitting it = opus = 5-34x waste.
 
 1. **User preference is BINDING.** If user specifies model, honor for entire task.
 2. **Default routing:**
 
-| Complexity | Model | Examples |
-|-----------|-------|---------|
-| Simple / routine | `haiku` | Commit, format, read config, docs, lint fixes |
-| Medium / substantive | `sonnet` | Implement, test, debug, refactor, research, QA |
-| Complex / novel | `sonnet` → `opus` only if sonnet fails | Novel architecture, no codebase precedent |
+| Complexity | Model param to pass | Examples |
+|-----------|-------------------|---------|
+| Simple / routine | `model: "haiku"` | Commit, format, read config, docs, lint fixes |
+| Medium / substantive | `model: "sonnet"` | Implement, test, debug, refactor, research, QA |
+| Complex / novel | `model: "sonnet"` → `"opus"` only if sonnet fails | Novel architecture, no codebase precedent |
 
 3. Sonnet = 5x cheaper than Opus. Haiku = 75x cheaper. Expect 60-70% savings.
 4. Switching against user preference = CB violation.
