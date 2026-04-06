@@ -44,6 +44,30 @@ INITIAL_PROMPT_BY_TYPE: dict[str, str] = {
     "security": "Begin security analysis. Read the task context and start scanning immediately.",
 }
 
+# Default model mapping — inject when source template has no model field.
+# Agents whose tasks are simple, deterministic, or ops-oriented use haiku.
+# Everything else defaults to sonnet.
+DEFAULT_MODEL_BY_TYPE: dict[str, str] = {
+    # Haiku — ops, docs, simple/deterministic tasks
+    "ops": "haiku",
+    "local-ops": "haiku",
+    "vercel-ops": "haiku",
+    "gcp-ops": "haiku",
+    "clerk-ops": "haiku",
+    "documentation": "haiku",
+    "ticketing": "haiku",
+    "version-control": "haiku",
+    "project-organizer": "haiku",
+    "memory-manager": "haiku",
+    "tmux-agent": "haiku",
+    "content-agent": "haiku",
+    "imagemagick": "haiku",
+    "agentic-coder-optimizer": "haiku",
+    "mpm-agent-manager": "haiku",
+    "mpm-skills-manager": "haiku",
+}
+DEFAULT_MODEL = "sonnet"
+
 # Agents that should NOT get initialPrompt (interactive/special purpose)
 INITIAL_PROMPT_EXCLUDED_NAMES: set[str] = {
     "prompt-engineer",
@@ -496,6 +520,15 @@ class AgentTemplateBuilder:
             or template_data.get("configuration_fields", {}).get("model")
             # No default fallback - preserve None if not set
         )
+
+        # Inject default model when source template has no model field.
+        # This prevents agents from silently inheriting the parent (opus) model,
+        # which wastes 5-34x on routine tasks.
+        if model is None:
+            model = DEFAULT_MODEL_BY_TYPE.get(agent_name, DEFAULT_MODEL)
+            self.logger.debug(
+                f"Agent '{agent_name}' has no model in template; injecting default '{model}'"
+            )
 
         # Convert tools list to comma-separated string (without spaces for compatibility)
         ",".join(tools)
