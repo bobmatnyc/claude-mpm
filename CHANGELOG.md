@@ -1,3 +1,9 @@
+## v6.2.19 (2026-04-06)
+
+### Fix
+
+- **#445**: add CLAUDE_CODE_SUBAGENT_MODEL=sonnet + model tier hook
+
 ## v6.2.18 (2026-04-06)
 
 ### Fix
