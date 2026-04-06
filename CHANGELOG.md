@@ -1,3 +1,13 @@
+## v6.2.8 (2026-04-06)
+
+### Feat
+
+- **#430**: add context-aware abstraction guidance to BASE_ENGINEER
+- **#428**: compress BASE_ENGINEER.md — 73% reduction (838→223 lines)
+- **#427**: compress BASE_AGENT.md — 74% reduction (485→127 lines)
+- **#429**: add test generation strategy to BASE_ENGINEER
+- caveman prompt optimization — 77% token reduction in PM instructions
+
 ## v6.2.7 (2026-04-04)
 
 ### Feat
