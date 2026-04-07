@@ -1,3 +1,13 @@
+## v6.2.23 (2026-04-07)
+
+### Feat
+
+- auto-populate project shortcuts on startup for messaging
+
+### Fix
+
+- **#438**: sanitize mcp-named skills during deployment
+
 ## v6.2.22 (2026-04-07)
 
 ### Fix
