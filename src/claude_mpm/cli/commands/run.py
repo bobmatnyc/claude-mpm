@@ -92,6 +92,8 @@ def filter_claude_mpm_args(claude_args):
         # Short flags (MPM-specific equivalents)
         "-i",  # --input (MPM-specific, not Claude CLI)
         "-d",  # --debug (MPM-specific, not Claude CLI)
+        # SDK oneshot flag (MPM-specific)
+        "--prompt",
     }
 
     filtered_args = []
@@ -118,6 +120,7 @@ def filter_claude_mpm_args(claude_args):
                 "--agents-dir",
                 "-i",
                 "--input",
+                "--prompt",
             }
             optional_value_flags = {
                 "--mpm-resume"
@@ -756,6 +759,54 @@ def _run_headless_session(args) -> int:
     return session.run(prompt=prompt, resume_session=resume_session)
 
 
+def run_sdk_oneshot(prompt: str, args) -> None:
+    """Execute a single prompt via SDKAgentRunner and print the result.
+
+    WHY: When ``--sdk`` and ``--prompt`` are both set, the user wants a
+    fire-and-forget execution: send one prompt, stream the response to stdout,
+    print the session ID for potential resumption, then exit — without entering
+    the interactive loop.
+
+    Args:
+        prompt: The user prompt to run.
+        args: The parsed CLI arguments (used for cwd, model, etc.).
+    """
+    import asyncio
+
+    try:
+        from ...services.agents.sdk_runtime import SDKAgentRunner
+    except ImportError:
+        try:
+            from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
+        except ImportError:
+            print(
+                "ERROR: claude-agent-sdk is not installed. "
+                "Install it with: pip install claude-agent-sdk",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+    cwd = str(getattr(args, "cwd", None) or Path.cwd())
+    runner = SDKAgentRunner(cwd=cwd)
+
+    try:
+        result = asyncio.run(runner.run(prompt))
+    except Exception as exc:
+        print(f"ERROR: SDK oneshot failed: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    # Print assistant response text
+    if result.text:
+        print(result.text)
+
+    # Print session ID in a resumable format
+    if result.session_id:
+        print(
+            f"\nSession: {result.session_id} "
+            f"(resume with: claude-mpm run --sdk --resume {result.session_id})"
+        )
+
+
 def run_session(args):
     """
     Main entry point for run command.
@@ -1223,6 +1274,11 @@ def run_session_legacy(args):
         runner._browser_opened_by_cli = True  # Prevent duplicate opening
 
     # Run session based on mode
+    sdk_prompt = getattr(args, "prompt", None)
+    if launch_method == "sdk" and sdk_prompt:
+        # SDK oneshot: run a single prompt and exit without entering interactive loop
+        run_sdk_oneshot(sdk_prompt, args)
+        return
     if args.non_interactive or args.input:
         # Non-interactive mode
         user_input = get_user_input(args.input, logger)

@@ -348,6 +348,13 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Use Agent SDK runtime instead of CLI subprocess (requires claude-agent-sdk)",
     )
     run_group.add_argument(
+        "--prompt",
+        type=str,
+        default=None,
+        metavar="PROMPT",
+        help="Run a single prompt in oneshot mode and exit (requires --sdk)",
+    )
+    run_group.add_argument(
         "--cli",
         action="store_true",
         default=False,
