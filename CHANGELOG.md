@@ -1,3 +1,13 @@
+## v6.2.20 (2026-04-06)
+
+### Feat
+
+- add SDK oneshot mode — claude-mpm run --sdk --prompt "task"
+
+### Fix
+
+- remove CLAUDE_CODE_SUBAGENT_MODEL from distribution
+
 ## v6.2.19 (2026-04-06)
 
 ### Fix
