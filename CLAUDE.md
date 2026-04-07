@@ -42,6 +42,14 @@ Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation an
 - Query context with kuzu-memory recall when needed
 - Keep memories project-specific and relevant
 
+## Model Tiering (Cost Optimization)
+
+To force subagents to use Sonnet instead of inheriting Opus (5x cheaper), add to your user-level config (`~/.claude/settings.json`):
+```json
+{"env": {"CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-6"}}
+```
+This is NOT shipped in the package — it's a user choice. Without it, subagents inherit the parent model.
+
 ## Caveman Prompt Compression (MANDATORY)
 
 After ANY change to agent instructions (PM_INSTRUCTIONS.md, BASE_AGENT.md, BASE_ENGINEER.md, or agent definitions), apply caveman compression before committing:
