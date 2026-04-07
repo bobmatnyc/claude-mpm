@@ -500,6 +500,11 @@ class RunCommand(BaseCommand):
         if hasattr(args, "claude_args") and args.claude_args:
             claude_args.extend(args.claude_args)
 
+        # Default PM model to Sonnet (overridable via --model or /model in session)
+        pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL", "sonnet")
+        if "--model" not in claude_args:
+            claude_args.extend(["--model", pm_model])
+
         # Add --resume if flag is set
         # args.resume can be:
         #   None - flag not used

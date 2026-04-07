@@ -1016,7 +1016,7 @@ class EventHandlers:
                 except Exception:
                     pass
 
-                return {"decision": "allow", "reason": reason}
+                return {"continue": True, "stopReason": reason}
         except Exception as e:
             if DEBUG:
                 _log(f"Message check on stop error: {e}")
