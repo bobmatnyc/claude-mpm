@@ -1,3 +1,9 @@
+## v6.2.21 (2026-04-07)
+
+### Feat
+
+- **#445**: default SDK mode PM to Sonnet — 63% cost reduction
+
 ## v6.2.20 (2026-04-06)
 
 ### Feat
