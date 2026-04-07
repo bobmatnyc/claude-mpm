@@ -1,3 +1,9 @@
+## v6.2.22 (2026-04-07)
+
+### Fix
+
+- stop hook JSON format + default PM to Sonnet in all modes
+
 ## v6.2.21 (2026-04-07)
 
 ### Feat
