@@ -2231,8 +2231,41 @@ def run_background_services(
         _step("Syncing hooks & agents")
         sync_deployment_on_startup(force_sync=force_sync, no_sync=no_sync)
 
-        _step("Loading project registry")
-        initialize_project_registry()
+        _step("Populating project shortcuts")
+        # Auto-populate shortcuts from known project directories (daily TTL)
+        if not _is_sync_fresh("project_shortcuts"):
+            try:
+                from claude_mpm.services.communication.shortcuts_service import (
+                    ShortcutsService,
+                )
+
+                svc = ShortcutsService()
+                existing = svc.list_shortcuts()
+                home = Path.home()
+                scan_dirs = [
+                    home / "Projects",
+                    home / "Duetto",
+                    home / "Duetto" / "repos",
+                ]
+                added = 0
+                for scan_dir in scan_dirs:
+                    if not scan_dir.is_dir():
+                        continue
+                    for child in scan_dir.iterdir():
+                        if not child.is_dir():
+                            continue
+                        is_project = (
+                            (child / ".claude-mpm").is_dir()
+                            or (child / ".claude").is_dir()
+                            or (child / "CLAUDE.md").is_file()
+                        )
+                        if is_project and child.name.lower() not in existing:
+                            svc.add_shortcut(child.name.lower(), str(child))
+                            added += 1
+                # Shortcuts auto-populated silently
+                _mark_sync_done("project_shortcuts")
+            except Exception:
+                pass  # Non-fatal — shortcuts are a convenience
 
         _step("Checking MCP config")
         check_mcp_auto_configuration()
@@ -2354,6 +2387,75 @@ def initialize_project_registry():
         logger = get_logger("cli")
         logger.debug(f"Failed to initialize project registry: {e}")
         # Continue execution - registry failure shouldn't block startup
+
+
+def populate_project_shortcuts() -> None:
+    """
+    Scan known project directories and register claude-mpm projects as shortcuts.
+
+    WHY: Users work across many projects under ~/Projects, ~/Duetto, etc.
+    Auto-populating shortcuts saves them from manually registering every project
+    and makes the messaging shortcut system immediately useful on first run.
+
+    DESIGN:
+    - Scans ~/Projects/*/, ~/Duetto/*/, ~/Duetto/repos/*/ for claude-mpm projects.
+    - A directory is a project if it contains .claude-mpm/, .claude/, or CLAUDE.md.
+    - Only adds shortcuts that don't already exist (never overwrites).
+    - Runs at most once per day via the TTL sync-state mechanism.
+    - Failures are non-fatal and only logged at debug level.
+    """
+    if _is_sync_fresh("project_shortcuts"):
+        return
+
+    try:
+        import sys
+        from pathlib import Path
+
+        from ..core.logger import get_logger
+        from ..services.communication.shortcuts_service import ShortcutsService
+
+        logger = get_logger("cli")
+        service = ShortcutsService()
+        existing = service.list_shortcuts()
+
+        home = Path.home()
+        scan_dirs = [
+            home / "Projects",
+            home / "Duetto",
+            home / "Duetto" / "repos",
+        ]
+
+        added: list[str] = []
+        for scan_dir in scan_dirs:
+            if not scan_dir.exists() or not scan_dir.is_dir():
+                continue
+            for candidate in scan_dir.iterdir():
+                if not candidate.is_dir():
+                    continue
+                is_project = (
+                    (candidate / ".claude-mpm").exists()
+                    or (candidate / ".claude").exists()
+                    or (candidate / "CLAUDE.md").exists()
+                )
+                if not is_project:
+                    continue
+                shortcut_name = candidate.name
+                if shortcut_name in existing:
+                    continue
+                success = service.add_shortcut(shortcut_name, str(candidate))
+                if success:
+                    added.append(f"{shortcut_name} -> {candidate}")
+                    logger.debug(f"Registered project shortcut: {shortcut_name}")
+
+        if added and sys.stdout.isatty():
+            print(f"✓ Project shortcuts: {len(added)} added", flush=True)
+
+        _mark_sync_done("project_shortcuts")
+
+    except Exception as e:
+        from ..core.logger import get_logger
+
+        get_logger("cli").debug(f"Failed to populate project shortcuts: {e}")
 
 
 def check_mcp_auto_configuration():
