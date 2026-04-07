@@ -1300,6 +1300,100 @@ def migrate_plugin_scope_v1() -> bool:
     return True
 
 
+# Explicit rename mapping for known mcp-named skills.
+# Keys are current directory names; values are the desired names.
+_MCP_SKILL_RENAME_MAP: dict[str, str] = {
+    "mcp-vector-search": "vector-search",
+    "mcp-vector-search-pr-mr-skill": "vector-search-pr-mr-skill",
+    "toolchains-ai-protocols-mcp": "toolchains-ai-protocols-model-context",
+    "universal-main-mcp-builder": "universal-main-protocol-builder",
+}
+
+
+def _get_target_skill_name(skill_name: str) -> str:
+    """Return the canonical (mcp-free) name for a skill directory.
+
+    Uses the explicit mapping first; falls back to replacing every occurrence
+    of the substring "mcp" with "protocol".
+    """
+    if skill_name in _MCP_SKILL_RENAME_MAP:
+        return _MCP_SKILL_RENAME_MAP[skill_name]
+    return skill_name.replace("mcp", "protocol")
+
+
+def _find_mcp_skill_dirs() -> list[tuple[Path, str]]:
+    """Return (skills_dir, skill_name) pairs where the skill name contains 'mcp'.
+
+    Scans both project-level (.claude/skills/) and user-level (~/.claude/skills/).
+    Only directories are returned; regular files are ignored.
+    """
+    hits: list[tuple[Path, str]] = []
+    candidates: list[Path] = [
+        Path.cwd() / ".claude" / "skills",
+        Path.home() / ".claude" / "skills",
+    ]
+    for skills_dir in candidates:
+        if not skills_dir.is_dir():
+            continue
+        for entry in skills_dir.iterdir():
+            if entry.is_dir() and "mcp" in entry.name:
+                hits.append((skills_dir, entry.name))
+    return hits
+
+
+def _check_mcp_skills_need_rename() -> bool:
+    """Return True if any skill directory contains 'mcp' in its name."""
+    return bool(_find_mcp_skill_dirs())
+
+
+def _rename_mcp_skills() -> bool:
+    """Rename skill directories whose names contain 'mcp'.
+
+    Uses _MCP_SKILL_RENAME_MAP for known names; for everything else replaces
+    the substring "mcp" with "protocol".  The rename is idempotent: if the
+    target directory already exists the source is left untouched and a warning
+    is logged.
+
+    Returns:
+        True always (non-fatal; individual failures are logged).
+    """
+    hits = _find_mcp_skill_dirs()
+    if not hits:
+        print("   No mcp-named skill directories found.")
+        return True
+
+    for skills_dir, skill_name in hits:
+        target_name = _get_target_skill_name(skill_name)
+        src = skills_dir / skill_name
+        dst = skills_dir / target_name
+
+        if dst.exists():
+            logger.warning(
+                "Cannot rename skill '%s' → '%s': target already exists at %s",
+                skill_name,
+                target_name,
+                dst,
+            )
+            print(f"   ⚠ Skipped '{skill_name}': '{target_name}' already exists.")
+            continue
+
+        try:
+            src.rename(dst)
+            print(f"   ✓ Renamed skill '{skill_name}' → '{target_name}'")
+            logger.info(
+                "Renamed skill directory '%s' → '%s' in %s",
+                skill_name,
+                target_name,
+                skills_dir,
+            )
+        except OSError as exc:
+            logger.warning("Failed to rename skill '%s': %s", skill_name, exc)
+            print(f"   ⚠ Failed to rename '{skill_name}': {exc}")
+
+    print("   ✓ MCP skill rename migration complete")
+    return True
+
+
 MIGRATIONS: list[Migration] = [
     Migration(
         id="v5.6.76-cache-dir-rename",
@@ -1360,6 +1454,12 @@ MIGRATIONS: list[Migration] = [
         description="Detect user-scoped Claude Code plugins bleeding into unrelated project sessions",
         check=check_plugin_scope_v1,
         migrate=migrate_plugin_scope_v1,
+    ),
+    Migration(
+        id="v6.2.7-rename-mcp-skills",
+        description="Rename skill directories whose names contain 'mcp' to avoid shadowing the native /mcp command",
+        check=_check_mcp_skills_need_rename,
+        migrate=_rename_mcp_skills,
     ),
 ]
 

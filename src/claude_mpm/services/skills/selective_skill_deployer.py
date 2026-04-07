@@ -167,6 +167,58 @@ CLAUDE_CODE_RESERVED_COMMANDS = {
 }
 
 
+# Explicit rename mapping for known mcp-named skills used during deployment.
+# Mirrors the mapping in startup_migrations.py to ensure consistent renaming
+# both at migration time and at skill-deployment time.
+_MCP_SKILL_DEPLOY_RENAME_MAP: dict[str, str] = {
+    "mcp-vector-search": "vector-search",
+    "mcp-vector-search-pr-mr-skill": "vector-search-pr-mr-skill",
+    "toolchains-ai-protocols-mcp": "toolchains-ai-protocols-model-context",
+    "universal-main-mcp-builder": "universal-main-protocol-builder",
+}
+
+
+def sanitize_skill_name_for_deployment(skill_name: str) -> str:
+    """Return a safe skill name that does not shadow a Claude Code native command.
+
+    If *skill_name* starts with a reserved prefix (e.g., "mcp") it is renamed
+    using the explicit mapping in ``_MCP_SKILL_DEPLOY_RENAME_MAP``.  If no
+    explicit mapping exists the offending prefix substring is replaced with
+    "protocol" to preserve the rest of the name.
+
+    Skills that do not conflict are returned unchanged.
+
+    Args:
+        skill_name: The skill's declared name.
+
+    Returns:
+        A safe skill name free of reserved-command prefixes.
+
+    Example:
+        >>> sanitize_skill_name_for_deployment("mcp-vector-search")
+        'vector-search'
+        >>> sanitize_skill_name_for_deployment("mcp-custom-tool")
+        'protocol-custom-tool'
+        >>> sanitize_skill_name_for_deployment("build-mcp-server")
+        'build-mcp-server'
+    """
+    for reserved in CLAUDE_CODE_RESERVED_COMMANDS:
+        if skill_name == reserved or skill_name.startswith(f"{reserved}-"):
+            if skill_name in _MCP_SKILL_DEPLOY_RENAME_MAP:
+                new_name = _MCP_SKILL_DEPLOY_RENAME_MAP[skill_name]
+            else:
+                new_name = skill_name.replace(reserved, "protocol", 1)
+            logger.warning(
+                "Skill '%s' shadows Claude Code native command '/%s'. "
+                "Renaming to '%s' to prevent the conflict.",
+                skill_name,
+                reserved,
+                new_name,
+            )
+            return new_name
+    return skill_name
+
+
 def warn_if_skill_conflicts_with_native_command(skill_name: str) -> None:
     """Emit a warning if a skill name shadows a Claude Code native slash command.
 
@@ -177,6 +229,10 @@ def warn_if_skill_conflicts_with_native_command(skill_name: str) -> None:
 
     This function produces a warning — it does NOT block deployment — so that
     operators can rename the offending skill at their own pace.
+
+    .. deprecated::
+        Use :func:`sanitize_skill_name_for_deployment` instead, which both warns
+        *and* returns a renamed skill name that avoids the conflict.
 
     Args:
         skill_name: The skill's declared name (from SKILL.md frontmatter).
@@ -484,9 +540,17 @@ def get_required_skills_from_agents(agents_dir: Path) -> set[str]:
             "(converted slashes to dashes)"
         )
 
-    # Validate that no skill name shadows a Claude Code native slash command
+    # Rename any skill whose name shadows a Claude Code native slash command.
+    # sanitize_skill_name_for_deployment logs a warning and returns a safe name.
+    sanitized_skills: set[str] = set()
     for skill in normalized_skills:
-        warn_if_skill_conflicts_with_native_command(skill)
+        sanitized_skills.add(sanitize_skill_name_for_deployment(skill))
+    if sanitized_skills != normalized_skills:
+        logger.debug(
+            "Sanitized %d skill name(s) to avoid native command conflicts",
+            len(normalized_skills - sanitized_skills),
+        )
+    normalized_skills = sanitized_skills
 
     # Remove skills that belong at the user level (~/.claude/skills/).
     # USER_LEVEL_SKILLS are deployed by PMSkillsDeployerService; deploying them

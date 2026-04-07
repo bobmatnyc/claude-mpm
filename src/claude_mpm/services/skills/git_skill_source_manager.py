@@ -28,6 +28,9 @@ from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.sources.git_source_sync_service import (
     GitSourceSyncService,
 )
+from claude_mpm.services.skills.selective_skill_deployer import (
+    sanitize_skill_name_for_deployment,
+)
 from claude_mpm.services.skills.skill_discovery_service import SkillDiscoveryService
 
 logger = get_logger(__name__)
@@ -1007,7 +1010,8 @@ class GitSkillSourceManager:
 
                 # Source is the entire skill directory (not just SKILL.md)
                 source_dir = source_path.parent
-                target_skill_dir = deployment_dir / deployment_name
+                sanitized_name = sanitize_skill_name_for_deployment(deployment_name)
+                target_skill_dir = deployment_dir / sanitized_name
 
                 # Check if already deployed and up-to-date
                 should_deploy = force
@@ -1024,8 +1028,8 @@ class GitSkillSourceManager:
                         should_deploy = True
 
                 if not should_deploy and was_existing:
-                    results["skipped"].append(deployment_name)
-                    self.logger.debug(f"Skipped (up-to-date): {deployment_name}")
+                    results["skipped"].append(sanitized_name)
+                    self.logger.debug(f"Skipped (up-to-date): {sanitized_name}")
                     continue
 
                 # Security: Validate paths
@@ -1047,11 +1051,11 @@ class GitSkillSourceManager:
 
                 # Track result
                 if was_existing:
-                    results["updated"].append(deployment_name)
-                    self.logger.info(f"Updated: {deployment_name}")
+                    results["updated"].append(sanitized_name)
+                    self.logger.info(f"Updated: {sanitized_name}")
                 else:
-                    results["deployed"].append(deployment_name)
-                    self.logger.info(f"Deployed: {deployment_name}")
+                    results["deployed"].append(sanitized_name)
+                    self.logger.info(f"Deployed: {sanitized_name}")
 
             except PermissionError as e:
                 self.logger.error(f"Permission denied deploying {skill_name}: {e}")
@@ -1207,9 +1211,9 @@ class GitSkillSourceManager:
 
         for idx, skill in enumerate(all_skills, start=1):
             skill_name = skill.get("name", "unknown")
-            deployment_name = skill.get("deployment_name")
+            raw_deployment_name = skill.get("deployment_name")
 
-            if not deployment_name:
+            if not raw_deployment_name:
                 self.logger.warning(
                     f"Skill {skill_name} missing deployment_name, skipping"
                 )
@@ -1217,6 +1221,10 @@ class GitSkillSourceManager:
                 if progress_callback:
                     progress_callback(idx)
                 continue
+
+            deployment_name = sanitize_skill_name_for_deployment(
+                str(raw_deployment_name)
+            )
 
             try:
                 result = self._deploy_single_skill(
@@ -1284,7 +1292,7 @@ class GitSkillSourceManager:
 
         # Build set of deployment names (exact matches)
         expected_deployments = {
-            skill.get("deployment_name").lower()
+            str(skill.get("deployment_name")).lower()
             for skill in filtered_skills
             if skill.get("deployment_name")
         }
