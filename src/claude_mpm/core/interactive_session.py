@@ -756,11 +756,21 @@ class InteractiveSession:
                     ],
                 }
 
+            # Default PM to Sonnet in SDK mode (Opus costs 5x more, same quality).
+            # Benchmark: Sonnet PM + Sonnet subagents = $1.32 vs Opus PM = $3.61,
+            # with identical test pass rates (21/21).
+            pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL", "sonnet")
+
+            # Default subagents to Sonnet too unless user has already set a preference.
+            if "CLAUDE_CODE_SUBAGENT_MODEL" not in os.environ:
+                os.environ["CLAUDE_CODE_SUBAGENT_MODEL"] = "claude-sonnet-4-6"
+
             options = ClaudeAgentOptions(
                 system_prompt=system_prompt,
                 cwd=cwd,
                 permission_mode=permission_mode,
                 hooks=hooks_config,
+                model=pm_model,
             )
             if mcp_servers:
                 options.mcp_servers = mcp_servers

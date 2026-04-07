@@ -201,6 +201,17 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Fork the session for follow-up messages (passed to Claude Code)",
     )
 
+    # Model selection
+    model_group = parser.add_argument_group("model options")
+    model_group.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        metavar="MODEL",
+        help="Model for the PM agent in SDK mode (default: sonnet). "
+        "Overrides CLAUDE_MPM_PM_MODEL env var. Example: --model opus",
+    )
+
     # Claude CLI arguments
     parser.add_argument(
         "claude_args",

@@ -374,6 +374,14 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         "Activates the ChannelHub. Requires --sdk.",
         default=None,
     )
+    run_group.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        metavar="MODEL",
+        help="Model for the PM agent in SDK mode (default: sonnet). "
+        "Overrides CLAUDE_MPM_PM_MODEL env var. Example: --model opus",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(

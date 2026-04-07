@@ -178,6 +178,11 @@ def main(argv: list | None = None):
         if use_cli:
             os.environ["CLAUDE_MPM_RUNTIME"] = "cli"
 
+        # Bridge --model CLI flag to environment variable so it reaches the SDK session.
+        pm_model_arg = getattr(args, "model", None)
+        if pm_model_arg:
+            os.environ["CLAUDE_MPM_PM_MODEL"] = pm_model_arg
+
         # Check if running in headless mode
         is_headless = getattr(args, "headless", False)
 
