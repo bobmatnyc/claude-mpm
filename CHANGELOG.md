@@ -1,3 +1,9 @@
+## v6.2.25 (2026-04-08)
+
+### Refactor
+
+- move framework docs out of CLAUDE.md into docs/optimization.md
+
 ## v6.2.24 (2026-04-08)
 
 ### Feat
