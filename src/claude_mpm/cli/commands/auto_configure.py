@@ -1158,20 +1158,21 @@ class AutoConfigureCommand(BaseCommand):
         if not agent_preview:
             return None
 
+        from ...config.agent_sources import AgentSourceConfiguration
         from ...services.agents.agent_review_service import AgentReviewService
         from ...services.agents.deployment.remote_agent_discovery_service import (
             RemoteAgentDiscoveryService,
         )
 
-        # Get managed agents from cache
-        agents_cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
-        if not agents_cache_dir.exists():
-            self.logger.debug("No agents cache found")
-            return None
-
-        # Discover managed agents
-        discovery_service = RemoteAgentDiscoveryService(agents_cache_dir)
-        managed_agents = discovery_service.discover_remote_agents()
+        # Discover managed agents per-repo so RemoteAgentDiscoveryService
+        # receives the full 4-level cache path (owner/repo/branch/subdir)
+        # rather than the root cache dir, which lacks the {branch} segment.
+        config = AgentSourceConfiguration.load()
+        managed_agents = []
+        for repo in config.repositories:
+            if repo.enabled and repo.cache_path.exists():
+                discovery_service = RemoteAgentDiscoveryService(repo.cache_path)
+                managed_agents.extend(discovery_service.discover_remote_agents())
 
         if not managed_agents:
             self.logger.debug("No managed agents found in cache")
