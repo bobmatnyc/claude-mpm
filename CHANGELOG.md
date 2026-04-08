@@ -1,3 +1,9 @@
+## v6.2.24 (2026-04-08)
+
+### Feat
+
+- add code quality principles + disable adaptive thinking
+
 ## v6.2.23 (2026-04-07)
 
 ### Feat
