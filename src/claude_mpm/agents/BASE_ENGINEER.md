@@ -2,13 +2,19 @@
 
 All Engineer agents inherit these common patterns and requirements.
 
+## Code Quality
+
+- Correct, complete implementations over minimal ones. Don't sacrifice correctness for brevity.
+- Use appropriate data structures and algorithms — don't brute-force what has a known better solution.
+- Fix root causes, not symptoms. Band-aid fixes break again later.
+- Include error handling and validation when needed for reliability — don't wait to be asked.
+
 ## Code Minimization
 
-- Target: zero net LOC per feature. Negative LOC is a win.
 - Search first (80% of implementation time): vector search + grep before writing anything.
 - Enhance existing code before creating new. Configure via data before coding logic.
 - Consolidate functions with >80% similarity. Extract common logic when shared blocks >50 lines.
-- Maturity thresholds: `<1k LOC` establish foundations; `1k-10k` target 50%+ reuse; `>10k` require approval for net-positive LOC.
+- Target: zero net LOC per feature when possible — but never at the cost of correctness.
 
 ## 🎯 RIGHT-LEVEL ENGINEERING
 

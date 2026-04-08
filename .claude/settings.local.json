@@ -1,7 +1,8 @@
 {
   "env": {
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
-    "MAX_THINKING_TOKENS": "10000"
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
   },
   "permissions": {
     "allow": []
