@@ -421,7 +421,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
                             invalid_keys_found[str(settings_file)] = []
                         invalid_keys_found[str(settings_file)].append(hook_key)
 
-            except Exception as e:
+            except Exception:
                 # Log but don't fail on individual file errors
                 continue
 

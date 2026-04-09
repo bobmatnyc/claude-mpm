@@ -168,14 +168,12 @@ def settings_clean_hooks_command(args):
 
     # Summary
     print()
-    if args.dry_run:
-        if total_removed > 0:
-            print(f"[DRY RUN] Would remove {total_removed} invalid hook key(s)")
-            print("Run without --dry-run to apply changes")
-        else:
-            print("✓ No invalid hook keys found")
+    if args.dry_run and total_removed > 0:
+        print(f"[DRY RUN] Would remove {total_removed} invalid hook key(s)")
+        print("Run without --dry-run to apply changes")
+    elif args.dry_run:
+        print("✓ No invalid hook keys found")
+    elif total_removed > 0:
+        print(f"✓ Removed {total_removed} invalid hook key(s) from {files_modified} file(s)")
     else:
-        if total_removed > 0:
-            print(f"✓ Removed {total_removed} invalid hook key(s) from {files_modified} file(s)")
-        else:
-            print("✓ No invalid hook keys found")
+        print("✓ No invalid hook keys found")

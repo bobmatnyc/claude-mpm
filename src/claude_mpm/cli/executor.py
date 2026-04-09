@@ -353,9 +353,8 @@ def execute_command(command: str, args) -> int:
         if settings_command == "clean-hooks":
             settings_clean_hooks_command(args)
             return 0
-        else:
-            print(f"Unknown settings subcommand: {settings_command}")
-            return 1
+        print(f"Unknown settings subcommand: {settings_command}")
+        return 1
 
     # Handle tools command with lazy import
     if command == "tools":

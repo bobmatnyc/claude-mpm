@@ -1,3 +1,9 @@
+## v6.2.27 (2026-04-09)
+
+### Feat
+
+- add invalid hook key detection and cleanup
+
 ## v6.2.26 (2026-04-08)
 
 ## v6.2.25 (2026-04-08)
