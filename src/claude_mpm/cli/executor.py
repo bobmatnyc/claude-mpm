@@ -343,6 +343,20 @@ def execute_command(command: str, args) -> int:
         result = manage_setup(args)
         return result if result is not None else 0
 
+    # Handle settings command with lazy import
+    if command == "settings":
+        # Lazy import to avoid loading unless needed
+        from .commands.settings import settings_clean_hooks_command
+
+        # Get subcommand - default to clean-hooks since it's the only one for now
+        settings_command = getattr(args, "settings_command", "clean-hooks")
+        if settings_command == "clean-hooks":
+            settings_clean_hooks_command(args)
+            return 0
+        else:
+            print(f"Unknown settings subcommand: {settings_command}")
+            return 1
+
     # Handle tools command with lazy import
     if command == "tools":
         # Lazy import to avoid loading unless needed
@@ -469,6 +483,7 @@ def execute_command(command: str, args) -> int:
         "oauth",
         "install",
         "setup",
+        "settings",
         "slack",
         "provider",
     ]

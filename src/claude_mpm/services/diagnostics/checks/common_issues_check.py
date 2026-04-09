@@ -59,6 +59,11 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
             if cache_result.has_issues:
                 warnings_found.append(cache_result)
 
+            # Check for invalid hook keys
+            hooks_result = self._check_invalid_hook_keys()
+            if hooks_result.has_issues:
+                warnings_found.append(hooks_result)
+
             # Aggregate results
             total_issues = len(issues_found) + len(warnings_found)
 
@@ -361,3 +366,84 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
                 message=f"Could not check cache: {e!s}",
                 details={"error": str(e)},
             )
+
+    def _check_invalid_hook_keys(self) -> DiagnosticResult:
+        """Check for invalid hook keys in Claude Code settings files."""
+        # Core hook events supported by all Claude Code versions
+        CORE_HOOK_EVENTS = frozenset([
+            "PreToolUse", "PostToolUse", "Stop", "SubagentStop",
+            "SessionStart", "UserPromptSubmit"
+        ])
+
+        # Hook events added in Claude Code v2.1.47+
+        NEW_HOOK_EVENTS = frozenset([
+            "WorktreeCreate", "WorktreeRemove", "TeammateIdle",
+            "TaskCompleted", "ConfigChange"
+        ])
+
+        # Determine valid hook keys based on Claude Code version
+        try:
+            from ....hooks.claude_hooks.installer import HookInstaller
+            installer = HookInstaller()
+            if installer.supports_new_hooks():
+                valid_keys = CORE_HOOK_EVENTS | NEW_HOOK_EVENTS
+            else:
+                valid_keys = CORE_HOOK_EVENTS
+        except Exception:
+            # If we can't determine version, be conservative
+            valid_keys = CORE_HOOK_EVENTS
+
+        # Settings files to check
+        settings_files = [
+            Path.home() / ".claude" / "settings.json",
+            Path.home() / ".claude" / "settings.local.json",
+            Path.cwd() / ".claude" / "settings.local.json",
+        ]
+
+        invalid_keys_found = {}
+
+        for settings_file in settings_files:
+            if not settings_file.exists():
+                continue
+
+            try:
+                with open(settings_file) as f:
+                    data = json.load(f)
+
+                hooks = data.get("hooks", {})
+                if not hooks:
+                    continue
+
+                # Find invalid hook keys
+                for hook_key in hooks:
+                    if hook_key not in valid_keys:
+                        if str(settings_file) not in invalid_keys_found:
+                            invalid_keys_found[str(settings_file)] = []
+                        invalid_keys_found[str(settings_file)].append(hook_key)
+
+            except Exception as e:
+                # Log but don't fail on individual file errors
+                continue
+
+        if invalid_keys_found:
+            total_invalid = sum(len(keys) for keys in invalid_keys_found.values())
+            files_affected = len(invalid_keys_found)
+
+            return DiagnosticResult(
+                category="Invalid Hook Keys",
+                status=ValidationSeverity.WARNING,
+                message=f"{total_invalid} invalid hook key(s) in {files_affected} file(s)",
+                details={
+                    "invalid_keys": invalid_keys_found,
+                    "files_affected": files_affected,
+                },
+                fix_command="claude-mpm settings clean-hooks",
+                fix_description="Remove invalid hook keys from settings files",
+            )
+
+        return DiagnosticResult(
+            category="Invalid Hook Keys",
+            status=OperationResult.SUCCESS,
+            message="No invalid hook keys found",
+            details={"invalid_keys": {}},
+        )

@@ -17,6 +17,7 @@ LIGHTWEIGHT_COMMANDS = {
     "configure",
     "oauth",
     "setup",
+    "settings",  # Settings file management
     "gh",  # GitHub multi-account management
     # Diagnostics and tools
     "tools",

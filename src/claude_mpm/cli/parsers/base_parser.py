@@ -548,6 +548,13 @@ def create_parser(
         pass
 
     try:
+        from ..commands.settings import add_settings_parser
+
+        add_settings_parser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .profile_parser import add_profile_subparser
 
         add_profile_subparser(subparsers)
