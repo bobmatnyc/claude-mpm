@@ -9,7 +9,7 @@ and MCP server configuration without needing to run `claude-mpm configure` manua
 | Component | Description |
 |-----------|-------------|
 | **Hooks** | Agent delegation tracking, session monitoring, and event handling across all hook events (PreToolUse, PostToolUse, Stop, UserPromptSubmit, SubagentStop) |
-| **Skills** | MPM orchestrator skill -- delegation-first agent management, available agent types, verification protocol |
+| **Skills** | MPM orchestrator skill -- delegation-first agent management, available agent types, verification protocol; AgentLair async cross-machine messaging |
 | **Commands** | `/mpm-status` and `/mpm-help` slash commands for quick system status and reference |
 | **MCP Servers** | `mpm-messaging` -- cross-project messaging between Claude instances |
 
@@ -102,6 +102,39 @@ uv pip install -e .
 # Install the plugin from local path
 claude plugin install ./plugin
 ```
+
+## AgentLair: Cross-Machine Async Messaging
+
+The built-in `claude-mpm message` CLI uses a shared SQLite database —
+fast and zero-dependency, but **local-filesystem-only** (same user, same machine).
+
+For distributed deployments — CI/CD pipelines, cross-team agents, remote workers —
+the `agentlair` skill provides a REST-backed async inbox via
+[AgentLair](https://agentlair.dev).  Each MPM instance claims a persistent
+``@agentlair.dev`` address and sends/receives messages across any network.
+
+**Quick setup:**
+
+```bash
+# Get a free API key (no signup required)
+export AGENTLAIR_API_KEY=$(curl -s -X POST https://agentlair.dev/v1/auth/keys | jq -r '.api_key')
+
+# Claim an inbox for this instance
+python -c "
+import asyncio
+from claude_mpm.services.agents.agentlair_agent import claim_inbox
+asyncio.run(claim_inbox('myproject@agentlair.dev'))
+print('Inbox ready')
+"
+```
+
+See [plugin/skills/agentlair/SKILL.md](skills/agentlair/SKILL.md) for the full API reference.
+
+| Messaging scenario | Solution |
+|---|---|
+| Same machine, same user | `claude-mpm message` (SQLite) |
+| Different machines / CI | AgentLair skill (REST, async) |
+| Cross-org / external agents | AgentLair skill |
 
 ## License
 
