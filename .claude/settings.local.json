@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "command": "/Users/bob/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/claude-hook-fast.sh",
             "timeout": 60
           }
         ]
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "command": "/Users/bob/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/claude-hook-fast.sh",
             "timeout": 60
           }
         ]
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "command": "/Users/bob/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/claude-hook-fast.sh",
             "timeout": 60
           }
         ]
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "command": "/Users/bob/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/claude-hook-fast.sh",
             "timeout": 60
           }
         ]
@@ -82,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-fast.sh"
+            "command": "/Users/bob/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/claude-hook-fast.sh"
           }
         ]
       }
@@ -93,7 +93,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "command": "/Users/bob/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/claude-hook-fast.sh",
             "timeout": 60
           }
         ]
