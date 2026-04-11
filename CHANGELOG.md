@@ -1,3 +1,138 @@
+## v6.2.28 (2026-04-10)
+
+### Feat
+
+- add invalid hook key detection and cleanup
+
+### Fix
+
+- agent cache discovery missing branch segment in auto_configure (#447)
+
+## v6.2.26 (2026-04-08)
+
+## v6.2.25 (2026-04-08)
+
+### Refactor
+
+- move framework docs out of CLAUDE.md into docs/optimization.md
+
+## v6.2.24 (2026-04-08)
+
+### Feat
+
+- add code quality principles + disable adaptive thinking
+
+## v6.2.23 (2026-04-07)
+
+### Feat
+
+- auto-populate project shortcuts on startup for messaging
+
+### Fix
+
+- **#438**: sanitize mcp-named skills during deployment
+
+## v6.2.22 (2026-04-07)
+
+### Fix
+
+- stop hook JSON format + default PM to Sonnet in all modes
+
+## v6.2.21 (2026-04-07)
+
+### Feat
+
+- **#445**: default SDK mode PM to Sonnet — 63% cost reduction
+
+## v6.2.20 (2026-04-06)
+
+### Feat
+
+- add SDK oneshot mode — claude-mpm run --sdk --prompt "task"
+
+### Fix
+
+- remove CLAUDE_CODE_SUBAGENT_MODEL from distribution
+
+## v6.2.19 (2026-04-06)
+
+### Fix
+
+- **#445**: add CLAUDE_CODE_SUBAGENT_MODEL=sonnet + model tier hook
+
+## v6.2.18 (2026-04-06)
+
+### Fix
+
+- **#444**: document Claude Code model frontmatter bug — explicit param required
+
+## v6.2.17 (2026-04-06)
+
+### Feat
+
+- **#444**: enforce model tiering in deploy_agent_file — the actual deploy path
+- **#444**: enforce model tiering at deploy time — sonnet default, haiku for ops
+
+## v6.2.16 (2026-04-06)
+
+### Refactor
+
+- tighten model tiering section — merge duplicate tables
+
+## v6.2.15 (2026-04-06)
+
+### Feat
+
+- **#444**: aggressive model tiering — always pass model parameter
+
+## v6.2.14 (2026-04-06)
+
+### Feat
+
+- **#440,#441,#442**: retry protocol + build system traps for all languages
+
+## v6.2.13 (2026-04-06)
+
+### Fix
+
+- correct MessageCheckState import + add auto-bug-reporter skill
+- **#439**: stop hook warns about unread messages instead of blocking exit
+
+## v6.2.12 (2026-04-06)
+
+### Feat
+
+- **#435,#436**: single-agent delegation for simple tasks + deliverable tracking
+
+## v6.2.11 (2026-04-06)
+
+### Feat
+
+- add cursor agent + unified external agents + fix copilot agent
+
+## v6.2.10 (2026-04-06)
+
+### Feat
+
+- **#432,#433**: add provided artifacts protocol and strengthen test discipline
+- add GitHub Copilot CLI agent POC for delegating simple tasks
+
+## v6.2.9 (2026-04-06)
+
+### Feat
+
+- **#431**: add delegation efficiency and self-verifying tasks to PM
+
+## v6.2.8 (2026-04-06)
+
+### Feat
+
+- **#430**: add context-aware abstraction guidance to BASE_ENGINEER
+- **#428**: compress BASE_ENGINEER.md — 73% reduction (838→223 lines)
+- **#427**: compress BASE_AGENT.md — 74% reduction (485→127 lines)
+- **#429**: add test generation strategy to BASE_ENGINEER
+- caveman prompt optimization — 77% token reduction in PM instructions
+
 ## v6.2.27 (2026-04-09)
 
 ### Feat
