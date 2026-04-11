@@ -243,7 +243,7 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
         lock_locations = [
             Path.cwd() / ".claude" / "*.lock",
             Path.home() / ".claude" / "*.lock",
-            Path("/tmp") / "claude-mpm-*.lock",
+            Path("/tmp") / "claude-mpm-*.lock",  # nosec B108
         ]
 
         stale_locks = []
@@ -370,20 +370,32 @@ class CommonIssuesCheck(BaseDiagnosticCheck):
     def _check_invalid_hook_keys(self) -> DiagnosticResult:
         """Check for invalid hook keys in Claude Code settings files."""
         # Core hook events supported by all Claude Code versions
-        CORE_HOOK_EVENTS = frozenset([
-            "PreToolUse", "PostToolUse", "Stop", "SubagentStop",
-            "SessionStart", "UserPromptSubmit"
-        ])
+        CORE_HOOK_EVENTS = frozenset(
+            [
+                "PreToolUse",
+                "PostToolUse",
+                "Stop",
+                "SubagentStop",
+                "SessionStart",
+                "UserPromptSubmit",
+            ]
+        )
 
         # Hook events added in Claude Code v2.1.47+
-        NEW_HOOK_EVENTS = frozenset([
-            "WorktreeCreate", "WorktreeRemove", "TeammateIdle",
-            "TaskCompleted", "ConfigChange"
-        ])
+        NEW_HOOK_EVENTS = frozenset(
+            [
+                "WorktreeCreate",
+                "WorktreeRemove",
+                "TeammateIdle",
+                "TaskCompleted",
+                "ConfigChange",
+            ]
+        )
 
         # Determine valid hook keys based on Claude Code version
         try:
             from ....hooks.claude_hooks.installer import HookInstaller
+
             installer = HookInstaller()
             if installer.supports_new_hooks():
                 valid_keys = CORE_HOOK_EVENTS | NEW_HOOK_EVENTS

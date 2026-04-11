@@ -27,32 +27,25 @@ def add_settings_parser(subparsers):
     WHY: Provides a namespace for settings-related operations, starting
     with hook cleanup but extensible for future settings management.
     """
-    parser = subparsers.add_parser(
-        "settings",
-        help="Manage Claude Code settings files"
-    )
+    parser = subparsers.add_parser("settings", help="Manage Claude Code settings files")
 
     settings_subparsers = parser.add_subparsers(
-        dest="settings_command",
-        help="Settings subcommands"
+        dest="settings_command", help="Settings subcommands"
     )
 
     # clean-hooks subcommand
     clean_hooks = settings_subparsers.add_parser(
-        "clean-hooks",
-        help="Remove invalid hook keys from settings files"
+        "clean-hooks", help="Remove invalid hook keys from settings files"
     )
 
     clean_hooks.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show what would be removed without making changes"
+        help="Show what would be removed without making changes",
     )
 
     clean_hooks.add_argument(
-        "--file",
-        type=Path,
-        help="Clean a specific settings file (otherwise scans all)"
+        "--file", type=Path, help="Clean a specific settings file (otherwise scans all)"
     )
 
     clean_hooks.set_defaults(func=settings_clean_hooks_command)
@@ -68,20 +61,32 @@ def settings_clean_hooks_command(args):
         args: Command line arguments from argparse
     """
     # Core hook events supported by all Claude Code versions
-    CORE_HOOK_EVENTS = frozenset([
-        "PreToolUse", "PostToolUse", "Stop", "SubagentStop",
-        "SessionStart", "UserPromptSubmit"
-    ])
+    CORE_HOOK_EVENTS = frozenset(
+        [
+            "PreToolUse",
+            "PostToolUse",
+            "Stop",
+            "SubagentStop",
+            "SessionStart",
+            "UserPromptSubmit",
+        ]
+    )
 
     # Hook events added in Claude Code v2.1.47+
-    NEW_HOOK_EVENTS = frozenset([
-        "WorktreeCreate", "WorktreeRemove", "TeammateIdle",
-        "TaskCompleted", "ConfigChange"
-    ])
+    NEW_HOOK_EVENTS = frozenset(
+        [
+            "WorktreeCreate",
+            "WorktreeRemove",
+            "TeammateIdle",
+            "TaskCompleted",
+            "ConfigChange",
+        ]
+    )
 
     # Determine valid hook keys based on Claude Code version
     try:
         from ...hooks.claude_hooks.installer import HookInstaller
+
         installer = HookInstaller()
         if installer.supports_new_hooks():
             valid_keys = CORE_HOOK_EVENTS | NEW_HOOK_EVENTS
@@ -174,6 +179,8 @@ def settings_clean_hooks_command(args):
     elif args.dry_run:
         print("✓ No invalid hook keys found")
     elif total_removed > 0:
-        print(f"✓ Removed {total_removed} invalid hook key(s) from {files_modified} file(s)")
+        print(
+            f"✓ Removed {total_removed} invalid hook key(s) from {files_modified} file(s)"
+        )
     else:
         print("✓ No invalid hook keys found")
