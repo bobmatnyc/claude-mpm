@@ -252,7 +252,7 @@ class GitSourceManager:
         try:
             from ...config.agent_sources import AgentSourceConfiguration
 
-            config = AgentSourceConfiguration()
+            config = AgentSourceConfiguration.load()
             sources = config.list_sources()
 
             for source in sources:
@@ -337,63 +337,114 @@ class GitSourceManager:
                 logger.debug(f"[DEBUG] Cache root doesn't exist: {self.cache_root}")
                 return []
 
-            # Walk cache directory structure
-            logger.debug(f"[DEBUG] Walking cache root: {self.cache_root}")
+            # Primary strategy: use configured repositories so cache_path includes the
+            # branch segment (owner/repo/branch/subdir).  This mirrors SingleTierDeploymentService
+            # and the auto_configure fix (commit fddf3921) — passing the full 4-level path to
+            # RemoteAgentDiscoveryService instead of stopping at owner/repo (depth 2).
+            try:
+                from ...config.agent_sources import AgentSourceConfiguration
 
-            # Known legacy category directories to skip (flat cache structure)
-            LEGACY_CATEGORIES = {
-                "universal",
-                "engineer",
-                "ops",
-                "qa",
-                "security",
-                "documentation",
-                "claude-mpm",
-            }
+                config = AgentSourceConfiguration.load()
+                configured_repos = config.get_enabled_repositories()
+            except Exception as e:
+                logger.debug(f"[DEBUG] Could not load agent source config: {e}")
+                configured_repos = []
 
-            # Repositories that are NOT agent repositories (should be excluded from agent discovery)
-            # These contain skills, documentation, or other non-agent content
-            EXCLUDED_REPOSITORIES = {
-                "claude-mpm-skills",  # Skills repository, not agents
-            }
+            # Only use config-based repos whose cache_path lives under self.cache_root.
+            # This ensures a custom cache_root (e.g. in tests) doesn't inadvertently
+            # return agents from the real ~/.claude-mpm cache.
+            relevant_repos = [
+                r
+                for r in configured_repos
+                if str(r.cache_path).startswith(str(self.cache_root))
+            ]
 
-            for owner_dir in self.cache_root.iterdir():
-                if not owner_dir.is_dir():
-                    continue
-
-                # Skip legacy category directories (they're not GitHub owners)
-                if owner_dir.name.lower() in LEGACY_CATEGORIES:
+            if relevant_repos:
+                logger.debug(
+                    f"[DEBUG] Using {len(relevant_repos)} configured repositories"
+                )
+                for repo in relevant_repos:
+                    cache_path = repo.cache_path
+                    repo_id = repo.identifier
                     logger.debug(
-                        f"[DEBUG] Skipping legacy category directory: {owner_dir.name}"
+                        f"[DEBUG] Discovering agents via config: {repo_id} -> {cache_path}"
                     )
-                    continue
+                    if not cache_path.exists():
+                        logger.debug(f"[DEBUG] Cache path does not exist: {cache_path}")
+                        continue
+                    metadata = self._repo_metadata.get(repo_id, {})
+                    agents.extend(
+                        self._discover_agents_in_directory(
+                            cache_path, repo_id, metadata
+                        )
+                    )
+                    logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
+            else:
+                # Fallback: walk cache directory structure when no config is available.
+                # NOTE: This path only handles legacy flat-cache layouts (no branch segment).
+                # Any repo cached with the current 4-level structure (owner/repo/branch/subdir)
+                # will return 0 agents here because RemoteAgentDiscoveryService receives
+                # owner/repo instead of owner/repo/branch/subdir.
+                logger.debug(
+                    "[DEBUG] No configured repos; falling back to directory walk"
+                )
 
-                logger.debug(f"[DEBUG] Processing owner_dir: {owner_dir.name}")
+                # Walk cache directory structure
+                logger.debug(f"[DEBUG] Walking cache root: {self.cache_root}")
 
-                for repo_dir in owner_dir.iterdir():
-                    if not repo_dir.is_dir():
+                # Known legacy category directories to skip (flat cache structure)
+                LEGACY_CATEGORIES = {
+                    "universal",
+                    "engineer",
+                    "ops",
+                    "qa",
+                    "security",
+                    "documentation",
+                    "claude-mpm",
+                }
+
+                # Repositories that are NOT agent repositories (should be excluded)
+                EXCLUDED_REPOSITORIES = {
+                    "claude-mpm-skills",  # Skills repository, not agents
+                }
+
+                for owner_dir in self.cache_root.iterdir():
+                    if not owner_dir.is_dir():
                         continue
 
-                    # Skip excluded repositories (e.g., skills repos are not agent repos)
-                    if repo_dir.name in EXCLUDED_REPOSITORIES:
+                    # Skip legacy category directories (they're not GitHub owners)
+                    if owner_dir.name.lower() in LEGACY_CATEGORIES:
                         logger.debug(
-                            f"[DEBUG] Skipping excluded repository: {repo_dir.name}"
+                            f"[DEBUG] Skipping legacy category directory: {owner_dir.name}"
                         )
                         continue
 
-                    logger.debug(f"[DEBUG] Processing repo_dir: {repo_dir.name}")
+                    logger.debug(f"[DEBUG] Processing owner_dir: {owner_dir.name}")
 
-                    # Bug #5 fix: Don't iterate subdirectories - RemoteAgentDiscoveryService
-                    # now handles the /agents/ subdirectory internally (Bug #4 fix).
-                    # Iterating subdirectories caused it to treat /agents/ hierarchy as
-                    # separate repositories (engineer/backend, ops/tooling, etc.)
-                    repo_id = f"{owner_dir.name}/{repo_dir.name}"
-                    metadata = self._repo_metadata.get(repo_id, {})
-                    logger.debug(f"[DEBUG] Discovering agents in repo root: {repo_id}")
-                    agents.extend(
-                        self._discover_agents_in_directory(repo_dir, repo_id, metadata)
-                    )
-                    logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
+                    for repo_dir in owner_dir.iterdir():
+                        if not repo_dir.is_dir():
+                            continue
+
+                        # Skip excluded repositories
+                        if repo_dir.name in EXCLUDED_REPOSITORIES:
+                            logger.debug(
+                                f"[DEBUG] Skipping excluded repository: {repo_dir.name}"
+                            )
+                            continue
+
+                        logger.debug(f"[DEBUG] Processing repo_dir: {repo_dir.name}")
+
+                        repo_id = f"{owner_dir.name}/{repo_dir.name}"
+                        metadata = self._repo_metadata.get(repo_id, {})
+                        logger.debug(
+                            f"[DEBUG] Discovering agents in repo root: {repo_id}"
+                        )
+                        agents.extend(
+                            self._discover_agents_in_directory(
+                                repo_dir, repo_id, metadata
+                            )
+                        )
+                        logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
 
         logger.debug(
             f"[DEBUG] list_cached_agents COMPLETE: {len(agents)} total agents (before deduplication)"
