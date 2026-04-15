@@ -145,7 +145,7 @@ Please perform the following initialization tasks:
    c) **Optimize for AI Agent Understanding**:
       - Use consistent formatting and structure
       - Provide clear examples for complex instructions
-      - Include "WHY" explanations for critical rules
+      - Include "WHY" explanations for critical rules (e.g., WHY claude-mpm delegates instead of implementing directly)
       - Add quick reference sections for common operations
       - Ensure instructions are actionable and unambiguous
 
@@ -184,6 +184,27 @@ Please perform the following initialization tasks:
 
       ## 🟡 IMPORTANT: Architecture & Design
       [Key architectural decisions and patterns]
+
+      ## 🟡 IMPORTANT: Subagent Orchestration
+      [Document the project's agent delegation patterns]
+      - Use the Agent tool to delegate — never use bash for code tasks
+      - Route work to specialist agents (engineer, qa, ops, etc.)
+      - Include model parameter on every Agent call (haiku/sonnet/opus)
+      - PM prohibitions: never Edit/Write files directly, never run curl/make/pytest
+
+      ## 🟡 IMPORTANT: Skills & Hooks
+      [Document any custom skills loaded and hook configuration]
+      - Skills preload context without consuming prompt tokens
+      - Hooks live in .claude/settings.json (team) / settings.local.json (personal)
+      - Key hooks: PreToolUse (model tier), PostToolUse, Stop, SubagentStop
+
+      ## 🟡 IMPORTANT: Configuration Hierarchy
+      [Document the settings layering for this project]
+      1. managed-settings.json — org-enforced
+      2. CLI arguments — single-session
+      3. .claude/settings.local.json — personal (git-ignored)
+      4. .claude/settings.json — team-shared (checked in)
+      5. ~/.claude/settings.json — global personal defaults
 
       ## 🟡 IMPORTANT: Development Workflow
       ### ONE Way to Build
