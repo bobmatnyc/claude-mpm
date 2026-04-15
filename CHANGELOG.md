@@ -1,3 +1,25 @@
+## v6.2.31 (2026-04-15)
+
+### Feat
+
+- **setup**: allow unknown service names through parser and make fallback idempotent
+- **migrations**: register v6.3.2 migrations in registry
+- **hooks**: add PERMISSION_REQUEST to HookType enum
+- **migrations**: add v6.3.2 migration for PermissionRequest hook
+- **migrations**: add v6.3.2 migration for permissions.additionalDirectories in settings
+- **skills**: add when_to_use field to Skill dataclass and SkillsRegistry
+- **migrations**: add v6.3.2 migration for agent color and initialPrompt fields
+
+### Fix
+
+- **migrations**: use type: ignore for v6.3.2 lazy imports
+- **hooks**: fix unused parameter suppression in validate()
+- **migrations**: fix pyright ignore comment placement on import lines
+- **hooks**: suppress pyright unused-parameter warning for validate() _context
+- **migrations**: suppress pyright import warnings for v6.3.2 migration modules
+- **hooks**: rename unused context param to _context in BaseHook.validate
+- **migrations**: add pyright ignore comments to v6.3.2 wrapper functions
+
 ## v6.2.30 (2026-04-15)
 
 ### Feat
