@@ -439,7 +439,7 @@ class TestClaudeRunnerSetup:
         mock_runner_class.assert_called_once_with(
             enable_tickets=False,
             log_level=LogLevel.DEBUG.value,
-            claude_args=[],
+            claude_args=["--model", "sonnet"],
             launch_method="subprocess",
             enable_websocket=True,
             websocket_port=9090,
