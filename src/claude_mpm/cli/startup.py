@@ -651,8 +651,18 @@ def _check_anthropic_auth(env_changes: dict | None = None) -> None:
             text=True,
             timeout=5,
         )
-        if result.returncode == 0 and "logged in" in result.stdout.lower():
-            return
+        if result.returncode == 0:
+            # Try JSON output first (modern `claude auth status`)
+            try:
+                import json as _json
+
+                auth_data = _json.loads(result.stdout)
+                if auth_data.get("loggedIn") is True:
+                    return
+            except (ValueError, KeyError, TypeError):
+                # Fall back to plain-text check (older CLI versions)
+                if "logged in" in result.stdout.lower():
+                    return
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
 
