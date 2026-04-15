@@ -76,6 +76,24 @@ def _run_overlap_cleanup_migration() -> bool:
     return total_errors == 0
 
 
+def _run_native_agent_fields_migration() -> bool:
+    """Add Claude Code native frontmatter fields to project agent files."""
+    from pathlib import Path
+
+    from .v6_3_0_native_agent_fields import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
+def _run_create_commands_dir_migration() -> bool:
+    """Create .claude/commands/ with default slash command templates."""
+    from pathlib import Path
+
+    from .v6_3_0_create_commands_dir import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -119,6 +137,18 @@ MIGRATIONS: list[Migration] = [
         version="6.2.1",
         description="Archive project-level duplicates of user-level agents/skills and stale -agent suffixed names",
         run=_run_overlap_cleanup_migration,
+    ),
+    Migration(
+        id="6.3.0_native_agent_fields",
+        version="6.3.0",
+        description="Add Claude Code native frontmatter fields (permissionMode, maxTurns, memory) to project agent files",
+        run=_run_native_agent_fields_migration,
+    ),
+    Migration(
+        id="6.3.0_create_commands_dir",
+        version="6.3.0",
+        description="Create .claude/commands/ directory with default slash command templates",
+        run=_run_create_commands_dir_migration,
     ),
 ]
 
