@@ -1,3 +1,30 @@
+## v6.2.30 (2026-04-15)
+
+### Feat
+
+- add subagent orchestration, skills/hooks, and config hierarchy sections to mpm-init CLAUDE.md template
+- update migrate CLI to use registry-based runner with --list and --non-interactive flags
+- register v6.3.1 deploy_claude_assets migration in startup migrations
+- add v6.3.1 migration to deploy statusline.sh and settings.json from package templates
+- extend skill_cleanup migration to handle plugin cache mpm-* duplicates
+- add claude/ template directory with default commands, hooks and settings
+- register migrate_skill_cleanup in startup migrations and sync lockfile
+- add migrate_skill_cleanup migration for skill naming hygiene
+- register v6.3.0 migrations for native agent fields and commands dir
+- add migration to create .claude/commands/ with default slash command templates
+- add migration to inject Claude Code native frontmatter fields into agents
+
+### Fix
+
+- **skills**: rename toolchains-ai-protocols skill name from mcp-builder to ai-protocols-builder
+- update ClaudeRunner test expectation to include default --model sonnet arg
+- doctor auth check now recognises claude.ai JSON loggedIn response
+- suppress unused-function warnings for migration wrappers in registry
+
+### Refactor
+
+- **migrations**: load command templates from package resources in v6_3_0
+
 ## v6.2.29 (2026-04-13)
 
 ## v6.2.28 (2026-04-10)
