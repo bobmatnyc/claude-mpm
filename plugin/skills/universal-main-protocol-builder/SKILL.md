@@ -1,6 +1,6 @@
 ---
-name: build-mcp-server
-description: "MCP (Model Context Protocol) server build and evaluation guide, including local conventions for tool surfaces, config, and testing"
+name: build-protocol-server
+description: "Model Context Protocol (MCP) server build and evaluation guide, including local conventions for tool surfaces, config, and testing"
 progressive_disclosure:
   entry_point:
     summary: "Build and evaluate MCP servers: define tool/resource surfaces, configure stdio, and validate with independent questions."
