@@ -76,7 +76,7 @@ def _run_overlap_cleanup_migration() -> bool:
     return total_errors == 0
 
 
-def _run_native_agent_fields_migration() -> bool:  # pyright: ignore[unused-function]
+def _run_native_agent_fields_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Add Claude Code native frontmatter fields to project agent files."""
     from pathlib import Path
 
@@ -85,7 +85,7 @@ def _run_native_agent_fields_migration() -> bool:  # pyright: ignore[unused-func
     return run_migration(installation_dir=Path.cwd())
 
 
-def _run_create_commands_dir_migration() -> bool:  # pyright: ignore[unused-function]
+def _run_create_commands_dir_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Create .claude/commands/ with default slash command templates."""
     from pathlib import Path
 
@@ -94,7 +94,7 @@ def _run_create_commands_dir_migration() -> bool:  # pyright: ignore[unused-func
     return run_migration(installation_dir=Path.cwd())
 
 
-def _run_deploy_claude_assets_migration() -> bool:  # pyright: ignore[unused-function]
+def _run_deploy_claude_assets_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Deploy statusline.sh and settings.json from package templates into .claude/."""
     from pathlib import Path
 
@@ -103,29 +103,35 @@ def _run_deploy_claude_assets_migration() -> bool:  # pyright: ignore[unused-fun
     return run_migration(installation_dir=Path.cwd())
 
 
-def _run_agent_color_prompt_migration() -> bool:  # pyright: ignore[unused-function]
+def _run_agent_color_prompt_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Add color and initialPrompt fields to project agent files."""
     from pathlib import Path
 
-    from .v6_3_2_agent_color_prompt import run_migration
+    from .v6_3_2_agent_color_prompt import (
+        run_migration,  # pyright: ignore[reportMissingImports]
+    )
 
     return run_migration(installation_dir=Path.cwd())
 
 
-def _run_additional_directories_migration() -> bool:  # pyright: ignore[unused-function]
+def _run_additional_directories_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Add permissions.additionalDirectories to .claude/settings.json if missing."""
     from pathlib import Path
 
-    from .v6_3_2_additional_directories import run_migration
+    from .v6_3_2_additional_directories import (
+        run_migration,  # pyright: ignore[reportMissingImports]
+    )
 
     return run_migration(installation_dir=Path.cwd())
 
 
-def _run_permission_request_hook_migration() -> bool:  # pyright: ignore[unused-function]
+def _run_permission_request_hook_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Add PermissionRequest hook entry to .claude/settings.json."""
     from pathlib import Path
 
-    from .v6_3_2_permission_request_hook import run_migration
+    from .v6_3_2_permission_request_hook import (
+        run_migration,  # pyright: ignore[reportMissingImports]
+    )
 
     return run_migration(installation_dir=Path.cwd())
 
