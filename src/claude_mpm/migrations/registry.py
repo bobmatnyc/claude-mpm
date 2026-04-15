@@ -94,6 +94,15 @@ def _run_create_commands_dir_migration() -> bool:  # pyright: ignore[unused-func
     return run_migration(installation_dir=Path.cwd())
 
 
+def _run_deploy_claude_assets_migration() -> bool:  # pyright: ignore[unused-function]
+    """Deploy statusline.sh and settings.json from package templates into .claude/."""
+    from pathlib import Path
+
+    from .v6_3_1_deploy_claude_assets import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -149,6 +158,12 @@ MIGRATIONS: list[Migration] = [
         version="6.3.0",
         description="Create .claude/commands/ directory with default slash command templates",
         run=_run_create_commands_dir_migration,
+    ),
+    Migration(
+        id="v6_3_1_deploy_claude_assets",
+        version="6.3.1",
+        description="Deploy statusline.sh and settings.json from package templates into .claude/",
+        run=_run_deploy_claude_assets_migration,
     ),
 ]
 
