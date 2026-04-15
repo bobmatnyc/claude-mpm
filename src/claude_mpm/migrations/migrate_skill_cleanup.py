@@ -2,11 +2,13 @@
 
 WHY:
 1. mpm-* skills belong ONLY at ~/.claude/skills/ (user level). Having them in
-   .claude/skills/ (project level) creates duplicates and confusion.
+   .claude/skills/ (project level) or in plugin caches creates duplicates that
+   surface as `claude-mpm:mpm-*` prefixed skills — confusing and redundant.
 2. Skills whose names start with "mcp" conflict visually (and functionally via
    prefix matching) with Claude Code's built-in /mcp command.
    - ~/.claude/skills/mcp-vector-search-pr-mr-skill → vector-search-pr-mr-skill
      (renamed copy already exists at user level; old name can be removed)
+   - Plugin cache skills containing "mcp" in their name should be renamed.
 3. toolchains-ai-protocols-model-context in project skills should match the
    plugin directory name toolchains-ai-protocols.
 
@@ -17,6 +19,11 @@ WHAT THIS MIGRATION DOES:
    toolchains-ai-protocols if the target doesn't already exist.
 3. In ~/.claude/skills/: removes mcp-vector-search-pr-mr-skill when
    vector-search-pr-mr-skill already exists at the same level.
+4. In ~/.claude/plugins/cache/*/claude-mpm/*/skills/: removes mpm-* directories
+   (they duplicate user-level skills and create prefixed duplicates).
+5. In ~/.claude/plugins/cache/*/claude-mpm/*/skills/: renames any skill directory
+   containing "mcp" per PLUGIN_CACHE_SKILL_RENAME mapping, updating SKILL.md
+   name: field inside renamed directories.
 
 CLI usage (standalone):
     python migrate_skill_cleanup.py [--dry-run]
@@ -29,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -47,6 +55,13 @@ MCP_SKILL_RENAME: dict[str, str] = {
 # Project-level rename: old name → new name (must match plugin directory)
 PROJECT_SKILL_RENAME: dict[str, str] = {
     "toolchains-ai-protocols-model-context": "toolchains-ai-protocols",
+}
+
+# Plugin-cache skill renames: skill dirs containing "mcp" in the name.
+# Maps old directory name → new directory name for any plugin cache entry.
+PLUGIN_CACHE_SKILL_RENAME: dict[str, str] = {
+    "toolchains-ai-protocols-mcp": "toolchains-ai-protocols",
+    "universal-main-mcp-builder": "universal-main-protocol-builder",
 }
 
 
@@ -259,6 +274,189 @@ def _remove_user_level_mcp_skills(
 
 
 # ---------------------------------------------------------------------------
+# Helpers for plugin-cache operations
+# ---------------------------------------------------------------------------
+
+
+def _iter_plugin_cache_skill_dirs(
+    plugin_base: Path,
+) -> list[Path]:
+    """Yield all skills/ directories found under plugin cache paths.
+
+    Expected layout:
+      <plugin_base>/<marketplace>/<plugin>/<version>/skills/
+
+    e.g.
+      ~/.claude/plugins/cache/claude-mpm-marketplace/claude-mpm/5.11.4/skills/
+    """
+    result: list[Path] = []
+    if not plugin_base.is_dir():
+        return result
+    # Three levels: marketplace / plugin / version
+    for marketplace_dir in plugin_base.iterdir():
+        if not marketplace_dir.is_dir():
+            continue
+        for plugin_dir in marketplace_dir.iterdir():
+            if not plugin_dir.is_dir():
+                continue
+            for version_dir in plugin_dir.iterdir():
+                skills_dir = version_dir / "skills"
+                if skills_dir.is_dir():
+                    result.append(skills_dir)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Step 4 — Remove mpm-* skill directories from plugin caches
+# ---------------------------------------------------------------------------
+
+
+def _remove_plugin_cache_mpm_skills(
+    plugin_base: Path,
+    user_skills_base: Path,
+    dry_run: bool,
+) -> tuple[int, int]:
+    """Remove mpm-* directories from every discovered plugin-cache skills/ dir.
+
+    Requires that the corresponding skill exists at user level before removing,
+    to avoid removing skills that haven't been deployed yet.
+
+    Returns:
+        (removed, skipped_no_user_copy)
+    """
+    removed = skipped_no_user_copy = 0
+
+    for skills_dir in _iter_plugin_cache_skill_dirs(plugin_base):
+        logger.info("Scanning plugin cache for mpm-* skills: %s", skills_dir)
+        for entry in sorted(skills_dir.iterdir()):
+            if not entry.is_dir() or not entry.name.startswith("mpm-"):
+                continue
+
+            user_skill_file = user_skills_base / entry.name / "SKILL.md"
+            if not user_skill_file.exists():
+                logger.warning(
+                    "Skipping plugin-cache removal of '%s': user-level copy not found at %s",
+                    entry.name,
+                    user_skill_file,
+                )
+                skipped_no_user_copy += 1
+                continue
+
+            if dry_run:
+                print(f"[DRY-RUN] Would remove plugin-cache mpm-* skill: {entry}")
+                removed += 1
+                continue
+
+            try:
+                shutil.rmtree(entry)
+                removed += 1
+                logger.info("Removed plugin-cache mpm-* skill: %s", entry)
+                print(
+                    f"Removed plugin-cache mpm-* skill: {entry.name} (in {entry.parent})"
+                )
+            except OSError as exc:
+                logger.error("Failed to remove plugin-cache skill %s: %s", entry, exc)
+
+    return removed, skipped_no_user_copy
+
+
+# ---------------------------------------------------------------------------
+# Step 5 — Rename mcp-containing skill directories in plugin caches
+# ---------------------------------------------------------------------------
+
+
+def _update_skill_md_name(skill_dir: Path, new_name: str, dry_run: bool) -> None:
+    """Update the ``name:`` field in SKILL.md inside *skill_dir* to *new_name*."""
+    skill_md = skill_dir / "SKILL.md"
+    if not skill_md.exists():
+        return
+
+    original = skill_md.read_text(encoding="utf-8")
+    updated = re.sub(
+        r"^(name:\s*).*$",
+        lambda m: f"{m.group(1)}{new_name}",
+        original,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if updated == original:
+        return  # nothing to change (no name: field or already correct)
+
+    if dry_run:
+        print(f"[DRY-RUN] Would update SKILL.md name: → {new_name} in {skill_dir}")
+        return
+
+    skill_md.write_text(updated, encoding="utf-8")
+    logger.info("Updated SKILL.md name: → %s in %s", new_name, skill_dir)
+
+
+def _rename_plugin_cache_mcp_skills(
+    plugin_base: Path,
+    dry_run: bool,
+) -> int:
+    """Rename skill directories containing 'mcp' per PLUGIN_CACHE_SKILL_RENAME.
+
+    Also updates the ``name:`` field in the renamed directory's SKILL.md.
+
+    Returns:
+        Number of renames performed (or that would be performed in dry-run).
+    """
+    renamed = 0
+
+    for skills_dir in _iter_plugin_cache_skill_dirs(plugin_base):
+        for old_name, new_name in sorted(PLUGIN_CACHE_SKILL_RENAME.items()):
+            old_dir = skills_dir / old_name
+            new_dir = skills_dir / new_name
+
+            if not old_dir.exists():
+                continue  # already absent, nothing to do
+
+            if new_dir.exists():
+                logger.info(
+                    "Target already exists in cache, skipping rename %s → %s in %s",
+                    old_name,
+                    new_name,
+                    skills_dir,
+                )
+                print(
+                    f"Skipped (target exists): {old_name} → {new_name} in {skills_dir}"
+                )
+                continue
+
+            if dry_run:
+                print(
+                    f"[DRY-RUN] Would rename plugin-cache skill: "
+                    f"{old_name} → {new_name} in {skills_dir}"
+                )
+                renamed += 1
+                continue
+
+            try:
+                old_dir.rename(new_dir)
+                renamed += 1
+                logger.info(
+                    "Renamed plugin-cache skill: %s → %s in %s",
+                    old_name,
+                    new_name,
+                    skills_dir,
+                )
+                print(
+                    f"Renamed plugin-cache skill: {old_name} → {new_name} "
+                    f"(in {skills_dir})"
+                )
+                _update_skill_md_name(new_dir, new_name, dry_run=False)
+            except OSError as exc:
+                logger.error(
+                    "Failed to rename plugin-cache skill %s → %s: %s",
+                    old_name,
+                    new_name,
+                    exc,
+                )
+
+    return renamed
+
+
+# ---------------------------------------------------------------------------
 # Main entry points
 # ---------------------------------------------------------------------------
 
@@ -274,6 +472,7 @@ def migrate_skill_cleanup(dry_run: bool = False) -> bool:
         error occurred.
     """
     user_skills_base = Path.home() / ".claude" / "skills"
+    plugin_base = Path.home() / ".claude" / "plugins" / "cache"
     project_roots = _find_project_roots()
 
     if dry_run:
@@ -295,6 +494,16 @@ def migrate_skill_cleanup(dry_run: bool = False) -> bool:
     print("\n--- Step 3: Remove superseded mcp-prefixed user-level skills ---")
     user_removed = _remove_user_level_mcp_skills(user_skills_base, dry_run)
     print(f"  removed={user_removed}")
+
+    print("\n--- Step 4: Remove mpm-* skill duplicates from plugin caches ---")
+    cache_removed, cache_skipped = _remove_plugin_cache_mpm_skills(
+        plugin_base, user_skills_base, dry_run
+    )
+    print(f"  removed={cache_removed}, skipped_no_user_copy={cache_skipped}")
+
+    print("\n--- Step 5: Rename mcp-containing skills in plugin caches ---")
+    cache_renamed = _rename_plugin_cache_mcp_skills(plugin_base, dry_run)
+    print(f"  renamed={cache_renamed}")
 
     print("\nMigration complete.")
     return True
