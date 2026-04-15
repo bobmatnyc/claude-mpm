@@ -48,20 +48,20 @@ class Skill:
     description: str
     license: str | None = None
     compatibility: str | None = None
-    metadata: dict[str, Any] = None
-    allowed_tools: list[str] = None
+    metadata: dict[str, Any] | None = None
+    allowed_tools: list[str] | None = None
 
     # Internal fields (not in frontmatter spec)
-    path: Path = None
+    path: Path | None = None
     content: str = ""
     source: str = "bundled"  # 'bundled', 'user', 'project', 'pm'
 
     # Derived fields (from metadata or fallback)
     version: str = "0.1.0"  # From metadata.version or top-level
     skill_id: str = ""  # Internal ID (defaults to name)
-    agent_types: list[str] = None  # Which agent types can use this skill
+    agent_types: list[str] | None = None  # Which agent types can use this skill
     updated_at: str | None = None  # From metadata.updated
-    tags: list[str] = None  # From metadata.tags or top-level
+    tags: list[str] | None = None  # From metadata.tags or top-level
 
     # Claude-mpm extensions (preserved for backward compat)
     category: str | None = None
