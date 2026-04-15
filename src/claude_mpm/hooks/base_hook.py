@@ -86,11 +86,11 @@ class BaseHook(ABC):
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self.execute, context)
 
-    def validate(self, _context: HookContext) -> bool:  # pyright: ignore[reportUnusedParameter]
+    def validate(self, context: HookContext) -> bool:
         """Validate if hook should run for given context.
 
         Args:
-            _context: Hook context to validate
+            context: Hook context to validate
 
         Returns:
             True if hook should execute, False otherwise
