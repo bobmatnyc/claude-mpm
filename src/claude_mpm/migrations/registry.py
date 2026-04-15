@@ -103,6 +103,39 @@ def _run_deploy_claude_assets_migration() -> bool:  # pyright: ignore[unused-fun
     return run_migration(installation_dir=Path.cwd())
 
 
+def _run_agent_color_prompt_migration() -> bool:  # pyright: ignore[unused-function]
+    """Inject color field into project agent frontmatter."""
+    from pathlib import Path
+
+    from .v6_3_2_agent_color_prompt import (
+        run_migration,  # type: ignore[import-untyped]  # fmt: skip
+    )
+
+    return run_migration(installation_dir=Path.cwd())
+
+
+def _run_additional_directories_migration() -> bool:  # pyright: ignore[unused-function]
+    """Add permissions.additionalDirectories to .claude/settings.json."""
+    from pathlib import Path
+
+    from .v6_3_2_additional_directories import (
+        run_migration,  # type: ignore[import-untyped]  # fmt: skip
+    )
+
+    return run_migration(installation_dir=Path.cwd())
+
+
+def _run_permission_request_hook_migration() -> bool:  # pyright: ignore[unused-function]
+    """Add PermissionRequest hook to .claude/settings.json."""
+    from pathlib import Path
+
+    from .v6_3_2_permission_request_hook import (
+        run_migration,  # type: ignore[import-untyped]  # fmt: skip
+    )
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -164,6 +197,24 @@ MIGRATIONS: list[Migration] = [
         version="6.3.1",
         description="Deploy statusline.sh and settings.json from package templates into .claude/",
         run=_run_deploy_claude_assets_migration,
+    ),
+    Migration(
+        id="v6_3_2_agent_color_prompt",
+        version="6.3.2",
+        description="Inject color field into project agent frontmatter based on agent name patterns",
+        run=_run_agent_color_prompt_migration,
+    ),
+    Migration(
+        id="v6_3_2_additional_directories",
+        version="6.3.2",
+        description="Add permissions.additionalDirectories: [] to .claude/settings.json if missing",
+        run=_run_additional_directories_migration,
+    ),
+    Migration(
+        id="v6_3_2_permission_request_hook",
+        version="6.3.2",
+        description="Add PermissionRequest hook entry to .claude/settings.json hooks section",
+        run=_run_permission_request_hook_migration,
     ),
 ]
 
