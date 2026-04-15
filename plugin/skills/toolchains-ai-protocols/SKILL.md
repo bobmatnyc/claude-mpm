@@ -707,7 +707,7 @@ Default for Claude Desktop integration. Server runs as subprocess.
       "command": "node",
       "args": ["/path/to/server/build/index.js"],
       "env": {
-        "API_KEY": "your-api-key"
+        "API_KEY": "your-api-key"  # pragma: allowlist secret
       }
     }
   }
@@ -949,7 +949,7 @@ async def get_db_pool():
         host="localhost",
         database="mydb",
         user="user",
-        password="password"
+        password="password"  # pragma: allowlist secret
     )
 
 @app.list_tools()
