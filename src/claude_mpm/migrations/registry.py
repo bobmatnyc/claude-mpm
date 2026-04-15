@@ -76,7 +76,7 @@ def _run_overlap_cleanup_migration() -> bool:
     return total_errors == 0
 
 
-def _run_native_agent_fields_migration() -> bool:
+def _run_native_agent_fields_migration() -> bool:  # pyright: ignore[unused-function]
     """Add Claude Code native frontmatter fields to project agent files."""
     from pathlib import Path
 
@@ -85,7 +85,7 @@ def _run_native_agent_fields_migration() -> bool:
     return run_migration(installation_dir=Path.cwd())
 
 
-def _run_create_commands_dir_migration() -> bool:
+def _run_create_commands_dir_migration() -> bool:  # pyright: ignore[unused-function]
     """Create .claude/commands/ with default slash command templates."""
     from pathlib import Path
 
