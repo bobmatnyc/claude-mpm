@@ -148,12 +148,14 @@ def parse_service_args(service_args: list[str]) -> dict[str, Any]:
                 i += 1
             continue
 
-        # Unknown argument - build error message from enums
-        service_names = ", ".join(str(s) for s in SetupService)
-        flag_names = ", ".join(f.cli_flag for f in SetupFlag)
-        raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name ({service_names}) or a flag ({flag_names})"
-        )
+        # Unknown argument — treat as a plain service name string (open-world dispatch).
+        # This allows new tools to be delegated without code changes.
+        if current_service:
+            services.append({"name": current_service, "options": current_options})
+        current_service = arg
+        current_options = {}
+        i += 1
+        continue
 
     # Save last service
     if current_service:
@@ -521,7 +523,9 @@ class SetupCommand(BaseCommand):
             console.print(f"[red]Failed to setup {service_name}: {exc}[/red]")
             return CommandResult.error_result(f"Failed to setup {service_name}: {exc}")
 
-    def _try_autonomous_setup_fallback(self, service_name: str, args) -> CommandResult:
+    def _try_autonomous_setup_fallback(
+        self, service_name: str, args, force: bool = False
+    ) -> CommandResult:
         """Open-world fallback: try `<service_name> setup` if the binary exists.
 
         If the binary is found in PATH and responds to `setup --help` without
@@ -531,11 +535,28 @@ class SetupCommand(BaseCommand):
         Args:
             service_name: Name of the service (also used as the binary name).
             args: Namespace (unused but kept for consistent signature).
+            force: If True, skip already-configured check and re-run setup.
 
         Returns:
             CommandResult — error if the binary is absent or not setup-capable.
         """
         binary = service_name  # Convention: binary name == service name.
+
+        # Check if service is already configured (unless force=True).
+        if not force:
+            try:
+                from claude_mpm.services.setup_registry import SetupRegistry
+
+                registry = SetupRegistry()
+                if registry.get_service(service_name) is not None:
+                    console.print(
+                        f"[green]✓ {service_name} is already configured[/green]"
+                    )
+                    return CommandResult.success_result(
+                        f"{service_name} already configured"
+                    )
+            except Exception:  # nosec B110
+                pass  # Registry lookup is non-fatal; continue to setup.
 
         if not shutil.which(binary):
             return CommandResult.error_result(f"Unknown service: {service_name}")
@@ -558,6 +579,19 @@ class SetupCommand(BaseCommand):
 
         if result.returncode == 0:
             console.print(f"[green]✓ {service_name} setup completed[/green]")
+            # Record successful setup in the registry.
+            try:
+                from claude_mpm.services.setup_registry import SetupRegistry
+
+                registry = SetupRegistry()
+                registry.add_service(
+                    name=service_name,
+                    service_type="cli",
+                    version="unknown",
+                    tools=[],
+                )
+            except Exception:  # nosec B110
+                pass  # Registry recording is non-fatal.
             return CommandResult.success_result(f"{service_name} setup completed")
 
         return CommandResult.error_result(
