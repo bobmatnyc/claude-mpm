@@ -116,22 +116,16 @@ def _run_agent_color_prompt_migration() -> bool:  # pyright: ignore[reportUnused
 
 def _run_additional_directories_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Add permissions.additionalDirectories to .claude/settings.json if missing."""
-    from pathlib import Path
-
-    from .v6_3_2_additional_directories import (
-        run_migration,  # pyright: ignore[reportMissingImports]
-    )
+    from pathlib import Path  # noqa: I001
+    from .v6_3_2_additional_directories import run_migration  # pyright: ignore[reportMissingImports]  # fmt: skip
 
     return run_migration(installation_dir=Path.cwd())
 
 
 def _run_permission_request_hook_migration() -> bool:  # pyright: ignore[reportUnusedFunction]
     """Add PermissionRequest hook entry to .claude/settings.json."""
-    from pathlib import Path
-
-    from .v6_3_2_permission_request_hook import (
-        run_migration,  # pyright: ignore[reportMissingImports]
-    )
+    from pathlib import Path  # noqa: I001
+    from .v6_3_2_permission_request_hook import run_migration  # pyright: ignore[reportMissingImports]  # fmt: skip
 
     return run_migration(installation_dir=Path.cwd())
 
