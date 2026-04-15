@@ -68,6 +68,7 @@ class Skill:
     toolchain: str | None = None
     progressive_disclosure: dict[str, Any] | None = None
     user_invocable: bool = False
+    when_to_use: str = ""
 
     def __post_init__(self):
         """Initialize default values if not provided."""
@@ -304,6 +305,7 @@ class SkillsRegistry:
         toolchain = frontmatter.get("toolchain")
         progressive_disclosure = frontmatter.get("progressive_disclosure")
         user_invocable = frontmatter.get("user-invocable", False)
+        when_to_use = str(frontmatter.get("when_to_use", ""))
 
         # Create skill object
         return Skill(
@@ -324,6 +326,7 @@ class SkillsRegistry:
             toolchain=toolchain,
             progressive_disclosure=progressive_disclosure,
             user_invocable=user_invocable,
+            when_to_use=when_to_use,
         )
 
     def _load_bundled_skills(self):
