@@ -4,6 +4,7 @@ Design decisions and rationale.
 
 ## Documents
 
+- [manifest-config-system.md](manifest-config-system.md)
 - [claude-mpm-skills-integration-design.md](claude-mpm-skills-integration-design.md)
 - [mpm-skills-decisions-summary.md](mpm-skills-decisions-summary.md)
 - [SKILL-MD-FORMAT-SPECIFICATION.md](SKILL-MD-FORMAT-SPECIFICATION.md)
