@@ -142,7 +142,7 @@ def validate_agentskills_spec(skill: Skill) -> tuple[bool, list[str]]:
     for field in spec_metadata_fields:
         if hasattr(skill, field):
             field_value = getattr(skill, field)
-            if field_value and field not in (skill.metadata or {}):
+            if field_value and field not in (skill.metadata or {}):  # type: ignore[operator]
                 warnings.append(
                     f"Field '{field}' should be in metadata block per agentskills.io spec "
                     f"(found as top-level field)"
