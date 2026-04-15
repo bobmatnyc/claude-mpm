@@ -148,12 +148,16 @@ def parse_service_args(service_args: list[str]) -> dict[str, Any]:
                 i += 1
             continue
 
-        # Unknown argument - build error message from enums
-        service_names = ", ".join(str(s) for s in SetupService)
-        flag_names = ", ".join(f.cli_flag for f in SetupFlag)
-        raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name ({service_names}) or a flag ({flag_names})"
-        )
+        # Unknown argument: treat as a pass-through service name so that
+        # plugin binaries (e.g. `claude-mpm setup langgraph`) reach the
+        # open-world fallback in SetupCommand._try_autonomous_setup_fallback()
+        # instead of failing at parse time.
+        if current_service:
+            services.append({"name": current_service, "options": current_options})
+        current_service = arg
+        current_options = {}
+        i += 1
+        continue
 
     # Save last service
     if current_service:
@@ -250,7 +254,10 @@ class SetupCommand(BaseCommand):
             else:
                 # Open-world fallback: if the binary exists and supports `setup`,
                 # delegate automatically without requiring a custom _setup_* method.
-                result = self._try_autonomous_setup_fallback(service_name, service_args)
+                force_flag = getattr(service_args, "force", False)
+                result = self._try_autonomous_setup_fallback(
+                    service_name, service_args, force=force_flag
+                )
 
             results.append((service_name, result))
 
@@ -521,21 +528,44 @@ class SetupCommand(BaseCommand):
             console.print(f"[red]Failed to setup {service_name}: {exc}[/red]")
             return CommandResult.error_result(f"Failed to setup {service_name}: {exc}")
 
-    def _try_autonomous_setup_fallback(self, service_name: str, args) -> CommandResult:
+    def _try_autonomous_setup_fallback(
+        self, service_name: str, args, force: bool = False
+    ) -> CommandResult:
         """Open-world fallback: try `<service_name> setup` if the binary exists.
 
         If the binary is found in PATH and responds to `setup --help` without
         crashing (exit code 0 or 1), we delegate automatically.  This allows
         new tools to work without any code changes to SetupCommand.
 
+        Idempotent: if the service is already recorded in SetupRegistry and
+        ``force`` is False, setup is skipped with a informational message.
+
         Args:
             service_name: Name of the service (also used as the binary name).
             args: Namespace (unused but kept for consistent signature).
+            force: When True, bypass the registry check and re-run setup.
 
         Returns:
             CommandResult — error if the binary is absent or not setup-capable.
         """
         binary = service_name  # Convention: binary name == service name.
+
+        # Idempotency: skip re-setup if already recorded in the registry.
+        if not force:
+            try:
+                from claude_mpm.services.setup_registry import SetupRegistry
+
+                registry = SetupRegistry()
+                if registry.get_service(service_name) is not None:
+                    console.print(
+                        f"[dim]{service_name} already configured, skipping "
+                        f"(use --force to override)[/dim]"
+                    )
+                    return CommandResult.success_result(
+                        f"{service_name} already configured"
+                    )
+            except Exception:
+                pass  # Registry check is optional; failure is non-fatal.
 
         if not shutil.which(binary):
             return CommandResult.error_result(f"Unknown service: {service_name}")
@@ -558,6 +588,14 @@ class SetupCommand(BaseCommand):
 
         if result.returncode == 0:
             console.print(f"[green]✓ {service_name} setup completed[/green]")
+            # Record in registry so idempotency check works on next run.
+            try:
+                from claude_mpm.services.setup_registry import SetupRegistry
+
+                registry = SetupRegistry()
+                registry.add_service(name=service_name, service_type="plugin")
+            except Exception:
+                pass  # Registry write is optional; failure is non-fatal.
             return CommandResult.success_result(f"{service_name} setup completed")
 
         return CommandResult.error_result(
