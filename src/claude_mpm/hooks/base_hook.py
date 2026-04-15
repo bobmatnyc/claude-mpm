@@ -19,6 +19,9 @@ class HookType(Enum):
     PRE_DELEGATION = "pre_delegation"  # Filter context before delegation
     POST_DELEGATION = "post_delegation"  # Process results after delegation
     TICKET_EXTRACTION = "ticket_extraction"  # Extract and create tickets
+    PERMISSION_REQUEST = (
+        "PermissionRequest"  # Handle permission requests from Claude Code
+    )
     CUSTOM = "custom"  # User-defined hooks
 
 
