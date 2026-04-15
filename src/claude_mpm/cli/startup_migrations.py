@@ -1394,6 +1394,177 @@ def _rename_mcp_skills() -> bool:
     return True
 
 
+# =============================================================================
+# Migration: v6.3.0-deploy-claude-assets
+# =============================================================================
+
+_DEPLOY_CLAUDE_ASSETS_VERSION = "6.3.0"
+
+
+def _get_claude_assets_templates_dir() -> Path:
+    """Return the path to the bundled .claude/ template directory."""
+    try:
+        import importlib.resources
+
+        with importlib.resources.path("claude_mpm.templates", "claude") as p:
+            return Path(p)
+    except Exception:
+        return Path(__file__).parent.parent / "templates" / "claude"
+
+
+def _check_claude_assets_needed() -> bool:
+    """Check if any .claude/ template assets are missing or settings needs update.
+
+    Returns:
+        True if any template file is absent in .claude/ or if settings.json
+        needs an MPM version bump.
+    """
+    templates = _get_claude_assets_templates_dir()
+    if not templates.exists():
+        return False
+
+    dot_claude = Path.cwd() / ".claude"
+
+    # Check non-settings files
+    for template_file in templates.rglob("*"):
+        if not template_file.is_file():
+            continue
+        if template_file.name == "settings.json":
+            continue
+        rel = template_file.relative_to(templates)
+        dest = dot_claude / rel
+        if not dest.exists():
+            return True
+
+    # Check settings.json version
+    settings_template = templates / "settings.json"
+    if settings_template.exists():
+        try:
+            template_data = json.loads(settings_template.read_text())
+            template_version = template_data.get("_mpm_version", "0.0.0")
+            dest_settings = dot_claude / "settings.json"
+            if dest_settings.exists():
+                existing = json.loads(dest_settings.read_text())
+                existing_version = existing.get("_mpm_version", "0.0.0")
+                if existing_version < template_version:
+                    return True
+            else:
+                return True
+        except Exception:
+            pass
+
+    return False
+
+
+def _merge_claude_settings(dest: Path, template: Path) -> bool:
+    """Merge MPM-managed keys from template into dest settings.json.
+
+    Only adds keys that are absent, or updates MPM-managed keys when the
+    template version is newer than the existing version.  Never removes
+    user-added keys.
+
+    Args:
+        dest: Destination settings.json path (may not exist yet).
+        template: Source template settings.json path.
+
+    Returns:
+        True if the file was written (changed), False if no change was needed.
+    """
+    try:
+        template_data = json.loads(template.read_text())
+    except Exception as exc:
+        logger.warning("Failed to read settings template: %s", exc)
+        return False
+
+    existing: dict = {}
+    if dest.exists():
+        try:
+            existing = json.loads(dest.read_text())
+        except json.JSONDecodeError:
+            existing = {}
+
+    updated = dict(existing)
+    mpm_keys = {k for k in template_data if not k.startswith("_")}
+    existing_version = existing.get("_mpm_version", "0.0.0")
+    template_version = template_data.get("_mpm_version", "0.0.0")
+
+    needs_update = False
+    for key in mpm_keys:
+        if key not in existing or (
+            existing.get("_mpm_version") and existing_version < template_version
+        ):
+            updated[key] = template_data[key]
+            needs_update = True
+
+    if needs_update:
+        updated["_mpm_managed"] = True
+        updated["_mpm_version"] = template_version
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps(updated, indent=2) + "\n")
+        return True
+
+    return False
+
+
+def _deploy_claude_assets() -> bool:
+    """Deploy .claude/ template assets (statusline, commands, settings) to cwd.
+
+    Copies template files to .claude/ only when they are absent.  Never
+    overwrites files that already exist (preserves user customisations).
+    settings.json uses a merge strategy instead of overwrite.
+
+    Returns:
+        True if the migration ran without fatal errors.
+    """
+    import stat
+
+    templates = _get_claude_assets_templates_dir()
+    if not templates.exists():
+        logger.warning("claude-assets template directory not found: %s", templates)
+        print("   Template directory not found — skipping")
+        return False
+
+    dot_claude = Path.cwd() / ".claude"
+    deployed = 0
+    skipped = 0
+
+    for template_file in templates.rglob("*"):
+        if not template_file.is_file():
+            continue
+        if template_file.name == "settings.json":
+            continue
+        rel = template_file.relative_to(templates)
+        dest = dot_claude / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest.exists():
+            skipped += 1
+            continue
+        shutil.copy2(template_file, dest)
+        if dest.suffix == ".sh":
+            dest.chmod(dest.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+        deployed += 1
+        logger.info("Deployed asset: %s", rel)
+
+    settings_template = templates / "settings.json"
+    settings_changed = False
+    if settings_template.exists():
+        settings_changed = _merge_claude_settings(
+            dot_claude / "settings.json", settings_template
+        )
+        if settings_changed:
+            deployed += 1
+
+    if deployed:
+        print(
+            f"   Deployed {deployed} asset(s) to .claude/ ({skipped} already present)"
+        )
+    else:
+        print(f"   All assets already present ({skipped} checked)")
+
+    print("   ✓ Migration complete")
+    return True
+
+
 MIGRATIONS: list[Migration] = [
     Migration(
         id="v5.6.76-cache-dir-rename",
@@ -1460,6 +1631,12 @@ MIGRATIONS: list[Migration] = [
         description="Rename skill directories whose names contain 'mcp' to avoid shadowing the native /mcp command",
         check=_check_mcp_skills_need_rename,
         migrate=_rename_mcp_skills,
+    ),
+    Migration(
+        id="v6.3.0-deploy-claude-assets",
+        description="Deploy .claude/ template assets (statusline.sh, slash commands, settings.json)",
+        check=_check_claude_assets_needed,
+        migrate=_deploy_claude_assets,
     ),
 ]
 
