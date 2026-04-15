@@ -1,3 +1,23 @@
+## v6.2.31 (2026-04-15)
+
+### Feat
+
+- **setup**: open-world service dispatch and idempotent fallback
+- **migrations**: register three v6.3.2 migrations
+- **hooks**: add PERMISSION_REQUEST to HookType enum
+- **skills**: add when_to_use field to Skill dataclass
+- **templates**: update settings.json with hooks and autoMemoryEnabled
+- **migrations**: add v6.3.2 PermissionRequest hook migration
+- **migrations**: add v6.3.2 additional directories migration
+- **migrations**: add v6.3.2 agent color prompt migration
+
+### Fix
+
+- **skills**: suppress pyright operator narrowing false-positive on metadata or-guard
+- **skills**: guard against None metadata in spec validation
+- **hooks**: suppress unused context parameter warning
+- **skills**: fix Optional types in Skill dataclass
+
 ## v6.2.30 (2026-04-15)
 
 ### Feat
