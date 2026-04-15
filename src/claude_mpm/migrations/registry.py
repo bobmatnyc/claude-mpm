@@ -103,6 +103,33 @@ def _run_deploy_claude_assets_migration() -> bool:  # pyright: ignore[unused-fun
     return run_migration(installation_dir=Path.cwd())
 
 
+def _run_agent_color_prompt_migration() -> bool:
+    """Add color and initialPrompt fields to project agent files."""
+    from pathlib import Path
+
+    from .v6_3_2_agent_color_prompt import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
+def _run_additional_directories_migration() -> bool:
+    """Add permissions.additionalDirectories to .claude/settings.json if missing."""
+    from pathlib import Path
+
+    from .v6_3_2_additional_directories import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
+def _run_permission_request_hook_migration() -> bool:
+    """Add PermissionRequest hook entry to .claude/settings.json."""
+    from pathlib import Path
+
+    from .v6_3_2_permission_request_hook import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -164,6 +191,24 @@ MIGRATIONS: list[Migration] = [
         version="6.3.1",
         description="Deploy statusline.sh and settings.json from package templates into .claude/",
         run=_run_deploy_claude_assets_migration,
+    ),
+    Migration(
+        id="6.3.2_agent_color_prompt",
+        version="6.3.2",
+        description="Add color and initialPrompt fields to project agent files",
+        run=_run_agent_color_prompt_migration,
+    ),
+    Migration(
+        id="6.3.2_additional_directories",
+        version="6.3.2",
+        description="Add permissions.additionalDirectories to .claude/settings.json",
+        run=_run_additional_directories_migration,
+    ),
+    Migration(
+        id="6.3.2_permission_request_hook",
+        version="6.3.2",
+        description="Add PermissionRequest hook entry to .claude/settings.json",
+        run=_run_permission_request_hook_migration,
     ),
 ]
 
