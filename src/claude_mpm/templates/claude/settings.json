@@ -1,0 +1,39 @@
+{
+  "_mpm_managed": true,
+  "_mpm_version": "6.3.0",
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/hooks/scripts/statusline.sh",
+    "padding": 1,
+    "refreshInterval": 10
+  },
+  "spinnerVerbs": {
+    "mode": "replace",
+    "verbs": [
+      "Orchestrating agents",
+      "Delegating tasks",
+      "Routing to specialist",
+      "Checking circuit breakers",
+      "Querying memory",
+      "Planning workflow",
+      "Analyzing codebase",
+      "Coordinating subagents",
+      "Applying best practices",
+      "Thinking"
+    ]
+  },
+  "spinnerTipsEnabled": true,
+  "spinnerTipsOverride": {
+    "tips": [
+      "Use /compact at ~50% context to stay sharp",
+      "Start with plan mode for complex orchestration tasks",
+      "One file per commit keeps history clean",
+      "Delegate to specialist agents — PM never edits code directly",
+      "Use kuzu-memory to persist decisions across sessions",
+      "Circuit breakers protect against runaway delegation chains",
+      "Feature-specific subagents outperform general-purpose agents",
+      "Skills preload context without consuming prompt tokens"
+    ],
+    "excludeDefault": true
+  }
+}
