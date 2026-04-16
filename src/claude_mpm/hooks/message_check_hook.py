@@ -6,13 +6,14 @@ predictable intervals without being intrusive.
 
 TRIGGERS:
 - Session start (always)
-- Every 10 commands (command counter)
-- Every 30 minutes (time-based)
+- Every 3 commands (command counter)
+- Every 5 minutes (time-based)
 
 DESIGN:
 - Maintains state in .claude-mpm/message_check_state.json
 - Injects message notifications into PM context
 - Respects user configuration for thresholds
+- Updates session heartbeat on every call to keep session-active detection fresh
 """
 
 import json
@@ -96,7 +97,7 @@ class MessageCheckState:
 
 
 def should_check_messages(
-    state: dict, command_threshold: int = 10, time_threshold_minutes: int = 30
+    state: dict, command_threshold: int = 3, time_threshold_minutes: int = 5
 ) -> tuple[bool, str | None]:
     """
     Determine if we should check messages now.
@@ -172,8 +173,8 @@ def get_config() -> dict:
         return {
             "enabled": messaging_config.get("enabled", True),
             "check_on_startup": messaging_config.get("check_on_startup", True),
-            "command_threshold": messaging_config.get("command_threshold", 10),
-            "time_threshold": messaging_config.get("time_threshold", 30),
+            "command_threshold": messaging_config.get("command_threshold", 3),
+            "time_threshold": messaging_config.get("time_threshold", 5),
             "auto_create_tasks": messaging_config.get("auto_create_tasks", False),
             "notify_priority": messaging_config.get(
                 "notify_priority", ["high", "urgent"]
@@ -184,8 +185,8 @@ def get_config() -> dict:
         return {
             "enabled": True,
             "check_on_startup": True,
-            "command_threshold": 10,
-            "time_threshold": 30,
+            "command_threshold": 3,
+            "time_threshold": 5,
             "auto_create_tasks": False,
             "notify_priority": ["high", "urgent"],
         }
@@ -218,6 +219,20 @@ def message_check_hook() -> str | None:
         # Initialize state
         state_file = project_root / ".claude-mpm" / "message_check_state.json"
         state_manager = MessageCheckState(state_file)
+
+        # Update session heartbeat so send_notification can detect active sessions
+        try:
+            from ..services.communication.messaging_db import MessagingDatabase
+
+            global_registry_path = Path.home() / ".claude-mpm" / "session-registry.db"
+            registry = MessagingDatabase(global_registry_path)
+            active_sessions = registry.list_active_sessions()
+            resolved_root = project_root.resolve()
+            for session in active_sessions:
+                if Path(session["project_path"]).resolve() == resolved_root:
+                    registry.update_heartbeat(session["session_id"])
+        except Exception as e:
+            logger.debug(f"Heartbeat update skipped: {e}")
 
         # Load current state
         state = state_manager.load()
