@@ -1,3 +1,9 @@
+## v6.2.34 (2026-04-16)
+
+### Feat
+
+- add git branch and ahead/behind to MPM status line
+
 ## v6.2.33 (2026-04-15)
 
 ### Feat
