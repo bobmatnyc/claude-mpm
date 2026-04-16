@@ -168,7 +168,7 @@ def get_config() -> dict:
         from ..core.config import Config
 
         config = Config()
-        messaging_config = config.data.get("messaging", {})
+        messaging_config = config.get("messaging") or {}
 
         return {
             "enabled": messaging_config.get("enabled", True),
