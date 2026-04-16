@@ -1,3 +1,11 @@
+## v6.2.34 (2026-04-15)
+
+### Fix
+
+- **messaging**: use Config.get() instead of nonexistent .data attribute
+- **messaging**: lower poll thresholds and wire session heartbeat
+- **messaging**: switch Huey to immediate=True and remove double-write in process_message
+
 ## v6.2.33 (2026-04-15)
 
 ### Feat
