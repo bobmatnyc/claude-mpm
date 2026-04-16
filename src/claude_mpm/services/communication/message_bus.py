@@ -48,7 +48,7 @@ class MessageBus:
             MessageBus._huey = SqliteHuey(
                 name="claude_mpm_messages",
                 filename=str(queue_db_path),
-                immediate=False,  # Process tasks asynchronously
+                immediate=True,  # Execute tasks in-process (no separate consumer needed)
                 results=True,  # Store task results
                 store_none=False,  # Don't store None results
                 utc=True,  # Use UTC timestamps
@@ -130,47 +130,35 @@ huey = _bus.huey
 @huey.task()
 def process_message(message_data: dict) -> bool:
     """
-    Process a message by delivering it to the target project.
+    Process a message by sending a notification to the target project.
 
-    This task runs asynchronously in the Huey worker.
+    NOTE: The message is already written to the database by send_message()
+    before this task is enqueued.  This task must NOT re-insert the message
+    (that would cause a PRIMARY KEY collision).  Its sole job is to write
+    the notification marker file that the hook will detect.
 
     Args:
         message_data: Complete message dictionary
 
     Returns:
-        True if delivered successfully
+        True if notification sent successfully
     """
     try:
-        from .messaging_db import MessagingDatabase
-
         # Get target project path
         to_project = message_data.get("to_project")
         if not to_project:
             logger.error(f"Message {message_data.get('id')} missing to_project")
             return False
 
-        # Deliver to shared database (filtered by to_project on read)
-        # Using the shared database at ~/.claude-mpm/messaging.db
-        shared_db_path = Path.home() / ".claude-mpm" / "messaging.db"
-        shared_db = MessagingDatabase(shared_db_path)
-
-        # Insert message with unread status for recipient
-        message_data["status"] = "unread"
-        shared_db.insert_message(message_data)
-
-        # Also notify the target project if it has an active session
-        # This is where real-time notification would happen
-        send_notification.schedule(
-            args=(
-                to_project,
-                message_data["id"],
-                message_data.get("priority", "normal"),
-            ),
-            convert_utc=True,
+        # Notify the target project if it has an active session
+        send_notification(
+            to_project,
+            message_data["id"],
+            message_data.get("priority", "normal"),
         )
 
         logger.info(
-            f"Delivered message {message_data['id']} to {Path(to_project).name}"
+            f"Notified {Path(to_project).name} about message {message_data['id']}"
         )
         return True
 
