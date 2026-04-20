@@ -1,3 +1,18 @@
+## v6.2.36 (2026-04-20)
+
+### Feat
+
+- **migrations**: refresh statusline script + auto-wire Stop --clear hook
+- **statusline**: floating bottom status bar via ANSI escape sequences
+- **migrations**: register statusline autoconfig migration (v6.2.35)
+- **agents**: add Planner to PM routing table and model selection protocol
+- **migrations**: add statusline auto-configuration migration
+
+### Fix
+
+- **migrations**: resolve unreachable code in statusline autoconfig
+- **agents**: update PM_INSTRUCTIONS with three-tier model routing
+
 ## v6.2.35 (2026-04-19)
 
 ### Feat
