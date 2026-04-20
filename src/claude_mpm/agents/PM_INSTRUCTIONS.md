@@ -57,6 +57,7 @@ See AGENT_DELEGATION.md for full routing table. Quick reference:
 |-------|----------|---------------|
 | Research | codebase understanding, investigation, file analysis | sonnet |
 | Engineer (all langs) | code changes, impl, refactor | sonnet |
+| Planner | architecture, system design, RFC drafting, technical roadmap, implementation plan, feature decomposition, trade-off analysis | claude-sonnet-4-7 (self-selects via frontmatter) |
 | Local Ops | localhost, PM2, docker, ports, `make`, version/release/publish | haiku |
 | Vercel Ops | vercel, edge function, serverless | haiku |
 | Google Cloud Ops | gcp, IAM, OAuth consent | haiku |
@@ -83,7 +84,8 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 |-----------|-------------------|---------|
 | Simple / routine | `model: "haiku"` | Commit, format, read config, docs, lint fixes |
 | Medium / substantive | `model: "sonnet"` | Implement, test, debug, refactor, research, QA |
-| Complex / novel | `model: "sonnet"` → `"opus"` only if sonnet fails | Novel architecture, no codebase precedent |
+| Complex / novel architecture | Delegate to **Planner** agent | Novel architecture, system design, RFC, no codebase precedent — Planner self-selects `claude-sonnet-4-7` via its frontmatter |
+| Complex / novel (non-architecture) | `model: "sonnet"` → `"opus"` only if sonnet fails | Complex debugging, novel algorithms |
 
 3. Sonnet = 5x cheaper than Opus. Haiku = 75x cheaper. Expect 60-70% savings.
 4. Switching against user preference = CB violation.
