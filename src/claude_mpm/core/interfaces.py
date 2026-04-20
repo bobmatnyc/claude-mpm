@@ -537,15 +537,25 @@ class AgentDeploymentInterface(ABC):
     proper error handling and rollback operations when deployments fail.
     """
 
+    base_agent_path: Path | None
+
     @abstractmethod
     def deploy_agents(
-        self, force: bool = False, include_all: bool = False
+        self,
+        force: bool = False,
+        include_all: bool = False,
+        target_dir: Path | None = None,
+        force_rebuild: bool = False,
+        deployment_mode: str = "update",
     ) -> dict[str, Any]:
         """Deploy agents to target environment.
 
         Args:
             force: Force deployment even if agents already exist
             include_all: Include all agents, ignoring exclusion lists
+            target_dir: Optional target directory for deployment
+            force_rebuild: Force rebuild even if versions match
+            deployment_mode: Deployment mode ('update' or 'project')
 
         Returns:
             Dictionary with deployment results and status
@@ -579,6 +589,17 @@ class AgentDeploymentInterface(ABC):
 
         Returns:
             Dictionary with deployment status information
+        """
+
+    @abstractmethod
+    def set_claude_environment(self, config_dir: Path | None = None) -> dict[str, str]:
+        """Set Claude environment variables for agent discovery.
+
+        Args:
+            config_dir: Optional path to Claude config directory
+
+        Returns:
+            Dictionary of environment variables that were set
         """
 
 
