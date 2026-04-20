@@ -674,7 +674,7 @@ class ClaudeRunner:
         print("Error: Session management service not available")
         return False
 
-    def _extract_tickets(self, text: str):
+    def _extract_tickets(self, _text: str):
         """Extract tickets from Claude's response (disabled - use claude-mpm tickets CLI)."""
         # Ticket extraction disabled - users should use claude-mpm tickets CLI commands
 
