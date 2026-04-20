@@ -831,6 +831,25 @@ class AgentDependencyLoader:
             logger.error(error_msg)
             return False, error_msg
 
+    def check_dependencies(self) -> list[str]:
+        """Convenience wrapper returning list of missing dependency specs.
+
+        Delegates to load_and_check() and flattens missing_python and
+        missing_system entries into a single list.
+        """
+        results = self.load_and_check()
+        missing: list[str] = list(results["summary"].get("missing_python", []))
+        missing += list(results["summary"].get("missing_system", []))
+        return missing
+
+    def install_dependencies(self, dependencies: list[str]) -> None:
+        """Convenience wrapper for install_missing_dependencies.
+
+        Args:
+            dependencies: List of package specifications to install.
+        """
+        self.install_missing_dependencies(dependencies)
+
     def load_and_check(self) -> dict[str, dict]:
         """
         Complete workflow: discover agents, load dependencies, and check them.
