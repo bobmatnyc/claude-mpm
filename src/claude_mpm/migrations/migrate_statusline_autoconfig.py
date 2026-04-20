@@ -55,7 +55,7 @@ _SCRIPT_CONTENT = r"""#!/bin/bash
 #   - Amber #f3d5a3                  : \033[38;5;223m
 #
 # Layout:
-#   ◆ <user> │ <model> │ <ctx%> ctx │ <branch> [↑N][↓N] │ style:<outputStyle>
+#   ◆ <user> │ <model> │ <ctx%> ctx │ <cwd> │ <branch> [↑N][↓N] │ style:<outputStyle>
 
 set -u
 
@@ -180,6 +180,27 @@ if [ -n "$CWD" ] && command -v git >/dev/null 2>&1 \
 fi
 
 # ---------------------------------------------------------------------------
+# CWD segment: shorten path and colour amber. Omitted on narrow terminals.
+# ---------------------------------------------------------------------------
+CWD_SEGMENT=""
+if [ "$COLS" -ge 100 ]; then
+    # Prefer the path from the JSON payload; fall back to shell pwd.
+    RAW_CWD="${CWD:-$(pwd 2>/dev/null || echo "")}"
+    # Replace $HOME prefix with ~.
+    case "$RAW_CWD" in
+        "$HOME"*) SHORT_CWD="~${RAW_CWD#"$HOME"}" ;;
+        *)        SHORT_CWD="$RAW_CWD" ;;
+    esac
+    # If still longer than 40 chars, truncate from the left with … prefix.
+    if [ "${#SHORT_CWD}" -gt 40 ]; then
+        SHORT_CWD="…$(printf '%s' "$SHORT_CWD" | awk '{ print substr($0, length($0)-38) }')"
+    fi
+    if [ -n "$SHORT_CWD" ]; then
+        CWD_SEGMENT="${SEP}${AMBER}${SHORT_CWD}${RESET}${BG}${CREAM}"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # outputStyle segment (cream dimmed). Omitted entirely when jq unavailable.
 # ---------------------------------------------------------------------------
 STYLE_SEGMENT=""
@@ -202,6 +223,8 @@ CONTENT=$(printf "%b ◆ %s%b%s%b%s%b%b%s%%%b ctx%b" \
     "" \
     "${CTX_COLOR}" "${REMAINING}" "${RESET}${BG}${CREAM}" \
     "")
+
+CONTENT="${CONTENT}${CWD_SEGMENT}"
 
 if [ -n "$GIT_SEGMENT" ]; then
     CONTENT="${CONTENT}${SEP}${GIT_SEGMENT}"
