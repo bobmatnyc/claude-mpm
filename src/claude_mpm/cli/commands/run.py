@@ -873,6 +873,16 @@ def run_session_legacy(args):
         # Don't block startup on migration errors
         logger.warning(f"Migration check failed: {e}")
 
+    # Run statusline autoconfig on every startup (idempotent, per-project)
+    try:
+        from ..migrations.migrate_statusline_autoconfig import (
+            run_migration as _configure_statusline,
+        )
+
+        _configure_statusline(installation_dir=Path.cwd())
+    except Exception as e:
+        logger.debug("Statusline autoconfig skipped: %s", e)
+
     # Handle --slack flag: start Slack bot instead of Claude session
     if getattr(args, "slack", False):
         _start_slack_bot(logger)
