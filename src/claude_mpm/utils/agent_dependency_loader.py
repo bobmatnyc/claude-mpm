@@ -318,76 +318,41 @@ class AgentDependencyLoader:
                     )
                     return False, None
 
-            # For normal Python, try to import and check version
+            # For normal Python, use importlib.metadata (available since Python 3.8)
+            import importlib.metadata
+
             try:
-                import importlib.metadata
+                version = importlib.metadata.version(package_name)
+                self.checked_packages.add(package_name)
 
-                try:
-                    version = importlib.metadata.version(package_name)
-                    self.checked_packages.add(package_name)
+                # Check if version satisfies requirement
+                if req.specifier.contains(version):
+                    return True, version
+                logger.debug(
+                    f"{package_name} {version} does not satisfy {req.specifier}"
+                )
+                return False, version
 
-                    # Check if version satisfies requirement
-                    if req.specifier.contains(version):
-                        return True, version
-                    logger.debug(
-                        f"{package_name} {version} does not satisfy {req.specifier}"
+            except importlib.metadata.PackageNotFoundError:
+                # Check if there's an alternative for this optional package
+                if package_name in self.OPTIONAL_DB_PACKAGES:
+                    for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
+                        try:
+                            alt_version = importlib.metadata.version(alternative)
+                            logger.info(
+                                f"Using {alternative} as alternative to {package_name}"
+                            )
+                            self.checked_packages.add(package_name)
+                            return True, f"{alternative}:{alt_version}"
+                        except importlib.metadata.PackageNotFoundError:
+                            continue
+                    # If no alternatives work, mark as optional failure
+                    self.optional_failed[package_name] = "No alternatives available"
+                    logger.warning(
+                        f"Optional package {package_name} not found, marking as optional"
                     )
-                    return False, version
-
-                except importlib.metadata.PackageNotFoundError:
-                    # Check if there's an alternative for this optional package
-                    if package_name in self.OPTIONAL_DB_PACKAGES:
-                        for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
-                            try:
-                                alt_version = importlib.metadata.version(alternative)
-                                logger.info(
-                                    f"Using {alternative} as alternative to {package_name}"
-                                )
-                                self.checked_packages.add(package_name)
-                                return True, f"{alternative}:{alt_version}"
-                            except importlib.metadata.PackageNotFoundError:
-                                continue
-                        # If no alternatives work, mark as optional failure
-                        self.optional_failed[package_name] = "No alternatives available"
-                        logger.warning(
-                            f"Optional package {package_name} not found, marking as optional"
-                        )
-                        return True, "optional-not-found"
-                    return False, None
-
-            except ImportError:
-                # Fallback for older Python versions
-                try:
-                    import pkg_resources
-
-                    version = pkg_resources.get_distribution(package_name).version
-                    self.checked_packages.add(package_name)
-
-                    if req.specifier.contains(version):
-                        return True, version
-                    return False, version
-
-                except pkg_resources.DistributionNotFound:
-                    # Check alternatives for optional packages
-                    if package_name in self.OPTIONAL_DB_PACKAGES:
-                        for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
-                            try:
-                                alt_version = pkg_resources.get_distribution(
-                                    alternative
-                                ).version
-                                logger.info(
-                                    f"Using {alternative} as alternative to {package_name}"
-                                )
-                                self.checked_packages.add(package_name)
-                                return True, f"{alternative}:{alt_version}"
-                            except pkg_resources.DistributionNotFound:
-                                continue
-                        self.optional_failed[package_name] = "No alternatives available"
-                        logger.warning(
-                            f"Optional package {package_name} not found, marking as optional"
-                        )
-                        return True, "optional-not-found"
-                    return False, None
+                    return True, "optional-not-found"
+                return False, None
 
         except InvalidRequirement as e:
             logger.warning(f"Invalid requirement specification: {package_spec}: {e}")
