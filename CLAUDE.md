@@ -85,6 +85,9 @@ Key packages:
 - `services/` — FastAPI services (UI, session, etc.)
 - `scripts/` — Shell hook dispatcher (`claude-hook-fast.sh`)
 
+Notable agents:
+- **Planner** (`.claude/agents/planner.md`) — routes complex architecture/planning tasks to `claude-sonnet-4-7`; model is user-configurable via `~/.claude-mpm/config/configuration.yaml` under `models.planning`
+
 ---
 
 ## 🟡 Subagent Patterns
