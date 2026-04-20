@@ -388,16 +388,16 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
         True on success, False on error.
     """
     # Starting state: read existing settings, or start with {}.
-    settings: dict
     if settings_path.exists():
         try:
-            settings = json.loads(settings_path.read_text(encoding="utf-8"))
-            if not isinstance(settings, dict):
+            raw = json.loads(settings_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
                 logger.warning(
                     "settings.json at %s is not a JSON object — overwriting",
                     settings_path,
                 )
-                settings = {}
+                raw = {}
+            settings: dict = raw
         except Exception:
             logger.exception("Failed to parse settings.json at %s", settings_path)
             return False
