@@ -1,3 +1,13 @@
+## v6.2.37 (2026-04-20)
+
+### Feat
+
+- **statusline**: add working directory segment to status bar
+
+### Fix
+
+- **statusline**: rewrite script to print stdout instead of /dev/tty painting
+
 ## v6.2.36 (2026-04-20)
 
 ### Feat
