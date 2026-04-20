@@ -24,57 +24,183 @@ _SCRIPT_REL = Path("hooks") / "scripts" / "statusline.sh"
 
 # Statusline script content (identical to the project's existing script so
 # that projects that don't yet have it receive the same canonical version).
-_SCRIPT_CONTENT = """\
-#!/bin/bash
-# claude-mpm status line
-# Format: claude-mpm: <user> | <model> | <context_remaining>% | [git-info]
-# Receives JSON on stdin from Claude Code
+_SCRIPT_CONTENT = r"""#!/bin/bash
+# claude-mpm floating bottom status bar
+#
+# Draws a persistent status bar on the last line of the terminal using
+# ANSI/VT100 escape sequences. Receives JSON on stdin from Claude Code's
+# statusLine hook and is re-invoked periodically (refreshInterval in
+# .claude/settings.json). On exit (Stop hook), invoke with --clear to erase
+# the bar so the shell prompt returns to its normal position.
+#
+# Approach (no .zshrc/.bashrc changes required):
+#   1. Save cursor position          : \033[s
+#   2. Move to last row, column 1    : \033[<row>;1H
+#   3. Clear entire line             : \033[2K
+#   4. Write styled status bar       : \033[48;5;234m ... \033[0m
+#   5. Restore cursor position       : \033[u
+#
+# Status content (same info as before): user | model | context % | git branch + ahead/behind
 
-input=$(cat)
+set -u
 
-USER=$(whoami)
-MODEL=$(echo "$input" | jq -r '.model.display_name // .model.id // "unknown"' 2>/dev/null || echo "unknown")
-REMAINING=$(echo "$input" | jq -r '.context_window.remaining_percentage // 0' 2>/dev/null | cut -d. -f1 || echo "0")
-USED=$(echo "$input" | jq -r '.context_window.used_percentage // 0' 2>/dev/null | cut -d. -f1 || echo "0")
-CWD=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // ""' 2>/dev/null)
+# ---------------------------------------------------------------------------
+# Guards: refuse to draw on non-interactive / dumb terminals.
+# ---------------------------------------------------------------------------
 
-# Color context based on remaining %
-if [ "$REMAINING" -lt 20 ] 2>/dev/null; then
-    CTX_COLOR="\\033[31m"   # red — critical
-elif [ "$REMAINING" -lt 40 ] 2>/dev/null; then
-    CTX_COLOR="\\033[33m"   # yellow — warning
-else
-    CTX_COLOR="\\033[32m"   # green — healthy
+# If there is no controlling terminal we can't draw anything — exit silently.
+# We must actually be able to *open* /dev/tty (not just stat it) to draw.
+if ! (: >/dev/tty) 2>/dev/null; then
+    exit 0
 fi
-RESET="\\033[0m"
 
-# Get git branch and ahead/behind info if in a git repo
+# Respect TERM=dumb (e.g. inside CI, cron, pipes) and unset TERM.
+case "${TERM:-dumb}" in
+    ""|dumb) exit 0 ;;
+esac
+
+# tput must be available for row/col detection. If not, bail silently.
+if ! command -v tput >/dev/null 2>&1; then
+    exit 0
+fi
+
+# Query terminal size via the TTY device so it works even when stdout is
+# piped (Claude Code captures stdout for its own statusline area).
+LINES=$(tput lines </dev/tty 2>/dev/null || echo 0)
+COLS=$(tput cols  </dev/tty 2>/dev/null || echo 0)
+
+# If size lookup failed, silently abort.
+if [ "$LINES" -lt 2 ] 2>/dev/null || [ "$COLS" -lt 10 ] 2>/dev/null; then
+    exit 0
+fi
+
+LAST_ROW="$LINES"
+
+# ---------------------------------------------------------------------------
+# --clear mode: erase the bar and return cursor to normal position.
+# Invoked from the Stop hook so the bar disappears when Claude Code exits.
+# ---------------------------------------------------------------------------
+if [ "${1:-}" = "--clear" ]; then
+    # Save cursor, move to last line, clear whole line, reset attrs, restore.
+    printf '\033[s\033[%d;1H\033[2K\033[0m\033[u' "$LAST_ROW" >/dev/tty 2>/dev/null || true
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Parse JSON payload from stdin (if any).
+# ---------------------------------------------------------------------------
+input=""
+# Only read stdin if it's not a TTY (i.e. Claude Code piped JSON in).
+if [ ! -t 0 ]; then
+    input=$(cat)
+fi
+
+USER_NAME=$(whoami 2>/dev/null || echo "user")
+
+if [ -n "$input" ] && command -v jq >/dev/null 2>&1; then
+    MODEL=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // "unknown"' 2>/dev/null || echo "unknown")
+    REMAINING=$(printf '%s' "$input" | jq -r '.context_window.remaining_percentage // 0' 2>/dev/null | cut -d. -f1)
+    CWD=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // ""' 2>/dev/null)
+else
+    MODEL="unknown"
+    REMAINING="0"
+    CWD=""
+fi
+
+# Normalise REMAINING to an integer (jq occasionally emits "null").
+case "$REMAINING" in
+    ''|*[!0-9]*) REMAINING=0 ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Style palette.
+#   - Bar background: 256-colour 234 (near-black grey).
+#   - Foreground:     256-colour 250 (light grey) for the base text.
+# ---------------------------------------------------------------------------
+BG="\033[48;5;234m"
+FG="\033[38;5;250m"
+RESET="\033[0m"
+DIM="\033[2m"
+CYAN="\033[38;5;81m"
+
+# Context remaining colour (applied on top of the bar background).
+if [ "$REMAINING" -lt 20 ] 2>/dev/null; then
+    CTX_COLOR="\033[38;5;203m"   # soft red
+elif [ "$REMAINING" -lt 40 ] 2>/dev/null; then
+    CTX_COLOR="\033[38;5;221m"   # amber
+else
+    CTX_COLOR="\033[38;5;114m"   # green
+fi
+
+# ---------------------------------------------------------------------------
+# Git info (branch + ahead/behind) if we're inside a repo.
+# ---------------------------------------------------------------------------
 GIT_INFO=""
-if [ -n "$CWD" ] && git -C "$CWD" rev-parse --git-dir >/dev/null 2>&1; then
+if [ -n "$CWD" ] && command -v git >/dev/null 2>&1 \
+   && git -C "$CWD" rev-parse --git-dir >/dev/null 2>&1; then
     BRANCH=$(git -C "$CWD" rev-parse --abbrev-ref HEAD 2>/dev/null)
-
-    # Get ahead/behind counts relative to upstream
-    AHEAD_BEHIND=$(git -C "$CWD" rev-list --left-right --count @{upstream}...HEAD 2>/dev/null)
-    if [ -n "$AHEAD_BEHIND" ]; then
-        BEHIND=$(echo "$AHEAD_BEHIND" | awk '{print $1}')
-        AHEAD=$(echo "$AHEAD_BEHIND" | awk '{print $2}')
-
+    if [ -n "$BRANCH" ]; then
+        AHEAD_BEHIND=$(git -C "$CWD" rev-list --left-right --count @{upstream}...HEAD 2>/dev/null)
         AHEAD_STR=""
         BEHIND_STR=""
-        [ "$AHEAD" -gt 0 ] && AHEAD_STR="↑${AHEAD}"
-        [ "$BEHIND" -gt 0 ] && BEHIND_STR="↓${BEHIND}"
+        if [ -n "$AHEAD_BEHIND" ]; then
+            BEHIND=$(echo "$AHEAD_BEHIND" | awk '{print $1}')
+            AHEAD=$(echo "$AHEAD_BEHIND"  | awk '{print $2}')
+            [ "${AHEAD:-0}"  -gt 0 ] 2>/dev/null && AHEAD_STR="↑${AHEAD}"
+            [ "${BEHIND:-0}" -gt 0 ] 2>/dev/null && BEHIND_STR="↓${BEHIND}"
+        fi
 
         if [ -n "$AHEAD_STR" ] || [ -n "$BEHIND_STR" ]; then
-            GIT_INFO=" | \\033[36m${BRANCH}\\033[0m ${AHEAD_STR}${BEHIND_STR:+ }${BEHIND_STR}"
+            GIT_INFO=" ${DIM}|${RESET}${BG} ${CYAN}${BRANCH}${RESET}${BG} ${AHEAD_STR}${BEHIND_STR:+ }${BEHIND_STR}"
         else
-            GIT_INFO=" | \\033[36m${BRANCH}\\033[0m"
+            GIT_INFO=" ${DIM}|${RESET}${BG} ${CYAN}${BRANCH}${RESET}${BG}"
         fi
-    else
-        GIT_INFO=" | \\033[36m${BRANCH}\\033[0m"
     fi
 fi
 
-printf "claude-mpm: %s | %s | ${CTX_COLOR}%s%% remaining${RESET}${GIT_INFO}\\n" "$USER" "$MODEL" "$REMAINING"
+# ---------------------------------------------------------------------------
+# Compose the bar content.
+#
+# We prefix with a single space and use \033[K (clear to end of line) after
+# writing so the bar background extends across the full terminal width.
+# ---------------------------------------------------------------------------
+CONTENT=$(printf "%b claude-mpm %b|%b %s %b|%b %s %b|%b %b%s%%%b remaining%b" \
+    "${FG}" \
+    "${DIM}" "${RESET}${BG}${FG}" "${USER_NAME}" \
+    "${DIM}" "${RESET}${BG}${FG}" "${MODEL}" \
+    "${DIM}" "${RESET}${BG}${FG}" \
+    "${CTX_COLOR}" "${REMAINING}" "${RESET}${BG}${FG}" \
+    "${GIT_INFO}")
+
+# ---------------------------------------------------------------------------
+# Draw the bar.
+#
+# Sequence:
+#   \033[s              save cursor
+#   \033[<row>;1H       move to last row, column 1
+#   \033[2K             erase the whole line (so stale text is wiped even if
+#                       the new bar is shorter than the old one)
+#   <BG><content>\033[K apply background, print content, extend bg to EOL
+#   \033[0m             reset attributes
+#   \033[u              restore cursor
+#
+# All output goes directly to /dev/tty so Claude Code's stdout capture for
+# its built-in statusline area isn't polluted and we don't interfere with
+# the normal scrollback.
+# ---------------------------------------------------------------------------
+{
+    printf '\033[s'
+    printf '\033[%d;1H' "$LAST_ROW"
+    printf '\033[2K'
+    printf '%b' "${BG}${CONTENT}"
+    printf '\033[K'
+    printf '\033[0m'
+    printf '\033[u'
+} >/dev/tty 2>/dev/null || true
+
+# stdout stays empty on purpose: the floating bar is the statusline, and we
+# don't want Claude Code to render a duplicate in its own capture area.
+exit 0
 """
 
 # Default statusLine settings block to add when missing.
