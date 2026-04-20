@@ -7,9 +7,12 @@ Ensures that:
 2. A `statusLine` entry pointing to that script is present in
    .claude/settings.json (adds it if missing; leaves existing config
    untouched).
+3. A Stop hook entry that calls `statusline.sh --clear` is present in
+   .claude/settings.json so the bar disappears when Claude Code exits.
 
-Idempotent: safe to run multiple times.  If both the script and the
-settings entry already exist the migration is a no-op and returns True.
+Idempotent: safe to run multiple times.  If the script, the statusLine
+entry, and the Stop hook are already present the migration is a no-op and
+returns True.
 """
 
 import json
@@ -22,8 +25,13 @@ logger = logging.getLogger(__name__)
 # Relative path of the script inside .claude/
 _SCRIPT_REL = Path("hooks") / "scripts" / "statusline.sh"
 
-# Statusline script content (identical to the project's existing script so
-# that projects that don't yet have it receive the same canonical version).
+# Command string used in the Stop hook. Matched substring-wise so existing
+# variations (e.g. an absolute path) are still detected as "already wired".
+_STOP_HOOK_COMMAND = ".claude/hooks/scripts/statusline.sh --clear"
+_STOP_HOOK_MATCH = "statusline.sh --clear"
+
+# Statusline script content (byte-identical to .claude/hooks/scripts/statusline.sh
+# in this repo so fresh projects receive the same canonical version).
 _SCRIPT_CONTENT = r"""#!/bin/bash
 # claude-mpm floating bottom status bar
 #
@@ -40,7 +48,14 @@ _SCRIPT_CONTENT = r"""#!/bin/bash
 #   4. Write styled status bar       : \033[48;5;234m ... \033[0m
 #   5. Restore cursor position       : \033[u
 #
-# Status content (same info as before): user | model | context % | git branch + ahead/behind
+# Palette is derived from the Claude brand:
+#   - Background #1a1a1a             : \033[48;5;234m
+#   - Text / cream #fbf0df           : \033[38;5;230m
+#   - Orange / rust #CC785C          : \033[38;5;174m
+#   - Amber #f3d5a3                  : \033[38;5;223m
+#
+# Layout:
+#   ◆ <user> │ <model> │ <ctx%> ctx │ <branch> [↑N][↓N] │ style:<outputStyle>
 
 set -u
 
@@ -113,29 +128,40 @@ case "$REMAINING" in
 esac
 
 # ---------------------------------------------------------------------------
-# Style palette.
-#   - Bar background: 256-colour 234 (near-black grey).
-#   - Foreground:     256-colour 250 (light grey) for the base text.
+# Read outputStyle from ~/.claude/settings.json (requires jq).
 # ---------------------------------------------------------------------------
-BG="\033[48;5;234m"
-FG="\033[38;5;250m"
+OUTPUT_STYLE=""
+if command -v jq >/dev/null 2>&1; then
+    OUTPUT_STYLE=$(jq -r '.outputStyle // "default"' "$HOME/.claude/settings.json" 2>/dev/null || echo "default")
+    # Guard against jq emitting "null" literal.
+    [ "$OUTPUT_STYLE" = "null" ] && OUTPUT_STYLE="default"
+fi
+
+# ---------------------------------------------------------------------------
+# Claude brand palette.
+# ---------------------------------------------------------------------------
+BG="\033[48;5;234m"          # background #1a1a1a
+CREAM="\033[38;5;230m"       # text       #fbf0df
+ORANGE="\033[38;5;174m"      # accent     #CC785C
+AMBER="\033[38;5;223m"       # amber      #f3d5a3
+RED="\033[38;5;196m"         # low-context warning
 RESET="\033[0m"
 DIM="\033[2m"
-CYAN="\033[38;5;81m"
 
-# Context remaining colour (applied on top of the bar background).
+# Context remaining colour: amber above 20%, red below.
 if [ "$REMAINING" -lt 20 ] 2>/dev/null; then
-    CTX_COLOR="\033[38;5;203m"   # soft red
-elif [ "$REMAINING" -lt 40 ] 2>/dev/null; then
-    CTX_COLOR="\033[38;5;221m"   # amber
+    CTX_COLOR="$RED"
 else
-    CTX_COLOR="\033[38;5;114m"   # green
+    CTX_COLOR="$AMBER"
 fi
+
+# Separator (orange vertical bar) with surrounding spaces.
+SEP=" ${ORANGE}│${RESET}${BG}${CREAM} "
 
 # ---------------------------------------------------------------------------
 # Git info (branch + ahead/behind) if we're inside a repo.
 # ---------------------------------------------------------------------------
-GIT_INFO=""
+GIT_SEGMENT=""
 if [ -n "$CWD" ] && command -v git >/dev/null 2>&1 \
    && git -C "$CWD" rev-parse --git-dir >/dev/null 2>&1; then
     BRANCH=$(git -C "$CWD" rev-parse --abbrev-ref HEAD 2>/dev/null)
@@ -146,31 +172,42 @@ if [ -n "$CWD" ] && command -v git >/dev/null 2>&1 \
         if [ -n "$AHEAD_BEHIND" ]; then
             BEHIND=$(echo "$AHEAD_BEHIND" | awk '{print $1}')
             AHEAD=$(echo "$AHEAD_BEHIND"  | awk '{print $2}')
-            [ "${AHEAD:-0}"  -gt 0 ] 2>/dev/null && AHEAD_STR="↑${AHEAD}"
-            [ "${BEHIND:-0}" -gt 0 ] 2>/dev/null && BEHIND_STR="↓${BEHIND}"
+            [ "${AHEAD:-0}"  -gt 0 ] 2>/dev/null && AHEAD_STR=" ↑${AHEAD}"
+            [ "${BEHIND:-0}" -gt 0 ] 2>/dev/null && BEHIND_STR=" ↓${BEHIND}"
         fi
-
-        if [ -n "$AHEAD_STR" ] || [ -n "$BEHIND_STR" ]; then
-            GIT_INFO=" ${DIM}|${RESET}${BG} ${CYAN}${BRANCH}${RESET}${BG} ${AHEAD_STR}${BEHIND_STR:+ }${BEHIND_STR}"
-        else
-            GIT_INFO=" ${DIM}|${RESET}${BG} ${CYAN}${BRANCH}${RESET}${BG}"
-        fi
+        GIT_SEGMENT="${AMBER}${BRANCH}${AHEAD_STR}${BEHIND_STR}${RESET}${BG}${CREAM}"
     fi
+fi
+
+# ---------------------------------------------------------------------------
+# outputStyle segment (cream dimmed). Omitted entirely when jq unavailable.
+# ---------------------------------------------------------------------------
+STYLE_SEGMENT=""
+if [ -n "$OUTPUT_STYLE" ]; then
+    STYLE_SEGMENT="${SEP}${DIM}${CREAM}style:${OUTPUT_STYLE}${RESET}${BG}${CREAM}"
 fi
 
 # ---------------------------------------------------------------------------
 # Compose the bar content.
 #
-# We prefix with a single space and use \033[K (clear to end of line) after
-# writing so the bar background extends across the full terminal width.
+# Prefixed with a single space; \033[K (clear to EOL) after writing extends
+# the background across the full terminal width.
 # ---------------------------------------------------------------------------
-CONTENT=$(printf "%b claude-mpm %b|%b %s %b|%b %s %b|%b %b%s%%%b remaining%b" \
-    "${FG}" \
-    "${DIM}" "${RESET}${BG}${FG}" "${USER_NAME}" \
-    "${DIM}" "${RESET}${BG}${FG}" "${MODEL}" \
-    "${DIM}" "${RESET}${BG}${FG}" \
-    "${CTX_COLOR}" "${REMAINING}" "${RESET}${BG}${FG}" \
-    "${GIT_INFO}")
+CONTENT=$(printf "%b ◆ %s%b%s%b%s%b%b%s%%%b ctx%b" \
+    "${CREAM}" \
+    "${USER_NAME}" \
+    "${SEP}" \
+    "${ORANGE}${MODEL}${RESET}${BG}${CREAM}" \
+    "${SEP}" \
+    "" \
+    "${CTX_COLOR}" "${REMAINING}" "${RESET}${BG}${CREAM}" \
+    "")
+
+if [ -n "$GIT_SEGMENT" ]; then
+    CONTENT="${CONTENT}${SEP}${GIT_SEGMENT}"
+fi
+
+CONTENT="${CONTENT}${STYLE_SEGMENT} "
 
 # ---------------------------------------------------------------------------
 # Draw the bar.
@@ -192,7 +229,7 @@ CONTENT=$(printf "%b claude-mpm %b|%b %s %b|%b %s %b|%b %b%s%%%b remaining%b" \
     printf '\033[s'
     printf '\033[%d;1H' "$LAST_ROW"
     printf '\033[2K'
-    printf '%b' "${BG}${CONTENT}"
+    printf '%b' "${BG}${CREAM}${CONTENT}"
     printf '\033[K'
     printf '\033[0m'
     printf '\033[u'
@@ -209,6 +246,13 @@ _DEFAULT_STATUS_LINE: dict = {
     "command": ".claude/hooks/scripts/statusline.sh",
     "padding": 1,
     "refreshInterval": 10,
+}
+
+# Default Stop hook group (matcher "*") with the --clear command.
+_DEFAULT_STOP_HOOK_ENTRY: dict = {
+    "type": "command",
+    "command": _STOP_HOOK_COMMAND,
+    "timeout": 5,
 }
 
 
@@ -307,6 +351,112 @@ def _ensure_settings_entry(settings_path: Path) -> bool:
     return True
 
 
+def _stop_hook_already_wired(settings: dict) -> bool:
+    """Return True if the Stop hook list already contains a --clear entry.
+
+    Matches substring-wise so both relative and absolute invocations of
+    statusline.sh --clear count as "already wired".
+    """
+    stop_groups = settings.get("hooks", {}).get("Stop", [])
+    if not isinstance(stop_groups, list):
+        return False
+
+    for group in stop_groups:
+        if not isinstance(group, dict):
+            continue
+        for hook in group.get("hooks", []) or []:
+            if not isinstance(hook, dict):
+                continue
+            cmd = hook.get("command", "")
+            if isinstance(cmd, str) and _STOP_HOOK_MATCH in cmd:
+                return True
+    return False
+
+
+def _ensure_stop_hook(settings_path: Path) -> bool:
+    """Ensure a Stop hook calling statusline.sh --clear is present.
+
+    Idempotent: if an existing Stop hook already invokes `statusline.sh
+    --clear` (matched substring-wise) the settings file is left unchanged.
+    Otherwise a new hook is appended — either to the existing matcher "*"
+    group if present, or as a new group.
+
+    Args:
+        settings_path: Path to .claude/settings.json.
+
+    Returns:
+        True on success, False on error.
+    """
+    # Starting state: read existing settings, or start with {}.
+    settings: dict
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            if not isinstance(settings, dict):
+                logger.warning(
+                    "settings.json at %s is not a JSON object — overwriting",
+                    settings_path,
+                )
+                settings = {}
+        except Exception:
+            logger.exception("Failed to parse settings.json at %s", settings_path)
+            return False
+    else:
+        settings = {}
+
+    if _stop_hook_already_wired(settings):
+        logger.debug(
+            "Stop hook for statusline --clear already present in %s — skipping",
+            settings_path,
+        )
+        return True
+
+    # Ensure nested structure: settings["hooks"]["Stop"] is a list of groups.
+    hooks = settings.setdefault("hooks", {})
+    if not isinstance(hooks, dict):
+        hooks = {}
+        settings["hooks"] = hooks
+    stop_groups = hooks.setdefault("Stop", [])
+    if not isinstance(stop_groups, list):
+        stop_groups = []
+        hooks["Stop"] = stop_groups
+
+    # Prefer to append to an existing matcher="*" group so we don't fragment
+    # the Stop configuration.
+    wildcard_group: dict | None = None
+    for group in stop_groups:
+        if isinstance(group, dict) and group.get("matcher") == "*":
+            wildcard_group = group
+            break
+
+    if wildcard_group is not None:
+        group_hooks = wildcard_group.setdefault("hooks", [])
+        if not isinstance(group_hooks, list):
+            group_hooks = []
+            wildcard_group["hooks"] = group_hooks
+        group_hooks.append(_DEFAULT_STOP_HOOK_ENTRY)
+    else:
+        stop_groups.append(
+            {
+                "matcher": "*",
+                "hooks": [_DEFAULT_STOP_HOOK_ENTRY],
+            }
+        )
+
+    try:
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings_path.write_text(
+            json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        logger.info("Added Stop hook for statusline --clear to %s", settings_path)
+    except Exception:
+        logger.exception("Failed to write settings.json at %s", settings_path)
+        return False
+
+    return True
+
+
 def run_migration(installation_dir: Path | None = None) -> bool:
     """Auto-configure the MPM statusline for the current project.
 
@@ -322,5 +472,6 @@ def run_migration(installation_dir: Path | None = None) -> bool:
 
     script_ok = _ensure_script(claude_dir)
     settings_ok = _ensure_settings_entry(settings_path)
+    stop_hook_ok = _ensure_stop_hook(settings_path) if settings_ok else False
 
-    return script_ok and settings_ok
+    return script_ok and settings_ok and stop_hook_ok
