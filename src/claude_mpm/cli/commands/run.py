@@ -864,7 +864,7 @@ def run_session_legacy(args):
     # Run pending migrations on version upgrade
     # This is fast for already-migrated installs (just a file check)
     try:
-        from ..migrations.runner import run_pending_migrations
+        from ...migrations.runner import run_pending_migrations
 
         migrations_run = run_pending_migrations()
         if migrations_run > 0:
@@ -875,7 +875,7 @@ def run_session_legacy(args):
 
     # Run statusline autoconfig on every startup (idempotent, per-project)
     try:
-        from ..migrations.migrate_statusline_autoconfig import (
+        from ...migrations.migrate_statusline_autoconfig import (
             run_migration as _configure_statusline,
         )
 
