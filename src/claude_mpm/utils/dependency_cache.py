@@ -66,8 +66,9 @@ class DependencyCache:
 
         try:
             with self.cache_file.open() as f:
-                self._cache_data = json.load(f)
-                return self._cache_data
+                loaded: dict = json.load(f)
+                self._cache_data = loaded
+                return loaded
         except Exception as e:
             logger.debug(f"Could not load dependency cache: {e}")
             self._cache_data = {}
