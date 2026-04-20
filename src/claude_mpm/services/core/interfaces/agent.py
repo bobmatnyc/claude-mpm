@@ -42,11 +42,11 @@ class AgentMetadata:
     tier: str
     description: str | None = None
     version: str | None = None
-    capabilities: list[str] = None
-    specializations: list[str] = None
-    frameworks: list[str] = None
-    domains: list[str] = None
-    roles: list[str] = None
+    capabilities: list[str] | None = None
+    specializations: list[str] | None = None
+    frameworks: list[str] | None = None
+    domains: list[str] | None = None
+    roles: list[str] | None = None
     is_hybrid: bool = False
     validation_score: float = 0.0
     last_modified: float | None = None
