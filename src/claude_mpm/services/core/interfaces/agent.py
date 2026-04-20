@@ -338,6 +338,202 @@ class RunnerConfigurationInterface(ABC):
             config: Logging configuration
         """
 
+    @abstractmethod
+    def initialize_configuration(self, **kwargs: Any) -> dict[str, Any]:
+        """Initialize configuration from keyword arguments.
+
+        Args:
+            **kwargs: Configuration parameters
+
+        Returns:
+            Dictionary containing initialized configuration data
+        """
+
+    @abstractmethod
+    def initialize_project_logger(self, log_level: str) -> Any:
+        """Initialize project logger for session logging.
+
+        Args:
+            log_level: Logging level
+
+        Returns:
+            Initialized project logger or None if disabled/failed
+        """
+
+    @abstractmethod
+    def initialize_response_logger(
+        self, config: Any, project_logger: Any = None
+    ) -> Any:
+        """Initialize response logger if enabled in configuration.
+
+        Args:
+            config: Configuration object
+            project_logger: Optional project logger for system events
+
+        Returns:
+            Initialized response logger or None if disabled/failed
+        """
+
+    @abstractmethod
+    def get_user_working_directory(self) -> Path | None:
+        """Get user working directory from environment.
+
+        Returns:
+            Path to user working directory or None if not set
+        """
+
+    @abstractmethod
+    def register_core_services(
+        self, container: Any, user_working_dir: Path | None = None
+    ) -> None:
+        """Register core services in the DI container.
+
+        Args:
+            container: DI container instance
+            user_working_dir: Optional user working directory
+        """
+
+    @abstractmethod
+    def register_ticket_manager(
+        self, container: Any, enable_tickets: bool
+    ) -> tuple[Any, bool]:
+        """Register ticket manager service if enabled.
+
+        Args:
+            container: DI container instance
+            enable_tickets: Whether to enable ticket management
+
+        Returns:
+            Tuple of (ticket_manager, actual_enable_tickets_flag)
+        """
+
+    @abstractmethod
+    def register_hook_service(self, container: Any, config: Any) -> Any:
+        """Register hook service in the DI container.
+
+        Args:
+            container: DI container instance
+            config: Configuration object
+
+        Returns:
+            Initialized hook service or None if failed
+        """
+
+    @abstractmethod
+    def register_agent_capabilities_service(self, container: Any) -> Any:
+        """Register agent capabilities service in the DI container.
+
+        Args:
+            container: DI container instance
+
+        Returns:
+            Initialized agent capabilities service or None if failed
+        """
+
+    @abstractmethod
+    def register_system_instructions_service(
+        self, container: Any, agent_capabilities_service: Any
+    ) -> Any:
+        """Register system instructions service in the DI container.
+
+        Args:
+            container: DI container instance
+            agent_capabilities_service: Agent capabilities service dependency
+
+        Returns:
+            Initialized system instructions service or None if failed
+        """
+
+    @abstractmethod
+    def register_subprocess_launcher_service(
+        self, container: Any, project_logger: Any, websocket_server: Any
+    ) -> Any:
+        """Register subprocess launcher service in the DI container.
+
+        Args:
+            container: DI container instance
+            project_logger: Project logger dependency
+            websocket_server: WebSocket server dependency
+
+        Returns:
+            Initialized subprocess launcher service or None if failed
+        """
+
+    @abstractmethod
+    def register_version_service(self, container: Any) -> Any:
+        """Register version service in the DI container.
+
+        Args:
+            container: DI container instance
+
+        Returns:
+            Initialized version service or None if failed
+        """
+
+    @abstractmethod
+    def register_command_handler_service(
+        self, container: Any, project_logger: Any
+    ) -> Any:
+        """Register command handler service in the DI container.
+
+        Args:
+            container: DI container instance
+            project_logger: Project logger dependency
+
+        Returns:
+            Initialized command handler service or None if failed
+        """
+
+    @abstractmethod
+    def register_memory_hook_service(self, container: Any, hook_service: Any) -> Any:
+        """Register memory hook service in the DI container.
+
+        Args:
+            container: DI container instance
+            hook_service: Hook service dependency
+
+        Returns:
+            Initialized memory hook service or None if failed
+        """
+
+    @abstractmethod
+    def register_session_management_service(self, container: Any, runner: Any) -> Any:
+        """Register session management service in the DI container.
+
+        Args:
+            container: DI container instance
+            runner: ClaudeRunner instance
+
+        Returns:
+            Initialized session management service or None if failed
+        """
+
+    @abstractmethod
+    def register_utility_service(self, container: Any) -> Any:
+        """Register utility service in the DI container.
+
+        Args:
+            container: DI container instance
+
+        Returns:
+            Initialized utility service or None if failed
+        """
+
+    @abstractmethod
+    def create_session_log_file(
+        self, project_logger: Any, log_level: str, config_data: dict[str, Any]
+    ) -> Path | None:
+        """Create session log file and log session start event.
+
+        Args:
+            project_logger: Project logger instance
+            log_level: Logging level
+            config_data: Configuration data for logging
+
+        Returns:
+            Path to session log file or None if failed
+        """
+
 
 # Agent recommender interface
 class IAgentRecommender(ABC):
