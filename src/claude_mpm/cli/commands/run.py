@@ -1389,8 +1389,10 @@ def _start_slack_bot(logger):
         return
 
     try:
-        from slack_bolt import App
-        from slack_bolt.adapter.socket_mode import SocketModeHandler
+        from slack_bolt import App  # type: ignore[import-untyped]
+        from slack_bolt.adapter.socket_mode import (
+            SocketModeHandler,  # type: ignore[import-untyped]
+        )
 
         from ...slack_client.handlers.commands import register_commands
 
