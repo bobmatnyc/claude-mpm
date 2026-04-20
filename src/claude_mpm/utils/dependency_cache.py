@@ -329,6 +329,15 @@ class SmartDependencyChecker:
 
         return True, "No valid cache, checking needed"
 
+    def update_cache(self, deployment_hash: str) -> None:
+        """Update the cache to record that a dependency check was performed.
+
+        Args:
+            deployment_hash: Hash of the current agent deployment.
+        """
+        self.cache.set(deployment_hash, {})
+        self._last_check_time = time.time()
+
     def get_or_check_dependencies(
         self,
         loader,
