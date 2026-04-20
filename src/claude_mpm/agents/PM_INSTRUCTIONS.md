@@ -57,7 +57,7 @@ See AGENT_DELEGATION.md for full routing table. Quick reference:
 |-------|----------|---------------|
 | Research | codebase understanding, investigation, file analysis | sonnet |
 | Engineer (all langs) | code changes, impl, refactor | sonnet |
-| Planner | architecture, system design, RFC drafting, technical roadmap, implementation plan, feature decomposition, trade-off analysis | claude-sonnet-4-7 (self-selects via frontmatter) |
+| Planner | architecture, system design, RFC drafting, technical roadmap, implementation plan, feature decomposition, trade-off analysis | claude-opus-4-7 (self-selects via frontmatter) |
 | Local Ops | localhost, PM2, docker, ports, `make`, version/release/publish | haiku |
 | Vercel Ops | vercel, edge function, serverless | haiku |
 | Google Cloud Ops | gcp, IAM, OAuth consent | haiku |
@@ -80,14 +80,16 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 1. **User preference is BINDING.** If user specifies model, honor for entire task.
 2. **Default routing:**
 
-| Complexity | Model param to pass | Examples |
-|-----------|-------------------|---------|
-| Simple / routine | `model: "haiku"` | Commit, format, read config, docs, lint fixes |
-| Medium / substantive | `model: "sonnet"` | Implement, test, debug, refactor, research, QA |
-| Complex / novel architecture | Delegate to **Planner** agent | Novel architecture, system design, RFC, no codebase precedent — Planner self-selects `claude-sonnet-4-7` via its frontmatter |
-| Complex / novel (non-architecture) | `model: "sonnet"` → `"opus"` only if sonnet fails | Complex debugging, novel algorithms |
+| Task Type | Model to pass | Examples |
+|-----------|--------------|---------|
+| Simple/routine | `model: "haiku"` | Commit, format, read config, docs, lint |
+| General work | `model: "sonnet"` | Research, ops, QA, analysis, general tasks |
+| Coding/engineering | `model: "opus"` | Implement, refactor, debug, test writing |
+| Complex planning | Route to **Planner** agent | Architecture, system design, RFC drafting — Planner uses `claude-opus-4-7` via its frontmatter |
 
-3. Sonnet = 5x cheaper than Opus. Haiku = 75x cheaper. Expect 60-70% savings.
+Tier models: general = `claude-sonnet-4-6`, coding = `claude-opus-4-6`, planning = `claude-opus-4-7`.
+
+3. Sonnet = 5x cheaper than Opus. Haiku = 75x cheaper. Coding tasks use opus for quality; expect 40-60% savings vs. naively using opus everywhere.
 4. Switching against user preference = CB violation.
 
 ## Delegation Efficiency
