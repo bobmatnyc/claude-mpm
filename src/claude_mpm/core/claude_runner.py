@@ -148,6 +148,10 @@ class ClaudeRunner:
             )
         )
 
+        # Browser monitoring attributes (set here to satisfy type checkers)
+        self._should_open_monitor_browser: bool = False
+        self._browser_opened_by_cli: bool = False
+
         # Initialize Socket.IO server reference first
         self.websocket_server = None
 
