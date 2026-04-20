@@ -136,6 +136,15 @@ def _run_permission_request_hook_migration() -> bool:  # pyright: ignore[unused-
     return run_migration(installation_dir=Path.cwd())
 
 
+def _run_statusline_autoconfig_migration() -> bool:
+    """Auto-configure the MPM statusline script and settings entry."""
+    from pathlib import Path
+
+    from .migrate_statusline_autoconfig import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -215,6 +224,12 @@ MIGRATIONS: list[Migration] = [
         version="6.3.2",
         description="Add PermissionRequest hook entry to .claude/settings.json hooks section",
         run=_run_permission_request_hook_migration,
+    ),
+    Migration(
+        id="v6_2_35_statusline_autoconfig",
+        version="6.2.35",
+        description="Auto-configure MPM statusline script and statusLine entry in .claude/settings.json",
+        run=_run_statusline_autoconfig_migration,
     ),
 ]
 
