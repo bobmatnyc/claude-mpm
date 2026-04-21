@@ -850,6 +850,14 @@ def create_parser(
         from ..commands.summarize import add_summarize_parser
 
         add_summarize_parser(subparsers)
+
+        # Add update-statusline command (force-refresh MPM-managed statusline.sh)
+        try:
+            from ..commands.update_statusline import add_update_statusline_parser
+
+            add_update_statusline_parser(subparsers)
+        except ImportError:
+            pass
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
