@@ -90,7 +90,7 @@ class SessionResumeHelper:
             return None
 
     def get_git_changes_since_pause(
-        self, paused_at: str, recent_commits: list[dict[str, str]]
+        self, paused_at: str, _recent_commits: list[dict[str, str]]
     ) -> tuple[int, list[dict[str, str]]]:
         """Calculate git changes since session was paused.
 
