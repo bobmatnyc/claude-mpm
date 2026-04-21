@@ -81,11 +81,16 @@ USER_NAME=$(whoami 2>/dev/null || echo "user")
 if [ -n "$input" ] && command -v jq >/dev/null 2>&1; then
     MODEL=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // "unknown"' 2>/dev/null || echo "unknown")
     REMAINING=$(printf '%s' "$input" | jq -r '.context_window.remaining_percentage // 0' 2>/dev/null | cut -d. -f1)
-    CWD=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // ""' 2>/dev/null)
+    CWD=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .workspace.path // .cwd // .session_dir // .project_root // ""' 2>/dev/null)
 else
     MODEL="unknown"
     REMAINING="0"
     CWD=""
+fi
+
+# If JSON didn't provide a CWD, fall back to $PWD env var then pwd command.
+if [ -z "$CWD" ]; then
+    CWD="${PWD:-$(pwd 2>/dev/null || echo "")}"
 fi
 
 # Normalise REMAINING to an integer (jq occasionally emits "null").
