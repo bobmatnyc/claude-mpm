@@ -1,6 +1,6 @@
 ---
 name: pm-ticketing-integration
-version: "1.0.0"
+version: "1.1.0"
 description: Ticket-driven development protocol
 when_to_use: ticket IDs mentioned, issue URLs, work tracking
 category: pm-workflow
@@ -9,6 +9,25 @@ effort: medium
 ---
 
 # Ticketing Integration Protocol
+
+## Ticketing System Default
+
+**GitHub is always the default ticketing system.** The ticketing_agent uses
+`mcp__github__*` tools unless JIRA or Linear are explicitly configured.
+
+Routing order (evaluated by ticketing_agent):
+1. User mentions "jira", a `PROJ-123`-style ID, or env has `JIRA_URL`/`JIRA_API_TOKEN` → JIRA
+2. User mentions "linear", a `LIN-`/`TEAM-`-style ID, or env has `LINEAR_API_KEY` → Linear
+3. All other cases → **GitHub** (`mcp__github__*`)
+
+`aitrackdown` is a last-resort fallback only — never use when GitHub MCP tools are available.
+
+## Ask Before Creating
+
+If the user references a ticket/issue but no matching GitHub issue is found:
+- ticketing_agent MUST NOT auto-create a new issue.
+- ticketing_agent MUST ask: "I didn't find an existing issue for [topic]. Should I create one on GitHub, or did you mean a different issue?"
+- Auto-create only when user explicitly says "create a ticket/issue for X."
 
 ## Detection Rules
 
