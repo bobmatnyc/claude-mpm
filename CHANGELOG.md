@@ -1,3 +1,16 @@
+## v6.2.43 (2026-04-21)
+
+### Fix
+
+- **memory**: deque compat fixes in aggregate CLI and ndjson_parser tests
+- **memory**: cap EventAggregator at 50 active sessions with oldest-eviction on overflow
+- **memory**: auto-cleanup stopped MCP sessions after 5min to prevent session dict leak
+- **memory**: replace write_times list+manual-trim with deque(maxlen=100) in AsyncSessionLogger
+- **memory**: update EventBus config to rebuild deque with correct maxlen on runtime override
+- **memory**: replace _event_history list+manual-trim with deque(maxlen=100) in EventBus
+- **memory**: cap AgentSession.events with deque(maxlen=2000) to prevent unbounded growth
+- **memory**: replace unbounded messages list with deque(maxlen=1000) in NDJSONStreamParser
+
 ## v6.2.42 (2026-04-20)
 
 ### Feat
