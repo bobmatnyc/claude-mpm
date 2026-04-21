@@ -38,6 +38,7 @@ _STOP_HOOK_MATCH = "statusline.sh --clear"
 # Statusline script content (byte-identical to .claude/hooks/scripts/statusline.sh
 # in this repo so fresh projects receive the same canonical version).
 _SCRIPT_CONTENT = r"""#!/bin/bash
+# claude-mpm-managed: do not remove this line (used for auto-upgrades)
 # claude-mpm status line
 #
 # Claude Code calls this script periodically via the statusLine hook and
