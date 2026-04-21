@@ -145,6 +145,16 @@ def main(argv: list | None = None):
         atexit.register(endpoint.shutdown)
         logger.info(f"Message injection endpoint started on port {inject_port}")
 
+    # Set runtime mode BEFORE the background services guard so the env var is always
+    # present even when should_skip_background_services() returns True (e.g. --prompt).
+    use_sdk = getattr(args, "sdk", False)
+    if use_sdk:
+        os.environ["CLAUDE_MPM_RUNTIME"] = "sdk"
+
+    use_cli = getattr(args, "cli", False)
+    if use_cli:
+        os.environ["CLAUDE_MPM_RUNTIME"] = "cli"
+
     if not should_skip_background_services(args, processed_argv):
         # Check for --force-sync flag or environment variable
         force_sync = getattr(args, "force_sync", False) or os.environ.get(
@@ -166,15 +176,6 @@ def main(argv: list | None = None):
         # through all intermediate startup functions)
         if skip_compat_check:
             os.environ["CLAUDE_MPM_SKIP_COMPAT_CHECK"] = "1"
-
-        # Check for --sdk / --cli flags to select runtime
-        use_sdk = getattr(args, "sdk", False)
-        if use_sdk:
-            os.environ["CLAUDE_MPM_RUNTIME"] = "sdk"
-
-        use_cli = getattr(args, "cli", False)
-        if use_cli:
-            os.environ["CLAUDE_MPM_RUNTIME"] = "cli"
 
         # Bridge --model CLI flag to environment variable so it reaches the SDK session.
         pm_model_arg = getattr(args, "model", None)
