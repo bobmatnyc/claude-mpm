@@ -34,10 +34,10 @@ class SessionResumeHelper:
             project_path: Project root path (default: current directory)
         """
         self.project_path = project_path or Path.cwd()
-        # Primary location: flattened structure
-        self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
-        # Legacy location for backward compatibility
-        self.legacy_pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
+        # Global home-dir path so sessions are findable regardless of CWD at resume time
+        self.pause_dir = Path.home() / ".claude-mpm" / "sessions"
+        # Legacy location for backward compatibility (also global)
+        self.legacy_pause_dir = Path.home() / ".claude-mpm" / "sessions" / "pause"
 
     def has_paused_sessions(self) -> bool:
         """Check if there are any paused sessions.
@@ -64,16 +64,14 @@ class SessionResumeHelper:
         Returns:
             Session data dictionary or None if no sessions found
         """
-        # Find all session files from both locations
+        # Only glob JSON files for loading — .md files cannot be json.load()'d
         session_files = []
 
         if self.pause_dir.exists():
             session_files.extend(list(self.pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.pause_dir.glob("session-*.md")))
 
         if self.legacy_pause_dir.exists():
             session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
 
         if not session_files:
             return None
