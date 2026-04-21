@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 # Relative path of the script inside .claude/
 _SCRIPT_REL = Path("hooks") / "scripts" / "statusline.sh"
 
+# Marker line that identifies an MPM-managed statusline.sh.
+# Any file containing this string will be treated as an official MPM-owned
+# copy and will be overwritten when the template has been updated (force mode).
+_MPM_MARKER = "# claude-mpm-managed:"
+
 # Command string used in the Stop hook. Matched substring-wise so existing
 # variations (e.g. an absolute path) are still detected as "already wired".
 _STOP_HOOK_COMMAND = ".claude/hooks/scripts/statusline.sh --clear"
@@ -200,11 +205,14 @@ _DEFAULT_STOP_HOOK_ENTRY: dict = {
 }
 
 
-def _ensure_script(claude_dir: Path) -> bool:
+def _ensure_script(claude_dir: Path, force: bool = False) -> bool:
     """Ensure the statusline script exists and is executable.
 
     Args:
         claude_dir: Path to the .claude/ directory.
+        force: If True, overwrite the existing script when it is MPM-managed
+            (i.e. contains the ``_MPM_MARKER`` line).  User-customised scripts
+            are still preserved even in force mode.
 
     Returns:
         True on success, False on error.
@@ -212,9 +220,56 @@ def _ensure_script(claude_dir: Path) -> bool:
     script_path = claude_dir / _SCRIPT_REL
 
     if script_path.exists():
-        logger.debug(
-            "statusline.sh already exists at %s — skipping script deploy", script_path
-        )
+        if force:
+            try:
+                existing = script_path.read_text(encoding="utf-8")
+            except Exception:
+                logger.exception(
+                    "Failed to read existing statusline.sh at %s", script_path
+                )
+                return False
+
+            if _MPM_MARKER in existing:
+                if existing == _SCRIPT_CONTENT:
+                    logger.debug(
+                        "statusline.sh at %s is already up to date — no rewrite needed",
+                        script_path,
+                    )
+                else:
+                    try:
+                        script_path.write_text(_SCRIPT_CONTENT, encoding="utf-8")
+                        logger.info(
+                            "Upgraded MPM-managed statusline.sh at %s", script_path
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to upgrade statusline.sh at %s", script_path
+                        )
+                        return False
+            else:
+                logger.info(
+                    "statusline.sh at %s is user-customized — preserving (force mode respects user edits)",
+                    script_path,
+                )
+        else:
+            logger.debug(
+                "statusline.sh already exists at %s — skipping script deploy",
+                script_path,
+            )
+        # Always re-chmod to ensure executable bit is set.
+        try:
+            current_mode = script_path.stat().st_mode
+            script_path.chmod(
+                current_mode
+                | stat.S_IRWXU
+                | stat.S_IRGRP
+                | stat.S_IXGRP
+                | stat.S_IROTH
+                | stat.S_IXOTH
+            )
+        except Exception:
+            logger.exception("Failed to chmod statusline.sh at %s", script_path)
+            return False
         return True
 
     try:
@@ -401,11 +456,15 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
     return True
 
 
-def run_migration(installation_dir: Path | None = None) -> bool:
+def run_migration(installation_dir: Path | None = None, force: bool = False) -> bool:
     """Auto-configure the MPM statusline for the current project.
 
     Args:
         installation_dir: Root of the project (default: cwd).
+        force: If True, overwrite an existing MPM-managed ``statusline.sh``
+            with the bundled canonical version (user-customised scripts are
+            still preserved).  Settings/hook wiring remains idempotent
+            regardless of this flag.
 
     Returns:
         True if migration completed successfully (including no-op), False on error.
@@ -414,7 +473,7 @@ def run_migration(installation_dir: Path | None = None) -> bool:
     claude_dir = project_root / ".claude"
     settings_path = claude_dir / "settings.json"
 
-    script_ok = _ensure_script(claude_dir)
+    script_ok = _ensure_script(claude_dir, force=force)
     settings_ok = _ensure_settings_entry(settings_path)
     stop_hook_ok = _ensure_stop_hook(settings_path) if settings_ok else False
 
