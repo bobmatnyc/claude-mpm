@@ -23,7 +23,7 @@ try:
     from claude_mpm.hooks.claude_hooks.hook_handler import _log
 except ImportError:
 
-    def _log(msg: str) -> None:
+    def _log(message: str) -> None:
         pass  # Silent fallback
 
 
