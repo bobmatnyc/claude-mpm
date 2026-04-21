@@ -42,7 +42,8 @@ class SessionResumeStartupHook:
         self.project_path = project_path or Path.cwd()
         self.resume_helper = SessionResumeHelper(self.project_path)
         self._session_displayed = False
-        self.sessions_dir = self.project_path / ".claude-mpm" / "sessions"
+        # Global home-dir path so sessions are findable regardless of CWD at resume time
+        self.sessions_dir = Path.home() / ".claude-mpm" / "sessions"
 
     def _format_task_list_summary(self, task_list: dict[str, Any]) -> str:
         """Format task list state for display.
