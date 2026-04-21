@@ -19,6 +19,11 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Marker line that identifies an MPM-managed statusline.sh.
+# Any file containing this string will be treated as an official MPM-owned
+# copy and will be overwritten when the template has been updated.
+MPM_MARKER = "# claude-mpm-managed:"
+
 
 def run_migration(installation_dir: Path | None = None) -> bool:
     """Deploy statusline.sh and settings.json into .claude/.
@@ -42,24 +47,34 @@ def run_migration(installation_dir: Path | None = None) -> bool:
 
 
 def _deploy_statusline(claude_dir: Path) -> None:
-    """Deploy hooks/scripts/statusline.sh if not already present, then make executable."""
+    """Deploy statusline.sh: install if absent, upgrade if MPM-managed, skip if user-customized."""
     scripts_dir = claude_dir / "hooks" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     target = scripts_dir / "statusline.sh"
 
-    if target.exists():
-        logger.debug("statusline.sh already exists at %s, skipping overwrite", target)
-    else:
-        content = (
-            files("claude_mpm")
-            / "templates"
-            / "claude"
-            / "hooks"
-            / "scripts"
-            / "statusline.sh"
-        ).read_text(encoding="utf-8")
+    content = (
+        files("claude_mpm")
+        / "templates"
+        / "claude"
+        / "hooks"
+        / "scripts"
+        / "statusline.sh"
+    ).read_text(encoding="utf-8")
 
+    if target.exists():
+        existing = target.read_text(encoding="utf-8")
+        if MPM_MARKER in existing:
+            if existing == content:
+                logger.debug("statusline.sh is already up to date, skipping")
+            else:
+                target.write_text(content, encoding="utf-8")
+                logger.info("Upgraded MPM-managed statusline.sh at %s", target)
+        else:
+            logger.debug(
+                "statusline.sh is user-customized, skipping overwrite at %s", target
+            )
+    else:
         target.write_text(content, encoding="utf-8")
         logger.info("Deployed statusline.sh to %s", target)
 
