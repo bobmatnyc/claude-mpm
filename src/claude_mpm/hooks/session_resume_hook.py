@@ -12,6 +12,7 @@ DESIGN DECISIONS:
 """
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +24,11 @@ try:
     from claude_mpm.hooks.claude_hooks.hook_handler import _log
 except ImportError:
 
-    def _log(_: str) -> None:
+    def _log(message: str) -> None:
         pass  # Silent fallback
+
+
+_log: Callable[[str], None]
 
 
 logger = get_logger(__name__)
