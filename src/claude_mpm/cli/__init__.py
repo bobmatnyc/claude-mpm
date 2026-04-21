@@ -12,10 +12,9 @@ Refactored from 803 lines to <130 lines (TSK-0053).
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 from ..constants import CLICommands
-from ..utils.progress import ProgressBar, StartupProgressBar
+from ..utils.progress import StartupProgressBar
 from .executor import ensure_run_attributes, execute_command
 
 # handle_missing_configuration, has_configuration_file, should_skip_config_check
@@ -29,7 +28,7 @@ from .startup import (
     should_skip_background_services,
 )
 from .startup_display import display_startup_banner, should_show_banner
-from .utils import ensure_directories, setup_logging
+from .utils import ensure_directories
 
 # Version resolution
 # CRITICAL: Don't import 'paths' here - it triggers UnifiedPathManager initialization
@@ -192,7 +191,7 @@ def main(argv: list | None = None):
         elif os.environ.get("CLAUDE_MPM_RUNTIME") != "cli":
             # Auto-detect: SDK if claude_agent_sdk is importable
             try:
-                import claude_agent_sdk
+                import claude_agent_sdk  # type: ignore[import-untyped]
 
                 _will_use_sdk = True
             except ImportError:
