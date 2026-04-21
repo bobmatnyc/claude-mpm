@@ -1,3 +1,17 @@
+## v6.2.39 (2026-04-20)
+
+### Feat
+
+- **ui**: full-width startup banner matching terminal REPL width
+
+### Fix
+
+- **types**: remove unused claude_agent_sdk import from cli/__init__
+- **types**: remove unused imports in cli/__init__.py
+- **types**: remove unused logging_level variable in display_startup_banner call
+- **types**: remove unused _logging_level parameter in startup_display
+- **types**: remove unused variables in startup_display.py
+
 ## v6.2.38 (2026-04-20)
 
 ### Feat
