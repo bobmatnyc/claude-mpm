@@ -11,6 +11,7 @@ WHY pyee over alternatives:
 import asyncio
 import logging
 import threading
+from collections import deque
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Optional
@@ -63,8 +64,10 @@ class EventBus:
         self._debug = False
 
         # Event history for debugging (limited size)
-        self._event_history: list[dict[str, Any]] = []
         self._max_history_size = 100
+        self._event_history: deque[dict[str, Any]] = deque(
+            maxlen=self._max_history_size
+        )
 
         # Track async handler tasks to prevent garbage collection
         self._handler_tasks: set[asyncio.Task] = set()
@@ -352,10 +355,6 @@ class EventBus:
 
         self._event_history.append(event_record)
 
-        # Trim history if too large
-        if len(self._event_history) > self._max_history_size:
-            self._event_history = self._event_history[-self._max_history_size :]
-
     def get_stats(self) -> dict[str, Any]:
         """Get event bus statistics.
 
@@ -379,7 +378,7 @@ class EventBus:
         Returns:
             list: Recent events
         """
-        return self._event_history[-limit:]
+        return list(self._event_history)[-limit:]
 
     def clear_history(self) -> None:
         """Clear the event history."""
