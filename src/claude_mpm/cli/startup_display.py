@@ -22,27 +22,21 @@ DIM = "\033[2m"  # Dim text for subtle launch message
 RESET = "\033[0m"
 
 # Banner dimension defaults (will be calculated based on terminal width)
-MIN_WIDTH = 100  # Minimum banner width
-MAX_WIDTH = 200  # Maximum banner width
-DEFAULT_WIDTH = 160  # Default if terminal width cannot be determined
+NARROW_WIDTH_THRESHOLD = 60  # Below this, use compact single-line banner
+DEFAULT_WIDTH = 80  # Default if terminal width cannot be determined
 
 
 def _get_terminal_width() -> int:
     """
-    Get terminal width with reasonable bounds.
+    Get the full terminal width.
 
     Returns:
-        Terminal width (75% of actual) clamped between MIN_WIDTH and MAX_WIDTH
+        Actual terminal column count, falling back to DEFAULT_WIDTH.
     """
     try:
-        full_width = shutil.get_terminal_size().columns
-        # Use 75% of terminal width for more compact display
-        width = int(full_width * 0.75)
-        # Apply reasonable bounds
-        return max(MIN_WIDTH, min(width, MAX_WIDTH))
+        return shutil.get_terminal_size(fallback=(DEFAULT_WIDTH, 24)).columns
     except Exception:
-        # 75% of 160 = 120
-        return 120
+        return DEFAULT_WIDTH
 
 
 def _get_username() -> str:
@@ -445,6 +439,13 @@ def display_startup_banner(
 
     # Get terminal width and calculate panel sizes
     terminal_width = _get_terminal_width()
+
+    # Narrow terminal: compact single-line banner
+    if terminal_width < NARROW_WIDTH_THRESHOLD:
+        print(f"{CYAN}Claude MPM v{version}{RESET}")
+        print()
+        return
+
     left_panel_width = int(terminal_width * 0.25)  # ~25% for left panel
     # -4 accounts for: 2 borders (│) + 2 column separators (│ and space)
     right_panel_width = terminal_width - left_panel_width - 4
