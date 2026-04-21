@@ -1,3 +1,9 @@
+## v6.2.40 (2026-04-20)
+
+### Fix
+
+- **cli**: ensure CLAUDE_MPM_RUNTIME=sdk is set before background services guard
+
 ## v6.2.39 (2026-04-20)
 
 ### Feat
