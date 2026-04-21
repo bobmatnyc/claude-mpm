@@ -1,4 +1,5 @@
 #!/bin/bash
+# claude-mpm-managed: do not remove this line (used for auto-upgrades)
 # claude-mpm status line
 #
 # Claude Code calls this script periodically via the statusLine hook and
