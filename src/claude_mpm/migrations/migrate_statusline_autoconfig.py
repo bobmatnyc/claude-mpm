@@ -80,11 +80,15 @@ USER_NAME=$(whoami 2>/dev/null || echo "user")
 
 if [ -n "$input" ] && command -v jq >/dev/null 2>&1; then
     MODEL=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // "unknown"' 2>/dev/null || echo "unknown")
-    REMAINING=$(printf '%s' "$input" | jq -r '.context_window.remaining_percentage // 0' 2>/dev/null | cut -d. -f1)
+    # Use // empty so missing fields yield an empty string (not "0"). Claude Code
+    # only sends context_window once a session has warmed up, so at session
+    # start this field is absent and we want to omit the segment entirely
+    # rather than display a misleading "0% ctx".
+    REMAINING=$(printf '%s' "$input" | jq -r '.context_window.remaining_percentage // empty' 2>/dev/null | cut -d. -f1)
     CWD=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .workspace.path // .cwd // .session_dir // .project_root // ""' 2>/dev/null)
 else
     MODEL="unknown"
-    REMAINING="0"
+    REMAINING=""
     CWD=""
 fi
 
@@ -93,9 +97,11 @@ if [ -z "$CWD" ]; then
     CWD="${PWD:-$(pwd 2>/dev/null || echo "")}"
 fi
 
-# Normalise REMAINING to an integer (jq occasionally emits "null").
+# Normalise REMAINING: must be a non-empty, non-negative integer to be shown.
+# Empty/null/non-numeric values mean "context info not available" — we'll
+# omit the segment entirely below.
 case "$REMAINING" in
-    ''|*[!0-9]*) REMAINING=0 ;;
+    ''|*[!0-9]*) REMAINING="" ;;
 esac
 
 # ---------------------------------------------------------------------------
@@ -117,10 +123,10 @@ RESET="\033[0m"
 DIM="\033[2m"
 
 # Context remaining colour: amber above 20%, red below.
-if [ "$REMAINING" -lt 20 ] 2>/dev/null; then
+# Only used when REMAINING is a numeric value (segment is otherwise omitted).
+CTX_COLOR="$AMBER"
+if [ -n "$REMAINING" ] && [ "$REMAINING" -lt 20 ] 2>/dev/null; then
     CTX_COLOR="$RED"
-else
-    CTX_COLOR="$AMBER"
 fi
 
 # Separator: orange vertical bar with surrounding spaces.
@@ -175,12 +181,20 @@ fi
 # Compose and print the status string to stdout.
 # Claude Code renders this in its built-in status bar — no cursor escapes.
 # ---------------------------------------------------------------------------
-STATUS=$(printf "%b◆ %s%b%b%s%b%b%s%%%b ctx" \
-    "" \
+# Base: ◆ <user> │ <model>
+STATUS=$(printf "◆ %s%b%b%s%b" \
     "${USER_NAME}" \
     "${SEP}" \
-    "${ORANGE}" "${MODEL}" "${RESET}" \
-    "${SEP}${CTX_COLOR}" "${REMAINING}" "${RESET}")
+    "${ORANGE}" "${MODEL}" "${RESET}")
+
+# Context segment: only included when we have an actual numeric value.
+# At session start Claude Code doesn't send context_window info, so we omit
+# the segment rather than rendering a misleading "0% ctx".
+if [ -n "$REMAINING" ]; then
+    CTX_SEGMENT=$(printf "%b%b%s%%%b ctx" \
+        "${SEP}" "${CTX_COLOR}" "${REMAINING}" "${RESET}")
+    STATUS="${STATUS}${CTX_SEGMENT}"
+fi
 
 STATUS="${STATUS}${CWD_SEGMENT}"
 
@@ -215,9 +229,13 @@ def _ensure_script(claude_dir: Path, force: bool = False) -> bool:
 
     Args:
         claude_dir: Path to the .claude/ directory.
-        force: If True, overwrite the existing script when it is MPM-managed
-            (i.e. contains the ``_MPM_MARKER`` line).  User-customised scripts
-            are still preserved even in force mode.
+        force: If True, overwrite the existing script with the bundled
+            canonical version regardless of whether it carries the
+            ``_MPM_MARKER`` line.  This is the semantic of an explicit user
+            action like ``claude-mpm update-statusline``: the user has asked
+            for the official version, so we give them the official version.
+            (Pre-marker installs and user-customised variants alike are
+            overwritten.)  When False, we never touch an existing file.
 
     Returns:
         True on success, False on error.
@@ -234,28 +252,29 @@ def _ensure_script(claude_dir: Path, force: bool = False) -> bool:
                 )
                 return False
 
-            if _MPM_MARKER in existing:
-                if existing == _SCRIPT_CONTENT:
-                    logger.debug(
-                        "statusline.sh at %s is already up to date — no rewrite needed",
-                        script_path,
-                    )
-                else:
-                    try:
-                        script_path.write_text(_SCRIPT_CONTENT, encoding="utf-8")
+            if existing == _SCRIPT_CONTENT:
+                logger.debug(
+                    "statusline.sh at %s is already up to date — no rewrite needed",
+                    script_path,
+                )
+            else:
+                try:
+                    script_path.write_text(_SCRIPT_CONTENT, encoding="utf-8")
+                    if _MPM_MARKER in existing:
                         logger.info(
                             "Upgraded MPM-managed statusline.sh at %s", script_path
                         )
-                    except Exception:
-                        logger.exception(
-                            "Failed to upgrade statusline.sh at %s", script_path
+                    else:
+                        logger.info(
+                            "Replaced statusline.sh at %s with canonical MPM version "
+                            "(force mode; previous file lacked the MPM marker)",
+                            script_path,
                         )
-                        return False
-            else:
-                logger.info(
-                    "statusline.sh at %s is user-customized — preserving (force mode respects user edits)",
-                    script_path,
-                )
+                except Exception:
+                    logger.exception(
+                        "Failed to overwrite statusline.sh at %s", script_path
+                    )
+                    return False
         else:
             logger.debug(
                 "statusline.sh already exists at %s — skipping script deploy",
