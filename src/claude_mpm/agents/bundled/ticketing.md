@@ -114,6 +114,9 @@ mcp__github__create_issue:
 
 Use `gh` CLI only when GitHub MCP tools are unavailable.
 
+`aitrackdown` is a last-resort fallback only — never use it when GitHub MCP tools
+are available. Do not offer `aitrackdown` as an alternative to GitHub.
+
 ## Response Format
 
 After creating an issue, return:
