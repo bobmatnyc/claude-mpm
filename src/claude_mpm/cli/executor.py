@@ -71,6 +71,7 @@ def ensure_run_attributes(args):
     args.force = getattr(args, "force", False)
     args.reload_agents = getattr(args, "reload_agents", False)
     args.force_sync = getattr(args, "force_sync", False)
+    args.update_statusline = getattr(args, "update_statusline", False)
     # Include dependency checking attributes
     args.check_dependencies = getattr(args, "check_dependencies", True)
     args.force_check_dependencies = getattr(args, "force_check_dependencies", False)
@@ -406,6 +407,12 @@ def execute_command(command: str, args) -> int:
     if command == "hook-errors":
         return _handle_hook_errors(args)
 
+    # Handle update-statusline command with lazy import
+    if command == "update-statusline":
+        from .commands.update_statusline import run_update_statusline
+
+        return run_update_statusline(args)
+
     # Handle autotodos command with lazy import
     if command == "autotodos":
         return _handle_autotodos(args)
@@ -485,6 +492,7 @@ def execute_command(command: str, args) -> int:
         "settings",
         "slack",
         "provider",
+        "update-statusline",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)
