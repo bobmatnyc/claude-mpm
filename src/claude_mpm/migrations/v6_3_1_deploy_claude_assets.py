@@ -42,24 +42,28 @@ def run_migration(installation_dir: Path | None = None) -> bool:
 
 
 def _deploy_statusline(claude_dir: Path) -> None:
-    """Deploy hooks/scripts/statusline.sh; always write/refresh and make executable."""
+    """Deploy hooks/scripts/statusline.sh if not already present, then make executable."""
     scripts_dir = claude_dir / "hooks" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     target = scripts_dir / "statusline.sh"
 
-    content = (
-        files("claude_mpm")
-        / "templates"
-        / "claude"
-        / "hooks"
-        / "scripts"
-        / "statusline.sh"
-    ).read_text(encoding="utf-8")
+    if target.exists():
+        logger.debug("statusline.sh already exists at %s, skipping overwrite", target)
+    else:
+        content = (
+            files("claude_mpm")
+            / "templates"
+            / "claude"
+            / "hooks"
+            / "scripts"
+            / "statusline.sh"
+        ).read_text(encoding="utf-8")
 
-    target.write_text(content, encoding="utf-8")
+        target.write_text(content, encoding="utf-8")
+        logger.info("Deployed statusline.sh to %s", target)
 
-    # Ensure executable bit is set (chmod 0o755)
+    # Always ensure executable bit is set (chmod 0o755)
     current_mode = target.stat().st_mode
     target.chmod(
         current_mode
@@ -69,8 +73,6 @@ def _deploy_statusline(claude_dir: Path) -> None:
         | stat.S_IROTH
         | stat.S_IXOTH
     )
-
-    logger.info("Deployed statusline.sh to %s (executable)", target)
 
 
 def _deploy_settings(claude_dir: Path) -> None:
