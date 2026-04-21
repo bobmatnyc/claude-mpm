@@ -288,6 +288,16 @@ class SessionManager:
 
         return sessions
 
+    async def _delayed_cleanup(self, session_id: str, delay: int = 300) -> None:
+        """Schedule cleanup of a stopped/completed session after a delay.
+
+        Args:
+            session_id: The session ID to clean up
+            delay: Delay in seconds before cleanup (default: 300 = 5 minutes)
+        """
+        await asyncio.sleep(delay)
+        await self.cleanup_session(session_id)
+
     async def stop_session(
         self,
         session_id: str,
@@ -312,6 +322,10 @@ class SessionManager:
             await subprocess.terminate(force=force)
 
         await self._update_session_status(session_id, SessionStatus.STOPPED)
+
+        # Schedule auto-cleanup of the stopped session after 5 minutes
+        asyncio.create_task(self._delayed_cleanup(session_id, delay=300))
+
         return True
 
     async def cleanup_session(self, session_id: str) -> bool:
