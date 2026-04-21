@@ -117,8 +117,7 @@ def main(argv: list | None = None):
     # Display startup banner (unless help/version/utility commands)
     # Pass migration results so they appear in banner only when applicable
     if should_show_banner(args):
-        logging_level = getattr(args, "logging", "OFF")
-        display_startup_banner(__version__, logging_level, applied_migrations)
+        display_startup_banner(__version__, applied_migrations)
 
         # Show runtime mode if explicitly selected via --sdk or --cli
         use_sdk = getattr(args, "sdk", False)
