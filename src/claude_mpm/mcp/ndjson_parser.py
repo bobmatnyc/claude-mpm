@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from collections import deque
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
@@ -34,7 +35,7 @@ class NDJSONStreamParser:
 
     def __init__(self) -> None:
         self.session_id: str | None = None
-        self.messages: list[dict[str, Any]] = []
+        self.messages: deque[dict[str, Any]] = deque(maxlen=1000)
         self.final_result: dict[str, Any] | None = None
 
     async def parse_stream(
