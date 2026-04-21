@@ -35,8 +35,8 @@ class SessionPauseManager:
             project_path: Project root path (default: current directory)
         """
         self.project_path = (project_path or Path.cwd()).resolve()
-        # Use flattened structure: .claude-mpm/sessions/ instead of sessions/pause/
-        self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
+        # Use global home-dir path so sessions are findable regardless of CWD at resume time
+        self.pause_dir = Path.home() / ".claude-mpm" / "sessions"
         self.pause_dir.mkdir(parents=True, exist_ok=True)
         self.storage = StateStorage(self.pause_dir)
 
