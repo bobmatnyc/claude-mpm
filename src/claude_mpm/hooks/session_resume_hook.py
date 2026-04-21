@@ -20,15 +20,11 @@ from claude_mpm.core.logger import get_logger
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 
 # Try to import _log from hook_handler, fall back to no-op
+_log: Callable[[str], None]
 try:
     from claude_mpm.hooks.claude_hooks.hook_handler import _log
 except ImportError:
-
-    def _log(message: str) -> None:
-        pass  # Silent fallback
-
-
-_log: Callable[[str], None]
+    _log = lambda _: None  # noqa: E731
 
 
 logger = get_logger(__name__)
