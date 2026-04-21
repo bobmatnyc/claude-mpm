@@ -1,3 +1,29 @@
+## v6.2.38 (2026-04-20)
+
+### Feat
+
+- **ticketing**: sync plugin skill with GitHub-first routing and ask-before-create
+- **ticketing**: add GitHub-first routing and ask-before-create to PM skill
+- **ticketing**: set GitHub as default, require confirmation before creating issues
+- **startup**: auto-configure statusline for every project on startup
+
+### Fix
+
+- **types**: rename unused text variable in claude_runner
+- **types**: remove duplicate class declarations from core/interfaces.py shim
+- **types**: allow None for optional list fields in agent interface
+- **types**: update AgentDeploymentInterface in services/core/interfaces to match core/interfaces
+- **types**: add missing methods to AgentDeploymentInterface in core/interfaces
+- **types**: clean up unused variables and dead code in run.py
+- **types**: correct return type annotation in dependency_cache
+- **types**: replace pkg_resources with importlib.metadata, fix dead code in agent_dependency_loader
+- **types**: add missing abstract methods to RunnerConfigurationInterface
+- **types**: suppress pyright errors for optional slack_bolt imports
+- **types**: add update_cache method to SmartDependencyChecker
+- **types**: add check_dependencies and install_dependencies stubs to AgentDependencyLoader
+- **types**: add missing ClaudeRunner browser attributes to __init__
+- **startup**: correct relative import paths for migrations in run.py
+
 ## v6.2.37 (2026-04-20)
 
 ### Feat
