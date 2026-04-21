@@ -103,6 +103,12 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Start the Slack MPM bot (requires SLACK_BOT_TOKEN and SLACK_APP_TOKEN)",
     )
+    run_group.add_argument(
+        "--update-statusline",
+        action="store_true",
+        help="Force-refresh the MPM-managed statusline.sh before starting the session "
+        "(re-runs statusline autoconfig regardless of prior migration state)",
+    )
 
     # Dependency checking options
     dep_group = parser.add_argument_group("dependency options")
