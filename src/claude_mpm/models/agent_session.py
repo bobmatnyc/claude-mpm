@@ -12,6 +12,7 @@ chronological order for session replay and analysis.
 """
 
 import json
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
@@ -179,7 +180,7 @@ class AgentSession:
     final_response: str | None = None
 
     # Event collections
-    events: list[SessionEvent] = field(default_factory=list)
+    events: deque[SessionEvent] = field(default_factory=lambda: deque(maxlen=2000))
     delegations: list[AgentDelegation] = field(default_factory=list)
 
     # Session state
@@ -232,10 +233,16 @@ class AgentSession:
 
         return event
 
-    def _categorize_event(self, event_type: str, data: dict[str, Any]) -> EventCategory:
+    def _categorize_event(
+        self, event_type: str, _data: dict[str, Any]
+    ) -> EventCategory:
         """Categorize an event based on its type and data.
 
         WHY: Categories help with filtering and analysis of related events.
+
+        Note: The ``_data`` parameter is intentionally unused today but kept in
+        the signature so future categorization rules can consult event payload
+        without breaking callers.
         """
         # Check event type patterns
         if "prompt" in event_type.lower() or event_type == "user_input":
@@ -435,17 +442,17 @@ class AgentSession:
             Path to the saved file
         """
         if directory is None:
-            directory = Path.cwd() / ".claude-mpm" / "sessions"
+            dir_path = Path.cwd() / ".claude-mpm" / "sessions"
         else:
-            directory = Path(directory)
+            dir_path = Path(directory)
 
         # Create directory if it doesn't exist
-        directory.mkdir(parents=True, exist_ok=True)
+        dir_path.mkdir(parents=True, exist_ok=True)
 
         # Generate filename with timestamp
         timestamp = self.start_time.replace(":", "-").replace(".", "-")[:19]
         filename = f"session_{self.session_id[:8]}_{timestamp}.json"
-        filepath = directory / filename
+        filepath = dir_path / filename
 
         # Save to file
         with filepath.open("w", encoding="utf-8") as f:
