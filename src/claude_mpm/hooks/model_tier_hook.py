@@ -39,7 +39,36 @@ _HAIKU_AGENTS: frozenset[str] = frozenset(
     }
 )
 
-_DEFAULT_MODEL = "sonnet"
+# Coding / engineering agents default to claude-opus-4-6 for stronger code quality.
+_OPUS_AGENTS: frozenset[str] = frozenset(
+    {
+        "engineer",
+        "python-engineer",
+        "typescript-engineer",
+        "react-engineer",
+        "nextjs-engineer",
+        "svelte-engineer",
+        "rust-engineer",
+        "golang-engineer",
+        "java-engineer",
+        "php-engineer",
+        "ruby-engineer",
+        "dart-engineer",
+        "nestjs-engineer",
+        "tauri-engineer",
+        "javascript-engineer",
+        "phoenix-engineer",
+        "visual-basic-engineer",
+        "data-engineer",
+        "refactoring-engineer",
+    }
+)
+
+# Explicit model IDs so Claude Code routes to the intended tier rather than
+# resolving bare "sonnet"/"opus" aliases that can drift over time.
+_DEFAULT_MODEL = "claude-sonnet-4-6"
+_OPUS_MODEL = "claude-opus-4-6"
+_HAIKU_MODEL = "haiku"
 
 
 def _read_model_from_frontmatter(agent_name: str, cwd: str) -> str | None:
@@ -78,11 +107,20 @@ def main() -> None:
     agent_type = tool_input.get("subagent_type", "")
     cwd = event.get("cwd", "")
 
-    # Try frontmatter first, fall back to static mapping
+    # Frontmatter `model:` field always wins when present (e.g. planner.md
+    # pins claude-opus-4-7 explicitly). Fall back to tier-based mapping:
+    #   haiku  -> low-cost ops/docs/routing agents
+    #   opus   -> coding/engineering agents (stronger code quality)
+    #   sonnet -> everything else (PM/orchestrator default)
     model = _read_model_from_frontmatter(agent_type, cwd)
     if model is None:
         name_lower = agent_type.lower().replace("_", "-")
-        model = "haiku" if name_lower in _HAIKU_AGENTS else _DEFAULT_MODEL
+        if name_lower in _HAIKU_AGENTS:
+            model = _HAIKU_MODEL
+        elif name_lower in _OPUS_AGENTS:
+            model = _OPUS_MODEL
+        else:
+            model = _DEFAULT_MODEL
 
     # Return modified tool_input via hookSpecificOutput.updatedInput
     tool_input["model"] = model
