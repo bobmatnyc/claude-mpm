@@ -1,3 +1,11 @@
+## v6.2.46 (2026-04-21)
+
+### Fix
+
+- **statusline**: propagate force flag in v6_3_1 asset deployment
+- **statusline**: honor force=True when overwriting non-marked files
+- **statusline**: omit ctx segment when remaining_percentage is absent
+
 ## v6.2.45 (2026-04-21)
 
 ### Fix
