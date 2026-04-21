@@ -70,6 +70,7 @@ def filter_claude_mpm_args(claude_args):
         "--mpm-resume",
         "--reload-agents",  # New flag to force rebuild system agents
         "--slack",  # Start Slack bot instead of Claude session
+        "--update-statusline",  # Force-refresh the MPM-managed statusline.sh
         # Dependency checking flags (MPM-specific)
         "--no-check-dependencies",
         "--force-check-dependencies",
@@ -873,15 +874,23 @@ def run_session_legacy(args):
         # Don't block startup on migration errors
         logger.warning(f"Migration check failed: {e}")
 
-    # Run statusline autoconfig on every startup (idempotent, per-project)
+    # Run statusline autoconfig on every startup (idempotent, per-project).
+    # When --update-statusline is passed we force-refresh the MPM-managed
+    # statusline.sh (user-customised scripts are still preserved).
+    force_statusline = bool(getattr(args, "update_statusline", False))
     try:
         from ...migrations.migrate_statusline_autoconfig import (
             run_migration as _configure_statusline,
         )
 
-        _configure_statusline(installation_dir=Path.cwd())
+        _configure_statusline(installation_dir=Path.cwd(), force=force_statusline)
+        if force_statusline:
+            print("Statusline updated.")
     except Exception as e:
         logger.debug("Statusline autoconfig skipped: %s", e)
+        if force_statusline:
+            # Surface errors when the user explicitly asked for an update.
+            print(f"Statusline update failed: {e}")
 
     # Handle --slack flag: start Slack bot instead of Claude session
     if getattr(args, "slack", False):
