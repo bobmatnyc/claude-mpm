@@ -372,7 +372,7 @@ def view_command_legacy(args):
     if args.show_events:
         print(f"\nEvents ({len(session.events)}):")
         print("-" * 40)
-        for event in session.events[: args.event_limit]:
+        for event in list(session.events)[: args.event_limit]:
             print(f"{event.timestamp} [{event.category.value:10s}] {event.event_type}")
             if args.verbose:
                 print(f"  Agent: {event.agent_context or 'N/A'}")

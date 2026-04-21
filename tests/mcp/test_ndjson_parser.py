@@ -4,6 +4,7 @@ Tests extract_session_id, extract_session_id_from_stream, and NDJSONStreamParser
 """
 
 import asyncio
+from collections import deque
 from unittest.mock import AsyncMock
 
 import pytest
@@ -175,7 +176,7 @@ class TestNDJSONStreamParser:
         parser = NDJSONStreamParser()
 
         assert parser.session_id is None
-        assert parser.messages == []
+        assert len(parser.messages) == 0
         assert parser.final_result is None
 
     @pytest.mark.asyncio
@@ -357,12 +358,14 @@ class TestNDJSONStreamParserGetters:
     def test_get_assistant_messages_filters_correctly(self):
         """get_assistant_messages should return only assistant type messages."""
         parser = NDJSONStreamParser()
-        parser.messages = [
-            {"type": "assistant", "content": "Hello"},
-            {"type": "tool", "name": "read_file"},
-            {"type": "assistant", "content": "Done"},
-            {"type": "result", "subtype": "success"},
-        ]
+        parser.messages = deque(
+            [
+                {"type": "assistant", "content": "Hello"},
+                {"type": "tool", "name": "read_file"},
+                {"type": "assistant", "content": "Done"},
+                {"type": "result", "subtype": "success"},
+            ]
+        )
 
         result = parser.get_assistant_messages()
 
@@ -381,12 +384,14 @@ class TestNDJSONStreamParserGetters:
     def test_get_tool_calls_filters_correctly(self):
         """get_tool_calls should return only tool type messages."""
         parser = NDJSONStreamParser()
-        parser.messages = [
-            {"type": "assistant", "content": "Reading file"},
-            {"type": "tool", "name": "read_file", "path": "/test.py"},
-            {"type": "tool", "name": "write_file", "path": "/out.py"},
-            {"type": "result", "subtype": "success"},
-        ]
+        parser.messages = deque(
+            [
+                {"type": "assistant", "content": "Reading file"},
+                {"type": "tool", "name": "read_file", "path": "/test.py"},
+                {"type": "tool", "name": "write_file", "path": "/out.py"},
+                {"type": "result", "subtype": "success"},
+            ]
+        )
 
         result = parser.get_tool_calls()
 
