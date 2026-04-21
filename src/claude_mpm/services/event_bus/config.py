@@ -125,6 +125,12 @@ class EventBusConfig:
 
         event_bus.set_debug(self.debug)
         event_bus._max_history_size = self.max_history_size
+        # Re-create the bounded deque with the new maxlen, preserving existing events
+        from collections import deque as _deque
+
+        event_bus._event_history = _deque(
+            event_bus._event_history, maxlen=self.max_history_size
+        )
 
         # Apply filters
         event_bus.clear_filters()
