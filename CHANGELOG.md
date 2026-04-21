@@ -1,3 +1,10 @@
+## v6.2.45 (2026-04-21)
+
+### Fix
+
+- **statusline**: add \$PWD fallback and expand jq CWD paths in _SCRIPT_CONTENT
+- **statusline**: add \$PWD fallback and expand jq CWD paths in template
+
 ## v6.2.44 (2026-04-21)
 
 ### Feat
