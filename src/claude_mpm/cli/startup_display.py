@@ -136,7 +136,7 @@ def _parse_changelog_highlights(max_items: int = 3, max_width: int = 130) -> lis
         in_version_section = False
         highlights = []
 
-        for i, line in enumerate(lines):
+        for _, line in enumerate(lines):
             line = line.rstrip()
 
             # Skip unreleased section
@@ -267,15 +267,6 @@ def _get_active_model_display_name() -> str:
     return "Default"
 
 
-def _format_logging_status(logging_level: str) -> str:
-    """Format logging status with helpful indicator."""
-    if logging_level == "OFF":
-        return "Logging: OFF (default)"
-    if logging_level == "DEBUG":
-        return f"Logging: {logging_level} (verbose)"
-    return f"Logging: {logging_level}"
-
-
 def _get_cwd_display(max_width: int = 40) -> str:
     """Get current working directory, truncated if needed."""
     cwd = str(Path.cwd())
@@ -323,19 +314,6 @@ def _collect_scope_names(scope: str) -> tuple[set[str], set[str]]:
         return (agent_names, skill_names)
     except Exception:
         return (set(), set())
-
-
-def _count_scope_assets(scope: str) -> tuple[int, int]:
-    """Count deployed agents and skills for a given scope.
-
-    Args:
-        scope: "project" (Path.cwd()/.claude/) or "user" (Path.home()/.claude/)
-
-    Returns:
-        Tuple of (agent_count, skill_count)
-    """
-    agent_names, skill_names = _collect_scope_names(scope)
-    return (len(agent_names), len(skill_names))
 
 
 def _format_scope_counts(
@@ -418,7 +396,7 @@ def _format_two_column_line(
 
 def display_startup_banner(
     version: str,
-    logging_level: str,
+    _logging_level: str,
     applied_migrations: list[str] | None = None,
 ) -> None:
     """
@@ -429,7 +407,7 @@ def display_startup_banner(
 
     Args:
         version: Claude MPM version string
-        logging_level: Current logging level (OFF/INFO/DEBUG)
+        _logging_level: Current logging level (OFF/INFO/DEBUG)
         applied_migrations: List of migration descriptions applied this session.
             If None or empty, migration section is not shown.
     """
