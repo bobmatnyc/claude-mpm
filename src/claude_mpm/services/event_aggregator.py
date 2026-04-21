@@ -149,7 +149,7 @@ class EventAggregator:
         self._save_all_sessions()
 
         # Disconnect Socket.IO client
-        if self.sio_client and self.connected:
+        if self.sio_client and self.connected and self.client_loop is not None:
             with contextlib.suppress(Exception):
                 asyncio.run_coroutine_threadsafe(
                     self.sio_client.disconnect(), self.client_loop
@@ -178,6 +178,9 @@ class EventAggregator:
 
     async def _connect_and_listen(self):
         """Connect to Socket.IO server and listen for events."""
+        if socketio is None:
+            self.logger.error("socketio is not available")
+            return
         try:
             self.sio_client = socketio.AsyncClient(
                 reconnection=True,
@@ -213,23 +216,26 @@ class EventAggregator:
 
     def _register_handlers(self):
         """Register Socket.IO event handlers."""
+        if self.sio_client is None:
+            return
+        sio_client = self.sio_client
 
-        @self.sio_client.event
+        @sio_client.event
         async def connect():
             """Handle connection to server."""
             self.connected = True
             self.logger.info("Connected to Socket.IO server")
 
             # Request event history to catch up on any missed events
-            await self.sio_client.emit("get_history", {"limit": 100})
+            await sio_client.emit("get_history", {"limit": 100})
 
-        @self.sio_client.event
+        @sio_client.event
         async def disconnect():
             """Handle disconnection from server."""
             self.connected = False
             self.logger.warning("Disconnected from Socket.IO server")
 
-        @self.sio_client.event
+        @sio_client.event
         async def claude_event(data):
             """Handle Claude events from the server.
 
@@ -241,7 +247,7 @@ class EventAggregator:
             except Exception as e:
                 self.logger.error(f"Error processing event: {e}")
 
-        @self.sio_client.event
+        @sio_client.event
         async def history(data):
             """Handle historical events from the server.
 
@@ -348,6 +354,25 @@ class EventAggregator:
         for a new session ID.
         """
         if session_id not in self.active_sessions:
+            # Enforce max active sessions cap to bound memory usage.
+            # If we are at capacity, evict the session with the oldest last_activity.
+            max_active_sessions = 50
+            if len(self.active_sessions) >= max_active_sessions:
+                oldest_session_id = min(
+                    self.last_activity,
+                    key=lambda sid: self.last_activity.get(sid, 0),
+                    default=None,
+                )
+                if oldest_session_id is not None:
+                    self.logger.warning(
+                        f"Active session cap ({max_active_sessions}) reached; "
+                        f"evicting oldest session {oldest_session_id[:8]}... "
+                        f"to make room for new session {session_id[:8]}..."
+                    )
+                    # Remove from tracking (do not finalize here to avoid await in sync context)
+                    self.active_sessions.pop(oldest_session_id, None)
+                    self.last_activity.pop(oldest_session_id, None)
+
             # Create new session
             session = AgentSession(session_id=session_id, start_time=timestamp)
 
@@ -385,7 +410,7 @@ class EventAggregator:
 
         # Save to file
         try:
-            filepath = session.save_to_file(self.save_dir)
+            filepath = session.save_to_file(str(self.save_dir))
             self.logger.info(f"Saved session {session_id[:8]}... to {filepath}")
             self.logger.info(f"  - Events: {session.metrics.total_events}")
             self.logger.info(f"  - Delegations: {session.metrics.total_delegations}")
@@ -441,7 +466,7 @@ class EventAggregator:
             try:
                 session = self.active_sessions[session_id]
                 session.finalize()
-                filepath = session.save_to_file(self.save_dir)
+                filepath = session.save_to_file(str(self.save_dir))
                 self.logger.info(
                     f"Saved active session {session_id[:8]}... to {filepath}"
                 )
