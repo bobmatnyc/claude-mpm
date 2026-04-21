@@ -396,7 +396,6 @@ def _format_two_column_line(
 
 def display_startup_banner(
     version: str,
-    _logging_level: str,
     applied_migrations: list[str] | None = None,
 ) -> None:
     """
@@ -407,7 +406,6 @@ def display_startup_banner(
 
     Args:
         version: Claude MPM version string
-        _logging_level: Current logging level (OFF/INFO/DEBUG)
         applied_migrations: List of migration descriptions applied this session.
             If None or empty, migration section is not shown.
     """
