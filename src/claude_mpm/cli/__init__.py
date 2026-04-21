@@ -191,7 +191,7 @@ def main(argv: list | None = None):
         elif os.environ.get("CLAUDE_MPM_RUNTIME") != "cli":
             # Auto-detect: SDK if claude_agent_sdk is importable
             try:
-                import claude_agent_sdk  # type: ignore[import-untyped]
+                import claude_agent_sdk as _  # type: ignore[import-untyped]
 
                 _will_use_sdk = True
             except ImportError:
