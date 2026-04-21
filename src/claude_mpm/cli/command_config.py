@@ -46,6 +46,8 @@ LIGHTWEIGHT_COMMANDS = {
     "migrate",
     # Message queue management
     "queue",
+    # Statusline maintenance
+    "update-statusline",
 }
 
 
