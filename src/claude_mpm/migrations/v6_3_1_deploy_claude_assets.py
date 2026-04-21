@@ -25,11 +25,16 @@ logger = logging.getLogger(__name__)
 MPM_MARKER = "# claude-mpm-managed:"
 
 
-def run_migration(installation_dir: Path | None = None) -> bool:
+def run_migration(installation_dir: Path | None = None, force: bool = False) -> bool:
     """Deploy statusline.sh and settings.json into .claude/.
 
     Args:
         installation_dir: Root of the project (default: cwd)
+        force: If True, overwrite ``statusline.sh`` with the bundled template
+            regardless of whether the existing file carries the MPM marker.
+            Intended for explicit user-driven refreshes (see
+            ``claude-mpm update-statusline``).  When False (default), a
+            pre-existing file without the marker is preserved.
 
     Returns:
         True on success
@@ -40,14 +45,22 @@ def run_migration(installation_dir: Path | None = None) -> bool:
     # Ensure .claude/ exists
     claude_dir.mkdir(parents=True, exist_ok=True)
 
-    _deploy_statusline(claude_dir)
+    _deploy_statusline(claude_dir, force=force)
     _deploy_settings(claude_dir)
 
     return True
 
 
-def _deploy_statusline(claude_dir: Path) -> None:
-    """Deploy statusline.sh: install if absent, upgrade if MPM-managed, skip if user-customized."""
+def _deploy_statusline(claude_dir: Path, force: bool = False) -> None:
+    """Deploy statusline.sh.
+
+    Policy:
+    - File absent → write canonical template.
+    - File present with MPM marker → upgrade to canonical template.
+    - File present without MPM marker:
+        * ``force=True``  → overwrite (user explicitly asked for the update).
+        * ``force=False`` → skip (respect user customisations).
+    """
     scripts_dir = claude_dir / "hooks" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
@@ -70,6 +83,13 @@ def _deploy_statusline(claude_dir: Path) -> None:
             else:
                 target.write_text(content, encoding="utf-8")
                 logger.info("Upgraded MPM-managed statusline.sh at %s", target)
+        elif force:
+            target.write_text(content, encoding="utf-8")
+            logger.info(
+                "Replaced statusline.sh at %s with canonical MPM version "
+                "(force mode; previous file lacked the MPM marker)",
+                target,
+            )
         else:
             logger.debug(
                 "statusline.sh is user-customized, skipping overwrite at %s", target
