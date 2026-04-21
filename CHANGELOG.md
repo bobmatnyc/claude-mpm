@@ -1,3 +1,18 @@
+## v6.2.41 (2026-04-20)
+
+### Fix
+
+- **types**: declare _log type before assignment to fix redeclaration and unused param
+- **types**: use Callable[[str], None] annotation for _log to avoid param name mismatch
+- **types**: use _ in fallback _log lambda in session_resume_hook
+- **types**: remove unused parameter in session_resume_helper
+- **types**: fix parameter name mismatch and unused msg in session_resume_hook
+- **types**: remove unused recent_commits variable in session_resume_helper
+- **session**: use global ~/.claude-mpm/sessions path in session_resume_hook
+- **session**: use global ~/.claude-mpm/sessions path in session_resume_helper, filter json-only for loading
+- **session**: use global ~/.claude-mpm/sessions path in session_pause_manager
+- **statusline**: sync template with migration script to restore working directory support
+
 ## v6.2.40 (2026-04-20)
 
 ### Fix
