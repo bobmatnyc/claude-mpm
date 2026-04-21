@@ -1,3 +1,15 @@
+## v6.2.44 (2026-04-21)
+
+### Feat
+
+- **cli**: add update-statusline to LIGHTWEIGHT_COMMANDS
+- **cli**: handle --update-statusline flag in run session startup
+- **cli**: route update-statusline command in executor
+- **cli**: register update-statusline subcommand in base parser
+- **cli**: add --update-statusline flag to run command
+- **migrations**: add force param to statusline run_migration for explicit upgrade
+- **cli**: add standalone update-statusline command
+
 ## v6.2.43 (2026-04-21)
 
 ### Fix
