@@ -1,3 +1,15 @@
+## v6.2.42 (2026-04-20)
+
+### Feat
+
+- **migrations**: add mpm-managed marker to _SCRIPT_CONTENT in statusline autoconfig
+- **migrations**: upgrade MPM-managed statusline.sh, skip user-customized versions
+- **statusline**: add mpm-managed marker to template for upgrade detection
+
+### Fix
+
+- **migrations**: skip statusline.sh overwrite if file already exists
+
 ## v6.2.41 (2026-04-20)
 
 ### Fix
