@@ -21,6 +21,7 @@ import logging.handlers
 import os
 import sys
 import time
+from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from enum import Enum
@@ -225,7 +226,9 @@ class AsyncSessionLogger:
         elif self.log_format == LogFormat.JOURNALD:
             # Use systemd journal for Linux systems
             try:
-                from systemd.journal import JournalHandler
+                from systemd.journal import (
+                    JournalHandler,  # type: ignore[import-not-found]
+                )
 
                 self.journal_handler = JournalHandler()
                 self.journal_handler.setFormatter(logging.Formatter("%(message)s"))
@@ -247,7 +250,7 @@ class AsyncSessionLogger:
 
     def _process_queue(self):
         """Background worker to process the log queue."""
-        write_times = []
+        write_times: deque[float] = deque(maxlen=100)
 
         while not self._shutdown:
             try:
@@ -263,8 +266,6 @@ class AsyncSessionLogger:
 
                 # Update statistics
                 write_times.append(write_time)
-                if len(write_times) > 100:
-                    write_times = write_times[-100:]  # Keep last 100
 
                 with self._lock:
                     self.stats["logged"] += 1
