@@ -1,3 +1,14 @@
+## v6.2.49 (2026-04-22)
+
+### Fix
+
+- **session**: use correct global pause_dir path in session pause manager
+- **session**: filter test fixtures from get_most_recent_session()
+- **session**: suppress pyright import and unreachable-code warnings
+- **run**: suppress pyright unused-variable warnings
+- **session**: respect user model setting in SDK mode
+- **run**: respect user model setting, don't override with generic sonnet alias
+
 ## v6.2.48 (2026-04-22)
 
 ### Fix
