@@ -144,12 +144,12 @@ class SessionPauseManager:
                 "quick_start": [
                     f"Read {session_id}.md for full context",
                     "Run: git status to check current state",
-                    "Run: cat .claude-mpm/sessions/LATEST-SESSION.txt",
+                    f"Run: cat {self.pause_dir}/LATEST-SESSION.txt",
                 ],
                 "files_to_review": [],
                 "validation_commands": {
                     "check_git": "git status && git log -1 --stat",
-                    "check_session": f"cat .claude-mpm/sessions/{session_id}.md",
+                    "check_session": f"cat {self.pause_dir}/{session_id}.md",
                 },
             },
             "open_questions": [],
@@ -502,7 +502,7 @@ Quick Resume:
   /mpm-init resume
 
 Full Context:
-  cat .claude-mpm/sessions/{session_id}.md
+  cat {self.pause_dir}/{session_id}.md
 
 Validation:
   git status && git log -1 --stat
@@ -513,39 +513,27 @@ Validation:
             logger.warning(f"Failed to update LATEST-SESSION.txt: {e}")
 
     def _commit_pause_session(self, session_id: str, message: str | None) -> None:
-        """Create git commit for pause session.
+        """Skip git commit — session files live in the global home store.
+
+        Session files are written to ``~/.claude-mpm/sessions/`` (see
+        ``self.pause_dir``), which is not inside the project git repository.
+        Attempting to ``git add`` a project-relative path would silently fail,
+        and attempting to commit the global directory would require the home
+        directory to be a repo. Sessions are intentionally stored globally so
+        they are accessible across projects and CWDs, so there is nothing
+        meaningful to commit here.
 
         Args:
-            session_id: Session identifier
-            message: Optional context message
+            session_id: Session identifier (for logging)
+            message: Optional context message (unused, kept for API stability)
         """
-        try:
-            # Add session files
-            subprocess.run(  # nosec B603, B607 - safe git command
-                ["git", "add", ".claude-mpm/sessions/"],
-                cwd=self.project_path,
-                check=True,
-                capture_output=True,
-            )
-
-            # Build commit message
-            commit_msg = f"session: pause at {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}\n\nSession ID: {session_id}"
-            if message:
-                commit_msg += f"\nContext: {message}"
-
-            # Create commit
-            subprocess.run(  # nosec B603, B607 - safe git command
-                ["git", "commit", "-m", commit_msg],
-                cwd=self.project_path,
-                check=True,
-                capture_output=True,
-            )
-
-            logger.info(f"Created git commit for pause session: {session_id}")
-
-        except subprocess.CalledProcessError as e:
-            # Non-fatal - pause still succeeded
-            logger.warning(f"Failed to create git commit: {e.stderr.decode()}")
+        _ = message  # intentionally unused
+        logger.debug(
+            "Skipping git commit for pause session %s: sessions are stored "
+            "globally at %s and are not part of the project repo",
+            session_id,
+            self.pause_dir,
+        )
 
     def _get_project_version(self) -> str:
         """Get project version from pyproject.toml or package.
