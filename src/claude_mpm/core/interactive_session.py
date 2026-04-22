@@ -759,19 +759,47 @@ class InteractiveSession:
             # Default PM to Sonnet in SDK mode (Opus costs 5x more, same quality).
             # Benchmark: Sonnet PM + Sonnet subagents = $1.32 vs Opus PM = $3.61,
             # with identical test pass rates (21/21).
-            pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL", "sonnet")
+            #
+            # Model selection priority (matches cli/commands/run.py):
+            #   1. CLAUDE_MPM_PM_MODEL env var -> use it
+            #   2. User's ~/.claude/settings.json has "model" -> don't pass model=
+            #      (respect Claude Code's user-configured model, e.g. claude-sonnet-4.6)
+            #   3. Otherwise -> default to "claude-sonnet-4-6" (explicit versioned ID;
+            #      avoids the generic "sonnet" alias overwriting user preferences).
+            env_pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL")
+            user_has_model_pref = False
+            try:
+                import json as _json
+
+                settings_path = Path.home() / ".claude" / "settings.json"
+                if settings_path.is_file():
+                    with settings_path.open("r", encoding="utf-8") as _f:
+                        _user_settings = _json.load(_f)
+                    if isinstance(_user_settings, dict) and _user_settings.get("model"):
+                        user_has_model_pref = True
+            except (OSError, ValueError):
+                user_has_model_pref = False
+
+            if env_pm_model:
+                pm_model: str | None = env_pm_model
+            elif user_has_model_pref:
+                pm_model = None  # Defer to user's settings.json
+            else:
+                pm_model = "claude-sonnet-4-6"
 
             # Default subagents to Sonnet too unless user has already set a preference.
             if "CLAUDE_CODE_SUBAGENT_MODEL" not in os.environ:
                 os.environ["CLAUDE_CODE_SUBAGENT_MODEL"] = "claude-sonnet-4-6"
 
-            options = ClaudeAgentOptions(
-                system_prompt=system_prompt,
-                cwd=cwd,
-                permission_mode=permission_mode,
-                hooks=hooks_config,
-                model=pm_model,
-            )
+            options_kwargs: dict[str, Any] = {
+                "system_prompt": system_prompt,
+                "cwd": cwd,
+                "permission_mode": permission_mode,
+                "hooks": hooks_config,
+            }
+            if pm_model is not None:
+                options_kwargs["model"] = pm_model
+            options = ClaudeAgentOptions(**options_kwargs)
             if mcp_servers:
                 options.mcp_servers = mcp_servers
 
