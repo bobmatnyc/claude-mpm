@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from claude_mpm.core.protocols import ClaudeRunnerProtocol
 else:
     # At runtime, accept any object with matching interface
-    ClaudeRunnerProtocol = Any
+    ClaudeRunnerProtocol = Any  # pyright: ignore[reportUnreachable]
 
 
 class InteractiveSession:
@@ -226,7 +226,7 @@ class InteractiveSession:
             self._handle_launch_error("Exception", e)
             return self._attempt_fallback_launch(environment)
 
-    def process_interactive_command(self, _prompt: str) -> bool | None:
+    def process_interactive_command(self, _prompt: str) -> bool | None:  # pyright: ignore[reportUnusedParameter]
         """Process special interactive commands.
 
         NOTE: As of v4.1.2, MPM slash commands are deployed as markdown files
@@ -611,7 +611,7 @@ class InteractiveSession:
 
         # This will not return if successful
         os.execvpe(cmd[0], cmd, env)  # nosec B606
-        return False  # type: ignore[unreachable]  # reached when os.execvpe is mocked in tests
+        return False  # type: ignore[unreachable]  # pyright: ignore[reportUnreachable]  # reached when os.execvpe is mocked in tests
 
     def _launch_subprocess_mode(self, cmd: list, env: dict) -> bool:
         """Launch Claude as subprocess with PTY."""
@@ -637,7 +637,7 @@ class InteractiveSession:
 
         async def _run_sdk_session() -> int:
             try:
-                from claude_agent_sdk import (
+                from claude_agent_sdk import (  # type: ignore[import-not-found]  # pyright: ignore[reportMissingImports]
                     AssistantMessage,
                     ClaudeAgentOptions,
                     ClaudeSDKClient,
@@ -745,7 +745,9 @@ class InteractiveSession:
             # Build SDK options
             hooks_config: dict | None = None
             if pretooluse_hook is not None:
-                from claude_agent_sdk import HookMatcher
+                from claude_agent_sdk import (  # type: ignore[import-not-found]  # pyright: ignore[reportMissingImports]
+                    HookMatcher,
+                )
 
                 hooks_config = {
                     "PreToolUse": [
@@ -1026,7 +1028,7 @@ class InteractiveSession:
                 {"event": "session_interrupted", "reason": "user_interrupt"}
             )
 
-    def _launch_channel_hub_mode(self, _channels_str: str) -> bool:
+    def _launch_channel_hub_mode(self, _channels_str: str) -> bool:  # pyright: ignore[reportUnusedParameter]
         """Launch the multi-channel hub instead of a single-channel session.
 
         Args:
