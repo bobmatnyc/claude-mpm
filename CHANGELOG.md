@@ -1,3 +1,10 @@
+## v6.2.48 (2026-04-22)
+
+### Fix
+
+- **skills**: mirror mpm-session-resume Implementation block in plugin copy
+- **skills**: add explicit Implementation section to mpm-session-resume bundled skill
+
 ## v6.2.47 (2026-04-21)
 
 ### Feat
