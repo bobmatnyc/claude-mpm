@@ -26,12 +26,34 @@ from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 # ============================================================================
 
 
+@pytest.fixture(autouse=True)
+def isolated_home(tmp_path, monkeypatch):
+    """Redirect ``Path.home()`` to an isolated temp directory for every test.
+
+    SessionResumeHelper (and SessionPauseManager) read/write sessions at
+    ``Path.home() / ".claude-mpm" / "sessions"``. Without this fixture, tests
+    would pollute the real ``~/.claude-mpm/sessions/`` directory with
+    ``session-test.json``, ``session-0.json``, ``LATEST-SESSION.txt`` pointing
+    at pytest temp paths, etc. Isolating the home directory per-test prevents
+    that cross-contamination and keeps the real session store clean.
+    """
+    fake_home = tmp_path / "fake_home"
+    fake_home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+    return fake_home
+
+
 @pytest.fixture
-def temp_project_dir(tmp_path):
-    """Create a temporary project directory with session structure."""
-    project_dir = tmp_path / "test_project"
+def temp_project_dir(isolated_home):
+    """Create a temporary project directory with session structure.
+
+    The project_dir is the project root passed as ``project_path``. The real
+    session store is under the isolated home dir (see ``isolated_home``), so
+    ``helper.pause_dir`` resolves to ``<isolated_home>/.claude-mpm/sessions``.
+    """
+    project_dir = isolated_home / "test_project"
     project_dir.mkdir()
-    sessions_dir = project_dir / ".claude-mpm" / "sessions"
+    sessions_dir = isolated_home / ".claude-mpm" / "sessions"
     sessions_dir.mkdir(parents=True)
     return project_dir
 
@@ -87,23 +109,25 @@ def helper(temp_project_dir):
 class TestInitialization:
     """Tests for SessionResumeHelper initialization."""
 
-    def test_init_with_explicit_path(self, temp_project_dir):
+    def test_init_with_explicit_path(self, temp_project_dir, isolated_home):
         """Test initialization with explicit project path."""
         helper = SessionResumeHelper(project_path=temp_project_dir)
         assert helper.project_path == temp_project_dir
-        assert helper.pause_dir == temp_project_dir / ".claude-mpm" / "sessions"
+        # pause_dir is always the global home-dir path, not project-local
+        assert helper.pause_dir == isolated_home / ".claude-mpm" / "sessions"
 
-    def test_init_with_default_path(self):
+    def test_init_with_default_path(self, isolated_home):
         """Test initialization with default (current) path."""
         with patch("pathlib.Path.cwd") as mock_cwd:
             mock_cwd.return_value = Path("/mock/path")
             helper = SessionResumeHelper()
             assert helper.project_path == Path("/mock/path")
-            assert helper.pause_dir == Path("/mock/path/.claude-mpm/sessions")
+            # pause_dir is always the global home-dir path
+            assert helper.pause_dir == isolated_home / ".claude-mpm" / "sessions"
 
-    def test_pause_dir_structure(self, helper, temp_project_dir):
+    def test_pause_dir_structure(self, helper, isolated_home):
         """Test pause directory path structure is correct."""
-        expected = temp_project_dir / ".claude-mpm" / "sessions"
+        expected = isolated_home / ".claude-mpm" / "sessions"
         assert helper.pause_dir == expected
 
 
@@ -852,7 +876,8 @@ class TestCheckAndDisplayResumePrompt:
 
     def test_returns_session_when_found(self, helper, sample_session_data):
         """Test returns session data when found."""
-        session_file = helper.pause_dir / "session-test.json"
+        # Use timestamped name so get_most_recent_session's filter matches
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text(json.dumps(sample_session_data))
 
         with patch("builtins.print"):
@@ -863,7 +888,7 @@ class TestCheckAndDisplayResumePrompt:
 
     def test_prints_formatted_prompt(self, helper, sample_session_data):
         """Test prints formatted prompt to console."""
-        session_file = helper.pause_dir / "session-test.json"
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text(json.dumps(sample_session_data))
 
         with patch("builtins.print") as mock_print:
@@ -875,7 +900,7 @@ class TestCheckAndDisplayResumePrompt:
 
     def test_returns_none_when_load_fails(self, helper):
         """Test returns None when session load fails."""
-        session_file = helper.pause_dir / "session-test.json"
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text("invalid json")
 
         result = helper.check_and_display_resume_prompt()
@@ -1009,8 +1034,8 @@ class TestIntegrationScenarios:
 
     def test_complete_session_lifecycle(self, helper, sample_session_data):
         """Test complete lifecycle: create, find, load, clear."""
-        # Create session
-        session_file = helper.pause_dir / "session-lifecycle.json"
+        # Create session (timestamped name so get_most_recent_session matches)
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text(json.dumps(sample_session_data))
 
         # Check exists
@@ -1033,20 +1058,23 @@ class TestIntegrationScenarios:
         """Test working with multiple sessions."""
         import time
 
-        # Create multiple sessions
-        for i in range(5):
-            session_file = helper.pause_dir / f"session-{i}.json"
+        # Create multiple sessions with timestamped names so
+        # get_most_recent_session() (which filters to session-YYYYMMDD-HHMMSS)
+        # can find them.
+        session_ids = [f"session-2025110{i}-120000" for i in range(5)]
+        for sid in session_ids:
+            session_file = helper.pause_dir / f"{sid}.json"
             data = sample_session_data.copy()
-            data["session_id"] = f"session-{i}"
+            data["session_id"] = sid
             session_file.write_text(json.dumps(data))
             time.sleep(0.01)
 
         # Verify count
         assert helper.get_session_count() == 5
 
-        # Get most recent
+        # Get most recent (last-written has latest mtime)
         recent = helper.get_most_recent_session()
-        assert recent["session_id"] == "session-4"
+        assert recent["session_id"] == session_ids[-1]
 
         # List all
         all_sessions = helper.list_all_sessions()
@@ -1058,7 +1086,7 @@ class TestIntegrationScenarios:
 
     def test_resume_prompt_display_workflow(self, helper, sample_session_data):
         """Test complete resume prompt display workflow."""
-        session_file = helper.pause_dir / "session-test.json"
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text(json.dumps(sample_session_data))
 
         with patch("builtins.print") as mock_print:
@@ -1154,8 +1182,8 @@ class TestEdgeCases:
         """Test handles concurrent access scenarios."""
         import time
 
-        # Create session
-        session_file = helper.pause_dir / "session-concurrent.json"
+        # Create session (timestamped so get_most_recent_session picks it up)
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text(json.dumps(sample_session_data))
 
         # Simulate concurrent modification by changing mtime
