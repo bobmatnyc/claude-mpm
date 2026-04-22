@@ -14,10 +14,15 @@ DESIGN DECISIONS:
 """
 
 import json
+import re
 import subprocess  # nosec B404 - subprocess needed for git commands
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+# Matches real timestamped session filenames: session-YYYYMMDD-HHMMSS.json
+# Excludes test fixtures like session-test.json, session-valid.json, session-0.json
+_TIMESTAMPED_SESSION_RE = re.compile(r"^session-\d{8}-\d{6}\.json$")
 
 from claude_mpm.core.logger import get_logger
 
@@ -72,6 +77,12 @@ class SessionResumeHelper:
 
         if self.legacy_pause_dir.exists():
             session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+
+        # Filter to only real timestamped session files (exclude test fixtures
+        # like session-test.json, session-valid.json, session-0.json, etc.)
+        session_files = [
+            p for p in session_files if _TIMESTAMPED_SESSION_RE.match(p.name)
+        ]
 
         if not session_files:
             return None
