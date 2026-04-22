@@ -501,10 +501,36 @@ class RunCommand(BaseCommand):
         if hasattr(args, "claude_args") and args.claude_args:
             claude_args.extend(args.claude_args)
 
-        # Default PM model to Sonnet (overridable via --model or /model in session)
-        pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL", "sonnet")
+        # Default PM model (overridable via --model or /model in session).
+        #
+        # Priority:
+        #   1. CLAUDE_MPM_PM_MODEL env var (explicit user override) -> inject --model
+        #   2. User's ~/.claude/settings.json has "model" key -> do NOT inject --model
+        #      (let Claude Code use the user's configured/versioned model)
+        #   3. No env var, no user preference -> default to "claude-sonnet-4-6"
+        #      (explicit versioned ID avoids ambiguous "sonnet" alias that Claude Code
+        #      would persist back to settings.json, overwriting the user's preference)
         if "--model" not in claude_args:
-            claude_args.extend(["--model", pm_model])
+            env_pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL")
+            user_has_model_pref = False
+            try:
+                import json as _json
+
+                settings_path = Path.home() / ".claude" / "settings.json"
+                if settings_path.is_file():
+                    with settings_path.open("r", encoding="utf-8") as _f:
+                        _user_settings = _json.load(_f)
+                    if isinstance(_user_settings, dict) and _user_settings.get("model"):
+                        user_has_model_pref = True
+            except (OSError, ValueError):
+                # Missing/malformed settings.json: fall through to defaults.
+                user_has_model_pref = False
+
+            if env_pm_model:
+                claude_args.extend(["--model", env_pm_model])
+            elif not user_has_model_pref:
+                claude_args.extend(["--model", "claude-sonnet-4-6"])
+            # else: user has a model set in ~/.claude/settings.json -> inject nothing
 
         # Add --resume if flag is set
         # args.resume can be:
