@@ -1,3 +1,9 @@
+## v6.2.47 (2026-04-21)
+
+### Feat
+
+- **hooks**: enforce opus for coding agents, pin explicit model IDs
+
 ## v6.2.46 (2026-04-21)
 
 ### Fix
