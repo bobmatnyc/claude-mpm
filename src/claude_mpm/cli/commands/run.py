@@ -204,6 +204,7 @@ class RunCommand(BaseCommand):
         """Validate command arguments."""
         # Run command has minimal validation requirements
         # Most validation is handled by the ClaudeRunner and related services
+        _ = args  # pyright: ignore[reportUnusedVariable]
         return None
 
     def run(self, args) -> CommandResult:
@@ -368,7 +369,7 @@ class RunCommand(BaseCommand):
                 loader = AgentDependencyLoader(auto_install=False)
 
                 # Check if agents have changed
-                _has_changed, deployment_hash = loader.has_agents_changed()
+                _has_changed, deployment_hash = loader.has_agents_changed()  # pyright: ignore[reportUnusedVariable]
 
                 # Determine if we should check dependencies
                 should_check, check_reason = smart_checker.should_check_dependencies(
@@ -450,7 +451,7 @@ class RunCommand(BaseCommand):
             else:
                 # Find available port and start server
                 websocket_port = dashboard_manager.find_available_port(8765)
-                success, _server_info = dashboard_manager.start_server(
+                success, _server_info = dashboard_manager.start_server(  # pyright: ignore[reportUnusedVariable]
                     port=websocket_port
                 )
 
@@ -574,7 +575,11 @@ class RunCommand(BaseCommand):
         return runner
 
     def _create_session_context(
-        self, args, session_manager, resume_session_id, resume_context
+        self,
+        args,  # pyright: ignore[reportUnusedParameter]
+        session_manager,
+        resume_session_id,
+        resume_context,
     ):
         """Create session context."""
         try:
@@ -1031,7 +1036,7 @@ def run_session_legacy(args):
             loader = AgentDependencyLoader(auto_install=False)
 
             # Check if agents have changed
-            _has_changed, deployment_hash = loader.has_agents_changed()
+            _has_changed, deployment_hash = loader.has_agents_changed()  # pyright: ignore[reportUnusedVariable]
 
             # Determine if we should check dependencies
             should_check, check_reason = smart_checker.should_check_dependencies(
@@ -1362,13 +1367,13 @@ def launch_socketio_monitor(port, logger):
     return False, False
 
 
-def _check_socketio_server_running(port, logger):
+def _check_socketio_server_running(port, logger):  # pyright: ignore[reportUnusedFunction]
     """Check if a Socket.IO server is running on the specified port (legacy compatibility)."""
     dashboard_manager = UnifiedDashboardManager(logger)
     return dashboard_manager.is_server_running(port)
 
 
-def _start_standalone_socketio_server(port, logger):
+def _start_standalone_socketio_server(port, logger):  # pyright: ignore[reportUnusedFunction]
     """Start a standalone Socket.IO server (legacy compatibility)."""
     dashboard_manager = UnifiedDashboardManager(logger)
     success, _ = dashboard_manager.start_server(port=port)
@@ -1381,7 +1386,7 @@ def open_in_browser_tab(url, logger):
     return manager.open_browser(url)
 
 
-def _check_claude_json_memory(args, logger):
+def _check_claude_json_memory(args, logger):  # pyright: ignore[reportUnusedParameter]
     """Check .claude.json file size and warn about memory issues."""
     # Use new StartupCheckerService
     from ...core.config import Config
@@ -1457,7 +1462,7 @@ def _start_slack_bot(logger):
         print(f"\n❌ Error starting Slack bot: {e}")
 
 
-def _check_configuration_health(logger):
+def _check_configuration_health(logger):  # pyright: ignore[reportUnusedParameter]
     """Check configuration health at startup and warn about issues."""
     # Use new StartupCheckerService
     from ...core.config import Config
