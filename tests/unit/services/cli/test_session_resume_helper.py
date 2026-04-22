@@ -12,10 +12,9 @@ Coverage targets:
 
 import json
 import shutil
-import subprocess
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, PropertyMock, mock_open, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -139,7 +138,7 @@ class TestInitialization:
 class TestHasPausedSessions:
     """Tests for has_paused_sessions() method."""
 
-    def test_returns_true_when_sessions_exist(self, helper, temp_project_dir):
+    def test_returns_true_when_sessions_exist(self, helper, temp_project_dir):  # pyright: ignore[reportUnusedParameter]
         """Test returns True when session files exist."""
         # Create a session file
         session_file = helper.pause_dir / "session-20251104-120000.json"
@@ -1187,7 +1186,7 @@ class TestEdgeCases:
         session_file.write_text(json.dumps(sample_session_data))
 
         # Simulate concurrent modification by changing mtime
-        original_session = helper.get_most_recent_session()
+        _ = helper.get_most_recent_session()
 
         # Modify file
         time.sleep(0.01)
