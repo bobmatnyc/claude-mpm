@@ -16,8 +16,8 @@ Pause the current session and save all work state for later resume.
 
 When invoked, this skill:
 1. Captures current work state (todos, git status, context summary)
-2. Creates session file at `.claude-mpm/sessions/session-{timestamp}.md`
-3. Updates `.claude-mpm/sessions/LATEST-SESSION.txt` pointer
+2. Creates session file at `~/.claude-mpm/sessions/session-{timestamp}.md`
+3. Updates `~/.claude-mpm/sessions/LATEST-SESSION.txt` pointer
 4. Optionally commits session state to git
 5. Shows user the session file path for later resume
 
@@ -61,16 +61,16 @@ print(f"✅ Session paused successfully!")
 print(f"")
 print(f"Session ID: {session_id}")
 print(f"Session files:")
-print(f"  - .claude-mpm/sessions/{session_id}.md (human-readable)")
-print(f"  - .claude-mpm/sessions/{session_id}.json (machine-readable)")
-print(f"  - .claude-mpm/sessions/{session_id}.yaml (config format)")
+print(f"  - ~/.claude-mpm/sessions/{session_id}.md (human-readable)")
+print(f"  - ~/.claude-mpm/sessions/{session_id}.json (machine-readable)")
+print(f"  - ~/.claude-mpm/sessions/{session_id}.yaml (config format)")
 print(f"")
 print(f"Quick resume:")
 print(f"  /mpm-resume")
 print(f"")
 print(f"View session context:")
-print(f"  cat .claude-mpm/sessions/LATEST-SESSION.txt")
-print(f"  cat .claude-mpm/sessions/{session_id}.md")
+print(f"  cat ~/.claude-mpm/sessions/LATEST-SESSION.txt")
+print(f"  cat ~/.claude-mpm/sessions/{session_id}.md")
 ```
 
 ## What Gets Saved
@@ -97,7 +97,7 @@ print(f"  cat .claude-mpm/sessions/{session_id}.md")
 
 All session files are stored in:
 ```
-.claude-mpm/sessions/
+~/.claude-mpm/sessions/
 ├── LATEST-SESSION.txt          # Pointer to most recent session
 ├── session-YYYYMMDD-HHMMSS.md
 ├── session-YYYYMMDD-HHMMSS.json
@@ -122,19 +122,16 @@ To resume this session:
 
 Or manually:
 ```bash
-cat .claude-mpm/sessions/LATEST-SESSION.txt
-cat .claude-mpm/sessions/session-YYYYMMDD-HHMMSS.md
+cat ~/.claude-mpm/sessions/LATEST-SESSION.txt
+cat ~/.claude-mpm/sessions/session-YYYYMMDD-HHMMSS.md
 ```
 
 ## Git Integration
 
-If in a git repository, the session will be automatically committed with message:
-```
-session: pause at YYYY-MM-DD HH:MM:SS
-
-Session ID: session-YYYYMMDD-HHMMSS
-Context: [your optional message]
-```
+Session files are stored globally at `~/.claude-mpm/sessions/` so they are
+accessible across projects and working directories. Because the global session
+store is not part of any project repo, session pauses do **not** create a git
+commit — they are purely filesystem writes under your home directory.
 
 ## Use Cases
 
@@ -166,7 +163,7 @@ Context: [your optional message]
 
 ## Notes
 
-- Session files are project-local (not synced across machines)
-- Git commit is optional (automatically skipped if not a repo)
+- Session files are stored globally in `~/.claude-mpm/sessions/` (not synced across machines)
+- No git commit is created — sessions live outside project repos
 - LATEST-SESSION.txt always points to most recent session
 - Session format compatible with auto-pause feature (70% context trigger)
