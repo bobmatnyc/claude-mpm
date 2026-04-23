@@ -113,242 +113,255 @@ class MessagingMCPServer:
         return service, resolved
 
     def _setup_handlers(self) -> None:
-        """Register MCP tool handlers."""
+        """Register MCP tool handlers.
 
-        @self.server.list_tools()
-        async def _list_tools() -> list[Tool]:  # pyright: ignore[reportUnusedVariable]
-            """Return list of available tools."""
+        WHY: We register bound class methods directly with the MCP server's
+        decorator factories rather than defining inner functions. The MCP
+        ``@server.list_tools()`` / ``@server.call_tool()`` decorators are used
+        purely for their registration side-effect — they don't need a local
+        name. Defining inner ``async def`` handlers caused Pyright to flag the
+        local names as unused (reportUnusedVariable), and ``# pyright: ignore``
+        suppressions are brittle. Promoting the handlers to real methods makes
+        them first-class, individually testable, and eliminates the unused-name
+        problem entirely.
+        """
+        self.server.list_tools()(self._handle_list_tools)
+        self.server.call_tool()(self._handle_call_tool)
+
+    async def _handle_list_tools(self) -> list[Tool]:
+        """Return list of available tools."""
+        return [
+            Tool(
+                name="message_send",
+                description="Send a message to another claude-mpm project",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "to_project": {
+                            "type": "string",
+                            "description": "Destination project path or shortcut name",
+                        },
+                        "to_agent": {
+                            "type": "string",
+                            "description": "Target agent in the destination project",
+                        },
+                        "message_type": {
+                            "type": "string",
+                            "description": "Message type (e.g. task, notification, query)",
+                        },
+                        "subject": {
+                            "type": "string",
+                            "description": "Message subject",
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "Message body",
+                        },
+                        "priority": {
+                            "type": "string",
+                            "description": "Priority: low, normal, high (default: normal)",
+                            "default": "normal",
+                        },
+                        "from_agent": {
+                            "type": "string",
+                            "description": "Sending agent name (default: pm)",
+                            "default": "pm",
+                        },
+                    },
+                    "required": [
+                        "to_project",
+                        "to_agent",
+                        "message_type",
+                        "subject",
+                        "body",
+                    ],
+                },
+            ),
+            Tool(
+                name="message_list",
+                description=(
+                    "List messages addressed to a specific project, optionally "
+                    "filtered by status or agent. If project_path is omitted, "
+                    "the server uses CLAUDE_MPM_PROJECT_ROOT or PWD; relying on "
+                    "that fallback is discouraged because the MCP server's cwd "
+                    "is not the user's project."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "status": {
+                            "type": "string",
+                            "description": "Filter by status: unread, read, archived",
+                        },
+                        "agent": {
+                            "type": "string",
+                            "description": "Filter by recipient agent name",
+                        },
+                        "project_path": {
+                            "type": "string",
+                            "description": (
+                                "Absolute path to the project whose inbox should "
+                                "be queried. Strongly recommended; defaults to "
+                                "CLAUDE_MPM_PROJECT_ROOT/PWD when omitted."
+                            ),
+                        },
+                    },
+                    "required": [],
+                },
+            ),
+            Tool(
+                name="message_read",
+                description="Read a specific message by ID (auto-marks as read)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "message_id": {
+                            "type": "string",
+                            "description": "Unique message ID",
+                        },
+                    },
+                    "required": ["message_id"],
+                },
+            ),
+            Tool(
+                name="message_archive",
+                description="Archive a message by ID",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "message_id": {
+                            "type": "string",
+                            "description": "Unique message ID to archive",
+                        },
+                    },
+                    "required": ["message_id"],
+                },
+            ),
+            Tool(
+                name="message_reply",
+                description="Reply to an existing message",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "original_message_id": {
+                            "type": "string",
+                            "description": "ID of the message to reply to",
+                        },
+                        "subject": {
+                            "type": "string",
+                            "description": "Reply subject",
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "Reply body",
+                        },
+                        "from_agent": {
+                            "type": "string",
+                            "description": "Sending agent name (default: pm)",
+                            "default": "pm",
+                        },
+                    },
+                    "required": ["original_message_id", "subject", "body"],
+                },
+            ),
+            Tool(
+                name="message_check",
+                description="Check unread message count and high-priority messages for a project",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "agent": {
+                            "type": "string",
+                            "description": "Filter unread count by agent name",
+                        },
+                        "project_path": {
+                            "type": "string",
+                            "description": (
+                                "Absolute path to the project to check. Defaults "
+                                "to CLAUDE_MPM_PROJECT_ROOT/PWD when omitted."
+                            ),
+                        },
+                    },
+                    "required": [],
+                },
+            ),
+            Tool(
+                name="shortcut_add",
+                description="Add or update a project path shortcut",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Shortcut name (alphanumeric, underscores, hyphens)",
+                        },
+                        "path": {
+                            "type": "string",
+                            "description": "Absolute directory path to shortcut to",
+                        },
+                    },
+                    "required": ["name", "path"],
+                },
+            ),
+            Tool(
+                name="shortcut_list",
+                description="List all configured project path shortcuts",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            ),
+            Tool(
+                name="shortcut_remove",
+                description="Remove a project path shortcut by name",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Shortcut name to remove",
+                        },
+                    },
+                    "required": ["name"],
+                },
+            ),
+            Tool(
+                name="shortcut_resolve",
+                description="Resolve a shortcut name or path to an absolute path",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name_or_path": {
+                            "type": "string",
+                            "description": "Shortcut name or directory path to resolve",
+                        },
+                    },
+                    "required": ["name_or_path"],
+                },
+            ),
+        ]
+
+    async def _handle_call_tool(
+        self, name: str, arguments: dict[str, Any]
+    ) -> list[TextContent]:
+        """Handle tool calls by dispatching to the appropriate handler."""
+        try:
+            result = await self._dispatch_tool(name, arguments)
             return [
-                Tool(
-                    name="message_send",
-                    description="Send a message to another claude-mpm project",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "to_project": {
-                                "type": "string",
-                                "description": "Destination project path or shortcut name",
-                            },
-                            "to_agent": {
-                                "type": "string",
-                                "description": "Target agent in the destination project",
-                            },
-                            "message_type": {
-                                "type": "string",
-                                "description": "Message type (e.g. task, notification, query)",
-                            },
-                            "subject": {
-                                "type": "string",
-                                "description": "Message subject",
-                            },
-                            "body": {
-                                "type": "string",
-                                "description": "Message body",
-                            },
-                            "priority": {
-                                "type": "string",
-                                "description": "Priority: low, normal, high (default: normal)",
-                                "default": "normal",
-                            },
-                            "from_agent": {
-                                "type": "string",
-                                "description": "Sending agent name (default: pm)",
-                                "default": "pm",
-                            },
-                        },
-                        "required": [
-                            "to_project",
-                            "to_agent",
-                            "message_type",
-                            "subject",
-                            "body",
-                        ],
-                    },
-                ),
-                Tool(
-                    name="message_list",
-                    description=(
-                        "List messages addressed to a specific project, optionally "
-                        "filtered by status or agent. If project_path is omitted, "
-                        "the server uses CLAUDE_MPM_PROJECT_ROOT or PWD; relying on "
-                        "that fallback is discouraged because the MCP server's cwd "
-                        "is not the user's project."
-                    ),
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "status": {
-                                "type": "string",
-                                "description": "Filter by status: unread, read, archived",
-                            },
-                            "agent": {
-                                "type": "string",
-                                "description": "Filter by recipient agent name",
-                            },
-                            "project_path": {
-                                "type": "string",
-                                "description": (
-                                    "Absolute path to the project whose inbox should "
-                                    "be queried. Strongly recommended; defaults to "
-                                    "CLAUDE_MPM_PROJECT_ROOT/PWD when omitted."
-                                ),
-                            },
-                        },
-                        "required": [],
-                    },
-                ),
-                Tool(
-                    name="message_read",
-                    description="Read a specific message by ID (auto-marks as read)",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "message_id": {
-                                "type": "string",
-                                "description": "Unique message ID",
-                            },
-                        },
-                        "required": ["message_id"],
-                    },
-                ),
-                Tool(
-                    name="message_archive",
-                    description="Archive a message by ID",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "message_id": {
-                                "type": "string",
-                                "description": "Unique message ID to archive",
-                            },
-                        },
-                        "required": ["message_id"],
-                    },
-                ),
-                Tool(
-                    name="message_reply",
-                    description="Reply to an existing message",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "original_message_id": {
-                                "type": "string",
-                                "description": "ID of the message to reply to",
-                            },
-                            "subject": {
-                                "type": "string",
-                                "description": "Reply subject",
-                            },
-                            "body": {
-                                "type": "string",
-                                "description": "Reply body",
-                            },
-                            "from_agent": {
-                                "type": "string",
-                                "description": "Sending agent name (default: pm)",
-                                "default": "pm",
-                            },
-                        },
-                        "required": ["original_message_id", "subject", "body"],
-                    },
-                ),
-                Tool(
-                    name="message_check",
-                    description="Check unread message count and high-priority messages for a project",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "agent": {
-                                "type": "string",
-                                "description": "Filter unread count by agent name",
-                            },
-                            "project_path": {
-                                "type": "string",
-                                "description": (
-                                    "Absolute path to the project to check. Defaults "
-                                    "to CLAUDE_MPM_PROJECT_ROOT/PWD when omitted."
-                                ),
-                            },
-                        },
-                        "required": [],
-                    },
-                ),
-                Tool(
-                    name="shortcut_add",
-                    description="Add or update a project path shortcut",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                                "description": "Shortcut name (alphanumeric, underscores, hyphens)",
-                            },
-                            "path": {
-                                "type": "string",
-                                "description": "Absolute directory path to shortcut to",
-                            },
-                        },
-                        "required": ["name", "path"],
-                    },
-                ),
-                Tool(
-                    name="shortcut_list",
-                    description="List all configured project path shortcuts",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                        "required": [],
-                    },
-                ),
-                Tool(
-                    name="shortcut_remove",
-                    description="Remove a project path shortcut by name",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                                "description": "Shortcut name to remove",
-                            },
-                        },
-                        "required": ["name"],
-                    },
-                ),
-                Tool(
-                    name="shortcut_resolve",
-                    description="Resolve a shortcut name or path to an absolute path",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "name_or_path": {
-                                "type": "string",
-                                "description": "Shortcut name or directory path to resolve",
-                            },
-                        },
-                        "required": ["name_or_path"],
-                    },
-                ),
+                TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2),
+                )
             ]
-
-        @self.server.call_tool()
-        async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:  # pyright: ignore[reportUnusedVariable]
-            """Handle tool calls."""
-            try:
-                result = await self._dispatch_tool(name, arguments)
-                return [
-                    TextContent(
-                        type="text",
-                        text=json.dumps(result, indent=2),
-                    )
-                ]
-            except Exception as e:
-                logger.exception(f"Error executing tool {name}: {e}")
-                return [
-                    TextContent(
-                        type="text",
-                        text=json.dumps({"error": str(e)}, indent=2),
-                    )
-                ]
+        except Exception as e:
+            logger.exception(f"Error executing tool {name}: {e}")
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps({"error": str(e)}, indent=2),
+                )
+            ]
 
     async def _dispatch_tool(
         self, name: str, arguments: dict[str, Any]
@@ -496,7 +509,7 @@ class MessagingMCPServer:
 
         return {"ok": success, "name": arguments["name"], "path": arguments["path"]}
 
-    async def _shortcut_list(self, _arguments: dict[str, Any]) -> dict[str, Any]:  # pyright: ignore[reportUnusedVariable]
+    async def _shortcut_list(self, _arguments: dict[str, Any]) -> dict[str, Any]:
         """List all shortcuts."""
         shortcuts = await asyncio.to_thread(self.shortcuts.list_shortcuts)
 
