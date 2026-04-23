@@ -66,7 +66,7 @@ print(f"  - ~/.claude-mpm/sessions/{session_id}.json (machine-readable)")
 print(f"  - ~/.claude-mpm/sessions/{session_id}.yaml (config format)")
 print(f"")
 print(f"Quick resume:")
-print(f"  /mpm-resume")
+print(f"  /mpm-session-resume")
 print(f"")
 print(f"View session context:")
 print(f"  cat ~/.claude-mpm/sessions/LATEST-SESSION.txt")
@@ -117,7 +117,7 @@ All session files are stored in:
 
 To resume this session:
 ```
-/mpm-resume
+/mpm-session-resume
 ```
 
 Or manually:
@@ -157,7 +157,7 @@ commit — they are purely filesystem writes under your home directory.
 
 ## Related Commands
 
-- `/mpm-resume` - Resume from most recent paused session
+- `/mpm-session-resume` - Resume from most recent paused session
 - `/mpm-init resume` - Alternative resume command
 - See `docs/features/session-auto-resume.md` for auto-pause behavior
 
