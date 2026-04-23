@@ -1,3 +1,10 @@
+## v6.2.51 (2026-04-23)
+
+### Fix
+
+- **skills**: correct /mpm-resume to /mpm-session-resume in plugin session-pause skill
+- **skills**: correct /mpm-resume to /mpm-session-resume in session-pause skill
+
 ## v6.2.50 (2026-04-23)
 
 ### Feat
