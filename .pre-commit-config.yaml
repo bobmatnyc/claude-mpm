@@ -31,8 +31,10 @@ repos:
       # Run the linter
       - id: ruff
         args: [--fix]
+        exclude: ^(tools/|examples/|scripts/)
       # Run the formatter
       - id: ruff-format
+        exclude: ^(tools/|examples/|scripts/)
 
   # Type checking with mypy (disabled - project has extensive untyped dependencies)
   # - repo: https://github.com/pre-commit/mirrors-mypy
