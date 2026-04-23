@@ -11,7 +11,9 @@ asyncio.to_thread() to avoid blocking the event loop.
 import asyncio
 import json
 import logging
+import os
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from mcp.server import Server
@@ -24,6 +26,33 @@ from claude_mpm.services.communication.shortcuts_service import ShortcutsService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _resolve_default_project_root() -> Path:
+    """Resolve the project root the MCP server should default to.
+
+    WHY: An MCP server is launched by the host (Claude Desktop, claude-code,
+    etc.) from whatever cwd that host happens to be running in — typically the
+    home directory or some host-internal scratch dir. ``Path.cwd()`` therefore
+    does NOT reliably point at the user's project. To give callers a useful
+    default we honor, in order:
+
+      1. ``CLAUDE_MPM_PROJECT_ROOT`` (explicit override),
+      2. ``PWD`` (the user-facing working dir, set by most shells/launchers),
+      3. ``UnifiedPathManager().project_root`` (best-effort discovery),
+      4. ``Path.cwd()`` (last resort).
+    """
+    for env_var in ("CLAUDE_MPM_PROJECT_ROOT", "PWD"):
+        value = os.environ.get(env_var)
+        if value:
+            candidate = Path(value).expanduser()
+            if candidate.is_dir():
+                return candidate.resolve()
+
+    try:
+        return Path(UnifiedPathManager().project_root).resolve()
+    except Exception:
+        return Path.cwd().resolve()
 
 
 def _message_to_dict(msg: Any) -> dict[str, Any]:
@@ -51,10 +80,37 @@ class MessagingMCPServer:
     def __init__(self) -> None:
         """Initialise the Messaging MCP server."""
         self.server = Server("mpm-messaging")
-        project_root = UnifiedPathManager().project_root
-        self.messages = MessageService(project_root)
+        self.default_project_root = _resolve_default_project_root()
+        logger.info(
+            "MessagingMCPServer default project root: %s", self.default_project_root
+        )
+        self.messages = MessageService(self.default_project_root)
+        self._service_cache: dict[str, MessageService] = {
+            str(self.default_project_root): self.messages,
+        }
         self.shortcuts = ShortcutsService()
         self._setup_handlers()
+
+    def _get_message_service(
+        self, project_path: str | None
+    ) -> tuple[MessageService, str]:
+        """Return a MessageService scoped to ``project_path``.
+
+        Falls back to the server's default project root when no path is given.
+        Caches one MessageService per resolved path so repeated calls do not
+        keep reopening the SQLite database.
+        """
+        if not project_path:
+            return self.messages, str(self.default_project_root)
+
+        resolved = str(Path(project_path).expanduser().resolve())
+        cached = self._service_cache.get(resolved)
+        if cached is not None:
+            return cached, resolved
+
+        service = MessageService(Path(resolved))
+        self._service_cache[resolved] = service
+        return service, resolved
 
     def _setup_handlers(self) -> None:
         """Register MCP tool handlers."""
@@ -111,7 +167,13 @@ class MessagingMCPServer:
                 ),
                 Tool(
                     name="message_list",
-                    description="List messages, optionally filtered by status or agent",
+                    description=(
+                        "List messages addressed to a specific project, optionally "
+                        "filtered by status or agent. If project_path is omitted, "
+                        "the server uses CLAUDE_MPM_PROJECT_ROOT or PWD; relying on "
+                        "that fallback is discouraged because the MCP server's cwd "
+                        "is not the user's project."
+                    ),
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -122,6 +184,14 @@ class MessagingMCPServer:
                             "agent": {
                                 "type": "string",
                                 "description": "Filter by recipient agent name",
+                            },
+                            "project_path": {
+                                "type": "string",
+                                "description": (
+                                    "Absolute path to the project whose inbox should "
+                                    "be queried. Strongly recommended; defaults to "
+                                    "CLAUDE_MPM_PROJECT_ROOT/PWD when omitted."
+                                ),
                             },
                         },
                         "required": [],
@@ -184,13 +254,20 @@ class MessagingMCPServer:
                 ),
                 Tool(
                     name="message_check",
-                    description="Check unread message count and high-priority messages",
+                    description="Check unread message count and high-priority messages for a project",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "agent": {
                                 "type": "string",
                                 "description": "Filter unread count by agent name",
+                            },
+                            "project_path": {
+                                "type": "string",
+                                "description": (
+                                    "Absolute path to the project to check. Defaults "
+                                    "to CLAUDE_MPM_PROJECT_ROOT/PWD when omitted."
+                                ),
                             },
                         },
                         "required": [],
@@ -338,14 +415,21 @@ class MessagingMCPServer:
         return {"ok": True, "message": _message_to_dict(msg)}
 
     async def _message_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        """List messages with optional filters."""
+        """List messages with optional filters, scoped to a project."""
+        service, resolved_project = self._get_message_service(
+            arguments.get("project_path")
+        )
         msgs = await asyncio.to_thread(
-            self.messages.list_messages,
+            service.list_messages,
             arguments.get("status"),
             arguments.get("agent"),
         )
 
-        return {"messages": [_message_to_dict(m) for m in msgs], "count": len(msgs)}
+        return {
+            "messages": [_message_to_dict(m) for m in msgs],
+            "count": len(msgs),
+            "project_path": resolved_project,
+        }
 
     async def _message_read(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Read a specific message (auto-marks as read)."""
@@ -384,18 +468,20 @@ class MessagingMCPServer:
         return {"ok": True, "message": _message_to_dict(msg)}
 
     async def _message_check(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        """Check unread count and high-priority messages."""
+        """Check unread count and high-priority messages, scoped to a project."""
+        service, resolved_project = self._get_message_service(
+            arguments.get("project_path")
+        )
         unread_count = await asyncio.to_thread(
-            self.messages.get_unread_count, arguments.get("agent")
+            service.get_unread_count, arguments.get("agent")
         )
-        high_priority = await asyncio.to_thread(
-            self.messages.get_high_priority_messages
-        )
+        high_priority = await asyncio.to_thread(service.get_high_priority_messages)
 
         return {
             "unread_count": unread_count,
             "high_priority_messages": [_message_to_dict(m) for m in high_priority],
             "high_priority_count": len(high_priority),
+            "project_path": resolved_project,
         }
 
     # ------------------------------------------------------------------
