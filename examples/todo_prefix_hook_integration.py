@@ -7,7 +7,7 @@ This demonstrates how to integrate the hook into your existing tool execution fl
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -37,8 +37,8 @@ class ToolExecutorWithHooks:
     def execute_tool(
         self,
         tool_name: str,
-        parameters: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None,
+        parameters: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
     ) -> Any:
         """Execute a tool with hook interception.
 
@@ -69,7 +69,7 @@ class ToolExecutorWithHooks:
         # Execute the tool with potentially modified parameters
         return self._execute_tool_internal(tool_name, interception_result["parameters"])
 
-    def _execute_tool_internal(self, tool_name: str, parameters: Dict[str, Any]) -> Any:
+    def _execute_tool_internal(self, tool_name: str, parameters: dict[str, Any]) -> Any:
         """Internal tool execution logic.
 
         This is where you would integrate with your actual tool execution system.

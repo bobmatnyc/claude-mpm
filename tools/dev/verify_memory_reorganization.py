@@ -3,10 +3,9 @@
 
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 
-def check_python_file(file_path: Path) -> List[Tuple[str, str]]:
+def check_python_file(file_path: Path) -> list[tuple[str, str]]:
     """Check a Python file for old import patterns."""
     issues = []
 

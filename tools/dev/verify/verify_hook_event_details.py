@@ -4,7 +4,7 @@ Final verification of hook event details and interaction
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from playwright.async_api import async_playwright
@@ -34,7 +34,7 @@ async def verify_hook_details():
 
             # Take a final screenshot
             SCREENSHOTS_DIR.mkdir(exist_ok=True)
-            timestamp = datetime.now(timezone.utc).strftime("%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%H%M%S")
             screenshot_path = SCREENSHOTS_DIR / f"hook_events_final_{timestamp}.png"
             await page.screenshot(path=str(screenshot_path), full_page=True)
             print(f"📸 Final screenshot: {screenshot_path.name}")

@@ -5,7 +5,7 @@ import asyncio
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 sys.path.insert(0, "/Users/masa/Projects/claude-mpm/src")
 
@@ -23,17 +23,13 @@ def setup_event_handlers(sio, event_log):
 
     @sio.event
     async def connect():
-        print(
-            f"\n✅ Connected to SocketIO server at {datetime.now(timezone.utc).isoformat()}"
-        )
+        print(f"\n✅ Connected to SocketIO server at {datetime.now(UTC).isoformat()}")
         print("Monitoring for events...")
         print("-" * 40)
 
     @sio.event
     async def disconnect():
-        print(
-            f"\n❌ Disconnected from server at {datetime.now(timezone.utc).isoformat()}"
-        )
+        print(f"\n❌ Disconnected from server at {datetime.now(UTC).isoformat()}")
 
     @sio.event
     async def claude_event(data):
@@ -85,7 +81,7 @@ def create_test_event(index):
         "subtype": "pre_tool",
         "tool_name": ["Read", "Write", "Bash"][index],
         "sessionId": "monitor-test",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "parameters": {"test": f"event_{index}"},
     }
 
@@ -104,17 +100,13 @@ async def monitor_dashboard_events():
 
     @sio.event
     async def connect():
-        print(
-            f"\n✅ Connected to SocketIO server at {datetime.now(timezone.utc).isoformat()}"
-        )
+        print(f"\n✅ Connected to SocketIO server at {datetime.now(UTC).isoformat()}")
         print("Monitoring for events...")
         print("-" * 40)
 
     @sio.event
     async def disconnect():
-        print(
-            f"\n❌ Disconnected from server at {datetime.now(timezone.utc).isoformat()}"
-        )
+        print(f"\n❌ Disconnected from server at {datetime.now(UTC).isoformat()}")
 
     @sio.event
     async def claude_event(data):
@@ -227,7 +219,7 @@ def start_server_and_monitor():
         event_data = {
             "tool_name": ["Read", "Write", "Bash"][i],
             "sessionId": "monitor-test",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "parameters": {"test": f"event_{i}"},
         }
         conn_manager.emit_event(None, "pre_tool", event_data)

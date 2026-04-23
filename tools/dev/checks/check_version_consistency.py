@@ -18,7 +18,6 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, Optional
 
 
 def get_project_root() -> Path:
@@ -26,14 +25,14 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
 
-def read_version_file(path: Path) -> Optional[str]:
+def read_version_file(path: Path) -> str | None:
     """Read version from a plain text file."""
     if path.exists():
         return path.read_text().strip()
     return None
 
 
-def read_pyproject_version(path: Path) -> Optional[str]:
+def read_pyproject_version(path: Path) -> str | None:
     """Read version from pyproject.toml."""
     if not path.exists():
         return None
@@ -57,7 +56,7 @@ def read_pyproject_version(path: Path) -> Optional[str]:
     return None
 
 
-def read_package_json_version(path: Path) -> Optional[str]:
+def read_package_json_version(path: Path) -> str | None:
     """Read version from package.json."""
     if not path.exists():
         return None
@@ -74,7 +73,7 @@ def check_version_consistency() -> bool:
     """Check if all version files have consistent versions."""
     project_root = get_project_root()
 
-    versions: Dict[str, Optional[str]] = {}
+    versions: dict[str, str | None] = {}
 
     # Read all version sources
     versions["VERSION"] = read_version_file(project_root / "VERSION")

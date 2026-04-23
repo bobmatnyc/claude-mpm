@@ -23,7 +23,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -57,13 +57,13 @@ class ConfigurationValidator:
             verbose: Enable verbose output for debugging
         """
         self.verbose = verbose
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-        self.suggestions: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
+        self.suggestions: list[str] = []
 
     def validate_yaml_syntax(
         self, file_path: Path
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    ) -> tuple[bool, dict[str, Any] | None]:
         """Validate YAML syntax and return parsed content.
 
         WHY: YAML syntax errors are the most common configuration problem.
@@ -164,7 +164,7 @@ class ConfigurationValidator:
             self.errors.append(f"Failed to read configuration file: {e}")
             return False, None
 
-    def validate_structure(self, config: Dict[str, Any]) -> bool:
+    def validate_structure(self, config: dict[str, Any]) -> bool:
         """Validate configuration structure and required fields.
 
         WHY: Even valid YAML might have incorrect structure or missing required

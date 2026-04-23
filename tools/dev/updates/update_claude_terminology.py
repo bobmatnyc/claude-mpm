@@ -11,7 +11,6 @@ Note: Some instances may need special handling based on context.
 import os
 import re
 from pathlib import Path
-from typing import Tuple
 
 
 def should_skip_file(file_path: Path) -> bool:
@@ -34,7 +33,7 @@ def should_skip_file(file_path: Path) -> bool:
     return file_path.suffix in {".pyc", ".pyo", ".so", ".dylib", ".dll", ".exe", ".bin"}
 
 
-def update_file(file_path: Path, dry_run: bool = False) -> Tuple[bool, int]:
+def update_file(file_path: Path, dry_run: bool = False) -> tuple[bool, int]:
     """Update Claude Desktop to Claude Code in a file.
 
     Returns:

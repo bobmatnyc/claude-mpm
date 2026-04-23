@@ -47,7 +47,6 @@ import sys
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -57,9 +56,9 @@ class AuditIssue:
     category: str
     severity: str  # 'error', 'warning', 'info'
     file_path: str
-    line_number: Optional[int]
+    line_number: int | None
     message: str
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
     fixable: bool = False
 
 
@@ -84,7 +83,7 @@ class DocumentationAuditor:
         self.project_root = project_root
         self.docs_root = project_root / "docs"
         self.verbose = verbose
-        self.issues: List[AuditIssue] = []
+        self.issues: list[AuditIssue] = []
         self.files_scanned = 0
 
         # Expected structure from STRUCTURE.md
@@ -184,9 +183,9 @@ class DocumentationAuditor:
         category: str,
         severity: str,
         file_path: str,
-        line_number: Optional[int],
+        line_number: int | None,
         message: str,
-        suggestion: Optional[str] = None,
+        suggestion: str | None = None,
         fixable: bool = False,
     ):
         """Add an audit issue"""
@@ -312,7 +311,7 @@ class DocumentationAuditor:
         if self.verbose:
             print("Auditing duplicate content...")
 
-        content_hashes: Dict[str, List[str]] = defaultdict(list)
+        content_hashes: dict[str, list[str]] = defaultdict(list)
         agent_docs = []
 
         # Find all markdown files
@@ -353,7 +352,7 @@ class DocumentationAuditor:
         # Check for similar agent documentation
         self._check_agent_doc_similarity(agent_docs)
 
-    def _check_agent_doc_similarity(self, agent_docs: List[Path]):
+    def _check_agent_doc_similarity(self, agent_docs: list[Path]):
         """Check for similar content in agent documentation"""
         if len(agent_docs) < 2:
             return

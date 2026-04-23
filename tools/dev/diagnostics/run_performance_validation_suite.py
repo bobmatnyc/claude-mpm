@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Add the src directory to Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +33,7 @@ class PerformanceValidationSuite:
         }
         self.start_time = datetime.now()
 
-    def run_test_script(self, script_name: str, test_category: str) -> Dict[str, Any]:
+    def run_test_script(self, script_name: str, test_category: str) -> dict[str, Any]:
         """Run a specific test script and capture results."""
         script_path = os.path.join(self.script_dir, script_name)
 
@@ -95,7 +95,7 @@ class PerformanceValidationSuite:
         except Exception as e:
             return {"status": "error", "error": str(e), "test_category": test_category}
 
-    def run_all_performance_tests(self) -> Dict[str, Any]:
+    def run_all_performance_tests(self) -> dict[str, Any]:
         """Run all performance validation tests."""
         print("=" * 60)
         print("Socket.IO Performance Validation Suite")
@@ -153,7 +153,7 @@ class PerformanceValidationSuite:
 
         return self.results
 
-    def calculate_overall_metrics(self) -> Dict[str, Any]:
+    def calculate_overall_metrics(self) -> dict[str, Any]:
         """Calculate overall performance metrics across all tests."""
         metrics = {
             "total_tests": 4,
@@ -383,7 +383,7 @@ class PerformanceValidationSuite:
 
         return "\n".join(report_lines)
 
-    def save_results(self, filepath: Optional[str] = None):
+    def save_results(self, filepath: str | None = None):
         """Save detailed results to JSON file."""
         if filepath is None:
             filepath = "/tmp/performance_validation_results.json"

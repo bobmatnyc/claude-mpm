@@ -5,7 +5,7 @@ Targeted check for hook events on dashboard after sending test events
 
 import asyncio
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from playwright.async_api import async_playwright
@@ -28,7 +28,7 @@ HOOK_INDICATORS = ["[hook]", "pre_tool", "post_tool", "subagent_stop"]
 async def take_screenshot(page, prefix="hook_events_check"):
     """Take a screenshot of the current page state."""
     SCREENSHOTS_DIR.mkdir(exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%H%M%S")
     screenshot_path = SCREENSHOTS_DIR / f"{prefix}_{timestamp}.png"
     await page.screenshot(path=str(screenshot_path), full_page=True)
     print(f"📸 Screenshot: {screenshot_path.name}")
@@ -206,7 +206,7 @@ async def send_test_event():
     test_event = {
         "type": "hook",
         "subtype": "pre_tool",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "data": {
             "tool_name": "PlaywrightTest",
             "args": {"action": "verify_hook_events"},

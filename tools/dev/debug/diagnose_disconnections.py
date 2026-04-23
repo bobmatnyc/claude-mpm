@@ -17,9 +17,8 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import psutil
 
@@ -38,11 +37,11 @@ class ServerProcessMonitor:
 
     def __init__(self, port: int = 8765):
         self.port = port
-        self.events: List[Dict] = []
-        self.current_pid: Optional[int] = None
+        self.events: list[dict] = []
+        self.current_pid: int | None = None
         self.monitoring = False
 
-    def find_server_process(self) -> Optional[int]:
+    def find_server_process(self) -> int | None:
         """Find the PID of the process listening on the target port."""
         for conn in psutil.net_connections(kind="inet"):
             if conn.laddr.port == self.port and conn.status == "LISTEN":
@@ -61,7 +60,7 @@ class ServerProcessMonitor:
 
         while self.monitoring:
             pid = self.find_server_process()
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
 
             if pid != self.current_pid:
                 if self.current_pid is None and pid:
@@ -133,7 +132,7 @@ class ServerProcessMonitor:
         if hasattr(self, "thread"):
             self.thread.join(timeout=2)
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict:
         """Get summary of monitoring results."""
         restarts = len([e for e in self.events if e["type"] == "server_restarted"])
         stops = len([e for e in self.events if e["type"] == "server_stopped"])
@@ -154,7 +153,7 @@ class WebSocketConnectionMonitor:
     def __init__(self, port: int = 8765):
         self.port = port
         self.url = f"http://localhost:{port}"
-        self.events: List[Dict] = []
+        self.events: list[dict] = []
         self.connection_count = 0
         self.disconnection_count = 0
         self.sio = None
@@ -179,7 +178,7 @@ class WebSocketConnectionMonitor:
             self.connection_count += 1
             self.connected = True
             self.connection_start = time.time()
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
 
             event = {
                 "type": "connected",
@@ -194,7 +193,7 @@ class WebSocketConnectionMonitor:
         async def on_disconnect():
             self.disconnection_count += 1
             self.connected = False
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
 
             # Calculate connection duration
             duration = None
@@ -222,7 +221,7 @@ class WebSocketConnectionMonitor:
 
         @self.sio.on("connect_error")
         async def on_connect_error(data):
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
             event = {
                 "type": "connect_error",
                 "timestamp": timestamp,
@@ -251,13 +250,13 @@ class WebSocketConnectionMonitor:
             self.events.append(
                 {
                     "type": "connection_failed",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "error": str(e),
                     "message": f"Failed to connect: {e}",
                 }
             )
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict:
         """Get summary of connection monitoring."""
         avg_duration = 0
         durations = [
@@ -282,9 +281,9 @@ class ResourceMonitor:
 
     def __init__(self, port: int = 8765):
         self.port = port
-        self.events: List[Dict] = []
+        self.events: list[dict] = []
 
-    def check_port_conflicts(self) -> List[Dict]:
+    def check_port_conflicts(self) -> list[dict]:
         """Check for processes that might conflict with the server port."""
         conflicts = []
 
@@ -308,7 +307,7 @@ class ResourceMonitor:
 
         return conflicts
 
-    def check_system_resources(self) -> Dict:
+    def check_system_resources(self) -> dict:
         """Check system resource usage."""
         return {
             "cpu_percent": psutil.cpu_percent(interval=1),
@@ -321,7 +320,7 @@ class ResourceMonitor:
     def monitor_loop(self):
         """Monitor resources periodically."""
         while True:
-            timestamp = datetime.now(timezone.utc).isoformat()
+            timestamp = datetime.now(UTC).isoformat()
 
             # Check port conflicts
             conflicts = self.check_port_conflicts()
@@ -353,7 +352,7 @@ class FileSystemMonitor:
     """Monitor file system changes that might trigger restarts."""
 
     def __init__(self):
-        self.events: List[Dict] = []
+        self.events: list[dict] = []
         self.monitoring_paths = [
             Path.cwd() / "src",
             Path.cwd() / ".claude",
@@ -547,10 +546,10 @@ async def run_diagnostics(duration: int = 60):
     # Save full report
     report_file = (
         Path.cwd()
-        / f"diagnostic_report_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+        / f"diagnostic_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     )
     report_data = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "duration_seconds": duration,
         "server_monitoring": server_summary,
         "websocket_monitoring": ws_summary,

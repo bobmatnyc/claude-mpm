@@ -3,6 +3,7 @@
 
 import json
 import sys
+from datetime import UTC
 from pathlib import Path
 
 
@@ -83,11 +84,11 @@ def update_template_version(filepath: Path) -> bool:
 
         # Also update template_changelog if it exists and we're updating template_version
         if version_field == "template_version" and "template_changelog" in data:
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             new_changelog_entry = {
                 "version": new_version,
-                "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "date": datetime.now(UTC).strftime("%Y-%m-%d"),
                 "description": "Version bump to trigger redeployment of optimized templates",
             }
             # Insert at the beginning of the changelog

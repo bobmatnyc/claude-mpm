@@ -11,7 +11,6 @@ Usage:
 """
 
 from pathlib import Path
-from typing import Dict, Tuple
 
 
 def find_project_root() -> Path:
@@ -22,7 +21,7 @@ def find_project_root() -> Path:
     raise RuntimeError("Could not find project root")
 
 
-def count_lines_of_code(file_path: Path) -> Tuple[int, int, int]:
+def count_lines_of_code(file_path: Path) -> tuple[int, int, int]:
     """
     Count lines of code in a Python file.
 
@@ -51,7 +50,7 @@ def count_lines_of_code(file_path: Path) -> Tuple[int, int, int]:
         return 0, 0, 0
 
 
-def analyze_shared_utility_usage(file_path: Path) -> Dict[str, bool]:
+def analyze_shared_utility_usage(file_path: Path) -> dict[str, bool]:
     """
     Analyze if a file uses shared utilities.
 
@@ -79,7 +78,7 @@ def analyze_shared_utility_usage(file_path: Path) -> Dict[str, bool]:
         return {}
 
 
-def analyze_migrated_services() -> Dict[str, Dict]:
+def analyze_migrated_services() -> dict[str, dict]:
     """Analyze the services that have been migrated."""
     project_root = find_project_root()
 
@@ -115,7 +114,7 @@ def analyze_migrated_services() -> Dict[str, Dict]:
     return results
 
 
-def analyze_cli_commands() -> Dict[str, Dict]:
+def analyze_cli_commands() -> dict[str, dict]:
     """Analyze CLI commands for shared utility usage."""
     project_root = find_project_root()
     cli_commands_dir = project_root / "src/claude_mpm/cli/commands"

@@ -9,13 +9,12 @@ import ast
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def find_python_files(directory: Path) -> List[Path]:
+def find_python_files(directory: Path) -> list[Path]:
     """Find all Python files in directory."""
     python_files = []
     for root, _, files in os.walk(directory):
@@ -25,7 +24,7 @@ def find_python_files(directory: Path) -> List[Path]:
     return python_files
 
 
-def extract_imports(file_path: Path) -> List[str]:
+def extract_imports(file_path: Path) -> list[str]:
     """Extract import statements from a Python file."""
     try:
         with open(file_path, encoding="utf-8") as f:
@@ -49,7 +48,7 @@ def extract_imports(file_path: Path) -> List[str]:
         return []
 
 
-def test_import(import_statement: str) -> Tuple[bool, str]:
+def test_import(import_statement: str) -> tuple[bool, str]:
     """Test if an import statement works."""
     try:
         exec(import_statement)
@@ -71,7 +70,7 @@ def validate_imports():
     print(f"Found {len(python_files)} Python files to validate")
 
     # Track results
-    failed_imports: Dict[str, List[Tuple[Path, str]]] = {}
+    failed_imports: dict[str, list[tuple[Path, str]]] = {}
     success_count = 0
     total_imports = 0
 

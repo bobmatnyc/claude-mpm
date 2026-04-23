@@ -78,9 +78,12 @@ class EventMonitor:
                 },
             }
 
-            async with aiohttp.ClientSession() as session, session.post(
-                "http://localhost:8765/api/events", json=test_event
-            ) as response:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
+                    "http://localhost:8765/api/events", json=test_event
+                ) as response,
+            ):
                 if response.status == 204:
                     print("✅ Test event sent successfully")
                 else:

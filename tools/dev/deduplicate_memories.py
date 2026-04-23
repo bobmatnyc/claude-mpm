@@ -10,14 +10,13 @@ Can be run on individual agents or all agents at once.
 import argparse
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 from claude_mpm.services.agents.memory.content_manager import MemoryContentManager
 
 
 def deduplicate_memory_file(
     memory_file: Path, dry_run: bool = False
-) -> Tuple[int, List[str]]:
+) -> tuple[int, list[str]]:
     """Deduplicate a single memory file.
 
     Args:
@@ -71,7 +70,7 @@ def deduplicate_memory_file(
     return total_removed, removed_items
 
 
-def extract_section_items(content: str, section: str) -> List[str]:
+def extract_section_items(content: str, section: str) -> list[str]:
     """Extract items from a specific section."""
     items = []
     in_section = False

@@ -12,7 +12,7 @@ Key principles:
 
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Third-party imports
 from loguru import logger
@@ -38,7 +38,7 @@ class ValidationResult:
     passed: bool
     expected: Any
     actual: Any
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class DataProcessor:
@@ -48,7 +48,7 @@ class DataProcessor:
         self.validation_attempts = 0
         self.external_research_used = False
 
-    def process_user_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_user_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Process user data and return summary."""
         if not isinstance(data, dict):
             raise ValueError("Data must be a dictionary")
@@ -69,7 +69,7 @@ class DataProcessor:
 
         return {"user_count": len(processed_users), "users": processed_users}
 
-    def calculate_transaction_summary(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_transaction_summary(self, data: dict[str, Any]) -> dict[str, Any]:
         """Calculate transaction summary statistics."""
         transactions = data.get("transactions", [])
 
@@ -92,7 +92,7 @@ class DataProcessor:
             "average_amount": total_amount / len(transactions),
         }
 
-    def validate_data_integrity(self, data: Dict[str, Any]) -> bool:
+    def validate_data_integrity(self, data: dict[str, Any]) -> bool:
         """Validate that all user_ids in transactions exist."""
         users = data.get("users", [])
         transactions = data.get("transactions", [])
@@ -103,7 +103,7 @@ class DataProcessor:
         return transaction_user_ids.issubset(user_ids)
 
 
-def run_validation_tests(processor: DataProcessor) -> List[ValidationResult]:
+def run_validation_tests(processor: DataProcessor) -> list[ValidationResult]:
     """Run all validation tests and collect results."""
     all_validation_results = []
 

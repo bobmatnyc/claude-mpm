@@ -7,7 +7,6 @@ Maintains firmness and clarity while reducing file sizes.
 import json
 import re
 from pathlib import Path
-from typing import Dict, Tuple
 
 # Base sections to remove (will be inherited from BASE_AGENT_TEMPLATE.md)
 REDUNDANT_SECTIONS = [
@@ -51,7 +50,7 @@ def count_lines(content: str) -> int:
     return len([line for line in content.split("\n") if line.strip()])
 
 
-def prune_template(content: str, agent_name: str) -> Tuple[str, int, int]:
+def prune_template(content: str, agent_name: str) -> tuple[str, int, int]:
     """
     Prune redundant sections from agent template.
     Returns: (pruned_content, original_lines, pruned_lines)
@@ -80,7 +79,7 @@ def prune_template(content: str, agent_name: str) -> Tuple[str, int, int]:
     return pruned, original_lines, pruned_lines
 
 
-def update_agent_json(file_path: Path, reduction_stats: Dict) -> None:
+def update_agent_json(file_path: Path, reduction_stats: dict) -> None:
     """Update agent JSON file with pruned instructions and new version."""
     with file_path.open() as f:
         agent_data = json.load(f)
