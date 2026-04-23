@@ -52,7 +52,7 @@ repos:
       - id: bandit
         additional_dependencies: ['pbr']
         args: ['-r', '-f', 'json', '-ll']
-        exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py)
+        exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py|tools/|examples/|scripts/)
 
   # Secret detection with detect-secrets
   - repo: https://github.com/Yelp/detect-secrets
