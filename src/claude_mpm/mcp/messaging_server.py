@@ -509,7 +509,7 @@ class MessagingMCPServer:
 
         return {"ok": success, "name": arguments["name"], "path": arguments["path"]}
 
-    async def _shortcut_list(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+    async def _shortcut_list(self, _: dict[str, Any]) -> dict[str, Any]:
         """List all shortcuts."""
         shortcuts = await asyncio.to_thread(self.shortcuts.list_shortcuts)
 
