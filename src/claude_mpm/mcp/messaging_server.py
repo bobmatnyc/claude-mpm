@@ -116,7 +116,7 @@ class MessagingMCPServer:
         """Register MCP tool handlers."""
 
         @self.server.list_tools()
-        async def list_tools() -> list[Tool]:
+        async def _list_tools() -> list[Tool]:
             """Return list of available tools."""
             return [
                 Tool(
@@ -331,7 +331,7 @@ class MessagingMCPServer:
             ]
 
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+        async def _call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             """Handle tool calls."""
             try:
                 result = await self._dispatch_tool(name, arguments)
@@ -496,7 +496,7 @@ class MessagingMCPServer:
 
         return {"ok": success, "name": arguments["name"], "path": arguments["path"]}
 
-    async def _shortcut_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
+    async def _shortcut_list(self, _arguments: dict[str, Any]) -> dict[str, Any]:
         """List all shortcuts."""
         shortcuts = await asyncio.to_thread(self.shortcuts.list_shortcuts)
 
