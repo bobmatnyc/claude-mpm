@@ -1,3 +1,22 @@
+## v6.2.50 (2026-04-23)
+
+### Feat
+
+- **agents**: enforce full metadata enrichment in ticketing agent
+
+### Fix
+
+- **mcp**: rename unused _arguments param to _ in _shortcut_list
+- **mcp**: correct pyright suppression for decorator-captured MCP handler functions
+- **mcp**: suppress pyright false-positive warnings on MCP decorator-captured functions
+- **mcp**: resolve pyright unused-variable warnings in messaging_server
+- **mcp**: scope messaging tools to a project_path instead of MCP-server cwd
+- **messaging**: scope list_messages by project_path to prevent cross-project leakage
+
+### Refactor
+
+- **mcp**: promote MCP handler inner functions to class methods
+
 ## v6.2.49 (2026-04-22)
 
 ### Fix
