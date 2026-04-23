@@ -175,24 +175,53 @@ class MessagingDatabase:
                 return self._row_to_message_dict(row)
             return None
 
-    def list_messages(self, status: str | None = None, limit: int = 50) -> list[dict]:
+    def list_messages(
+        self,
+        status: str | None = None,
+        limit: int = 50,
+        project_path: str | None = None,
+    ) -> list[dict]:
         """
         List messages with optional filtering.
 
         Args:
             status: Filter by status (unread, read, archived)
             limit: Maximum number of messages to return
+            project_path: Filter by recipient project (to_project). When provided,
+                only messages addressed to this project are returned. When omitted,
+                ALL messages from ALL projects are returned (a deprecation warning is
+                emitted because this leaks cross-project messages).
 
         Returns:
             List of message dictionaries
         """
+        if project_path is None:
+            import warnings
+
+            warnings.warn(
+                "MessagingDatabase.list_messages() called without project_path; "
+                "this returns messages from ALL projects in the shared database "
+                "and may leak cross-project messages. Pass project_path to scope "
+                "the query to a single project.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         with self.get_connection() as conn:
             query = "SELECT * FROM messages"
-            params = []
+            params: list = []
+            clauses: list[str] = []
+
+            if project_path is not None:
+                clauses.append("to_project = ?")
+                params.append(project_path)
 
             if status:
-                query += " WHERE status = ?"
+                clauses.append("status = ?")
                 params.append(status)
+
+            if clauses:
+                query += " WHERE " + " AND ".join(clauses)
 
             query += " ORDER BY created_at DESC LIMIT ?"
             params.append(limit)
@@ -514,6 +543,41 @@ class MessagingDatabase:
             )
 
             return [self._row_to_message_dict(row) for row in cursor.fetchall()]
+
+    def cleanup_temp_messages(self) -> int:
+        """
+        Remove messages with to_project paths in system temp directories.
+
+        WHY: Tests and ad-hoc tools often write messages with to_project paths
+        under /private/var/folders/, /tmp/, or /var/folders/. These pollute the
+        shared inbox and surface in unrelated projects' message lists. This
+        helper purges them in one shot.
+
+        Returns:
+            Number of messages deleted.
+        """
+        temp_prefixes = (
+            "/private/var/folders/",
+            "/tmp/",  # nosec B108 - matching, not creating, temp paths
+            "/var/folders/",
+        )
+        with self.get_connection() as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM messages
+                WHERE to_project LIKE '/private/var/folders/%'
+                   OR to_project LIKE '/tmp/%'
+                   OR to_project LIKE '/var/folders/%'
+                """
+            )
+            deleted = cursor.rowcount
+
+        if deleted:
+            logger.info(
+                f"cleanup_temp_messages: removed {deleted} stale temp messages "
+                f"(prefixes: {', '.join(temp_prefixes)})"
+            )
+        return deleted
 
     # New methods for project-filtered queries (for shared database)
 
