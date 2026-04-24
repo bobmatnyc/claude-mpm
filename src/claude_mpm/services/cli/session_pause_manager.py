@@ -35,8 +35,8 @@ class SessionPauseManager:
             project_path: Project root path (default: current directory)
         """
         self.project_path = (project_path or Path.cwd()).resolve()
-        # Use global home-dir path so sessions are findable regardless of CWD at resume time
-        self.pause_dir = Path.home() / ".claude-mpm" / "sessions"
+        # Use project-local path so sessions are scoped to the project that created them
+        self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
         self.pause_dir.mkdir(parents=True, exist_ok=True)
         self.storage = StateStorage(self.pause_dir)
 
