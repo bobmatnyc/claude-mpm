@@ -1,3 +1,16 @@
+## v6.2.52 (2026-04-24)
+
+### Feat
+
+- **migrations**: register v6_3_2_statusline_user_level migration
+- **statusline**: add migration to move legacy project-level assets to user-level
+
+### Fix
+
+- **statusline**: point update-statusline CLI at user-level path
+- **statusline**: redirect v6.3.1 deploy migration to user-level (~/.claude/)
+- **statusline**: redirect autoconfig migration to user-level (~/.claude/)
+
 ## v6.2.51 (2026-04-23)
 
 ### Fix
