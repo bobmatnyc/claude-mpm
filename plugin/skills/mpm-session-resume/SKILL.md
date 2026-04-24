@@ -14,11 +14,15 @@ Load and display context from the most recent paused session.
 ## What This Does
 
 When invoked, this skill:
-1. Scans the global session store at `~/.claude-mpm/sessions/` for paused sessions
+1. Scans the project-local session store at `.claude-mpm/sessions/` for paused sessions
 2. Loads the most recent session (by file modification time)
-3. Calculates time elapsed since pause and git changes since pause
-4. Displays a formatted resume prompt with summary, accomplishments, and next steps
-5. Returns the session data so the PM can continue work with full context
+3. **Validates** that the session's `project_path` matches the current project — sessions from other projects are skipped
+4. Calculates time elapsed since pause and git changes since pause
+5. Displays a formatted resume prompt with summary, accomplishments, and next steps
+6. Returns the session data so the PM can continue work with full context
+
+> **Note:** Resume always validates that the session belongs to the current project.
+> You will never accidentally resume a session from a different project.
 
 ## Usage
 
@@ -38,19 +42,20 @@ When invoked, this skill:
 **Execute the following Python code to load and display the paused session:**
 
 ```python
+from pathlib import Path
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 
-# Create resume helper — NO arguments.
-# The helper defaults to the global session store at ~/.claude-mpm/sessions/
-# so it finds pause files regardless of the current working directory.
-helper = SessionResumeHelper()
+# Create resume helper scoped to the current project.
+# Sessions are stored under <project-root>/.claude-mpm/sessions/, and the
+# helper validates that the loaded session's project_path matches.
+helper = SessionResumeHelper(project_path=Path.cwd())
 
 # Check for paused sessions and display the resume prompt.
 # This prints the formatted context and returns the session data dict.
 session_data = helper.check_and_display_resume_prompt()
 
 if session_data is None:
-    print("No paused sessions found in ~/.claude-mpm/sessions/")
+    print("No paused sessions found for this project in .claude-mpm/sessions/")
     print("")
     print("To create a paused session, use: /mpm-pause")
 else:
@@ -67,13 +72,16 @@ else:
 
 ## Session Storage Location
 
-**Global store:** `~/.claude-mpm/sessions/`
+**Session location:** project-local `.claude-mpm/sessions/session-*.md` (and `.json`/`.yaml`)
 
-Sessions are stored in a fixed user-global location — NOT relative to the current working directory. This ensures that resume finds paused sessions no matter which project directory you invoke `/mpm-resume` from.
+Sessions are stored relative to the project root so each project has its own
+isolated session history. Resume always validates that the session belongs to
+the current project — you will never accidentally load a session from another
+checkout.
 
 The store contains:
 ```
-~/.claude-mpm/sessions/
+<project-root>/.claude-mpm/sessions/
 ├── LATEST-SESSION.txt                  # Pointer to most recent session
 ├── session-YYYYMMDD-HHMMSS.md          # Human-readable
 ├── session-YYYYMMDD-HHMMSS.json        # Machine-readable (loaded by resume)
