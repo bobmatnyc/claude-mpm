@@ -38,11 +38,11 @@ class SessionResumeHelper:
         Args:
             project_path: Project root path (default: current directory)
         """
-        self.project_path = project_path or Path.cwd()
-        # Global home-dir path so sessions are findable regardless of CWD at resume time
-        self.pause_dir = Path.home() / ".claude-mpm" / "sessions"
-        # Legacy location for backward compatibility (also global)
-        self.legacy_pause_dir = Path.home() / ".claude-mpm" / "sessions" / "pause"
+        self.project_path = (project_path or Path.cwd()).resolve()
+        # Project-local path so sessions are scoped to their originating project
+        self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
+        # Legacy location for backward compatibility (also project-local)
+        self.legacy_pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
 
     def has_paused_sessions(self) -> bool:
         """Check if there are any paused sessions.
@@ -90,15 +90,32 @@ class SessionResumeHelper:
         # Sort by modification time (most recent first)
         session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
 
-        # Load the most recent session
-        try:
-            with session_files[0].open("r") as f:
-                session_data = json.load(f)
-            session_data["file_path"] = session_files[0]
+        # Load the most recent session belonging to the current project
+        current_project = str(self.project_path.resolve())
+        for session_file in session_files:
+            try:
+                with session_file.open("r") as f:
+                    session_data = json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to load session file {session_file}: {e}")
+                continue
+
+            # Validate the session belongs to the current project. This protects
+            # against cross-project contamination (e.g. legacy global sessions
+            # or sessions copied between projects).
+            session_project = session_data.get("project_path", "")
+            if session_project:
+                try:
+                    if str(Path(session_project).resolve()) != current_project:
+                        continue
+                except Exception:
+                    # If the stored path is unresolvable, skip defensively
+                    continue
+
+            session_data["file_path"] = session_file
             return session_data
-        except Exception as e:
-            logger.error(f"Failed to load session file {session_files[0]}: {e}")
-            return None
+
+        return None
 
     def get_git_changes_since_pause(
         self, paused_at: str, _: list[dict[str, str]]
