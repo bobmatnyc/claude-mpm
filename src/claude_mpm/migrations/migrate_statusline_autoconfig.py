@@ -1,18 +1,29 @@
 """
-Migration: Auto-configure MPM statusline in .claude/settings.json (v6.2.35).
+Migration: Auto-configure MPM statusline at the USER level (v6.2.35, updated v6.3.2).
+
+Operates at ``~/.claude/`` (user-global), NOT ``<project>/.claude/`` (project-scoped).
 
 Ensures that:
-1. The statusline script is present at .claude/hooks/scripts/statusline.sh
-   (creates it if missing; makes it executable).
-2. A `statusLine` entry pointing to that script is present in
-   .claude/settings.json (adds it if missing; leaves existing config
-   untouched).
-3. A Stop hook entry that calls `statusline.sh --clear` is present in
-   .claude/settings.json so the bar disappears when Claude Code exits.
+1. The statusline script is present at ``~/.claude/hooks/scripts/statusline.sh``
+   (creates it if missing; makes it executable; respects user customisation).
+2. A ``statusLine`` entry pointing to that script (absolute path) is present in
+   ``~/.claude/settings.json`` (adds it if missing; updates an existing
+   MPM-owned entry to the new absolute path; leaves user-owned entries alone).
+3. A Stop hook entry that calls ``statusline.sh --clear`` is present in
+   ``~/.claude/settings.json`` so the bar disappears when Claude Code exits.
 
-Idempotent: safe to run multiple times.  If the script, the statusLine
-entry, and the Stop hook are already present the migration is a no-op and
-returns True.
+Ownership detection for settings entries uses a substring heuristic on the
+command field: if the command contains ``statusline.sh`` we treat it as the
+MPM-managed entry (whether it points at the old project-relative path or the
+new user-level absolute path) and update it; otherwise we leave it alone.
+
+Project-level ``.claude/settings.json`` and ``.claude/hooks/scripts/statusline.sh``
+are NEVER written by this migration.  Legacy project-level installs are left
+in place — Claude Code's project-overrides-user precedence handles that
+correctly — and are cleaned up by the dedicated
+``migrate_statusline_user_level`` migration.
+
+Idempotent: safe to run multiple times.
 
 Note (v6.2.36 fix): The script was rewritten to print plain text to stdout
 instead of painting via /dev/tty escape sequences.  Claude Code's statusLine
@@ -27,18 +38,26 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Relative path of the script inside .claude/
-_SCRIPT_REL = Path("hooks") / "scripts" / "statusline.sh"
-
 # Marker line that identifies an MPM-managed statusline.sh.
 # Any file containing this string will be treated as an official MPM-owned
 # copy and will be overwritten when the template has been updated (force mode).
 _MPM_MARKER = "# claude-mpm-managed:"
 
-# Command string used in the Stop hook. Matched substring-wise so existing
-# variations (e.g. an absolute path) are still detected as "already wired".
-_STOP_HOOK_COMMAND = ".claude/hooks/scripts/statusline.sh --clear"
+# Absolute path to the user-level statusline script.  Computed once at import
+# time so all defaults reference the same canonical location.
+_USER_SCRIPT_PATH = Path.home() / ".claude" / "hooks" / "scripts" / "statusline.sh"
+
+# Command string used in the Stop hook (absolute user-level path).  Matched
+# substring-wise via ``_STOP_HOOK_MATCH`` so legacy project-relative
+# invocations are still detected as "MPM-owned".
+_STOP_HOOK_COMMAND = f"{_USER_SCRIPT_PATH} --clear"
 _STOP_HOOK_MATCH = "statusline.sh --clear"
+
+# Substring used to identify an MPM-managed statusLine.command in
+# ``settings.json`` regardless of whether the path is relative
+# (``.claude/hooks/scripts/statusline.sh`` — legacy project-level installs)
+# or absolute (``~/.claude/hooks/scripts/statusline.sh`` — current default).
+_STATUSLINE_COMMAND_MATCH = "statusline.sh"
 
 # Statusline script content (byte-identical to .claude/hooks/scripts/statusline.sh
 # in this repo so fresh projects receive the same canonical version).
@@ -208,10 +227,12 @@ printf '%b\n' "$STATUS"
 exit 0
 """
 
-# Default statusLine settings block to add when missing.
+# Default statusLine settings block to add when missing.  Uses the absolute
+# user-level script path because this entry now lives in ``~/.claude/settings.json``
+# and is not project-relative.
 _DEFAULT_STATUS_LINE: dict = {
     "type": "command",
-    "command": ".claude/hooks/scripts/statusline.sh",
+    "command": str(_USER_SCRIPT_PATH),
     "padding": 1,
     "refreshInterval": 10,
 }
@@ -224,60 +245,58 @@ _DEFAULT_STOP_HOOK_ENTRY: dict = {
 }
 
 
-def _ensure_script(claude_dir: Path, force: bool = False) -> bool:
-    """Ensure the statusline script exists and is executable.
+def _ensure_script(script_path: Path, force: bool = False) -> bool:
+    """Ensure the statusline script exists at ``script_path`` and is executable.
 
     Args:
-        claude_dir: Path to the .claude/ directory.
+        script_path: Absolute path to the desired statusline.sh location
+            (typically ``~/.claude/hooks/scripts/statusline.sh``).
         force: If True, overwrite the existing script with the bundled
             canonical version regardless of whether it carries the
             ``_MPM_MARKER`` line.  This is the semantic of an explicit user
             action like ``claude-mpm update-statusline``: the user has asked
             for the official version, so we give them the official version.
             (Pre-marker installs and user-customised variants alike are
-            overwritten.)  When False, we never touch an existing file.
+            overwritten.)  When False, we update if the file has the MPM
+            marker, otherwise leave it alone.
 
     Returns:
         True on success, False on error.
     """
-    script_path = claude_dir / _SCRIPT_REL
-
     if script_path.exists():
-        if force:
-            try:
-                existing = script_path.read_text(encoding="utf-8")
-            except Exception:
-                logger.exception(
-                    "Failed to read existing statusline.sh at %s", script_path
-                )
-                return False
+        try:
+            existing = script_path.read_text(encoding="utf-8")
+        except Exception:
+            logger.exception("Failed to read existing statusline.sh at %s", script_path)
+            return False
 
-            if existing == _SCRIPT_CONTENT:
-                logger.debug(
-                    "statusline.sh at %s is already up to date — no rewrite needed",
-                    script_path,
-                )
-            else:
-                try:
-                    script_path.write_text(_SCRIPT_CONTENT, encoding="utf-8")
-                    if _MPM_MARKER in existing:
-                        logger.info(
-                            "Upgraded MPM-managed statusline.sh at %s", script_path
-                        )
-                    else:
-                        logger.info(
-                            "Replaced statusline.sh at %s with canonical MPM version "
-                            "(force mode; previous file lacked the MPM marker)",
-                            script_path,
-                        )
-                except Exception:
-                    logger.exception(
-                        "Failed to overwrite statusline.sh at %s", script_path
+        is_mpm_owned = _MPM_MARKER in existing
+        # Update if: (a) we own it and content differs, or (b) force is set.
+        should_update = (is_mpm_owned and existing != _SCRIPT_CONTENT) or (
+            force and existing != _SCRIPT_CONTENT
+        )
+
+        if should_update:
+            try:
+                script_path.write_text(_SCRIPT_CONTENT, encoding="utf-8")
+                if is_mpm_owned:
+                    logger.info("Upgraded MPM-managed statusline.sh at %s", script_path)
+                else:
+                    logger.info(
+                        "Replaced statusline.sh at %s with canonical MPM version "
+                        "(force mode; previous file lacked the MPM marker)",
+                        script_path,
                     )
-                    return False
+            except Exception:
+                logger.exception("Failed to overwrite statusline.sh at %s", script_path)
+                return False
+        elif is_mpm_owned:
+            logger.debug(
+                "MPM-managed statusline.sh at %s is already up to date", script_path
+            )
         else:
             logger.debug(
-                "statusline.sh already exists at %s — skipping script deploy",
+                "statusline.sh at %s lacks MPM marker — leaving user copy alone",
                 script_path,
             )
         # Always re-chmod to ensure executable bit is set.
@@ -318,13 +337,19 @@ def _ensure_script(claude_dir: Path, force: bool = False) -> bool:
 
 
 def _ensure_settings_entry(settings_path: Path) -> bool:
-    """Ensure the statusLine entry is present in settings.json.
+    """Ensure the statusLine entry is present and current in settings.json.
 
-    If the file doesn't exist it is created with just the statusLine entry.
-    If it already contains a `statusLine` key the file is left unchanged.
+    Ownership rules:
+    - File absent → create with default statusLine entry.
+    - No ``statusLine`` key → add default entry.
+    - Existing ``statusLine.command`` contains ``statusline.sh`` (MPM-owned,
+      legacy or current) → update the entry to the current default (absolute
+      user-level path).
+    - Existing ``statusLine.command`` is something else (user-owned) → leave
+      it alone.
 
     Args:
-        settings_path: Path to .claude/settings.json.
+        settings_path: Path to ``~/.claude/settings.json``.
 
     Returns:
         True on success, False on error.
@@ -355,18 +380,51 @@ def _ensure_settings_entry(settings_path: Path) -> bool:
         logger.exception("Failed to parse settings.json at %s", settings_path)
         return False
 
-    if "statusLine" in settings:
-        logger.debug("statusLine already present in %s — skipping", settings_path)
-        return True
+    if not isinstance(settings, dict):
+        logger.warning(
+            "settings.json at %s is not a JSON object — refusing to modify",
+            settings_path,
+        )
+        return False
 
-    settings["statusLine"] = _DEFAULT_STATUS_LINE
+    existing = settings.get("statusLine")
+    if existing is None:
+        # No statusLine entry at all → add ours.
+        settings["statusLine"] = _DEFAULT_STATUS_LINE
+        action = "Added statusLine entry to %s"
+    else:
+        # Inspect the existing entry's command.  If it's MPM-owned (matches
+        # our substring), update it to the current default; otherwise leave it.
+        cmd = ""
+        if isinstance(existing, dict):
+            raw_cmd = existing.get("command", "")
+            if isinstance(raw_cmd, str):
+                cmd = raw_cmd
+
+        if _STATUSLINE_COMMAND_MATCH in cmd:
+            if existing == _DEFAULT_STATUS_LINE:
+                logger.debug(
+                    "statusLine in %s already matches default — skipping",
+                    settings_path,
+                )
+                return True
+            settings["statusLine"] = _DEFAULT_STATUS_LINE
+            action = (
+                "Updated MPM-managed statusLine entry in %s to absolute user-level path"
+            )
+        else:
+            logger.debug(
+                "statusLine in %s points elsewhere (user-customised) — leaving alone",
+                settings_path,
+            )
+            return True
 
     try:
         settings_path.write_text(
             json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-        logger.info("Added statusLine entry to %s", settings_path)
+        logger.info(action, settings_path)
     except Exception:
         logger.exception("Failed to write settings.json at %s", settings_path)
         return False
@@ -374,15 +432,16 @@ def _ensure_settings_entry(settings_path: Path) -> bool:
     return True
 
 
-def _stop_hook_already_wired(settings: dict) -> bool:
-    """Return True if the Stop hook list already contains a --clear entry.
+def _find_mpm_stop_hook(settings: dict) -> dict | None:
+    """Return the MPM-owned Stop hook entry if present, else None.
 
     Matches substring-wise so both relative and absolute invocations of
-    statusline.sh --clear count as "already wired".
+    ``statusline.sh --clear`` count as "MPM-owned".  Returns the hook dict
+    itself (mutable reference) so callers can update it in place.
     """
     stop_groups = settings.get("hooks", {}).get("Stop", [])
     if not isinstance(stop_groups, list):
-        return False
+        return None
 
     for group in stop_groups:
         if not isinstance(group, dict):
@@ -392,20 +451,24 @@ def _stop_hook_already_wired(settings: dict) -> bool:
                 continue
             cmd = hook.get("command", "")
             if isinstance(cmd, str) and _STOP_HOOK_MATCH in cmd:
-                return True
-    return False
+                return hook
+    return None
 
 
 def _ensure_stop_hook(settings_path: Path) -> bool:
-    """Ensure a Stop hook calling statusline.sh --clear is present.
+    """Ensure a Stop hook calling statusline.sh --clear is present and current.
 
-    Idempotent: if an existing Stop hook already invokes `statusline.sh
-    --clear` (matched substring-wise) the settings file is left unchanged.
-    Otherwise a new hook is appended — either to the existing matcher "*"
-    group if present, or as a new group.
+    Ownership rules:
+    - If an existing Stop hook command contains ``statusline.sh --clear``
+      (substring match — covers legacy relative paths and current absolute
+      path), update its ``command`` to the absolute user-level path.
+    - Otherwise, append a new MPM-owned hook to the existing matcher="*"
+      group (or create one).
+    - Stop hooks owned by the user (no ``statusline.sh --clear`` substring)
+      are left in place.
 
     Args:
-        settings_path: Path to .claude/settings.json.
+        settings_path: Path to ``~/.claude/settings.json``.
 
     Returns:
         True on success, False on error.
@@ -427,44 +490,50 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
     else:
         settings = {}
 
-    if _stop_hook_already_wired(settings):
-        logger.debug(
-            "Stop hook for statusline --clear already present in %s — skipping",
-            settings_path,
-        )
-        return True
-
-    # Ensure nested structure: settings["hooks"]["Stop"] is a list of groups.
-    hooks = settings.setdefault("hooks", {})
-    if not isinstance(hooks, dict):
-        hooks = {}
-        settings["hooks"] = hooks
-    stop_groups = hooks.setdefault("Stop", [])
-    if not isinstance(stop_groups, list):
-        stop_groups = []
-        hooks["Stop"] = stop_groups
-
-    # Prefer to append to an existing matcher="*" group so we don't fragment
-    # the Stop configuration.
-    wildcard_group: dict | None = None
-    for group in stop_groups:
-        if isinstance(group, dict) and group.get("matcher") == "*":
-            wildcard_group = group
-            break
-
-    if wildcard_group is not None:
-        group_hooks = wildcard_group.setdefault("hooks", [])
-        if not isinstance(group_hooks, list):
-            group_hooks = []
-            wildcard_group["hooks"] = group_hooks
-        group_hooks.append(_DEFAULT_STOP_HOOK_ENTRY)
+    existing_hook = _find_mpm_stop_hook(settings)
+    if existing_hook is not None:
+        if existing_hook.get("command") == _STOP_HOOK_COMMAND:
+            logger.debug(
+                "MPM-owned Stop hook in %s already uses absolute path — skipping",
+                settings_path,
+            )
+            return True
+        # Update in place to the absolute user-level path.
+        existing_hook["command"] = _STOP_HOOK_COMMAND
+        action = "Updated MPM-owned Stop hook command in %s to absolute user-level path"
     else:
-        stop_groups.append(
-            {
-                "matcher": "*",
-                "hooks": [_DEFAULT_STOP_HOOK_ENTRY],
-            }
-        )
+        # Ensure nested structure: settings["hooks"]["Stop"] is a list of groups.
+        hooks = settings.setdefault("hooks", {})
+        if not isinstance(hooks, dict):
+            hooks = {}
+            settings["hooks"] = hooks
+        stop_groups = hooks.setdefault("Stop", [])
+        if not isinstance(stop_groups, list):
+            stop_groups = []
+            hooks["Stop"] = stop_groups
+
+        # Prefer to append to an existing matcher="*" group so we don't
+        # fragment the Stop configuration.
+        wildcard_group: dict | None = None
+        for group in stop_groups:
+            if isinstance(group, dict) and group.get("matcher") == "*":
+                wildcard_group = group
+                break
+
+        if wildcard_group is not None:
+            group_hooks = wildcard_group.setdefault("hooks", [])
+            if not isinstance(group_hooks, list):
+                group_hooks = []
+                wildcard_group["hooks"] = group_hooks
+            group_hooks.append(_DEFAULT_STOP_HOOK_ENTRY)
+        else:
+            stop_groups.append(
+                {
+                    "matcher": "*",
+                    "hooks": [_DEFAULT_STOP_HOOK_ENTRY],
+                }
+            )
+        action = "Added Stop hook for statusline --clear to %s"
 
     try:
         settings_path.parent.mkdir(parents=True, exist_ok=True)
@@ -472,7 +541,7 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
             json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-        logger.info("Added Stop hook for statusline --clear to %s", settings_path)
+        logger.info(action, settings_path)
     except Exception:
         logger.exception("Failed to write settings.json at %s", settings_path)
         return False
@@ -481,23 +550,31 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
 
 
 def run_migration(installation_dir: Path | None = None, force: bool = False) -> bool:
-    """Auto-configure the MPM statusline for the current project.
+    """Auto-configure the MPM statusline at the user level (~/.claude/).
 
     Args:
-        installation_dir: Root of the project (default: cwd).
-        force: If True, overwrite an existing MPM-managed ``statusline.sh``
-            with the bundled canonical version (user-customised scripts are
-            still preserved).  Settings/hook wiring remains idempotent
-            regardless of this flag.
+        installation_dir: Accepted for backwards compatibility but ignored —
+            this migration always targets ``~/.claude/`` regardless of the
+            project from which it is invoked.  The user-level statusline is
+            shared across all projects.
+        force: If True, overwrite an existing ``statusline.sh`` even when it
+            lacks the MPM marker (i.e. user-customised).  When False (default),
+            user-customised scripts are preserved; MPM-managed scripts are
+            still upgraded if the bundled content has changed.
 
     Returns:
         True if migration completed successfully (including no-op), False on error.
     """
-    project_root = installation_dir or Path.cwd()
-    claude_dir = project_root / ".claude"
-    settings_path = claude_dir / "settings.json"
+    # Note: ``installation_dir`` is intentionally ignored.  Earlier versions of
+    # this migration wrote to ``<project>/.claude/``; we now operate at the
+    # user level so that one statusline configuration applies to every
+    # project.
+    _ = installation_dir
+    user_claude_dir = Path.home() / ".claude"
+    script_path = user_claude_dir / "hooks" / "scripts" / "statusline.sh"
+    settings_path = user_claude_dir / "settings.json"
 
-    script_ok = _ensure_script(claude_dir, force=force)
+    script_ok = _ensure_script(script_path, force=force)
     settings_ok = _ensure_settings_entry(settings_path)
     stop_hook_ok = _ensure_stop_hook(settings_path) if settings_ok else False
 
