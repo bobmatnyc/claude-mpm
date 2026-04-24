@@ -1,3 +1,11 @@
+## v6.2.53 (2026-04-24)
+
+### Fix
+
+- **session**: use project-local sessions_dir in SessionResumeStartupHook
+- **session**: use project-local path and validate project_path on resume
+- **session**: use project-local .claude-mpm/sessions/ in SessionPauseManager
+
 ## v6.2.52 (2026-04-24)
 
 ### Feat
