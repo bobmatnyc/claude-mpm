@@ -145,6 +145,15 @@ def _run_statusline_autoconfig_migration() -> bool:
     return run_migration(installation_dir=Path.cwd())
 
 
+def _run_statusline_user_level_migration() -> bool:
+    """Move legacy project-level statusline assets to ~/.claude/."""
+    from pathlib import Path
+
+    from .migrate_statusline_user_level import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -230,6 +239,12 @@ MIGRATIONS: list[Migration] = [
         version="6.2.35",
         description="Auto-configure MPM statusline script and statusLine entry in .claude/settings.json",
         run=_run_statusline_autoconfig_migration,
+    ),
+    Migration(
+        id="v6_3_2_statusline_user_level",
+        version="6.3.2",
+        description="Move legacy project-level statusline.sh and settings entries to ~/.claude/",
+        run=_run_statusline_user_level_migration,
     ),
 ]
 
