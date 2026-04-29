@@ -1,0 +1,28 @@
+{
+  "name": "test-quality-inspector",
+  "version": "1.0.0",
+  "category": "universal",
+  "toolchain": null,
+  "framework": null,
+  "tags": [
+    "testing",
+    "quality-assurance",
+    "test-review",
+    "mutation-testing",
+    "mocking",
+    "semantic-correctness"
+  ],
+  "entry_point_tokens": 95,
+  "full_tokens": 4800,
+  "author": "bobmatnyc",
+  "license": "Apache-2.0",
+  "requires": [],
+  "updated": "2026-04-29",
+  "source_path": "testing/test-quality-inspector/SKILL.md",
+  "source": "https://github.com/bobmatnyc/claude-mpm",
+  "created": "2026-04-29",
+  "modified": "2026-04-29",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": false,
+  "repository": "https://github.com/bobmatnyc/claude-mpm-skills"
+}
