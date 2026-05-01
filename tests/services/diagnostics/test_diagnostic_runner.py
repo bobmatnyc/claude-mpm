@@ -4,9 +4,8 @@ WHY: DiagnosticRunner orchestrates all health checks for 'mpm doctor'.
 Zero coverage before these tests, but critical for ensuring reliable diagnostics.
 """
 
-from unittest.mock import Mock, patch
-
-import pytest
+from typing import Optional
+from unittest.mock import patch
 
 from claude_mpm.core.enums import OperationResult, ValidationSeverity
 from claude_mpm.services.diagnostics.checks.base_check import BaseDiagnosticCheck
@@ -23,7 +22,7 @@ class MockCheck(BaseDiagnosticCheck):
         name: str = "mock_check",
         category: str = "Mock",
         should_run_value: bool = True,
-        run_result: DiagnosticResult = None,
+        run_result: DiagnosticResult | None = None,
     ):
         super().__init__(verbose)
         self._name = name
@@ -324,7 +323,7 @@ class TestDiagnosticRunner:
         runner.check_classes = [FixableCheck]
 
         with patch.object(runner, "_attempt_fix") as mock_fix:
-            summary = runner.run_diagnostics()
+            _summary = runner.run_diagnostics()
 
             # _attempt_fix should be called with the result
             mock_fix.assert_called_once()
@@ -352,7 +351,7 @@ class TestDiagnosticRunner:
         runner.check_classes = [SuccessCheck]
 
         with patch.object(runner, "_attempt_fix") as mock_fix:
-            summary = runner.run_diagnostics()
+            _summary = runner.run_diagnostics()
 
             # _attempt_fix should not be called
             mock_fix.assert_not_called()
@@ -373,7 +372,7 @@ class TestDiagnosticRunner:
             ]
 
         with patch.object(runner, "_run_level_parallel", side_effect=mock_run_level):
-            summary = runner.run_diagnostics_parallel()
+            _summary = runner.run_diagnostics_parallel()
 
             # Should execute 3 levels
             assert len(level_results) == 3
@@ -644,7 +643,7 @@ class TestDiagnosticRunner:
 
         # Create a check class that fails during __init__
         class FailingInitCheck(BaseDiagnosticCheck):
-            def __init__(self, verbose=False):
+            def __init__(self, _verbose=False):
                 raise ValueError("Initialization failed")
 
             @property
