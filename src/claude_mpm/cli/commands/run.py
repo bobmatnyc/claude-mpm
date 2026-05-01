@@ -372,7 +372,7 @@ class RunCommand(BaseCommand):
                 loader = AgentDependencyLoader(auto_install=False)
 
                 # Check if agents have changed
-                _has_changed, deployment_hash = loader.has_agents_changed()  # pyright: ignore[reportUnusedVariable]
+                _has_changed, deployment_hash = loader.has_agents_changed()
 
                 # Determine if we should check dependencies
                 should_check, check_reason = smart_checker.should_check_dependencies(
@@ -454,7 +454,7 @@ class RunCommand(BaseCommand):
             else:
                 # Find available port and start server
                 websocket_port = dashboard_manager.find_available_port(8765)
-                success, _server_info = dashboard_manager.start_server(  # pyright: ignore[reportUnusedVariable]
+                success, _server_info = dashboard_manager.start_server(
                     port=websocket_port
                 )
 
@@ -579,7 +579,7 @@ class RunCommand(BaseCommand):
 
     def _create_session_context(
         self,
-        args,  # pyright: ignore[reportUnusedParameter]
+        _args,
         session_manager,
         resume_session_id,
         resume_context,
@@ -1053,7 +1053,7 @@ def run_session_legacy(args):
             loader = AgentDependencyLoader(auto_install=False)
 
             # Check if agents have changed
-            _has_changed, deployment_hash = loader.has_agents_changed()  # pyright: ignore[reportUnusedVariable]
+            _has_changed, deployment_hash = loader.has_agents_changed()
 
             # Determine if we should check dependencies
             should_check, check_reason = smart_checker.should_check_dependencies(
@@ -1390,7 +1390,7 @@ def open_in_browser_tab(url, logger):
     return manager.open_browser(url)
 
 
-def _check_claude_json_memory(args, logger):  # pyright: ignore[reportUnusedParameter]
+def _check_claude_json_memory(args, _logger):
     """Check .claude.json file size and warn about memory issues."""
     # Use new StartupCheckerService
     from ...core.config import Config
@@ -1466,7 +1466,7 @@ def _start_slack_bot(logger):
         print(f"\n❌ Error starting Slack bot: {e}")
 
 
-def _check_configuration_health(logger):  # pyright: ignore[reportUnusedParameter]
+def _check_configuration_health(_logger):
     """Check configuration health at startup and warn about issues."""
     # Use new StartupCheckerService
     from ...core.config import Config
