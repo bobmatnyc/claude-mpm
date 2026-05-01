@@ -61,13 +61,15 @@ class AgentConfig:
 
 # MPM short names -> SDK / API model identifiers
 _MPM_TO_SDK_MODEL: dict[str, str] = {
-    "sonnet": "claude-sonnet-4-20250514",
+    "sonnet": "claude-sonnet-4-6-20260124",
     "opus": "claude-opus-4-20250514",
     "haiku": "claude-haiku-3-20250307",
 }
 
 # Reverse mapping: long API names -> MPM short names
 _SDK_TO_MPM_MODEL: dict[str, str] = {
+    "claude-sonnet-4-6-20260124": "sonnet",
+    "claude-sonnet-4-5-20250929": "sonnet",
     "claude-sonnet-4-20250514": "sonnet",
     "claude-opus-4-20250514": "opus",
     "claude-haiku-3-20250307": "haiku",
