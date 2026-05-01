@@ -71,8 +71,12 @@ jobs:
           asset='ztk-${{ matrix.platform }}'
           url="https://github.com/bobmatnyc/ztk/releases/download/${tag}/${asset}"
           echo "Downloading ${url}"
-          curl -fSL --retry 3 -o src/claude_mpm/bin/ztk "$url"
-          chmod +x src/claude_mpm/bin/ztk
+          if curl -fSL --retry 3 -o src/claude_mpm/bin/ztk "$url" 2>/dev/null; then
+            chmod +x src/claude_mpm/bin/ztk
+            echo "ztk binary downloaded successfully"
+          else
+            echo "WARNING: ztk binary not available at ${url} — building wheel without bundled ztk"
+          fi
           # LICENSE: try release asset, then raw repo, else placeholder
           if ! curl -fSL --retry 3 -o src/claude_mpm/bin/ztk_LICENSE \
                "https://github.com/bobmatnyc/ztk/releases/download/${tag}/LICENSE" 2>/dev/null; then
