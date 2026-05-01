@@ -18,7 +18,7 @@ import subprocess  # nosec B404 - subprocess used for safe claude CLI version ch
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 # Import _log helper to avoid stderr writes (which cause hook errors)
 try:
@@ -62,16 +62,18 @@ except ImportError:
 # Debug mode - MUST match hook_handler.py default (false) to prevent stderr writes
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
-# Import constants for configuration
-if TYPE_CHECKING:
-    from claude_mpm.core.constants import TimeoutConfig
-else:
-    try:
-        from claude_mpm.core.constants import TimeoutConfig
-    except ImportError:
-        # Fallback values if constants module not available
-        class TimeoutConfig:
-            QUICK_TIMEOUT = 2.0
+
+# Import constants for configuration; define fallback first so Pyright sees one type.
+class TimeoutConfig:
+    """Fallback TimeoutConfig when claude_mpm.core.constants is unavailable."""
+
+    QUICK_TIMEOUT = 2.0
+
+
+try:
+    from claude_mpm.core.constants import TimeoutConfig  # type: ignore[assignment]
+except ImportError:
+    pass  # Keep the fallback TimeoutConfig defined above.
 
 
 # ============================================================================
@@ -1048,7 +1050,7 @@ class EventHandlers:
         return None
 
     def _generate_resume_log_on_stop(
-        self, event: dict, _session_id: str, metadata: dict
+        self, event: dict, session_id: str, metadata: dict
     ) -> None:
         """Build session_state from stop event and trigger resume log generation.
 
@@ -1062,6 +1064,9 @@ class EventHandlers:
         generate_resume_log(), so users running /mpm-session-resume only
         ever saw the "Session ended - resume log auto-generated." stub.
         """
+        del (
+            session_id
+        )  # Intentionally unused; session is tracked inside SessionManager.
         from claude_mpm.services.session_manager import get_session_manager
 
         manager = get_session_manager()
@@ -1145,6 +1150,7 @@ class EventHandlers:
         self, _event: dict, session_id: str, metadata: dict
     ) -> None:
         """Log debug information for stop events."""
+        del _event  # Intentionally unused; only metadata and session_id are logged.
         try:
             rtm = getattr(self.hook_handler, "response_tracking_manager", None)
             tracking_enabled = (
