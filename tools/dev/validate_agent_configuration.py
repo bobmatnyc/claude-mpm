@@ -15,7 +15,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Add the src directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -30,7 +30,7 @@ except ImportError:
 class AgentConfigValidator:
     """Validates agent configurations against the Claude MPM schema."""
 
-    def __init__(self, schema_path: Optional[Path] = None):
+    def __init__(self, schema_path: Path | None = None):
         """Initialize validator with schema."""
         if schema_path is None:
             # Use the primary schema by default
@@ -47,7 +47,7 @@ class AgentConfigValidator:
 
         self.validator = Draft7Validator(self.schema)
 
-    def validate_config(self, config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_config(self, config: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         Validate an agent configuration.
 
@@ -65,7 +65,7 @@ class AgentConfigValidator:
 
         return len(errors) == 0, errors
 
-    def validate_file(self, file_path: Path) -> Tuple[bool, List[str]]:
+    def validate_file(self, file_path: Path) -> tuple[bool, list[str]]:
         """Validate an agent configuration file."""
         try:
             with open(file_path) as f:

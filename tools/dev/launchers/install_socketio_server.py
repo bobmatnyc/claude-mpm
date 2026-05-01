@@ -19,7 +19,6 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 
 class SocketIOInstaller:
@@ -53,7 +52,7 @@ class SocketIOInstaller:
         else:
             raise RuntimeError(f"Unsupported platform: {self.platform}")
 
-    def check_dependencies(self) -> Tuple[bool, List[str]]:
+    def check_dependencies(self) -> tuple[bool, list[str]]:
         """Check if required dependencies are installed."""
         required_packages = [
             "python-socketio>=5.11.0",
@@ -72,7 +71,7 @@ class SocketIOInstaller:
 
         return len(missing) == 0, missing
 
-    def install_dependencies(self, missing_packages: List[str]) -> bool:
+    def install_dependencies(self, missing_packages: list[str]) -> bool:
         """Install missing dependencies."""
         print("Installing required dependencies...")
 

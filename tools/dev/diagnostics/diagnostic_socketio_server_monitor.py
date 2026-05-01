@@ -18,7 +18,7 @@ import json
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 try:
     import socketio
@@ -208,7 +208,7 @@ class DiagnosticSocketIOServer:
         )  # Allow GET for browser testing
 
     async def emit_diagnostic_event(
-        self, namespace: str, event: str, data: Dict[str, Any]
+        self, namespace: str, event: str, data: dict[str, Any]
     ):
         """Emit event with diagnostic logging."""
         self.event_count += 1

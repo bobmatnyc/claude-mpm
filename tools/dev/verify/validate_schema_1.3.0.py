@@ -7,21 +7,21 @@ Tests compatibility with agent-manager, engineer, and research templates.
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
-def load_json(file_path: Path) -> Dict[str, Any]:
+def load_json(file_path: Path) -> dict[str, Any]:
     """Load JSON file."""
     with open(file_path) as f:
         return json.load(f)
 
 
-def validate_schema_version(schema: Dict[str, Any]) -> bool:
+def validate_schema_version(schema: dict[str, Any]) -> bool:
     """Check schema version is 1.3.0."""
     return schema.get("version") == "1.3.0"
 
 
-def validate_new_fields(schema: Dict[str, Any]) -> list:
+def validate_new_fields(schema: dict[str, Any]) -> list:
     """Check that all new fields are present in schema."""
     errors = []
 

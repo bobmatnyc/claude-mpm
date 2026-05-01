@@ -11,7 +11,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import requests
@@ -39,7 +39,7 @@ class ReadTheDocsClient:
             "Content-Type": "application/json",
         }
 
-    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
         """Make an API request with error handling."""
         url = f"{self.base_url}/{endpoint}"
 
@@ -53,11 +53,11 @@ class ReadTheDocsClient:
                 print(f"Response: {e.response.text}")
             raise
 
-    def get_project_info(self) -> Dict[str, Any]:
+    def get_project_info(self) -> dict[str, Any]:
         """Get project information."""
         return self._make_request("GET", f"projects/{self.project_slug}/")
 
-    def list_versions(self, active_only: bool = False) -> List[Dict[str, Any]]:
+    def list_versions(self, active_only: bool = False) -> list[dict[str, Any]]:
         """List all project versions."""
         endpoint = f"projects/{self.project_slug}/versions/"
         params = {"active": "true"} if active_only else {}
@@ -66,22 +66,22 @@ class ReadTheDocsClient:
 
     def activate_version(
         self, version_slug: str, active: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Activate or deactivate a version."""
         endpoint = f"projects/{self.project_slug}/versions/{version_slug}/"
         return self._make_request("PATCH", endpoint, json={"active": active})
 
-    def trigger_build(self, version: str = "latest") -> Dict[str, Any]:
+    def trigger_build(self, version: str = "latest") -> dict[str, Any]:
         """Trigger a new build for a specific version."""
         endpoint = f"projects/{self.project_slug}/versions/{version}/builds/"
         return self._make_request("POST", endpoint, json={})
 
-    def get_build_status(self, build_id: int) -> Dict[str, Any]:
+    def get_build_status(self, build_id: int) -> dict[str, Any]:
         """Get the status of a specific build."""
         endpoint = f"projects/{self.project_slug}/builds/{build_id}/"
         return self._make_request("GET", endpoint)
 
-    def list_builds(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def list_builds(self, limit: int = 10) -> list[dict[str, Any]]:
         """List recent builds."""
         endpoint = f"projects/{self.project_slug}/builds/"
         result = self._make_request("GET", endpoint, params={"limit": limit})
@@ -112,7 +112,7 @@ class ReadTheDocsClient:
 
         return "timeout"
 
-    def get_project_redirects(self) -> List[Dict[str, Any]]:
+    def get_project_redirects(self) -> list[dict[str, Any]]:
         """Get project redirects."""
         endpoint = f"projects/{self.project_slug}/redirects/"
         result = self._make_request("GET", endpoint)
@@ -120,7 +120,7 @@ class ReadTheDocsClient:
 
     def create_redirect(
         self, from_url: str, to_url: str, redirect_type: str = "page"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a URL redirect."""
         endpoint = f"projects/{self.project_slug}/redirects/"
         return self._make_request(
@@ -129,19 +129,19 @@ class ReadTheDocsClient:
             json={"from_url": from_url, "to_url": to_url, "type": redirect_type},
         )
 
-    def get_project_environment_variables(self) -> List[Dict[str, Any]]:
+    def get_project_environment_variables(self) -> list[dict[str, Any]]:
         """Get project environment variables."""
         endpoint = f"projects/{self.project_slug}/environmentvariables/"
         result = self._make_request("GET", endpoint)
         return result.get("results", [])
 
-    def set_environment_variable(self, name: str, value: str) -> Dict[str, Any]:
+    def set_environment_variable(self, name: str, value: str) -> dict[str, Any]:
         """Set a project environment variable."""
         endpoint = f"projects/{self.project_slug}/environmentvariables/"
         return self._make_request("POST", endpoint, json={"name": name, "value": value})
 
 
-def format_build_info(build: Dict[str, Any]) -> str:
+def format_build_info(build: dict[str, Any]) -> str:
     """Format build information for display."""
     build_id = build.get("id", "N/A")
     version = build.get("version", "unknown")

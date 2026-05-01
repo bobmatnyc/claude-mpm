@@ -31,7 +31,6 @@ import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -65,7 +64,7 @@ class GitCommitExtractor:
         self.repo_path = Path(repo_path)
         self.ticket_regex = re.compile("|".join(self.TICKET_PATTERNS))
 
-    def extract_commits(self, days: int = 60) -> Dict[str, List[Dict]]:
+    def extract_commits(self, days: int = 60) -> dict[str, list[dict]]:
         """
         Extract commits from the last N days with ticket references.
 
@@ -159,7 +158,7 @@ class ClickUpClient:
 
         self.last_request_time = time.time()
 
-    def search_tasks_by_ids(self, task_ids: List[str]) -> Dict[str, Dict]:
+    def search_tasks_by_ids(self, task_ids: list[str]) -> dict[str, dict]:
         """
         Search for tasks by their custom IDs (EP-XXXX, ISS-XXXX, TSK-XXXX).
 
@@ -256,7 +255,7 @@ class DataAnalyzer:
     """
 
     def __init__(
-        self, commits_by_ticket: Dict[str, List[Dict]], tasks: Dict[str, Dict]
+        self, commits_by_ticket: dict[str, list[dict]], tasks: dict[str, dict]
     ):
         self.commits_by_ticket = commits_by_ticket
         self.tasks = tasks
@@ -359,7 +358,7 @@ class DataAnalyzer:
 
         return dev_contrib
 
-    def generate_summary_statistics(self) -> Dict:
+    def generate_summary_statistics(self) -> dict:
         """
         Generate summary statistics for the analysis.
 
@@ -544,7 +543,7 @@ class Visualizer:
         )
         plt.close()
 
-    def create_summary_report(self, stats: Dict, analysis_data: pd.DataFrame):
+    def create_summary_report(self, stats: dict, analysis_data: pd.DataFrame):
         """Create a text summary report."""
         report_path = self.output_dir / "analysis_summary.txt"
 

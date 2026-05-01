@@ -16,7 +16,6 @@ import argparse
 import shutil
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -28,9 +27,9 @@ class DeprecationPolicyApplier:
     def __init__(self, root_path: Path, dry_run: bool = False):
         self.root_path = root_path
         self.dry_run = dry_run
-        self.removed_files: List[Path] = []
-        self.updated_files: List[Path] = []
-        self.warnings_added: List[Path] = []
+        self.removed_files: list[Path] = []
+        self.updated_files: list[Path] = []
+        self.warnings_added: list[Path] = []
 
         # Define obsolete files according to deprecation policy
         self.immediate_removal = {
@@ -63,7 +62,7 @@ class DeprecationPolicyApplier:
             "*_original.py",
         }
 
-    def identify_obsolete_files(self) -> Dict[str, List[Path]]:
+    def identify_obsolete_files(self) -> dict[str, list[Path]]:
         """Identify files that should be removed according to policy."""
         obsolete = {"immediate": [], "experimental": [], "legacy": [], "backup": []}
 
@@ -93,7 +92,7 @@ class DeprecationPolicyApplier:
 
         return obsolete
 
-    def add_deprecation_warnings(self, files: List[Path]) -> None:
+    def add_deprecation_warnings(self, files: list[Path]) -> None:
         """Add deprecation warnings to experimental files."""
         for file_path in files:
             if file_path.suffix != ".py":
@@ -152,7 +151,7 @@ class DeprecationPolicyApplier:
             except Exception as e:
                 print(f"⚠️  Error adding warning to {file_path}: {e}")
 
-    def remove_files(self, files: List[Path], category: str) -> None:
+    def remove_files(self, files: list[Path], category: str) -> None:
         """Remove obsolete files."""
         for file_path in files:
             try:
@@ -206,7 +205,7 @@ class DeprecationPolicyApplier:
                 self.updated_files.append(gitignore_path)
                 print("✓ Updated .gitignore with obsolete file patterns")
 
-    def generate_report(self, obsolete_files: Dict[str, List[Path]]) -> None:
+    def generate_report(self, obsolete_files: dict[str, list[Path]]) -> None:
         """Generate a report of actions taken."""
         print("\n" + "=" * 60)
         print("DEPRECATION POLICY APPLICATION REPORT")

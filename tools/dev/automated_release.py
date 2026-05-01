@@ -24,13 +24,13 @@ Usage:
 import argparse
 import subprocess
 import sys
+from datetime import UTC
 from pathlib import Path
-from typing import Optional, Tuple
 
 
 def run_command(
-    cmd: str, cwd: Optional[Path] = None, check: bool = True
-) -> Tuple[int, str, str]:
+    cmd: str, cwd: Path | None = None, check: bool = True
+) -> tuple[int, str, str]:
     """Run a shell command and return (returncode, stdout, stderr)."""
     print(f"Running: {cmd}")
     result = subprocess.run(  # nosec B602 - dev tool running trusted release commands
@@ -152,7 +152,7 @@ def update_version_files(project_root: Path, new_version: str) -> None:
     # Update CHANGELOG.md - add new version entry if not present
     changelog_path = project_root / "CHANGELOG.md"
     if changelog_path.exists():
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         changelog_content = changelog_path.read_text()
         version_header = f"## [{new_version}]"
@@ -160,7 +160,7 @@ def update_version_files(project_root: Path, new_version: str) -> None:
         if version_header not in changelog_content:
             # Find the Unreleased section and add new version after it
             unreleased_pattern = r"(## \[Unreleased\].*?)(\n## \[)"
-            today = datetime.now(tz=timezone.utc).date().strftime("%Y-%m-%d")
+            today = datetime.now(tz=UTC).date().strftime("%Y-%m-%d")
             new_entry = f"\n\n{version_header} - {today}\n\n### Fixed\n- Automated release improvements\n"
 
             updated_content = re.sub(

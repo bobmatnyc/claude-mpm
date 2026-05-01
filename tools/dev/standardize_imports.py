@@ -7,7 +7,6 @@ Converts relative imports to absolute imports from claude_mpm package.
 import re
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 
 class ImportStandardizer:
@@ -19,7 +18,7 @@ class ImportStandardizer:
         self.issues_found = []
         self.files_modified = 0
 
-    def find_python_files(self) -> List[Path]:
+    def find_python_files(self) -> list[Path]:
         """Find all Python files in the project."""
         return list(self.project_root.rglob("*.py"))
 
@@ -66,7 +65,7 @@ class ImportStandardizer:
 
         return "claude_mpm." + ".".join(full_parts)
 
-    def process_file(self, file_path: Path) -> Tuple[bool, List[str]]:
+    def process_file(self, file_path: Path) -> tuple[bool, list[str]]:
         """Process a single file and return whether it was modified and any issues."""
         try:
             content = file_path.read_text()

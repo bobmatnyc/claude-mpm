@@ -10,7 +10,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -46,7 +46,7 @@ def load_config() -> Config:
         sys.exit(1)
 
 
-def load_config_file() -> Dict[str, Any]:
+def load_config_file() -> dict[str, Any]:
     """Load configuration from file, returning empty dict if none exists."""
     config_path = get_config_file_path()
 
@@ -64,7 +64,7 @@ def load_config_file() -> Dict[str, Any]:
         return {}
 
 
-def save_config_file(config_data: Dict[str, Any]) -> None:
+def save_config_file(config_data: dict[str, Any]) -> None:
     """Save configuration to file."""
     config_path = get_config_file_path()
 

@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from threading import Event, Thread
-from typing import Dict, List, Optional
 
 import psutil
 import requests
@@ -32,22 +31,22 @@ class ServiceConfig:
     """Configuration for a single MCP service."""
 
     name: str
-    command: List[str]
+    command: list[str]
     port: int
     health_endpoint: str
     health_timeout: int = 5
     startup_timeout: int = 30
     restart_delay: int = 5
     max_retries: int = 3
-    log_file: Optional[str] = None
-    env_vars: Dict[str, str] = None
-    working_dir: Optional[str] = None
+    log_file: str | None = None
+    env_vars: dict[str, str] = None
+    working_dir: str | None = None
 
 
 class MCPServiceMonitor:
     """Monitor and manage MCP services."""
 
-    def __init__(self, config_path: str, log_dir: Optional[str] = None):
+    def __init__(self, config_path: str, log_dir: str | None = None):
         self.config_path = Path(config_path)
         self.log_dir = Path(log_dir) if log_dir else Path.home() / ".mcp" / "logs"
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -56,13 +55,13 @@ class MCPServiceMonitor:
         self.setup_logging()
 
         # Load configuration
-        self.services: Dict[str, ServiceConfig] = {}
-        self.processes: Dict[str, subprocess.Popen] = {}
+        self.services: dict[str, ServiceConfig] = {}
+        self.processes: dict[str, subprocess.Popen] = {}
         self.load_config()
 
         # Control flags
         self.shutdown_event = Event()
-        self.monitor_threads: Dict[str, Thread] = {}
+        self.monitor_threads: dict[str, Thread] = {}
 
         # Setup signal handlers
         signal.signal(signal.SIGTERM, self._signal_handler)
@@ -128,7 +127,7 @@ class MCPServiceMonitor:
         except OSError:
             return False
 
-    def find_process_on_port(self, port: int) -> Optional[int]:
+    def find_process_on_port(self, port: int) -> int | None:
         """Find the PID of process listening on the given port."""
         try:
             for conn in psutil.net_connections():
@@ -192,7 +191,7 @@ class MCPServiceMonitor:
             self.logger.debug(f"Health check failed for {service.name}: {e}")
             return False
 
-    def start_service(self, service: ServiceConfig) -> Optional[subprocess.Popen]:
+    def start_service(self, service: ServiceConfig) -> subprocess.Popen | None:
         """Start a single service."""
         # Check if port is available
         if not self.is_port_available(service.port):
@@ -363,7 +362,7 @@ class MCPServiceMonitor:
 
         self.logger.info("MCP service monitoring stopped")
 
-    def status(self) -> Dict[str, Dict]:
+    def status(self) -> dict[str, dict]:
         """Get status of all services."""
         status = {}
 

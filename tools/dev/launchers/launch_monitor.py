@@ -21,7 +21,6 @@ import socket
 import sys
 import webbrowser
 from pathlib import Path
-from typing import Optional
 
 # Get script directory for relative paths
 SCRIPT_DIR = Path(__file__).parent
@@ -53,7 +52,7 @@ def find_running_server():
     return None
 
 
-def open_monitor(port: Optional[int] = None):
+def open_monitor(port: int | None = None):
     """Open the monitoring dashboard in browser.
 
     WHY: Users need easy access to the monitoring dashboard. This function

@@ -7,7 +7,7 @@ the delegation detector automatically creates autotodos.
 
 # Add src to path
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -47,7 +47,7 @@ Let me know if you need any help!
     event = {
         "response": response_text,
         "session_id": "demo-session-123",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     print(f"   Response preview: {response_text[:100]}...")

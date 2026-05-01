@@ -23,7 +23,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
 
 try:
     import requests
@@ -53,7 +52,7 @@ class ServerManager:
         # Standalone server PID file location pattern
         self.standalone_pidfile_pattern = "/tmp/claude_mpm_socketio_{port}.pid"
 
-    def get_server_info(self, port: int) -> Optional[Dict]:
+    def get_server_info(self, port: int) -> dict | None:
         """Get server information from a running instance with daemon compatibility."""
         if not REQUESTS_AVAILABLE:
             return self._check_daemon_fallback(port)
@@ -75,7 +74,7 @@ class ServerManager:
             return self._check_daemon_fallback(port)
         return None
 
-    def list_running_servers(self) -> List[Dict]:
+    def list_running_servers(self) -> list[dict]:
         """List all running Socket.IO servers including daemon-style servers."""
         running_servers = []
 
@@ -96,7 +95,7 @@ class ServerManager:
 
         return running_servers
 
-    def find_available_port(self, start_port: Optional[int] = None) -> int:
+    def find_available_port(self, start_port: int | None = None) -> int:
         """Find the next available port for a new server."""
         start_port = start_port or self.base_port
 
@@ -110,8 +109,8 @@ class ServerManager:
 
     def start_server(
         self,
-        port: Optional[int] = None,
-        server_id: Optional[str] = None,
+        port: int | None = None,
+        server_id: str | None = None,
         host: str = "localhost",
     ) -> bool:
         """Start a standalone Socket.IO server with conflict detection."""
@@ -250,7 +249,7 @@ class ServerManager:
         return False
 
     def stop_server(
-        self, port: Optional[int] = None, server_id: Optional[str] = None
+        self, port: int | None = None, server_id: str | None = None
     ) -> bool:
         """Stop a running Socket.IO server with daemon compatibility."""
 
@@ -328,7 +327,7 @@ class ServerManager:
         return False
 
     def restart_server(
-        self, port: Optional[int] = None, server_id: Optional[str] = None
+        self, port: int | None = None, server_id: str | None = None
     ) -> bool:
         """Restart a Socket.IO server."""
 
@@ -408,7 +407,7 @@ class ServerManager:
 
             print()
 
-    def health_check(self, port: Optional[int] = None) -> bool:
+    def health_check(self, port: int | None = None) -> bool:
         """Perform health check on server(s) with management style awareness."""
 
         if port:
@@ -495,7 +494,7 @@ class ServerManager:
             return f"{seconds / 60:.1f}m"
         return f"{seconds / 3600:.1f}h"
 
-    def _get_server_stats(self, port: int) -> Optional[Dict]:
+    def _get_server_stats(self, port: int) -> dict | None:
         """Get detailed server statistics."""
         if not REQUESTS_AVAILABLE:
             return None
@@ -508,13 +507,13 @@ class ServerManager:
             pass
         return None
 
-    def _check_daemon_fallback(self, port: int) -> Optional[Dict]:
+    def _check_daemon_fallback(self, port: int) -> dict | None:
         """Check for daemon-style server when HTTP fails."""
         if port == self.base_port:  # Only check daemon for default port
             return self._get_daemon_server_info()
         return None
 
-    def _get_daemon_pid(self) -> Optional[int]:
+    def _get_daemon_pid(self) -> int | None:
         """Get PID from daemon PID file."""
         try:
             if self.daemon_pidfile_path.exists():
@@ -529,7 +528,7 @@ class ServerManager:
             pass
         return None
 
-    def _get_daemon_server_info(self) -> Optional[Dict]:
+    def _get_daemon_server_info(self) -> dict | None:
         """Get server info for daemon-style server."""
         daemon_pid = self._get_daemon_pid()
         if daemon_pid:
@@ -618,7 +617,7 @@ class ServerManager:
         print("❌ Failed to stop daemon server")
         return False
 
-    def diagnose_conflicts(self, port: Optional[int] = None) -> None:
+    def diagnose_conflicts(self, port: int | None = None) -> None:
         """Diagnose server management conflicts and suggest resolutions."""
         if port is None:
             port = self.base_port

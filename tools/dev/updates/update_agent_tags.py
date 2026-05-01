@@ -3,10 +3,9 @@
 
 import re
 from pathlib import Path
-from typing import List
 
 
-def extract_yaml_list_tags(content: str) -> tuple[List[str], str]:
+def extract_yaml_list_tags(content: str) -> tuple[list[str], str]:
     """Extract YAML list format tags and return tags list and remaining content."""
     lines = content.split("\n")
     tags = []

@@ -22,10 +22,9 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 
-def run_command(cmd: List[str], check=True) -> subprocess.CompletedProcess:
+def run_command(cmd: list[str], check=True) -> subprocess.CompletedProcess:
     """Run a command and return the result."""
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -39,7 +38,7 @@ def run_command(cmd: List[str], check=True) -> subprocess.CompletedProcess:
     return result
 
 
-def get_deployed_agents(agents_dir: Path) -> List[str]:
+def get_deployed_agents(agents_dir: Path) -> list[str]:
     """Get list of currently deployed agent names."""
     if not agents_dir.exists():
         return []
@@ -70,7 +69,7 @@ def backup_agents(agents_dir: Path, backup_dir: Path) -> None:
             shutil.copy2(agent_file, backup_file)
 
 
-def extract_frontmatter_fields(agent_file: Path) -> Dict[str, str]:
+def extract_frontmatter_fields(agent_file: Path) -> dict[str, str]:
     """Extract frontmatter fields from an agent markdown file."""
     if not agent_file.exists():
         return {}
@@ -99,8 +98,8 @@ def extract_frontmatter_fields(agent_file: Path) -> Dict[str, str]:
 
 
 def verify_metadata_transfer(
-    agents_dir: Path, expected_agents: List[str]
-) -> Dict[str, Dict[str, str]]:
+    agents_dir: Path, expected_agents: list[str]
+) -> dict[str, dict[str, str]]:
     """Verify that all agents have proper metadata after deployment."""
     print(f"\nVerifying metadata transfer for {len(expected_agents)} agents...")
 

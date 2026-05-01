@@ -7,10 +7,10 @@ Converts JSON format to Markdown with frontmatter for Claude Code compatibility.
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 
-def convert_json_to_markdown(agent_data: Dict[str, Any]) -> str:
+def convert_json_to_markdown(agent_data: dict[str, Any]) -> str:
     """Convert JSON agent to Markdown format with frontmatter."""
 
     # Extract metadata
