@@ -1,17 +1,19 @@
 """PreToolUse hook: rewrite Bash commands through `ztk run` for token compression.
 
-ztk (https://github.com/codejunkie99/ztk) is a Zig binary that compresses shell
-command output before it reaches Claude. Benchmarks show 80-97% token reduction
-on common commands (git diff, ls, grep, pytest, etc.) with a 90.6% overall
-reduction across a 256-command session.
+ztk (https://github.com/codejunkie99/ztk, forked at https://github.com/bobmatnyc/ztk)
+is a Zig binary that compresses shell command output before it reaches Claude.
+Benchmarks show 80-97% token reduction on common commands (git diff, ls, grep,
+pytest, etc.) with a 90.6% overall reduction across a 256-command session.
 
 This hook integrates ztk into claude-mpm's existing hook dispatcher rather than
 running `ztk init -g` (which would conflict with our own hook setup).
 
 Behavior:
-- If `ztk` is in PATH AND tool is `Bash`: rewrite `command` to `ztk run <original>`
-- If `ztk` is NOT in PATH: pass through unchanged (graceful degradation)
-- Already-wrapped commands (already starting with `ztk `) are left alone
+- Resolve ztk via `_resolve_ztk()`: prefers system PATH, falls back to bundled
+  binary shipped in the wheel under `claude_mpm/bin/ztk`.
+- If ztk is found AND tool is `Bash`: rewrite `command` to `<ztk> run <original>`
+- If ztk is NOT found: pass through unchanged (graceful degradation)
+- Already-wrapped commands are left alone (idempotency)
 - Uses permissionDecision "allow" (transparent — users have already granted Bash perms)
 
 Returns hookSpecificOutput with updatedInput to modify the Bash command parameter.
@@ -20,7 +22,10 @@ Returns hookSpecificOutput with updatedInput to modify the Bash command paramete
 import json
 import os
 import shutil
+import stat
 import sys
+from importlib import resources
+from pathlib import Path
 
 
 def _log_debug(message: str) -> None:
@@ -32,6 +37,47 @@ def _log_debug(message: str) -> None:
 def _passthrough() -> None:
     """Emit a continue response with no input modification."""
     print(json.dumps({"continue": True}))
+
+
+def _resolve_ztk() -> str | None:
+    """Resolve the ztk executable path.
+
+    Resolution order:
+    1. System PATH (`shutil.which("ztk")`) — user's install takes precedence
+    2. Bundled binary at `claude_mpm/bin/ztk` (chmod +x if needed)
+
+    Returns absolute path string, or None if neither is available.
+    """
+    # 1. System install
+    system_ztk = shutil.which("ztk")
+    if system_ztk:
+        _log_debug(f"using system ztk: {system_ztk}")
+        return system_ztk
+
+    # 2. Bundled binary via importlib.resources
+    try:
+        bundled = resources.files("claude_mpm").joinpath("bin", "ztk")
+        # `files()` returns a Traversable; for filesystem-based packages this is
+        # a concrete path. Coerce via str() and confirm existence.
+        bundled_path = Path(str(bundled))
+        if bundled_path.is_file():
+            # Ensure executable bit is set (wheels can lose it)
+            mode = bundled_path.stat().st_mode
+            if not mode & stat.S_IXUSR:
+                try:
+                    bundled_path.chmod(
+                        mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                    )
+                    _log_debug(f"chmod +x applied to {bundled_path}")
+                except OSError as exc:
+                    _log_debug(f"failed to chmod bundled ztk: {exc}")
+                    return None
+            _log_debug(f"using bundled ztk: {bundled_path}")
+            return str(bundled_path)
+    except (ModuleNotFoundError, FileNotFoundError, AttributeError) as exc:
+        _log_debug(f"bundled ztk not available: {exc}")
+
+    return None
 
 
 def main() -> None:
@@ -75,15 +121,16 @@ def main() -> None:
         _passthrough()
         return
 
-    # Graceful degradation: ztk must be on PATH
-    if shutil.which("ztk") is None:
-        _log_debug("ztk not found on PATH; pass-through")
+    # Graceful degradation: ztk must be resolvable
+    ztk_path = _resolve_ztk()
+    if ztk_path is None:
+        _log_debug("ztk not found (system or bundled); pass-through")
         _passthrough()
         return
 
-    # Rewrite the command
-    tool_input["command"] = f"ztk run {command}"
-    _log_debug(f"rewrote Bash command: {command[:80]!r} -> ztk run ...")
+    # Rewrite the command using the resolved ztk path
+    tool_input["command"] = f"{ztk_path} run {command}"
+    _log_debug(f"rewrote Bash command: {command[:80]!r} -> {ztk_path} run ...")
 
     result = {
         "hookSpecificOutput": {
