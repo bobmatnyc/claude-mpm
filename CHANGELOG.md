@@ -1,3 +1,9 @@
+## v6.2.58 (2026-05-01)
+
+### Fix
+
+- **release**: make download-ztk non-blocking when no release exists
+
 ## v6.2.57 (2026-05-01)
 
 ### Fix
