@@ -1,3 +1,29 @@
+## v6.2.59 (2026-05-01)
+
+### Feat
+
+- **auto-config**: implement deploy/rollback stubs and confirmation prompt (#468)
+
+### Fix
+
+- **model**: suppress Pyright import-not-found for optional anthropic dependency
+- **model**: move anthropic to top-level optional import for Pyright resolution
+- **model**: initialize Anthropic SDK and implement claude_provider stubs (#475)
+- **ci**: make ztk binary download non-fatal in Release Platform Wheels
+- **cli**: suppress unused args parameter warnings in dispatch methods
+- **cli**: remove unused _args assignments in agents.py
+- **cli**: resolve pre-existing Pyright errors in agents.py
+- **cli**: implement agents deploy command using AgentDeploymentService (#467)
+- **test**: remove unused Optional import and fix verbose param in test_diagnostic_runner.py
+- **test**: remove unused variable assignments in test_diagnostic_runner.py
+- **test**: resolve Pyright diagnostics in test_diagnostic_runner.py
+- **doctor**: implement _attempt_fix execution in diagnostic_runner (#469)
+- **process**: resolve pre-existing Pyright errors in process_manager.py
+- **interfaces**: add is_initialized and initialize to IDeploymentStateManager
+- **process**: implement real health check instead of hardcoded is_responding=True (#470)
+- **version**: move importlib to top-level import to resolve Pyright unbound errors
+- **version**: implement check_for_updates with PyPI version comparison (#471)
+
 ## v6.2.58 (2026-05-01)
 
 ### Fix
