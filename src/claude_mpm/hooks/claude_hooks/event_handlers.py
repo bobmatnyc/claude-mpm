@@ -18,7 +18,7 @@ import subprocess  # nosec B404 - subprocess used for safe claude CLI version ch
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 # Import _log helper to avoid stderr writes (which cause hook errors)
 try:
@@ -27,6 +27,7 @@ except ImportError:
     # Fallback for direct execution
     def _log(message: str) -> None:
         """Fallback logger when hook_handler not available."""
+        del message  # Intentionally unused; no-op fallback.
 
 
 # Import tool analysis with fallback for direct execution
@@ -41,7 +42,8 @@ try:
     )
 except ImportError:
     # Fall back to direct import (when parent script is run directly)
-    from tool_analysis import (
+    # Pyright cannot resolve this fallback path; it is intentional for direct execution.
+    from tool_analysis import (  # type: ignore[import-not-found]
         assess_security_risk,
         calculate_duration,
         classify_tool_operation,
@@ -54,18 +56,22 @@ except ImportError:
 try:
     from .correlation_manager import CorrelationManager
 except ImportError:
-    from correlation_manager import CorrelationManager
+    # Pyright cannot resolve this fallback path; it is intentional for direct execution.
+    from correlation_manager import CorrelationManager  # type: ignore[import-not-found]
 
 # Debug mode - MUST match hook_handler.py default (false) to prevent stderr writes
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 # Import constants for configuration
-try:
+if TYPE_CHECKING:
     from claude_mpm.core.constants import TimeoutConfig
-except ImportError:
-    # Fallback values if constants module not available
-    class TimeoutConfig:
-        QUICK_TIMEOUT = 2.0
+else:
+    try:
+        from claude_mpm.core.constants import TimeoutConfig
+    except ImportError:
+        # Fallback values if constants module not available
+        class TimeoutConfig:
+            QUICK_TIMEOUT = 2.0
 
 
 # ============================================================================
@@ -525,11 +531,13 @@ class EventHandlers:
                     # Log the agent prompt asynchronously
                     try:
                         loop = asyncio.get_running_loop()
-                        _task = asyncio.create_task(
+                        # Fire-and-forget logging (ephemeral hook process); task
+                        # reference intentionally unused.
+                        asyncio.create_task(
                             log_manager.log_prompt(
                                 f"agent_{agent_type}", prompt_content, metadata
                             )
-                        )  # Fire-and-forget logging (ephemeral hook process)
+                        )
                     except RuntimeError:
                         # No running loop, create one
                         loop = asyncio.new_event_loop()
@@ -627,7 +635,7 @@ class EventHandlers:
         """Get git branch for the given directory with caching."""
         # Use current working directory if not specified
         if not working_dir:
-            working_dir = Path.cwd()
+            working_dir = str(Path.cwd())
 
         # Check cache first (cache for 300 seconds = 5 minutes)
         # WHY 5 minutes: Git branches rarely change during development sessions,
@@ -1040,7 +1048,7 @@ class EventHandlers:
         return None
 
     def _generate_resume_log_on_stop(
-        self, event: dict, session_id: str, metadata: dict
+        self, event: dict, _session_id: str, metadata: dict
     ) -> None:
         """Build session_state from stop event and trigger resume log generation.
 
@@ -1134,7 +1142,7 @@ class EventHandlers:
         }
 
     def _log_stop_event_debug(
-        self, event: dict, session_id: str, metadata: dict
+        self, _event: dict, session_id: str, metadata: dict
     ) -> None:
         """Log debug information for stop events."""
         try:
