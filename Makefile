@@ -817,8 +817,8 @@ ZTK_VERSION ?= v0.2.1
 # Download bundled ztk binary for the current build platform
 download-ztk: ## Download bundled ztk binary into src/claude_mpm/bin/
 	@echo "$(YELLOW)⬇️  Downloading bundled ztk $(ZTK_VERSION)...$(NC)"
-	@./scripts/download_ztk_binaries.sh $(ZTK_VERSION)
-	@echo "$(GREEN)✓ ztk binary staged in src/claude_mpm/bin/$(NC)"
+	@./scripts/download_ztk_binaries.sh $(ZTK_VERSION) || echo "$(YELLOW)⚠ ztk download skipped (no release available for $(ZTK_VERSION))$(NC)"
+	@echo "$(GREEN)✓ ztk download step complete$(NC)"
 
 # Release prerequisites check
 release-check: ## Check if environment is ready for release
