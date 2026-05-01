@@ -77,6 +77,9 @@ def filter_claude_mpm_args(claude_args):
         "--no-prompt",
         "--force-prompt",
         "--no-dangerously-skip-permissions",  # Security opt-out flag (MPM-specific)
+        "--ztk",  # ZTK compression explicit enable (MPM-specific)
+        "--no-ztk",  # ZTK compression disable (MPM-specific)
+        "--debug-ztk",  # ZTK debug logging (MPM-specific)
         # Input/output flags (these are MPM-specific, not Claude CLI flags)
         "--input",
         "--non-interactive",
@@ -1365,19 +1368,6 @@ def launch_socketio_monitor(port, logger):
         return success, browser_opened
 
     return False, False
-
-
-def _check_socketio_server_running(port, logger):  # pyright: ignore[reportUnusedFunction]
-    """Check if a Socket.IO server is running on the specified port (legacy compatibility)."""
-    dashboard_manager = UnifiedDashboardManager(logger)
-    return dashboard_manager.is_server_running(port)
-
-
-def _start_standalone_socketio_server(port, logger):  # pyright: ignore[reportUnusedFunction]
-    """Start a standalone Socket.IO server (legacy compatibility)."""
-    dashboard_manager = UnifiedDashboardManager(logger)
-    success, _ = dashboard_manager.start_server(port=port)
-    return success
 
 
 def open_in_browser_tab(url, logger):
