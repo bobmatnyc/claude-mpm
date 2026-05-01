@@ -177,6 +177,19 @@ def main(argv: list | None = None):
         if skip_compat_check:
             os.environ["CLAUDE_MPM_SKIP_COMPAT_CHECK"] = "1"
 
+        # Propagate --ztk / --no-ztk / --debug-ztk CLI flags to the environment so the
+        # ztk_hook.py subprocess (which reads env vars directly) picks them up.
+        # ztk=True  → explicitly enable (unset CLAUDE_MPM_DISABLE_ZTK even if set externally)
+        # ztk=False → disable (set CLAUDE_MPM_DISABLE_ZTK=1)
+        # ztk=None  → leave env as-is (default: neither flag passed)
+        ztk_flag = getattr(args, "ztk", None)
+        if ztk_flag is False:
+            os.environ["CLAUDE_MPM_DISABLE_ZTK"] = "1"
+        elif ztk_flag is True:
+            os.environ.pop("CLAUDE_MPM_DISABLE_ZTK", None)
+        if getattr(args, "debug_ztk", False):
+            os.environ["CLAUDE_MPM_ZTK_DEBUG"] = "1"
+
         # Bridge --model CLI flag to environment variable so it reaches the SDK session.
         pm_model_arg = getattr(args, "model", None)
         if pm_model_arg:
