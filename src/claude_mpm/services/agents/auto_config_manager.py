@@ -622,8 +622,16 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         """
         Request user confirmation before deployment.
 
-        TODO: Implement interactive confirmation dialog.
-        For now, returns True (auto-approve) to enable testing.
+        Presents the recommended agents and validation summary to the user
+        and prompts for confirmation via stdin. Callers that want to bypass
+        the prompt (CI, API handlers, ``--yes``-style flags) should pass
+        ``confirmation_required=False`` to :meth:`auto_configure` so this
+        method is never invoked.
+
+        If stdin is not a TTY (non-interactive context like CI or a piped
+        invocation) we fall back to auto-approving when validation passed
+        and rejecting otherwise. This preserves the previous test-friendly
+        behavior while making interactive sessions actually interactive.
 
         Args:
             recommendations: List of recommended agents
@@ -632,9 +640,49 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         Returns:
             bool: True if user confirms, False otherwise
         """
-        # TODO: Implement interactive confirmation
-        # For now, auto-approve if validation passed
-        return validation.is_valid
+        import sys
+
+        # Build a concise summary of what we're about to do.
+        lines = [
+            "",
+            "Auto-configuration proposes deploying the following agents:",
+        ]
+        for rec in recommendations:
+            lines.append(
+                f"  - {rec.agent_id} ({rec.agent_name}) "
+                f"[confidence={rec.confidence_score:.2f}]"
+            )
+
+        if validation.warning_count:
+            lines.append(
+                f"Validation warnings: {validation.warning_count} "
+                f"(errors: {validation.error_count})"
+            )
+
+        summary = "\n".join(lines)
+
+        # Non-interactive fallback: keep prior behavior to avoid breaking
+        # automated callers that forgot to pass confirmation_required=False.
+        if not sys.stdin.isatty():
+            self.logger.info(
+                "Non-interactive stdin detected; auto-%s based on validation.",
+                "approving" if validation.is_valid else "rejecting",
+            )
+            self.logger.info(summary)
+            return validation.is_valid
+
+        # Interactive prompt. Default to "no" to be safe.
+        try:
+            print(summary)
+            response = input("Proceed with deployment? [y/N]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            self.logger.info("User aborted confirmation prompt")
+            return False
+
+        confirmed = response in ("y", "yes")
+        if not confirmed:
+            self.logger.info("User declined auto-configuration deployment")
+        return confirmed
 
     async def _deploy_agents(
         self,
@@ -689,54 +737,141 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
 
         return deployed, failed
 
+    def _get_deployment_service(self) -> Any:
+        """
+        Lazily resolve the agent deployment service.
+
+        Uses the injected ``self._agent_deployment`` if provided (preferred,
+        enables mocking in tests) and otherwise instantiates the project
+        ``AgentDeploymentService``. The result is cached on the instance so
+        repeated calls during a single auto-configure run share state.
+
+        Returns:
+            An object exposing ``deploy_agent(agent_name, target_dir, force_rebuild=False)``.
+        """
+        if self._agent_deployment is not None:
+            return self._agent_deployment
+
+        from .deployment.agent_deployment import AgentDeploymentService
+
+        self._agent_deployment = AgentDeploymentService()
+        self.logger.info("Initialized AgentDeploymentService (lazy)")
+        return self._agent_deployment
+
+    @staticmethod
+    def _resolve_agents_dir(project_path: Path) -> Path:
+        """Resolve the project's ``.claude/agents`` directory.
+
+        Centralized so both deploy and rollback target the same location.
+        """
+        return project_path / ".claude" / "agents"
+
     async def _deploy_single_agent(self, agent_id: str, project_path: Path) -> None:
         """
-        Deploy a single agent.
+        Deploy a single agent to the project's ``.claude/agents`` directory.
 
-        TODO: Integrate with AgentDeploymentService.
+        Delegates to ``AgentDeploymentService.deploy_agent`` which is the
+        same code path used by the auto-config HTTP handler. The deployment
+        call is synchronous/blocking I/O, so we run it in a worker thread
+        via ``asyncio.to_thread`` to avoid stalling the event loop.
 
         Args:
-            agent_id: Agent identifier
+            agent_id: Agent identifier (matches the template stem)
             project_path: Project root directory
 
         Raises:
-            Exception: If deployment fails
+            RuntimeError: If the deployment service reports failure.
+            Exception: Propagates underlying deployment errors so the caller
+                can record them in ``failed_agents`` and trigger rollback.
         """
-        # TODO: Implement actual deployment logic
-        # For now, simulate deployment with a small delay
         import asyncio
 
-        await asyncio.sleep(0.1)
+        service = self._get_deployment_service()
+        agents_dir = self._resolve_agents_dir(project_path)
+        agents_dir.mkdir(parents=True, exist_ok=True)
 
-        # Placeholder: will integrate with AgentDeploymentService
-        self.logger.debug(f"Deployed agent {agent_id} to {project_path}")
+        def _do_deploy() -> bool:
+            return bool(service.deploy_agent(agent_id, agents_dir, force_rebuild=False))
+
+        success = await asyncio.to_thread(_do_deploy)
+        if not success:
+            # AgentDeploymentService returns False (rather than raising) for
+            # certain non-exceptional failures; surface that as an error so
+            # the caller treats this agent as failed.
+            raise RuntimeError(
+                f"AgentDeploymentService reported failure for agent '{agent_id}'"
+            )
+
+        self.logger.debug(f"Deployed agent {agent_id} to {agents_dir}")
 
     async def _rollback_deployment(
         self, project_path: Path, deployed_agents: list[str]
     ) -> bool:
         """
-        Rollback deployed agents after failure.
+        Rollback deployed agents after a partial-failure deployment.
+
+        Strategy: this manager does not snapshot pre-existing agent files
+        before deploying (a full backup-and-restore lives in the higher-level
+        auto-config HTTP handler via ``BackupManager``). What we *can* safely
+        do here is remove the agent files that *this* run just wrote, so the
+        project is left without half-installed agents.
+
+        For each agent_id we attempt to delete ``<project>/.claude/agents/<agent_id>.md``
+        (and the legacy ``.yaml`` variant if present). Missing files are
+        treated as "already rolled back" and do not count as failures.
 
         Args:
             project_path: Project root directory
             deployed_agents: List of agent IDs to rollback
 
         Returns:
-            bool: True if rollback succeeded, False otherwise
+            bool: True if all rollback steps succeeded (or nothing to do),
+                False if at least one file could not be removed.
         """
-        self.logger.warning(f"Rolling back {len(deployed_agents)} deployed agents")
-
-        try:
-            # TODO: Implement actual rollback logic
-            # For now, log the rollback attempt
-            for agent_id in deployed_agents:
-                self.logger.info(f"Rolling back agent: {agent_id}")
-
+        if not deployed_agents:
+            self.logger.info(
+                "Rollback requested with no deployed agents; nothing to do"
+            )
             return True
 
-        except Exception as e:
-            self.logger.error(f"Rollback failed: {e}", exc_info=True)
-            return False
+        self.logger.warning(
+            f"Rolling back {len(deployed_agents)} deployed agents from {project_path}"
+        )
+
+        agents_dir = self._resolve_agents_dir(project_path)
+        if not agents_dir.exists():
+            # Nothing to roll back if the directory is gone already.
+            self.logger.info(
+                f"Agents directory does not exist, skipping rollback: {agents_dir}"
+            )
+            return True
+
+        all_succeeded = True
+        for agent_id in deployed_agents:
+            removed_any = False
+            for suffix in (".md", ".yaml"):
+                target = agents_dir / f"{agent_id}{suffix}"
+                if not target.exists():
+                    continue
+                try:
+                    target.unlink()
+                    removed_any = True
+                    self.logger.info(f"Rolled back agent file: {target}")
+                except OSError as e:
+                    all_succeeded = False
+                    self.logger.error(
+                        f"Failed to remove agent file during rollback: {target}: {e}"
+                    )
+
+            if not removed_any:
+                # Not necessarily a failure - the file may never have been
+                # written if deployment failed before write. Log and continue.
+                self.logger.info(
+                    f"No deployed file found for agent '{agent_id}'; "
+                    "assuming rollback unnecessary"
+                )
+
+        return all_succeeded
 
     async def _save_configuration(
         self,
