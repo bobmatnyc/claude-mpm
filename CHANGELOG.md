@@ -1,3 +1,16 @@
+## v6.2.57 (2026-05-01)
+
+### Fix
+
+- **cli**: remove unused variable assignments flagged by Pyright
+- **hooks**: clean up residual Pyright warnings in event_handlers.py
+- **cli**: clean up unused variable warnings in run.py
+- **cli**: route --sdk --prompt to run_sdk_oneshot instead of silently exiting (#486)
+- **session**: correct pause session path resolution to avoid test fixture pollution (#487)
+- **session**: resolve Pyright diagnostics in event_handlers.py (#462)
+- **agent-runtime**: update sonnet alias to current model ID
+- **session**: wire generate_resume_log in Stop event handler (#462)
+
 ## v6.2.56 (2026-05-01)
 
 ### Feat
