@@ -18,7 +18,7 @@ from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResp
 from claude_mpm.services.model.base_provider import BaseModelProvider
 
 try:
-    import anthropic
+    import anthropic  # type: ignore[import-not-found]
 
     HAS_ANTHROPIC = True
 except ImportError:
