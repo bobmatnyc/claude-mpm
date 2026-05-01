@@ -2215,7 +2215,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error in auto-configure: {e}", exc_info=True)
             return CommandResult.error_result(f"Error in auto-configure: {e}")
 
-    def _list_collections(self, _args) -> CommandResult:
+    def _list_collections(self, args) -> CommandResult:
         """List all available agent collections.
 
         NEW: Shows all collections with agent counts and metadata.
@@ -2649,7 +2649,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error pushing cache: {e}", exc_info=True)
             return CommandResult.error_result(f"Error pushing cache: {e}")
 
-    def _cache_sync(self, _args) -> CommandResult:
+    def _cache_sync(self, args) -> CommandResult:
         """Full cache sync: pull, commit (if needed), push."""
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
