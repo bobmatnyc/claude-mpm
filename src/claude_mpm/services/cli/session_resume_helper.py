@@ -47,19 +47,31 @@ class SessionResumeHelper:
     def has_paused_sessions(self) -> bool:
         """Check if there are any paused sessions.
 
+        Filters to real timestamped session files only (excludes test fixtures
+        like ``session-test.json``, ``session-valid.json``, ``session-0.json``)
+        to prevent test fixture pollution from triggering false-positive resume
+        prompts in production. See ``_TIMESTAMPED_SESSION_RE`` for the regex.
+
         Returns:
             True if paused sessions exist, False otherwise
         """
-        # Check both primary and legacy locations
+        # Check both primary and legacy locations, filtering to real
+        # timestamped sessions only (matches session-YYYYMMDD-HHMMSS.json)
         session_files = []
 
         if self.pause_dir.exists():
-            session_files.extend(list(self.pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.pause_dir.glob("session-*.md")))
+            session_files.extend(
+                p
+                for p in self.pause_dir.glob("session-*.json")
+                if _TIMESTAMPED_SESSION_RE.match(p.name)
+            )
 
         if self.legacy_pause_dir.exists():
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
+            session_files.extend(
+                p
+                for p in self.legacy_pause_dir.glob("session-*.json")
+                if _TIMESTAMPED_SESSION_RE.match(p.name)
+            )
 
         return len(session_files) > 0
 
@@ -355,23 +367,35 @@ class SessionResumeHelper:
     def get_session_count(self) -> int:
         """Get count of paused sessions.
 
+        Filters to real timestamped session files only (excludes test fixtures)
+        to prevent test fixture pollution. See ``_TIMESTAMPED_SESSION_RE``.
+
         Returns:
             Number of paused sessions
         """
         session_files = []
 
         if self.pause_dir.exists():
-            session_files.extend(list(self.pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.pause_dir.glob("session-*.md")))
+            session_files.extend(
+                p
+                for p in self.pause_dir.glob("session-*.json")
+                if _TIMESTAMPED_SESSION_RE.match(p.name)
+            )
 
         if self.legacy_pause_dir.exists():
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
+            session_files.extend(
+                p
+                for p in self.legacy_pause_dir.glob("session-*.json")
+                if _TIMESTAMPED_SESSION_RE.match(p.name)
+            )
 
         return len(session_files)
 
     def list_all_sessions(self) -> list[dict[str, Any]]:
         """List all paused sessions sorted by most recent.
+
+        Filters to real timestamped session files only (excludes test fixtures)
+        to prevent test fixture pollution. See ``_TIMESTAMPED_SESSION_RE``.
 
         Returns:
             List of session data dictionaries
@@ -379,12 +403,18 @@ class SessionResumeHelper:
         session_files = []
 
         if self.pause_dir.exists():
-            session_files.extend(list(self.pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.pause_dir.glob("session-*.md")))
+            session_files.extend(
+                p
+                for p in self.pause_dir.glob("session-*.json")
+                if _TIMESTAMPED_SESSION_RE.match(p.name)
+            )
 
         if self.legacy_pause_dir.exists():
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
-            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
+            session_files.extend(
+                p
+                for p in self.legacy_pause_dir.glob("session-*.json")
+                if _TIMESTAMPED_SESSION_RE.match(p.name)
+            )
 
         if not session_files:
             return []
