@@ -431,6 +431,15 @@ def execute_command(command: str, args) -> int:
         result = manage_serve(args)
         return result if result is not None else 0
 
+    # Handle ztk-stats command with lazy import
+    if command == "ztk-stats":
+        from .commands.ztk_stats import run_ztk_stats
+
+        # --all-time flag is shorthand for --days 0
+        if getattr(args, "all_time", False):
+            args.days = 0
+        return run_ztk_stats(args)
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
@@ -493,6 +502,7 @@ def execute_command(command: str, args) -> int:
         "slack",
         "provider",
         "update-statusline",
+        "ztk-stats",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)
