@@ -12,6 +12,7 @@ DESIGN DECISIONS:
 """
 
 import json
+import subprocess  # nosec B404
 from pathlib import Path
 
 from ...constants import AgentCommands
@@ -155,9 +156,10 @@ class AgentsCommand(AgentCommand):
 
         return filtered
 
-    def validate_args(self, args) -> str:
+    def validate_args(self, args) -> str | None:
         """Validate command arguments."""
         # Most agent commands are optional, so basic validation
+        _ = args
         return None
 
     def run(self, args) -> CommandResult:
@@ -1447,7 +1449,6 @@ class AgentsCommand(AgentCommand):
                 return CommandResult.error_result("agent_id is required")
 
             import os
-            import subprocess  # nosec B404
 
             from ...services.agents.local_template_manager import (
                 LocalAgentTemplateManager,
@@ -1741,6 +1742,8 @@ class AgentsCommand(AgentCommand):
                 print("No configuration changes specified. Use --help for options.")
                 return CommandResult.success_result("No changes made")
 
+            return CommandResult.success_result("Deployment configuration displayed")
+
         except Exception as e:
             self.logger.error(f"Error configuring deployment: {e}", exc_info=True)
             return CommandResult.error_result(f"Error configuring deployment: {e}")
@@ -1748,13 +1751,29 @@ class AgentsCommand(AgentCommand):
     def _configure_deployment_interactive(self, config_path: Path) -> CommandResult:
         """Interactive mode for configuring agent deployment."""
         try:
+            import questionary
             import yaml
 
-            from ...utils.ui_helpers import (
-                prompt_choice,
-                prompt_multiselect,
-                prompt_yes_no,
-            )
+            def prompt_yes_no(question: str, default: bool = True) -> bool:
+                result = questionary.confirm(question, default=default).ask()
+                return bool(result)
+
+            def prompt_choice(question: str, choices: list[str]) -> str:
+                result = questionary.select(question, choices=choices).ask()
+                return str(result) if result is not None else choices[0]
+
+            def prompt_multiselect(
+                question: str,
+                choices: list[str],
+                default: list[str] | None = None,
+            ) -> list[str]:
+                checked_defaults = set(default or [])
+                choice_objects = [
+                    questionary.Choice(c, checked=(c in checked_defaults))
+                    for c in choices
+                ]
+                result = questionary.checkbox(question, choices=choice_objects).ask()
+                return list(result) if result is not None else []
 
             # Load current configuration
             if config_path.exists():
@@ -1813,10 +1832,10 @@ class AgentsCommand(AgentCommand):
                 settings["disabled_agents"] = []
             elif choice == "Specify disabled agents":
                 # Get list of available agents
-                from ...services.agents.listing_service import AgentListingService
+                from ...services.cli.agent_listing_service import AgentListingService
 
                 listing_service = AgentListingService()
-                agents, _ = listing_service.list_all_agents()
+                agents, _ = listing_service.list_deployed_agents()
                 agent_ids = sorted({agent.name for agent in agents})
 
                 if agent_ids:
@@ -1830,10 +1849,10 @@ class AgentsCommand(AgentCommand):
                 else:
                     print("No agents found to configure")
             else:  # Specify enabled agents only
-                from ...services.agents.listing_service import AgentListingService
+                from ...services.cli.agent_listing_service import AgentListingService
 
                 listing_service = AgentListingService()
-                agents, _ = listing_service.list_all_agents()
+                agents, _ = listing_service.list_deployed_agents()
                 agent_ids = sorted({agent.name for agent in agents})
 
                 if agent_ids:
@@ -2196,7 +2215,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error in auto-configure: {e}", exc_info=True)
             return CommandResult.error_result(f"Error in auto-configure: {e}")
 
-    def _list_collections(self, args) -> CommandResult:
+    def _list_collections(self, _args) -> CommandResult:
         """List all available agent collections.
 
         NEW: Shows all collections with agent counts and metadata.
@@ -2630,7 +2649,7 @@ class AgentsCommand(AgentCommand):
             self.logger.error(f"Error pushing cache: {e}", exc_info=True)
             return CommandResult.error_result(f"Error pushing cache: {e}")
 
-    def _cache_sync(self, args) -> CommandResult:
+    def _cache_sync(self, _args) -> CommandResult:
         """Full cache sync: pull, commit (if needed), push."""
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
