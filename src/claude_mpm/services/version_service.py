@@ -8,6 +8,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+import importlib.metadata
 from datetime import UTC
 from pathlib import Path
 from typing import Any
@@ -72,8 +73,6 @@ class VersionService(BaseService, VersionServiceInterface):
         # Method 2: Try importlib.metadata (standard for installed packages)
         if version == "0.0.0":
             try:
-                import importlib.metadata
-
                 version = importlib.metadata.version("claude-mpm")
                 method_used = "importlib_metadata"
                 self.logger.debug(f"Version obtained via importlib.metadata: {version}")
@@ -189,8 +188,6 @@ class VersionService(BaseService, VersionServiceInterface):
         # Try importlib.metadata
         if version == "0.0.0":
             try:
-                import importlib.metadata
-
                 version = importlib.metadata.version("claude-mpm")
             except (importlib.metadata.PackageNotFoundError, ImportError):
                 pass
