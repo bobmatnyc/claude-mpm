@@ -807,7 +807,18 @@ build-info-json: build-metadata ## Display build metadata from JSON
 # ============================================================================
 # Release Management Targets
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify
-.PHONY: release-dry-run release-test-pypi increment-build
+.PHONY: release-dry-run release-test-pypi increment-build download-ztk
+
+# Pinned ztk version for bundled binary distribution
+# Update this when bumping the bundled ztk; the binary is downloaded from
+# https://github.com/bobmatnyc/ztk/releases/download/$(ZTK_VERSION)/ztk-<platform>
+ZTK_VERSION ?= v0.2.1
+
+# Download bundled ztk binary for the current build platform
+download-ztk: ## Download bundled ztk binary into src/claude_mpm/bin/
+	@echo "$(YELLOW)⬇️  Downloading bundled ztk $(ZTK_VERSION)...$(NC)"
+	@./scripts/download_ztk_binaries.sh $(ZTK_VERSION)
+	@echo "$(GREEN)✓ ztk binary staged in src/claude_mpm/bin/$(NC)"
 
 # Release prerequisites check
 release-check: ## Check if environment is ready for release
@@ -930,7 +941,7 @@ increment-build: ## Increment build number for code changes
 	@echo "$(GREEN)✓ Build number incremented$(NC)"
 
 # Patch release (bug fixes)
-release-patch: release-check release-test ## Create a patch release (bug fixes)
+release-patch: release-check release-test download-ztk ## Create a patch release (bug fixes)
 	@echo "$(YELLOW)🔧 Creating patch release...$(NC)"
 	@cz bump --increment PATCH
 	@$(MAKE) release-build
@@ -938,7 +949,7 @@ release-patch: release-check release-test ## Create a patch release (bug fixes)
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
 
 # Minor release (new features)
-release-minor: release-check release-test ## Create a minor release (new features)
+release-minor: release-check release-test download-ztk ## Create a minor release (new features)
 	@echo "$(YELLOW)✨ Creating minor release...$(NC)"
 	@cz bump --increment MINOR
 	@$(MAKE) release-build
@@ -946,7 +957,7 @@ release-minor: release-check release-test ## Create a minor release (new feature
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
 
 # Major release (breaking changes)
-release-major: release-check release-test ## Create a major release (breaking changes)
+release-major: release-check release-test download-ztk ## Create a major release (breaking changes)
 	@echo "$(YELLOW)💥 Creating major release...$(NC)"
 	@cz bump --increment MAJOR
 	@$(MAKE) release-build
