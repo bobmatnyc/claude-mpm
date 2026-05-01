@@ -2279,18 +2279,103 @@ class AgentsCommand(AgentCommand):
                     data={"collection_id": collection_id, "agent_count": len(agents)},
                 )
 
-            # Deploy agents
-            # TODO: Implement actual deployment logic using deployment service
-            # For now, show what would be deployed
-            return CommandResult.success_result(
-                f"Deployment of collection '{collection_id}' would deploy {len(agents)} agents.\n"
-                f"(Full deployment implementation pending)",
-                data={
-                    "collection_id": collection_id,
-                    "agent_count": len(agents),
-                    "status": "pending_implementation",
-                },
+            # Deploy agents by copying their cached markdown files into the
+            # project's .claude/agents/ directory. Remote/collection agents are
+            # already authored as Claude Code-compatible markdown with YAML
+            # frontmatter, so a direct copy is the correct deployment action
+            # (the AgentDeploymentService template-build path applies only to
+            # built-in JSON templates, not to markdown collection agents).
+            import shutil
+
+            from ...services.agents.deployment_utils import (
+                normalize_deployment_filename,
             )
+
+            force = bool(getattr(args, "force", False))
+            target_dir = Path.cwd() / ".claude" / "agents"
+            target_dir.mkdir(parents=True, exist_ok=True)
+
+            deployed: list[str] = []
+            skipped: list[str] = []
+            failed: list[dict[str, str]] = []
+
+            print(
+                f"\n📦 Deploying {len(agents)} agents from collection "
+                f"'{collection_id}' to {target_dir}"
+            )
+
+            for agent in agents:
+                metadata = agent.get("metadata", {}) or {}
+                agent_name = agent.get("agent_id") or metadata.get("name") or "unknown"
+                source_path_str = agent.get("path") or agent.get("file_path")
+
+                if not source_path_str:
+                    msg = "missing source file path"
+                    failed.append({"agent": agent_name, "error": msg})
+                    print(f"❌ {agent_name}: {msg}")
+                    continue
+
+                source_path = Path(source_path_str)
+                if not source_path.exists():
+                    msg = f"source file not found: {source_path}"
+                    failed.append({"agent": agent_name, "error": msg})
+                    print(f"❌ {agent_name}: {msg}")
+                    continue
+
+                target_filename = normalize_deployment_filename(f"{agent_name}.md")
+                target_file = target_dir / target_filename
+
+                if target_file.exists() and not force:
+                    skipped.append(agent_name)
+                    print(
+                        f"⏭️  {agent_name}: already deployed (use --force to overwrite)"
+                    )
+                    continue
+
+                try:
+                    shutil.copy2(source_path, target_file)
+                    deployed.append(agent_name)
+                    print(f"✅ {agent_name} -> {target_file.name}")
+                except Exception as copy_err:
+                    failed.append({"agent": agent_name, "error": str(copy_err)})
+                    self.logger.error(
+                        f"Failed to deploy {agent_name}: {copy_err}",
+                        exc_info=True,
+                    )
+                    print(f"❌ {agent_name}: {copy_err}")
+
+            summary = (
+                f"\n📊 Deployment summary for '{collection_id}':\n"
+                f"  ✅ Deployed: {len(deployed)}\n"
+                f"  ⏭️  Skipped: {len(skipped)}\n"
+                f"  ❌ Failed:   {len(failed)}\n"
+                f"  📁 Target:   {target_dir}"
+            )
+            print(summary)
+
+            data = {
+                "collection_id": collection_id,
+                "target_dir": str(target_dir),
+                "deployed": deployed,
+                "skipped": skipped,
+                "failed": failed,
+                "agent_count": len(agents),
+            }
+
+            if failed and not deployed:
+                return CommandResult.error_result(
+                    f"Failed to deploy any agents from collection "
+                    f"'{collection_id}' ({len(failed)} errors)",
+                    data=data,
+                )
+
+            message = (
+                f"Deployed {len(deployed)} of {len(agents)} agents from "
+                f"collection '{collection_id}' to {target_dir}"
+            )
+            if failed:
+                message += f" ({len(failed)} failed)"
+            return CommandResult.success_result(message, data=data)
 
         except Exception as e:
             self.logger.error(f"Error deploying collection: {e}", exc_info=True)
