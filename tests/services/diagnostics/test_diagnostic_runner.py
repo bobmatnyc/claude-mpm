@@ -4,7 +4,6 @@ WHY: DiagnosticRunner orchestrates all health checks for 'mpm doctor'.
 Zero coverage before these tests, but critical for ensuring reliable diagnostics.
 """
 
-from typing import Optional
 from unittest.mock import patch
 
 from claude_mpm.core.enums import OperationResult, ValidationSeverity
@@ -644,6 +643,7 @@ class TestDiagnosticRunner:
         # Create a check class that fails during __init__
         class FailingInitCheck(BaseDiagnosticCheck):
             def __init__(self, verbose: bool = False):
+                super().__init__(verbose=verbose)
                 raise ValueError("Initialization failed")
 
             @property
