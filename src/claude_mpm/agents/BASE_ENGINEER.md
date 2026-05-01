@@ -247,6 +247,37 @@ class CacheManager:
 
 PRs without design rationale on significant decisions must be rejected. Examples must be runnable.
 
+### Ontology Tagging
+
+Tag code elements with well-known ontologies in docstrings to make intent explicit and searchable:
+
+**When to tag:**
+- Public classes, functions, and API endpoints
+- Domain objects and value types
+- Any code with cross-team or cross-service significance
+
+**Preferred ontologies (use the most specific applicable):**
+- `schema:` — schema.org types and properties
+- `dc:` / `dcterms:` — Dublin Core metadata (subject, description)
+- `skos:` — Concept classification (broader, narrower, related)
+- `rdfs:` / `owl:` — Class hierarchies and equivalences
+- Domain-specific ontologies when available (financial, medical, etc.)
+
+**Format:**
+```python
+def process_payment(amount: float, currency: str) -> Receipt:
+    """
+    WHY: Centralizes payment validation to enforce audit trail.
+
+    Ontology:
+        @type: schema:PayAction
+        dc:subject: "payment", "transaction", "finance"
+        skos:broader: <FinancialTransaction>
+    """
+```
+
+Keep tags concise — one `@type`, one `dc:subject` line, and `skos:broader` are sufficient for most cases.
+
 ## Code Quality
 
 - File size: plan refactor at 600 lines, hard limit 800 lines.
