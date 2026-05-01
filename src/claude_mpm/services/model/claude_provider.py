@@ -5,16 +5,13 @@ Claude Model Provider Implementation for Claude MPM Framework
 WHY: Provides cloud-based content analysis via Claude API as fallback
 when local models are unavailable or for tasks requiring higher quality.
 
-DESIGN DECISION: This is a placeholder/wrapper implementation that assumes
-Claude API integration will be added later. For Phase 1, this provides the
-interface contract that the router expects.
-
-FUTURE: Will integrate with Anthropic SDK when content agent needs cloud fallback.
-
-Note: This implementation returns mock responses for Phase 1. Phase 2 will
-add actual Claude API integration.
+DESIGN DECISION: Uses the official Anthropic AsyncAnthropic SDK client to
+issue messages.create requests. The provider supports configuration via
+the constructor or the ANTHROPIC_API_KEY environment variable, and degrades
+gracefully when the SDK is not installed or no API key is available.
 """
 
+import os
 from typing import Any
 
 from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
@@ -69,40 +66,52 @@ class ClaudeProvider(BaseModelProvider):
         """
         super().__init__(provider_name="claude", config=config or {})
 
-        self.api_key = self.get_config("api_key", None)
+        self.api_key = self.get_config("api_key", None) or os.getenv(
+            "ANTHROPIC_API_KEY"
+        )
         self.default_model = self.get_config("model", "claude-3-5-sonnet-20241022")
         self.max_tokens = self.get_config("max_tokens", 4096)
 
-        # TODO Phase 2: Initialize Anthropic SDK client
-        self._client = None
+        # Anthropic AsyncAnthropic client; initialized lazily in initialize()
+        self._client: Any = None
 
     async def initialize(self) -> bool:
         """
         Initialize Claude provider.
 
+        Resolves the API key (constructor config or ANTHROPIC_API_KEY env var)
+        and instantiates an AsyncAnthropic client.
+
         Returns:
-            True if initialization successful
+            True if initialization successful, False otherwise
         """
         self.log_info("Initializing Claude provider")
 
-        # TODO Phase 2: Initialize Anthropic SDK
-        # if not self.api_key:
-        #     self.log_warning("No API key provided, checking environment")
-        #     self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        #
-        # if not self.api_key:
-        #     self.log_error("No Claude API key available")
-        #     return False
-        #
-        # try:
-        #     from anthropic import AsyncAnthropic
-        #     self._client = AsyncAnthropic(api_key=self.api_key)
-        # except ImportError:
-        #     self.log_error("anthropic package not installed")
-        #     return False
+        if not self.api_key:
+            self.api_key = os.getenv("ANTHROPIC_API_KEY")
 
-        # Phase 1: Mock initialization
-        self.log_info("Claude provider initialized (Phase 1 mock mode)")
+        if not self.api_key:
+            self.log_error(
+                "No Claude API key available "
+                "(set ANTHROPIC_API_KEY or pass api_key in config)"
+            )
+            return False
+
+        try:
+            from anthropic import AsyncAnthropic
+        except ImportError:
+            self.log_error(
+                "anthropic package not installed; install with `pip install anthropic`"
+            )
+            return False
+
+        try:
+            self._client = AsyncAnthropic(api_key=self.api_key)
+        except Exception as e:
+            self.log_error(f"Failed to initialize Anthropic client: {e}")
+            return False
+
+        self.log_info("Claude provider initialized with Anthropic SDK")
         self._initialized = True
         return True
 
@@ -110,10 +119,16 @@ class ClaudeProvider(BaseModelProvider):
         """Shutdown provider and cleanup resources."""
         self.log_info("Shutting down Claude provider")
 
-        # TODO Phase 2: Cleanup Anthropic client
-        if self._client:
-            # await self._client.close()
-            pass
+        if self._client is not None:
+            # AsyncAnthropic exposes an async close() method to release HTTP
+            # connections. Older SDK versions may not have it; guard with getattr.
+            close = getattr(self._client, "close", None)
+            if close is not None:
+                try:
+                    await close()
+                except Exception as e:  # pragma: no cover - defensive
+                    self.log_warning(f"Error closing Anthropic client: {e}")
+            self._client = None
 
         self._shutdown = True
 
@@ -122,12 +137,20 @@ class ClaudeProvider(BaseModelProvider):
         Check if Claude API is available.
 
         WHY: Cloud APIs are generally always available if API key is valid.
+        We treat the provider as available when an API key is configured (or
+        present in the environment) and the SDK is importable.
 
         Returns:
-            True if API key configured, False otherwise
+            True if the provider can plausibly issue requests, False otherwise
         """
-        # Phase 1: Return True to enable testing
-        # Phase 2: Check API key and test connection
+        if not self.api_key and not os.getenv("ANTHROPIC_API_KEY"):
+            return False
+
+        try:
+            import anthropic  # noqa: F401
+        except ImportError:
+            return False
+
         return True
 
     async def get_available_models(self) -> list[str]:
@@ -215,69 +238,110 @@ class ClaudeProvider(BaseModelProvider):
         **kwargs,
     ) -> ModelResponse:
         """
-        Internal method to call Claude API.
+        Internal method to call the Claude Messages API.
 
         Args:
-            prompt: Generated prompt
-            task: Task capability
-            model: Model to use
-            **kwargs: Additional options
+            prompt: Generated prompt (already includes content)
+            task: Task capability being performed
+            model: Model identifier to invoke
+            **kwargs: Additional options:
+                - temperature: Sampling temperature (default 0.7)
+                - max_tokens: Maximum response tokens (default self.max_tokens)
+                - system: Optional system prompt
 
         Returns:
-            ModelResponse
+            ModelResponse with the assistant's text and token usage metadata.
         """
-        # TODO Phase 2: Implement actual Claude API call
-        # try:
-        #     message = await self._client.messages.create(
-        #         model=model,
-        #         max_tokens=kwargs.get("max_tokens", self.max_tokens),
-        #         temperature=kwargs.get("temperature", 0.7),
-        #         messages=[{
-        #             "role": "user",
-        #             "content": prompt
-        #         }]
-        #     )
-        #
-        #     result_text = message.content[0].text
-        #
-        #     metadata = {
-        #         "model": model,
-        #         "stop_reason": message.stop_reason,
-        #         "usage": {
-        #             "input_tokens": message.usage.input_tokens,
-        #             "output_tokens": message.usage.output_tokens,
-        #         }
-        #     }
-        #
-        #     return self.create_response(
-        #         success=True,
-        #         model=model,
-        #         task=task,
-        #         result=result_text,
-        #         metadata=metadata,
-        #     )
-        #
-        # except Exception as e:
-        #     return self.create_response(
-        #         success=False,
-        #         model=model,
-        #         task=task,
-        #         error=f"Claude API error: {str(e)}",
-        #     )
+        if self._client is None:
+            return self.create_response(
+                success=False,
+                model=model,
+                task=task,
+                error="Claude provider client is not initialized",
+            )
 
-        # Phase 1: Return mock response for testing
-        mock_analysis = self._generate_mock_analysis(task)
+        # Import lazily so unit tests without the SDK installed don't fail at
+        # import time, and so we can map specific exception types.
+        try:
+            import anthropic
+        except ImportError:
+            return self.create_response(
+                success=False,
+                model=model,
+                task=task,
+                error="anthropic package not installed",
+            )
+
+        request_kwargs: dict[str, Any] = {
+            "model": model,
+            "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+            "temperature": kwargs.get("temperature", 0.7),
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        system_prompt = kwargs.get("system")
+        if system_prompt:
+            request_kwargs["system"] = system_prompt
+
+        try:
+            message = await self._client.messages.create(**request_kwargs)
+        except anthropic.AuthenticationError as e:
+            self.log_error(f"Claude authentication error: {e}")
+            return self.create_response(
+                success=False,
+                model=model,
+                task=task,
+                error=f"Authentication error: {e}",
+            )
+        except anthropic.RateLimitError as e:
+            self.log_warning(f"Claude rate limit exceeded: {e}")
+            return self.create_response(
+                success=False,
+                model=model,
+                task=task,
+                error=f"Rate limit exceeded: {e}",
+            )
+        except anthropic.APIError as e:
+            self.log_error(f"Claude API error: {e}")
+            return self.create_response(
+                success=False,
+                model=model,
+                task=task,
+                error=f"Claude API error: {e}",
+            )
+        except Exception as e:  # pragma: no cover - defensive catch-all
+            self.log_error(f"Unexpected error calling Claude API: {e}")
+            return self.create_response(
+                success=False,
+                model=model,
+                task=task,
+                error=f"Unexpected error: {e}",
+            )
+
+        # Extract text from content blocks. The Messages API returns a list of
+        # content blocks; we concatenate text blocks for a flat string result.
+        result_text = ""
+        for block in getattr(message, "content", []) or []:
+            block_type = getattr(block, "type", None)
+            if block_type == "text":
+                result_text += getattr(block, "text", "") or ""
+
+        usage = getattr(message, "usage", None)
+        metadata: dict[str, Any] = {
+            "model": getattr(message, "model", model),
+            "stop_reason": getattr(message, "stop_reason", None),
+        }
+        if usage is not None:
+            metadata["usage"] = {
+                "input_tokens": getattr(usage, "input_tokens", None),
+                "output_tokens": getattr(usage, "output_tokens", None),
+            }
 
         return self.create_response(
             success=True,
             model=model,
             task=task,
-            result=mock_analysis,
-            metadata={
-                "phase": "1",
-                "mode": "mock",
-                "note": "Phase 2 will implement actual Claude API integration",
-            },
+            result=result_text,
+            metadata=metadata,
         )
 
     def _generate_mock_analysis(self, task: ModelCapability) -> str:
