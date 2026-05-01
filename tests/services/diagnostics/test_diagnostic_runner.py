@@ -323,7 +323,7 @@ class TestDiagnosticRunner:
         runner.check_classes = [FixableCheck]
 
         with patch.object(runner, "_attempt_fix") as mock_fix:
-            _summary = runner.run_diagnostics()
+            runner.run_diagnostics()
 
             # _attempt_fix should be called with the result
             mock_fix.assert_called_once()
@@ -351,7 +351,7 @@ class TestDiagnosticRunner:
         runner.check_classes = [SuccessCheck]
 
         with patch.object(runner, "_attempt_fix") as mock_fix:
-            _summary = runner.run_diagnostics()
+            runner.run_diagnostics()
 
             # _attempt_fix should not be called
             mock_fix.assert_not_called()
@@ -372,7 +372,7 @@ class TestDiagnosticRunner:
             ]
 
         with patch.object(runner, "_run_level_parallel", side_effect=mock_run_level):
-            _summary = runner.run_diagnostics_parallel()
+            runner.run_diagnostics_parallel()
 
             # Should execute 3 levels
             assert len(level_results) == 3
@@ -643,7 +643,7 @@ class TestDiagnosticRunner:
 
         # Create a check class that fails during __init__
         class FailingInitCheck(BaseDiagnosticCheck):
-            def __init__(self, _verbose=False):
+            def __init__(self, verbose: bool = False):
                 raise ValueError("Initialization failed")
 
             @property
