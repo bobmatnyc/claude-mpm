@@ -1,3 +1,12 @@
+## v6.2.56 (2026-05-01)
+
+### Feat
+
+- **ztk**: wire ztk-stats command into CLI executor
+- **ztk**: register ztk-stats subcommand in CLI parser
+- **ztk**: log intercepted commands to ~/.claude-mpm/ztk-savings.log
+- **ztk**: add ztk-stats subcommand for token savings reporting
+
 ## v6.2.55 (2026-05-01)
 
 ### Feat
