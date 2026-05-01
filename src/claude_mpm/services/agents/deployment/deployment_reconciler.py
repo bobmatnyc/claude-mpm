@@ -104,9 +104,97 @@ class DeploymentReconciler:
             self._deploy_gate = None
 
     def _load_config(self) -> UnifiedConfig:
-        """Load configuration from standard location."""
-        # For now, return default config
-        # TODO: Load from .claude-mpm/configuration.yaml
+        """Load configuration from standard locations.
+
+        Search order (first match wins):
+            1. ``<cwd>/.claude-mpm/configuration.yaml`` (project, preferred)
+            2. ``<cwd>/.claude-mpm/configuration.yml``
+            3. ``~/.claude-mpm/config/configuration.yaml`` (user, per CLAUDE.md)
+            4. ``~/.claude-mpm/config/configuration.yml``
+            5. ``~/.claude-mpm/configuration.yaml`` (legacy user location)
+            6. ``~/.claude-mpm/configuration.yml``
+
+        Falls back to ``UnifiedConfig()`` defaults when no file is found or when
+        a file is unreadable / malformed. Errors are logged but never raised so
+        deployment reconciliation always has a usable config.
+        """
+        try:
+            import yaml
+        except ImportError as e:
+            logger.warning(
+                "PyYAML not available (%s); using UnifiedConfig defaults.", e
+            )
+            return UnifiedConfig()
+
+        candidate_paths = [
+            Path.cwd() / ".claude-mpm" / "configuration.yaml",
+            Path.cwd() / ".claude-mpm" / "configuration.yml",
+            Path.home() / ".claude-mpm" / "config" / "configuration.yaml",
+            Path.home() / ".claude-mpm" / "config" / "configuration.yml",
+            Path.home() / ".claude-mpm" / "configuration.yaml",
+            Path.home() / ".claude-mpm" / "configuration.yml",
+        ]
+
+        for config_path in candidate_paths:
+            try:
+                if not config_path.is_file():
+                    continue
+            except OSError as e:
+                # Permission errors on stat — skip and try next candidate
+                logger.debug("Cannot stat config path %s: %s", config_path, e)
+                continue
+
+            try:
+                with config_path.open("r", encoding="utf-8") as f:
+                    file_config = yaml.safe_load(f) or {}
+            except PermissionError as e:
+                logger.warning(
+                    "Permission denied reading config %s: %s. Trying next location.",
+                    config_path,
+                    e,
+                )
+                continue
+            except yaml.YAMLError as e:
+                logger.warning(
+                    "Malformed YAML in %s: %s. Falling back to defaults.",
+                    config_path,
+                    e,
+                )
+                return UnifiedConfig()
+            except OSError as e:
+                logger.warning(
+                    "Failed to read config %s: %s. Trying next location.",
+                    config_path,
+                    e,
+                )
+                continue
+
+            if not isinstance(file_config, dict):
+                logger.warning(
+                    "Config %s did not parse to a mapping (got %s). Using defaults.",
+                    config_path,
+                    type(file_config).__name__,
+                )
+                return UnifiedConfig()
+
+            try:
+                config = UnifiedConfig(**file_config)
+                logger.debug("Loaded reconciler config from %s", config_path)
+                return config
+            except Exception as e:
+                # Pydantic validation error or similar — log and use defaults
+                # rather than crashing deployment reconciliation.
+                logger.warning(
+                    "Invalid config in %s: %s. Falling back to defaults.",
+                    config_path,
+                    e,
+                )
+                return UnifiedConfig()
+
+        logger.debug(
+            "No configuration.yaml found in project or user locations; "
+            "using UnifiedConfig defaults."
+        )
         return UnifiedConfig()
 
     def reconcile_agents(self, project_path: Path | None = None) -> DeploymentResult:
