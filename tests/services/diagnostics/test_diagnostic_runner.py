@@ -508,8 +508,8 @@ class TestDiagnosticRunner:
             assert summary.error_count == 1
 
     def test_attempt_fix_logs_fix_command(self):
-        """Test that _attempt_fix logs the fix command."""
-        runner = DiagnosticRunner()
+        """Test that _attempt_fix logs the fix command when fix mode is enabled."""
+        runner = DiagnosticRunner(fix=True)
 
         result = DiagnosticResult(
             category="Test",
@@ -518,14 +518,36 @@ class TestDiagnosticRunner:
             fix_command="test-fix-command",
         )
 
-        with patch.object(runner.logger, "info") as mock_info:
+        with (
+            patch.object(runner.logger, "info") as mock_info,
+            patch.object(runner.logger, "warning") as mock_warning,
+        ):
             runner._attempt_fix(result)
 
-            # Should log the fix command
+            # Should log the fix command (info) before evaluating it.
             assert mock_info.call_count >= 2
-            # Check that fix command was logged
             log_messages = [call[0][0] for call in mock_info.call_args_list]
             assert any("test-fix-command" in msg for msg in log_messages)
+            # Unrecognized commands should produce a clear warning telling
+            # the user to run them manually.
+            assert mock_warning.called
+
+    def test_attempt_fix_no_op_when_fix_disabled(self):
+        """_attempt_fix must be a no-op when --fix was not requested."""
+        runner = DiagnosticRunner(fix=False)
+
+        result = DiagnosticResult(
+            category="Test",
+            status=ValidationSeverity.WARNING,
+            message="Test issue",
+            fix_command="mkdir -p ./should-not-be-created",
+        )
+
+        with patch.object(runner.logger, "info") as mock_info:
+            applied = runner._attempt_fix(result)
+
+        assert applied is False
+        assert not mock_info.called
 
     def test_attempt_fix_skips_without_fix_command(self):
         """Test that _attempt_fix does nothing without fix_command."""
