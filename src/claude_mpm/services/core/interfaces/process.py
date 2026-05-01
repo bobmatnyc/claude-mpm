@@ -54,6 +54,20 @@ class IDeploymentStateManager(ABC):
     Thread Safety: All operations must be thread-safe with proper locking.
     """
 
+    @property
+    @abstractmethod
+    def is_initialized(self) -> bool:
+        """Return True if the state manager has been successfully initialized."""
+
+    @abstractmethod
+    def initialize(self) -> bool:
+        """
+        Initialize the state manager.
+
+        Returns:
+            True if initialization successful, False otherwise
+        """
+
     @abstractmethod
     def load_state(self) -> dict[str, DeploymentState]:
         """
