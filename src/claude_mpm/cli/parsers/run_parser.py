@@ -207,6 +207,32 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Fork the session for follow-up messages (passed to Claude Code)",
     )
 
+    # ZTK compression options
+    ztk_group = parser.add_argument_group("ztk compression options")
+    ztk_mutex = ztk_group.add_mutually_exclusive_group()
+    ztk_mutex.add_argument(
+        "--ztk",
+        action="store_const",
+        const=True,
+        default=None,
+        dest="ztk",
+        help="Explicitly enable ztk shell output compression (overrides CLAUDE_MPM_DISABLE_ZTK env var)",
+    )
+    ztk_mutex.add_argument(
+        "--no-ztk",
+        action="store_const",
+        const=False,
+        dest="ztk",
+        help="Disable ztk shell output compression (env: CLAUDE_MPM_DISABLE_ZTK=1)",
+    )
+    ztk_group.add_argument(
+        "--debug-ztk",
+        action="store_true",
+        default=False,
+        dest="debug_ztk",
+        help="Enable ztk debug logging to stderr (env: CLAUDE_MPM_ZTK_DEBUG=1)",
+    )
+
     # Model selection
     model_group = parser.add_argument_group("model options")
     model_group.add_argument(
