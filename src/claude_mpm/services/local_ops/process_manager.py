@@ -33,6 +33,7 @@ USAGE:
 import os
 import platform
 import signal
+import socket
 import subprocess
 import time
 from datetime import UTC, datetime
@@ -339,6 +340,57 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
         # Start new process
         return self.start(config)
 
+    def _check_responsiveness(
+        self, pid: int, port: int | None, *, socket_timeout: float = 1.0
+    ) -> bool:
+        """
+        Determine whether a managed process is actually responsive.
+
+        Strategy (layered, fail-safe):
+        1. PID liveness check via ``os.kill(pid, 0)``. Signal 0 performs no
+           action but raises ``ProcessLookupError`` if the process is dead and
+           ``PermissionError`` if it exists but we lack permission to signal
+           it (still alive, so treat as responding for liveness).
+        2. If the deployment declares a port, attempt a short TCP connect to
+           ``localhost:<port>``. A successful connect indicates the process is
+           accepting traffic, which is a stronger signal than mere PID
+           liveness.
+
+        Any unexpected exception results in ``False`` rather than propagating;
+        a dead/unhealthy process must never raise from a status query.
+        """
+        # Step 1: PID liveness check
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            # Process no longer exists
+            return False
+        except PermissionError:
+            # Process exists but we cannot signal it - still alive
+            pass
+        except OSError:
+            # Unexpected OS error - treat as not responding
+            return False
+
+        # Step 2: If a port is declared, verify the process is accepting
+        # connections. If no port is declared, PID liveness is the best
+        # signal we have.
+        if port is None:
+            return True
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.settimeout(socket_timeout)
+            sock.connect(("127.0.0.1", port))
+            return True
+        except (TimeoutError, ConnectionRefusedError, OSError):
+            return False
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+
     def get_status(self, deployment_id: str) -> ProcessInfo | None:
         """
         Get current status and runtime information for a process.
@@ -381,7 +433,9 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                 uptime_seconds=uptime,
                 memory_mb=memory_mb,
                 cpu_percent=cpu_percent,
-                is_responding=True,  # TODO: Add actual health check
+                is_responding=self._check_responsiveness(
+                    deployment.process_id, deployment.port
+                ),
             )
 
         except psutil.NoSuchProcess:
