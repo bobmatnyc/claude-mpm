@@ -239,6 +239,104 @@ class UserManager:
         self.cache = cache
 ```
 
+## Ontology Tagging
+
+Tagging code with well-known ontologies in inline documentation makes intent explicit, machine-readable, and interoperable across teams and tools. Beyond explaining WHY, ontology tags link code to shared vocabularies so semantic relationships (is-a, part-of, domain) become discoverable.
+
+### Why Ontology Tagging Matters
+
+- **Discoverability**: Search across services by concept, not just keyword
+- **Interoperability**: Shared meaning across teams, services, and tools
+- **Disambiguation**: A `User` in billing vs. auth vs. analytics is no longer ambiguous
+- **Documentation generation**: Tools can extract structured metadata for API catalogs
+- **i18n / knowledge graphs**: Tagged code feeds directly into semantic indexes
+
+### Well-Known Ontologies
+
+Use the most specific applicable ontology:
+
+- **`schema:`** — [schema.org](https://schema.org/) types and properties (e.g., `schema:Person`, `schema:PayAction`, `schema:PostalAddress`)
+- **`dc:` / `dcterms:`** — [Dublin Core](https://www.dublincore.org/) metadata (`dc:subject`, `dc:description`, `dc:creator`, `dcterms:created`)
+- **`skos:`** — [SKOS](https://www.w3.org/2004/02/skos/) concept classification (`skos:Concept`, `skos:broader`, `skos:narrower`, `skos:related`)
+- **`rdfs:` / `owl:`** — Class hierarchies and equivalences (`rdfs:subClassOf`, `owl:equivalentClass`)
+- **`codemeta:`** — [CodeMeta](https://codemeta.github.io/) for software metadata (`codemeta:softwareRequirements`)
+- **Domain-specific** — Use the most specific applicable vocabulary for the domain (financial, medical, legal, scientific)
+
+### When to Tag
+
+- Public classes, functions, and API endpoints
+- Domain objects and value types
+- Any code with cross-team or cross-service significance
+- Persisted entities and external API contracts
+
+### Format Guidance
+
+Keep tags concise. One `@type`, one `dc:subject` line, and `skos:broader` are sufficient for most cases.
+
+### Python Example
+
+```python
+def calculate_discount(price: float, rate: float) -> float:
+    """
+    Apply a percentage discount to a price.
+
+    WHY: Business rule requires consistent discount application across
+    checkout and invoice services; centralized to avoid drift.
+
+    Ontology:
+        @type: schema:PriceSpecification
+        @concept: skos:Concept <FinancialCalculation>
+        dc:subject: "pricing", "discount", "commerce"
+
+    Args:
+        price: Base price before discount. schema:price
+        rate: Discount rate as decimal (0.0–1.0). schema:discount
+    Returns:
+        Discounted price. schema:price
+    """
+```
+
+### TypeScript / JSDoc Example
+
+```typescript
+/**
+ * Resolve a user's billing address.
+ *
+ * WHY: Shipping and billing may differ; always prefer billing for invoices.
+ *
+ * @ontology schema:PostalAddress
+ * @concept skos:Concept BillingAddress
+ * @dc:subject billing, address, user
+ */
+function resolveBillingAddress(userId: string): PostalAddress { ... }
+```
+
+### Go / Godoc Example
+
+```go
+// ProcessPayment validates and records a payment transaction.
+//
+// WHY: Centralizes payment validation to enforce audit trail across
+// all checkout flows.
+//
+// Ontology:
+//   @type: schema:PayAction
+//   dc:subject: "payment", "transaction", "finance"
+//   skos:broader: <FinancialTransaction>
+func ProcessPayment(amount float64, currency string) (*Receipt, error) { ... }
+```
+
+### Tagging Checklist
+
+```
+□ Public APIs include an Ontology block in their docstring
+□ @type uses the most specific schema.org (or domain) class
+□ dc:subject lists 2-4 concise topic keywords
+□ skos:broader links to a parent concept where applicable
+□ Domain-specific ontologies preferred over generic where available
+□ Tags kept concise — no more than ~3 lines for typical functions
+```
+
 ## README Documentation Structure
 
 ```markdown
