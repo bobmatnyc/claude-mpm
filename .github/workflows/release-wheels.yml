@@ -1,0 +1,136 @@
+name: Release Platform Wheels
+
+# Builds platform-specific wheels with the bundled ztk binary embedded under
+# src/claude_mpm/bin/ztk, then publishes to PyPI. Each wheel carries the
+# correct platform tag so pip selects the right one for the user's OS/arch.
+#
+# Triggers:
+#   - Push of tags matching v* (release tags)
+#   - Manual dispatch (for testing without bumping a tag)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      ztk_tag:
+        description: 'ztk release tag to bundle (e.g. v0.2.1)'
+        required: true
+        default: 'v0.2.1'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build wheel (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - macosx_11_0_arm64
+          - macosx_10_9_x86_64
+          - linux_x86_64
+          - linux_aarch64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build wheel twine
+
+      - name: Resolve ztk tag
+        id: ztk
+        run: |
+          # Prefer workflow_dispatch input; otherwise read pinned version from Makefile
+          if [ -n "${{ github.event.inputs.ztk_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.ztk_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            tag="$(grep -E '^ZTK_VERSION \?=' Makefile | head -n1 | awk -F'= ' '{print $2}' | tr -d '[:space:]')"
+            if [ -z "$tag" ]; then
+              echo "Could not determine ZTK_VERSION from Makefile" >&2
+              exit 1
+            fi
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download bundled ztk binary
+        run: |
+          set -euo pipefail
+          mkdir -p src/claude_mpm/bin
+          tag='${{ steps.ztk.outputs.tag }}'
+          asset='ztk-${{ matrix.platform }}'
+          url="https://github.com/bobmatnyc/ztk/releases/download/${tag}/${asset}"
+          echo "Downloading ${url}"
+          curl -fSL --retry 3 -o src/claude_mpm/bin/ztk "$url"
+          chmod +x src/claude_mpm/bin/ztk
+          # LICENSE: try release asset, then raw repo, else placeholder
+          if ! curl -fSL --retry 3 -o src/claude_mpm/bin/ztk_LICENSE \
+               "https://github.com/bobmatnyc/ztk/releases/download/${tag}/LICENSE" 2>/dev/null; then
+            curl -fSL --retry 3 -o src/claude_mpm/bin/ztk_LICENSE \
+              "https://raw.githubusercontent.com/bobmatnyc/ztk/master/LICENSE" 2>/dev/null \
+              || echo "ztk binary from https://github.com/bobmatnyc/ztk (${tag})" \
+                   > src/claude_mpm/bin/ztk_LICENSE
+          fi
+          ls -la src/claude_mpm/bin/
+
+      - name: Build wheel
+        run: python -m build --wheel
+
+      - name: Retag wheel with platform
+        run: |
+          set -euo pipefail
+          # Source build produces py3-none-any.whl; retag to platform-specific.
+          orig=$(ls dist/*.whl | head -n1)
+          echo "Original wheel: $orig"
+          python -m wheel tags --platform-tag '${{ matrix.platform }}' --remove "$orig"
+          ls -la dist/
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.platform }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Only publish on tag pushes, not manual dispatches
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi
+      url: https://pypi.org/project/claude-mpm/
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List wheels
+        run: ls -la dist/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install twine
+        run: python -m pip install --upgrade twine
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload --non-interactive dist/*.whl
