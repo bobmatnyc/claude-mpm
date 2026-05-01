@@ -1023,7 +1023,101 @@ class EventHandlers:
 
         # Emit stop event to Socket.IO
         self._emit_stop_event(event, session_id, metadata)
+
+        # Generate rich resume log from live session state (fixes #462).
+        # Without this call, generate_resume_log() is never invoked and the
+        # /mpm-session-resume command falls back to the empty stub at
+        # session_manager.py:315-328. Build a session_state dict from the
+        # data we have on the Stop event so the generator produces a
+        # meaningful log instead of the placeholder.
+        try:
+            self._generate_resume_log_on_stop(event, session_id, metadata)
+        except Exception as e:
+            # Resume log generation is best-effort; never block Stop handling.
+            if DEBUG:
+                _log(f"Resume log generation on stop failed: {e}")
+
         return None
+
+    def _generate_resume_log_on_stop(
+        self, event: dict, session_id: str, metadata: dict
+    ) -> None:
+        """Build session_state from stop event and trigger resume log generation.
+
+        Pulls token usage from SessionManager (which has been accumulating
+        across the session via update_token_usage), captures the working
+        directory, stop reason, and any final output, and asks the
+        SessionManager to persist a resume log via ResumeLogGenerator.
+
+        This is the wiring that #462 reports missing: previously the Stop
+        handler exited after _emit_stop_event without ever invoking
+        generate_resume_log(), so users running /mpm-session-resume only
+        ever saw the "Session ended - resume log auto-generated." stub.
+        """
+        from claude_mpm.services.session_manager import get_session_manager
+
+        manager = get_session_manager()
+
+        # Update SessionManager with this stop's token usage so the
+        # context_metrics reflect the latest API call before we snapshot.
+        usage = metadata.get("usage") or {}
+        stop_reason = event.get("stop_reason") or metadata.get("reason")
+        if usage or stop_reason:
+            try:
+                manager.update_token_usage(
+                    input_tokens=int(usage.get("input_tokens", 0) or 0),
+                    output_tokens=int(usage.get("output_tokens", 0) or 0),
+                    stop_reason=stop_reason,
+                )
+            except Exception as e:
+                if DEBUG:
+                    _log(f"Failed to update token usage before resume log: {e}")
+
+        context_metrics = manager.get_context_metrics()
+
+        # Capture final output from the stop event when present.
+        final_output = (
+            event.get("final_output")
+            or event.get("output")
+            or event.get("response")
+            or ""
+        )
+        if isinstance(final_output, (dict, list)):
+            try:
+                import json as _json
+
+                final_output = _json.dumps(final_output)[:4000]
+            except Exception:
+                final_output = str(final_output)[:4000]
+        elif isinstance(final_output, str) and len(final_output) > 4000:
+            final_output = final_output[:4000]
+
+        # Build a session_state the generator understands.
+        session_state: dict = {
+            "context_metrics": context_metrics,
+            "mission_summary": (
+                f"Session stopped (reason={metadata.get('reason', 'unknown')}, "
+                f"stop_reason={stop_reason or 'unknown'})."
+            ),
+            "critical_context": {
+                "working_directory": metadata.get("working_directory", ""),
+                "git_branch": metadata.get("git_branch", "Unknown"),
+                "stop_type": metadata.get("stop_type", "normal"),
+                "timestamp": metadata.get("timestamp"),
+            },
+        }
+        if final_output:
+            session_state["accomplishments"] = [
+                f"Final assistant output captured ({len(final_output)} chars)."
+            ]
+            session_state["critical_context"]["final_output_preview"] = final_output
+
+        file_path = manager.generate_resume_log(session_state=session_state)
+        if DEBUG:
+            if file_path:
+                _log(f"✅ Resume log written: {file_path}")
+            else:
+                _log("⚠️  Resume log generation returned None")
 
     def _extract_stop_metadata(self, event: dict) -> dict:
         """Extract metadata from stop event."""
