@@ -267,6 +267,45 @@ def _get_active_model_display_name() -> str:
     return "Default"
 
 
+def _get_ztk_status() -> tuple[bool, str]:
+    """Determine ztk compression status for display.
+
+    Returns:
+        Tuple of (is_active, display_line) where display_line is a one-line
+        startup message string (without trailing newline).
+
+    Resolution:
+        active = ztk binary resolvable AND CLAUDE_MPM_DISABLE_ZTK not set
+    """
+    # Check disable env var first (fast path)
+    disable_val = os.environ.get("CLAUDE_MPM_DISABLE_ZTK", "").lower()
+    disabled_via_env = disable_val in ("1", "true", "yes")
+
+    # Resolve binary: system PATH or bundled
+    ztk_found = bool(shutil.which("ztk"))
+    if not ztk_found:
+        try:
+            from importlib import resources as _res
+
+            bundled = _res.files("claude_mpm").joinpath("bin", "ztk")
+            from pathlib import Path as _Path
+
+            bundled_path = _Path(str(bundled))
+            ztk_found = bundled_path.is_file()
+        except Exception:
+            ztk_found = False
+
+    if not ztk_found:
+        return (
+            False,
+            "  ztk compression: off  (binary not found — run: make download-ztk)",
+        )
+    if disabled_via_env:
+        return (False, "  ztk compression: off  (disabled via --no-ztk)")
+
+    return (True, "⚡ ztk compression: on   (disable with --no-ztk)")
+
+
 def _get_cwd_display(max_width: int = 40) -> str:
     """Get current working directory, truncated if needed."""
     cwd = str(Path.cwd())
@@ -419,6 +458,8 @@ def display_startup_banner(
     # Narrow terminal: compact single-line banner
     if terminal_width < NARROW_WIDTH_THRESHOLD:
         print(f"{CYAN}Claude MPM v{version}{RESET}")
+        _, ztk_message = _get_ztk_status()
+        print(ztk_message)
         print()
         return
 
@@ -644,8 +685,11 @@ def display_startup_banner(
         )
     )
 
-    # Line 15: Empty | empty
-    lines.append(_format_two_column_line("", "", left_panel_width, right_panel_width))
+    # Line 15: ztk status (spans full right panel) | empty
+    _, ztk_message = _get_ztk_status()
+    lines.append(
+        _format_two_column_line("", ztk_message, left_panel_width, right_panel_width)
+    )
 
     # Line 16: Empty | empty
     lines.append(_format_two_column_line("", "", left_panel_width, right_panel_width))
