@@ -526,7 +526,7 @@ class DeploymentReconciler:
     def _deploy_agent(self, agent_id: str, cache_dir: Path, deploy_dir: Path) -> None:
         """Deploy agent from cache to project directory."""
         # Find agent file in cache
-        agent_file = self._find_file_in_cache(agent_id, cache_dir, "*.md")
+        agent_file = self._find_file_in_cache(agent_id, cache_dir)
         if not agent_file:
             raise FileNotFoundError(f"Agent file for '{agent_id}' not found in cache")
 
@@ -539,7 +539,7 @@ class DeploymentReconciler:
     def _deploy_skill(self, skill_id: str, cache_dir: Path, deploy_dir: Path) -> None:
         """Deploy skill from cache to project directory."""
         # Find skill file in cache
-        skill_file = self._find_file_in_cache(skill_id, cache_dir, "*.md")
+        skill_file = self._find_file_in_cache(skill_id, cache_dir)
         if not skill_file:
             raise FileNotFoundError(f"Skill file for '{skill_id}' not found in cache")
 
@@ -576,9 +576,7 @@ class DeploymentReconciler:
         skill_file = deploy_dir / f"{skill_id}.md"
         return is_mpm_managed_file(skill_file)
 
-    def _find_file_in_cache(
-        self, item_id: str, cache_dir: Path, pattern: str
-    ) -> Path | None:
+    def _find_file_in_cache(self, item_id: str, cache_dir: Path) -> Path | None:
         """Find file in cache directory by ID pattern."""
         # Try exact match first
         exact_match = cache_dir / f"{item_id}.md"
