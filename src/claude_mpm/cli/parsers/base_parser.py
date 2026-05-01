@@ -382,6 +382,29 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Model for the PM agent in SDK mode (default: sonnet). "
         "Overrides CLAUDE_MPM_PM_MODEL env var. Example: --model opus",
     )
+    ztk_mutex = run_group.add_mutually_exclusive_group()
+    ztk_mutex.add_argument(
+        "--ztk",
+        action="store_const",
+        const=True,
+        default=None,
+        dest="ztk",
+        help="Explicitly enable ztk shell output compression (overrides CLAUDE_MPM_DISABLE_ZTK env var)",
+    )
+    ztk_mutex.add_argument(
+        "--no-ztk",
+        action="store_const",
+        const=False,
+        dest="ztk",
+        help="Disable ztk shell output compression (env: CLAUDE_MPM_DISABLE_ZTK=1)",
+    )
+    run_group.add_argument(
+        "--debug-ztk",
+        action="store_true",
+        default=False,
+        dest="debug_ztk",
+        help="Enable ztk debug logging to stderr (env: CLAUDE_MPM_ZTK_DEBUG=1)",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(
