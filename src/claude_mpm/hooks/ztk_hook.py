@@ -24,6 +24,7 @@ import os
 import shutil
 import stat
 import sys
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 
@@ -39,6 +40,8 @@ from pathlib import Path
 # Use the environment variable for persistent disabling (e.g. via shell profile
 # or .env file).
 _DISABLE_ENV_VAR = "CLAUDE_MPM_DISABLE_ZTK"
+_MPM_LOG_DIR = Path.home() / ".claude-mpm"
+_MPM_ZTK_LOG = _MPM_LOG_DIR / "ztk-savings.log"
 
 
 def _log_debug(message: str) -> None:
@@ -50,6 +53,29 @@ def _log_debug(message: str) -> None:
 def _passthrough() -> None:
     """Emit a continue response with no input modification."""
     print(json.dumps({"continue": True}))
+
+
+def _log_intercepted(command: str) -> None:
+    """Append a rewritten-command entry to ~/.claude-mpm/ztk-savings.log.
+
+    Format: ISO-timestamp | full command (truncated to 200 chars)
+
+    WHY: ztk's native log (~/.local/share/ztk/savings.log) records only the
+    base command name (e.g. "git"), not the full invocation. The MPM log
+    captures the full command string so `claude-mpm ztk-stats` can show
+    which exact invocations were compressed.
+    Savings bytes/pct come from ztk's own log; this file is for audit/debug.
+    """
+    try:
+        _MPM_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Truncate long commands so the log stays readable
+        cmd_repr = command[:200].replace("\n", " ")
+        line = f"{ts} | {cmd_repr}\n"
+        with _MPM_ZTK_LOG.open("a") as fh:
+            fh.write(line)
+    except OSError as exc:
+        _log_debug(f"failed to write MPM savings log: {exc}")
 
 
 def _resolve_ztk() -> str | None:
@@ -150,6 +176,7 @@ def main() -> None:
     # Rewrite the command using the resolved ztk path
     tool_input["command"] = f"{ztk_path} run {command}"
     _log_debug(f"rewrote Bash command: {command[:80]!r} -> {ztk_path} run ...")
+    _log_intercepted(command)
 
     result = {
         "hookSpecificOutput": {
