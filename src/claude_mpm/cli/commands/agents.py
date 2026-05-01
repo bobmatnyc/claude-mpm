@@ -2221,6 +2221,7 @@ class AgentsCommand(AgentCommand):
         NEW: Shows all collections with agent counts and metadata.
         Enables discovery of available agent collections before deployment.
         """
+        del args  # unused; method is dispatched uniformly via a table
         try:
             from pathlib import Path
 
@@ -2651,6 +2652,7 @@ class AgentsCommand(AgentCommand):
 
     def _cache_sync(self, args) -> CommandResult:
         """Full cache sync: pull, commit (if needed), push."""
+        del args  # unused; method is dispatched uniformly via a table
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
 
