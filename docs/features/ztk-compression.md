@@ -83,9 +83,40 @@ With `CLAUDE_MPM_ZTK_DEBUG=1`, you'll see messages like:
 
 ## Disabling ZTK
 
-There are two ways to disable ztk compression:
+There are three ways to disable ztk compression:
 
-### Option 1: Environment Variable (Session-Level)
+### Option 1: CLI Flag (Recommended)
+
+Pass `--no-ztk` directly to `claude-mpm run` (or to the top-level command):
+
+```bash
+# Disable for one session
+claude-mpm --no-ztk run
+
+# Or on the run subcommand
+claude-mpm run --no-ztk
+```
+
+To explicitly **enable** ztk (useful to override a pre-set `CLAUDE_MPM_DISABLE_ZTK=1` environment variable):
+
+```bash
+# Explicitly enable ztk even if CLAUDE_MPM_DISABLE_ZTK=1 is set in the environment
+claude-mpm --ztk run
+
+# Or on the run subcommand
+claude-mpm run --ztk
+```
+
+`--ztk` and `--no-ztk` are mutually exclusive. When neither is passed, the environment variable is left unchanged.
+
+You can also enable debug logging via the CLI:
+
+```bash
+# Show ztk rewriting details on stderr
+claude-mpm --debug-ztk run
+```
+
+### Option 2: Environment Variable (Session-Level)
 
 Set `CLAUDE_MPM_DISABLE_ZTK=1` to disable for the current session:
 
@@ -101,7 +132,7 @@ CLAUDE_MPM_DISABLE_ZTK=1 claude code
 unset CLAUDE_MPM_DISABLE_ZTK
 ```
 
-### Option 2: Configuration File (Persistent)
+### Option 3: Configuration File (Persistent)
 
 Add to your `~/.claude-mpm/config/configuration.yaml`:
 
