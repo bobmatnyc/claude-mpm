@@ -886,6 +886,20 @@ def run_session_legacy(args):
         exit_code = _run_headless_session(args)
         sys.exit(exit_code)
 
+    # Handle --sdk --prompt oneshot mode early - bypass all the interactive-loop
+    # setup (dependency checks, monitor, ClaudeRunner) that fire-and-forget SDK
+    # calls do not need. Without this early route, expensive startup steps run
+    # before the late-stage routing at the bottom of this function, and any
+    # transient failure in that setup causes ``run_sdk_oneshot`` to never be
+    # reached (silently exiting with code 1). See bug #486.
+    sdk_prompt_value = getattr(args, "prompt", None)
+    if getattr(args, "sdk", False) and sdk_prompt_value:
+        # Mirror the env-var setup that ``cli/__init__.py`` does for the
+        # standard path so downstream SDK code sees the runtime selection.
+        os.environ["CLAUDE_MPM_RUNTIME"] = "sdk"
+        run_sdk_oneshot(sdk_prompt_value, args)
+        return
+
     # Only setup startup logging if user wants logging
     if args.logging != LogLevel.OFF.value:
         # Set up startup logging to file early in the process
