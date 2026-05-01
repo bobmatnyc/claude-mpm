@@ -304,13 +304,14 @@ claude-mpm oauth list
 [→ Google Workspace Setup](docs/guides/oauth-setup.md) | [→ Notion Setup](docs/integrations/NOTION_SETUP.md) | [→ Confluence Setup](docs/integrations/CONFLUENCE_SETUP.md) | [→ Slack Setup](docs/integrations/SLACK_USER_PROXY_SETUP.md)
 
 ### ⚡ Performance & Security
+- **ZTK Shell Output Compression** — 80–97% token reduction on shell commands (find, grep, ls, git, etc.) with automatic bundled binary
 - **Near-Instant Startup** — syncs agents and skills once per day; subsequent launches skip all network checks and start in ~100ms
 - **Simplified Architecture** with ~3,700 lines removed for better performance
 - **Enhanced Security** with comprehensive input validation
 - **Intelligent Caching** with hash-based invalidation and TTL-gated sync
 - **Memory Management** with cleanup commands for large conversation histories
 
-[→ Learn more: Architecture](docs/developer/ARCHITECTURE.md)
+[→ Learn more: Architecture](docs/developer/ARCHITECTURE.md) | [→ ZTK Compression Guide](docs/features/ztk-compression.md)
 
 ### ⚙️ Automatic Migrations
 - **Seamless Updates** with automatic configuration migration on first startup after update
