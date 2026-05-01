@@ -168,7 +168,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
                     env=env,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                    creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
                 )
             else:
                 # Unix: use start_new_session for process group isolation
@@ -187,7 +187,7 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
             # Check if process is still running
             if process.poll() is not None:
                 # Process died immediately
-                _stdout, stderr = process.communicate()
+                _, stderr = process.communicate()
                 error_msg = stderr.decode("utf-8", errors="replace") if stderr else ""
                 raise ProcessSpawnError(
                     f"Process died immediately. Exit code: {process.returncode}. "
@@ -488,9 +488,12 @@ class LocalProcessManager(SyncBaseService, ILocalProcessManager):
         if is_port_protected(port):
             return False
 
-        # Check if port is in use
+        # Check if port is in use.
+        # net_connections() defaults to kind='inet' so laddr is an addr
+        # namedtuple. However, psutil stubs also admit tuple[()] for unix
+        # sockets; guard with getattr so Pyright does not complain.
         connections = psutil.net_connections()
-        return all(conn.laddr.port != port for conn in connections)
+        return all(getattr(conn.laddr, "port", None) != port for conn in connections)
 
     def find_available_port(
         self, preferred_port: int, max_attempts: int = 10
