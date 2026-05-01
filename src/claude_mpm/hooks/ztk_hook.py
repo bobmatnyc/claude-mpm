@@ -62,6 +62,19 @@ def main() -> None:
         _passthrough()
         return
 
+    # Exclusions: skip commands that ztk blocks by default
+    # Commands with ' -c ' (e.g., python3 -c, bash -c, sh -c, perl -e) are denied by ztk
+    if " -c " in command or " -e " in command:
+        _log_debug("command contains ' -c ' or ' -e '; ztk blocks these patterns")
+        _passthrough()
+        return
+
+    # Skip multi-statement compound commands (contain newlines)
+    if "\n" in command:
+        _log_debug("command contains newlines; skipping multi-statement compound")
+        _passthrough()
+        return
+
     # Graceful degradation: ztk must be on PATH
     if shutil.which("ztk") is None:
         _log_debug("ztk not found on PATH; pass-through")
