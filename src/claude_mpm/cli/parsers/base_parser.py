@@ -881,6 +881,14 @@ def create_parser(
             add_update_statusline_parser(subparsers)
         except ImportError:
             pass
+
+        # Add ztk-stats command for token compression savings summary
+        try:
+            from ..commands.ztk_stats import add_ztk_stats_parser
+
+            add_ztk_stats_parser(subparsers)
+        except ImportError:
+            pass
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
