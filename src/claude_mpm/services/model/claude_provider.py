@@ -17,6 +17,14 @@ from typing import Any
 from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
 from claude_mpm.services.model.base_provider import BaseModelProvider
 
+try:
+    import anthropic
+
+    HAS_ANTHROPIC = True
+except ImportError:
+    anthropic = None  # type: ignore[assignment]
+    HAS_ANTHROPIC = False
+
 
 class ClaudeProvider(BaseModelProvider):
     """
@@ -97,16 +105,14 @@ class ClaudeProvider(BaseModelProvider):
             )
             return False
 
-        try:
-            from anthropic import AsyncAnthropic
-        except ImportError:
+        if not HAS_ANTHROPIC or anthropic is None:
             self.log_error(
                 "anthropic package not installed; install with `pip install anthropic`"
             )
             return False
 
         try:
-            self._client = AsyncAnthropic(api_key=self.api_key)
+            self._client = anthropic.AsyncAnthropic(api_key=self.api_key)
         except Exception as e:
             self.log_error(f"Failed to initialize Anthropic client: {e}")
             return False
@@ -146,9 +152,7 @@ class ClaudeProvider(BaseModelProvider):
         if not self.api_key and not os.getenv("ANTHROPIC_API_KEY"):
             return False
 
-        try:
-            import anthropic  # noqa: F401
-        except ImportError:
+        if not HAS_ANTHROPIC:
             return False
 
         return True
@@ -260,11 +264,7 @@ class ClaudeProvider(BaseModelProvider):
                 error="Claude provider client is not initialized",
             )
 
-        # Import lazily so unit tests without the SDK installed don't fail at
-        # import time, and so we can map specific exception types.
-        try:
-            import anthropic
-        except ImportError:
+        if not HAS_ANTHROPIC or anthropic is None:
             return self.create_response(
                 success=False,
                 model=model,
