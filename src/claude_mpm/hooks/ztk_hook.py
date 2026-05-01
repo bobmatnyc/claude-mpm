@@ -27,6 +27,19 @@ import sys
 from importlib import resources
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Disable flag
+# ---------------------------------------------------------------------------
+# Set CLAUDE_MPM_DISABLE_ZTK=1 (or "true" / "yes") in the environment to skip
+# ztk wrapping for the current session.  The hook is ON by default.
+#
+# Config-file disable (hooks.ztk.enabled: false in configuration.yaml) is
+# intentionally NOT supported here: loading PyYAML in a subprocess hook that
+# runs on every Bash call would add >10 ms of startup latency per invocation.
+# Use the environment variable for persistent disabling (e.g. via shell profile
+# or .env file).
+_DISABLE_ENV_VAR = "CLAUDE_MPM_DISABLE_ZTK"
+
 
 def _log_debug(message: str) -> None:
     """Write a debug line to stderr when CLAUDE_MPM_ZTK_DEBUG=1."""
@@ -81,6 +94,12 @@ def _resolve_ztk() -> str | None:
 
 
 def main() -> None:
+    # Environment-variable disable: fast, session-level override.
+    if os.environ.get(_DISABLE_ENV_VAR, "").lower() in ("1", "true", "yes"):
+        _log_debug(f"{_DISABLE_ENV_VAR} is set; ztk disabled")
+        _passthrough()
+        return
+
     try:
         event = json.load(sys.stdin)
     except Exception as exc:
