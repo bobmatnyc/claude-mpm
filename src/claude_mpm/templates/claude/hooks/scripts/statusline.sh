@@ -134,6 +134,34 @@ if [ -n "$OUTPUT_STYLE" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# ztk compression segment.
+# on  = binary resolvable (PATH or bundled) AND CLAUDE_MPM_DISABLE_ZTK not set
+# off = binary missing OR CLAUDE_MPM_DISABLE_ZTK=1|true|yes
+# ---------------------------------------------------------------------------
+ZTK_SEGMENT=""
+_ZTK_DISABLED="${CLAUDE_MPM_DISABLE_ZTK:-}"
+case "$_ZTK_DISABLED" in
+    1|true|yes) _ZTK_ACTIVE=0 ;;
+    *)          _ZTK_ACTIVE=1 ;;
+esac
+if [ "$_ZTK_ACTIVE" = "1" ]; then
+    if ! command -v ztk >/dev/null 2>&1; then
+        # Check bundled path (importlib.resources puts it next to the package)
+        _BUNDLED_ZTK="$(python3 -c \
+            "from importlib import resources; import pathlib; p=pathlib.Path(str(resources.files('claude_mpm').joinpath('bin','ztk'))); print(p if p.is_file() else '')" \
+            2>/dev/null || echo "")"
+        if [ -z "$_BUNDLED_ZTK" ]; then
+            _ZTK_ACTIVE=0
+        fi
+    fi
+fi
+if [ "$_ZTK_ACTIVE" = "1" ]; then
+    ZTK_SEGMENT="${SEP}${DIM}ztk: on${RESET}"
+else
+    ZTK_SEGMENT="${SEP}${DIM}ztk: off${RESET}"
+fi
+
+# ---------------------------------------------------------------------------
 # Compose and print the status string to stdout.
 # Claude Code renders this in its built-in status bar — no cursor escapes.
 # ---------------------------------------------------------------------------
@@ -159,6 +187,7 @@ if [ -n "$GIT_SEGMENT" ]; then
 fi
 
 STATUS="${STATUS}${STYLE_SEGMENT}"
+STATUS="${STATUS}${ZTK_SEGMENT}"
 
 printf '%b\n' "$STATUS"
 exit 0
