@@ -1,3 +1,29 @@
+## v6.2.55 (2026-05-01)
+
+### Feat
+
+- **ztk**: add ztk: on/off segment to statusline
+- **ztk**: show compression status in startup banner
+- **ztk**: propagate --ztk/--no-ztk flags to env before subprocess
+- **ztk**: add --ztk/--no-ztk tri-state flag to run subcommand parser
+- **ztk**: replace --no-ztk with --ztk/--no-ztk tri-state flag pair
+- **ztk**: add CLAUDE_MPM_DISABLE_ZTK env var to disable hook
+- add platform-wheel release CI for ztk binary distribution
+- add scripts/download_ztk_binaries.sh for platform binary fetch
+- **ztk**: add bundled binary resolver with importlib.resources fallback
+- add ztk PreToolUse hook for transparent shell output compression
+- **skill**: add test-quality-inspector references/mutation-reasoning.md
+- **skill**: add test-quality-inspector references/mock-hygiene.md
+- **skill**: add test-quality-inspector references/verdicts.md
+- **skill**: add test-quality-inspector references/checks.md
+- **skill**: add universal-testing-test-quality-inspector metadata.json
+- **skill**: add universal-testing-test-quality-inspector SKILL.md
+
+### Fix
+
+- filter --ztk flag from Claude CLI args and remove unused stubs
+- exclude inline script and multi-line commands from ztk rewrite
+
 ## v6.2.54 (2026-04-26)
 
 ## v6.2.53 (2026-04-24)
