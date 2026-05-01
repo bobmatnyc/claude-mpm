@@ -8,6 +8,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -259,21 +260,106 @@ class VersionService(BaseService, VersionServiceInterface):
         return self.get_base_version()
 
     def check_for_updates(self) -> dict[str, Any]:
-        """Check for available updates.
+        """Check for available updates by comparing the installed version
+        against the latest release published to PyPI.
+
+        WHY: Users need to know when a newer version of claude-mpm is
+        available so they can upgrade. Previously this method returned a
+        hard-coded placeholder, which meant the CLI could never surface
+        update notifications.
+
+        DESIGN DECISION: Query the PyPI JSON API (no extra dependencies)
+        and use ``packaging.version.Version`` for PEP 440-aware
+        comparisons. Network and parsing errors are handled gracefully so
+        a transient failure never crashes the caller.
 
         Returns:
-            Dictionary with update information
+            Dictionary with update information including ``current_version``,
+            ``latest_version``, ``update_available``, ``update_url``,
+            ``message``, and ``checked_at`` (ISO 8601 UTC timestamp).
         """
-        # For now, return a placeholder response
-        # In a full implementation, this would check against a remote repository
-        return {
-            "current_version": self.get_version(),
-            "latest_version": self.get_version(),
-            "update_available": False,
-            "update_url": None,
-            "message": "Update checking not implemented",
-            "checked_at": None,
-        }
+        import json
+        from datetime import datetime
+        from urllib.error import URLError
+        from urllib.request import Request, urlopen
+
+        from packaging.version import InvalidVersion, Version
+
+        current_version = self.get_base_version()
+        checked_at = datetime.now(UTC).isoformat()
+        pypi_url = "https://pypi.org/pypi/claude-mpm/json"
+
+        try:
+            request = Request(
+                pypi_url,
+                headers={"User-Agent": f"claude-mpm/{current_version}"},
+            )
+            with urlopen(request, timeout=5) as response:  # nosec B310 - hardcoded https PyPI URL
+                payload = json.loads(response.read().decode("utf-8"))
+
+            latest_version = payload.get("info", {}).get("version")
+            if not latest_version:
+                return {
+                    "current_version": current_version,
+                    "latest_version": None,
+                    "update_available": False,
+                    "update_url": None,
+                    "message": "Could not check for updates: PyPI response missing version",
+                    "checked_at": checked_at,
+                }
+
+            try:
+                update_available = Version(latest_version) > Version(current_version)
+            except InvalidVersion as e:
+                self.logger.warning(f"Invalid version encountered during compare: {e}")
+                return {
+                    "current_version": current_version,
+                    "latest_version": latest_version,
+                    "update_available": False,
+                    "update_url": None,
+                    "message": f"Could not check for updates: invalid version format ({e})",
+                    "checked_at": checked_at,
+                }
+
+            if update_available:
+                message = f"Update available: {current_version} -> {latest_version}"
+                update_url = (
+                    payload.get("info", {}).get("project_urls", {}).get("Homepage")
+                    or payload.get("info", {}).get("package_url")
+                    or "https://pypi.org/project/claude-mpm/"
+                )
+            else:
+                message = f"You are running the latest version ({current_version})"
+                update_url = None
+
+            return {
+                "current_version": current_version,
+                "latest_version": latest_version,
+                "update_available": update_available,
+                "update_url": update_url,
+                "message": message,
+                "checked_at": checked_at,
+            }
+        except (URLError, TimeoutError, json.JSONDecodeError, OSError) as e:
+            self.logger.debug(f"Update check failed: {e}")
+            return {
+                "current_version": current_version,
+                "latest_version": None,
+                "update_available": False,
+                "update_url": None,
+                "message": f"Could not check for updates: {e}",
+                "checked_at": checked_at,
+            }
+        except Exception as e:
+            self.logger.warning(f"Unexpected error checking for updates: {e}")
+            return {
+                "current_version": current_version,
+                "latest_version": None,
+                "update_available": False,
+                "update_url": None,
+                "message": f"Could not check for updates: {e}",
+                "checked_at": checked_at,
+            }
 
     def get_agents_versions(self) -> dict[str, list[dict[str, str]]]:
         """Get all agents grouped by tier with versions.
