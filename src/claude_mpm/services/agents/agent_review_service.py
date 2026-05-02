@@ -18,6 +18,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from packaging.version import InvalidVersion, Version
+
 from claude_mpm.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -236,20 +238,31 @@ class AgentReviewService:
     def _is_outdated(self, current_version: str, available_version: str) -> bool:
         """Check if current version is outdated compared to available version.
 
+        Uses semantic version comparison via packaging.version.Version so that
+        versions like "1.2.10" sort after "1.2.9" (not before, as with naive
+        lexicographic comparison). Falls back to string inequality for
+        non-semver-compatible version strings.
+
         Args:
             current_version: Currently deployed version
             available_version: Available version from managed agents
 
         Returns:
-            True if current version is outdated
+            True if current version is older than available version
         """
         # Handle unknown versions
         if current_version == "unknown" or available_version == "unknown":
             return False
 
-        # Simple string comparison for now
-        # TODO: Implement semantic version comparison (1.2.3 vs 1.2.4)
-        return current_version != available_version
+        # Strip common version prefixes (e.g., "v1.2.3" -> "1.2.3")
+        current_clean = current_version.lstrip("vV")
+        available_clean = available_version.lstrip("vV")
+
+        try:
+            return Version(available_clean) > Version(current_clean)
+        except InvalidVersion:
+            # Fallback for non-semver strings: any difference means outdated
+            return current_version != available_version
 
     def get_archive_summary(self, project_agents_dir: Path) -> dict[str, Any]:
         """Get summary of archived agents.
