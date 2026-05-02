@@ -722,7 +722,7 @@ class GitSourceManager:
                 agent["source"] = agent.get("repository", "unknown")
 
                 # Add category if not present
-                if "category" not in agent and "/" in agent_id:
+                if "category" not in agent and agent_id and "/" in agent_id:
                     agent["category"] = agent_id.rsplit("/", 1)[0]
 
                 filtered_agents.append(agent)
