@@ -716,6 +716,10 @@ class GitSourceManager:
                 if name:
                     agent_id = name.lower().replace(" ", "-")
 
+            # Skip agents with no resolvable ID
+            if agent_id is None:
+                continue
+
             # Check if agent matches filter
             if agent_id in matching_agent_ids:
                 # Add source attribution
