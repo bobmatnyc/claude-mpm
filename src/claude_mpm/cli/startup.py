@@ -1124,7 +1124,7 @@ def deploy_output_style_on_startup():
         # Continue execution - output style deployment shouldn't block startup
 
 
-def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) -> int:
+def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) -> int:  # pyright: ignore[reportUnusedFunction]
     """Remove agents that are managed by claude-mpm but no longer deployed.
 
     DEPRECATED: This function is a thin compatibility shim. All orphan detection
@@ -1180,7 +1180,7 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
 
 
 def _save_deployment_state_after_reconciliation(
-    agent_result,
+    _agent_result,
     project_path: Path,
 ) -> None:
     """Save deployment state after reconciliation to prevent duplicate deployment.
@@ -1417,7 +1417,7 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
 
                 # Perform reconciliation to deploy configured agents
                 project_path = Path.cwd()
-                agent_result, _skill_result = perform_startup_reconciliation(
+                agent_result, _ = perform_startup_reconciliation(
                     project_path=project_path, config=unified_config, silent=False
                 )
 
@@ -1480,7 +1480,7 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                 # Save deployment state to prevent duplicate deployment in ClaudeRunner
                 # This ensures setup_agents() skips deployment since we already reconciled
                 _save_deployment_state_after_reconciliation(
-                    agent_result=agent_result, project_path=project_path
+                    _agent_result=agent_result, project_path=project_path
                 )
 
             except Exception as e:
