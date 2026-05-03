@@ -15,7 +15,6 @@ Verifies the three fixes:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -100,6 +99,7 @@ class TestDeployBundledSkillsKillSwitches:
     def test_plugin_present_skips_deployment(
         self, mock_service_cls, _mock_plugin, monkeypatch
     ):
+        del _mock_plugin  # Decorator-injected mock; presence is what matters
         monkeypatch.delenv("CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", raising=False)
         from claude_mpm.cli.startup import deploy_bundled_skills
 
@@ -113,6 +113,7 @@ class TestDeployBundledSkillsKillSwitches:
         self, mock_loader_cls, mock_service_cls, _mock_plugin, monkeypatch
     ):
         """Bug 1: setting skills.auto_deploy: false in YAML must take effect."""
+        del _mock_plugin  # Decorator-injected mock; presence is what matters
         monkeypatch.delenv("CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", raising=False)
 
         cfg = MagicMock()
@@ -134,6 +135,7 @@ class TestDeployBundledSkillsKillSwitches:
     def test_auto_deploy_true_default_runs_deployment(
         self, mock_loader_cls, mock_service_cls, _mock_plugin, monkeypatch
     ):
+        del _mock_plugin  # Decorator-injected mock; presence is what matters
         monkeypatch.delenv("CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", raising=False)
 
         cfg = MagicMock()
@@ -166,6 +168,7 @@ class TestVerifyAndShowPmSkillsKillSwitches:
     def test_plugin_present_skips_verification(
         self, mock_deployer_cls, _mock_plugin, monkeypatch
     ):
+        del _mock_plugin  # Decorator-injected mock; presence is what matters
         monkeypatch.delenv("CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", raising=False)
         from claude_mpm.cli.startup import verify_and_show_pm_skills
 
