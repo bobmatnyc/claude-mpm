@@ -1,3 +1,15 @@
+## v6.2.60 (2026-05-03)
+
+### Fix
+
+- **agents**: merge fix/issue-449-list-cached-agents to main
+- **agents**: narrow agent_id type with explicit None check at line 725
+- **agents**: add None guard for string operations in git_source_manager.py
+- list_cached_agents now uses config-based cache_path with branch segment (#449)
+- **agents**: replace string version comparison with semver in agent_review_service (#472)
+- **deployment**: remove unused pattern variable in deployment_reconciler.py
+- **deployment**: load reconciler config from configuration.yaml (#473)
+
 ## v6.2.59 (2026-05-01)
 
 ### Feat
