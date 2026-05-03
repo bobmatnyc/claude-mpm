@@ -16,6 +16,13 @@ import time
 from pathlib import Path
 from typing import Any
 
+# Functions exported for use by tests and other modules. The underscore prefix
+# is retained for internal-use convention, but these symbols are part of the
+# module's public API for testing purposes.
+__all__ = [
+    "_cleanup_orphaned_agents",
+]
+
 # ─── Sync-state TTL helpers ──────────────────────────────────────────────────
 
 _DEFAULT_SYNC_TTL = 86400  # 24 hours — check for updates once per day
@@ -1124,7 +1131,7 @@ def deploy_output_style_on_startup():
         # Continue execution - output style deployment shouldn't block startup
 
 
-def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) -> int:  # pyright: ignore[reportUnusedFunction]
+def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) -> int:
     """Remove agents that are managed by claude-mpm but no longer deployed.
 
     DEPRECATED: This function is a thin compatibility shim. All orphan detection
@@ -1212,6 +1219,10 @@ def _save_deployment_state_after_reconciliation(
     import time
 
     from ..core.logger import get_logger
+
+    # _agent_result is accepted for API compatibility with the call site but
+    # is not currently used; deployment state is computed from the filesystem.
+    del _agent_result
 
     logger = get_logger("cli")
 
