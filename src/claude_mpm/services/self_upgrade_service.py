@@ -355,7 +355,7 @@ class SelfUpgradeService:
             InstallationMethod.UV_TOOL,
             InstallationMethod.HOMEBREW,
         ]:
-            result = await self._check_pypi_for_update(cache_ttl)
+            result = await self._check_pypi_for_update()
             if result and result.get("update_available"):
                 result["installation_method"] = self.installation_method
                 result["upgrade_command"] = self._get_upgrade_command()
@@ -381,17 +381,12 @@ class SelfUpgradeService:
 
     async def _check_pypi_for_update(
         self,
-        _cache_ttl: int | None = None,
     ) -> dict[str, Any] | None:
         """Check PyPI for the latest version of claude-mpm.
-
-        Args:
-            _cache_ttl: Unused, kept for interface compatibility.
 
         Returns:
             Dict with update info or None.
         """
-        del _cache_ttl  # unused; accepted for interface compatibility
         try:
             import json
             import urllib.request
