@@ -500,7 +500,7 @@ class SelfUpgradeService:
         """
         current = update_info["current"]
         latest = update_info["latest"]
-        command = update_info.get("upgrade_command", "pip install --upgrade claude-mpm")
+        command = update_info.get("upgrade_command", "uv tool upgrade claude-mpm")
 
         print(f"\nℹ️  Update available: v{current} → v{latest}")
         print(f"   Run: {command}")
