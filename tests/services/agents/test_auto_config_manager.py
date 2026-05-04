@@ -198,8 +198,17 @@ async def test_service_lazy_initialization():
 @pytest.mark.asyncio
 async def test_auto_configure_success(service, temp_project_dir):
     """Test successful auto-configuration workflow."""
-    # Mock async methods
-    service._deploy_single_agent = AsyncMock()
+
+    # Mock deployment to actually write a file so post-deployment
+    # validation has something on disk to verify.
+    async def fake_deploy(agent_id: str, project_path: Path):
+        agents_dir = project_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True, exist_ok=True)
+        (agents_dir / f"{agent_id}.md").write_text(
+            f"# {agent_id}\n\nTest agent.\n", encoding="utf-8"
+        )
+
+    service._deploy_single_agent = AsyncMock(side_effect=fake_deploy)
     service._save_configuration = AsyncMock()
 
     result = await service.auto_configure(
@@ -238,7 +247,14 @@ async def test_auto_configure_with_observer(service, temp_project_dir):
     """Test auto-configuration with observer notifications."""
     observer = Mock(spec=IDeploymentObserver)
 
-    service._deploy_single_agent = AsyncMock()
+    async def fake_deploy(agent_id: str, project_path: Path):
+        agents_dir = project_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True, exist_ok=True)
+        (agents_dir / f"{agent_id}.md").write_text(
+            f"# {agent_id}\n\nTest agent.\n", encoding="utf-8"
+        )
+
+    service._deploy_single_agent = AsyncMock(side_effect=fake_deploy)
     service._save_configuration = AsyncMock()
 
     result = await service.auto_configure(
@@ -731,7 +747,15 @@ async def test_rollback_on_deployment_failure(service, temp_project_dir):
 @pytest.mark.asyncio
 async def test_full_workflow_integration(service, temp_project_dir):
     """Test complete workflow from analysis to deployment."""
-    service._deploy_single_agent = AsyncMock()
+
+    async def fake_deploy(agent_id: str, project_path: Path):
+        agents_dir = project_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True, exist_ok=True)
+        (agents_dir / f"{agent_id}.md").write_text(
+            f"# {agent_id}\n\nTest agent.\n", encoding="utf-8"
+        )
+
+    service._deploy_single_agent = AsyncMock(side_effect=fake_deploy)
     service._save_configuration = AsyncMock()
 
     observer = ConsoleProgressObserver(use_rich=False)
@@ -757,7 +781,15 @@ async def test_full_workflow_integration(service, temp_project_dir):
 @pytest.mark.asyncio
 async def test_workflow_with_high_confidence_filter(service, temp_project_dir):
     """Test workflow with high confidence threshold."""
-    service._deploy_single_agent = AsyncMock()
+
+    async def fake_deploy(agent_id: str, project_path: Path):
+        agents_dir = project_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True, exist_ok=True)
+        (agents_dir / f"{agent_id}.md").write_text(
+            f"# {agent_id}\n\nTest agent.\n", encoding="utf-8"
+        )
+
+    service._deploy_single_agent = AsyncMock(side_effect=fake_deploy)
     service._save_configuration = AsyncMock()
 
     result = await service.auto_configure(
@@ -771,3 +803,196 @@ async def test_workflow_with_high_confidence_filter(service, temp_project_dir):
     assert len(result.recommendations) <= 2
     high_conf_agents = [r for r in result.recommendations if r.confidence_score >= 0.90]
     assert len(high_conf_agents) >= 1
+
+
+# ============================================================================
+# Test: Snapshot, Rollback and Post-Deployment Validation
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_snapshot_and_cleanup_existing_files(service, temp_project_dir):
+    """Snapshot copies existing agent files, cleanup removes the backups."""
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    existing = agents_dir / "python-engineer.md"
+    existing.write_text("# original\n", encoding="utf-8")
+
+    snapshot = service._snapshot_existing_files(
+        temp_project_dir, ["python-engineer", "missing-agent"]
+    )
+
+    # Only the existing file should be in the snapshot.
+    assert len(snapshot) == 1
+    backup = next(iter(snapshot.values()))
+    assert backup.exists()
+    assert backup.read_text(encoding="utf-8") == "# original\n"
+
+    # Cleanup removes the backup files.
+    service._cleanup_snapshot(snapshot)
+    assert not backup.exists()
+
+
+@pytest.mark.asyncio
+async def test_restore_from_snapshot_recovers_overwritten_file(
+    service, temp_project_dir
+):
+    """A snapshotted file is restored over a modified copy on rollback."""
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    target = agents_dir / "qa.md"
+    target.write_text("# original\n", encoding="utf-8")
+
+    snapshot = service._snapshot_existing_files(temp_project_dir, ["qa"])
+
+    # Simulate deployment overwriting the file.
+    target.write_text("# overwritten by deploy\n", encoding="utf-8")
+
+    ok = service._restore_from_snapshot(snapshot)
+    assert ok is True
+    assert target.read_text(encoding="utf-8") == "# original\n"
+
+
+@pytest.mark.asyncio
+async def test_post_deployment_validation_passes_for_real_files(
+    service, temp_project_dir
+):
+    """Post-deployment validation accepts non-empty markdown files."""
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    (agents_dir / "engineer.md").write_text("# engineer\n\nbody\n", encoding="utf-8")
+
+    result = await service._validate_post_deployment(temp_project_dir, ["engineer"])
+    assert result.is_valid is True
+    assert "engineer" in result.validated_agents
+    assert result.error_count == 0
+
+
+@pytest.mark.asyncio
+async def test_post_deployment_validation_fails_when_file_missing(
+    service, temp_project_dir
+):
+    """Post-deployment validation flags an error when no file was written."""
+    # Note: agents dir doesn't even exist
+    result = await service._validate_post_deployment(temp_project_dir, ["engineer"])
+    assert result.is_valid is False
+    assert result.error_count == 1
+    assert "engineer" in result.errors[0].message
+
+
+@pytest.mark.asyncio
+async def test_post_deployment_validation_fails_for_empty_file(
+    service, temp_project_dir
+):
+    """Empty deployed files are treated as deployment failures."""
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    (agents_dir / "empty.md").write_text("   \n", encoding="utf-8")
+
+    result = await service._validate_post_deployment(temp_project_dir, ["empty"])
+    assert result.is_valid is False
+
+
+@pytest.mark.asyncio
+async def test_post_deployment_validation_fails_for_invalid_yaml(
+    service, temp_project_dir
+):
+    """Malformed YAML output fails post-deployment validation."""
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    (agents_dir / "bad.yaml").write_text(
+        "key: value\n  - not: valid: yaml: indent\n", encoding="utf-8"
+    )
+
+    result = await service._validate_post_deployment(temp_project_dir, ["bad"])
+    assert result.is_valid is False
+
+
+@pytest.mark.asyncio
+async def test_auto_configure_rolls_back_when_post_validation_fails(
+    service, temp_project_dir
+):
+    """If files don't get written, post-validation triggers rollback."""
+
+    # Pre-existing file we want restored after the failed deployment.
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    pre_existing = agents_dir / "python-engineer.md"
+    pre_existing.write_text("# pre-existing user content\n", encoding="utf-8")
+
+    # Mock deployment to claim success but write nothing -> post-validation fails.
+    service._deploy_single_agent = AsyncMock()
+    service._save_configuration = AsyncMock()
+
+    result = await service.auto_configure(
+        project_path=temp_project_dir,
+        confirmation_required=False,
+        dry_run=False,
+    )
+
+    assert result.status == ConfigurationStatus.FAILED
+    assert result.metadata.get("phase") == "post_deployment_validation"
+    # Save was NOT called because the workflow rolled back before step 8.
+    service._save_configuration.assert_not_called()
+    # Pre-existing user content was preserved by snapshot+restore.
+    assert pre_existing.exists()
+    assert pre_existing.read_text(encoding="utf-8") == "# pre-existing user content\n"
+
+
+@pytest.mark.asyncio
+async def test_rollback_restores_snapshot_after_partial_failure(
+    service, temp_project_dir
+):
+    """Partial deployment failure restores any snapshotted files."""
+
+    agents_dir = temp_project_dir / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    pre_existing = agents_dir / "python-engineer.md"
+    pre_existing.write_text("# original user version\n", encoding="utf-8")
+
+    async def mock_deploy(agent_id: str, project_path: Path):
+        a_dir = project_path / ".claude" / "agents"
+        a_dir.mkdir(parents=True, exist_ok=True)
+        if agent_id == "vercel-ops":
+            raise Exception("simulated failure")
+        # Overwrite the user's file
+        (a_dir / f"{agent_id}.md").write_text("# overwritten\n", encoding="utf-8")
+
+    service._deploy_single_agent = AsyncMock(side_effect=mock_deploy)
+    service._save_configuration = AsyncMock()
+
+    result = await service.auto_configure(
+        project_path=temp_project_dir,
+        confirmation_required=False,
+        dry_run=False,
+    )
+
+    # WARNING: at least one agent deployed, but the one that succeeded should
+    # have been rolled back to the user's original content.
+    assert result.status == ConfigurationStatus.WARNING
+    assert pre_existing.exists()
+    assert pre_existing.read_text(encoding="utf-8") == "# original user version\n"
+
+
+@pytest.mark.asyncio
+async def test_request_confirmation_non_interactive_auto_approves_valid(
+    service, temp_project_dir
+):
+    """Without a TTY we approve a valid configuration automatically."""
+
+    rec = AgentRecommendation(
+        agent_id="qa",
+        agent_name="QA",
+        confidence_score=0.9,
+        match_reasons=["test"],
+        capabilities=AgentCapabilities(
+            agent_id="qa",
+            agent_name="QA",
+            specializations=[AgentSpecialization.GENERAL],
+        ),
+    )
+    valid = ValidationResult(is_valid=True, issues=[], validated_agents=["qa"])
+
+    # sys.stdin.isatty() returns False under pytest by default.
+    confirmed = await service._request_confirmation([rec], valid)
+    assert confirmed is True
