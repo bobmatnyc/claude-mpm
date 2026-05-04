@@ -9,7 +9,6 @@ JSON shapes that the modern ``claude`` CLI returns so we don't regress.
 from __future__ import annotations
 
 import json
-import os
 from unittest.mock import patch
 
 import pytest
@@ -25,7 +24,7 @@ class _FakeCompleted:
 
 
 @pytest.fixture(autouse=True)
-def _isolate_environment(monkeypatch):
+def _isolate_environment(monkeypatch) -> None:  # type: ignore[misc]
     """Ensure no real ANTHROPIC_API_KEY / Bedrock env leaks into tests."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("CLAUDE_CODE_USE_BEDROCK", raising=False)
@@ -35,7 +34,7 @@ def _run_with_stdout(stdout: str, *, isatty: bool = True) -> list[str]:
     """Invoke _check_anthropic_auth with mocked claude output, capture prints."""
     captured: list[str] = []
 
-    def fake_print(*args, **_kwargs):
+    def fake_print(*args, **_):
         captured.append(" ".join(str(a) for a in args))
 
     with (
