@@ -326,13 +326,10 @@ class SelfUpgradeService:
             }
 
     async def check_for_update(
-        self, cache_ttl: int | None = None
+        self,
     ) -> dict[str, Any] | None:
         """
         Check if an update is available.
-
-        Args:
-            cache_ttl: Cache time-to-live in seconds (default: 24 hours)
 
         Returns:
             Dict with update info or None:
