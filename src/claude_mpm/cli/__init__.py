@@ -125,6 +125,23 @@ def main(argv: list | None = None):
             logger.info("Runtime: sdk")
         elif use_cli:
             logger.info("Runtime: cli")
+        else:
+            # Auto-detection notice: log when SDK is available but not explicitly
+            # enabled, so users know they can opt in. We deliberately do NOT
+            # auto-switch to SDK (backward compat — see bug #486 / cli/__init__.py
+            # comment block below): exec mode remains the default. This single
+            # informational log lets users discover the --sdk flag without
+            # surprising them with a runtime change.
+            try:
+                from ..services.agents.runtime_config import get_runtime_type
+
+                if get_runtime_type() == "sdk":
+                    logger.debug(
+                        "Runtime: cli (default); SDK available — opt in with --sdk"
+                    )
+            except Exception:
+                # Never let runtime detection failures block startup.
+                pass
 
     # Check for --inject-port flag to start injection endpoint
     # (outside background services block — always start if requested)
