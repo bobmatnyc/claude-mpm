@@ -1,3 +1,17 @@
+## v6.2.62 (2026-05-04)
+
+### Feat
+
+- **auto-config**: implement interactive agent/skill selection (#466)
+- **auto-config**: post-deployment validation and snapshot-based rollback (#468)
+- **migrations**: deploy spinner config to ~/.claude/settings.json globally
+- **sdk**: add auto-detection log when SDK is available but not enabled
+
+### Fix
+
+- **sdk**: surface /remote-control and /rc as unsupported in SDK mode
+- **types**: resolve pyright errors in auto_configure.py
+
 ## v6.2.61 (2026-05-04)
 
 ### Fix
