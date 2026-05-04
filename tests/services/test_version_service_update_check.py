@@ -22,10 +22,10 @@ from claude_mpm.services.version_service import VersionService
 
 
 @pytest.fixture(autouse=True)
-def _reset_update_cache():
+def _reset_update_cache() -> None:  # type: ignore[misc]
     """Clear the module-level cache between tests so they stay isolated."""
     version_service_module._UPDATE_CHECK_CACHE.clear()
-    yield
+    yield  # type: ignore[misc]
     version_service_module._UPDATE_CHECK_CACHE.clear()
 
 
@@ -42,9 +42,8 @@ def _fake_pypi_response(version: str) -> io.BytesIO:
         def __enter__(self):
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, _exc_type: object, _exc: object, _tb: object) -> None:
             self.close()
-            return False
 
     return _Resp(json.dumps(payload).encode("utf-8"))
 
@@ -175,7 +174,7 @@ def test_cache_expires_after_ttl() -> None:
         patch.object(service, "get_base_version", return_value="1.0.0"),
         patch(
             "urllib.request.urlopen",
-            side_effect=lambda *a, **kw: _fake_pypi_response("2.0.0"),
+            side_effect=lambda *_a, **_kw: _fake_pypi_response("2.0.0"),
         ) as mock_urlopen,
         patch(
             "claude_mpm.services.version_service.time.monotonic",
