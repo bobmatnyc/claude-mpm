@@ -386,11 +386,12 @@ class SelfUpgradeService:
         """Check PyPI for the latest version of claude-mpm.
 
         Args:
-            cache_ttl: Unused, kept for interface compatibility.
+            _cache_ttl: Unused, kept for interface compatibility.
 
         Returns:
             Dict with update info or None.
         """
+        del _cache_ttl  # unused; accepted for interface compatibility
         try:
             import json
             import urllib.request
