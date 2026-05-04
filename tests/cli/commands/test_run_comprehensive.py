@@ -14,6 +14,7 @@ DESIGN DECISIONS:
 - Cover dependency checking logic
 """
 
+import os
 from argparse import Namespace
 from unittest.mock import Mock, patch
 
@@ -430,16 +431,25 @@ class TestClaudeRunnerSetup:
             _browser_opened_by_cli=True,
         )
 
-        runner = command._setup_claude_runner(
-            args, monitor_mode=True, websocket_port=9090
-        )
+        # Patch environment and settings lookups so the default PM model
+        # resolution path is deterministic regardless of host config.
+        # When no CLAUDE_MPM_PM_MODEL env var is set and the user has no
+        # model preference in ~/.claude/settings.json, the runner should
+        # default to "claude-sonnet-4-6".
+        with patch.dict(os.environ, {}, clear=False) as env:
+            env.pop("CLAUDE_MPM_PM_MODEL", None)
+            env.pop("CLAUDE_MPM_RUNTIME", None)
+            with patch("pathlib.Path.is_file", return_value=False):
+                runner = command._setup_claude_runner(
+                    args, monitor_mode=True, websocket_port=9090
+                )
 
         assert runner._should_open_monitor_browser is True
         assert runner._browser_opened_by_cli is True
         mock_runner_class.assert_called_once_with(
             enable_tickets=False,
             log_level=LogLevel.DEBUG.value,
-            claude_args=["--model", "sonnet"],
+            claude_args=["--model", "claude-sonnet-4-6"],
             launch_method="subprocess",
             enable_websocket=True,
             websocket_port=9090,
