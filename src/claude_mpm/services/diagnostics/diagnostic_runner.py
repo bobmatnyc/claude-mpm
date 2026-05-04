@@ -286,6 +286,13 @@ class DiagnosticRunner:
         if not self.fix:
             return False
         if not result.fix_command:
+            # No fix available - this is an unfixable issue. Surface a
+            # clear actionable message so users know what to do next.
+            self.logger.warning(
+                "⚠ Manual fix required: %s. %s",
+                result.message,
+                result.fix_description or "No automatic fix available.",
+            )
             return False
 
         fix_command = result.fix_command.strip()
@@ -297,14 +304,16 @@ class DiagnosticRunner:
         # "<source-id>" because they would either fail or do the wrong
         # thing without user input.
         if fix_command.startswith("#"):
-            self.logger.info(
-                "Fix is informational only; no action taken: %s", fix_command
+            self.logger.warning(
+                "⚠ Manual fix required: %s. Suggested step: %s",
+                result.message,
+                fix_command,
             )
             return False
         if "<" in fix_command and ">" in fix_command:
             self.logger.warning(
-                "Fix command contains a placeholder and requires user input. "
-                "Run manually: %s",
+                "⚠ Manual fix required: %s. Run manually (contains placeholder): %s",
+                result.message,
                 fix_command,
             )
             return False
@@ -332,7 +341,11 @@ class DiagnosticRunner:
             if head == "cat":
                 # `cat <file>` is purely diagnostic. Don't execute - just
                 # tell the user what to look at.
-                self.logger.info("Manual inspection required. Run: %s", fix_command)
+                self.logger.warning(
+                    "⚠ Manual fix required: %s. Inspect with: %s",
+                    result.message,
+                    fix_command,
+                )
                 return False
 
             # Package installation suggestions: don't auto-install, just
@@ -340,7 +353,8 @@ class DiagnosticRunner:
             # packages is too invasive for a doctor command.
             if head in {"pip", "pip3", "pipx"}:
                 self.logger.warning(
-                    "Dependency fix requires manual approval. Run: %s",
+                    "⚠ Manual fix required: %s. Dependency install needs approval: %s",
+                    result.message,
                     fix_command,
                 )
                 return False
@@ -352,7 +366,8 @@ class DiagnosticRunner:
                 return self._fix_claude_mpm(tokens[1:], fix_command)
 
             self.logger.warning(
-                "No automatic handler for fix command. Run manually: %s",
+                "⚠ Manual fix required: %s. No automatic handler; run manually: %s",
+                result.message,
                 fix_command,
             )
             return False
@@ -381,7 +396,7 @@ class DiagnosticRunner:
             path = Path(raw_path).expanduser()
             try:
                 path.mkdir(parents=True, exist_ok=True)
-                self.logger.info("Created directory: %s", path)
+                self.logger.info("✓ Fixed: created directory %s", path)
             except OSError as exc:
                 self.logger.error("Failed to create %s: %s", path, exc)
                 success = False
@@ -432,7 +447,7 @@ class DiagnosticRunner:
                     for entry in path.rglob("*"):
                         os.chmod(entry, mode)
                 os.chmod(path, mode)
-                self.logger.info("Set mode %s on %s", oct(mode), path)
+                self.logger.info("✓ Fixed: set mode %s on %s", oct(mode), path)
             except OSError as exc:
                 self.logger.error("chmod failed on %s: %s", path, exc)
                 success = False
@@ -461,7 +476,7 @@ class DiagnosticRunner:
                 completed.stderr.strip() or completed.stdout.strip(),
             )
             return False
-        self.logger.info("Applied: %s", fix_command)
+        self.logger.info("✓ Fixed: applied %s", fix_command)
         return True
 
     def _fix_rm(self, tokens: list[str], fix_command: str) -> bool:
@@ -523,7 +538,7 @@ class DiagnosticRunner:
                     shutil.rmtree(path)
                 else:
                     path.unlink()
-                self.logger.info("Removed: %s", path)
+                self.logger.info("✓ Fixed: removed %s", path)
             except OSError as exc:
                 self.logger.error("Failed to remove %s: %s", path, exc)
                 success = False
@@ -556,7 +571,7 @@ class DiagnosticRunner:
         if completed.returncode == 0:
             if stdout:
                 self.logger.info("%s", stdout)
-            self.logger.info("Fix succeeded: %s", fix_command)
+            self.logger.info("✓ Fixed: %s", fix_command)
             return True
 
         self.logger.error(
