@@ -848,6 +848,26 @@ class InteractiveSession:
             except Exception:
                 self.logger.debug("Monitor agent failed to start", exc_info=True)
 
+            # Bridge SDK events to the monitoring dashboard (best-effort).
+            # Connects SDKEventBridge -> AsyncEventEmitter -> SocketIO, so the
+            # dashboard receives text/tool_use/result events as the PM streams.
+            # Failures (no monitor running, import errors) are no-ops.
+            sdk_bridge: Any = None
+            try:
+                from claude_mpm.services.agents.sdk_event_bridge import (
+                    SDKEventBridge,
+                    attach_bridge_to_emitter,
+                )
+
+                sdk_bridge = SDKEventBridge(agent_id="PM")
+                attach_bridge_to_emitter(sdk_bridge)
+            except Exception:
+                self.logger.debug(
+                    "SDK event bridge setup failed; dashboard streaming disabled",
+                    exc_info=True,
+                )
+                sdk_bridge = None
+
             from claude_mpm.core.sdk_command_router import SDKCommandRouter
 
             async with ClaudeSDKClient(options=options) as client:
@@ -897,6 +917,14 @@ class InteractiveSession:
                                             block.text,
                                             usage=getattr(message, "usage", None),
                                         )
+                                        if sdk_bridge is not None:
+                                            try:
+                                                await sdk_bridge.handle_text(block.text)
+                                            except Exception:
+                                                self.logger.debug(
+                                                    "SDK bridge handle_text failed",
+                                                    exc_info=True,
+                                                )
                                     elif isinstance(block, ToolUseBlock):
                                         if block.name == "Task":
                                             # Agent delegation — extract the sub-agent name
@@ -915,6 +943,21 @@ class InteractiveSession:
                                         else:
                                             print(f"  [{current_agent}:{block.name}]")
                                         tracker.record_tool_call(block.name)
+                                        if sdk_bridge is not None:
+                                            try:
+                                                tool_input = (
+                                                    block.input
+                                                    if isinstance(block.input, dict)
+                                                    else {}
+                                                )
+                                                await sdk_bridge.handle_tool_call(
+                                                    block.name, tool_input
+                                                )
+                                            except Exception:
+                                                self.logger.debug(
+                                                    "SDK bridge handle_tool_call failed",
+                                                    exc_info=True,
+                                                )
                             elif isinstance(message, ResultMessage):
                                 if message.session_id:
                                     self._sdk_session_id = message.session_id
