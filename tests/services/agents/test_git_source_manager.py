@@ -302,22 +302,121 @@ class TestGitSourceManagerListCachedAgents:
             # Should only include agents from repo1
             # (Implementation detail depends on discovery service)
 
+    @patch(
+        "src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService"
+    )
+    def test_list_cached_agents_four_level_traversal(self, mock_discovery_class):
+        """Test that fallback walk descends into branch dirs (fix #449).
+
+        The on-disk cache layout is 4 levels deep:
+            cache_root/owner/repo/branch/agents/agent.md
+
+        RemoteAgentDiscoveryService expects the *branch* directory (depth 3) as its
+        root so it can find branch_dir/agents/. Passing only depth-2 (owner/repo)
+        caused it to find 0 agents before this fix.
+        """
+        mock_discovery = Mock()
+        mock_discovery.discover_remote_agents.return_value = [
+            {
+                "agent_id": "engineer",
+                "metadata": {"name": "Engineer", "version": "2.5.0"},
+                "source_file": "/cache/agents/engineer.md",
+                "path": "/cache/agents/engineer.md",
+                "file_path": "/cache/agents/engineer.md",
+            }
+        ]
+        mock_discovery_class.return_value = mock_discovery
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir)
+
+            # Build a 4-level cache structure: owner/repo/branch/agents/agent.md
+            agents_dir = cache_root / "owner" / "repo" / "main" / "agents"
+            agents_dir.mkdir(parents=True, exist_ok=True)
+            (agents_dir / "engineer.md").write_text(
+                "# Engineer Agent\n\nEngineering specialist"
+            )
+
+            manager = GitSourceManager(cache_root)
+            agents = manager.list_cached_agents()
+
+            # RemoteAgentDiscoveryService must have been called with the *branch* dir
+            # (cache_root/owner/repo/main), not the repo dir (cache_root/owner/repo).
+            assert mock_discovery_class.called, (
+                "RemoteAgentDiscoveryService was never instantiated"
+            )
+            call_args = mock_discovery_class.call_args
+            passed_dir = call_args[0][0]  # first positional argument
+            assert passed_dir.name == "main", (
+                f"Expected RemoteAgentDiscoveryService to receive 'main' branch dir, "
+                f"got '{passed_dir.name}' ({passed_dir})"
+            )
+            assert agents, "Expected at least one agent from 4-level cache structure"
+
+    @patch(
+        "src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService"
+    )
+    def test_list_cached_agents_legacy_flat_cache_fallback(self, mock_discovery_class):
+        """Test that a repo dir with no branch subdirs still works (legacy flat layout).
+
+        If owner/repo/ contains .md files directly (no branch subdirectory), the
+        fallback should pass repo_dir itself to RemoteAgentDiscoveryService so
+        existing flat-cache setups keep working.
+        """
+        mock_discovery = Mock()
+        mock_discovery.discover_remote_agents.return_value = [
+            {
+                "agent_id": "qa",
+                "metadata": {"name": "QA", "version": "1.0.0"},
+                "source_file": "/cache/qa.md",
+                "path": "/cache/qa.md",
+                "file_path": "/cache/qa.md",
+            }
+        ]
+        mock_discovery_class.return_value = mock_discovery
+
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = Path(tmpdir)
+
+            # Build a flat 2-level cache: owner/repo/agent.md (no branch dir)
+            repo_dir = cache_root / "owner" / "repo"
+            repo_dir.mkdir(parents=True, exist_ok=True)
+            (repo_dir / "qa.md").write_text("# QA Agent\n\nQA specialist")
+
+            manager = GitSourceManager(cache_root)
+            agents = manager.list_cached_agents()
+
+            # Service should still be called for the repo (flat fallback path)
+            assert mock_discovery_class.called, (
+                "RemoteAgentDiscoveryService was never instantiated"
+            )
+            assert agents, "Expected at least one agent from flat legacy cache"
+
 
 class TestGitSourceManagerGetAgentPath:
     """Test getting agent file path."""
 
     def test_get_agent_path_simple(self):
-        """Test getting agent path without repository filter."""
+        """Test getting agent path without repository filter.
+
+        Fix #449: Cache layout is 4 levels deep: owner/repo/branch/agents/agent.md.
+        The test creates the correct structure so get_agent_path() can traverse it.
+        """
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_root = Path(tmpdir)
-            repo_cache = cache_root / "owner" / "repo" / "agents"
+            # Correct 4-level structure: owner/repo/branch/agents/
+            repo_cache = cache_root / "owner" / "repo" / "main" / "agents"
             repo_cache.mkdir(parents=True, exist_ok=True)
 
             # Create agent file
             agent_file = repo_cache / "engineer.md"
-            agent_file.write_text("# Engineer")
+            agent_file.write_text("# Engineer Agent\n\nEngineering specialist")
 
             manager = GitSourceManager(cache_root)
             path = manager.get_agent_path("engineer")
