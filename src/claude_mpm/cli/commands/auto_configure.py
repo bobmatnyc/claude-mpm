@@ -17,16 +17,13 @@ Unified Auto-Configure: 1M-502 Phase 2
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
-try:
-    from rich.console import Console
-    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
-    from rich.table import Table
+from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
-    RICH_AVAILABLE = True
-except ImportError:
-    RICH_AVAILABLE = False
+RICH_AVAILABLE = True
 
 from ...core.enums import OperationResult
 from ...services.agents.auto_config_manager import AutoConfigManagerService
@@ -177,6 +174,11 @@ class AutoConfigureCommand(BaseCommand):
     def auto_config_manager(self) -> AutoConfigManagerService:
         """Get auto-configuration manager (lazy loaded)."""
         if self._auto_config_manager is None:
+            from typing import TYPE_CHECKING, cast
+
+            if TYPE_CHECKING:
+                from ...services.core.interfaces.agent import IAgentRegistry
+
             from ...services.agents.auto_config_manager import AutoConfigManagerService
             from ...services.agents.recommender import AgentRecommenderService
             from ...services.agents.registry import AgentRegistry
@@ -184,7 +186,7 @@ class AutoConfigureCommand(BaseCommand):
 
             # Initialize services with dependency injection
             toolchain_analyzer = ToolchainAnalyzerService()
-            agent_registry = AgentRegistry()
+            agent_registry = cast("IAgentRegistry", AgentRegistry())
             agent_recommender = AgentRecommenderService()
 
             # Get deployment service
@@ -664,11 +666,11 @@ class AutoConfigureCommand(BaseCommand):
 
     def _confirm_deployment(
         self,
-        agent_preview,
-        skills_recommendations=None,
-        configure_agents=True,
-        configure_skills=True,
-        agent_review_results=None,
+        agent_preview: Any,
+        skills_recommendations: list[str] | None = None,
+        configure_agents: bool = True,
+        configure_skills: bool = True,
+        agent_review_results: Any = None,
     ) -> bool:
         """Ask user to confirm deployment.
 
@@ -690,7 +692,7 @@ class AutoConfigureCommand(BaseCommand):
         items = []
         if has_agents:
             items.append(f"{len(agent_preview.recommendations)} agent(s)")
-        if has_skills:
+        if has_skills and skills_recommendations is not None:
             items.append(f"{len(skills_recommendations)} skill(s)")
 
         message = f"Deploy {' and '.join(items)}?"
@@ -962,7 +964,7 @@ class AutoConfigureCommand(BaseCommand):
 
     def _display_result(
         self,
-        agent_result: Optional = None,
+        agent_result: Any | None = None,
         skills_result: dict | None = None,
         archive_result: dict | None = None,
     ) -> CommandResult:
@@ -1049,7 +1051,7 @@ class AutoConfigureCommand(BaseCommand):
 
     def _display_result_plain(
         self,
-        agent_result: Optional = None,
+        agent_result: Any | None = None,
         skills_result: dict | None = None,
         archive_result: dict | None = None,
     ) -> CommandResult:
@@ -1189,7 +1191,7 @@ class AutoConfigureCommand(BaseCommand):
 
     def _output_result_json(
         self,
-        agent_result: Optional = None,
+        agent_result: Any | None = None,
         skills_result: dict | None = None,
         archive_result: dict | None = None,
     ) -> CommandResult:
