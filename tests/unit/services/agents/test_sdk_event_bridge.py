@@ -5,8 +5,9 @@ Tests event registration, emission, handler methods, and error resilience.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -14,6 +15,7 @@ from claude_mpm.services.agents.agent_runtime import AgentResult
 from claude_mpm.services.agents.sdk_event_bridge import (
     AgentEvent,
     SDKEventBridge,
+    attach_bridge_to_emitter,
 )
 
 # ---------------------------------------------------------------------------
@@ -275,3 +277,95 @@ class TestAgentId:
         bridge = SDKEventBridge(agent_id="custom-42")
         await bridge.handle_text("hello")
         assert bridge.events[0].agent_id == "custom-42"
+
+
+# ---------------------------------------------------------------------------
+# attach_bridge_to_emitter — wiring to the dashboard
+# ---------------------------------------------------------------------------
+
+
+class TestAttachBridgeToEmitter:
+    """Verify the bridge -> AsyncEventEmitter -> dashboard wiring.
+
+    These tests prove that registering the forwarding listener actually
+    causes events fired on the bridge to be delivered to the emitter
+    (which in turn emits to SocketIO). The emitter is mocked.
+    """
+
+    @pytest.mark.asyncio
+    async def test_listener_forwards_events_to_emitter(self) -> None:
+        """A bridge attached via attach_bridge_to_emitter forwards events."""
+        fake_emitter = MagicMock()
+        fake_emitter.emit_event = AsyncMock(return_value=True)
+
+        async def _fake_get_emitter() -> Any:
+            return fake_emitter
+
+        with patch(
+            "claude_mpm.services.monitor.event_emitter.get_event_emitter",
+            new=_fake_get_emitter,
+        ):
+            bridge = SDKEventBridge(agent_id="pm-1")
+            attached = attach_bridge_to_emitter(bridge)
+            assert attached is True
+
+            # Fire an event on the bridge and let the scheduled task run.
+            await bridge.handle_text("hello dashboard")
+            # Yield control so the create_task in _forward gets to run.
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+
+        # Emitter should have received the forwarded event.
+        assert fake_emitter.emit_event.await_count >= 1
+        call = fake_emitter.emit_event.await_args
+        assert call.kwargs["event"] == "text"
+        assert call.kwargs["data"]["agent_id"] == "pm-1"
+        assert call.kwargs["data"]["text"] == "hello dashboard"
+        assert call.kwargs["data"]["event_type"] == "text"
+
+    @pytest.mark.asyncio
+    async def test_emitter_unavailable_is_graceful_noop(self) -> None:
+        """If the emitter import fails, attach returns False and bridge still works."""
+        # Force the import inside attach_bridge_to_emitter to fail.
+        import builtins
+
+        real_import = builtins.__import__
+
+        def _failing_import(name: str, globals=None, locals=None, fromlist=(), level=0):
+            if name == "claude_mpm.services.monitor.event_emitter":
+                raise ImportError("simulated missing monitor")
+            return real_import(name, globals, locals, fromlist, level)
+
+        with patch("builtins.__import__", side_effect=_failing_import):
+            bridge = SDKEventBridge(agent_id="pm-1")
+            attached = attach_bridge_to_emitter(bridge)
+
+        assert attached is False
+        # Bridge must still operate normally without the dashboard.
+        await bridge.handle_text("offline")
+        assert len(bridge.events) == 1
+        assert bridge.events[0].data["text"] == "offline"
+
+    @pytest.mark.asyncio
+    async def test_emit_failure_does_not_break_bridge(self) -> None:
+        """If the emitter raises, the bridge listener still records the event."""
+        fake_emitter = MagicMock()
+        fake_emitter.emit_event = AsyncMock(side_effect=RuntimeError("boom"))
+
+        async def _fake_get_emitter() -> Any:
+            return fake_emitter
+
+        with patch(
+            "claude_mpm.services.monitor.event_emitter.get_event_emitter",
+            new=_fake_get_emitter,
+        ):
+            bridge = SDKEventBridge(agent_id="pm-1")
+            attach_bridge_to_emitter(bridge)
+
+            await bridge.handle_text("still works")
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+
+        # Bridge recorded its own event regardless of emitter failure.
+        assert len(bridge.events) == 1
+        assert bridge.events[0].event_type == "text"
