@@ -659,14 +659,39 @@ def _check_anthropic_auth(env_changes: dict | None = None) -> None:
             timeout=5,
         )
         if result.returncode == 0:
-            # Try JSON output first (modern `claude auth status`)
+            # Try JSON output first (modern `claude auth status`).
+            #
+            # The JSON shape varies by auth method:
+            #   * claude.ai consumer: {"loggedIn": true, "authMethod": "claude.ai", ...}
+            #   * Enterprise/firstParty: {"loggedIn": true, "authMethod": "firstParty",
+            #                             "apiProvider": "firstParty", ...}
+            #   * API key: {"loggedIn": true, "authMethod": "apiKey", ...}
+            #
+            # We treat the user as authenticated whenever ``loggedIn`` is
+            # truthy, regardless of ``authMethod`` / ``apiProvider``. This
+            # mirrors how ``claude auth status`` itself reports success and
+            # avoids false "Not Authenticated" warnings for enterprise and
+            # firstParty users (where the previous strict ``is True`` check
+            # could miss truthy variants like ``"true"`` strings).
             try:
                 import json as _json
 
                 auth_data = _json.loads(result.stdout)
-                if auth_data.get("loggedIn") is True:
-                    return
-            except (ValueError, KeyError, TypeError):
+                if isinstance(auth_data, dict):
+                    logged_in = auth_data.get("loggedIn")
+                    if logged_in is True or (
+                        isinstance(logged_in, str)
+                        and logged_in.strip().lower() == "true"
+                    ):
+                        return
+                    # Some enterprise variants omit ``loggedIn`` but include
+                    # an ``authMethod`` / ``apiProvider`` value indicating
+                    # an active session. Accept that as authenticated too.
+                    if logged_in is None and (
+                        auth_data.get("authMethod") or auth_data.get("apiProvider")
+                    ):
+                        return
+            except (ValueError, TypeError):
                 # Fall back to plain-text check (older CLI versions)
                 if "logged in" in result.stdout.lower():
                     return
