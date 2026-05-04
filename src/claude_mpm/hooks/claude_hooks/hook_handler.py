@@ -539,6 +539,10 @@ class ClaudeHookHandler:
             # Agent Teams events (experimental in Claude Code v2.1.47+)
             "TeammateIdle": self.event_handlers.handle_teammate_idle_fast,
             "TaskCompleted": self.event_handlers.handle_task_completed_fast,
+            # Permission policy events (claude-mpm v6.3.2+, issue #421).
+            # The wire-format decision is emitted by model_tier_hook.py; this
+            # handler exists to surface decisions on the dashboard for audit.
+            "PermissionRequest": self.event_handlers.handle_permission_request_fast,
         }
 
         # Call appropriate handler if exists
