@@ -380,7 +380,8 @@ class SelfUpgradeService:
         return None
 
     async def _check_pypi_for_update(
-        self, _cache_ttl: int | None = None
+        self,
+        _cache_ttl: int | None = None,
     ) -> dict[str, Any] | None:
         """Check PyPI for the latest version of claude-mpm.
 
