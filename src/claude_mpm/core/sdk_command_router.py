@@ -48,6 +48,8 @@ class SDKCommandRouter:
             "/vim": "Vim mode is a REPL-only feature",
             "/theme": "Themes are a REPL-only feature",
             "/terminal-setup": "Terminal setup is a REPL-only feature",
+            "/remote-control": "Remote Control is a REPL-only feature — restart without --sdk to use it",
+            "/rc": "Remote Control (/remote-control) is a REPL-only feature — restart without --sdk to use it",
         }
 
     def route(self, user_input: str) -> CommandResult:
