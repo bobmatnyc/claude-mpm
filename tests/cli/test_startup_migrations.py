@@ -2,6 +2,7 @@
 Tests for startup migrations module.
 """
 
+import json
 import shutil
 import tempfile
 from pathlib import Path
@@ -349,3 +350,236 @@ class TestAgentNamingMigration:
 
         assert result is True
         assert not (agents_dir / "web-ui.md").exists()
+
+
+class TestDeploySpinnerGlobalMigration:
+    """Tests for the v6.3.2-deploy-spinner-global migration (issue #465).
+
+    Ensures spinner verbs/tips are deployed to ~/.claude/settings.json so
+    they apply globally, not just inside MPM projects.
+    """
+
+    @pytest.fixture
+    def fake_template_dir(self, tmp_path):
+        """Create a fake bundled template directory with a settings.json."""
+        templates = tmp_path / "templates_pkg"
+        templates.mkdir()
+        (templates / "settings.json").write_text(
+            "{\n"
+            '  "_mpm_managed": true,\n'
+            '  "_mpm_version": "6.3.3",\n'
+            '  "spinnerVerbs": {\n'
+            '    "mode": "replace",\n'
+            '    "verbs": ["Orchestrating agents", "Thinking"]\n'
+            "  },\n"
+            '  "spinnerTipsEnabled": true,\n'
+            '  "spinnerTipsOverride": {\n'
+            '    "tips": ["Tip 1", "Tip 2"],\n'
+            '    "excludeDefault": true\n'
+            "  },\n"
+            '  "statusLine": {"type": "command", "command": "x"}\n'
+            "}\n"
+        )
+        return templates
+
+    @pytest.fixture
+    def patched_env(self, tmp_path, fake_template_dir):
+        """Patch Path.home() and the bundled template lookup."""
+        home = tmp_path / "home"
+        home.mkdir()
+        with patch.object(Path, "home", return_value=home):
+            with patch(
+                "claude_mpm.cli.startup_migrations._get_claude_assets_templates_dir",
+                return_value=fake_template_dir,
+            ):
+                yield home
+
+    def test_check_returns_true_when_user_settings_missing(self, patched_env):
+        """If ~/.claude/settings.json doesn't exist, migration is needed."""
+        from claude_mpm.cli.startup_migrations import _check_spinner_global_needed
+
+        assert _check_spinner_global_needed() is True
+
+    def test_check_returns_true_when_spinner_keys_missing(self, patched_env):
+        """If user settings exists but lacks spinner keys, migration is needed."""
+        from claude_mpm.cli.startup_migrations import _check_spinner_global_needed
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        user_settings.write_text('{"theme": "dark"}\n')
+
+        assert _check_spinner_global_needed() is True
+
+    def test_check_returns_false_when_already_deployed(self, patched_env):
+        """If spinner keys present and version current, migration is NOT needed."""
+        from claude_mpm.cli.startup_migrations import _check_spinner_global_needed
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        user_settings.write_text(
+            "{\n"
+            '  "spinnerVerbs": {"mode": "replace", "verbs": ["x"]},\n'
+            '  "spinnerTipsEnabled": true,\n'
+            '  "spinnerTipsOverride": {"tips": ["y"], "excludeDefault": true},\n'
+            '  "_mpm_spinner_version": "6.3.3"\n'
+            "}\n"
+        )
+
+        assert _check_spinner_global_needed() is False
+
+    def test_check_returns_true_when_version_outdated(self, patched_env):
+        """Older _mpm_spinner_version triggers redeploy."""
+        from claude_mpm.cli.startup_migrations import _check_spinner_global_needed
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        user_settings.write_text(
+            "{\n"
+            '  "spinnerVerbs": {"mode": "replace", "verbs": ["old"]},\n'
+            '  "spinnerTipsEnabled": false,\n'
+            '  "spinnerTipsOverride": {"tips": [], "excludeDefault": false},\n'
+            '  "_mpm_spinner_version": "6.3.0"\n'
+            "}\n"
+        )
+
+        assert _check_spinner_global_needed() is True
+
+    def test_deploy_creates_settings_when_missing(self, patched_env):
+        """Migration creates ~/.claude/settings.json when it doesn't exist."""
+        from claude_mpm.cli.startup_migrations import _deploy_spinner_global
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        assert not user_settings.exists()
+
+        result = _deploy_spinner_global()
+
+        assert result is True
+        assert user_settings.exists()
+        data = json.loads(user_settings.read_text())
+        assert "spinnerVerbs" in data
+        assert "spinnerTipsEnabled" in data
+        assert "spinnerTipsOverride" in data
+        assert data["_mpm_spinner_version"] == "6.3.3"
+
+    def test_deploy_preserves_other_user_settings(self, patched_env):
+        """Migration must NOT remove or overwrite unrelated user keys."""
+        from claude_mpm.cli.startup_migrations import _deploy_spinner_global
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        user_settings.write_text(
+            "{\n"
+            '  "theme": "dark",\n'
+            '  "model": "claude-opus-4-7",\n'
+            '  "permissions": {"allow": ["Read"]}\n'
+            "}\n"
+        )
+
+        result = _deploy_spinner_global()
+
+        assert result is True
+        data = json.loads(user_settings.read_text())
+        # Unrelated keys preserved
+        assert data["theme"] == "dark"
+        assert data["model"] == "claude-opus-4-7"
+        assert data["permissions"] == {"allow": ["Read"]}
+        # Spinner keys added
+        assert "spinnerVerbs" in data
+        assert data["spinnerTipsEnabled"] is True
+        # Version stamp written
+        assert data["_mpm_spinner_version"] == "6.3.3"
+
+    def test_deploy_does_not_overwrite_user_spinner_customisation(self, patched_env):
+        """When spinner keys exist and version is current, nothing changes."""
+        from claude_mpm.cli.startup_migrations import _deploy_spinner_global
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        custom_payload = {
+            "spinnerVerbs": {"mode": "append", "verbs": ["Custom Verb"]},
+            "spinnerTipsEnabled": False,
+            "spinnerTipsOverride": {"tips": ["My tip"], "excludeDefault": False},
+            "_mpm_spinner_version": "6.3.3",
+            "theme": "light",
+        }
+        user_settings.write_text(json.dumps(custom_payload, indent=2) + "\n")
+
+        result = _deploy_spinner_global()
+
+        assert result is True
+        data = json.loads(user_settings.read_text())
+        # User customisations preserved at the up-to-date version
+        assert data["spinnerVerbs"]["mode"] == "append"
+        assert data["spinnerVerbs"]["verbs"] == ["Custom Verb"]
+        assert data["spinnerTipsEnabled"] is False
+        assert data["theme"] == "light"
+
+    def test_deploy_updates_when_template_version_newer(self, patched_env):
+        """Older _mpm_spinner_version causes spinner keys to be refreshed."""
+        from claude_mpm.cli.startup_migrations import _deploy_spinner_global
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        user_settings.write_text(
+            json.dumps(
+                {
+                    "spinnerVerbs": {"mode": "replace", "verbs": ["Old"]},
+                    "spinnerTipsEnabled": True,
+                    "spinnerTipsOverride": {
+                        "tips": ["Old tip"],
+                        "excludeDefault": True,
+                    },
+                    "_mpm_spinner_version": "6.3.0",
+                    "user_key": "kept",
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+
+        result = _deploy_spinner_global()
+
+        assert result is True
+        data = json.loads(user_settings.read_text())
+        # Spinner verbs refreshed from template
+        assert data["spinnerVerbs"]["verbs"] == ["Orchestrating agents", "Thinking"]
+        # Version bumped
+        assert data["_mpm_spinner_version"] == "6.3.3"
+        # Unrelated user key preserved
+        assert data["user_key"] == "kept"
+
+    def test_deploy_idempotent_on_second_run(self, patched_env):
+        """Running the migration twice produces the same file content."""
+        from claude_mpm.cli.startup_migrations import _deploy_spinner_global
+
+        result1 = _deploy_spinner_global()
+        assert result1 is True
+        first_content = (patched_env / ".claude" / "settings.json").read_text()
+
+        result2 = _deploy_spinner_global()
+        assert result2 is True
+        second_content = (patched_env / ".claude" / "settings.json").read_text()
+
+        assert first_content == second_content
+
+    def test_deploy_refuses_to_overwrite_malformed_json(self, patched_env):
+        """Malformed user settings.json is left alone (no data loss)."""
+        from claude_mpm.cli.startup_migrations import _deploy_spinner_global
+
+        user_settings = patched_env / ".claude" / "settings.json"
+        user_settings.parent.mkdir(parents=True)
+        malformed = "{ this is not valid json }"
+        user_settings.write_text(malformed)
+
+        result = _deploy_spinner_global()
+
+        assert result is False
+        # File preserved verbatim
+        assert user_settings.read_text() == malformed
+
+    def test_migration_registered_in_registry(self):
+        """The new migration must be registered in MIGRATIONS list."""
+        from claude_mpm.cli.startup_migrations import MIGRATIONS
+
+        ids = [m.id for m in MIGRATIONS]
+        assert "v6.3.2-deploy-spinner-global" in ids
