@@ -24,7 +24,7 @@ class _FakeCompleted:
 
 
 @pytest.fixture(autouse=True)
-def _isolate_environment(monkeypatch) -> None:  # type: ignore[misc]
+def _isolate_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure no real ANTHROPIC_API_KEY / Bedrock env leaks into tests."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("CLAUDE_CODE_USE_BEDROCK", raising=False)
