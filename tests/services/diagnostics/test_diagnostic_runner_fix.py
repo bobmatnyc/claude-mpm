@@ -30,13 +30,13 @@ class _LogCapture:
         self.error: list[str] = []
 
     def install(self, runner: DiagnosticRunner) -> None:
-        def _info(msg, *args, **_kwargs):
+        def _info(msg, *args, **_):
             self.info.append(msg % args if args else str(msg))
 
-        def _warning(msg, *args, **_kwargs):
+        def _warning(msg, *args, **_):
             self.warning.append(msg % args if args else str(msg))
 
-        def _error(msg, *args, **_kwargs):
+        def _error(msg, *args, **_):
             self.error.append(msg % args if args else str(msg))
 
         runner.logger.info = _info  # type: ignore[assignment]
