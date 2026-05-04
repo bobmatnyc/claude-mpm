@@ -197,7 +197,7 @@ def test_get_supported_capabilities(ollama_provider):
 
 @pytest.mark.asyncio
 async def test_analyze_content_success(ollama_provider, mock_session):
-    """Test successful content analysis."""
+    """Test successful content analysis (non-streaming for legacy coverage)."""
     ollama_provider._initialized = True
     ollama_provider._session = mock_session
     ollama_provider._available_models = ["llama3.3:70b"]
@@ -222,6 +222,7 @@ async def test_analyze_content_success(ollama_provider, mock_session):
     response = await ollama_provider.analyze_content(
         content="Test content for SEO analysis",
         task=ModelCapability.SEO_ANALYSIS,
+        stream=False,  # Use legacy single-JSON path for this test
     )
 
     assert response.success is True
@@ -348,3 +349,219 @@ def test_get_metrics(ollama_provider):
     assert metrics["error_count"] == 2
     assert metrics["error_rate"] == 0.2
     assert metrics["avg_latency_seconds"] == 1.55
+
+
+# Streaming Tests
+
+
+class _FakeStreamContent:
+    """Async iterable yielding raw NDJSON lines like aiohttp's response.content."""
+
+    def __init__(self, lines: list[bytes]):
+        self._lines = lines
+
+    def __aiter__(self):
+        self._iter = iter(self._lines)
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._iter)
+        except StopIteration as exc:  # noqa: PERF203
+            raise StopAsyncIteration from exc
+
+
+def _make_ndjson_response(chunks: list[dict]) -> MagicMock:
+    """Build a mock aiohttp response that streams NDJSON chunks."""
+    import json as _json
+
+    response = MagicMock()
+    response.status = 200
+    response.content = _FakeStreamContent(
+        [(_json.dumps(c) + "\n").encode("utf-8") for c in chunks]
+    )
+    return response
+
+
+@pytest.mark.asyncio
+async def test_analyze_content_streaming_accumulates_tokens(
+    ollama_provider, mock_session
+):
+    """Streaming path must accumulate NDJSON tokens into final ModelResponse."""
+    ollama_provider._initialized = True
+    ollama_provider._session = mock_session
+    ollama_provider._available_models = ["llama3.3:70b"]
+
+    chunks = [
+        {"response": "Hello", "done": False},
+        {"response": ", ", "done": False},
+        {"response": "world", "done": False},
+        {
+            "response": "!",
+            "done": True,
+            "total_duration": 2_000_000_000,
+            "load_duration": 500_000_000,
+            "prompt_eval_count": 12,
+            "eval_count": 4,
+        },
+    ]
+    mock_response = _make_ndjson_response(chunks)
+
+    mock_post_context = AsyncMock()
+    mock_post_context.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_post_context.__aexit__ = AsyncMock(return_value=None)
+    mock_session.post = MagicMock(return_value=mock_post_context)
+
+    response = await ollama_provider.analyze_content(
+        content="Test content for streaming",
+        task=ModelCapability.SEO_ANALYSIS,
+    )
+
+    assert response.success is True
+    assert response.result == "Hello, world!"
+    assert response.metadata["streamed"] is True
+    assert response.metadata["stream_chunks"] == 4
+    assert response.metadata["eval_count"] == 4
+    assert response.metadata["total_duration"] == pytest.approx(2.0)
+
+    # Verify request was made with stream=True
+    call_kwargs = mock_session.post.call_args.kwargs
+    assert call_kwargs["json"]["stream"] is True
+
+
+@pytest.mark.asyncio
+async def test_analyze_content_streaming_invokes_callback(
+    ollama_provider, mock_session
+):
+    """stream_callback should be invoked once per token in order."""
+    ollama_provider._initialized = True
+    ollama_provider._session = mock_session
+    ollama_provider._available_models = ["llama3.3:70b"]
+
+    chunks = [
+        {"response": "foo", "done": False},
+        {"response": "bar", "done": False},
+        {"response": "baz", "done": True},
+    ]
+    mock_response = _make_ndjson_response(chunks)
+
+    mock_post_context = AsyncMock()
+    mock_post_context.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_post_context.__aexit__ = AsyncMock(return_value=None)
+    mock_session.post = MagicMock(return_value=mock_post_context)
+
+    received: list[str] = []
+
+    response = await ollama_provider.analyze_content(
+        content="Stream me",
+        task=ModelCapability.SEO_ANALYSIS,
+        stream_callback=received.append,
+    )
+
+    assert response.success is True
+    assert received == ["foo", "bar", "baz"]
+    assert response.result == "foobarbaz"
+
+
+@pytest.mark.asyncio
+async def test_analyze_content_non_streaming_backward_compat(
+    ollama_provider, mock_session
+):
+    """Passing stream=False must use the legacy single-JSON response path."""
+    ollama_provider._initialized = True
+    ollama_provider._session = mock_session
+    ollama_provider._available_models = ["llama3.3:70b"]
+
+    mock_response = MagicMock()
+    mock_response.status = 200
+    mock_response.json = AsyncMock(
+        return_value={
+            "response": "non-streamed result",
+            "total_duration": 1_000_000_000,
+            "prompt_eval_count": 8,
+            "eval_count": 3,
+        }
+    )
+
+    mock_post_context = AsyncMock()
+    mock_post_context.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_post_context.__aexit__ = AsyncMock(return_value=None)
+    mock_session.post = MagicMock(return_value=mock_post_context)
+
+    response = await ollama_provider.analyze_content(
+        content="Test content",
+        task=ModelCapability.SEO_ANALYSIS,
+        stream=False,
+    )
+
+    assert response.success is True
+    assert response.result == "non-streamed result"
+    assert response.metadata["streamed"] is False
+
+    # Verify request was made with stream=False
+    call_kwargs = mock_session.post.call_args.kwargs
+    assert call_kwargs["json"]["stream"] is False
+
+
+@pytest.mark.asyncio
+async def test_analyze_content_streaming_handles_error_chunk(
+    ollama_provider, mock_session
+):
+    """An error payload mid-stream should yield a failed ModelResponse."""
+    ollama_provider._initialized = True
+    ollama_provider._session = mock_session
+    ollama_provider._available_models = ["llama3.3:70b"]
+
+    chunks = [
+        {"response": "partial", "done": False},
+        {"error": "model exploded"},
+    ]
+    mock_response = _make_ndjson_response(chunks)
+
+    mock_post_context = AsyncMock()
+    mock_post_context.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_post_context.__aexit__ = AsyncMock(return_value=None)
+    mock_session.post = MagicMock(return_value=mock_post_context)
+
+    response = await ollama_provider.analyze_content(
+        content="Test content",
+        task=ModelCapability.SEO_ANALYSIS,
+    )
+
+    assert response.success is False
+    assert "model exploded" in response.error
+
+
+@pytest.mark.asyncio
+async def test_analyze_content_streaming_skips_invalid_json(
+    ollama_provider, mock_session
+):
+    """Malformed NDJSON lines must be skipped without aborting the stream."""
+    ollama_provider._initialized = True
+    ollama_provider._session = mock_session
+    ollama_provider._available_models = ["llama3.3:70b"]
+
+    response_obj = MagicMock()
+    response_obj.status = 200
+    response_obj.content = _FakeStreamContent(
+        [
+            b'{"response": "good", "done": false}\n',
+            b"this is not json\n",
+            b"\n",  # empty line
+            b'{"response": "end", "done": true, "eval_count": 2}\n',
+        ]
+    )
+
+    mock_post_context = AsyncMock()
+    mock_post_context.__aenter__ = AsyncMock(return_value=response_obj)
+    mock_post_context.__aexit__ = AsyncMock(return_value=None)
+    mock_session.post = MagicMock(return_value=mock_post_context)
+
+    response = await ollama_provider.analyze_content(
+        content="Test content",
+        task=ModelCapability.SEO_ANALYSIS,
+    )
+
+    assert response.success is True
+    assert response.result == "goodend"
+    assert response.metadata["stream_chunks"] == 2
