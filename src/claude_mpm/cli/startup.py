@@ -812,6 +812,14 @@ def should_skip_background_services(args, processed_argv):
     if is_headless and has_resume:
         return True
 
+    # SDK oneshot mode (--sdk --prompt): fire-and-forget execution that does not
+    # need hook/agent/skill sync, MCP gateway, or update checks. Skipping these
+    # keeps the oneshot path fast and prevents transient background-service
+    # failures from causing exit code 1 before run_sdk_oneshot() is reached.
+    # See bug #486.
+    if getattr(args, "sdk", False) and getattr(args, "prompt", None):
+        return True
+
     skip_commands = ["--version", "-v", "--help", "-h"]
 
     # Check for fast read-only commands that should skip startup
