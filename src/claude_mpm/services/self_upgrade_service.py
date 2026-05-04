@@ -25,6 +25,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from packaging import version
 
@@ -251,7 +252,7 @@ class SelfUpgradeService:
 
         return None
 
-    def check_claude_code_compatibility(self) -> dict[str, any]:
+    def check_claude_code_compatibility(self) -> dict[str, Any]:
         """
         Check Claude Code version compatibility.
 
@@ -326,7 +327,7 @@ class SelfUpgradeService:
 
     async def check_for_update(
         self, cache_ttl: int | None = None
-    ) -> dict[str, any] | None:
+    ) -> dict[str, Any] | None:
         """
         Check if an update is available.
 
@@ -379,8 +380,8 @@ class SelfUpgradeService:
         return None
 
     async def _check_pypi_for_update(
-        self, cache_ttl: int | None = None
-    ) -> dict[str, any] | None:
+        self, _cache_ttl: int | None = None
+    ) -> dict[str, Any] | None:
         """Check PyPI for the latest version of claude-mpm.
 
         Args:
@@ -456,7 +457,7 @@ class SelfUpgradeService:
             self.installation_method, "pip install --upgrade claude-mpm"
         )
 
-    def prompt_for_upgrade(self, update_info: dict[str, any]) -> bool:
+    def prompt_for_upgrade(self, update_info: dict[str, Any]) -> bool:
         """
         Prompt user to upgrade with enhanced formatting.
 
@@ -491,7 +492,7 @@ class SelfUpgradeService:
             print("\n")
             return False
 
-    def display_update_notification(self, update_info: dict[str, any]) -> None:
+    def display_update_notification(self, update_info: dict[str, Any]) -> None:
         """
         Display a non-interactive update notification.
 
@@ -509,7 +510,7 @@ class SelfUpgradeService:
         )
         print()
 
-    def perform_upgrade(self, update_info: dict[str, any]) -> tuple[bool, str]:
+    def perform_upgrade(self, update_info: dict[str, Any]) -> tuple[bool, str]:
         """
         Perform the upgrade.
 
@@ -588,7 +589,7 @@ class SelfUpgradeService:
 
     async def check_and_prompt_on_startup(
         self, auto_upgrade: bool = False, check_claude_code: bool = True
-    ) -> dict[str, any] | None:
+    ) -> dict[str, Any] | None:
         """
         Check for updates on startup and optionally prompt user.
         Also checks Claude Code version compatibility.
