@@ -614,7 +614,7 @@ class SetupCommand(BaseCommand):
         self,
         service_name: str,
         _args,
-        force: bool = False,  # pyright: ignore[reportUnusedParameter]
+        force: bool = False,
     ) -> CommandResult:
         """Open-world fallback: try `<service_name> setup` if the binary exists.
 
@@ -630,6 +630,7 @@ class SetupCommand(BaseCommand):
         Returns:
             CommandResult — error if the binary is absent or not setup-capable.
         """
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         binary = service_name  # Convention: binary name == service name.
 
         # Check if service is already configured (unless force=True).
@@ -864,8 +865,9 @@ class SetupCommand(BaseCommand):
         except OSError as e:
             console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
 
-    def _setup_slack_mpm(self, _args) -> CommandResult:  # pyright: ignore[reportUnusedParameter]
+    def _setup_slack_mpm(self, _args) -> CommandResult:
         """Set up slack-mpm — validates SLACK_BOT_TOKEN and configures .mcp.json."""
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         import shutil
         import subprocess
 
@@ -1082,8 +1084,9 @@ class SetupCommand(BaseCommand):
                 f"[yellow]Warning: Could not configure MCP server: {e}[/yellow]"
             )
 
-    def _setup_slack(self, _args) -> CommandResult:  # pyright: ignore[reportUnusedParameter]
+    def _setup_slack(self, _args) -> CommandResult:
         """Run the Slack setup script."""
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         try:
             # Find the setup script in the installed package
             import claude_mpm
@@ -1190,8 +1193,9 @@ class SetupCommand(BaseCommand):
                 f"[yellow]Warning: Could not configure MCP server: {e}[/yellow]"
             )
 
-    def _setup_confluence(self, _args) -> CommandResult:  # pyright: ignore[reportUnusedParameter]
+    def _setup_confluence(self, _args) -> CommandResult:
         """Set up Confluence integration with credential collection."""
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         try:
             console.print(
                 "\n[bold]Confluence Integration Setup[/bold]\n"
@@ -1257,8 +1261,9 @@ class SetupCommand(BaseCommand):
         except Exception as e:
             return CommandResult.error_result(f"Error during setup: {e}")
 
-    def _setup_brave_search(self, _args) -> CommandResult:  # pyright: ignore[reportUnusedParameter]
+    def _setup_brave_search(self, _args) -> CommandResult:
         """Set up Brave Search MCP server for web search."""
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         console.print("\n[bold cyan]Brave Search MCP Setup[/bold cyan]")
         console.print("This will configure Brave Search for web research.\n")
 
@@ -1317,8 +1322,9 @@ class SetupCommand(BaseCommand):
             console.print(f"[red]✗ Error setting up Brave Search: {e}[/red]")
             return CommandResult.error_result(f"Setup failed: {e}")
 
-    def _setup_tavily(self, _args) -> CommandResult:  # pyright: ignore[reportUnusedParameter]
+    def _setup_tavily(self, _args) -> CommandResult:
         """Set up Tavily MCP server for AI-optimized search."""
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         console.print("\n[bold cyan]Tavily Search MCP Setup[/bold cyan]")
         console.print("This will configure Tavily for AI-optimized research.\n")
 
@@ -1377,8 +1383,9 @@ class SetupCommand(BaseCommand):
             console.print(f"[red]✗ Error setting up Tavily: {e}[/red]")
             return CommandResult.error_result(f"Setup failed: {e}")
 
-    def _setup_firecrawl(self, _args) -> CommandResult:  # pyright: ignore[reportUnusedParameter]
+    def _setup_firecrawl(self, _args) -> CommandResult:
         """Set up Firecrawl MCP server for web scraping."""
+        _ = _args  # args passed by caller dispatch; not used in this implementation
         console.print("\n[bold cyan]Firecrawl MCP Setup[/bold cyan]")
         console.print("This will configure Firecrawl for web scraping.\n")
 
