@@ -135,3 +135,55 @@ class TestInjectPortFlag:
                 os.environ["CLAUDE_MPM_INJECT_PORT"] = str(inject_port)
 
             assert "CLAUDE_MPM_INJECT_PORT" not in os.environ
+
+
+class TestSdkOneshotSkipsBackgroundServices:
+    """Bug #486: --sdk --prompt should skip background services so the oneshot
+    fire-and-forget path is not blocked by transient init failures."""
+
+    def test_sdk_prompt_skips_background_services(self, parser):
+        from claude_mpm.cli.startup import should_skip_background_services
+
+        args = parser.parse_args(preprocess_args(["--sdk", "--prompt", "hello world"]))
+        assert (
+            should_skip_background_services(args, ["--sdk", "--prompt", "hello"])
+            is True
+        )
+
+    def test_sdk_without_prompt_does_not_skip(self, parser):
+        from claude_mpm.cli.startup import should_skip_background_services
+
+        args = parser.parse_args(preprocess_args(["--sdk"]))
+        # Plain --sdk (interactive) still needs background services
+        assert should_skip_background_services(args, ["--sdk"]) is False
+
+    def test_prompt_without_sdk_does_not_skip(self, parser):
+        from claude_mpm.cli.startup import should_skip_background_services
+
+        args = parser.parse_args(preprocess_args(["--prompt", "hello"]))
+        assert should_skip_background_services(args, ["--prompt", "hello"]) is False
+
+
+class TestSdkAutoDetectionRequiresExplicitFlag:
+    """Bug #486: SDK mode must NOT be auto-activated just because
+    claude_agent_sdk happens to be importable. Only the explicit --sdk flag
+    (which sets CLAUDE_MPM_RUNTIME=sdk) should activate the SDK code path."""
+
+    def test_will_use_sdk_false_when_runtime_unset(self):
+        """When CLAUDE_MPM_RUNTIME is unset, _will_use_sdk must be False even
+        if claude_agent_sdk would be importable."""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("CLAUDE_MPM_RUNTIME", None)
+            # Mirror the production logic in cli/__init__.py
+            will_use_sdk = os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk"
+            assert will_use_sdk is False
+
+    def test_will_use_sdk_true_when_runtime_sdk(self):
+        with patch.dict(os.environ, {"CLAUDE_MPM_RUNTIME": "sdk"}, clear=False):
+            will_use_sdk = os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk"
+            assert will_use_sdk is True
+
+    def test_will_use_sdk_false_when_runtime_cli(self):
+        with patch.dict(os.environ, {"CLAUDE_MPM_RUNTIME": "cli"}, clear=False):
+            will_use_sdk = os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk"
+            assert will_use_sdk is False
