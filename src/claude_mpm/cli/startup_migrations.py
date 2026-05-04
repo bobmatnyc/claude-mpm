@@ -929,6 +929,175 @@ def _migrate_binary_consolidation() -> bool:
 
 
 # =============================================================================
+# Migration: v6.3.2-deploy-spinner-global
+# =============================================================================
+
+# Spinner-related keys that should be deployed to ~/.claude/settings.json so
+# that MPM-themed spinner verbs and tips appear even when Claude Code is run
+# outside a claude-mpm project (or in a project where the project-level
+# deploy-claude-assets migration has not yet run).
+_SPINNER_GLOBAL_KEYS: tuple[str, ...] = (
+    "spinnerVerbs",
+    "spinnerTipsEnabled",
+    "spinnerTipsOverride",
+)
+
+# Tracking key written into ~/.claude/settings.json to record which template
+# version of the spinner config has been deployed at the user-global level.
+# Distinct from the project-level ``_mpm_version`` so it never collides with
+# the project-level deploy-claude-assets migration.
+_SPINNER_GLOBAL_VERSION_KEY = "_mpm_spinner_version"
+
+
+def _check_spinner_global_needed() -> bool:
+    """Check if spinner config needs to be deployed/updated in ~/.claude/settings.json.
+
+    Returns:
+        True if spinner keys are missing from ~/.claude/settings.json or if
+        the deployed spinner template version is older than the bundled
+        template version.
+    """
+    templates = _get_claude_assets_templates_dir()
+    settings_template = templates / "settings.json"
+    if not settings_template.exists():
+        return False
+
+    try:
+        template_data = json.loads(settings_template.read_text())
+    except Exception as exc:
+        logger.debug("Failed to read settings template for spinner check: %s", exc)
+        return False
+
+    template_version = str(template_data.get("_mpm_version", "0.0.0"))
+
+    user_settings = Path.home() / ".claude" / "settings.json"
+    if not user_settings.exists():
+        # Will be created during migration if any spinner keys exist in template
+        return any(k in template_data for k in _SPINNER_GLOBAL_KEYS)
+
+    try:
+        existing = json.loads(user_settings.read_text())
+    except Exception as exc:
+        logger.debug("Failed to read user settings.json: %s", exc)
+        # Be conservative: if we can't parse it, don't try to merge into it
+        return False
+
+    # Missing any spinner key → deploy
+    for key in _SPINNER_GLOBAL_KEYS:
+        if key in template_data and key not in existing:
+            return True
+
+    # Outdated tracking version → re-deploy
+    existing_version = str(existing.get(_SPINNER_GLOBAL_VERSION_KEY, "0.0.0"))
+    if existing_version < template_version:
+        # Only need to redeploy if the template actually defines spinner keys
+        return any(k in template_data for k in _SPINNER_GLOBAL_KEYS)
+
+    return False
+
+
+def _deploy_spinner_global() -> bool:
+    """Deploy spinner-related keys from the bundled template into ~/.claude/settings.json.
+
+    Behaviour:
+    1. Reads the bundled ``settings.json`` template.
+    2. Extracts only the keys listed in ``_SPINNER_GLOBAL_KEYS``.
+    3. Merges those keys into ``~/.claude/settings.json``:
+       - Creates the file (and parent dir) if absent.
+       - Adds spinner keys that are missing.
+       - Updates spinner keys when the template's ``_mpm_version`` is newer
+         than ``_mpm_spinner_version`` recorded in the user settings.
+       - Leaves every other key in the user file untouched.
+    4. Writes ``_mpm_spinner_version`` to track the deployed template version.
+
+    Returns:
+        True on success (including idempotent no-op runs).
+    """
+    templates = _get_claude_assets_templates_dir()
+    settings_template = templates / "settings.json"
+    if not settings_template.exists():
+        logger.warning(
+            "settings.json template not found at %s — skipping", settings_template
+        )
+        print("   Template settings.json not found — skipping")
+        return False
+
+    try:
+        template_data = json.loads(settings_template.read_text())
+    except Exception as exc:
+        logger.warning("Failed to parse settings template: %s", exc)
+        print(f"   Failed to parse settings template: {exc}")
+        return False
+
+    template_version = str(template_data.get("_mpm_version", "0.0.0"))
+    spinner_payload: dict = {
+        key: template_data[key] for key in _SPINNER_GLOBAL_KEYS if key in template_data
+    }
+
+    if not spinner_payload:
+        print("   Template has no spinner keys — nothing to deploy")
+        return True
+
+    user_settings = Path.home() / ".claude" / "settings.json"
+    existing: dict = {}
+    if user_settings.exists():
+        try:
+            existing = json.loads(user_settings.read_text())
+        except json.JSONDecodeError as exc:
+            logger.warning(
+                "Refusing to merge into malformed %s: %s — aborting", user_settings, exc
+            )
+            print(
+                f"   Refusing to overwrite malformed {user_settings.name}; "
+                "fix it manually and re-run."
+            )
+            return False
+
+    if not isinstance(existing, dict):
+        logger.warning(
+            "User settings is not a JSON object (got %s) — aborting", type(existing)
+        )
+        print("   ~/.claude/settings.json is not a JSON object — skipping")
+        return False
+
+    existing_version = str(existing.get(_SPINNER_GLOBAL_VERSION_KEY, "0.0.0"))
+    template_is_newer = existing_version < template_version
+
+    updated = dict(existing)
+    changed_keys: list[str] = []
+    for key, value in spinner_payload.items():
+        if key not in updated or template_is_newer:
+            updated[key] = value
+            changed_keys.append(key)
+
+    if not changed_keys and existing_version == template_version:
+        print("   Spinner config already up-to-date in ~/.claude/settings.json")
+        return True
+
+    # Always stamp the version when we touch the file so subsequent runs are
+    # truly idempotent.
+    updated[_SPINNER_GLOBAL_VERSION_KEY] = template_version
+
+    try:
+        user_settings.parent.mkdir(parents=True, exist_ok=True)
+        user_settings.write_text(json.dumps(updated, indent=2) + "\n")
+    except OSError as exc:
+        logger.warning("Failed to write %s: %s", user_settings, exc)
+        print(f"   Failed to write {user_settings}: {exc}")
+        return False
+
+    if changed_keys:
+        print(
+            f"   Deployed {len(changed_keys)} spinner key(s) to "
+            f"~/.claude/settings.json: {', '.join(sorted(changed_keys))}"
+        )
+    else:
+        print("   Refreshed spinner version stamp in ~/.claude/settings.json")
+    print("   ✓ Migration complete")
+    return True
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -1637,6 +1806,12 @@ MIGRATIONS: list[Migration] = [
         description="Deploy .claude/ template assets (statusline.sh, slash commands, settings.json)",
         check=_check_claude_assets_needed,
         migrate=_deploy_claude_assets,
+    ),
+    Migration(
+        id="v6.3.2-deploy-spinner-global",
+        description="Deploy MPM spinner verbs/tips into ~/.claude/settings.json so they apply outside MPM projects",
+        check=_check_spinner_global_needed,
+        migrate=_deploy_spinner_global,
     ),
 ]
 
