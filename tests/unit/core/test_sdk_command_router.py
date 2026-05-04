@@ -332,6 +332,22 @@ class TestUnsupportedCommands:
         assert result.handled is True
         assert "REPL-only" in (result.output or "")
 
+    def test_remote_control_unsupported(self, router: SDKCommandRouter) -> None:
+        result = router.route("/remote-control")
+        assert result.handled is True
+        assert "REPL-only" in (result.output or "")
+
+    def test_rc_uppercase_unsupported(self, router: SDKCommandRouter) -> None:
+        """Uppercase /RC is lowercased to /rc and surfaced as unsupported."""
+        result = router.route("/RC")
+        assert result.handled is True
+        assert "REPL-only" in (result.output or "")
+
+    def test_rc_lowercase_unsupported(self, router: SDKCommandRouter) -> None:
+        result = router.route("/rc")
+        assert result.handled is True
+        assert "REPL-only" in (result.output or "")
+
 
 # ---------------------------------------------------------------------------
 # 10. Unknown slash commands pass through to LLM
