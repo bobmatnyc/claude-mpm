@@ -85,8 +85,8 @@ except ImportError:
     from auto_pause_handler import AutoPauseHandler  # type: ignore[import-not-found]
     from event_handlers import EventHandlers  # type: ignore[import-not-found]
     from memory_integration import MemoryHookManager  # type: ignore[import-not-found]
-    from response_tracking import (
-        ResponseTrackingManager,  # type: ignore[import-not-found]
+    from response_tracking import (  # type: ignore[import-not-found]
+        ResponseTrackingManager,
     )
     from services import (  # type: ignore[import-not-found]
         ConnectionManagerService,
@@ -102,9 +102,7 @@ try:
     from .correlation_manager import CorrelationManager
 except ImportError:
     try:
-        from correlation_manager import (
-            CorrelationManager,  # type: ignore[import-not-found,no-redef]
-        )
+        from correlation_manager import CorrelationManager  # type: ignore[import-not-found,no-redef] # noqa: I001
     except ImportError:
         # Fallback: create a no-op class if module unavailable
         # Use a different name then alias to avoid type incompatibility with the
@@ -450,7 +448,7 @@ class ClaudeHookHandler:
             # Cancel the alarm
             signal.alarm(0)
 
-    def _read_hook_event(self) -> dict:
+    def _read_hook_event(self) -> dict | None:
         """
         Read and parse hook event from stdin with timeout.
 
