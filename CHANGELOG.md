@@ -1,3 +1,38 @@
+## v6.2.61 (2026-05-04)
+
+### Fix
+
+- **types**: reference _args in body to satisfy pyright unused-parameter check
+- **types**: use pyright: ignore to suppress unused _args parameter warnings in setup.py
+- **types**: suppress pyright unused-parameter warnings in setup.py
+- **types**: rename unused args parameters to _args in setup.py
+- **setup**: roll back .mcp.json when MCP server auth fails (#493)
+- **types**: remove unused cache_ttl parameter from check_for_update
+- **types**: remove unused _cache_ttl parameter from _check_pypi_for_update
+- **types**: resolve pyright unused-parameter warning for _cache_ttl in self_upgrade_service.py
+- **tests**: rename _reset_update_cache fixture and use bare *_ in __exit__
+- **tests**: rename _isolate_environment fixture to isolate_environment
+- **types**: suppress ARG002 on unused _cache_ttl parameter in _check_pypi_for_update
+- **tests**: resolve Pyright diagnostics in test_version_service_update_check
+- **tests**: annotate monkeypatch parameter in _isolate_environment fixture
+- **types**: replace builtin any with typing.Any in self_upgrade_service type annotations
+- **types**: resolve pyright warnings in test_version_service_update_check.py
+- **types**: resolve pyright warnings in test_anthropic_auth_check.py
+- **types**: resolve pyright warnings in test_diagnostic_runner_fix.py
+- **ux**: recommend uv tool upgrade claude-mpm in update notifications
+- **version**: implement real PyPI version check with 1h cache and timeout fallback
+- **doctor**: accept claude.ai and firstParty authMethod as valid authenticated states
+- **doctor**: implement --fix execution with actionable messages for unfixable items
+- update sonnet alias to claude-sonnet-4-6-20260124 (#491)
+- **sdk**: route --sdk --prompt to run_sdk_oneshot() correctly
+- **sdk**: require explicit --sdk flag instead of auto-detecting from import
+- **types**: remove unused fixture parameter from test_returns_true_when_sessions_exist
+- **types**: resolve pyright unused-variable warning in test_session_resume_helper.py
+- **types**: suppress remaining pyright warnings in startup.py
+- **types**: resolve pyright unused-variable warnings in startup.py
+- **types**: resolve pyright unused-variable warnings in test_startup_skills_disable.py
+- **skills**: honor auto_deploy config, env kill-switch, and plugin detection (#492)
+
 ## v6.2.60 (2026-05-03)
 
 ### Fix
