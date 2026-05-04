@@ -14,6 +14,7 @@ safe previewing.
 Part of TSK-0054: Auto-Configuration Feature - Phase 4
 """
 
+import shutil
 import time
 import traceback
 from datetime import UTC, datetime
@@ -292,7 +293,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             deploy_start = time.time()
             observer.on_deployment_started(len(recommendations))
 
-            deployed_agents, failed_agents = await self._deploy_agents(
+            deployed_agents, failed_agents, snapshot = await self._deploy_agents(
                 project_path, recommendations, observer
             )
             deploy_duration = (time.time() - deploy_start) * 1000
@@ -307,11 +308,11 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                     f"Deployment completed with {len(failed_agents)} failures"
                 )
 
-                # Attempt rollback
-                if deployed_agents:
+                # Attempt rollback - restore snapshot AND remove any partial writes
+                if deployed_agents or snapshot:
                     observer.on_rollback_started(deployed_agents)
                     rollback_success = await self._rollback_deployment(
-                        project_path, deployed_agents
+                        project_path, deployed_agents, snapshot=snapshot
                     )
                     observer.on_rollback_completed(rollback_success)
 
@@ -331,11 +332,53 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                     metadata={
                         "duration_ms": (time.time() - start_time) * 1000,
                         "dry_run": dry_run,
-                        "rollback_attempted": len(deployed_agents) > 0,
+                        "rollback_attempted": len(deployed_agents) > 0
+                        or bool(snapshot),
                     },
                 )
 
-            # Step 8: Save configuration
+            # Step 7b: Post-deployment validation - verify files exist and parse.
+            # If validation fails we treat it like a deployment failure: roll
+            # back (restoring snapshot) so we don't leave a half-baked config.
+            post_validation = await self._validate_post_deployment(
+                project_path, deployed_agents
+            )
+            if not post_validation.is_valid:
+                self.logger.error(
+                    f"Post-deployment validation failed with "
+                    f"{post_validation.error_count} error(s); rolling back"
+                )
+                observer.on_rollback_started(deployed_agents)
+                rollback_success = await self._rollback_deployment(
+                    project_path, deployed_agents, snapshot=snapshot
+                )
+                observer.on_rollback_completed(rollback_success)
+
+                return ConfigurationResult(
+                    status=OperationResult.FAILED,
+                    deployed_agents=[],
+                    failed_agents=deployed_agents,
+                    validation_errors=[i.message for i in post_validation.errors],
+                    validation_warnings=[
+                        issue.message for issue in validation_result.warnings
+                    ],
+                    recommendations=recommendations,
+                    message=(
+                        "Deployment rolled back: post-deployment validation "
+                        f"found {post_validation.error_count} error(s)"
+                    ),
+                    metadata={
+                        "duration_ms": (time.time() - start_time) * 1000,
+                        "dry_run": dry_run,
+                        "rollback_attempted": True,
+                        "rollback_succeeded": rollback_success,
+                        "phase": "post_deployment_validation",
+                    },
+                )
+
+            # Step 8: Save configuration. Deployment succeeded; the snapshot
+            # backups are no longer needed.
+            self._cleanup_snapshot(snapshot)
             await self._save_configuration(project_path, toolchain, recommendations)
 
             # Success!
@@ -689,9 +732,13 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         project_path: Path,
         recommendations: list[AgentRecommendation],
         observer: IDeploymentObserver,
-    ) -> tuple[list[str], list[str]]:
+    ) -> tuple[list[str], list[str], dict[str, Path]]:
         """
         Deploy recommended agents.
+
+        Before any agent is written we snapshot any pre-existing agent files
+        that share the same id, so a partial-failure rollback can restore
+        the previous state instead of just deleting freshly written files.
 
         Args:
             project_path: Project root directory
@@ -699,13 +746,22 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             observer: Observer for progress tracking
 
         Returns:
-            Tuple of (deployed_agent_ids, failed_agent_ids)
+            Tuple of (deployed_agent_ids, failed_agent_ids, snapshot)
+            where ``snapshot`` is a mapping of original file path -> backup
+            path that callers can pass to :meth:`_restore_from_snapshot`
+            (rollback) or :meth:`_cleanup_snapshot` (success).
         """
-        deployed = []
-        failed = []
+        deployed: list[str] = []
+        failed: list[str] = []
 
         # Sort recommendations by deployment priority
         sorted_recs = sorted(recommendations, key=lambda r: r.deployment_priority)
+
+        # Snapshot pre-existing files for the agents we are about to write.
+        # This is best-effort: failures to snapshot are logged, not raised.
+        snapshot = self._snapshot_existing_files(
+            project_path, [r.agent_id for r in sorted_recs]
+        )
 
         for index, recommendation in enumerate(sorted_recs, 1):
             agent_id = recommendation.agent_id
@@ -716,8 +772,6 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                     agent_id, agent_name, index, len(sorted_recs)
                 )
 
-                # TODO: Integrate with actual AgentDeploymentService
-                # For now, simulate deployment
                 await self._deploy_single_agent(agent_id, project_path)
 
                 observer.on_agent_deployment_completed(
@@ -735,7 +789,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
                 )
                 failed.append(agent_id)
 
-        return deployed, failed
+        return deployed, failed, snapshot
 
     def _get_deployment_service(self) -> Any:
         """
@@ -765,6 +819,214 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         Centralized so both deploy and rollback target the same location.
         """
         return project_path / ".claude" / "agents"
+
+    @staticmethod
+    def _agent_file_candidates(agents_dir: Path, agent_id: str) -> list[Path]:
+        """Return all on-disk filename variants we know about for an agent.
+
+        The deployment service may emit either ``.md`` or legacy ``.yaml``
+        files. We consider both so snapshot/rollback covers either layout.
+        """
+        return [agents_dir / f"{agent_id}.md", agents_dir / f"{agent_id}.yaml"]
+
+    def _snapshot_existing_files(
+        self, project_path: Path, agent_ids: list[str]
+    ) -> dict[str, Path]:
+        """Snapshot any pre-existing agent files before deployment overwrites them.
+
+        For each agent we are about to deploy, copy any existing ``.md``/``.yaml``
+        file to a sibling ``.bak`` path. This lets ``_rollback_deployment``
+        restore the previous state rather than just removing the freshly
+        written file (which would silently delete user customizations).
+
+        Args:
+            project_path: Project root directory
+            agent_ids: Agent identifiers about to be deployed
+
+        Returns:
+            Mapping of original file path (str) -> backup file path (Path)
+            for files that actually existed and were snapshotted.
+        """
+        agents_dir = self._resolve_agents_dir(project_path)
+        snapshot: dict[str, Path] = {}
+
+        if not agents_dir.exists():
+            return snapshot
+
+        for agent_id in agent_ids:
+            for original in self._agent_file_candidates(agents_dir, agent_id):
+                if not original.exists():
+                    continue
+                backup = original.with_suffix(original.suffix + ".bak")
+                try:
+                    shutil.copy2(original, backup)
+                    snapshot[str(original)] = backup
+                    self.logger.debug(
+                        f"Snapshotted existing agent file: {original} -> {backup}"
+                    )
+                except OSError as e:
+                    # We log and continue. A best-effort snapshot is still
+                    # better than none; deployment will proceed and rollback
+                    # will only restore what we successfully captured.
+                    self.logger.warning(
+                        f"Failed to snapshot existing agent file {original}: {e}"
+                    )
+
+        if snapshot:
+            self.logger.info(
+                f"Snapshotted {len(snapshot)} existing agent file(s) before deployment"
+            )
+        return snapshot
+
+    def _cleanup_snapshot(self, snapshot: dict[str, Path]) -> None:
+        """Remove backup files created by ``_snapshot_existing_files``.
+
+        Called on successful deployment so we don't leave ``.bak`` files
+        cluttering the project. Failures are logged but never raised.
+        """
+        for backup in snapshot.values():
+            try:
+                if backup.exists():
+                    backup.unlink()
+            except OSError as e:
+                self.logger.warning(f"Failed to remove backup file {backup}: {e}")
+
+    def _restore_from_snapshot(self, snapshot: dict[str, Path]) -> bool:
+        """Restore files from a snapshot taken before deployment.
+
+        Args:
+            snapshot: Mapping of original path (str) -> backup path (Path)
+
+        Returns:
+            True if all entries were restored (or snapshot empty),
+            False if at least one restore failed.
+        """
+        if not snapshot:
+            return True
+
+        all_succeeded = True
+        for original_str, backup in snapshot.items():
+            original = Path(original_str)
+            try:
+                if backup.exists():
+                    shutil.move(str(backup), str(original))
+                    self.logger.info(f"Restored from snapshot: {original}")
+            except OSError as e:
+                all_succeeded = False
+                self.logger.error(
+                    f"Failed to restore {original} from snapshot {backup}: {e}"
+                )
+        return all_succeeded
+
+    async def _validate_post_deployment(
+        self, project_path: Path, deployed_agents: list[str]
+    ) -> ValidationResult:
+        """Verify deployed agent files exist and are parseable.
+
+        Performs lightweight on-disk verification AFTER deployment to catch
+        cases where the deployment service reported success but produced
+        an empty or malformed file. This is the safety net mentioned in
+        :meth:`auto_configure` step 6 ("Verify deployment success").
+
+        Checks performed for each deployed agent:
+        - At least one of the expected files exists (``.md`` or ``.yaml``)
+        - The file is non-empty
+        - For ``.md`` files: contains some content (basic sanity check)
+        - For ``.yaml`` files: parses as valid YAML
+
+        Args:
+            project_path: Project root directory
+            deployed_agents: List of agent IDs that were just deployed
+
+        Returns:
+            ValidationResult with one issue per problem found. The result
+            is_valid is True iff every deployed agent has a parseable file.
+        """
+        issues: list[ValidationIssue] = []
+        validated: list[str] = []
+        agents_dir = self._resolve_agents_dir(project_path)
+
+        for agent_id in deployed_agents:
+            candidates = self._agent_file_candidates(agents_dir, agent_id)
+            existing = [p for p in candidates if p.exists()]
+
+            if not existing:
+                issues.append(
+                    ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        message=(
+                            f"Post-deployment check: no agent file found for "
+                            f"'{agent_id}' in {agents_dir}"
+                        ),
+                        agent_id=agent_id,
+                    )
+                )
+                continue
+
+            target = existing[0]
+            try:
+                content = target.read_text(encoding="utf-8")
+            except OSError as e:
+                issues.append(
+                    ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        message=(
+                            f"Post-deployment check: cannot read deployed file "
+                            f"{target}: {e}"
+                        ),
+                        agent_id=agent_id,
+                    )
+                )
+                continue
+
+            if not content.strip():
+                issues.append(
+                    ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        message=(
+                            f"Post-deployment check: deployed file {target} is empty"
+                        ),
+                        agent_id=agent_id,
+                    )
+                )
+                continue
+
+            # YAML-specific structural check. Markdown files with YAML
+            # frontmatter are NOT validated as pure YAML here because the
+            # body after the frontmatter is markdown, not YAML.
+            if target.suffix == ".yaml":
+                try:
+                    yaml.safe_load(content)
+                except yaml.YAMLError as e:
+                    issues.append(
+                        ValidationIssue(
+                            severity=ValidationSeverity.ERROR,
+                            message=(
+                                f"Post-deployment check: {target} is not "
+                                f"valid YAML: {e}"
+                            ),
+                            agent_id=agent_id,
+                        )
+                    )
+                    continue
+
+            validated.append(agent_id)
+
+        is_valid = not any(i.severity == ValidationSeverity.ERROR for i in issues)
+        result = ValidationResult(
+            is_valid=is_valid,
+            issues=issues,
+            validated_agents=validated,
+            metadata={
+                "validation_timestamp": datetime.now(UTC).isoformat(),
+                "phase": "post_deployment",
+            },
+        )
+        self.logger.info(
+            f"Post-deployment validation: {len(validated)}/{len(deployed_agents)} "
+            f"agents verified, {len(issues)} issue(s)"
+        )
+        return result
 
     async def _deploy_single_agent(self, agent_id: str, project_path: Path) -> None:
         """
@@ -805,32 +1067,40 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         self.logger.debug(f"Deployed agent {agent_id} to {agents_dir}")
 
     async def _rollback_deployment(
-        self, project_path: Path, deployed_agents: list[str]
+        self,
+        project_path: Path,
+        deployed_agents: list[str],
+        snapshot: dict[str, Path] | None = None,
     ) -> bool:
         """
         Rollback deployed agents after a partial-failure deployment.
 
-        Strategy: this manager does not snapshot pre-existing agent files
-        before deploying (a full backup-and-restore lives in the higher-level
-        auto-config HTTP handler via ``BackupManager``). What we *can* safely
-        do here is remove the agent files that *this* run just wrote, so the
-        project is left without half-installed agents.
+        Strategy:
+        1. Delete files this run just wrote (agents in ``deployed_agents``).
+        2. If ``snapshot`` was captured before deployment, restore those
+           pre-existing files to their original location. This preserves
+           user customizations that would otherwise be silently overwritten.
+        3. If a ``BackupManager`` style full backup also exists upstream
+           (e.g. in the auto-config HTTP handler), it can run alongside this
+           method - they target different scopes.
 
-        For each agent_id we attempt to delete ``<project>/.claude/agents/<agent_id>.md``
-        (and the legacy ``.yaml`` variant if present). Missing files are
-        treated as "already rolled back" and do not count as failures.
+        Missing files are treated as "already rolled back" and do not count
+        as failures.
 
         Args:
             project_path: Project root directory
             deployed_agents: List of agent IDs to rollback
+            snapshot: Optional mapping returned by ``_snapshot_existing_files``
+                of pre-deployment files to restore.
 
         Returns:
             bool: True if all rollback steps succeeded (or nothing to do),
-                False if at least one file could not be removed.
+                False if at least one file could not be removed/restored.
         """
-        if not deployed_agents:
+        if not deployed_agents and not snapshot:
             self.logger.info(
-                "Rollback requested with no deployed agents; nothing to do"
+                "Rollback requested with no deployed agents and no snapshot; "
+                "nothing to do"
             )
             return True
 
@@ -839,37 +1109,49 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         )
 
         agents_dir = self._resolve_agents_dir(project_path)
-        if not agents_dir.exists():
-            # Nothing to roll back if the directory is gone already.
-            self.logger.info(
-                f"Agents directory does not exist, skipping rollback: {agents_dir}"
-            )
-            return True
 
         all_succeeded = True
-        for agent_id in deployed_agents:
-            removed_any = False
-            for suffix in (".md", ".yaml"):
-                target = agents_dir / f"{agent_id}{suffix}"
-                if not target.exists():
-                    continue
-                try:
-                    target.unlink()
-                    removed_any = True
-                    self.logger.info(f"Rolled back agent file: {target}")
-                except OSError as e:
-                    all_succeeded = False
-                    self.logger.error(
-                        f"Failed to remove agent file during rollback: {target}: {e}"
-                    )
 
-            if not removed_any:
-                # Not necessarily a failure - the file may never have been
-                # written if deployment failed before write. Log and continue.
-                self.logger.info(
-                    f"No deployed file found for agent '{agent_id}'; "
-                    "assuming rollback unnecessary"
-                )
+        if agents_dir.exists():
+            for agent_id in deployed_agents:
+                removed_any = False
+                for suffix in (".md", ".yaml"):
+                    target = agents_dir / f"{agent_id}{suffix}"
+                    if not target.exists():
+                        continue
+                    try:
+                        target.unlink()
+                        removed_any = True
+                        self.logger.info(f"Rolled back agent file: {target}")
+                    except OSError as e:
+                        all_succeeded = False
+                        self.logger.error(
+                            f"Failed to remove agent file during rollback: "
+                            f"{target}: {e}"
+                        )
+
+                if not removed_any:
+                    # Not necessarily a failure - the file may never have been
+                    # written if deployment failed before write. Log and continue.
+                    self.logger.info(
+                        f"No deployed file found for agent '{agent_id}'; "
+                        "assuming rollback unnecessary"
+                    )
+        else:
+            # Nothing to delete if the directory is gone already.
+            self.logger.info(
+                f"Agents directory does not exist, skipping deletion phase: "
+                f"{agents_dir}"
+            )
+
+        # Restore any pre-existing files we snapshotted before deployment.
+        # This must happen AFTER deletion so we don't immediately delete
+        # what we just restored.
+        if snapshot:
+            restore_ok = self._restore_from_snapshot(snapshot)
+            if not restore_ok:
+                all_succeeded = False
+                self.logger.error("Snapshot restore reported one or more failures")
 
         return all_succeeded
 
