@@ -82,11 +82,13 @@ except ImportError:
     # Add parent directory to path
     sys.path.insert(0, str(Path(__file__).parent))
 
-    from auto_pause_handler import AutoPauseHandler
-    from event_handlers import EventHandlers
-    from memory_integration import MemoryHookManager
-    from response_tracking import ResponseTrackingManager
-    from services import (
+    from auto_pause_handler import AutoPauseHandler  # type: ignore[import-not-found]
+    from event_handlers import EventHandlers  # type: ignore[import-not-found]
+    from memory_integration import MemoryHookManager  # type: ignore[import-not-found]
+    from response_tracking import (
+        ResponseTrackingManager,  # type: ignore[import-not-found]
+    )
+    from services import (  # type: ignore[import-not-found]
         ConnectionManagerService,
         DuplicateEventDetector,
         HookServiceContainer,
@@ -100,13 +102,19 @@ try:
     from .correlation_manager import CorrelationManager
 except ImportError:
     try:
-        from correlation_manager import CorrelationManager
+        from correlation_manager import (
+            CorrelationManager,  # type: ignore[import-not-found,no-redef]
+        )
     except ImportError:
         # Fallback: create a no-op class if module unavailable
-        class CorrelationManager:
+        # Use a different name then alias to avoid type incompatibility with the
+        # real CorrelationManager class from correlation_manager module.
+        class _NoOpCorrelationManager:
             @staticmethod
-            def cleanup_old():
+            def cleanup_old() -> None:
                 pass
+
+        CorrelationManager = _NoOpCorrelationManager  # type: ignore[assignment,misc]
 
 
 """
