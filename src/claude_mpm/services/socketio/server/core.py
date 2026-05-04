@@ -17,17 +17,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from aiohttp import web
+
 try:
-    import aiohttp
     import socketio
-    from aiohttp import web
 
     SOCKETIO_AVAILABLE = True
 except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
-    aiohttp = None
-    web = None
 
 # Import VersionService for dynamic version retrieval
 import contextlib
@@ -277,7 +275,7 @@ class SocketIOServerCore:
                 self.logger.info(
                     "Registering Socket.IO event handlers before server start"
                 )
-                await self.main_server._register_events_async()
+                await self.main_server._register_events_async()  # type: ignore[union-attr]
             else:
                 self.logger.warning("Main server not available for event registration")
 
