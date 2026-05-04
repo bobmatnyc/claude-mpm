@@ -670,7 +670,14 @@ class AutoConfigureCommand(BaseCommand):
         configure_skills=True,
         agent_review_results=None,
     ) -> bool:
-        """Ask user to confirm deployment."""
+        """Ask user to confirm deployment.
+
+        Returns True if the user accepts (whole list or a non-empty subset
+        chosen via interactive selection), False if they decline or end up
+        with an empty selection. When the user picks "select", this method
+        mutates ``agent_preview.recommendations`` and ``skills_recommendations``
+        in place so the caller deploys exactly the chosen subset.
+        """
         has_agents = (
             configure_agents and agent_preview and agent_preview.recommendations
         )
@@ -706,15 +713,251 @@ class AutoConfigureCommand(BaseCommand):
         if response in ["y", "yes"]:
             return True
         if response in ["s", "select"]:
-            # TODO: Implement interactive selection
-            if self.console:
-                self.console.print(
-                    "\n⚠️  Interactive selection not yet implemented",
-                    style="yellow",
+            return self._interactive_select(
+                agent_preview,
+                skills_recommendations,
+                configure_agents,
+                configure_skills,
+                agent_review_results,
+            )
+        return False
+
+    # ---------------------------------------------------------------- selection
+
+    @staticmethod
+    def _existing_agent_ids(agent_review_results) -> set[str]:
+        """Return ids of agents already deployed in the project, if known.
+
+        ``agent_review_results`` is the dict produced by the agent review
+        service. Its ``custom`` entry lists agents the user has customized
+        (which we preserve) and ``unused`` lists agents recommended by
+        previous runs but not by the current toolchain. Both are treated
+        as "already configured" for pre-selection purposes.
+        """
+        existing: set[str] = set()
+        if not agent_review_results:
+            return existing
+        for key in ("custom", "unused", "outdated"):
+            for entry in agent_review_results.get(key, []) or []:
+                if isinstance(entry, dict):
+                    name = entry.get("name") or entry.get("agent_id")
+                    if name:
+                        existing.add(name)
+                elif isinstance(entry, str):
+                    existing.add(entry)
+        return existing
+
+    def _interactive_select(
+        self,
+        agent_preview,
+        skills_recommendations,
+        configure_agents,
+        configure_skills,
+        agent_review_results,
+    ) -> bool:
+        """Drive an interactive multi-select for agents and skills.
+
+        Tries ``questionary.checkbox`` first (already a project dependency).
+        Falls back to a Rich-formatted numbered list with comma-separated
+        input when questionary is unavailable. On empty selection we
+        re-confirm with the user before cancelling so an accidental Enter
+        doesn't silently drop the deployment.
+
+        Mutates ``agent_preview.recommendations`` and the passed
+        ``skills_recommendations`` list in place to reflect the user's
+        chosen subset and returns True if anything remains, False otherwise.
+        """
+        existing = self._existing_agent_ids(agent_review_results)
+
+        # Try questionary first - it gives us a real terminal checkbox UI.
+        try:
+            import questionary
+        except ImportError:  # pragma: no cover - questionary is in deps
+            questionary = None
+
+        if questionary is not None:
+            return self._interactive_select_questionary(
+                agent_preview,
+                skills_recommendations,
+                configure_agents,
+                configure_skills,
+                existing,
+                questionary,
+            )
+
+        return self._interactive_select_numbered(
+            agent_preview,
+            skills_recommendations,
+            configure_agents,
+            configure_skills,
+            existing,
+        )
+
+    def _interactive_select_questionary(
+        self,
+        agent_preview,
+        skills_recommendations,
+        configure_agents,
+        configure_skills,
+        existing: set[str],
+        questionary,
+    ) -> bool:
+        """Multi-select UI backed by ``questionary.checkbox``."""
+        # --- agents ---
+        if configure_agents and agent_preview and agent_preview.recommendations:
+            choices = []
+            for rec in agent_preview.recommendations:
+                already = rec.agent_id in existing
+                title = (
+                    f"{rec.agent_id}  ({int(rec.confidence * 100)}%)"
+                    f"{'  [already configured]' if already else ''}"
                 )
-            else:
-                print("\nInteractive selection not yet implemented")
-            return False
+                choices.append(
+                    questionary.Choice(
+                        title=title,
+                        value=rec.agent_id,
+                        # Pre-select recommended-and-already-configured items
+                        # plus all high-confidence brand-new ones.
+                        checked=already or rec.confidence >= 0.8,
+                    )
+                )
+            try:
+                selected = questionary.checkbox(
+                    "Select agents to deploy (space to toggle, enter to confirm):",
+                    choices=choices,
+                ).ask()
+            except KeyboardInterrupt:
+                return False
+            if selected is None:
+                # User pressed Ctrl-C inside questionary
+                return False
+            keep_ids = set(selected)
+            agent_preview.recommendations[:] = [
+                r for r in agent_preview.recommendations if r.agent_id in keep_ids
+            ]
+
+        # --- skills ---
+        if configure_skills and skills_recommendations:
+            choices = [
+                questionary.Choice(title=skill, value=skill, checked=True)
+                for skill in skills_recommendations
+            ]
+            try:
+                selected = questionary.checkbox(
+                    "Select skills to deploy:",
+                    choices=choices,
+                ).ask()
+            except KeyboardInterrupt:
+                return False
+            if selected is None:
+                return False
+            keep = set(selected)
+            skills_recommendations[:] = [s for s in skills_recommendations if s in keep]
+
+        return self._confirm_non_empty_selection(
+            agent_preview, skills_recommendations, configure_agents, configure_skills
+        )
+
+    def _interactive_select_numbered(
+        self,
+        agent_preview,
+        skills_recommendations,
+        configure_agents,
+        configure_skills,
+        existing: set[str],
+    ) -> bool:
+        """Fallback selector: print a numbered list and read indices."""
+
+        def parse_indices(raw: str, max_index: int) -> list[int] | None:
+            raw = raw.strip().lower()
+            if raw in ("", "all", "*"):
+                return list(range(max_index))
+            if raw in ("none", "0"):
+                return []
+            picked: set[int] = set()
+            for token in raw.replace(" ", ",").split(","):
+                if not token:
+                    continue
+                if "-" in token:
+                    try:
+                        a, b = (int(x) for x in token.split("-", 1))
+                    except ValueError:
+                        return None
+                    for i in range(a, b + 1):
+                        if 1 <= i <= max_index:
+                            picked.add(i - 1)
+                else:
+                    try:
+                        i = int(token)
+                    except ValueError:
+                        return None
+                    if 1 <= i <= max_index:
+                        picked.add(i - 1)
+            return sorted(picked)
+
+        # --- agents ---
+        if configure_agents and agent_preview and agent_preview.recommendations:
+            recs = list(agent_preview.recommendations)
+            print("\nAgents available for deployment:")
+            for i, rec in enumerate(recs, 1):
+                marker = " [already configured]" if rec.agent_id in existing else ""
+                pct = int(rec.confidence * 100)
+                print(f"  {i:>2}. {rec.agent_id} ({pct}%){marker}")
+            try:
+                raw = input(
+                    "Enter numbers separated by commas "
+                    "(e.g. 1,3,5 or 1-3, ENTER for all, 'none' for none): "
+                )
+            except (EOFError, KeyboardInterrupt):
+                return False
+            indices = parse_indices(raw, len(recs))
+            if indices is None:
+                print("Invalid input; cancelling.")
+                return False
+            agent_preview.recommendations[:] = [recs[i] for i in indices]
+
+        # --- skills ---
+        if configure_skills and skills_recommendations:
+            skills = list(skills_recommendations)
+            print("\nSkills available for deployment:")
+            for i, skill in enumerate(skills, 1):
+                print(f"  {i:>2}. {skill}")
+            try:
+                raw = input(
+                    "Enter numbers separated by commas "
+                    "(ENTER for all, 'none' for none): "
+                )
+            except (EOFError, KeyboardInterrupt):
+                return False
+            indices = parse_indices(raw, len(skills))
+            if indices is None:
+                print("Invalid input; cancelling.")
+                return False
+            skills_recommendations[:] = [skills[i] for i in indices]
+
+        return self._confirm_non_empty_selection(
+            agent_preview, skills_recommendations, configure_agents, configure_skills
+        )
+
+    def _confirm_non_empty_selection(
+        self,
+        agent_preview,
+        skills_recommendations,
+        configure_agents: bool,
+        configure_skills: bool,
+    ) -> bool:
+        """Make sure the user really wants an empty selection before cancelling."""
+        agents_left = bool(
+            configure_agents and agent_preview and agent_preview.recommendations
+        )
+        skills_left = bool(configure_skills and skills_recommendations)
+        if agents_left or skills_left:
+            return True
+
+        if self.console:
+            self.console.print("\nNothing selected for deployment.", style="yellow")
+        else:
+            print("\nNothing selected for deployment.")
         return False
 
     def _display_result(
