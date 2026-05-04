@@ -198,18 +198,15 @@ def main(argv: list | None = None):
         # Check if running in headless mode
         is_headless = getattr(args, "headless", False)
 
-        # Detect if SDK mode will be used (explicit --sdk flag OR auto-detect)
-        _will_use_sdk = False
-        if os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk":
-            _will_use_sdk = True
-        elif os.environ.get("CLAUDE_MPM_RUNTIME") != "cli":
-            # Auto-detect: SDK if claude_agent_sdk is importable
-            try:
-                import claude_agent_sdk as _  # type: ignore[import-untyped]
-
-                _will_use_sdk = True
-            except ImportError:
-                _will_use_sdk = False
+        # Detect if SDK mode will be used.
+        # WHY: SDK mode must be opt-in via the explicit --sdk flag (which sets
+        # CLAUDE_MPM_RUNTIME=sdk above). Previously this block auto-detected SDK
+        # availability and set _will_use_sdk=True for ALL invocations whenever
+        # claude_agent_sdk happened to be importable. That caused the SDK banner
+        # to print and the SDK code path to run even for plain `claude-mpm`
+        # interactive sessions and oneshot --prompt invocations, which then
+        # never reached run_sdk_oneshot() and exited with code 1. See bug #486.
+        _will_use_sdk = os.environ.get("CLAUDE_MPM_RUNTIME") == "sdk"
 
         if _will_use_sdk:
             print("SDK Mode -- persistent session active")
