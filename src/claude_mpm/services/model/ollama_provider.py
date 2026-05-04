@@ -337,6 +337,11 @@ class OllamaProvider(BaseModelProvider):
             if "max_tokens" in kwargs:
                 payload["options"]["num_predict"] = kwargs["max_tokens"]
 
+            # Ensure we have a session (mirrors guards in is_available/get_available_models)
+            if not self._session or self._session.closed:
+                timeout = aiohttp.ClientTimeout(total=self.timeout)
+                self._session = aiohttp.ClientSession(timeout=timeout)
+
             # Make request
             async with self._session.post(
                 f"{self.host}/api/generate",
