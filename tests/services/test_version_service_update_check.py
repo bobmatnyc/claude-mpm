@@ -26,7 +26,7 @@ from claude_mpm.services.version_service import VersionService
 
 
 @pytest.fixture(autouse=True)
-def _reset_update_cache() -> Generator[None, None, None]:
+def reset_update_cache() -> Generator[None, None, None]:
     """Clear the module-level cache between tests so they stay isolated."""
     version_service_module._UPDATE_CHECK_CACHE.clear()
     yield
@@ -46,7 +46,7 @@ def _fake_pypi_response(version: str) -> io.BytesIO:
         def __enter__(self):
             return self
 
-        def __exit__(self, *_args: object) -> None:
+        def __exit__(self, *_: object) -> None:
             self.close()
 
     return _Resp(json.dumps(payload).encode("utf-8"))
