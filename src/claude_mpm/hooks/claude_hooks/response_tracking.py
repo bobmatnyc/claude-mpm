@@ -43,6 +43,9 @@ class ResponseTrackingManager:
         self.track_all_interactions = (
             False  # Track all Claude interactions, not just delegations
         )
+        # Optional auto-pause handler linked by HookHandler after construction.
+        # Typed as Any to avoid a hard dependency on AutoPauseHandler here.
+        self.auto_pause_handler: Any | None = None
 
         if RESPONSE_TRACKING_AVAILABLE:
             self._initialize_response_tracking()
