@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess  # nosec B404
 import sys
+from contextlib import contextmanager
 from datetime import UTC
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,92 @@ from ..constants import GLOBAL_SETUP_FLAGS, VALUE_FLAGS, SetupFlag, SetupService
 from ..shared import BaseCommand, CommandResult
 
 console = Console()
+
+
+class AuthFailedError(Exception):
+    """Raised when an MCP server's auth/validation step fails after .mcp.json was modified.
+
+    Used to trigger rollback of .mcp.json changes via the
+    ``_mcp_config_transaction`` context manager.
+    """
+
+
+def _read_mcp_json_snapshot(mcp_config_path: Path) -> str | None:
+    """Capture the raw contents of .mcp.json for later rollback.
+
+    Returns:
+        The raw file contents as a string, or ``None`` if the file does not
+        exist. We deliberately preserve the raw bytes (including formatting,
+        comments-as-keys, and trailing newlines) so the rollback restores the
+        file exactly as it was.
+    """
+    if not mcp_config_path.exists():
+        return None
+    try:
+        return mcp_config_path.read_text()
+    except OSError as exc:
+        console.print(
+            f"[yellow]Warning: Could not snapshot .mcp.json for rollback: {exc}[/yellow]"
+        )
+        # Returning None here would cause rollback to delete the file, which
+        # is unsafe. Re-raise so the transaction never opens.
+        raise
+
+
+def _restore_mcp_json(mcp_config_path: Path, snapshot: str | None) -> None:
+    """Restore .mcp.json to a previously captured snapshot.
+
+    Args:
+        mcp_config_path: Path to .mcp.json.
+        snapshot: Previously captured contents (from
+            ``_read_mcp_json_snapshot``), or ``None`` if the file did not
+            exist before the transaction.
+    """
+    try:
+        if snapshot is None:
+            # File didn't exist before — remove anything we created.
+            if mcp_config_path.exists():
+                mcp_config_path.unlink()
+        else:
+            mcp_config_path.write_text(snapshot)
+    except OSError as exc:
+        console.print(
+            f"[red]Error: Failed to roll back .mcp.json: {exc}[/red]\n"
+            f"[red]Manual cleanup may be required at {mcp_config_path}[/red]"
+        )
+
+
+@contextmanager
+def _mcp_config_transaction(project_dir: Path | None = None):
+    """Context manager that rolls back .mcp.json on failure.
+
+    Captures the current state of ``<project_dir>/.mcp.json`` before yielding.
+    If the wrapped block raises (typically :class:`AuthFailedError`), the file
+    is restored to its prior state — including deletion if it didn't exist
+    originally — and a clear message is emitted before re-raising.
+
+    Usage::
+
+        with _mcp_config_transaction():
+            self._save_mcp_config(new_config)   # write new entry
+            run_auth_flow()                      # may raise AuthFailedError
+
+    Args:
+        project_dir: Directory containing .mcp.json (defaults to CWD).
+    """
+    project_dir = project_dir or Path.cwd()
+    mcp_config_path = project_dir / ".mcp.json"
+    snapshot = _read_mcp_json_snapshot(mcp_config_path)
+
+    try:
+        yield
+    except BaseException:
+        _restore_mcp_json(mcp_config_path, snapshot)
+        console.print(
+            "[yellow]Auth failed — rolled back .mcp.json to previous state[/yellow]"
+        )
+        raise
+
 
 # ---------------------------------------------------------------------------
 # Declarative registry for tools that support autonomous `<binary> setup`.
@@ -1992,61 +2079,80 @@ These static memory files were migrated to kuzu-memory on {datetime.now(UTC).iso
                     "OAuth credentials required. See above for details."
                 )
 
-        # Configure MCP server in .mcp.json
+        # Only update .mcp.json if auth (gworkspace-mcp setup) actually
+        # succeeded. Writing the config when auth fails (e.g. port conflict,
+        # user cancelled OAuth) leaves a broken entry behind — see issue #493.
+        if exit_code != 0:
+            console.print(
+                "[red]✗ gworkspace-mcp setup did not complete successfully; "
+                ".mcp.json was not modified.[/red]"
+            )
+            return CommandResult(
+                success=False,
+                exit_code=exit_code,
+                message="Google Workspace MCP setup",
+            )
+
+        # Configure MCP server in .mcp.json with rollback semantics so any
+        # downstream failure (gitignore update, registry write) does not
+        # leave behind a partially-written .mcp.json entry.
         from .oauth import _ensure_mcp_configured
 
-        _ensure_mcp_configured("gworkspace-mcp", Path.cwd())
+        try:
+            with _mcp_config_transaction():
+                _ensure_mcp_configured("gworkspace-mcp", Path.cwd())
 
-        # Add .gworkspace-mcp/ to .gitignore if not present
-        if exit_code == 0:
-            self._add_gworkspace_to_gitignore()
+                # Add .gworkspace-mcp/ to .gitignore if not present
+                self._add_gworkspace_to_gitignore()
+        except AuthFailedError as exc:
+            return CommandResult.error_result(
+                f"Google Workspace MCP setup failed after auth: {exc}"
+            )
 
-        # Register service in setup registry on success
-        if exit_code == 0:
+        # Register service in setup registry (only reached when exit_code == 0
+        # since we return early above on auth failure).
+        try:
+            from claude_mpm.services.setup_registry import SetupRegistry
+
+            registry = SetupRegistry()
+
+            # Get CLI help for the tool
+            cli_help = ""
             try:
-                from claude_mpm.services.setup_registry import SetupRegistry
-
-                registry = SetupRegistry()
-
-                # Get CLI help for the tool
-                cli_help = ""
-                try:
-                    help_result = subprocess.run(  # nosec B603 B607
-                        ["gworkspace-mcp", "--help"],
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                    )
-                    if help_result.returncode == 0:
-                        cli_help = help_result.stdout
-                except Exception:  # nosec B110
-                    pass  # Help text is optional, failure is non-fatal
-
-                # Register with known tools
-                registry.add_service(
-                    name="gworkspace-mcp",
-                    service_type="mcp",
-                    version="0.1.2",  # TODO: Get from package
-                    tools=[
-                        "search_gmail_messages",
-                        "get_gmail_message_content",
-                        "list_calendar_events",
-                        "get_calendar_event",
-                        "search_drive_files",
-                        "get_drive_file_content",
-                    ],
-                    cli_help=cli_help,
-                    config_location="user",
+                help_result = subprocess.run(  # nosec B603 B607
+                    ["gworkspace-mcp", "--help"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
                 )
-            except Exception as e:
-                console.print(
-                    f"[dim]Warning: Could not update setup registry: {e}[/dim]"
-                )
+                if help_result.returncode == 0:
+                    cli_help = help_result.stdout
+            except Exception:  # nosec B110
+                pass  # Help text is optional, failure is non-fatal
+
+            # Register with known tools
+            registry.add_service(
+                name="gworkspace-mcp",
+                service_type="mcp",
+                version="0.1.2",  # TODO: Get from package
+                tools=[
+                    "search_gmail_messages",
+                    "get_gmail_message_content",
+                    "list_calendar_events",
+                    "get_calendar_event",
+                    "search_drive_files",
+                    "get_drive_file_content",
+                ],
+                cli_help=cli_help,
+                config_location="user",
+            )
+        except Exception as e:
+            console.print(f"[dim]Warning: Could not update setup registry: {e}[/dim]")
 
         return CommandResult(
-            success=exit_code == 0,
-            exit_code=exit_code,
+            success=True,
+            exit_code=0,
             message="Google Workspace MCP setup",
         )
 
