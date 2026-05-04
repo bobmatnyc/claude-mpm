@@ -541,3 +541,176 @@ class TestDeployRoleAgentsOrchestrator:
 
         assert result.status == OperationResult.FAILED
         assert "network down" in result.message
+
+    # ------------------------------------------------------------------
+    # Interactive selection (#466)
+    # ------------------------------------------------------------------
+
+    @pytest.fixture
+    def selectable_preview(self):
+        """Preview with two recommendations the user can pick from."""
+        rec_a = Mock(
+            spec=AgentRecommendation,
+            agent_id="python-engineer",
+            confidence=0.95,
+            reasoning="primary",
+        )
+        rec_b = Mock(
+            spec=AgentRecommendation,
+            agent_id="qa",
+            confidence=0.7,
+            reasoning="secondary",
+        )
+        preview = Mock(spec=ConfigurationPreview)
+        preview.recommendations = [rec_a, rec_b]
+        preview.detected_toolchain = Mock(components=[])
+        return preview
+
+    def test_existing_agent_ids_extracts_known_keys(self, command):
+        review = {
+            "custom": [{"name": "engineer", "version": "1.0"}],
+            "unused": [{"name": "old-agent"}],
+            "outdated": ["legacy-agent"],
+        }
+        result = command._existing_agent_ids(review)
+        assert result == {"engineer", "old-agent", "legacy-agent"}
+
+    def test_existing_agent_ids_handles_missing(self, command):
+        assert command._existing_agent_ids(None) == set()
+        assert command._existing_agent_ids({}) == set()
+
+    def test_interactive_select_questionary_filters_agents(
+        self, command, selectable_preview
+    ):
+        skills = ["skill-a", "skill-b", "skill-c"]
+        questionary = MagicMock()
+
+        # Two checkbox calls: agents (keep python-engineer) then skills (keep two).
+        agents_prompt = MagicMock()
+        agents_prompt.ask.return_value = ["python-engineer"]
+        skills_prompt = MagicMock()
+        skills_prompt.ask.return_value = ["skill-a", "skill-c"]
+        questionary.checkbox.side_effect = [agents_prompt, skills_prompt]
+        questionary.Choice = lambda **kwargs: kwargs
+
+        proceed = command._interactive_select_questionary(
+            selectable_preview,
+            skills,
+            configure_agents=True,
+            configure_skills=True,
+            existing=set(),
+            questionary=questionary,
+        )
+
+        assert proceed is True
+        assert [r.agent_id for r in selectable_preview.recommendations] == [
+            "python-engineer"
+        ]
+        assert skills == ["skill-a", "skill-c"]
+
+    def test_interactive_select_questionary_empty_returns_false(
+        self, command, selectable_preview
+    ):
+        questionary = MagicMock()
+        prompt = MagicMock()
+        prompt.ask.return_value = []  # user deselected everything
+        questionary.checkbox.return_value = prompt
+        questionary.Choice = lambda **kwargs: kwargs
+
+        proceed = command._interactive_select_questionary(
+            selectable_preview,
+            None,
+            configure_agents=True,
+            configure_skills=False,
+            existing=set(),
+            questionary=questionary,
+        )
+        assert proceed is False
+        assert selectable_preview.recommendations == []
+
+    def test_interactive_select_questionary_ctrl_c_returns_false(
+        self, command, selectable_preview
+    ):
+        questionary = MagicMock()
+        prompt = MagicMock()
+        prompt.ask.return_value = None  # questionary signals abort
+        questionary.checkbox.return_value = prompt
+        questionary.Choice = lambda **kwargs: kwargs
+
+        proceed = command._interactive_select_questionary(
+            selectable_preview,
+            None,
+            configure_agents=True,
+            configure_skills=False,
+            existing=set(),
+            questionary=questionary,
+        )
+        assert proceed is False
+
+    def test_interactive_select_numbered_parses_user_input(
+        self, command, selectable_preview, monkeypatch
+    ):
+        skills = ["alpha", "beta"]
+        # First prompt: pick agent #1; second prompt: empty -> all skills
+        responses = iter(["1", ""])
+        monkeypatch.setattr("builtins.input", lambda *_a, **_k: next(responses))
+
+        proceed = command._interactive_select_numbered(
+            selectable_preview,
+            skills,
+            configure_agents=True,
+            configure_skills=True,
+            existing=set(),
+        )
+        assert proceed is True
+        assert [r.agent_id for r in selectable_preview.recommendations] == [
+            "python-engineer"
+        ]
+        assert skills == ["alpha", "beta"]
+
+    def test_interactive_select_numbered_handles_range(
+        self, command, selectable_preview, monkeypatch
+    ):
+        responses = iter(["1-2"])
+        monkeypatch.setattr("builtins.input", lambda *_a, **_k: next(responses))
+
+        proceed = command._interactive_select_numbered(
+            selectable_preview,
+            None,
+            configure_agents=True,
+            configure_skills=False,
+            existing=set(),
+        )
+        assert proceed is True
+        assert len(selectable_preview.recommendations) == 2
+
+    def test_interactive_select_numbered_invalid_input_cancels(
+        self, command, selectable_preview, monkeypatch
+    ):
+        responses = iter(["abc"])
+        monkeypatch.setattr("builtins.input", lambda *_a, **_k: next(responses))
+
+        proceed = command._interactive_select_numbered(
+            selectable_preview,
+            None,
+            configure_agents=True,
+            configure_skills=False,
+            existing=set(),
+        )
+        assert proceed is False
+
+    def test_interactive_select_numbered_none_keyword(
+        self, command, selectable_preview, monkeypatch
+    ):
+        responses = iter(["none"])
+        monkeypatch.setattr("builtins.input", lambda *_a, **_k: next(responses))
+
+        proceed = command._interactive_select_numbered(
+            selectable_preview,
+            None,
+            configure_agents=True,
+            configure_skills=False,
+            existing=set(),
+        )
+        assert proceed is False
+        assert selectable_preview.recommendations == []
