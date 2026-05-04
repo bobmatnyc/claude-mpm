@@ -15,6 +15,8 @@ paths through the new handler:
 """
 
 import asyncio
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -64,21 +66,21 @@ class TestUpgradeEndpoint:
     # Helper: locate the upgrade handler after _setup_http_api is called
     # ------------------------------------------------------------------
 
-    def _get_upgrade_handler(self, core):
+    def _get_upgrade_handler(self, core) -> Callable[..., Any]:
         """Call _setup_http_api and return the registered upgrade handler."""
         # We need to patch web.json_response so it stays inspectable
         # _setup_http_api registers closures on self.app.router; we look them up
         # by calling the internal method with a mocked router.
-        handlers: dict[str, object] = {}
+        handlers: dict[str, Callable[..., Any]] = {}
 
         original_add_post = core.app.router.add_post
         original_add_get = core.app.router.add_get
 
-        def capturing_add_post(path, handler):
+        def capturing_add_post(path: str, handler: Callable[..., Any]) -> None:
             handlers[path] = handler
             original_add_post(path, handler)
 
-        def capturing_add_get(path, handler):
+        def capturing_add_get(path: str, handler: Callable[..., Any]) -> None:
             handlers[path] = handler
             original_add_get(path, handler)
 
