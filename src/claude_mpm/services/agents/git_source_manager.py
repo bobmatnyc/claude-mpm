@@ -381,10 +381,9 @@ class GitSourceManager:
                     logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
             else:
                 # Fallback: walk cache directory structure when no config is available.
-                # NOTE: This path only handles legacy flat-cache layouts (no branch segment).
-                # Any repo cached with the current 4-level structure (owner/repo/branch/subdir)
-                # will return 0 agents here because RemoteAgentDiscoveryService receives
-                # owner/repo instead of owner/repo/branch/subdir.
+                # Fix #449: Traverse 4 levels (owner/repo/branch/subdir) so that
+                # RemoteAgentDiscoveryService receives the branch directory whose child is
+                # /agents/ (i.e. owner/repo/branch), not the 2-level owner/repo path.
                 logger.debug(
                     "[DEBUG] No configured repos; falling back to directory walk"
                 )
@@ -435,21 +434,39 @@ class GitSourceManager:
 
                         logger.debug(f"[DEBUG] Processing repo_dir: {repo_dir.name}")
 
-                        # Bug #5 fix: Don't iterate subdirectories - RemoteAgentDiscoveryService
-                        # now handles the /agents/ subdirectory internally (Bug #4 fix).
-                        # Iterating subdirectories caused it to treat /agents/ hierarchy as
-                        # separate repositories (engineer/backend, ops/tooling, etc.)
+                        # Fix #449: Descend into branch directories (depth 3: owner/repo/branch).
+                        # The actual cache layout is owner/repo/branch/agents/agent.md (4 levels).
+                        # RemoteAgentDiscoveryService expects the directory whose child is /agents/,
+                        # i.e. owner/repo/branch — not owner/repo (depth 2).
                         repo_id = f"{owner_dir.name}/{repo_dir.name}"
                         metadata = self._repo_metadata.get(repo_id, {})
-                        logger.debug(
-                            f"[DEBUG] Discovering agents in repo root: {repo_id}"
-                        )
-                        agents.extend(
-                            self._discover_agents_in_directory(
-                                repo_dir, repo_id, metadata
+                        has_branch_dirs = False
+                        for branch_dir in repo_dir.iterdir():
+                            if not branch_dir.is_dir():
+                                continue
+                            has_branch_dirs = True
+                            logger.debug(
+                                f"[DEBUG] Discovering agents via branch dir: {repo_id}/{branch_dir.name} -> {branch_dir}"
                             )
-                        )
-                        logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
+                            agents.extend(
+                                self._discover_agents_in_directory(
+                                    branch_dir, repo_id, metadata
+                                )
+                            )
+                            logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
+
+                        # Legacy fallback: if repo_dir has no subdirectories, treat it as a
+                        # flat-cache layout (depth-2) and pass it directly.
+                        if not has_branch_dirs:
+                            logger.debug(
+                                f"[DEBUG] No branch subdirs; using repo root as legacy flat cache: {repo_id}"
+                            )
+                            agents.extend(
+                                self._discover_agents_in_directory(
+                                    repo_dir, repo_id, metadata
+                                )
+                            )
+                            logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
 
         logger.debug(
             f"[DEBUG] list_cached_agents COMPLETE: {len(agents)} total agents (before deduplication)"
