@@ -889,6 +889,76 @@ class SocketIOServerCore:
         self.app.router.add_post("/api/git-history", git_history_handler)
         self.logger.info("✅ Git history API registered at /api/git-history")
 
+        # Add upgrade endpoint
+        async def upgrade_handler(request):
+            """Handle POST /api/upgrade to trigger a self-upgrade of claude-mpm.
+
+            WHY: The dashboard "Update now" button must be able to trigger the
+            upgrade without the user dropping to a terminal.  perform_upgrade()
+            calls subprocess.run with a 300-second timeout, so we offload it to
+            a thread-pool executor to avoid blocking the aiohttp event loop.
+
+            Returns JSON:
+                {"success": true,  "message": "...", "new_version": "..."}
+                {"success": false, "error":   "..."}
+            """
+            import asyncio
+
+            try:
+                from claude_mpm.services.self_upgrade_service import SelfUpgradeService
+
+                upgrade_service = SelfUpgradeService()
+
+                # check_for_update is async - await it directly
+                update_info = await upgrade_service.check_for_update()
+
+                if update_info is None:
+                    return web.json_response(
+                        {
+                            "success": False,
+                            "error": "Could not determine update information. "
+                            "Please check your network connection.",
+                        }
+                    )
+
+                if not update_info.get("update_available", False):
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "message": f"Already on the latest version "
+                            f"({update_info.get('current', 'unknown')}).",
+                            "new_version": update_info.get("current"),
+                        }
+                    )
+
+                # perform_upgrade blocks (subprocess.run with timeout=300)
+                # - run it in a thread pool to avoid blocking the event loop
+                loop = asyncio.get_event_loop()
+                success, message = await loop.run_in_executor(
+                    None,
+                    upgrade_service.perform_upgrade,
+                    update_info,
+                )
+
+                if success:
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "message": message,
+                            "new_version": update_info.get("latest"),
+                        }
+                    )
+                return web.json_response({"success": False, "error": message})
+
+            except Exception as e:
+                self.logger.error(f"Error in upgrade handler: {e}")
+                return web.json_response(
+                    {"success": False, "error": str(e)}, status=500
+                )
+
+        self.app.router.add_post("/api/upgrade", upgrade_handler)
+        self.logger.info("✅ Upgrade API registered at /api/upgrade")
+
     def _setup_directory_api(self):
         """Setup simple directory listing API.
 
