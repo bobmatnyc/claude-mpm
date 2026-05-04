@@ -174,7 +174,7 @@ class TestRunCommand:
 
         assert result.success is False
         assert result.exit_code == 130
-        assert "cancelled by user" in result.message
+        assert result.message is not None and "cancelled by user" in result.message
 
     @patch("claude_mpm.cli.commands.run.run_session_legacy")
     def test_run_handles_exceptions(self, mock_legacy):
@@ -186,7 +186,7 @@ class TestRunCommand:
 
         assert result.success is False
         # The command logs the error but returns a generic message
-        assert "Claude session" in result.message
+        assert result.message is not None and "Claude session" in result.message
 
 
 class TestConfigurationChecking:
@@ -241,8 +241,9 @@ class TestSessionManagement:
 
         args = Namespace(mpm_resume="last")
 
-        _manager, session_id, context = command._setup_session_management(args)
+        manager, session_id, context = command._setup_session_management(args)
 
+        assert manager is mock_manager
         assert session_id == "session-123"
         assert context == "test-context"
         mock_manager.get_last_interactive_session.assert_called_once()
@@ -257,8 +258,9 @@ class TestSessionManagement:
 
         args = Namespace(mpm_resume="session-456")
 
-        _manager, session_id, context = command._setup_session_management(args)
+        manager, session_id, context = command._setup_session_management(args)
 
+        assert manager is mock_manager
         assert session_id == "session-456"
         assert context == "specific-context"
         mock_manager.get_session_info.assert_called_with("session-456")
@@ -284,7 +286,7 @@ class TestDependencyChecking:
     @patch("claude_mpm.utils.dependency_cache.SmartDependencyChecker")
     @patch("claude_mpm.utils.environment_context.should_prompt_for_dependencies")
     def test_handle_dependencies_no_check_needed(
-        self, mock_should_prompt, mock_checker_class, mock_loader_class
+        self, _mock_should_prompt, mock_checker_class, mock_loader_class
     ):
         """Test when no dependency check is needed."""
         command = RunCommand()
@@ -308,7 +310,7 @@ class TestDependencyChecking:
     @patch("claude_mpm.utils.environment_context.should_prompt_for_dependencies")
     @patch("builtins.input", return_value="y")
     def test_handle_dependencies_with_missing_and_prompt(
-        self, mock_input, mock_should_prompt, mock_checker_class, mock_loader_class
+        self, _mock_input, mock_should_prompt, mock_checker_class, mock_loader_class
     ):
         """Test handling missing dependencies with user prompt."""
         command = RunCommand()
