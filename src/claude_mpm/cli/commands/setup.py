@@ -611,7 +611,7 @@ class SetupCommand(BaseCommand):
             return CommandResult.error_result(f"Failed to setup {service_name}: {exc}")
 
     def _try_autonomous_setup_fallback(
-        self, service_name: str, args, force: bool = False
+        self, service_name: str, _args, force: bool = False
     ) -> CommandResult:
         """Open-world fallback: try `<service_name> setup` if the binary exists.
 
@@ -861,7 +861,7 @@ class SetupCommand(BaseCommand):
         except OSError as e:
             console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
 
-    def _setup_slack_mpm(self, args) -> CommandResult:
+    def _setup_slack_mpm(self, _args) -> CommandResult:
         """Set up slack-mpm — validates SLACK_BOT_TOKEN and configures .mcp.json."""
         import shutil
         import subprocess
@@ -1079,7 +1079,7 @@ class SetupCommand(BaseCommand):
                 f"[yellow]Warning: Could not configure MCP server: {e}[/yellow]"
             )
 
-    def _setup_slack(self, args) -> CommandResult:
+    def _setup_slack(self, _args) -> CommandResult:
         """Run the Slack setup script."""
         try:
             # Find the setup script in the installed package
@@ -1187,7 +1187,7 @@ class SetupCommand(BaseCommand):
                 f"[yellow]Warning: Could not configure MCP server: {e}[/yellow]"
             )
 
-    def _setup_confluence(self, args) -> CommandResult:
+    def _setup_confluence(self, _args) -> CommandResult:
         """Set up Confluence integration with credential collection."""
         try:
             console.print(
@@ -1254,7 +1254,7 @@ class SetupCommand(BaseCommand):
         except Exception as e:
             return CommandResult.error_result(f"Error during setup: {e}")
 
-    def _setup_brave_search(self, args) -> CommandResult:
+    def _setup_brave_search(self, _args) -> CommandResult:
         """Set up Brave Search MCP server for web search."""
         console.print("\n[bold cyan]Brave Search MCP Setup[/bold cyan]")
         console.print("This will configure Brave Search for web research.\n")
@@ -1314,7 +1314,7 @@ class SetupCommand(BaseCommand):
             console.print(f"[red]✗ Error setting up Brave Search: {e}[/red]")
             return CommandResult.error_result(f"Setup failed: {e}")
 
-    def _setup_tavily(self, args) -> CommandResult:
+    def _setup_tavily(self, _args) -> CommandResult:
         """Set up Tavily MCP server for AI-optimized search."""
         console.print("\n[bold cyan]Tavily Search MCP Setup[/bold cyan]")
         console.print("This will configure Tavily for AI-optimized research.\n")
@@ -1374,7 +1374,7 @@ class SetupCommand(BaseCommand):
             console.print(f"[red]✗ Error setting up Tavily: {e}[/red]")
             return CommandResult.error_result(f"Setup failed: {e}")
 
-    def _setup_firecrawl(self, args) -> CommandResult:
+    def _setup_firecrawl(self, _args) -> CommandResult:
         """Set up Firecrawl MCP server for web scraping."""
         console.print("\n[bold cyan]Firecrawl MCP Setup[/bold cyan]")
         console.print("This will configure Firecrawl for web scraping.\n")
