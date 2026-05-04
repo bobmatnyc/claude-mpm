@@ -6,6 +6,7 @@ for the monitoring dashboard.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from collections.abc import Callable
@@ -13,6 +14,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# Namespace used when forwarding bridge events to the AsyncEventEmitter.
+# The dashboard subscribes under this namespace.
+_EMITTER_NAMESPACE = "agent"
 
 
 @dataclass
@@ -124,3 +129,75 @@ class SDKEventBridge:
             "total_events": len(self._events),
             "event_counts": counts,
         }
+
+
+def attach_bridge_to_emitter(bridge: SDKEventBridge) -> bool:
+    """Wire a SDKEventBridge to the global AsyncEventEmitter.
+
+    Registers a listener on ``bridge`` that forwards each ``AgentEvent`` to
+    the monitor's :class:`AsyncEventEmitter`, which in turn emits to any
+    registered SocketIO servers (the monitoring dashboard).
+
+    This is best-effort: if the monitor service / emitter is not available
+    (e.g. monitor not started, import errors, no running event loop), the
+    function logs at debug level and returns ``False`` instead of raising.
+    Callers should not depend on the dashboard being reachable.
+
+    Args:
+        bridge: The bridge to attach.  A new listener is appended; existing
+            listeners are preserved.
+
+    Returns:
+        ``True`` if a forwarding listener was registered, ``False`` if the
+        emitter was unavailable.
+    """
+    try:
+        from claude_mpm.services.monitor.event_emitter import get_event_emitter
+    except Exception:
+        logger.debug(
+            "AsyncEventEmitter import failed; dashboard bridge disabled", exc_info=True
+        )
+        return False
+
+    def _forward(event: AgentEvent) -> None:
+        # Build the payload the dashboard expects: include event type, agent id,
+        # timestamp, and the event-specific data.
+        payload: dict[str, Any] = {
+            "event_type": event.event_type,
+            "agent_id": event.agent_id,
+            "timestamp": event.timestamp,
+            **(event.data or {}),
+        }
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No running loop — schedule a fire-and-forget task on a new loop.
+            # In SDK mode this should not happen because the bridge fires from
+            # within the SDK's asyncio session, but be defensive.
+            try:
+                asyncio.run(_emit_once(payload, event.event_type))
+            except Exception:
+                logger.debug("Dashboard emit (no-loop) failed", exc_info=True)
+            return
+
+        # Schedule the emit without blocking the listener.
+        loop.create_task(_emit_once(payload, event.event_type))
+
+    async def _emit_once(payload: dict[str, Any], event_name: str) -> None:
+        try:
+            emitter = await get_event_emitter()
+            await emitter.emit_event(
+                namespace=_EMITTER_NAMESPACE,
+                event=event_name,
+                data=payload,
+            )
+        except Exception:
+            # Dashboard is optional; never raise into bridge listeners.
+            logger.debug("Dashboard emit failed", exc_info=True)
+
+    bridge.on_event(_forward)
+    logger.debug(
+        "SDKEventBridge wired to AsyncEventEmitter (agent_id=%s)", bridge.agent_id
+    )
+    return True
