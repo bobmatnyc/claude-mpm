@@ -138,7 +138,7 @@ class TestInitialization:
 class TestHasPausedSessions:
     """Tests for has_paused_sessions() method."""
 
-    def test_returns_true_when_sessions_exist(self, helper, temp_project_dir):  # pyright: ignore[reportUnusedParameter]
+    def test_returns_true_when_sessions_exist(self, helper, _temp_project_dir):
         """Test returns True when session files exist."""
         # Create a session file
         session_file = helper.pause_dir / "session-20251104-120000.json"
