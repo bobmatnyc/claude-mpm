@@ -1,17 +1,26 @@
 #!/usr/bin/env python3
-"""PreToolUse hook: inject default model into Agent tool calls.
+"""PreToolUse + PermissionRequest hook dispatcher.
 
-Claude Code ignores agent frontmatter model: field (anthropics/claude-code#44385).
-This hook reads the agent .md file's frontmatter and injects the model
-parameter into Agent tool calls when the caller didn't specify one.
+This module is referenced from ``.claude/settings.json`` for two distinct
+events:
 
-Returns hookSpecificOutput with updatedInput to modify tool parameters.
+* ``PreToolUse`` (matcher ``Agent``) — injects a default model into Agent
+  tool calls because Claude Code ignores agent frontmatter ``model:`` fields
+  (upstream issue anthropics/claude-code#44385).
+* ``PermissionRequest`` (matcher ``*``) — runs the policy engine in
+  :mod:`claude_mpm.hooks.permission_policy` and emits a real allow/deny
+  decision instead of the previous unconditional approve (issue #421).
+
+Routing is decided from the ``hook_event_name`` field in the JSON payload so
+that one entrypoint can serve both hook types without changing settings.
 """
 
 import json
 import re
 import sys
 from pathlib import Path
+
+from claude_mpm.hooks import permission_policy
 
 # Agent type -> model mapping (fallback when frontmatter unavailable)
 _HAIKU_AGENTS: frozenset[str] = frozenset(
@@ -88,12 +97,42 @@ def _read_model_from_frontmatter(agent_name: str, cwd: str) -> str | None:
     return None
 
 
+def _handle_permission_request(event: dict) -> None:
+    """Run the permission policy engine and emit the wire-format decision.
+
+    Claude Code expects the ``permissionDecision`` field inside
+    ``hookSpecificOutput``. We always include ``permissionDecisionReason`` so
+    the harness can surface why a request was approved/denied.
+    """
+    decision = permission_policy.evaluate(event)
+    payload = {
+        "hookSpecificOutput": {
+            "hookEventName": "PermissionRequest",
+            "permissionDecision": decision.decision,
+            "permissionDecisionReason": decision.reason,
+        }
+    }
+    print(json.dumps(payload))
+
+
 def main() -> None:
     try:
         event = json.load(sys.stdin)
     except Exception:
         # Can't parse — allow through unchanged
         print(json.dumps({"continue": True}))
+        return
+
+    # Route by hook_event_name so one entrypoint handles both
+    # PreToolUse (Agent model injection) and PermissionRequest (policy).
+    hook_event = (
+        event.get("hook_event_name")
+        or event.get("event")
+        or event.get("hook_event_type")
+        or ""
+    )
+    if hook_event == "PermissionRequest":
+        _handle_permission_request(event)
         return
 
     tool_name = event.get("tool_name", "")
