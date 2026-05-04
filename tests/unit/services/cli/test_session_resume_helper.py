@@ -29,12 +29,11 @@ from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 def isolated_home(tmp_path, monkeypatch):
     """Redirect ``Path.home()`` to an isolated temp directory for every test.
 
-    SessionResumeHelper (and SessionPauseManager) read/write sessions at
-    ``Path.home() / ".claude-mpm" / "sessions"``. Without this fixture, tests
-    would pollute the real ``~/.claude-mpm/sessions/`` directory with
-    ``session-test.json``, ``session-0.json``, ``LATEST-SESSION.txt`` pointing
-    at pytest temp paths, etc. Isolating the home directory per-test prevents
-    that cross-contamination and keeps the real session store clean.
+    SessionResumeHelper uses ``self.project_path`` (a project-local path) for
+    session storage, but other code paths (e.g. task-list capture) may still
+    consult ``Path.home()``. Redirecting home to a temp directory prevents
+    incidental writes to the user's real ``~/.claude-mpm/`` and ``~/.claude/``
+    directories during tests.
     """
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
@@ -43,16 +42,16 @@ def isolated_home(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def temp_project_dir(isolated_home):
-    """Create a temporary project directory with session structure.
+def temp_project_dir(tmp_path):
+    """Create an isolated temporary project directory with session structure.
 
-    The project_dir is the project root passed as ``project_path``. The real
-    session store is under the isolated home dir (see ``isolated_home``), so
-    ``helper.pause_dir`` resolves to ``<isolated_home>/.claude-mpm/sessions``.
+    ``SessionResumeHelper.pause_dir`` resolves to
+    ``<project_path>/.claude-mpm/sessions``, so all session reads/writes are
+    confined to this temp directory and never touch the real session store.
     """
-    project_dir = isolated_home / "test_project"
+    project_dir = tmp_path / "test_project"
     project_dir.mkdir()
-    sessions_dir = isolated_home / ".claude-mpm" / "sessions"
+    sessions_dir = project_dir / ".claude-mpm" / "sessions"
     sessions_dir.mkdir(parents=True)
     return project_dir
 
@@ -108,25 +107,26 @@ def helper(temp_project_dir):
 class TestInitialization:
     """Tests for SessionResumeHelper initialization."""
 
-    def test_init_with_explicit_path(self, temp_project_dir, isolated_home):
+    def test_init_with_explicit_path(self, temp_project_dir):
         """Test initialization with explicit project path."""
         helper = SessionResumeHelper(project_path=temp_project_dir)
         assert helper.project_path == temp_project_dir
-        # pause_dir is always the global home-dir path, not project-local
-        assert helper.pause_dir == isolated_home / ".claude-mpm" / "sessions"
+        # pause_dir is project-local: <project_path>/.claude-mpm/sessions
+        assert helper.pause_dir == temp_project_dir / ".claude-mpm" / "sessions"
 
-    def test_init_with_default_path(self, isolated_home):
+    def test_init_with_default_path(self, tmp_path):
         """Test initialization with default (current) path."""
-        with patch("pathlib.Path.cwd") as mock_cwd:
-            mock_cwd.return_value = Path("/mock/path")
+        mock_cwd = tmp_path / "mock_project"
+        mock_cwd.mkdir()
+        with patch("pathlib.Path.cwd", return_value=mock_cwd):
             helper = SessionResumeHelper()
-            assert helper.project_path == Path("/mock/path")
-            # pause_dir is always the global home-dir path
-            assert helper.pause_dir == isolated_home / ".claude-mpm" / "sessions"
+            assert helper.project_path == mock_cwd
+            # pause_dir is project-local
+            assert helper.pause_dir == mock_cwd / ".claude-mpm" / "sessions"
 
-    def test_pause_dir_structure(self, helper, isolated_home):
+    def test_pause_dir_structure(self, helper, temp_project_dir):
         """Test pause directory path structure is correct."""
-        expected = isolated_home / ".claude-mpm" / "sessions"
+        expected = temp_project_dir / ".claude-mpm" / "sessions"
         assert helper.pause_dir == expected
 
 
@@ -178,13 +178,18 @@ class TestHasPausedSessions:
         assert helper.has_paused_sessions() is False
 
     def test_matches_only_session_pattern(self, helper):
-        """Test only matches session-*.json pattern."""
+        """Test only matches the timestamped session-YYYYMMDD-HHMMSS.json pattern."""
         # Create file with similar but wrong pattern
         (helper.pause_dir / "sessions-test.json").write_text("{}")
         assert helper.has_paused_sessions() is False
 
-        # Create correct pattern
+        # Non-timestamped session-*.json files are also rejected so test
+        # fixtures cannot pollute production resume detection.
         (helper.pause_dir / "session-test.json").write_text("{}")
+        assert helper.has_paused_sessions() is False
+
+        # Real timestamped pattern is detected
+        (helper.pause_dir / "session-20251104-120000.json").write_text("{}")
         assert helper.has_paused_sessions() is True
 
 
@@ -928,18 +933,28 @@ class TestGetSessionCount:
         assert helper.get_session_count() == 0
 
     def test_returns_correct_count(self, helper):
-        """Test returns correct count of session files."""
+        """Test returns correct count of timestamped session files."""
         for i in range(5):
-            session_file = helper.pause_dir / f"session-{i}.json"
+            # Use timestamped names so the production filter accepts them
+            session_file = helper.pause_dir / f"session-2025110{i}-120000.json"
             session_file.write_text("{}")
 
         assert helper.get_session_count() == 5
 
     def test_ignores_non_session_files(self, helper):
-        """Test ignores files that don't match session pattern."""
+        """Test ignores files that don't match the timestamped session pattern.
+
+        Both unrelated files (e.g. ``readme.txt``) and non-timestamped session
+        files (e.g. ``session-1.json``) are excluded so test fixtures cannot
+        pollute the count.
+        """
         (helper.pause_dir / "readme.txt").write_text("test")
+        # Non-timestamped fixtures must be ignored
         (helper.pause_dir / "session-1.json").write_text("{}")
-        (helper.pause_dir / "session-2.json").write_text("{}")
+        (helper.pause_dir / "session-test.json").write_text("{}")
+        # Real timestamped sessions are counted
+        (helper.pause_dir / "session-20251101-120000.json").write_text("{}")
+        (helper.pause_dir / "session-20251102-120000.json").write_text("{}")
 
         assert helper.get_session_count() == 2
 
@@ -968,11 +983,13 @@ class TestListAllSessions:
         """Test returns all sessions sorted by modification time."""
         import time
 
-        # Create multiple sessions
-        for i in range(3):
-            session_file = helper.pause_dir / f"session-{i}.json"
+        # Create multiple sessions with timestamped names so the
+        # production filter accepts them.
+        session_ids = [f"session-2025110{i}-120000" for i in range(3)]
+        for sid in session_ids:
+            session_file = helper.pause_dir / f"{sid}.json"
             data = sample_session_data.copy()
-            data["session_id"] = f"session-{i}"
+            data["session_id"] = sid
             session_file.write_text(json.dumps(data))
             time.sleep(0.01)
 
@@ -980,12 +997,12 @@ class TestListAllSessions:
 
         assert len(sessions) == 3
         # Most recent first
-        assert sessions[0]["session_id"] == "session-2"
-        assert sessions[2]["session_id"] == "session-0"
+        assert sessions[0]["session_id"] == session_ids[2]
+        assert sessions[2]["session_id"] == session_ids[0]
 
     def test_includes_file_paths(self, helper, sample_session_data):
         """Test includes file_path in each session."""
-        session_file = helper.pause_dir / "session-test.json"
+        session_file = helper.pause_dir / "session-20251104-120000.json"
         session_file.write_text(json.dumps(sample_session_data))
 
         sessions = helper.list_all_sessions()
@@ -996,12 +1013,12 @@ class TestListAllSessions:
 
     def test_skips_corrupted_files(self, helper, sample_session_data):
         """Test skips corrupted files and continues."""
-        # Create valid session
-        valid_file = helper.pause_dir / "session-valid.json"
+        # Create valid session (timestamped)
+        valid_file = helper.pause_dir / "session-20251104-120000.json"
         valid_file.write_text(json.dumps(sample_session_data))
 
-        # Create corrupted session
-        corrupt_file = helper.pause_dir / "session-corrupt.json"
+        # Create corrupted session (also timestamped to pass filter)
+        corrupt_file = helper.pause_dir / "session-20251104-130000.json"
         corrupt_file.write_text("{ invalid }")
 
         with patch("claude_mpm.services.cli.session_resume_helper.logger"):
@@ -1014,7 +1031,8 @@ class TestListAllSessions:
     def test_handles_multiple_corrupted_files(self, helper):
         """Test handles multiple corrupted files gracefully."""
         for i in range(3):
-            session_file = helper.pause_dir / f"session-{i}.json"
+            # Use timestamped names so files pass the filter
+            session_file = helper.pause_dir / f"session-2025110{i}-120000.json"
             session_file.write_text("invalid json")
 
         with patch("claude_mpm.services.cli.session_resume_helper.logger"):
@@ -1146,12 +1164,19 @@ class TestEdgeCases:
                 assert "and 997 more" in result
 
     def test_session_file_with_special_characters(self, helper, sample_session_data):
-        """Test handles session files with special characters in name."""
-        # Note: glob pattern is fixed to "session-*.json", so this tests the constraint
+        """Test that non-timestamped session names (incl. special chars) are
+        rejected by the production filter to prevent fixture pollution."""
+        # The glob pattern is "session-*.json" but the regex filter only
+        # accepts session-YYYYMMDD-HHMMSS.json, so files with special
+        # characters in the name are intentionally rejected.
         session_file = helper.pause_dir / "session-special-🔐-name.json"
         session_file.write_text(json.dumps(sample_session_data))
 
-        # Should find it
+        assert helper.has_paused_sessions() is False
+
+        # Adding a real timestamped file is detected normally
+        real_file = helper.pause_dir / "session-20251104-120000.json"
+        real_file.write_text(json.dumps(sample_session_data))
         assert helper.has_paused_sessions() is True
 
     def test_empty_session_data_dict(self, helper):
@@ -1210,8 +1235,9 @@ class TestEdgeCases:
                 shutil.rmtree(helper.pause_dir)
             helper.pause_dir.symlink_to(actual_dir)
 
-            # Create session in actual directory
-            session_file = actual_dir / "session-test.json"
+            # Create timestamped session in actual directory so the
+            # production filter accepts it.
+            session_file = actual_dir / "session-20251104-120000.json"
             session_file.write_text("{}")
 
             # Should find it through symlink
