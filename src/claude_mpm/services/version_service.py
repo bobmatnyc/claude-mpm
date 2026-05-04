@@ -9,6 +9,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
 import importlib.metadata
+import time
 from datetime import UTC
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,17 @@ from typing import Any
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import VersionServiceInterface
+
+# Module-level cache for PyPI update checks.
+#
+# WHY: ``check_for_updates`` may be invoked multiple times per session
+# (doctor command, CLI startup, status banners). Hammering PyPI on every
+# call would slow things down and is unnecessary - releases are infrequent
+# enough that a 1 hour TTL is more than sufficient for surfacing update
+# notifications. We use a module-level dict (instead of a file) so the
+# cache is per-process and naturally cleared on restart.
+_UPDATE_CHECK_CACHE: dict[str, Any] = {}
+_UPDATE_CHECK_CACHE_TTL_SECONDS = 60 * 60  # 1 hour
 
 
 class VersionService(BaseService, VersionServiceInterface):
@@ -286,6 +298,28 @@ class VersionService(BaseService, VersionServiceInterface):
         checked_at = datetime.now(UTC).isoformat()
         pypi_url = "https://pypi.org/pypi/claude-mpm/json"
 
+        # Return cached result if still fresh (1 hour TTL). The cache is
+        # keyed by the installed version so a local upgrade invalidates
+        # any stale "update available" notice automatically.
+        cached = _UPDATE_CHECK_CACHE.get("entry")
+        if (
+            cached is not None
+            and cached.get("current_version") == current_version
+            and (time.monotonic() - cached.get("cached_at_monotonic", 0))
+            < _UPDATE_CHECK_CACHE_TTL_SECONDS
+        ):
+            # Return a copy without the internal cache metadata so callers
+            # see a stable public shape.
+            return {k: v for k, v in cached.items() if k != "cached_at_monotonic"}
+
+        def _cache_and_return(payload: dict[str, Any]) -> dict[str, Any]:
+            """Store ``payload`` in the module-level cache and return it."""
+            _UPDATE_CHECK_CACHE["entry"] = {
+                **payload,
+                "cached_at_monotonic": time.monotonic(),
+            }
+            return payload
+
         try:
             request = Request(
                 pypi_url,
@@ -296,27 +330,31 @@ class VersionService(BaseService, VersionServiceInterface):
 
             latest_version = payload.get("info", {}).get("version")
             if not latest_version:
-                return {
-                    "current_version": current_version,
-                    "latest_version": None,
-                    "update_available": False,
-                    "update_url": None,
-                    "message": "Could not check for updates: PyPI response missing version",
-                    "checked_at": checked_at,
-                }
+                return _cache_and_return(
+                    {
+                        "current_version": current_version,
+                        "latest_version": None,
+                        "update_available": False,
+                        "update_url": None,
+                        "message": "Could not check for updates: PyPI response missing version",
+                        "checked_at": checked_at,
+                    }
+                )
 
             try:
                 update_available = Version(latest_version) > Version(current_version)
             except InvalidVersion as e:
                 self.logger.warning(f"Invalid version encountered during compare: {e}")
-                return {
-                    "current_version": current_version,
-                    "latest_version": latest_version,
-                    "update_available": False,
-                    "update_url": None,
-                    "message": f"Could not check for updates: invalid version format ({e})",
-                    "checked_at": checked_at,
-                }
+                return _cache_and_return(
+                    {
+                        "current_version": current_version,
+                        "latest_version": latest_version,
+                        "update_available": False,
+                        "update_url": None,
+                        "message": f"Could not check for updates: invalid version format ({e})",
+                        "checked_at": checked_at,
+                    }
+                )
 
             if update_available:
                 message = f"Update available: {current_version} -> {latest_version}"
@@ -329,34 +367,43 @@ class VersionService(BaseService, VersionServiceInterface):
                 message = f"You are running the latest version ({current_version})"
                 update_url = None
 
-            return {
-                "current_version": current_version,
-                "latest_version": latest_version,
-                "update_available": update_available,
-                "update_url": update_url,
-                "message": message,
-                "checked_at": checked_at,
-            }
+            return _cache_and_return(
+                {
+                    "current_version": current_version,
+                    "latest_version": latest_version,
+                    "update_available": update_available,
+                    "update_url": update_url,
+                    "message": message,
+                    "checked_at": checked_at,
+                }
+            )
         except (URLError, TimeoutError, json.JSONDecodeError, OSError) as e:
             self.logger.debug(f"Update check failed: {e}")
-            return {
-                "current_version": current_version,
-                "latest_version": None,
-                "update_available": False,
-                "update_url": None,
-                "message": f"Could not check for updates: {e}",
-                "checked_at": checked_at,
-            }
+            # Cache failures too so a flaky network doesn't slam PyPI on
+            # every doctor run; the 1 hour TTL still gives users a chance
+            # to recover quickly once connectivity returns.
+            return _cache_and_return(
+                {
+                    "current_version": current_version,
+                    "latest_version": None,
+                    "update_available": False,
+                    "update_url": None,
+                    "message": f"Version check failed: {e}",
+                    "checked_at": checked_at,
+                }
+            )
         except Exception as e:
             self.logger.warning(f"Unexpected error checking for updates: {e}")
-            return {
-                "current_version": current_version,
-                "latest_version": None,
-                "update_available": False,
-                "update_url": None,
-                "message": f"Could not check for updates: {e}",
-                "checked_at": checked_at,
-            }
+            return _cache_and_return(
+                {
+                    "current_version": current_version,
+                    "latest_version": None,
+                    "update_available": False,
+                    "update_url": None,
+                    "message": f"Version check failed: {e}",
+                    "checked_at": checked_at,
+                }
+            )
 
     def get_agents_versions(self) -> dict[str, list[dict[str, str]]]:
         """Get all agents grouped by tier with versions.
