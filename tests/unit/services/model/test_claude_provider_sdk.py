@@ -101,7 +101,9 @@ async def test_analyze_content_calls_messages_create(provider):
     assert response.result == "ok"
     assert response.model == "claude-3-5-sonnet-20241022"
     fake_client.messages.create.assert_awaited_once()
-    call_kwargs = fake_client.messages.create.await_args.kwargs
+    call_args = fake_client.messages.create.await_args
+    assert call_args is not None
+    call_kwargs = call_args.kwargs
     assert call_kwargs["model"] == "claude-3-5-sonnet-20241022"
     assert call_kwargs["messages"][0]["role"] == "user"
 
@@ -123,10 +125,9 @@ async def test_analyze_content_uses_override_model(provider):
 
     assert response.success is True
     assert response.model == "claude-3-opus-20240229"
-    assert (
-        fake_client.messages.create.await_args.kwargs["model"]
-        == "claude-3-opus-20240229"
-    )
+    call_args = fake_client.messages.create.await_args
+    assert call_args is not None
+    assert call_args.kwargs["model"] == "claude-3-opus-20240229"
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +192,9 @@ async def test_count_tokens_returns_input_tokens(provider):
 
     assert count == 123
     fake_client.messages.count_tokens.assert_awaited_once()
-    kwargs = fake_client.messages.count_tokens.await_args.kwargs
+    call_args = fake_client.messages.count_tokens.await_args
+    assert call_args is not None
+    kwargs = call_args.kwargs
     assert kwargs["model"] == "claude-3-5-sonnet-20241022"
     assert kwargs["messages"] == [{"role": "user", "content": "hello world"}]
 
@@ -210,7 +213,9 @@ async def test_count_tokens_passes_system_prompt(provider):
     )
 
     assert count == 99
-    kwargs = fake_client.messages.count_tokens.await_args.kwargs
+    call_args = fake_client.messages.count_tokens.await_args
+    assert call_args is not None
+    kwargs = call_args.kwargs
     assert kwargs["model"] == "claude-3-5-haiku-20241022"
     assert kwargs["system"] == "You are a helpful bot."
 
