@@ -1726,6 +1726,60 @@ class EventHandlers:
             "", "task_completed", task_completed_data
         )
 
+    def handle_permission_request_fast(self, event):
+        """Handle PermissionRequest events.
+
+        WHY this exists:
+        - Surface tool-permission decisions on the dashboard for auditing.
+        - Provide a single source of truth for the policy decision so the
+          dashboard reflects what ``permission_policy.evaluate`` returned.
+        - Wire ``PermissionRequest`` into the hook dispatch table (#421); the
+          actual allow/deny decision is rendered by ``model_tier_hook.py`` and
+          consumed by Claude Code.
+
+        The handler does NOT modify the harness's permission decision — that
+        contract belongs to ``model_tier_hook.py`` so the response can be
+        emitted before the dashboard event is dispatched. Returning ``None``
+        here keeps the dispatcher happy.
+        """
+        # Lazy import to keep startup paths cheap and avoid circular imports
+        # (hook_handler imports event_handlers which would otherwise pull in
+        # the policy engine on every hook invocation).
+        try:
+            from claude_mpm.hooks import permission_policy
+        except Exception as exc:  # pragma: no cover - defensive
+            _log(f"PermissionRequest: failed to import permission_policy: {exc}")
+            return
+
+        decision = permission_policy.evaluate(event)
+        tool_name = event.get("tool_name", "")
+        tool_input = event.get("tool_input", {}) or {}
+
+        permission_data = {
+            "session_id": event.get("session_id", ""),
+            "working_directory": event.get("cwd", ""),
+            "tool_name": tool_name,
+            "decision": decision.decision,
+            "reason": decision.reason,
+            "agent_id": event.get("agent_id")
+            or event.get("subagent_type")
+            or event.get("agent_type", ""),
+            "timestamp": datetime.now(UTC).isoformat(),
+            "hook_event_name": "PermissionRequest",
+            # Truncate tool input to keep dashboard payload bounded.
+            "tool_input_preview": str(tool_input)[:500],
+        }
+
+        _log(
+            f"Hook handler: PermissionRequest - tool='{tool_name}', "
+            f"decision='{decision.decision}', reason='{decision.reason}'"
+        )
+
+        self.hook_handler._emit_socketio_event(
+            "", "permission_request", permission_data
+        )
+        return
+
     def _scan_for_delegation_patterns(self, event):
         """Scan assistant response for delegation anti-patterns.
 
