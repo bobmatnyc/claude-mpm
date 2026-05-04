@@ -24,6 +24,8 @@ RECOMMENDED MODELS (from research):
 - General: gemma2:9b (good default balance)
 """
 
+import json
+from collections.abc import Callable
 from typing import Any
 
 import aiohttp
@@ -234,10 +236,13 @@ class OllamaProvider(BaseModelProvider):
             **kwargs: Additional options:
                 - temperature: Sampling temperature (0.0-1.0)
                 - max_tokens: Maximum response tokens
-                - stream: Enable streaming (not yet implemented)
+                - stream: Enable streaming via NDJSON async iteration (default: True)
+                - stream_callback: Optional callable invoked with each token
+                  (signature: callback(token: str) -> None). When provided,
+                  streaming is automatically enabled.
 
         Returns:
-            ModelResponse with analysis results
+            ModelResponse with analysis results (full accumulated text)
         """
         # Validate content
         if not self.validate_content(content, max_length=100000):
@@ -308,11 +313,21 @@ class OllamaProvider(BaseModelProvider):
             ModelResponse
         """
         try:
+            # Determine streaming mode
+            # Stream by default for better latency; callers can opt out with stream=False.
+            # If a stream_callback is provided, streaming is forced on regardless.
+            stream_callback: Callable[[str], None] | None = kwargs.get(
+                "stream_callback"
+            )
+            stream_enabled = bool(kwargs.get("stream", True)) or (
+                stream_callback is not None
+            )
+
             # Prepare request
             payload = {
                 "model": model,
                 "prompt": prompt,
-                "stream": False,  # TODO: Implement streaming
+                "stream": stream_enabled,
                 "options": {},
             }
 
@@ -327,33 +342,39 @@ class OllamaProvider(BaseModelProvider):
                 f"{self.host}/api/generate",
                 json=payload,
             ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    result_text = data.get("response", "")
-
-                    # Extract metadata
-                    metadata = {
-                        "model": model,
-                        "total_duration": data.get("total_duration", 0)
-                        / 1e9,  # ns to s
-                        "load_duration": data.get("load_duration", 0) / 1e9,
-                        "prompt_eval_count": data.get("prompt_eval_count", 0),
-                        "eval_count": data.get("eval_count", 0),
-                    }
-
+                if response.status != 200:
+                    error_text = await response.text()
                     return self.create_response(
-                        success=True,
+                        success=False,
                         model=model,
                         task=task,
-                        result=result_text,
-                        metadata=metadata,
+                        error=(f"Ollama API error {response.status}: {error_text}"),
                     )
-                error_text = await response.text()
+
+                if stream_enabled:
+                    return await self._consume_stream(
+                        response, model, task, stream_callback
+                    )
+
+                # Non-streaming path (backward compatible)
+                data = await response.json()
+                result_text = data.get("response", "")
+
+                metadata = {
+                    "model": model,
+                    "total_duration": data.get("total_duration", 0) / 1e9,  # ns to s
+                    "load_duration": data.get("load_duration", 0) / 1e9,
+                    "prompt_eval_count": data.get("prompt_eval_count", 0),
+                    "eval_count": data.get("eval_count", 0),
+                    "streamed": False,
+                }
+
                 return self.create_response(
-                    success=False,
+                    success=True,
                     model=model,
                     task=task,
-                    error=f"Ollama API error {response.status}: {error_text}",
+                    result=result_text,
+                    metadata=metadata,
                 )
 
         except TimeoutError:
@@ -370,6 +391,92 @@ class OllamaProvider(BaseModelProvider):
                 task=task,
                 error=f"Request failed: {e!s}",
             )
+
+    async def _consume_stream(
+        self,
+        response: aiohttp.ClientResponse,
+        model: str,
+        task: ModelCapability,
+        stream_callback: Callable[[str], None] | None = None,
+    ) -> ModelResponse:
+        """
+        Consume Ollama's NDJSON streaming response.
+
+        WHY: Ollama streams `/api/generate` with `stream=true` as newline-delimited
+        JSON objects. Each line is a partial chunk with a `response` token. The
+        final line contains `done=true` along with timing metadata. We accumulate
+        all tokens into a single ModelResponse for backward-compatible callers
+        while optionally invoking `stream_callback` per token for live consumers.
+
+        Args:
+            response: Open aiohttp response (status 200 confirmed by caller).
+            model: Model name used for the request.
+            task: Task capability for response metadata.
+            stream_callback: Optional callable invoked per token.
+
+        Returns:
+            ModelResponse with the accumulated text and final-chunk metadata.
+        """
+        accumulated: list[str] = []
+        final_chunk: dict[str, Any] = {}
+        chunk_count = 0
+
+        # Iterate NDJSON lines from the response body.
+        async for raw_line in response.content:
+            if not raw_line:
+                continue
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            try:
+                chunk = json.loads(line)
+            except json.JSONDecodeError as e:
+                self.log_warning(f"Skipping invalid NDJSON chunk: {e}")
+                continue
+
+            # Some chunks may carry an error payload mid-stream.
+            if "error" in chunk:
+                return self.create_response(
+                    success=False,
+                    model=model,
+                    task=task,
+                    error=f"Ollama stream error: {chunk['error']}",
+                )
+
+            token = chunk.get("response", "")
+            if token:
+                accumulated.append(token)
+                chunk_count += 1
+                if stream_callback is not None:
+                    try:
+                        stream_callback(token)
+                    except Exception as cb_err:
+                        # Callback failures must not break streaming.
+                        self.log_warning(f"stream_callback raised: {cb_err}")
+
+            if chunk.get("done"):
+                final_chunk = chunk
+                break
+
+        result_text = "".join(accumulated)
+        metadata = {
+            "model": model,
+            "total_duration": final_chunk.get("total_duration", 0) / 1e9,
+            "load_duration": final_chunk.get("load_duration", 0) / 1e9,
+            "prompt_eval_count": final_chunk.get("prompt_eval_count", 0),
+            "eval_count": final_chunk.get("eval_count", 0),
+            "streamed": True,
+            "stream_chunks": chunk_count,
+        }
+
+        return self.create_response(
+            success=True,
+            model=model,
+            task=task,
+            result=result_text,
+            metadata=metadata,
+        )
 
     async def get_model_info(self, model: str) -> dict[str, Any]:
         """
