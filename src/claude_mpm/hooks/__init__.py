@@ -1,5 +1,6 @@
 """Hook system for claude-mpm."""
 
+from . import permission_policy
 from .base_hook import BaseHook, HookContext, HookResult, HookType
 from .failure_learning import (
     FailureDetectionHook,
@@ -40,5 +41,6 @@ __all__ = [
     "get_message_check_hook",
     "get_session_resume_hook",
     "message_check_hook",
+    "permission_policy",
     "trigger_session_resume_check",
 ]
