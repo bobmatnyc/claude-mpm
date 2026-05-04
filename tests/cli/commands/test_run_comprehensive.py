@@ -286,7 +286,7 @@ class TestDependencyChecking:
     @patch("claude_mpm.utils.dependency_cache.SmartDependencyChecker")
     @patch("claude_mpm.utils.environment_context.should_prompt_for_dependencies")
     def test_handle_dependencies_no_check_needed(
-        self, _mock_should_prompt, mock_checker_class, mock_loader_class
+        self, mock_should_prompt, mock_checker_class, mock_loader_class
     ):
         """Test when no dependency check is needed."""
         command = RunCommand()
@@ -310,7 +310,7 @@ class TestDependencyChecking:
     @patch("claude_mpm.utils.environment_context.should_prompt_for_dependencies")
     @patch("builtins.input", return_value="y")
     def test_handle_dependencies_with_missing_and_prompt(
-        self, _mock_input, mock_should_prompt, mock_checker_class, mock_loader_class
+        self, mock_input, mock_should_prompt, mock_checker_class, mock_loader_class
     ):
         """Test handling missing dependencies with user prompt."""
         command = RunCommand()
