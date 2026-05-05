@@ -753,3 +753,151 @@ class TestConsecutiveToolCallDetection:
         events = _make_tool_events(["Write", "Write", "Agent", "Write", "Write"])
         self._run_check(agent, events)
         assert "consecutive_write" not in agent._warnings_sent
+
+
+# ---------------------------------------------------------------------------
+# Auto-postmortem tests (session stop and critical context threshold)
+# ---------------------------------------------------------------------------
+
+
+class TestAutoPostmortem:
+    """Tests for the auto-postmortem trigger (issue #361)."""
+
+    def test_postmortem_triggered_on_stop(self) -> None:
+        """stop() should fire a postmortem with reason='stop'."""
+        agent = MonitorAgent(MonitorConfig(poll_interval=0.05))
+        agent.start()
+        with patch.object(agent, "_run_postmortem") as mock_run:
+            agent.stop()
+        mock_run.assert_called_once_with("stop")
+        assert "stop" in agent._postmortem_triggered
+
+    def test_postmortem_triggered_on_critical_context(self) -> None:
+        """Crossing the auto_pause_threshold (>=95%) should fire a postmortem."""
+        agent, _mock_bus = _make_agent_with_mock_bus()
+        # 95% of 200_000 = 190_000 tokens
+        state = _make_state(tokens_used=190_000)
+        with patch.object(agent, "_run_postmortem") as mock_run:
+            agent._check_context_pressure(state)
+        mock_run.assert_called_once_with("critical_context")
+        assert "critical_context" in agent._postmortem_triggered
+
+    def test_postmortem_not_triggered_below_critical(self) -> None:
+        """Below the critical threshold, no postmortem fires."""
+        agent, _mock_bus = _make_agent_with_mock_bus()
+        # 80% -- triggers warning but NOT postmortem
+        state = _make_state(tokens_used=160_000)
+        with patch.object(agent, "_run_postmortem") as mock_run:
+            agent._check_context_pressure(state)
+        mock_run.assert_not_called()
+        assert "critical_context" not in agent._postmortem_triggered
+
+    def test_postmortem_idempotent_per_reason(self) -> None:
+        """Same reason fires only once per session."""
+        agent, _mock_bus = _make_agent_with_mock_bus()
+        with patch.object(agent, "_run_postmortem") as mock_run:
+            agent._trigger_postmortem("stop")
+            agent._trigger_postmortem("stop")
+            agent._trigger_postmortem("stop")
+        # Only one thread spawned -> _run_postmortem invoked once
+        assert mock_run.call_count == 1
+
+    def test_postmortem_runs_in_background_thread(self) -> None:
+        """Postmortem must be non-blocking (spawns daemon thread)."""
+        agent = MonitorAgent()
+        # Use a real (slow) target to verify threading -- block on event so we
+        # can assert the trigger returned before the postmortem completes.
+        block = threading.Event()
+        finished = threading.Event()
+
+        def slow_postmortem(reason: str) -> None:
+            block.wait(timeout=2.0)
+            finished.set()
+
+        with patch.object(agent, "_run_postmortem", side_effect=slow_postmortem):
+            agent._trigger_postmortem("stop")
+            # Trigger returned -- postmortem still running
+            assert not finished.is_set()
+            # Unblock and let it finish
+            block.set()
+            # Wait briefly for the daemon thread
+            for _ in range(50):
+                if finished.is_set():
+                    break
+                time.sleep(0.02)
+        assert finished.is_set()
+
+    def test_postmortem_failure_does_not_crash_monitor(self) -> None:
+        """If PostmortemService raises, the error is caught and logged."""
+        agent = MonitorAgent()
+
+        def boom() -> None:
+            raise RuntimeError("postmortem exploded")
+
+        with patch(
+            "claude_mpm.services.analysis.postmortem_service.get_postmortem_service"
+        ) as mock_get:
+            mock_service = MagicMock()
+            mock_service.analyze_session.side_effect = boom
+            mock_get.return_value = mock_service
+
+            # Should NOT raise
+            agent._run_postmortem("stop")
+
+    def test_save_failure_does_not_crash_monitor(self) -> None:
+        """If saving the report raises, the error is caught and logged."""
+        agent = MonitorAgent()
+        bad_report = MagicMock()
+
+        with patch(
+            "claude_mpm.services.analysis.postmortem_reporter.PostmortemReporter",
+            side_effect=OSError("disk full"),
+        ):
+            # Should NOT raise
+            agent._save_postmortem_report(bad_report, "stop")
+
+    def test_thread_spawn_failure_handled(self) -> None:
+        """If threading.Thread itself fails, no exception escapes."""
+        agent = MonitorAgent()
+        with patch(
+            "claude_mpm.services.agents.monitor_agent.threading.Thread",
+            side_effect=RuntimeError("cannot spawn"),
+        ):
+            # Should NOT raise
+            agent._trigger_postmortem("stop")
+        # Reason still recorded so we don't retry forever
+        assert "stop" in agent._postmortem_triggered
+
+    def test_stop_without_start_still_triggers_postmortem(self) -> None:
+        """Calling stop() before start() should still attempt postmortem."""
+        agent = MonitorAgent()
+        with patch.object(agent, "_run_postmortem") as mock_run:
+            agent.stop()
+        mock_run.assert_called_once_with("stop")
+
+    def test_postmortem_saves_to_file(self, tmp_path) -> None:
+        """End-to-end: _save_postmortem_report writes a markdown file."""
+        agent = MonitorAgent()
+
+        # Build a minimal real report-like object
+        from datetime import UTC, datetime
+
+        from claude_mpm.services.analysis.postmortem_service import PostmortemReport
+
+        report = PostmortemReport(
+            session_id="test-session-123",
+            start_time=datetime.now(UTC),
+            duration_seconds=42.0,
+            total_errors=0,
+        )
+
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            agent._save_postmortem_report(report, "stop")
+
+        # A markdown file should exist under tmp_path/.claude-mpm/postmortems/
+        out_dir = tmp_path / ".claude-mpm" / "postmortems"
+        assert out_dir.exists()
+        files = list(out_dir.glob("*.md"))
+        assert len(files) == 1
+        assert "test-session-123" in files[0].name
+        assert files[0].name.endswith("-stop.md")
