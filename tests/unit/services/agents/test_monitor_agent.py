@@ -809,6 +809,7 @@ class TestAutoPostmortem:
         finished = threading.Event()
 
         def slow_postmortem(_reason: str) -> None:
+            del _reason
             block.wait(timeout=2.0)
             finished.set()
 
