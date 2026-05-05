@@ -160,11 +160,26 @@ class ModelConfigManager:
         claude_config = manager.get_claude_config(config)
     """
 
+    # Configuration paths in priority order: LOWEST priority first,
+    # HIGHEST priority last. When merging, later entries override earlier
+    # entries, so project-level configs (earlier in this list) are overlaid
+    # onto user-level configs (later in this list).
+    #
+    # WHY (layered deep-merge): Previously this list was used with a
+    # "first file wins" strategy where the first matching file fully
+    # replaced all others. That meant a project-level config had to
+    # replicate the entire user-level config to override even a single
+    # key. With layered deep-merge, project configs can selectively
+    # override individual keys (including nested keys like
+    # ``models.planning``) without wiping unrelated user-level settings.
     DEFAULT_CONFIG_PATHS = [
-        ".claude/configuration.yaml",
-        "configuration.yaml",
-        ".claude-mpm/configuration.yaml",
+        # User-level (lowest priority - loaded first, overridden by others)
         str(Path("~/.claude-mpm/configuration.yaml").expanduser()),
+        # Project-level fallbacks
+        ".claude-mpm/configuration.yaml",
+        "configuration.yaml",
+        # Project-level (highest priority - loaded last, overrides user)
+        ".claude/configuration.yaml",
     ]
 
     @staticmethod
@@ -172,16 +187,24 @@ class ModelConfigManager:
         config_path: str | None = None,
     ) -> ModelProviderConfig:
         """
-        Load model configuration from file and environment.
+        Load model configuration from file(s) and environment.
 
         WHY: Supports multiple configuration sources with priority:
-        1. Explicit config_path parameter
-        2. Environment variables
-        3. Configuration file
+        1. Explicit config_path parameter (replaces all file layers)
+        2. Environment variables (override file layers)
+        3. Layered deep-merge of default config files (project overlays user)
         4. Default values
 
+        LAYERED DEEP-MERGE BEHAVIOR:
+        When ``config_path`` is not provided, ALL files in
+        :data:`DEFAULT_CONFIG_PATHS` that exist are loaded and deep-merged
+        in priority order. Higher-priority files override individual keys
+        in lower-priority files without wiping sibling keys. Nested dicts
+        merge recursively; lists are replaced (not concatenated).
+
         Args:
-            config_path: Optional path to configuration file
+            config_path: Optional explicit path to a single configuration
+                file. When provided, only this file is loaded (no layering).
 
         Returns:
             ModelProviderConfig with merged settings
@@ -190,17 +213,21 @@ class ModelConfigManager:
 
         # Try to load from file
         if config_path and Path(config_path).exists():
+            # Explicit path: single-file load, no layering.
             config_data = ModelConfigManager._load_yaml_file(config_path)
         else:
-            # Try default paths
+            # Layered deep-merge: iterate from lowest to highest priority,
+            # merging each existing file on top of the accumulated result.
             for default_path in ModelConfigManager.DEFAULT_CONFIG_PATHS:
                 if Path(default_path).exists():
-                    config_data = ModelConfigManager._load_yaml_file(default_path)
-                    break
+                    layer = ModelConfigManager._load_yaml_file(default_path)
+                    config_data = ModelConfigManager._deep_merge(config_data, layer)
 
         # Extract content_agent section if present
         if "content_agent" in config_data:
-            config_data = config_data["content_agent"]
+            content_agent = config_data["content_agent"]
+            if isinstance(content_agent, dict):
+                config_data = content_agent
 
         # Override with environment variables
         config_data = ModelConfigManager._apply_env_overrides(config_data)
@@ -212,6 +239,45 @@ class ModelConfigManager:
             # If validation fails, return default config
             print(f"Warning: Failed to load config: {e}. Using defaults.")
             return ModelProviderConfig()
+
+    @staticmethod
+    def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+        """
+        Recursively deep-merge ``overlay`` onto ``base``.
+
+        WHY: Enables layered configuration where higher-priority configs
+        override individual keys in lower-priority configs without
+        replacing entire nested structures. For example, a project-level
+        config can override ``models.planning`` while preserving all
+        other keys under ``models`` defined at the user level.
+
+        MERGE RULES:
+        - Scalar values (str, int, float, bool, None): overlay wins
+        - Dicts: recurse - merge keys, overlay wins on conflict
+        - Lists: overlay replaces base (no concatenation)
+        - Type mismatch (e.g. dict vs scalar): overlay wins
+
+        Args:
+            base: Lower-priority dict (will not be mutated)
+            overlay: Higher-priority dict (will not be mutated)
+
+        Returns:
+            New dict containing the merged result. Inputs are not modified.
+        """
+        result: dict[str, Any] = dict(base)
+
+        for key, overlay_value in overlay.items():
+            base_value = result.get(key)
+            if isinstance(base_value, dict) and isinstance(overlay_value, dict):
+                # Both dicts: recurse for nested merge.
+                result[key] = ModelConfigManager._deep_merge(base_value, overlay_value)
+            else:
+                # Scalar, list, or type mismatch: overlay wins as-is.
+                # Lists are intentionally replaced (not concatenated) to
+                # avoid surprising behavior with ordered/unique lists.
+                result[key] = overlay_value
+
+        return result
 
     @staticmethod
     def _load_yaml_file(path: str) -> dict[str, Any]:
