@@ -1,3 +1,48 @@
+## v6.2.63 (2026-05-04)
+
+### Feat
+
+- **hooks**: register context circuit-breaker in settings.json (#420)
+- **hooks**: emit hookSpecificOutput envelope from PreToolUse dispatch (#420)
+- **hooks**: wire context circuit-breaker into PreToolUse dispatch (#420)
+- **hooks**: add PreToolUse deny circuit-breaker for critical context (#420)
+- **agents**: add OpenRouter-backed independent code reviewer agent (#362)
+- **model**: register OpenRouter provider in model router (#362)
+- **model**: add OpenRouter provider with streaming support (#362)
+- **monitor**: wire PostmortemService on session stop and critical context threshold (#361)
+- **config**: implement layered deep-merge for per-project configuration override
+- **hooks**: wire PermissionRequest into hook dispatch table (#421)
+- **hooks**: add handle_permission_request_fast for dashboard audit (#421)
+- **hooks**: wire PermissionRequest dispatch in model_tier_hook (#421)
+- **hooks**: add PermissionRequest decision engine (#421)
+- **model**: implement Ollama streaming via NDJSON async iteration
+- **sdk**: stream PM SDK events to dashboard via SDKEventBridge
+- **sdk**: add attach_bridge_to_emitter to wire bridge to dashboard
+- **model**: implement Anthropic SDK client in claude_provider.py (#475)
+- add POST /api/upgrade endpoint to SocketIOServerCore
+
+### Fix
+
+- **types**: use **_ to discard unused kwargs in mock generators
+- **types**: rename unused mock params to **_kwargs to satisfy Pyright
+- **types**: suppress unused param warnings in mock generators with noqa
+- **types**: suppress unused _reason param warning in test_monitor_agent
+- **types**: remove unused imports and variables in test_monitor_agent
+- **types**: align _log fallback signature, str-cast search_paths, guard response_tracker None
+- **types**: explicitly re-export permission_policy.evaluate from hooks package
+- **types**: correct _read_hook_event return type to Optional[dict]
+- **types**: add auto_pause_handler attribute to ResponseTrackingManager
+- **types**: resolve import and CorrelationManager type errors in hook_handler
+- **types**: re-export permission_policy from hooks package init
+- **types**: remove unused ModelResponse import in test_ollama_provider
+- **types**: guard Optional ClientSession before .post() in ollama_provider
+- **types**: resolve Pyright static-analysis errors in interactive_session.py
+- **types**: resolve remaining aiohttp web optional-access errors in core.py
+- **tests**: guard call_args None in test_claude_provider_sdk
+- **tests**: correct mock callability in test_upgrade_endpoint.py
+- **types**: add None guards for optional attributes in socketio core.py
+- **agents**: correct 4-level cache path traversal in list_cached_agents (#449)
+
 ## v6.2.62 (2026-05-04)
 
 ### Feat
