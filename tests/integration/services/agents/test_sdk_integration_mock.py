@@ -160,7 +160,7 @@ class TestMockSimpleQueryReturnsResult:
             assistant_msg = _real_assistant_message(text_block)
             result_msg = _real_result_message(session_id="sess-test-1")
 
-            async def _fake_query(prompt: str, options: Any):  # noqa: ANN401
+            async def _fake_query(prompt: str, options: Any):  # noqa: ANN401, ARG001, ANN201
                 yield assistant_msg
                 yield result_msg
 
@@ -193,7 +193,7 @@ class TestMockSessionIdReturned:
             assistant_msg = _real_assistant_message(text_block)
             result_msg = _real_result_message(session_id=expected_session_id)
 
-            async def _fake_query(prompt: str, options: Any):  # noqa: ANN401
+            async def _fake_query(prompt: str, options: Any):  # noqa: ANN401, ARG001, ANN201
                 yield assistant_msg
                 yield result_msg
 
@@ -233,7 +233,7 @@ class TestMockEventBridgeCapturesEvents:
                 duration_ms=250,
             )
 
-            async def _fake_query(prompt: str, options: Any):  # noqa: ANN401
+            async def _fake_query(prompt: str, options: Any):  # noqa: ANN401, ARG001, ANN201
                 yield assistant_msg
                 yield result_msg
 
