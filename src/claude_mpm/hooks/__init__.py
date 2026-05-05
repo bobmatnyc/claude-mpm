@@ -1,6 +1,6 @@
 """Hook system for claude-mpm."""
 
-from . import permission_policy
+from . import context_circuit_breaker, permission_policy
 from .base_hook import BaseHook, HookContext, HookResult, HookType
 from .failure_learning import (
     FailureDetectionHook,
@@ -33,6 +33,7 @@ __all__ = [
     "KuzuResponseHook",
     "LearningExtractionHook",
     "SessionResumeStartupHook",
+    "context_circuit_breaker",
     "evaluate_permission",
     "get_failure_detection_hook",
     "get_fix_detection_hook",
