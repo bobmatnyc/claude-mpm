@@ -160,7 +160,7 @@ class TestMockSimpleQueryReturnsResult:
             assistant_msg = _real_assistant_message(text_block)
             result_msg = _real_result_message(session_id="sess-test-1")
 
-            async def _fake_query(**_kwargs: Any):  # type: ignore[no-untyped-def]
+            async def _fake_query(**_: Any):  # type: ignore[no-untyped-def]
                 yield assistant_msg
                 yield result_msg
 
@@ -193,7 +193,7 @@ class TestMockSessionIdReturned:
             assistant_msg = _real_assistant_message(text_block)
             result_msg = _real_result_message(session_id=expected_session_id)
 
-            async def _fake_query(**_kwargs: Any):  # type: ignore[no-untyped-def]
+            async def _fake_query(**_: Any):  # type: ignore[no-untyped-def]
                 yield assistant_msg
                 yield result_msg
 
@@ -233,7 +233,7 @@ class TestMockEventBridgeCapturesEvents:
                 duration_ms=250,
             )
 
-            async def _fake_query(**_kwargs: Any):  # type: ignore[no-untyped-def]
+            async def _fake_query(**_: Any):  # type: ignore[no-untyped-def]
                 yield assistant_msg
                 yield result_msg
 
