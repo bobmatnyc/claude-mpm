@@ -376,7 +376,7 @@ class ClaudeHookHandler:
         """
         _continue_sent = False  # Track if continue has been sent
 
-        def timeout_handler(signum, frame):
+        def timeout_handler(_signum, _frame):
             """Handle timeout by forcing exit."""
             nonlocal _continue_sent
             _log(f"Hook handler timeout (pid: {os.getpid()})")
@@ -823,7 +823,7 @@ def main():
         print(json.dumps({"continue": True}), flush=True)
         sys.exit(0)
 
-    def cleanup_handler(signum=None, frame=None):
+    def cleanup_handler(signum=None, _frame=None):
         """Cleanup handler for signals and exit."""
         nonlocal _continue_printed
         _log(f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})")
