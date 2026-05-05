@@ -340,6 +340,29 @@ class EventHandlers:
         - Provides context about what Claude is about to do
         - Enables pattern analysis and security monitoring
         """
+        # Context circuit-breaker: deny tool calls when context >= 95% (issue
+        # #420).  Run BEFORE any other PreToolUse work so a critical-context
+        # session aborts cleanly instead of doing extra observability work
+        # that pushes us further over the limit.  Failures here must fail
+        # open -- the breaker module already swallows errors internally, but
+        # we wrap the import too in case the module itself is unavailable.
+        try:
+            from claude_mpm.hooks import context_circuit_breaker
+
+            cb_decision = context_circuit_breaker.evaluate(event)
+        except Exception:
+            cb_decision = {}
+        if cb_decision.get("permissionDecision") == "deny":
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": cb_decision.get(
+                        "permissionDecisionReason", ""
+                    ),
+                }
+            }
+
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
         if DEBUG:
@@ -419,6 +442,10 @@ class EventHandlers:
                 _log(
                     f"  - Emitted todo_updated event with {len(tool_params['todos'])} todos for session {session_id[:8]}..."
                 )
+
+        # Normal path: no input modification, no deny -- caller treats this
+        # as a plain "continue" (see hook_handler._route_event return logic).
+        return None
 
     def _handle_task_delegation(
         self, tool_input: dict, pre_tool_data: dict, session_id: str
