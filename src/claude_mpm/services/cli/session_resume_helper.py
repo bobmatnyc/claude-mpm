@@ -24,6 +24,11 @@ from typing import Any
 # Excludes test fixtures like session-test.json, session-valid.json, session-0.json
 _TIMESTAMPED_SESSION_RE = re.compile(r"^session-\d{8}-\d{6}\.json$")
 
+# Matches real timestamped .md-only session filenames: session-YYYYMMDD-HHMMSS.md
+# These are sessions written by older code or interrupted writes that lack the
+# authoritative .json sibling but still contain useful resume context.
+_TIMESTAMPED_SESSION_MD_RE = re.compile(r"^session-\d{8}-\d{6}\.md$")
+
 from claude_mpm.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,6 +48,151 @@ class SessionResumeHelper:
         self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
         # Legacy location for backward compatibility (also project-local)
         self.legacy_pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
+
+    def _find_md_only_sessions(self, directory: Path) -> list[Path]:
+        """Find timestamped .md session files lacking a .json counterpart.
+
+        Normal session pauses write three sibling files atomically (.json, .yaml,
+        .md). If only the .md file exists, the session is from older code or an
+        interrupted write — we still want users to be able to see and resume it.
+
+        Args:
+            directory: Directory to scan for .md-only sessions.
+
+        Returns:
+            List of Path objects for timestamped .md session files that have no
+            corresponding .json file in the same directory.
+        """
+        if not directory.exists():
+            return []
+
+        md_only: list[Path] = []
+        for md_path in directory.glob("session-*.md"):
+            if not _TIMESTAMPED_SESSION_MD_RE.match(md_path.name):
+                continue
+            # Skip if a sibling .json exists — the .json is authoritative and
+            # will be picked up by the regular .json scan.
+            if md_path.with_suffix(".json").exists():
+                continue
+            md_only.append(md_path)
+
+        if md_only:
+            logger.warning(
+                "Found .md-only session(s) with no .json counterpart "
+                "(may be from older code or interrupted write): %s",
+                ", ".join(p.name for p in md_only),
+            )
+
+        return md_only
+
+    def _parse_md_session(self, path: Path) -> dict[str, Any] | None:
+        """Parse a markdown session file into a session-data dictionary.
+
+        Supports two markdown formats observed in the wild:
+
+        1. Structured format (modern, written alongside .json):
+           ``## Session Metadata`` section with ``**Session ID**: ...``,
+           ``**Paused At**: ...``, ``**Project**: ...`` lines, plus a
+           ``## What You Were Working On`` section with a ``**Summary**:``
+           paragraph, and ``## Git Context`` with branch + recent commits.
+
+        2. Legacy/freeform format (older, .md-only):
+           ``# <Title>`` with ``**Paused**: <human-readable timestamp>``,
+           ``## Accomplishments`` bullet list, etc. We extract whatever we can.
+
+        Args:
+            path: Absolute path to the .md session file.
+
+        Returns:
+            Session data dictionary compatible with the rest of the helper
+            (keys: ``session_id``, ``paused_at``, ``project_path``,
+            ``conversation`` with ``summary``/``accomplishments``/``next_steps``,
+            and ``file_path``), or ``None`` if the file cannot be read.
+        """
+        try:
+            content = path.read_text(encoding="utf-8")
+        except Exception as e:
+            logger.error(f"Failed to read .md session {path}: {e}")
+            return None
+
+        session_id = path.stem  # session-YYYYMMDD-HHMMSS
+        data: dict[str, Any] = {
+            "session_id": session_id,
+            "paused_at": "",
+            "project_path": "",
+            "conversation": {
+                "summary": "",
+                "accomplishments": [],
+                "next_steps": [],
+            },
+            "git_context": {},
+            "_md_only": True,  # Marker so callers know this lacks full data
+        }
+
+        # Try structured format first: **Session ID**: `...`, **Paused At**: ...
+        session_id_match = re.search(r"\*\*Session ID\*\*:\s*`?([^`\n]+)`?", content)
+        if session_id_match:
+            data["session_id"] = session_id_match.group(1).strip()
+
+        paused_at_match = re.search(r"\*\*Paused At\*\*:\s*([^\n]+)", content)
+        if paused_at_match:
+            data["paused_at"] = paused_at_match.group(1).strip()
+        else:
+            # Legacy format: **Paused**: <human-readable date>
+            paused_match = re.search(r"\*\*Paused\*\*:\s*([^\n]+)", content)
+            if paused_match:
+                data["paused_at"] = paused_match.group(1).strip()
+
+        project_match = re.search(r"\*\*Project\*\*:\s*`?([^`\n]+)`?", content)
+        if project_match:
+            data["project_path"] = project_match.group(1).strip()
+
+        # Summary: paragraph following "**Summary**:" line under any heading
+        summary_match = re.search(
+            r"\*\*Summary\*\*:\s*\n+([^\n][^\n]*(?:\n(?!\n)[^\n]+)*)",
+            content,
+        )
+        if summary_match:
+            data["conversation"]["summary"] = summary_match.group(1).strip()
+        else:
+            # Legacy: take the first non-empty paragraph after the title line
+            # if no summary section exists. This is best-effort.
+            lines = [line.strip() for line in content.splitlines()]
+            for i, line in enumerate(lines):
+                if line.startswith("# ") and not line.startswith("## "):
+                    # Title line — use it as a fallback summary
+                    data["conversation"]["summary"] = line.lstrip("# ").strip()
+                    break
+
+        # Accomplishments: bullet list under ## Accomplishments (any suffix)
+        accomp_section = re.search(
+            r"##\s+Accomplishments[^\n]*\n+((?:.*?\n)*?)(?=\n##\s|\Z)",
+            content,
+            re.DOTALL,
+        )
+        if accomp_section:
+            bullets = re.findall(
+                r"^\s*[-*]\s+(.+)$", accomp_section.group(1), re.MULTILINE
+            )
+            data["conversation"]["accomplishments"] = [b.strip() for b in bullets]
+
+        # Next steps: bullet list under common section names
+        next_section = re.search(
+            r"##\s+(?:Next Steps|To Resume|Remaining Work|To Verify[^\n]*)\n+"
+            r"((?:.*?\n)*?)(?=\n##\s|\Z)",
+            content,
+            re.DOTALL,
+        )
+        if next_section:
+            bullets = re.findall(
+                r"^\s*(?:[-*]|\d+\.)\s+(?:\[[ x]\]\s+)?(.+)$",
+                next_section.group(1),
+                re.MULTILINE,
+            )
+            data["conversation"]["next_steps"] = [b.strip() for b in bullets]
+
+        data["file_path"] = path
+        return data
 
     def has_paused_sessions(self) -> bool:
         """Check if there are any paused sessions.
@@ -73,7 +223,15 @@ class SessionResumeHelper:
                 if _TIMESTAMPED_SESSION_RE.match(p.name)
             )
 
-        return len(session_files) > 0
+        if session_files:
+            return True
+
+        # No .json sessions — fall back to .md-only sessions so users still
+        # see legacy/interrupted sessions in resume prompts and listings.
+        md_only = self._find_md_only_sessions(
+            self.pause_dir
+        ) + self._find_md_only_sessions(self.legacy_pause_dir)
+        return len(md_only) > 0
 
     def get_most_recent_session(self) -> dict[str, Any] | None:
         """Get the most recent paused session.
@@ -96,25 +254,40 @@ class SessionResumeHelper:
             p for p in session_files if _TIMESTAMPED_SESSION_RE.match(p.name)
         ]
 
-        if not session_files:
+        # Also include .md-only sessions (legacy or interrupted writes).
+        md_only_files = self._find_md_only_sessions(
+            self.pause_dir
+        ) + self._find_md_only_sessions(self.legacy_pause_dir)
+
+        all_files: list[tuple[Path, str]] = [(p, "json") for p in session_files]
+        all_files.extend((p, "md") for p in md_only_files)
+
+        if not all_files:
             return None
 
         # Sort by modification time (most recent first)
-        session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        all_files.sort(key=lambda item: item[0].stat().st_mtime, reverse=True)
 
         # Load the most recent session belonging to the current project
         current_project = str(self.project_path.resolve())
-        for session_file in session_files:
-            try:
-                with session_file.open("r") as f:
-                    session_data = json.load(f)
-            except Exception as e:
-                logger.error(f"Failed to load session file {session_file}: {e}")
-                continue
+        for session_file, kind in all_files:
+            if kind == "json":
+                try:
+                    with session_file.open("r") as f:
+                        session_data = json.load(f)
+                except Exception as e:
+                    logger.error(f"Failed to load session file {session_file}: {e}")
+                    continue
+            else:
+                session_data = self._parse_md_session(session_file)
+                if session_data is None:
+                    continue
 
             # Validate the session belongs to the current project. This protects
             # against cross-project contamination (e.g. legacy global sessions
-            # or sessions copied between projects).
+            # or sessions copied between projects). For .md-only sessions the
+            # project_path may be missing — accept those rather than discard,
+            # since they originated in this project's session directory.
             session_project = session_data.get("project_path", "")
             if session_project:
                 try:
@@ -389,6 +562,10 @@ class SessionResumeHelper:
                 if _TIMESTAMPED_SESSION_RE.match(p.name)
             )
 
+        # Include .md-only sessions (legacy or interrupted writes).
+        session_files.extend(self._find_md_only_sessions(self.pause_dir))
+        session_files.extend(self._find_md_only_sessions(self.legacy_pause_dir))
+
         return len(session_files)
 
     def list_all_sessions(self) -> list[dict[str, Any]]:
@@ -416,21 +593,34 @@ class SessionResumeHelper:
                 if _TIMESTAMPED_SESSION_RE.match(p.name)
             )
 
-        if not session_files:
+        # Also include .md-only sessions so they appear in listings.
+        md_only_files = self._find_md_only_sessions(
+            self.pause_dir
+        ) + self._find_md_only_sessions(self.legacy_pause_dir)
+
+        all_files: list[tuple[Path, str]] = [(p, "json") for p in session_files]
+        all_files.extend((p, "md") for p in md_only_files)
+
+        if not all_files:
             return []
 
         # Sort by modification time (most recent first)
-        session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        all_files.sort(key=lambda item: item[0].stat().st_mtime, reverse=True)
 
         sessions = []
-        for session_file in session_files:
-            try:
-                with session_file.open("r") as f:
-                    session_data = json.load(f)
-                session_data["file_path"] = session_file
-                sessions.append(session_data)
-            except Exception as e:
-                logger.error(f"Failed to load session {session_file}: {e}")
-                continue
+        for session_file, kind in all_files:
+            if kind == "json":
+                try:
+                    with session_file.open("r") as f:
+                        session_data = json.load(f)
+                    session_data["file_path"] = session_file
+                    sessions.append(session_data)
+                except Exception as e:
+                    logger.error(f"Failed to load session {session_file}: {e}")
+                    continue
+            else:
+                session_data = self._parse_md_session(session_file)
+                if session_data is not None:
+                    sessions.append(session_data)
 
         return sessions
