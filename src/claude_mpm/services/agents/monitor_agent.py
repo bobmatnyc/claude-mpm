@@ -15,6 +15,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import UTC
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,11 @@ class MonitorAgent:
         self._event_bus: Any = None  # Lazily initialised HookEventBus
         self._bridged_message_ids: set[str] = set()  # Track bridged /mpm-message IDs
         self._task_injector: Any = None  # Lazily initialised TaskInjector
+        # Track auto-postmortem triggers so we don't fire repeatedly per session.
+        # Reasons: "stop" (session ended) or "critical_context" (>=95% threshold).
+        self._postmortem_triggered: set[str] = set()
+        # Background threads for non-blocking postmortem generation.
+        self._postmortem_threads: list[threading.Thread] = []
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -91,7 +97,17 @@ class MonitorAgent:
         )
 
     def stop(self) -> None:
-        """Stop the monitor gracefully."""
+        """Stop the monitor gracefully.
+
+        Triggers an automatic postmortem on session stop (best-effort,
+        non-blocking).  Postmortem generation happens in a background
+        thread so it does not delay shutdown.  Failures are logged but
+        never propagated.
+        """
+        # Fire the auto-postmortem before tearing down the thread.  We
+        # spawn a daemon thread so a slow postmortem cannot block stop().
+        self._trigger_postmortem(reason="stop")
+
         self._stop_event.set()
         if self._thread is not None:
             self._thread.join(timeout=5.0)
@@ -171,6 +187,10 @@ class MonitorAgent:
                         "Use /mpm-session-pause to save progress.",
                         priority="critical",
                     )
+                    # Auto-postmortem at critical context threshold.  Runs
+                    # in a background thread so context-pressure checks
+                    # remain fast.  Idempotent: only fires once per session.
+                    self._trigger_postmortem(reason="critical_context")
                 else:
                     self._inject_message(
                         f"Context usage at {percentage:.0f}% "
@@ -542,6 +562,105 @@ class MonitorAgent:
                 msg += f"\n{description[:300]}"
 
             self._inject_message(msg, priority=inject_priority)
+
+    # ------------------------------------------------------------------
+    # Auto-postmortem (session stop / critical context threshold)
+    # ------------------------------------------------------------------
+
+    def _trigger_postmortem(self, reason: str) -> None:
+        """Trigger a postmortem generation in a background daemon thread.
+
+        Idempotent per ``reason`` -- only fires once per session per reason.
+        Never blocks the caller; never raises (postmortem failures are
+        logged and swallowed).
+
+        Args:
+            reason: Why the postmortem was triggered ("stop" or
+                "critical_context").  Used for dedup and report metadata.
+        """
+        if reason in self._postmortem_triggered:
+            return
+        self._postmortem_triggered.add(reason)
+
+        try:
+            thread = threading.Thread(
+                target=self._run_postmortem,
+                args=(reason,),
+                name=f"mpm-postmortem-{reason}",
+                daemon=True,
+            )
+            thread.start()
+            self._postmortem_threads.append(thread)
+        except Exception:
+            # Even spawning the thread shouldn't crash the monitor.
+            logger.exception("Failed to spawn postmortem thread (reason=%s)", reason)
+
+    def _run_postmortem(self, reason: str) -> None:
+        """Generate and save a postmortem report (runs in background thread).
+
+        Catches all exceptions -- postmortem failures must never crash
+        the monitor or block session shutdown.
+
+        Args:
+            reason: Trigger reason, included in the saved filename.
+        """
+        try:
+            from claude_mpm.services.analysis.postmortem_service import (
+                get_postmortem_service,
+            )
+
+            service = get_postmortem_service()
+            report = service.analyze_session()
+
+            # Save markdown report to ~/.claude-mpm/postmortems/
+            self._save_postmortem_report(report, reason)
+
+            logger.info(
+                "Auto-postmortem generated (reason=%s, errors=%d, actions=%d)",
+                reason,
+                report.total_errors,
+                len(report.actions),
+            )
+        except Exception:
+            # Never let postmortem generation crash the monitor.
+            logger.exception("Auto-postmortem generation failed (reason=%s)", reason)
+
+    def _save_postmortem_report(self, report: Any, reason: str) -> None:
+        """Save a postmortem report as markdown under ~/.claude-mpm/postmortems/.
+
+        Args:
+            report: PostmortemReport instance.
+            reason: Trigger reason ("stop" or "critical_context"), included
+                in the filename.
+        """
+        try:
+            from datetime import datetime
+            from pathlib import Path
+
+            from claude_mpm.services.analysis.postmortem_reporter import (
+                PostmortemReporter,
+            )
+
+            output_dir = Path.home() / ".claude-mpm" / "postmortems"
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now(tz=UTC).strftime("%Y%m%d-%H%M%S")
+            # Use session_id when available, fall back to timestamp
+            session_id = getattr(report, "session_id", None) or "unknown"
+            # Sanitise session_id for filesystem
+            safe_session = "".join(
+                c if c.isalnum() or c in "-_" else "_" for c in str(session_id)
+            )[:64]
+            filename = f"{timestamp}-{safe_session}-{reason}.md"
+            output_path = output_dir / filename
+
+            with open(output_path, "w", encoding="utf-8") as fh:
+                reporter = PostmortemReporter(use_color=False, output=fh)
+                reporter.report(report, format="markdown")
+
+            logger.debug("Postmortem saved to %s", output_path)
+        except Exception:
+            logger.exception("Failed to save postmortem report")
 
     # ------------------------------------------------------------------
     # Message injection
