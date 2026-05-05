@@ -18,7 +18,7 @@ try:
 except ImportError:
 
     def _log(message: str) -> None:
-        pass  # Silent fallback
+        del message  # Silent fallback - parameter intentionally unused
 
 
 # Debug mode
