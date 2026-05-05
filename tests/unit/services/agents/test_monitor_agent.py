@@ -6,8 +6,6 @@ import threading
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from claude_mpm.services.agents.hook_event_bus import MessagePriority
 from claude_mpm.services.agents.monitor_agent import MonitorAgent, MonitorConfig
 
@@ -560,7 +558,7 @@ class TestIncomingMessageBridge:
 
     def test_task_injector_cached(self) -> None:
         """TaskInjector is created once and reused."""
-        agent, _mock_bus = _make_agent_with_mock_bus()
+        agent, _ = _make_agent_with_mock_bus()
         mock_injector = MagicMock()
         mock_injector.list_message_tasks.return_value = []
         agent._task_injector = mock_injector
@@ -774,7 +772,7 @@ class TestAutoPostmortem:
 
     def test_postmortem_triggered_on_critical_context(self) -> None:
         """Crossing the auto_pause_threshold (>=95%) should fire a postmortem."""
-        agent, _mock_bus = _make_agent_with_mock_bus()
+        agent, _ = _make_agent_with_mock_bus()
         # 95% of 200_000 = 190_000 tokens
         state = _make_state(tokens_used=190_000)
         with patch.object(agent, "_run_postmortem") as mock_run:
@@ -784,7 +782,7 @@ class TestAutoPostmortem:
 
     def test_postmortem_not_triggered_below_critical(self) -> None:
         """Below the critical threshold, no postmortem fires."""
-        agent, _mock_bus = _make_agent_with_mock_bus()
+        agent, _ = _make_agent_with_mock_bus()
         # 80% -- triggers warning but NOT postmortem
         state = _make_state(tokens_used=160_000)
         with patch.object(agent, "_run_postmortem") as mock_run:
@@ -794,7 +792,7 @@ class TestAutoPostmortem:
 
     def test_postmortem_idempotent_per_reason(self) -> None:
         """Same reason fires only once per session."""
-        agent, _mock_bus = _make_agent_with_mock_bus()
+        agent, _ = _make_agent_with_mock_bus()
         with patch.object(agent, "_run_postmortem") as mock_run:
             agent._trigger_postmortem("stop")
             agent._trigger_postmortem("stop")
@@ -810,7 +808,7 @@ class TestAutoPostmortem:
         block = threading.Event()
         finished = threading.Event()
 
-        def slow_postmortem(reason: str) -> None:
+        def slow_postmortem(_reason: str) -> None:
             block.wait(timeout=2.0)
             finished.set()
 
