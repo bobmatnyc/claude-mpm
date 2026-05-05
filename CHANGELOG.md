@@ -1,3 +1,13 @@
+## v6.2.64 (2026-05-05)
+
+### Fix
+
+- **hooks**: silence unused-arg warning in response_tracking _log fallback
+- **hooks**: mark unused signal handler params with underscore prefix
+- **cli**: drop unused enumerate index in session resume helper
+- **hooks**: export context_circuit_breaker from hooks package
+- session resume detects .md-only sessions without .json counterpart (closes #496)
+
 ## v6.2.63 (2026-05-04)
 
 ### Feat
