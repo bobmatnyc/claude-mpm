@@ -35,6 +35,7 @@ from claude_mpm.services.core.interfaces.model import (
 )
 from claude_mpm.services.model.claude_provider import ClaudeProvider
 from claude_mpm.services.model.ollama_provider import OllamaProvider
+from claude_mpm.services.model.openrouter_provider import OpenRouterProvider
 
 
 class RoutingStrategy(Enum):
@@ -115,12 +116,27 @@ class ModelRouter(BaseService, IModelRouter):
         # Initialize providers
         ollama_config = self.get_config("ollama_config", {})
         claude_config = self.get_config("claude_config", {})
+        openrouter_config = self.get_config("openrouter_config", {})
 
         self.ollama_provider = OllamaProvider(config=ollama_config)
         self.claude_provider = ClaudeProvider(config=claude_config)
+        self.openrouter_provider = OpenRouterProvider(config=openrouter_config)
+
+        # Provider registry for direct lookup by name (e.g., "openrouter")
+        # WHY: Enables agents that need a specific provider (independent code
+        # reviewer using non-Claude LLMs) to bypass routing strategy.
+        self._providers: dict[str, Any] = {
+            "ollama": self.ollama_provider,
+            "claude": self.claude_provider,
+            "openrouter": self.openrouter_provider,
+        }
 
         # Routing metrics
-        self._route_count: dict[str, int] = {"ollama": 0, "claude": 0}
+        self._route_count: dict[str, int] = {
+            "ollama": 0,
+            "claude": 0,
+            "openrouter": 0,
+        }
         self._fallback_count = 0
         self._active_provider: str | None = None
 
@@ -174,7 +190,25 @@ class ModelRouter(BaseService, IModelRouter):
         if self.claude_provider:
             await self.claude_provider.shutdown()
 
+        if self.openrouter_provider:
+            await self.openrouter_provider.shutdown()
+
         self._shutdown = True
+
+    def get_provider(self, name: str) -> Any | None:
+        """
+        Look up a provider instance by name.
+
+        WHY: Enables agents that target a specific provider (e.g., the
+        independent OpenRouter code reviewer) to bypass routing strategy.
+
+        Args:
+            name: Provider name ("ollama", "claude", or "openrouter").
+
+        Returns:
+            Provider instance or None when the name is unknown.
+        """
+        return self._providers.get(name)
 
     def get_active_provider(self) -> str | None:
         """
