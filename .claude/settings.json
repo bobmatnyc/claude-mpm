@@ -26,6 +26,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 -m claude_mpm.hooks.context_circuit_breaker",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
             "command": "claude-hook",
             "timeout": 60
           }
