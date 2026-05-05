@@ -434,6 +434,13 @@ class ClaudeHookHandler:
                 if isinstance(handler_result, dict) and "decision" in handler_result:
                     # Stop hook returned a decision - output it directly
                     print(json.dumps(handler_result), flush=True)
+                elif (
+                    isinstance(handler_result, dict)
+                    and "hookSpecificOutput" in handler_result
+                ):
+                    # PreToolUse hook returned a permissionDecision envelope
+                    # (e.g. context circuit-breaker deny) -- emit it directly.
+                    print(json.dumps(handler_result), flush=True)
                 else:
                     # Normal continue (with optional modified input for PreToolUse)
                     self._continue_execution(handler_result)
