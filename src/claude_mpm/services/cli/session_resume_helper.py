@@ -158,7 +158,7 @@ class SessionResumeHelper:
             # Legacy: take the first non-empty paragraph after the title line
             # if no summary section exists. This is best-effort.
             lines = [line.strip() for line in content.splitlines()]
-            for i, line in enumerate(lines):
+            for line in lines:
                 if line.startswith("# ") and not line.startswith("## "):
                     # Title line — use it as a fallback summary
                     data["conversation"]["summary"] = line.lstrip("# ").strip()
