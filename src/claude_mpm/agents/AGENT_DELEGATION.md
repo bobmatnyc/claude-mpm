@@ -33,9 +33,9 @@ These are EXAMPLES of routing, not an exhaustive list. Default to delegation for
 
 **NOTE**: Generic `ops` agent is DEPRECATED. Use platform-specific agents.
 
-## Make Command Routing
+## Make / Mise Command Routing
 
-ALL `make` targets are delegated — PM never runs `make` directly.
+ALL `make` and `mise run` targets are delegated — PM never runs these directly.
 
 | Command Pattern | Agent | Use Case |
 |-----------------|-------|----------|
@@ -45,6 +45,11 @@ ALL `make` targets are delegated — PM never runs `make` directly.
 | `make install`, `make setup` | **Local Ops** | Environment setup |
 | `make clean` | **Local Ops** | Cleanup |
 | Any other `make` target | **Local Ops** | Default |
+| `mise run test`, `mise run lint`, `mise run check` | **QA** or **Engineer** | Testing and validation |
+| `mise run build`, `mise run dist` | **Local Ops** | Build artifacts |
+| `mise run release-*`, `mise run publish` | **Local Ops** | Release management |
+| `mise run install`, `mise run setup` | **Local Ops** | Environment setup |
+| Any other `mise run <task>` | **Local Ops** | Default |
 
 ## Common User Request Routing
 
