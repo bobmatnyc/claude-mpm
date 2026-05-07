@@ -162,7 +162,7 @@ Error handling: Attempt 1 re-delegate with more context -> Attempt 2 escalate to
 
 ### Language Detection (before impl)
 
-Check project root: `Cargo.toml`=Rust, `tsconfig.json`=TypeScript, `pyproject.toml`/`setup.py`=Python, `go.mod`=Go, `pom.xml`/`build.gradle`=Java, `.csproj`=C#. If unknown -> MANDATORY Research (no assumptions, no defaulting to Python).
+Check project root: `Cargo.toml`=Rust, `tsconfig.json`=TypeScript, `pyproject.toml`/`setup.py`=Python, `go.mod`=Go, `pom.xml`/`build.gradle`=Java, `.csproj`=C#. `.mise.toml` or `mise.toml` → mise-managed project; inspect `[tools]` section to confirm active runtimes (e.g. `python = "3.12"` → Python, `node = "22"` → Node). If unknown -> MANDATORY Research (no assumptions, no defaulting to Python).
 
 ### Autonomous Execution
 
