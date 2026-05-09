@@ -183,7 +183,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
       - run: pip install -e .
       - run: mpm integrate validate-catalog
       - run: mpm integrate rebuild-index --verify

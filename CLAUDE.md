@@ -2,7 +2,7 @@
 
 Claude Multi-Agent Project Manager — orchestrates Claude subagents with agent delegation, skills, MCP integration, session management, and semantic code search.
 
-- **Language**: Python 3.12+
+- **Language**: Python 3.13+
 - **Framework**: FastAPI + Click CLI
 - **Package**: `src/claude_mpm/` (src layout)
 - **Version**: managed via `commitizen` + `make release-*`

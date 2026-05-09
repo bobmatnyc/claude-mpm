@@ -341,7 +341,7 @@ json.decoder.JSONDecodeError: Expecting ',' delimiter: line 145 column 5
 **Fix**:
 ```bash
 # Match CI environment
-python3.12 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[eval,dev]"
 pytest tests/eval/agents/engineer/ -v
@@ -395,7 +395,7 @@ pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows --t
 ### Getting Help
 
 **Debugging Checklist**:
-- [ ] Verify Python version (3.12+ required)
+- [ ] Verify Python version (3.13+ required)
 - [ ] Check all dependencies installed: `pip install -e ".[eval,dev]"`
 - [ ] Run integrity tests first: `pytest tests/eval/agents/engineer/test_integration.py::TestScenarioFileIntegrity -v`
 - [ ] Validate JSON: `python -m json.tool < tests/eval/scenarios/engineer/engineer_scenarios.json > /dev/null`

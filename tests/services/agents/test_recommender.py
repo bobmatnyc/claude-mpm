@@ -149,7 +149,7 @@ def python_toolchain(tmp_path: Path) -> ToolchainAnalysis:
         project_path=tmp_path,
         language_detection=LanguageDetection(
             primary_language="python",
-            primary_version="3.12",
+            primary_version="3.13",
             primary_confidence=ConfidenceLevel.HIGH,
             language_percentages={"python": 100.0},
         ),
@@ -211,7 +211,7 @@ def multi_language_toolchain(tmp_path: Path) -> ToolchainAnalysis:
         project_path=tmp_path,
         language_detection=LanguageDetection(
             primary_language="python",
-            primary_version="3.12",
+            primary_version="3.13",
             primary_confidence=ConfidenceLevel.HIGH,
             secondary_languages=[
                 ToolchainComponent(name="typescript", confidence=ConfidenceLevel.MEDIUM)

@@ -39,12 +39,12 @@ class TestToolchainComponent:
         """Test creating a valid component."""
         component = ToolchainComponent(
             name="Python",
-            version="3.12",
+            version="3.13",
             confidence=ConfidenceLevel.HIGH,
             metadata={"source": "pyproject.toml"},
         )
         assert component.name == "Python"
-        assert component.version == "3.12"
+        assert component.version == "3.13"
         assert component.confidence == ConfidenceLevel.HIGH
         assert component.metadata["source"] == "pyproject.toml"
 
@@ -91,13 +91,13 @@ class TestLanguageDetection:
         ]
         detection = LanguageDetection(
             primary_language="Python",
-            primary_version="3.12",
+            primary_version="3.13",
             primary_confidence=ConfidenceLevel.HIGH,
             secondary_languages=secondary,
             language_percentages={"Python": 85.0, "JavaScript": 10.0, "Shell": 5.0},
         )
         assert detection.primary_language == "Python"
-        assert detection.primary_version == "3.12"
+        assert detection.primary_version == "3.13"
         assert len(detection.secondary_languages) == 2
 
     def test_all_languages_property(self):
@@ -249,7 +249,7 @@ class TestToolchainAnalysis:
         """Create a sample language detection."""
         return LanguageDetection(
             primary_language="Python",
-            primary_version="3.12",
+            primary_version="3.13",
             primary_confidence=ConfidenceLevel.HIGH,
         )
 

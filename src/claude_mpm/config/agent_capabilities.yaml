@@ -14,7 +14,7 @@ agent_capabilities:
     name: "Python Engineer"
     agent_id: "python_engineer"
     specialization: "engineering"
-    description: "Python 3.12+ development specialist with async-first, type-safe implementations"
+    description: "Python 3.13+ development specialist with async-first, type-safe implementations"
     supports:
       languages:
         - python

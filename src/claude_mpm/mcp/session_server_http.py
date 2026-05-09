@@ -9,6 +9,8 @@ import argparse
 import asyncio
 import logging
 import signal
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import uvicorn
 from mcp.server.sse import SseServerTransport
@@ -96,8 +98,13 @@ class SessionServerHTTP:
     def _create_app(self) -> Starlette:
         """Create the Starlette ASGI application.
 
+        Why: Modern Starlette (>=0.13) removed the deprecated ``on_startup`` /
+        ``on_shutdown`` kwargs in favor of a single ``lifespan`` async context
+        manager. We delegate to the existing ``_on_startup`` / ``_on_shutdown``
+        coroutine methods so they remain unit-testable in isolation.
+
         Returns:
-            Configured Starlette application with routes.
+            Configured Starlette application with routes and lifespan.
         """
         routes = [
             Route("/", endpoint=self._handle_root, methods=["GET"]),
@@ -106,10 +113,18 @@ class SessionServerHTTP:
             Route("/messages/", endpoint=self._handle_messages, methods=["POST"]),
         ]
 
+        @asynccontextmanager
+        async def lifespan(_app: Starlette) -> AsyncIterator[None]:
+            """ASGI lifespan: invoke startup, yield, then invoke shutdown."""
+            await self._on_startup()
+            try:
+                yield
+            finally:
+                await self._on_shutdown()
+
         return Starlette(
             routes=routes,
-            on_startup=[self._on_startup],
-            on_shutdown=[self._on_shutdown],
+            lifespan=lifespan,
         )
 
     async def _on_startup(self) -> None:
