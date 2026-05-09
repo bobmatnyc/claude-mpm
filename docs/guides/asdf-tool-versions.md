@@ -103,10 +103,10 @@ ASDF automatically detects `.tool-versions` in parent directories:
 ├── project-a/
 │   └── .tool-versions  # python 3.11
 └── project-b/
-    └── .tool-versions  # python 3.12
+    └── .tool-versions  # python 3.13
 ```
 
-When you `cd project-a`, Python 3.11 is used. When you `cd project-b`, Python 3.12 is used.
+When you `cd project-a`, Python 3.11 is used. When you `cd project-b`, Python 3.13 is used.
 
 ## Benefits for MPM Users
 
@@ -133,7 +133,7 @@ pip install "claude-mpm[monitor]"
 
 **Without ASDF:**
 - Developer A: Python 3.11.5, uv 0.8.0
-- Developer B: Python 3.12.1, uv 0.9.17
+- Developer B: Python 3.13.1, uv 0.9.17
 - Result: "Works on my machine" syndrome
 
 **With ASDF:**
