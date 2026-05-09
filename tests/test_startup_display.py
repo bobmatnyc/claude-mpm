@@ -11,8 +11,6 @@ import pytest
 
 from src.claude_mpm.cli.startup_display import (
     _collect_scope_names,
-    _count_scope_assets,
-    _format_logging_status,
     _format_scope_counts,
     _format_two_column_line,
     _get_active_model_display_name,
@@ -57,7 +55,7 @@ class TestTerminalWidth:
     def test_get_terminal_width_fallback(self):
         """Test terminal width fallback on error."""
         with patch("shutil.get_terminal_size", side_effect=Exception("Test error")):
-            assert _get_terminal_width() == 120  # 75% of DEFAULT_WIDTH (160)
+            assert _get_terminal_width() == 80  # DEFAULT_WIDTH
 
 
 class TestChangelogParsing:
@@ -170,26 +168,6 @@ class TestAlienArt:
         art_text = "".join(art)
         # Check for ASCII alien art characters
         assert any(char in art_text for char in ["▐", "▛", "█", "▜", "▌", "▝", "▘"])
-
-
-class TestLoggingStatus:
-    """Tests for logging status formatting."""
-
-    def test_format_logging_status_off(self):
-        """Test OFF logging status formatting."""
-        assert _format_logging_status("OFF") == "Logging: OFF (default)"
-
-    def test_format_logging_status_debug(self):
-        """Test DEBUG logging status formatting."""
-        assert _format_logging_status("DEBUG") == "Logging: DEBUG (verbose)"
-
-    def test_format_logging_status_info(self):
-        """Test INFO logging status formatting."""
-        assert _format_logging_status("INFO") == "Logging: INFO"
-
-    def test_format_logging_status_custom(self):
-        """Test custom logging status formatting."""
-        assert _format_logging_status("CUSTOM") == "Logging: CUSTOM"
 
 
 class TestCwdDisplay:
@@ -474,101 +452,6 @@ class TestCollectScopeNames:
         assert skill_names == set()
 
 
-class TestCountScopeAssets:
-    """Tests for _count_scope_assets() function."""
-
-    def test_project_scope_counts_agents(self, tmp_path, monkeypatch):
-        """Test counting agents in project scope."""
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
-        agents_dir = tmp_path / ".claude" / "agents"
-        agents_dir.mkdir(parents=True)
-        (agents_dir / "engineer.md").write_text("agent")
-        (agents_dir / "qa.md").write_text("agent")
-        (agents_dir / "README.md").write_text("readme")  # excluded
-        (agents_dir / "INSTRUCTIONS.md").write_text("instructions")  # excluded
-        (agents_dir / ".hidden.md").write_text("hidden")  # excluded
-
-        agents, skills = _count_scope_assets("project")
-        assert agents == 2
-        assert skills == 0
-
-    def test_project_scope_counts_skills(self, tmp_path, monkeypatch):
-        """Test counting skills in project scope."""
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
-        skills_dir = tmp_path / ".claude" / "skills"
-        for name in ["skill-a", "skill-b", "skill-c"]:
-            d = skills_dir / name
-            d.mkdir(parents=True)
-            (d / "SKILL.md").write_text("skill")
-
-        agents, skills = _count_scope_assets("project")
-        assert agents == 0
-        assert skills == 3
-
-    def test_user_scope_uses_home(self, tmp_path, monkeypatch):
-        """Test user scope reads from home directory."""
-        monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        agents_dir = tmp_path / ".claude" / "agents"
-        agents_dir.mkdir(parents=True)
-        (agents_dir / "ops.md").write_text("agent")
-
-        agents, _skills = _count_scope_assets("user")
-        assert agents == 1
-
-    def test_git_repo_excluded(self, tmp_path, monkeypatch):
-        """Test git source repos are excluded from skill count."""
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
-        skills_dir = tmp_path / ".claude" / "skills"
-        # Normal skill
-        normal = skills_dir / "my-skill"
-        normal.mkdir(parents=True)
-        (normal / "SKILL.md").write_text("skill")
-        # Git repo (should be excluded)
-        repo = skills_dir / "claude-mpm"
-        repo.mkdir(parents=True)
-        (repo / "SKILL.md").write_text("skill")
-        (repo / ".git").mkdir()
-
-        _agents, skills = _count_scope_assets("project")
-        assert skills == 1
-
-    def test_lowercase_skill_md(self, tmp_path, monkeypatch):
-        """Test lowercase skill.md is counted (Linux portability)."""
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
-        skills_dir = tmp_path / ".claude" / "skills"
-        d = skills_dir / "my-skill"
-        d.mkdir(parents=True)
-        (d / "skill.md").write_text("skill")
-
-        _agents, skills = _count_scope_assets("project")
-        assert skills == 1
-
-    def test_missing_directories(self, tmp_path, monkeypatch):
-        """Test returns (0, 0) when .claude/ doesn't exist."""
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
-        agents, skills = _count_scope_assets("project")
-        assert agents == 0
-        assert skills == 0
-
-    def test_both_counts_together(self, tmp_path, monkeypatch):
-        """Test counting both agents and skills in same scope."""
-        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
-        agents_dir = tmp_path / ".claude" / "agents"
-        agents_dir.mkdir(parents=True)
-        (agents_dir / "engineer.md").write_text("agent")
-        (agents_dir / "qa.md").write_text("agent")
-
-        skills_dir = tmp_path / ".claude" / "skills"
-        for name in ["skill-a", "skill-b"]:
-            d = skills_dir / name
-            d.mkdir(parents=True)
-            (d / "SKILL.md").write_text("skill")
-
-        agents, skills = _count_scope_assets("project")
-        assert agents == 2
-        assert skills == 2
-
-
 class TestFormatScopeCounts:
     """Tests for _format_scope_counts() function."""
 
@@ -613,7 +496,7 @@ class TestDisplayStartupBanner:
             "src.claude_mpm.cli.startup_display._get_active_model_display_name",
             lambda: "Sonnet",
         )
-        display_startup_banner("4.24.0", "OFF")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         # Banner was redesigned from text to visual box layout; "Launching..." text removed
@@ -624,7 +507,7 @@ class TestDisplayStartupBanner:
 
     def test_display_startup_banner_info_logging(self, capsys):
         """Test banner with INFO logging level."""
-        display_startup_banner("4.24.0", "INFO")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         # Banner was redesigned from text to visual box layout; "Launching..." text removed
@@ -632,7 +515,7 @@ class TestDisplayStartupBanner:
 
     def test_display_startup_banner_debug_logging(self, capsys):
         """Test banner with DEBUG logging level."""
-        display_startup_banner("4.24.0", "DEBUG")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         # Banner was redesigned from text to visual box layout; "Launching..." text removed
@@ -640,7 +523,7 @@ class TestDisplayStartupBanner:
 
     def test_display_startup_banner_includes_aliens(self, capsys):
         """Test banner includes alien art."""
-        display_startup_banner("4.24.0", "OFF")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         # Check for alien ASCII art characters
@@ -648,14 +531,14 @@ class TestDisplayStartupBanner:
 
     def test_display_startup_banner_includes_whats_new(self, capsys):
         """Test banner includes what's new section."""
-        display_startup_banner("4.24.0", "OFF")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         assert "What's new" in captured.out
 
     def test_display_startup_banner_includes_cwd(self, capsys):
         """Test banner includes current working directory."""
-        display_startup_banner("4.24.0", "OFF")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         # Should contain some path
@@ -681,7 +564,7 @@ class TestDisplayStartupBanner:
                 )
             ),
         )
-        display_startup_banner("4.24.0", "OFF")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         assert "proj:" in captured.out
@@ -721,7 +604,7 @@ class TestDisplayStartupBanner:
             "src.claude_mpm.cli.startup_display._collect_scope_names",
             mock_collect,
         )
-        display_startup_banner("4.24.0", "OFF")
+        display_startup_banner("4.24.0")
         captured = capsys.readouterr()
 
         assert "proj:" in captured.out
