@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import logging
 import signal
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -97,12 +98,13 @@ class SessionServerHTTP:
     def _create_app(self) -> Starlette:
         """Create the Starlette ASGI application.
 
-        WHY: Starlette 1.0.0 removed the on_startup/on_shutdown kwargs from the
-        Starlette() constructor. The lifespan= async context manager is the
-        current API for startup/shutdown lifecycle hooks.
+        Why: Modern Starlette (>=0.13) removed the deprecated ``on_startup`` /
+        ``on_shutdown`` kwargs in favor of a single ``lifespan`` async context
+        manager. We delegate to the existing ``_on_startup`` / ``_on_shutdown``
+        coroutine methods so they remain unit-testable in isolation.
 
         Returns:
-            Configured Starlette application with routes.
+            Configured Starlette application with routes and lifespan.
         """
         routes = [
             Route("/", endpoint=self._handle_root, methods=["GET"]),
@@ -112,11 +114,13 @@ class SessionServerHTTP:
         ]
 
         @asynccontextmanager
-        async def lifespan(app: Starlette):  # type: ignore[type-arg]
-            """Manage startup and shutdown lifecycle."""
+        async def lifespan(_app: Starlette) -> AsyncIterator[None]:
+            """ASGI lifespan: invoke startup, yield, then invoke shutdown."""
             await self._on_startup()
-            yield
-            await self._on_shutdown()
+            try:
+                yield
+            finally:
+                await self._on_shutdown()
 
         return Starlette(
             routes=routes,

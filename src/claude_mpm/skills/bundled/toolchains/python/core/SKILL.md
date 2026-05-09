@@ -1,6 +1,6 @@
 ---
 name: toolchains-python-core
-description: "Python 3.12+ core patterns for minimalism, efficiency, code reuse, and performance"
+description: "Python 3.13+ core patterns for minimalism, efficiency, code reuse, and performance"
 version: "1.0.0"
 category: toolchains-python
 tags: [python, patterns, performance, minimalism, efficiency]
@@ -9,7 +9,7 @@ effort: medium
 
 # Python Core Patterns
 
-Modern Python development patterns targeting 3.12-3.13+ for minimal, efficient, reusable, and performant code.
+Modern Python development patterns targeting 3.13+ for minimal, efficient, reusable, and performant code.
 
 ## Quick Start
 
@@ -49,7 +49,7 @@ Modern Python development patterns targeting 3.12-3.13+ for minimal, efficient, 
 - Use `typing.overload` for functions with type-dependent return signatures
 - Extract shared logic into standalone functions, not base classes — flat is better than nested
 
-## Modern Python (3.12-3.13)
+## Modern Python (3.13+)
 
 - **PEP 695 generics** (3.12+): `def first[T](lst: list[T]) -> T:` replaces `TypeVar` boilerplate (60% reduction)
 - **`type` statement** (3.12+): `type Vector = list[float]` replaces `TypeAlias`

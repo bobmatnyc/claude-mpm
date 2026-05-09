@@ -257,7 +257,7 @@ def main() -> int:
     print("\n⚠️ Some tests failed. Please review the errors above.")
     print("\nTroubleshooting:")
     print("1. Ensure claude-mpm is installed: pip install -e .")
-    print("2. Check Python version is 3.12+")
+    print("2. Check Python version is 3.13+")
     print("3. Verify all dependencies are installed")
     print("4. Review the error messages above for specific issues")
     return 1

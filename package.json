@@ -1,7 +1,7 @@
 {
   "name": "claude-mpm",
   "version": "6.2.65",
-  "description": "NPM wrapper for claude-mpm Python package - Requires Python 3.8+. Orchestrate Claude with agent delegation and ticket tracking",
+  "description": "NPM wrapper for claude-mpm Python package - Requires Python 3.13+. Orchestrate Claude with agent delegation and ticket tracking",
   "keywords": [
     "claude",
     "ai",
