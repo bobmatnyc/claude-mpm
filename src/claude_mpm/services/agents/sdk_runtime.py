@@ -80,6 +80,22 @@ try:
     SDK_AVAILABLE = True
 except ImportError:
     SDK_AVAILABLE = False
+    # Sentinel values so module attributes exist for monkeypatching and isinstance
+    # guards when claude-agent-sdk is not installed.  The existing SDK_AVAILABLE
+    # guards at call-sites already prevent these None values from being used at
+    # runtime; the sentinels only exist so that tests can do
+    # `monkeypatch.setattr(sdk_runtime, "AssistantMessage", ...)` without
+    # raising AttributeError.
+    AssistantMessage = None  # type: ignore[assignment]
+    ClaudeAgentOptions = None  # type: ignore[assignment]
+    ClaudeSDKClient = None  # type: ignore[assignment]
+    PermissionResultAllow = None  # type: ignore[assignment]
+    PermissionResultDeny = None  # type: ignore[assignment]
+    ResultMessage = None  # type: ignore[assignment]
+    TextBlock = None  # type: ignore[assignment]
+    ToolResultBlock = None  # type: ignore[assignment]
+    ToolUseBlock = None  # type: ignore[assignment]
+    sdk_query = None  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------
 # Data classes
