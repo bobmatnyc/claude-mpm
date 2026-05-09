@@ -770,7 +770,7 @@ class MCPConfigManager:
 
         elif service_name == "kuzu-memory":
             # For kuzu-memory, prefer using the binary from pipx venv
-            # This ensures it runs with Python 3.12 instead of system Python 3.13
+            # Use the pipx-installed binary directly to avoid PATH ambiguity
             pipx_binary = (
                 Path.home()
                 / ".local"
