@@ -824,6 +824,65 @@ main "$@"
                 "StatusLine command already uses native outputStyle key or not present"
             )
 
+    @staticmethod
+    def _is_our_hook(cmd: dict) -> bool:
+        """Check if a hook command belongs to claude-mpm.
+
+        A hook command is considered "ours" (i.e. installed by claude-mpm)
+        when ANY of the following is true about its command string:
+
+        - The command is exactly ``"claude-hook"`` (entry point on PATH)
+        - The command path ends with ``/claude-hook`` — handles absolute
+          paths to a venv-installed entry point such as
+          ``/path/to/.venv/bin/claude-hook``
+        - The command contains ``"claude-hook-fast.sh"`` — the fast bash
+          dispatcher shipped at ``src/claude_mpm/scripts/claude-hook-fast.sh``
+        - The command contains ``"claude-hook-handler.sh"`` — the legacy
+          full Python bash handler
+        - The command path ends with ``"claude-mpm-hook.sh"`` — legacy hook
+          script name
+
+        Detection MUST only ever broaden over time: do not narrow the set of
+        recognized commands, otherwise existing hook entries will stop being
+        recognized as "ours" and re-installation will append rather than
+        replace, causing accumulating duplicates.
+
+        Note: previously this method only matched the literal string
+        ``"claude-hook"`` for the entry-point case, so absolute paths like
+        ``/export/workspace/claude-mpm/.venv/bin/claude-hook`` and
+        ``/.../claude_mpm/scripts/claude-hook-fast.sh`` were not recognized as
+        duplicates of an existing claude-mpm hook. Each install therefore
+        APPENDED instead of REPLACING, producing many duplicate
+        ``SessionStart`` (and other event) entries in
+        ``.claude/settings.local.json``. This implementation recognizes
+        absolute paths to fix that accumulation bug.
+
+        Args:
+            cmd: A single hook entry dict from a Claude settings hooks list,
+                shaped like ``{"type": "command", "command": "..."}``.
+
+        Returns:
+            True if the command was installed by claude-mpm, False otherwise.
+        """
+        if not isinstance(cmd, dict):
+            return False
+        if cmd.get("type") != "command":
+            return False
+        command = cmd.get("command", "")
+        if not isinstance(command, str) or not command:
+            return False
+        # Match claude-hook entry point (literal or absolute path) or any
+        # claude-mpm bash script. See docstring for rationale on broadening
+        # this check to absolute paths.
+        return (
+            command == "claude-hook"
+            or command.endswith("/claude-hook")
+            or command.endswith("/claude-hook-fast.sh")
+            or "claude-hook-fast.sh" in command
+            or "claude-hook-handler.sh" in command
+            or command.endswith("claude-mpm-hook.sh")
+        )
+
     def _update_claude_settings(self, hook_cmd: str) -> None:
         """Update Claude settings to use the installed hook.
 
@@ -854,18 +913,7 @@ main "$@"
         # Hook configuration for each event type
         hook_command = {"type": "command", "command": hook_cmd}
 
-        def is_our_hook(cmd: dict) -> bool:
-            """Check if a hook command belongs to claude-mpm."""
-            if cmd.get("type") != "command":
-                return False
-            command = cmd.get("command", "")
-            # Match claude-hook entry point or any claude-mpm bash script
-            return (
-                command == "claude-hook"
-                or "claude-hook-fast.sh" in command
-                or "claude-hook-handler.sh" in command
-                or command.endswith("claude-mpm-hook.sh")
-            )
+        is_our_hook = self._is_our_hook
 
         def merge_hooks_for_event(
             existing_hooks: list, new_hook_command: dict, use_matcher: bool = True
@@ -972,10 +1020,20 @@ main "$@"
                 f"< {self.MIN_NEW_HOOKS_VERSION}). Removed any stale entries."
             )
 
-        # SessionStart needs matcher for subtypes (startup, resume)
+        # SessionStart needs matcher for subtypes (startup, resume).
+        # WHY use claude-hook (full binary) instead of the fast bash script:
+        # SessionStart is a blocking lifecycle hook — Claude Code requires a
+        # synchronous {"continue": true} response. The fast bash script
+        # (claude-hook-fast.sh) now also handles this correctly via a case
+        # statement, but as an extra safety net we prefer the full claude-hook
+        # binary here because it has always returned {"continue": true} and is
+        # the authoritative implementation for lifecycle events.  For the
+        # uv tool install scenario the binary lives at ~/.local/bin/claude-hook.
+        session_start_binary = shutil.which("claude-hook") or hook_cmd
+        session_start_command = {"type": "command", "command": session_start_binary}
         existing = settings["hooks"].get("SessionStart", [])
         settings["hooks"]["SessionStart"] = merge_hooks_for_event(
-            existing, hook_command, use_matcher=True
+            existing, session_start_command, use_matcher=True
         )
 
         # UserPromptSubmit needs matcher for potential subtypes

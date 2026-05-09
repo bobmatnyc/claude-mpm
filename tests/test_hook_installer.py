@@ -690,5 +690,176 @@ class TestMatcherPatternValidation(unittest.TestCase):
                 self.assertEqual(hook_config["matcher"], "*")
 
 
+class TestIsOurHook(unittest.TestCase):
+    """Tests for ``HookInstaller._is_our_hook``.
+
+    Regression coverage for the hook-deduplication bug where absolute paths
+    to ``claude-hook`` (e.g. ``/path/to/.venv/bin/claude-hook``) and to the
+    ``claude-hook-fast.sh`` dispatcher were not recognized as claude-mpm
+    hooks, causing each re-install to APPEND rather than REPLACE the hook
+    entry and producing accumulating duplicates in
+    ``.claude/settings.local.json``.
+    """
+
+    # --- positive cases: existing behavior we MUST NOT break -----------
+
+    def test_literal_claude_hook(self):
+        """Bare ``claude-hook`` entry-point command is recognized as ours."""
+        self.assertTrue(
+            HookInstaller._is_our_hook({"type": "command", "command": "claude-hook"})
+        )
+
+    def test_claude_hook_fast_sh_substring(self):
+        """``claude-hook-fast.sh`` anywhere in command is recognized as ours."""
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": (
+                        "/export/mac/.local/share/uv/tools/claude-mpm/lib/"
+                        "python3.12/site-packages/claude_mpm/scripts/"
+                        "claude-hook-fast.sh"
+                    ),
+                }
+            )
+        )
+
+    def test_claude_hook_handler_sh_substring(self):
+        """``claude-hook-handler.sh`` anywhere in command is recognized."""
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": "/path/to/claude-hook-handler.sh",
+                }
+            )
+        )
+
+    def test_legacy_claude_mpm_hook_sh(self):
+        """Legacy ``claude-mpm-hook.sh`` suffix is recognized as ours."""
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": "/some/path/to/claude-mpm-hook.sh",
+                }
+            )
+        )
+
+    # --- regression cases: NEW behavior the bug fix introduces ---------
+
+    def test_absolute_path_to_claude_hook_venv(self):
+        """Absolute path to venv-installed ``claude-hook`` is recognized.
+
+        Regression: previously only the literal string ``"claude-hook"`` was
+        matched, so absolute paths like ``/path/to/.venv/bin/claude-hook``
+        were treated as foreign hooks and not deduplicated, causing
+        accumulating duplicate hook entries on each install.
+        """
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": "/path/to/.venv/bin/claude-hook",
+                }
+            )
+        )
+
+    def test_absolute_path_to_claude_hook_workspace_venv(self):
+        """Absolute path matching the duplicate-laden settings file is ours.
+
+        The user's ``.claude/settings.local.json`` had 33 duplicate
+        ``SessionStart`` entries pointing at this exact path; the bug fix
+        must recognize this command as ours.
+        """
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": ("/export/workspace/claude-mpm/.venv/bin/claude-hook"),
+                }
+            )
+        )
+
+    def test_absolute_path_to_claude_hook_plain_venv(self):
+        """Plain ``venv/bin/claude-hook`` (no leading dot) is recognized."""
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": ("/export/workspace/claude-mpm/venv/bin/claude-hook"),
+                }
+            )
+        )
+
+    def test_absolute_path_to_claude_hook_fast_sh(self):
+        """Absolute path to ``claude-hook-fast.sh`` is recognized as ours."""
+        self.assertTrue(
+            HookInstaller._is_our_hook(
+                {
+                    "type": "command",
+                    "command": (
+                        "/export/workspace/claude-mpm/src/claude_mpm/"
+                        "scripts/claude-hook-fast.sh"
+                    ),
+                }
+            )
+        )
+
+    # --- negative cases: must not over-match ---------------------------
+
+    def test_bare_other_hook(self):
+        """Unrelated bare command is not recognized as ours."""
+        self.assertFalse(
+            HookInstaller._is_our_hook(
+                {"type": "command", "command": "some-other-hook"}
+            )
+        )
+
+    def test_absolute_path_other_hook(self):
+        """Absolute path to unrelated hook is not recognized as ours."""
+        self.assertFalse(
+            HookInstaller._is_our_hook(
+                {"type": "command", "command": "/path/to/some-other-hook"}
+            )
+        )
+
+    def test_substring_collision_safety(self):
+        """Commands that merely contain ``claude-hook`` mid-name are not ours.
+
+        Only literal ``claude-hook`` or path-suffix ``/claude-hook`` should
+        match; bare substrings like ``my-claude-hook-tool`` must not.
+        """
+        self.assertFalse(
+            HookInstaller._is_our_hook(
+                {"type": "command", "command": "my-claude-hook-tool"}
+            )
+        )
+
+    def test_non_command_type(self):
+        """Non-command hook entries (e.g. type=script) are not ours."""
+        self.assertFalse(
+            HookInstaller._is_our_hook({"type": "script", "command": "claude-hook"})
+        )
+
+    def test_missing_type(self):
+        """Entries missing ``type`` are not ours."""
+        self.assertFalse(HookInstaller._is_our_hook({"command": "claude-hook"}))
+
+    def test_empty_command(self):
+        """Entries with empty command string are not ours."""
+        self.assertFalse(HookInstaller._is_our_hook({"type": "command", "command": ""}))
+
+    def test_missing_command(self):
+        """Entries missing ``command`` are not ours."""
+        self.assertFalse(HookInstaller._is_our_hook({"type": "command"}))
+
+    def test_non_dict_input(self):
+        """Non-dict inputs (defensive) are not ours."""
+        self.assertFalse(HookInstaller._is_our_hook(None))  # type: ignore[arg-type]
+        self.assertFalse(HookInstaller._is_our_hook("claude-hook"))  # type: ignore[arg-type]
+        self.assertFalse(HookInstaller._is_our_hook([]))  # type: ignore[arg-type]
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
