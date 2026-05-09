@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import logging
 import signal
+from contextlib import asynccontextmanager
 
 import uvicorn
 from mcp.server.sse import SseServerTransport
@@ -96,6 +97,10 @@ class SessionServerHTTP:
     def _create_app(self) -> Starlette:
         """Create the Starlette ASGI application.
 
+        WHY: Starlette 1.0.0 removed the on_startup/on_shutdown kwargs from the
+        Starlette() constructor. The lifespan= async context manager is the
+        current API for startup/shutdown lifecycle hooks.
+
         Returns:
             Configured Starlette application with routes.
         """
@@ -106,10 +111,16 @@ class SessionServerHTTP:
             Route("/messages/", endpoint=self._handle_messages, methods=["POST"]),
         ]
 
+        @asynccontextmanager
+        async def lifespan(app: Starlette):  # type: ignore[type-arg]
+            """Manage startup and shutdown lifecycle."""
+            await self._on_startup()
+            yield
+            await self._on_shutdown()
+
         return Starlette(
             routes=routes,
-            on_startup=[self._on_startup],
-            on_shutdown=[self._on_shutdown],
+            lifespan=lifespan,
         )
 
     async def _on_startup(self) -> None:
