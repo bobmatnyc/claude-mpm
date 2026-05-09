@@ -133,7 +133,7 @@ class TestPack(TestBase):
 
     @pytest.mark.skip(
         reason="Third-party gitdb fixture files missing: pack index files not present "
-        "in .venv/lib/python3.12/site-packages/gitdb/test/fixtures/packs/ - "
+        "in .venv/lib/python3.13/site-packages/gitdb/test/fixtures/packs/ - "
         "gitdb test fixtures are not installed in this environment"
     )
     def test_pack_index(self):
@@ -145,7 +145,7 @@ class TestPack(TestBase):
 
     @pytest.mark.skip(
         reason="Third-party gitdb fixture files missing: pack files not present "
-        "in .venv/lib/python3.12/site-packages/gitdb/test/fixtures/packs/ - "
+        "in .venv/lib/python3.13/site-packages/gitdb/test/fixtures/packs/ - "
         "gitdb test fixtures are not installed in this environment"
     )
     def test_pack(self):
