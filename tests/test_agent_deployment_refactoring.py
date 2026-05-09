@@ -784,11 +784,13 @@ class TestInterfaceCompliance:
         # This test ensures the interface methods have the expected signatures
 
         # Test AgentDeploymentInterface methods exist and have correct signatures
+        # Note: clean_deployment is NOT in AgentDeploymentInterface; it is a
+        # convenience method on concrete implementations only.
         interface_methods = [
             "deploy_agents",
             "validate_agent",
-            "clean_deployment",
             "get_deployment_status",
+            "set_claude_environment",
         ]
 
         for method_name in interface_methods:

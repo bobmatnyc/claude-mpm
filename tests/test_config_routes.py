@@ -626,7 +626,7 @@ class TestAgentsDeployedEnriched(AioHTTPTestCase):
                 "type": "core",
                 "specializations": ["python"],
                 # Phase 2 enrichment fields:
-                "description": "Python 3.12+ specialist",
+                "description": "Python 3.13+ specialist",
                 "category": "engineering",
                 "color": "green",
                 "tags": ["python", "async"],
@@ -656,7 +656,7 @@ class TestAgentsDeployedEnriched(AioHTTPTestCase):
             assert agent["version"] == "2.5.0"
             assert agent["type"] == "core"
             # New enrichment fields
-            assert agent["description"] == "Python 3.12+ specialist"
+            assert agent["description"] == "Python 3.13+ specialist"
             assert agent["category"] == "engineering"
             assert agent["color"] == "green"
             assert agent["tags"] == ["python", "async"]
@@ -854,7 +854,7 @@ class TestAgentDetail(AioHTTPTestCase):
         mock_agent_def.raw_content = """---
 name: Python Engineer
 agent_id: python-engineer
-description: "Python 3.12+ specialist"
+description: "Python 3.13+ specialist"
 version: "2.5.0"
 category: engineering
 color: green
@@ -877,10 +877,10 @@ dependencies:
   python:
     - black>=24.0.0
   system:
-    - python3.12+
+    - python3.13+
 knowledge:
   domain_expertise:
-    - "Python 3.12-3.13 features"
+    - "Python 3.13+ features"
   constraints:
     - "Maximum 5 test files per session"
   best_practices:
@@ -913,7 +913,7 @@ Content here
             d = data["data"]
             assert d["name"] == "Python Engineer"
             assert d["agent_id"] == "python-engineer"
-            assert d["description"] == "Python 3.12+ specialist"
+            assert d["description"] == "Python 3.13+ specialist"
             assert d["version"] == "2.5.0"
             assert d["category"] == "engineering"
             assert d["color"] == "green"
@@ -927,8 +927,8 @@ Content here
             assert "mypy" in d["skills"]
             assert "dspy" in d["skills"]
             assert d["dependencies"]["python"] == ["black>=24.0.0"]
-            assert d["dependencies"]["system"] == ["python3.12+"]
-            assert "Python 3.12-3.13 features" in d["knowledge"]["domain_expertise"]
+            assert d["dependencies"]["system"] == ["python3.13+"]
+            assert "Python 3.13+ features" in d["knowledge"]["domain_expertise"]
             assert d["handoff_agents"] == ["qa", "security"]
             assert d["author"] == "Claude MPM Team"
             assert d["schema_version"] == "1.3.0"

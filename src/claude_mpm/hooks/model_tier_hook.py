@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 from claude_mpm.hooks import permission_policy
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 # Agent type -> model mapping (fallback when frontmatter unavailable)
 _HAIKU_AGENTS: frozenset[str] = frozenset(
@@ -153,7 +154,7 @@ def main() -> None:
     #   sonnet -> everything else (PM/orchestrator default)
     model = _read_model_from_frontmatter(agent_type, cwd)
     if model is None:
-        name_lower = agent_type.lower().replace("_", "-")
+        name_lower = normalize_agent_id(agent_type)
         if name_lower in _HAIKU_AGENTS:
             model = _HAIKU_MODEL
         elif name_lower in _OPUS_AGENTS:

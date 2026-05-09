@@ -154,18 +154,28 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
         self._analysis_cache: ProjectCharacteristics | None = None
         self._cache_timestamp: float | None = None
 
-    def analyze_project(self, force_refresh: bool = False) -> ProjectCharacteristics:
+    def analyze_project(  # type: ignore[override]
+        self,
+        project_path: Path | None = None,
+        force_refresh: bool = False,
+    ) -> ProjectCharacteristics:
         """Analyze the current project and return characteristics.
 
         WHY: Comprehensive project analysis enables agents to create memories
         that are specific to the actual project context, tech stack, and patterns.
+        Satisfies ProjectAnalyzerInterface.analyze_project(project_path) while
+        preserving the existing force_refresh convenience parameter.
 
         Args:
-            force_refresh: If True, ignores cache and performs fresh analysis
+            project_path: Optional path to the project root. If provided, overrides
+                self.working_directory for this call. Defaults to None (use instance dir).
+            force_refresh: If True, ignores cache and performs fresh analysis.
 
         Returns:
             ProjectCharacteristics: Structured project analysis results
         """
+        if project_path is not None:
+            self.working_directory = project_path
         try:
             # Check cache first (unless force refresh)
             if not force_refresh and self._analysis_cache and self._cache_timestamp:
@@ -1017,3 +1027,60 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
                 entry_paths.append(entry_path)
 
         return entry_paths
+
+    def get_dependencies(self) -> dict[str, list[str]]:
+        """Get project dependencies by type.
+
+        WHY: Satisfies ProjectAnalyzerInterface contract; callers need structured
+        dependency information organized by type (e.g. direct, dev, optional).
+
+        What: Returns key_dependencies from project analysis grouped by category.
+        Test: Instantiate with a pyproject.toml project; assert dict has 'direct' key.
+
+        Returns:
+            Dictionary mapping dependency types to lists of dependencies
+        """
+        characteristics = self.analyze_project()
+        return {
+            "direct": list(characteristics.key_dependencies),
+            "web_frameworks": list(characteristics.web_frameworks),
+            "databases": list(characteristics.databases),
+        }
+
+    def analyze_test_coverage(self) -> dict[str, Any]:
+        """Analyze test coverage if available.
+
+        WHY: Satisfies ProjectAnalyzerInterface contract; callers need test
+        coverage information for quality reporting.
+
+        What: Returns detected testing framework and test patterns from analysis.
+        Test: Instantiate with a project that has tests/; assert result has 'framework' key.
+
+        Returns:
+            Dictionary with test coverage information
+        """
+        characteristics = self.analyze_project()
+        return {
+            "framework": characteristics.testing_framework,
+            "patterns": list(characteristics.test_patterns),
+            "has_tests": bool(characteristics.test_patterns),
+        }
+
+    def get_build_configuration(self) -> dict[str, Any]:
+        """Get build configuration information.
+
+        WHY: Satisfies ProjectAnalyzerInterface contract; callers need build
+        configuration for deployment and CI/CD pipeline recommendations.
+
+        What: Returns package manager, build tools, and important config files.
+        Test: Instantiate with a Node.js project; assert 'package_manager' key is present.
+
+        Returns:
+            Dictionary with build configuration details
+        """
+        characteristics = self.analyze_project()
+        return {
+            "package_manager": characteristics.package_manager,
+            "build_tools": list(characteristics.build_tools),
+            "important_configs": list(characteristics.important_configs),
+        }

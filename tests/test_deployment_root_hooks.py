@@ -33,12 +33,19 @@ class TestDeploymentRootHooks:
     def test_get_hook_script_path_pip_install(self):
         """Test finding hook script in pip installation."""
         installer = HookInstaller()
+        # Clear any cached path from previous tests
+        installer._hook_script_path = None
 
-        # Mock claude_mpm to simulate pip install structure
+        # Mock claude_mpm to simulate pip install structure.
+        # Must also make importlib.resources raise so the fallback is reached.
         with (
             patch(
                 "claude_mpm.__file__",
                 "/usr/local/lib/python3.11/site-packages/claude_mpm/__init__.py",
+            ),
+            patch(
+                "importlib.resources.files",
+                side_effect=ModuleNotFoundError("no importlib.resources in test"),
             ),
             patch.object(Path, "exists") as mock_exists,
         ):
@@ -59,7 +66,7 @@ class TestDeploymentRootHooks:
             with pytest.raises(FileNotFoundError) as exc_info:
                 installer.get_hook_script_path()
 
-            assert "Hook handler script not found" in str(exc_info.value)
+            assert "Could not find claude-hook-handler.sh" in str(exc_info.value)
 
     def test_install_hooks_uses_deployment_root(self, tmp_path):
         """Test that install_hooks installs hooks using the hook command."""

@@ -7,7 +7,7 @@ name = "claude-mpm"
 version = "6.2.67"
 description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 keywords = [
     # Core identity
     "claude",
@@ -51,8 +51,6 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development",
     "Topic :: Software Development :: Build Tools",
@@ -174,14 +172,14 @@ dev = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
-# Target Python 3.12+ (matches requires-python)
-target-version = "py312"
+# Target Python 3.13+ (matches requires-python)
+target-version = "py313"
 line-length = 88
 
 # Exclude common directories

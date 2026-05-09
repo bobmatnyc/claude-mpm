@@ -266,7 +266,7 @@ Variables are defined in `common.mk`. Override them in your main `Makefile`:
 # Override default variables
 SRC_DIR := lib           # instead of src/
 TESTS_DIR := test        # instead of tests/
-PYTHON := python3.12     # specific version
+PYTHON := python3.13     # specific version
 PACKAGE_NAME := mypackage
 
 # Override ENV-specific settings
@@ -279,7 +279,7 @@ endif
 ```makefile
 SRC_DIR := lib                    # Source directory
 TESTS_DIR := test                 # Test directory
-PYTHON := python3.12              # Python interpreter
+PYTHON := python3.13              # Python interpreter
 PYTEST_ARGS := -v --tb=short      # Pytest arguments
 RUFF_ARGS := --fix                # Ruff arguments
 PACKAGE_NAME := my_package        # Package name

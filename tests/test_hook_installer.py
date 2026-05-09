@@ -182,7 +182,7 @@ class TestHookInstaller(unittest.TestCase):
             with self.assertRaises(FileNotFoundError) as cm:
                 self.installer.get_hook_script_path()
 
-            self.assertIn("Hook handler script not found", str(cm.exception))
+            self.assertIn("Could not find claude-hook-handler.sh", str(cm.exception))
 
     @patch.object(HookInstaller, "is_version_compatible")
     @patch.object(HookInstaller, "get_hook_script_path")

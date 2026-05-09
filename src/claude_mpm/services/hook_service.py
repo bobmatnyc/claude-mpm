@@ -408,3 +408,106 @@ class HookService(HookServiceInterface):
 
         if hook_type and hook_type not in ["pre_delegation", "post_delegation"]:
             self.logger.warning(f"Unknown hook type: {hook_type}")
+
+    # ================================================================================
+    # HookServiceInterface required abstract methods
+    # ================================================================================
+
+    def unregister_hook(self, registration_id: str) -> bool:
+        """Unregister a hook callback by registration ID (hook name).
+
+        WHY: Satisfies HookServiceInterface contract; callers need a standard way
+        to remove a previously registered hook by its registration identifier.
+
+        What: Delegates to remove_hook() using registration_id as the hook name.
+        Test: Register a hook, call unregister_hook with hook.name, assert False
+        is returned for a subsequent call with the same name.
+
+        Args:
+            registration_id: ID / name returned from register_hook
+
+        Returns:
+            True if the hook was found and removed
+        """
+        return self.remove_hook(registration_id)
+
+    def execute_hook(self, hook_name: str, *args: Any, **kwargs: Any) -> list[Any]:
+        """Execute all callbacks registered under a given hook name.
+
+        WHY: Satisfies HookServiceInterface contract; callers need a name-based
+        dispatch mechanism for running hooks without holding a HookContext object.
+
+        What: Looks up matching hooks by name in pre/post lists and calls
+        execute() on each, collecting results. Returns an empty list if no
+        hook matches.
+        Test: Register a hook named 'test', call execute_hook('test', context=...);
+        assert the returned list has one element.
+
+        Args:
+            hook_name: Name of the hook to execute
+            *args: Positional arguments passed through (unused; hooks use context)
+            **kwargs: Keyword arguments; 'context' key is forwarded if present
+
+        Returns:
+            List of HookResult objects from matched hooks
+        """
+        results: list[Any] = []
+        context = kwargs.get("context")
+
+        all_hooks = self.pre_delegation_hooks + self.post_delegation_hooks
+        for hook in all_hooks:
+            if hook.name == hook_name and hook.enabled:
+                try:
+                    if context is not None:
+                        result = hook.execute(context)
+                    else:
+                        # Cannot run without a context; skip and log
+                        self.logger.warning(
+                            "execute_hook called without context for hook '%s'",
+                            hook_name,
+                        )
+                        continue
+                    results.append(result)
+                except Exception as exc:
+                    self.logger.error(
+                        "Exception executing hook '%s': %s", hook_name, exc
+                    )
+                    self.stats["errors"] += 1
+
+        return results
+
+    def get_hook_info(self, hook_name: str) -> dict[str, Any]:
+        """Get information about a registered hook by name.
+
+        WHY: Satisfies HookServiceInterface contract; callers need to inspect
+        hook metadata for debugging and observability purposes.
+
+        What: Searches pre/post delegation hook lists for a hook with the given
+        name and returns its metadata dict; returns empty dict if not found.
+        Test: Register a hook named 'test-hook'; call get_hook_info('test-hook');
+        assert the returned dict contains 'name' key equal to 'test-hook'.
+
+        Args:
+            hook_name: Name of the hook point to query
+
+        Returns:
+            Dictionary with hook metadata (name, priority, enabled, type),
+            or an empty dict if no hook with that name is registered.
+        """
+        for hook in self.pre_delegation_hooks:
+            if hook.name == hook_name:
+                return {
+                    "name": hook.name,
+                    "priority": hook.priority,
+                    "enabled": hook.enabled,
+                    "type": "pre_delegation",
+                }
+        for hook in self.post_delegation_hooks:
+            if hook.name == hook_name:
+                return {
+                    "name": hook.name,
+                    "priority": hook.priority,
+                    "enabled": hook.enabled,
+                    "type": "post_delegation",
+                }
+        return {}

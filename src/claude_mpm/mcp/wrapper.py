@@ -396,7 +396,7 @@ def main():
         logger.error("=" * 60)
         logger.error("Troubleshooting steps:")
         logger.error("1. Ensure claude-mpm is installed: pip install -e .")
-        logger.error("2. Check Python version is 3.12+: python3 --version")
+        logger.error("2. Check Python version is 3.13+: python3 --version")
         logger.error("3. Verify project structure is intact")
         logger.error("4. Check Claude Code config points to this wrapper")
         logger.error("=" * 60)

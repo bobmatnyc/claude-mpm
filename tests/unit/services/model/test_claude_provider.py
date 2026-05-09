@@ -17,6 +17,59 @@ import pytest
 from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
 from claude_mpm.services.model.claude_provider import ClaudeProvider
 
+# ---------------------------------------------------------------------------
+# Patch HAS_ANTHROPIC and the anthropic sentinel so tests that supply a mock
+# client (or expect a real client to be created) don't fail on the
+# "SDK not installed" guard in the production code.  Tests that specifically
+# exercise the missing-SDK path are marked with no_sdk_patch.
+# ---------------------------------------------------------------------------
+_MODULE = "claude_mpm.services.model.claude_provider"
+
+
+def _build_fake_message(
+    text: str = "Mock analysis completed.", model: str = "claude-3-5-sonnet-20241022"
+):
+    """Build a fake AsyncAnthropic messages.create response."""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        content=[SimpleNamespace(type="text", text=text)],
+        model=model,
+        stop_reason="end_turn",
+        usage=SimpleNamespace(input_tokens=10, output_tokens=5),
+    )
+
+
+def _make_fake_anthropic():
+    """Build a fake anthropic module with async-capable client."""
+    fake = MagicMock()
+    fake.AuthenticationError = type("AuthenticationError", (Exception,), {})
+    fake.RateLimitError = type("RateLimitError", (Exception,), {})
+    fake.APIError = type("APIError", (Exception,), {})
+
+    # Client returned by AsyncAnthropic() needs async messages.create
+    fake_client = MagicMock()
+    fake_client.messages = MagicMock()
+    fake_client.messages.create = AsyncMock(return_value=_build_fake_message())
+    fake_client.close = AsyncMock()
+    fake.AsyncAnthropic = MagicMock(return_value=fake_client)
+    return fake
+
+
+@pytest.fixture(autouse=True)
+def _patch_has_anthropic(request):
+    """Patch HAS_ANTHROPIC=True for all tests except those marked no_sdk_patch."""
+    if request.node.get_closest_marker("no_sdk_patch"):
+        yield
+        return
+    fake_anthropic = _make_fake_anthropic()
+    with (
+        patch(f"{_MODULE}.HAS_ANTHROPIC", True),
+        patch(f"{_MODULE}.anthropic", fake_anthropic),
+    ):
+        yield
+
+
 # ============================================================================
 # TEST FIXTURES
 # ============================================================================
@@ -163,16 +216,16 @@ class TestInitializeMethod:
 
     @pytest.mark.asyncio
     async def test_initialize_without_api_key(self, provider_minimal):
-        """Test initialization succeeds in Phase 1 mock mode without API key."""
+        """Test initialization fails without API key (Phase 2 requires real key)."""
         # Arrange (provider with no API key)
 
         # Act
         result = await provider_minimal.initialize()
 
         # Assert
-        # Phase 1: Should succeed (mock mode)
-        assert result is True
-        assert provider_minimal._initialized is True
+        # Phase 2: Requires real API key, fails gracefully without one
+        assert result is False
+        assert provider_minimal._initialized is False
 
     @pytest.mark.asyncio
     async def test_initialize_logs_info(self, provider):
@@ -275,13 +328,13 @@ class TestIsAvailableMethod:
 
     @pytest.mark.asyncio
     async def test_is_available_without_api_key(self, provider_minimal):
-        """Test is_available returns True even without API key in Phase 1."""
+        """Test is_available returns False when no API key is configured."""
         # Arrange & Act
         result = await provider_minimal.is_available()
 
         # Assert
-        # Phase 1: Returns True for testing
-        assert result is True
+        # Phase 2: No API key -> unavailable
+        assert result is False
 
     @pytest.mark.asyncio
     async def test_is_available_after_shutdown(self, provider):
@@ -541,7 +594,8 @@ class TestAnalyzeContent:
         # Assert
         assert response.metadata is not None
         assert isinstance(response.metadata, dict)
-        assert "phase" in response.metadata
+        # Phase 2: metadata contains model and stop_reason from the API response
+        assert "model" in response.metadata
 
 
 # ============================================================================
@@ -819,8 +873,8 @@ class TestErrorHandling:
 
     @pytest.mark.asyncio
     async def test_analyze_before_successful_init(self, sample_content):
-        """Test analyze auto-initializes if needed."""
-        # Arrange
+        """Test analyze returns error when auto-initialization fails (no API key)."""
+        # Arrange: no api_key means initialize() will fail
         provider = ClaudeProvider()
         provider._initialized = False
 
@@ -830,8 +884,9 @@ class TestErrorHandling:
         )
 
         # Assert
-        # Should auto-initialize and succeed
-        assert response.success is True
+        # Phase 2: without an API key, auto-init fails and analyze returns error
+        assert response.success is False
+        assert response.error is not None
 
 
 # ============================================================================
