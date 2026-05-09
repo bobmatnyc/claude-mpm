@@ -1,3 +1,10 @@
+## v6.2.66 (2026-05-09)
+
+### Feat
+
+- **agent**: add minimal rust-engineer bundled agent with toolchains-rust-core skill
+- **skill**: expand toolchains-rust-core to v2.0.0 with comprehensive patterns
+
 ## v6.2.65 (2026-05-07)
 
 ## v6.2.64 (2026-05-05)
