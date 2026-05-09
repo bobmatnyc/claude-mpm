@@ -167,9 +167,9 @@ def test_startup_integration():
 
     print("✓ run_background_services() calls deploy_output_style_on_startup()")
 
-    # Check order of calls
+    # Check order of calls (initialize_project_registry was removed from
+    # run_background_services but still exists as a standalone helper)
     calls = [
-        "initialize_project_registry",
         "check_mcp_auto_configuration",
         "verify_mcp_gateway_startup",
         "check_for_updates_async",
