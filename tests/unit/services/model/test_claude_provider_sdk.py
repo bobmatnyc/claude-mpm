@@ -22,6 +22,30 @@ import pytest
 from claude_mpm.services.core.interfaces.model import ModelCapability
 from claude_mpm.services.model.claude_provider import ClaudeProvider
 
+# ---------------------------------------------------------------------------
+# Patch HAS_ANTHROPIC and the anthropic sentinel so tests that supply a mock
+# client don't fail on the "SDK not installed" guard in the production code.
+# Tests that specifically exercise the missing-SDK path opt out explicitly.
+# ---------------------------------------------------------------------------
+_MODULE = "claude_mpm.services.model.claude_provider"
+_FAKE_ANTHROPIC = MagicMock()
+_FAKE_ANTHROPIC.AuthenticationError = type("AuthenticationError", (Exception,), {})
+_FAKE_ANTHROPIC.RateLimitError = type("RateLimitError", (Exception,), {})
+_FAKE_ANTHROPIC.APIError = type("APIError", (Exception,), {})
+
+
+@pytest.fixture(autouse=True)
+def _patch_has_anthropic(request):
+    """Patch HAS_ANTHROPIC=True for all tests except those marked no_sdk_patch."""
+    if request.node.get_closest_marker("no_sdk_patch"):
+        yield
+        return
+    with (
+        patch(f"{_MODULE}.HAS_ANTHROPIC", True),
+        patch(f"{_MODULE}.anthropic", _FAKE_ANTHROPIC),
+    ):
+        yield
+
 
 @pytest.fixture
 def provider_config():
@@ -152,6 +176,7 @@ async def test_stream_content_yields_text_chunks(provider):
 
 
 @pytest.mark.asyncio
+@pytest.mark.no_sdk_patch
 async def test_stream_content_requires_initialization(provider):
     """If initialize() fails (no key), stream_content must raise."""
     # No API key on a fresh provider with the env unset.

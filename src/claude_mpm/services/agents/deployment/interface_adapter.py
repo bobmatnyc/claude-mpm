@@ -183,8 +183,18 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
             self.logger.error(f"Basic cleanup failed: {e}", exc_info=True)
             return False
 
-    def get_deployment_status(self) -> dict[str, Any]:
+    def get_deployment_status(self, agent_name: str = "") -> dict[str, Any]:
         """Get current deployment status and metrics.
+
+        WHY: Satisfies AgentDeploymentInterface.get_deployment_status(agent_name)
+        while preserving backward-compatible zero-argument calls.
+
+        What: Delegates to the wrapped deployment service and includes agent_name
+        in the response dict for caller reference.
+        Test: Call with a known agent_name; assert result contains 'status' key.
+
+        Args:
+            agent_name: Optional name of the agent to query (included in response).
 
         Returns:
             Dictionary with deployment status information
@@ -198,11 +208,13 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
                 return {
                     "status": OperationResult.UNKNOWN,
                     "error": "Invalid status format from deployment service",
+                    "agent_name": agent_name,
                     "interface_version": "1.0.0",
                     "adapter_used": True,
                 }
 
             # Add interface compliance metadata
+            status["agent_name"] = agent_name
             status["interface_version"] = "1.0.0"
             status["adapter_used"] = True
 
@@ -213,9 +225,40 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
             return {
                 "status": OperationResult.ERROR,
                 "error": str(e),
+                "agent_name": agent_name,
                 "interface_version": "1.0.0",
                 "adapter_used": True,
             }
+
+    def set_claude_environment(self, config_dir: Path | None = None) -> dict[str, str]:
+        """Set Claude environment variables for agent discovery.
+
+        WHY: Satisfies AgentDeploymentInterface.set_claude_environment contract.
+        Delegates to the wrapped service if it has the method, otherwise handles
+        directly.
+
+        What: Sets CLAUDE_CONFIG_DIR env var and returns the dict of vars set.
+        Test: Call with a tmp_path; assert CLAUDE_CONFIG_DIR is set in os.environ.
+
+        Args:
+            config_dir: Optional path to Claude config directory.
+
+        Returns:
+            Dictionary of environment variables that were set
+        """
+        if hasattr(self.deployment_service, "set_claude_environment"):
+            return self.deployment_service.set_claude_environment(config_dir)
+
+        import os
+        from pathlib import Path as _Path
+
+        target_dir = config_dir or _Path.cwd()
+        env_vars: dict[str, str] = {
+            "CLAUDE_CONFIG_DIR": str(target_dir),
+        }
+        os.environ.update(env_vars)
+        self.logger.debug("Set Claude environment via adapter: %s", env_vars)
+        return env_vars
 
     def get_wrapped_service(self):
         """Get the wrapped deployment service.

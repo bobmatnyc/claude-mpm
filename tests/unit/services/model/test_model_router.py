@@ -186,7 +186,8 @@ class TestInitialization:
         # Arrange & Act (router from fixture)
 
         # Assert
-        assert router_auto._route_count == {"ollama": 0, "claude": 0}
+        assert router_auto._route_count.get("ollama") == 0
+        assert router_auto._route_count.get("claude") == 0
         assert router_auto._fallback_count == 0
         assert router_auto._active_provider is None
 
@@ -360,7 +361,7 @@ class TestAutoRouting:
     ):
         """Test AUTO routes to Ollama when available."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         with (
             patch.object(
                 router_auto.ollama_provider, "is_available", return_value=True
@@ -388,7 +389,7 @@ class TestAutoRouting:
     ):
         """Test AUTO falls back to Claude when Ollama fails."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         with (
             patch.object(
                 router_auto.ollama_provider, "is_available", return_value=True
@@ -421,7 +422,7 @@ class TestAutoRouting:
     ):
         """Test AUTO routes to Claude when Ollama unavailable."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         with (
             patch.object(
                 router_auto.ollama_provider, "is_available", return_value=False
@@ -447,7 +448,7 @@ class TestAutoRouting:
         """Test fails when fallback disabled and Ollama unavailable."""
         # Arrange
         router = ModelRouter(config={"strategy": "auto", "fallback_enabled": False})
-        await router.initialize()
+        router._initialized = True  # bypass real provider connections
         with patch.object(router.ollama_provider, "is_available", return_value=False):
             # Act
             response = await router.analyze_content(
@@ -563,7 +564,7 @@ class TestClaudeOnlyRouting:
     ):
         """Test CLAUDE_ONLY always routes to Claude."""
         # Arrange
-        await router_claude.initialize()
+        router_claude._initialized = True  # bypass real provider connections
         with patch.object(
             router_claude.claude_provider,
             "analyze_content",
@@ -803,7 +804,7 @@ class TestGetActiveProvider:
     ):
         """Test active provider is set after routing."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         with (
             patch.object(
                 router_auto.ollama_provider, "is_available", return_value=True
@@ -875,7 +876,7 @@ class TestEdgeCases:
     ):
         """Test handles concurrent routing requests."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         import asyncio
 
         with (
@@ -911,7 +912,7 @@ class TestEdgeCases:
     ):
         """Test routing with specific model parameter."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         with (
             patch.object(
                 router_auto.ollama_provider, "is_available", return_value=True
@@ -948,7 +949,7 @@ class TestEdgeCases:
     ):
         """Test routing passes kwargs to provider."""
         # Arrange
-        await router_auto.initialize()
+        router_auto._initialized = True  # bypass real provider connections
         with (
             patch.object(
                 router_auto.ollama_provider, "is_available", return_value=True

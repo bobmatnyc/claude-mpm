@@ -61,10 +61,10 @@ class TestStopHookMarksMessagesRead:
         # Call handle_stop_fast
         result = handlers.handle_stop_fast(event)
 
-        # Should block the stop
+        # Should block the stop (continue=True means "block and show message")
         assert result is not None
-        assert result["decision"] == "block"
-        assert "2 unread" in result["reason"]
+        assert result["continue"] is True
+        assert "2 unread" in result["stopReason"]
 
         # Crucially: read_message should have been called for both messages
         assert mock_service.read_message.call_count == 2
@@ -162,7 +162,7 @@ class TestStopHookMarksMessagesRead:
 
         # Should still block despite read_message failure
         assert result is not None
-        assert result["decision"] == "block"
+        assert result["continue"] is True
 
     @patch("claude_mpm.core.unified_paths.UnifiedPathManager")
     @patch("claude_mpm.services.communication.message_service.MessageService")
@@ -201,7 +201,7 @@ class TestStopHookMarksMessagesRead:
         # First stop: should block with unread messages
         result1 = handlers.handle_stop_fast(event)
         assert result1 is not None
-        assert result1["decision"] == "block"
+        assert result1["continue"] is True
         assert mock_service.read_message.call_count == 2
 
         # Second stop: should NOT block (messages were marked read)

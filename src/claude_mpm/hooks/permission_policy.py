@@ -30,6 +30,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Final
 
+from claude_mpm.utils.agent_filters import normalize_agent_id
+
 # ---------------------------------------------------------------------------
 # Decision dataclass
 # ---------------------------------------------------------------------------
@@ -193,7 +195,7 @@ def _extract_agent_tier(event: dict[str, Any]) -> str | None:
     for key in ("agent_id", "subagent_type", "agent_type"):
         value = event.get(key)
         if isinstance(value, str) and value.strip():
-            return value.strip().lower().replace("_", "-")
+            return normalize_agent_id(value.strip()) or None
     return None
 
 

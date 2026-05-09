@@ -219,8 +219,18 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             self.logger.error(f"Deployment cleanup failed: {e}", exc_info=True)
             return False
 
-    def get_deployment_status(self) -> dict[str, Any]:
+    def get_deployment_status(self, agent_name: str = "") -> dict[str, Any]:
         """Get current deployment status and metrics.
+
+        WHY: Satisfies AgentDeploymentInterface.get_deployment_status(agent_name) while
+        preserving backward-compatible zero-argument calls from internal callers.
+
+        What: Returns overall service metrics; if agent_name is provided, the
+        'agent_name' key is included in the returned dict for caller reference.
+        Test: Call with a known agent_name; assert result contains 'status' key.
+
+        Args:
+            agent_name: Optional name of the agent to query (included in response).
 
         Returns:
             Dictionary with deployment status information
@@ -236,6 +246,7 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             return {
                 "service_version": "refactored-1.0.0",
                 "status": OperationResult.SUCCESS,
+                "agent_name": agent_name,
                 "templates_dir": str(self.templates_dir),
                 "base_agent_path": str(self.base_agent_path),
                 "working_directory": str(self.working_directory),
@@ -258,6 +269,34 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
                 "status": OperationResult.ERROR,
                 "error": str(e),
             }
+
+    def set_claude_environment(self, config_dir: Path | None = None) -> dict[str, str]:
+        """Set Claude environment variables for agent discovery.
+
+        WHY: Satisfies AgentDeploymentInterface.set_claude_environment contract;
+        callers rely on CLAUDE_CONFIG_DIR being set for agent discovery to work.
+
+        What: Sets CLAUDE_CONFIG_DIR env var to config_dir (or working_directory
+        if not provided) and returns a dict of the variables that were set.
+        Test: Call with a tmp_path; assert CLAUDE_CONFIG_DIR is set in os.environ
+        and the returned dict contains that key.
+
+        Args:
+            config_dir: Optional path to Claude config directory. Defaults to
+                self.working_directory.
+
+        Returns:
+            Dictionary of environment variables that were set
+        """
+        import os
+
+        target_dir = config_dir or self.working_directory
+        env_vars: dict[str, str] = {
+            "CLAUDE_CONFIG_DIR": str(target_dir),
+        }
+        os.environ.update(env_vars)
+        self.logger.debug("Set Claude environment: %s", env_vars)
+        return env_vars
 
     # Additional convenience methods for enhanced functionality
 

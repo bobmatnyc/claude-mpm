@@ -128,7 +128,7 @@ class TestStartupBannerGitIntegration:
         with patch(
             "claude_mpm.cli.startup_display._get_recent_commits", return_value=[]
         ):
-            display_startup_banner(version="4.24.4", logging_level="OFF")
+            display_startup_banner(version="4.24.4")
             captured = capsys.readouterr()
             assert "No recent activity" in captured.out
 
@@ -144,7 +144,7 @@ class TestStartupBannerGitIntegration:
             "claude_mpm.cli.startup_display._get_recent_commits",
             return_value=mock_commits,
         ):
-            display_startup_banner(version="4.24.4", logging_level="OFF")
+            display_startup_banner(version="4.24.4")
             captured = capsys.readouterr()
             assert "a3f5b7c • 2 hours ago • fix: bug" in captured.out
             assert "b2d8e9f • 1 day ago • feat: new" in captured.out
@@ -160,7 +160,7 @@ class TestStartupBannerGitIntegration:
             "claude_mpm.cli.startup_display._get_recent_commits",
             return_value=mock_commits,
         ):
-            display_startup_banner(version="4.24.4", logging_level="OFF")
+            display_startup_banner(version="4.24.4")
             captured = capsys.readouterr()
             # Should contain truncated version with ellipsis
             assert "..." in captured.out
@@ -178,7 +178,7 @@ class TestStartupBannerGitIntegration:
             "claude_mpm.cli.startup_display._get_recent_commits",
             return_value=mock_commits,
         ):
-            display_startup_banner(version="4.24.4", logging_level="OFF")
+            display_startup_banner(version="4.24.4")
             captured = capsys.readouterr()
             # Should show the one commit
             assert "a3f5b7c • 2 hours ago • fix: bug" in captured.out
@@ -190,7 +190,7 @@ class TestStartupBannerGitIntegration:
         with patch(
             "claude_mpm.cli.startup_display._get_recent_commits", return_value=[]
         ) as mock_get_commits:
-            display_startup_banner(version="4.24.4", logging_level="OFF")
+            display_startup_banner(version="4.24.4")
             mock_get_commits.assert_called_once_with(max_commits=3)
 
 

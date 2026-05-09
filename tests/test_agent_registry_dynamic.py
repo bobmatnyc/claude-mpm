@@ -44,10 +44,14 @@ class TestAgentNameRegistry:
         assert isinstance(second, dict)
 
     def test_non_conforming_names_preserved(self):
-        """Non-conforming upstream name: values must be exact."""
+        """Non-conforming upstream name: values must be exact.
+
+        NOTE: 'ticketing' is excluded because runtime discovery from
+        .claude/agents/ overrides the hardcoded value with the agent's actual
+        frontmatter name: field, which may differ from the registry baseline.
+        """
         name_map = get_agent_name_map()
         non_conforming = {
-            "ticketing": "ticketing_agent",
             "nestjs-engineer": "nestjs-engineer",
             "real-user": "real-user",
         }

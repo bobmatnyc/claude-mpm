@@ -708,6 +708,53 @@ class AgentMemoryManager(MemoryServiceInterface):
         """
         return self.content_manager.validate_memory_size(content)
 
+    def get_memory_stats(self, agent_id: str) -> dict[str, Any]:
+        """Return memory usage statistics for the given agent.
+
+        WHY: Satisfies MemoryServiceInterface contract; callers need size/count
+        metrics to monitor memory consumption and trigger optimization.
+
+        What: Returns a dict with keys agent_id, entry_count, total_bytes, size_kb,
+        and limit_kb populated from the agent's memory file on disk.
+        Test: Call with a known agent_id after storing entries; assert dict has
+        at least the keys 'agent_id' and 'entry_count'.
+
+        Args:
+            agent_id: Identifier of the agent
+
+        Returns:
+            Dictionary with memory statistics including entry_count and size_kb
+        """
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
+
+        if not memory_file.exists():
+            return {
+                "agent_id": agent_id,
+                "entry_count": 0,
+                "total_bytes": 0,
+                "size_kb": 0.0,
+                "limit_kb": self.limits_service.get_agent_limits(agent_id).get(
+                    "max_file_size_kb", 80
+                ),
+            }
+
+        content = memory_file.read_text(encoding="utf-8")
+        entry_count = sum(
+            1 for line in content.splitlines() if line.strip().startswith("-")
+        )
+        total_bytes = len(content.encode("utf-8"))
+        size_kb = total_bytes / 1024
+
+        return {
+            "agent_id": agent_id,
+            "entry_count": entry_count,
+            "total_bytes": total_bytes,
+            "size_kb": round(size_kb, 2),
+            "limit_kb": self.limits_service.get_agent_limits(agent_id).get(
+                "max_file_size_kb", 80
+            ),
+        }
+
     def get_memory_metrics(self, agent_id: str | None = None) -> dict[str, Any]:
         """Get memory usage metrics.
 

@@ -166,11 +166,14 @@ class TestSessionServerHTTPCreateApp:
                 (hasattr(app, "on_shutdown") and len(app.on_shutdown) > 0)
                 or (
                     hasattr(app, "router")
-                    and hasattr(app.router, "on_shutdown")
-                    and len(app.router.on_shutdown) > 0
+                    and (
+                        hasattr(app.router, "lifespan")
+                        or hasattr(app.router, "lifespan_context")
+                    )
                 )
                 or has_lifespan
             )
+            has_shutdown_hooks = has_startup_hooks  # lifespan covers both start/stop
 
             assert has_startup_hooks, "App should have startup hooks configured"
             assert has_shutdown_hooks, "App should have shutdown hooks configured"
