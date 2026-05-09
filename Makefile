@@ -53,14 +53,14 @@ TEST_WORKERS := $(or $(CLAUDE_MPM_TEST_WORKERS),auto)
 
 # Environment-specific settings
 ifeq ($(ENV),production)
-    PYTEST_ARGS := -n $(TEST_WORKERS) -v --tb=short --strict-markers
+    PYTEST_ARGS := -n $(TEST_WORKERS) --dist worksteal -v --tb=short --strict-markers
     BUILD_FLAGS := --no-isolation
 else ifeq ($(ENV),staging)
-    PYTEST_ARGS := -n $(TEST_WORKERS) -v --tb=line
+    PYTEST_ARGS := -n $(TEST_WORKERS) --dist worksteal -v --tb=line
     BUILD_FLAGS :=
 else
     # development (default)
-    PYTEST_ARGS := -n $(TEST_WORKERS) -v --tb=long
+    PYTEST_ARGS := -n $(TEST_WORKERS) --dist worksteal -v --tb=long
     BUILD_FLAGS :=
 endif
 
@@ -517,7 +517,7 @@ test-serial: ## Run tests serially for debugging (disables parallelization)
 
 test-fast: ## Run unit tests only in parallel (fastest)
 	@echo "$(YELLOW)⚡ Running unit tests in parallel...$(NC)"
-	@uv run pytest tests/ -n $(TEST_WORKERS) -m unit -v
+	@uv run pytest tests/ -n $(TEST_WORKERS) --dist worksteal -m unit -v
 	@echo "$(GREEN)✓ Unit tests completed$(NC)"
 
 test-coverage: ## Run tests with coverage report (parallel)
