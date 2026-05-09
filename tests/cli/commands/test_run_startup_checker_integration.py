@@ -90,8 +90,7 @@ class TestRunStartupCheckerIntegration:
             _check_configuration_health,
         )
 
-        # Test _check_configuration_health
-        logger = MagicMock()
+        # Test _check_configuration_health (no longer accepts logger arg)
         with patch(
             "claude_mpm.cli.commands.run.StartupCheckerService"
         ) as mock_service_class:
@@ -99,15 +98,14 @@ class TestRunStartupCheckerIntegration:
             mock_service_class.return_value = mock_service
             mock_service.check_configuration.return_value = []
 
-            _check_configuration_health(logger)
+            _check_configuration_health()
 
             mock_service_class.assert_called_once()
             mock_service.check_configuration.assert_called_once()
 
-        # Test _check_claude_json_memory
+        # Test _check_claude_json_memory (no longer accepts logger arg)
         args = MagicMock()
         args.mpm_resume = True
-        logger = MagicMock()
 
         with patch(
             "claude_mpm.cli.commands.run.StartupCheckerService"
@@ -116,7 +114,7 @@ class TestRunStartupCheckerIntegration:
             mock_service_class.return_value = mock_service
             mock_service.check_memory.return_value = None
 
-            _check_claude_json_memory(args, logger)
+            _check_claude_json_memory(args)
 
             mock_service_class.assert_called_once()
             mock_service.check_memory.assert_called_once_with(True)
