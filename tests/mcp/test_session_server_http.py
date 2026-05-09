@@ -144,8 +144,10 @@ class TestSessionServerHTTPCreateApp:
             server = SessionServerHTTP()
             app = server._create_app()
 
-            # Verify lifecycle hooks are configured
-            # Starlette may store hooks on app, app.router, or use lifespan depending on version
+            # Verify lifecycle hooks are configured.
+            # Starlette 1.0+ uses lifespan= kwarg which stores the context manager
+            # on app.router.lifespan / app.router.lifespan_context instead of
+            # the deprecated app.on_startup / app.on_shutdown lists.
             has_startup_hooks = (
                 (hasattr(app, "on_startup") and len(app.on_startup) > 0)
                 or (
@@ -154,16 +156,15 @@ class TestSessionServerHTTPCreateApp:
                     and len(app.router.on_startup) > 0
                 )
                 or hasattr(app, "lifespan")
-            )
-            has_shutdown_hooks = (
-                (hasattr(app, "on_shutdown") and len(app.on_shutdown) > 0)
                 or (
                     hasattr(app, "router")
-                    and hasattr(app.router, "on_shutdown")
-                    and len(app.router.on_shutdown) > 0
+                    and (
+                        hasattr(app.router, "lifespan")
+                        or hasattr(app.router, "lifespan_context")
+                    )
                 )
-                or hasattr(app, "lifespan")
             )
+            has_shutdown_hooks = has_startup_hooks  # lifespan covers both start/stop
 
             assert has_startup_hooks, "App should have startup hooks configured"
             assert has_shutdown_hooks, "App should have shutdown hooks configured"
