@@ -291,31 +291,35 @@ class ClaudeProvider(BaseModelProvider):
 
         try:
             message = await self._client.messages.create(**request_kwargs)
-        except anthropic.AuthenticationError as e:
-            self.log_error(f"Claude authentication error: {e}")
-            return self.create_response(
-                success=False,
-                model=model,
-                task=task,
-                error=f"Authentication error: {e}",
-            )
-        except anthropic.RateLimitError as e:
-            self.log_warning(f"Claude rate limit exceeded: {e}")
-            return self.create_response(
-                success=False,
-                model=model,
-                task=task,
-                error=f"Rate limit exceeded: {e}",
-            )
-        except anthropic.APIError as e:
-            self.log_error(f"Claude API error: {e}")
-            return self.create_response(
-                success=False,
-                model=model,
-                task=task,
-                error=f"Claude API error: {e}",
-            )
-        except Exception as e:  # pragma: no cover - defensive catch-all
+        except Exception as e:
+            # Guard anthropic-specific exception types: when anthropic is None
+            # (SDK not installed) we cannot reference anthropic.AuthenticationError
+            # etc. at runtime — those attributes would crash with AttributeError.
+            if anthropic is not None and isinstance(e, anthropic.AuthenticationError):
+                self.log_error(f"Claude authentication error: {e}")
+                return self.create_response(
+                    success=False,
+                    model=model,
+                    task=task,
+                    error=f"Authentication error: {e}",
+                )
+            if anthropic is not None and isinstance(e, anthropic.RateLimitError):
+                self.log_warning(f"Claude rate limit exceeded: {e}")
+                return self.create_response(
+                    success=False,
+                    model=model,
+                    task=task,
+                    error=f"Rate limit exceeded: {e}",
+                )
+            if anthropic is not None and isinstance(e, anthropic.APIError):
+                self.log_error(f"Claude API error: {e}")
+                return self.create_response(
+                    success=False,
+                    model=model,
+                    task=task,
+                    error=f"Claude API error: {e}",
+                )
+            # Defensive catch-all for remaining exceptions
             self.log_error(f"Unexpected error calling Claude API: {e}")
             return self.create_response(
                 success=False,
