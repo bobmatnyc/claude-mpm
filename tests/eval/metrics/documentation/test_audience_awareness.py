@@ -434,7 +434,7 @@ class TestAudienceAwarenessMetric:
             **Version**: 2.1.0
             **API Version**: 2025-12-01
             **Last Updated**: December 6, 2025
-            **Tested with**: Node.js 20.x, Python 3.12
+            **Tested with**: Node.js 20.x, Python 3.13
 
             ## Authentication
 
