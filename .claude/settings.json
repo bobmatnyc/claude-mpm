@@ -151,6 +151,19 @@
   "permissions": {
     "additionalDirectories": []
   },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "mcp-skillset",
+    "github",
+    "filesystem",
+    "kuzu-memory",
+    "mcp-ticketer",
+    "mcp-vector-search",
+    "slack-user-proxy",
+    "gworkspace-mcp"
+  ],
+  "outputStyle": "claude_mpm",
+  "activeOutputStyle": "Claude MPM",
   "autoMemoryEnabled": true,
   "_mpm_managed": true,
   "_mpm_version": "6.3.2"
