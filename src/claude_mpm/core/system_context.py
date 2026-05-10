@@ -18,17 +18,18 @@ def create_simple_context() -> str:
 
 You have access to native subagents via the Task tool with subagent_type parameter.
 
-IMPORTANT: subagent_type MUST match the agent's exact `name:` frontmatter field value.
-These are case-sensitive. Examples of correct values:
-- "Research" (not "research")
-- "Engineer" (not "engineer")
-- "QA" (not "qa")
-- "Documentation Agent" (not "documentation")
-- "Local Ops" (not "local-ops")
-- "Version Control" (not "version-control")
-- "Data Engineer" (not "data-engineer")
-- "Security" (not "security")
+IMPORTANT: `subagent_type` must match the agent's `name:` frontmatter field exactly.
+Per Claude Code's spec, all `name:` values are lowercase with hyphens. Examples of
+correct values:
+- "research"
+- "engineer"
+- "qa"
+- "documentation"
+- "local-ops"
+- "version-control"
+- "data-engineer"
+- "security"
 
-Use these agents by calling: Task(description="task description", subagent_type="Research")
+Use these agents by calling: Task(description="task description", subagent_type="research")
 
 Work efficiently and delegate appropriately to subagents when needed."""
