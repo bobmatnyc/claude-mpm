@@ -19,6 +19,7 @@ import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.core.env_defaults import apply_subprocess_env_defaults
 from claude_mpm.core.logger import get_logger
@@ -28,6 +29,31 @@ from claude_mpm.core.logger import get_logger
 # ``ClaudeRunnerProtocol`` only needs to be importable for type checkers.
 if TYPE_CHECKING:
     from claude_mpm.core.protocols import ClaudeRunnerProtocol
+
+
+def _format_task_label(raw_agent_name: str, current_agent: str) -> tuple[str, str, str]:
+    """Compute display name, colored label, and full printed line for a Task delegation.
+
+    Why: Centralizing this logic makes the f-string side effect deterministic and
+    easily unit-testable without standing up the full SDK message stream.
+
+    Args:
+        raw_agent_name: The raw subagent_type / description value from the SDK
+            ToolUseBlock (e.g. ``"python-engineer"`` or ``"Research"``).
+        current_agent: The display name of the parent agent (defaults to ``"PM"``).
+
+    Returns:
+        A 3-tuple of ``(display_name, colored_label, printed_line)`` where:
+            - ``display_name`` is the Title Case form (no ANSI), suitable for
+              storing in ``tool_id_to_agent`` and propagating to nested labels.
+            - ``colored_label`` is the ANSI-wrapped Title Case form used in the
+              terminal print f-string only.
+            - ``printed_line`` is the formatted bracket label that gets printed.
+    """
+    display_name = AgentNameNormalizer.normalize(raw_agent_name)
+    colored_label = AgentNameNormalizer.colorize(raw_agent_name)
+    printed_line = f"  [{current_agent}:Task → {colored_label}]"
+    return display_name, colored_label, printed_line
 
 
 class InteractiveSession:
@@ -940,15 +966,23 @@ class InteractiveSession:
                                             block_input = (
                                                 getattr(block, "input", {}) or {}
                                             )
-                                            agent_name = (
+                                            raw_agent_name = (
                                                 block_input.get("subagent_type")
                                                 or block_input.get("description")
                                                 or "Agent"
                                             )
-                                            tool_id_to_agent[block.id] = agent_name
-                                            print(
-                                                f"  [{current_agent}:Task → {agent_name}]"
+                                            (
+                                                display_name,
+                                                _colored_label,
+                                                printed_line,
+                                            ) = _format_task_label(
+                                                raw_agent_name, current_agent
                                             )
+                                            # Store the Title Case (no-ANSI) form so
+                                            # nested delegations see clean labels
+                                            # rather than ANSI escape sequences.
+                                            tool_id_to_agent[block.id] = display_name
+                                            print(printed_line)
                                         else:
                                             print(f"  [{current_agent}:{block.name}]")
                                         tracker.record_tool_call(block.name)
