@@ -17,28 +17,25 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 
-# Track log messages for verification
-success_messages = []
-original_info = logging.Logger.info
+
+def _make_patched_info(success_messages, original_info):
+    """Return a patched Logger.info that appends to success_messages."""
+
+    def patched_info(self, msg, *args, **kwargs):
+        if "Successfully loaded configuration" in str(msg):
+            success_messages.append(msg)
+        return original_info(self, msg, *args, **kwargs)
+
+    return patched_info
 
 
-def patched_info(self, msg, *args, **kwargs):
-    """Patched info method to track success messages."""
-    if "Successfully loaded configuration" in str(msg):
-        success_messages.append(msg)
-    return original_info(self, msg, *args, **kwargs)
-
-
-# Patch the logging to track messages
-logging.Logger.info = patched_info
-
-# Now test the Config singleton
-
-
-def test_single_success_message():
+def test_single_success_message(monkeypatch):
     """Test that the success message only appears once."""
-    global success_messages
     success_messages = []
+    original_info = logging.Logger.info
+    monkeypatch.setattr(
+        logging.Logger, "info", _make_patched_info(success_messages, original_info)
+    )
 
     # Reset singleton for clean test
     Config.reset_singleton()
@@ -67,22 +64,23 @@ def test_single_success_message():
     for i, msg in enumerate(success_messages, 1):
         print(f"  {i}. {msg}")
 
+    assert len(success_messages) <= 1, (
+        f"Expected 0 or 1 success messages, got {len(success_messages)}"
+    )
+
     if len(success_messages) == 0:
         print("✓ No duplicate messages (no config file found)")
-        return True
-    if len(success_messages) == 1:
+    else:
         print("✓ SUCCESS: Only one configuration success message logged!")
-        return True
-    print(
-        f"✗ FAILURE: {len(success_messages)} success messages logged (expected 0 or 1)"
-    )
-    return False
 
 
-def test_with_explicit_config_file():
+def test_with_explicit_config_file(monkeypatch):
     """Test with explicit config file paths."""
-    global success_messages
     success_messages = []
+    original_info = logging.Logger.info
+    monkeypatch.setattr(
+        logging.Logger, "info", _make_patched_info(success_messages, original_info)
+    )
 
     # Reset singleton for clean test
     Config.reset_singleton()
@@ -109,25 +107,46 @@ def test_with_explicit_config_file():
         for i, msg in enumerate(success_messages, 1):
             print(f"  {i}. {msg}")
 
-        if len(success_messages) == 1:
-            print("✓ SUCCESS: Only one configuration success message logged!")
-            return True
-        print(
-            f"✗ FAILURE: {len(success_messages)} success messages logged (expected 1)"
+        assert len(success_messages) == 1, (
+            f"Expected exactly 1 success message, got {len(success_messages)}"
         )
-        return False
-    print(f"Config file not found at {config_file}, skipping test")
-    return True
+        print("✓ SUCCESS: Only one configuration success message logged!")
+    else:
+        print(f"Config file not found at {config_file}, skipping test")
 
 
 def main():
-    """Run all tests."""
+    """Run all tests (for direct script execution)."""
     print("Testing configuration duplicate message fix...")
     print("=" * 60)
 
-    # Run tests
-    test1_pass = test_single_success_message()
-    test2_pass = test_with_explicit_config_file()
+    success_messages_1 = []
+    original_info = logging.Logger.info
+    logging.Logger.info = _make_patched_info(success_messages_1, original_info)
+    try:
+        Config.reset_singleton()
+        config1 = Config()
+        config2 = Config()
+        config3 = Config()
+        assert config1 is config2 is config3
+        test1_pass = len(success_messages_1) <= 1
+    finally:
+        logging.Logger.info = original_info
+
+    success_messages_2 = []
+    logging.Logger.info = _make_patched_info(success_messages_2, original_info)
+    try:
+        Config.reset_singleton()
+        config_file = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+        if config_file.exists():
+            Config(config_file=config_file)
+            Config(config_file=config_file)
+            Config()
+            test2_pass = len(success_messages_2) == 1
+        else:
+            test2_pass = True
+    finally:
+        logging.Logger.info = original_info
 
     print("\n" + "=" * 60)
     print("FINAL RESULTS:")

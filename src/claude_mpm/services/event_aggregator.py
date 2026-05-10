@@ -571,6 +571,7 @@ def get_aggregator() -> EventAggregator:
 
 def start_aggregator() -> bool:
     """Start the global aggregator service."""
+    _register_signal_handlers()
     aggregator = get_aggregator()
     return aggregator.start()
 
@@ -581,6 +582,7 @@ def stop_aggregator():
     if _aggregator:
         _aggregator.stop()
         _aggregator = None
+    _restore_signal_handlers()
 
 
 def aggregator_status() -> dict[str, Any]:
@@ -590,6 +592,10 @@ def aggregator_status() -> dict[str, Any]:
 
 
 # Signal handlers for graceful shutdown
+_previous_sigint_handler = None
+_previous_sigterm_handler = None
+
+
 def _signal_handler(signum, frame):
     """Handle shutdown signals."""
     logger = get_logger("event_aggregator")
@@ -598,6 +604,24 @@ def _signal_handler(signum, frame):
     sys.exit(0)
 
 
-# Register signal handlers
-signal.signal(signal.SIGINT, _signal_handler)
-signal.signal(signal.SIGTERM, _signal_handler)
+def _register_signal_handlers() -> None:
+    """Register SIGINT/SIGTERM handlers, saving previous handlers for teardown.
+
+    Called from start_aggregator() rather than at module-import time so that
+    pytest workers (which import this module during collection) are not
+    affected by the sys.exit(0) installed here.
+    """
+    global _previous_sigint_handler, _previous_sigterm_handler
+    _previous_sigint_handler = signal.signal(signal.SIGINT, _signal_handler)
+    _previous_sigterm_handler = signal.signal(signal.SIGTERM, _signal_handler)
+
+
+def _restore_signal_handlers() -> None:
+    """Restore the signal handlers that were in place before registration."""
+    global _previous_sigint_handler, _previous_sigterm_handler
+    if _previous_sigint_handler is not None:
+        signal.signal(signal.SIGINT, _previous_sigint_handler)
+        _previous_sigint_handler = None
+    if _previous_sigterm_handler is not None:
+        signal.signal(signal.SIGTERM, _previous_sigterm_handler)
+        _previous_sigterm_handler = None
