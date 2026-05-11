@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 import questionary
 from questionary import Choice, Separator
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 
 from ...utils.agent_filters import (
     normalize_agent_id,
@@ -32,7 +32,21 @@ from ...utils.agent_filters import (
 from .configure_models import AgentConfig
 
 if TYPE_CHECKING:
+    from rich.prompt import Prompt
+
     from .configure import ConfigureCommand
+
+
+def _prompt() -> type[Prompt]:
+    """Return the configure module's ``Prompt`` symbol.
+
+    Tests patch ``claude_mpm.cli.commands.configure.Prompt`` to feed inputs;
+    looking it up dynamically here keeps that patch effective even though the
+    actual call site lives in this handler module.
+    """
+    from . import configure as _cfg
+
+    return _cfg.Prompt
 
 
 class AgentDeploymentHandler:
@@ -66,7 +80,7 @@ class AgentDeploymentHandler:
         """
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         from claude_mpm.utils.agent_filters import (
@@ -89,7 +103,7 @@ class AgentDeploymentHandler:
 
         if not all_agents:
             self.console.print("[yellow]No agents available[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Get deployed agent IDs and recommended agents
@@ -326,12 +340,12 @@ class AgentDeploymentHandler:
                     self.console.print(
                         "[dim]  --list-agents to see available agents[/dim]"
                     )
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
                 return
 
             if selected_values is None:
                 self.console.print("[yellow]No changes made[/yellow]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
                 return
 
             # Check for inline control selections
@@ -421,7 +435,7 @@ class AgentDeploymentHandler:
 
         if not to_deploy and not to_remove:
             self.console.print("[yellow]No changes needed[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Show what will happen
@@ -438,7 +452,7 @@ class AgentDeploymentHandler:
         # Confirm
         if not Confirm.ask("\nApply these changes?", default=True):
             self.console.print("[yellow]Changes cancelled[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Execute changes
@@ -516,7 +530,7 @@ class AgentDeploymentHandler:
         if remove_fail > 0:
             self.console.print(f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]")
 
-        Prompt.ask("\nPress Enter to continue")
+        _prompt().ask("\nPress Enter to continue")
 
     # ------------------------------------------------------------------
     # Preset / recommended installation
@@ -537,7 +551,7 @@ class AgentDeploymentHandler:
 
             if not presets:
                 self.console.print("[yellow]No presets available[/yellow]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
                 return
 
             self.console.print("\n[bold white]═══ Available Presets ═══[/bold white]\n")
@@ -546,7 +560,7 @@ class AgentDeploymentHandler:
                 self.console.print(f"     {preset['description']}")
                 self.console.print(f"     [dim]Agents: {len(preset['agents'])}[/dim]\n")
 
-            selection = Prompt.ask("\nEnter preset number (or 'c' to cancel)")
+            selection = _prompt().ask("\nEnter preset number (or 'c' to cancel)")
             if selection.lower() == "c":
                 return
 
@@ -563,7 +577,7 @@ class AgentDeploymentHandler:
                     )
                     for agent_id in resolution["missing_agents"]:
                         self.console.print(f"  • {agent_id}")
-                    Prompt.ask("\nPress Enter to continue")
+                    _prompt().ask("\nPress Enter to continue")
                     return
 
                 # Confirm installation
@@ -593,21 +607,21 @@ class AgentDeploymentHandler:
                         f"\n[green]✓ Installed {installed}/{len(resolution['agents'])} agents[/green]"
                     )
 
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
             else:
                 self.console.print("[red]Invalid selection[/red]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
         except Exception as e:
             self.console.print(f"[red]Error installing preset: {e}[/red]")
             self.logger.error(f"Preset installation failed: {e}", exc_info=True)
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
 
     def select_recommended_agents(self, agents: list[AgentConfig]) -> None:
         """Select and install recommended agents based on toolchain detection."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         self.console.clear()
@@ -625,12 +639,12 @@ class AgentDeploymentHandler:
         except Exception as e:
             self.console.print(f"[red]Error detecting toolchain: {e}[/red]")
             self.logger.error(f"Toolchain detection failed: {e}", exc_info=True)
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         if not recommended_agent_ids:
             self.console.print("[yellow]No recommended agents found[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Get detection summary
@@ -685,7 +699,7 @@ class AgentDeploymentHandler:
             self.console.print(
                 "[yellow]No matching agents found in available sources[/yellow]"
             )
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Display recommended agents
@@ -728,7 +742,7 @@ class AgentDeploymentHandler:
             self.console.print(
                 "[green]✓ All recommended agents are already installed![/green]"
             )
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Ask for confirmation
@@ -737,7 +751,7 @@ class AgentDeploymentHandler:
             f"Install {len(to_install)} recommended agent(s)?", default=True
         ):
             self.console.print("[yellow]Installation cancelled[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Install agents
@@ -767,7 +781,7 @@ class AgentDeploymentHandler:
         if fail_count > 0:
             self.console.print(f"[red]✗ Failed to install {fail_count} agent(s)[/red]")
 
-        Prompt.ask("\nPress Enter to continue")
+        _prompt().ask("\nPress Enter to continue")
 
     # ------------------------------------------------------------------
     # Path helpers
@@ -887,7 +901,7 @@ class AgentDeploymentHandler:
                     self.console.print(
                         f"[green]✓ Successfully installed {full_agent_id} ({action})[/green]"
                     )
-                    Prompt.ask("\nPress Enter to continue")
+                    _prompt().ask("\nPress Enter to continue")
 
                 return True
             # Legacy local template installation (not implemented here)
@@ -895,14 +909,14 @@ class AgentDeploymentHandler:
                 self.console.print(
                     "[yellow]Local template installation not yet implemented[/yellow]"
                 )
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
             return False
 
         except Exception as e:
             self.logger.error(f"Agent installation failed: {e}", exc_info=True)
             if show_feedback:
                 self.console.print(f"[red]Error installing agent: {e}[/red]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
             return False
 
     def remove_agents(self, agents: list[AgentConfig]) -> None:
@@ -912,7 +926,7 @@ class AgentDeploymentHandler:
 
         if not installed:
             self.console.print("[yellow]No agents are currently installed[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         self.console.print(f"\n[bold]Installed agents ({len(installed)}):[/bold]")
@@ -921,7 +935,7 @@ class AgentDeploymentHandler:
             display_name = self.cmd._format_display_name(raw_display_name)
             self.console.print(f"  {idx}. {agent.name} - {display_name}")
 
-        selection = Prompt.ask("\nEnter agent number to remove (or 'c' to cancel)")
+        selection = _prompt().ask("\nEnter agent number to remove (or 'c' to cancel)")
         if selection.lower() == "c":
             return
 
@@ -955,20 +969,20 @@ class AgentDeploymentHandler:
                 else:
                     self.console.print("[yellow]Agent files not found[/yellow]")
 
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
             else:
                 self.console.print("[red]Invalid selection[/red]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
         except (ValueError, IndexError):
             self.console.print("[red]Invalid selection[/red]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
 
     def view_agent_details_enhanced(self, agents: list[AgentConfig]) -> None:
         """View detailed agent information with enhanced remote agent details."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         self.console.print(f"\n[bold]Available agents ({len(agents)}):[/bold]")
@@ -977,7 +991,7 @@ class AgentDeploymentHandler:
             display_name = self.cmd._format_display_name(raw_display_name)
             self.console.print(f"  {idx}. {agent.name} - {display_name}")
 
-        selection = Prompt.ask("\nEnter agent number to view (or 'c' to cancel)")
+        selection = _prompt().ask("\nEnter agent number to view (or 'c' to cancel)")
         if selection.lower() == "c":
             return
 
@@ -1019,11 +1033,11 @@ class AgentDeploymentHandler:
                 status = "Installed" if is_installed else "Available"
                 self.console.print(f"[bold]Status:[/bold] {status}")
 
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
             else:
                 self.console.print("[red]Invalid selection[/red]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
         except (ValueError, IndexError):
             self.console.print("[red]Invalid selection[/red]")
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
