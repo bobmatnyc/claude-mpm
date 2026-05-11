@@ -1,0 +1,24 @@
+{
+  "name": "trusty-search",
+  "version": "1.0.0",
+  "category": "tools",
+  "toolchain": "trusty",
+  "framework": null,
+  "tags": [
+    "search",
+    "mcp",
+    "code-search",
+    "bm25",
+    "vector",
+    "knowledge-graph"
+  ],
+  "author": "bobmatnyc",
+  "license": "MIT",
+  "requires": [],
+  "updated": "2026-05-10",
+  "created": "2026-05-10",
+  "modified": "2026-05-10",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": false,
+  "repository": "https://github.com/bobmatnyc/claude-mpm"
+}
