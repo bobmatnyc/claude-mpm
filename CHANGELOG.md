@@ -1,3 +1,36 @@
+## v6.2.68 (2026-05-10)
+
+### Feat
+
+- add _setup_trusty_search and _setup_trusty_memory handlers to setup command
+- add trusty-search and trusty-memory static MCP configs and CARGO_SERVICES set
+- add cargo installer support and PackageSpecs for trusty-search and trusty-memory
+- add trusty-search and trusty-memory to SetupService and MCPBinary enums
+
+### Fix
+
+- guard anthropic exception types behind HAS_ANTHROPIC check in ClaudeProvider
+- add set_claude_environment and fix get_deployment_status signature in adapter (Phase 1.6b)
+- add set_claude_environment and fix get_deployment_status signature (Phase 1.6a)
+- migrate Starlette on_startup/on_shutdown to lifespan= (Phase 1.4)
+- bind None sentinels for SDK symbols in ImportError branch (Phase 1.3)
+- implement unregister_hook, execute_hook, get_hook_info on HookService (Phase 1.2)
+- implement get_memory_stats() on AgentMemoryManager (Phase 1.1)
+- add missing abstract methods to ProjectAnalyzer (Phase 1.5)
+
+### Refactor
+
+- **mcp**: migrate session_server_http to Starlette lifespan API
+- **mcp**: clarify pipx binary preference comment
+- **mcp**: update wrapper error message to Python 3.13+
+- **mcp**: update verify_setup error message to Python 3.13+
+- replace inline agent-ID normalization with normalize_agent_id in model_tier_hook
+- replace inline agent-ID normalization with normalize_agent_id in permission_policy
+
+### Perf
+
+- switch pytest-xdist scheduler to worksteal for better parallel test performance
+
 ## v6.2.67 (2026-05-09)
 
 ## v6.2.66 (2026-05-09)
