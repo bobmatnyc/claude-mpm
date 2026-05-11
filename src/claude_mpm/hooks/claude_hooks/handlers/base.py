@@ -17,7 +17,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-# Import _log helper to avoid stderr writes (which cause hook errors)
+# Import _log helper to avoid stderr writes (which cause hook errors).
+# ``_log`` is not consumed inside this module; it is re-exported for the
+# concrete handler modules (user_prompt, tool, stop, ...) that import it as
+# ``from .base import _log``. Listing it in ``__all__`` documents the intent
+# and suppresses Pyright's "imported but unused" warning.
 try:
     from ..hook_handler import _log
 except ImportError:
@@ -25,6 +29,9 @@ except ImportError:
     def _log(message: str) -> None:
         """Fallback logger when hook_handler not available."""
         del message  # Intentionally unused; no-op fallback.
+
+
+__all__ = ["_log"]
 
 
 # Debug mode - MUST match hook_handler.py default (false) to prevent stderr writes
