@@ -1614,12 +1614,38 @@ class SetupCommand(BaseCommand):
         console.print(f"[green]✓ Loaded launchd agent: {label}[/green]")
         return True
 
+    @staticmethod
+    def _trusty_search_base_url() -> str:
+        """Discover the running trusty-search daemon's base URL.
+
+        Why: trusty-search #56 switched to OS-chosen dynamic ports written to
+        ``~/.trusty-search/http_addr`` (format: ``host:port`` on a single
+        line). Hardcoding ``127.0.0.1:7878`` makes ``claude-mpm setup
+        trusty-search`` silently fail whenever the daemon picked a different
+        port. This helper reads the discovery file and falls back to the
+        legacy port only when the file is missing/unreadable.
+        What: returns ``http://<host>:<port>``.
+        Test: with ``~/.trusty-search/http_addr`` containing
+        ``127.0.0.1:54321`` → returns ``http://127.0.0.1:54321``; with the
+        file absent → returns ``http://127.0.0.1:7878``.
+        """
+        addr_file = Path.home() / ".trusty-search" / "http_addr"
+        try:
+            addr = addr_file.read_text(encoding="utf-8").strip()
+            if addr:
+                return f"http://{addr}"
+        except OSError:
+            pass
+        return "http://127.0.0.1:7878"
+
     def _setup_trusty_search(self, args) -> CommandResult:
         """Set up trusty-search Rust hybrid code search daemon.
 
         Steps:
         1. Install via cargo (or cargo-binstall) if missing.
-        2. Ensure daemon is running on http://127.0.0.1:7878 (launchd plist).
+        2. Ensure daemon is running (dynamic port via
+           ``~/.trusty-search/http_addr``, legacy fallback
+           ``127.0.0.1:7878``); install launchd plist if down.
         3. Register/index current project.
         4. Write ``.mcp.json`` entry pointing at ``trusty-search serve``.
         """
@@ -1636,10 +1662,13 @@ class SetupCommand(BaseCommand):
 
         binary_path = self._cargo_bin_path("trusty-search")
 
-        # 2. Ensure daemon running
-        health_url = "http://127.0.0.1:7878/health"
+        # 2. Ensure daemon running — discover address dynamically (#61).
+        base_url = self._trusty_search_base_url()
+        health_url = f"{base_url}/health"
         if self._http_health_check(health_url):
-            console.print("[green]✓ trusty-search daemon already running[/green]")
+            console.print(
+                f"[green]✓ trusty-search daemon already running at {base_url}[/green]"
+            )
         else:
             console.print(
                 "[cyan]Daemon not running — installing persistent launchd agent...[/cyan]"
@@ -1653,18 +1682,23 @@ class SetupCommand(BaseCommand):
             )
             self._ensure_launchd_loaded("com.bobmatnyc.trusty-search", plist_path)
 
-            # Give the daemon a moment to come up, then re-probe.
+            # Give the daemon a moment to come up. It may pick a new
+            # dynamic port, so re-resolve the base URL each poll iteration.
             import time
 
+            confirmed = False
             for _ in range(10):
-                if self._http_health_check(health_url):
-                    break
                 time.sleep(0.5)
-            else:
+                base_url = self._trusty_search_base_url()
+                health_url = f"{base_url}/health"
+                if self._http_health_check(health_url):
+                    confirmed = True
+                    break
+            if not confirmed:
                 console.print(
-                    "[yellow]⚠ Could not confirm daemon health on "
-                    "http://127.0.0.1:7878 — continuing anyway. "
-                    "Check /tmp/trusty-search-error.log if MCP calls fail.[/yellow]"
+                    f"[yellow]⚠ Could not confirm daemon health on "
+                    f"{base_url} — continuing anyway. "
+                    f"Check /tmp/trusty-search-error.log if MCP calls fail.[/yellow]"
                 )
 
         # 3. Register & index current project
@@ -1704,7 +1738,7 @@ class SetupCommand(BaseCommand):
 
         console.print(
             "\n[bold green]✓ trusty-search setup complete![/bold green]\n"
-            "  • Daemon: http://127.0.0.1:7878\n"
+            f"  • Daemon: {base_url}\n"
             "  • MCP server: stdio via `trusty-search serve`\n"
             "  • Logs: /tmp/trusty-search.log\n"
         )

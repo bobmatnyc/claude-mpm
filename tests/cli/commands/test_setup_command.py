@@ -239,3 +239,49 @@ class TestSetupKuzuMemoryArchival:
         ]
         # Only first 3 migrations from first run
         assert len(calls_with_learn) == 3
+
+
+class TestTrustySearchBaseUrl:
+    """Tests for SetupCommand._trusty_search_base_url() — issue #61.
+
+    Why: trusty-search switched to OS-chosen dynamic ports written to
+    ``~/.trusty-search/http_addr``. The setup handler must read that file
+    instead of hardcoding 7878 or it silently fails.
+    """
+
+    def test_reads_addr_from_http_addr_file(self, tmp_path, monkeypatch):
+        # Given: a discovery file with a non-default port
+        monkeypatch.setenv("HOME", str(tmp_path))
+        trusty_dir = tmp_path / ".trusty-search"
+        trusty_dir.mkdir()
+        (trusty_dir / "http_addr").write_text("127.0.0.1:54321\n")
+
+        # When: resolving the base URL
+        url = SetupCommand._trusty_search_base_url()
+
+        # Then: discovered port is used
+        assert url == "http://127.0.0.1:54321"
+
+    def test_falls_back_to_default_port_when_file_missing(self, tmp_path, monkeypatch):
+        # Given: no discovery file
+        monkeypatch.setenv("HOME", str(tmp_path))
+
+        # When: resolving the base URL
+        url = SetupCommand._trusty_search_base_url()
+
+        # Then: legacy default is returned
+        assert url == "http://127.0.0.1:7878"
+
+    def test_falls_back_when_file_empty(self, tmp_path, monkeypatch):
+        # Given: a discovery file that exists but is empty (race during
+        # daemon startup: file created before address is written).
+        monkeypatch.setenv("HOME", str(tmp_path))
+        trusty_dir = tmp_path / ".trusty-search"
+        trusty_dir.mkdir()
+        (trusty_dir / "http_addr").write_text("")
+
+        # When: resolving the base URL
+        url = SetupCommand._trusty_search_base_url()
+
+        # Then: legacy default is returned (not "http://")
+        assert url == "http://127.0.0.1:7878"
