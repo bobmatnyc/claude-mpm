@@ -1,6 +1,5 @@
 """Tests for setup command with kuzu-memory migration archival."""
 
-import shutil
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -38,7 +37,7 @@ class TestSetupKuzuMemoryArchival:
     def test_archives_migrated_files(
         self,
         mock_cwd,
-        mock_console,
+        _mock_console,
         mock_find_spec,
         mock_subprocess,
         temp_project_dir,
@@ -99,7 +98,7 @@ class TestSetupKuzuMemoryArchival:
     def test_backup_preserved_after_archival(
         self,
         mock_cwd,
-        mock_console,
+        _mock_console,
         mock_find_spec,
         mock_subprocess,
         temp_project_dir,
@@ -133,7 +132,7 @@ class TestSetupKuzuMemoryArchival:
     def test_handles_archival_errors_gracefully(
         self,
         mock_cwd,
-        mock_console,
+        _mock_console,
         mock_find_spec,
         mock_subprocess,
         temp_project_dir,
@@ -163,7 +162,7 @@ class TestSetupKuzuMemoryArchival:
     def test_no_archival_when_no_migration(
         self,
         mock_cwd,
-        mock_console,
+        _mock_console,
         mock_find_spec,
         mock_subprocess,
         temp_project_dir,
@@ -197,7 +196,7 @@ class TestSetupKuzuMemoryArchival:
     def test_archival_prevents_reimport(
         self,
         mock_cwd,
-        mock_console,
+        _mock_console,
         mock_find_spec,
         mock_subprocess,
         temp_project_dir,
