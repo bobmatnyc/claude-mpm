@@ -63,6 +63,11 @@ class MCPServiceConfigBuilder:
             "command": "trusty-memory",
             "args": ["serve", "--mcp"],
         },
+        "trusty-analyzer": {
+            "type": "stdio",
+            "command": "trusty-analyzer",
+            "args": ["mcp"],
+        },
     }
 
     def __init__(
