@@ -51,3 +51,27 @@ Any non-git Bash command (make, pytest, sed, rm, curl) → delegate.
 Using the Read tool to understand code before taking action → delegate to Research.
 PM may only Read ≤2 config/docs files for orchestration context (not code comprehension).
 If PM reads a .py file to understand it → Circuit Breaker #2 violation.
+
+## MCP Server Stack
+
+### Memory: trusty-memory (replaces kuzu-memory)
+- MCP prefix: `mcp__trusty-memory__*`
+- Tools: `memory_remember`, `memory_recall`, `memory_recall_deep`, `memory_list`, `memory_forget`, `palace_create`, `palace_list`, `palace_info`, `kg_assert`, `kg_query`
+- Palace for this project: `claude-mpm`
+- Daemon: runs on port 3038, launchd plist at `/Users/masa/Library/LaunchAgents/com.bobmatnyc.trusty-memory.plist`
+- Skill: `trusty-memory` (call with Skill tool)
+- kuzu-memory is DEPRECATED — do not reference `mcp__kuzu-memory__*` tools
+
+### Search: trusty-search (replaces mcp-vector-search)
+- MCP prefix: `mcp__trusty-search__*`
+- Tools: `search_code`, `index_file`, `remove_file`, `list_indexes`, `create_index`, `search_health`, `reindex`, `index_status`, `chat`
+- Index name for this project: `claude-mpm`
+- Daemon: runs on port 7878, launchd plist at `/Users/masa/Library/LaunchAgents/com.bobmatnyc.trusty-search.plist`
+- Skill: `trusty-search` (call with Skill tool)
+- mcp-vector-search is DEPRECATED — do not reference `mcp__mcp-vector-search__*` tools
+
+### Context-First Protocol (updated)
+Before delegating to Research:
+1. `mcp__trusty-memory__memory_recall` — query first (replaces kuzu_recall)
+2. `mcp__trusty-search__search_code` — if memory insufficient (replaces mcp-vector-search)
+3. Only then delegate to Research agent
