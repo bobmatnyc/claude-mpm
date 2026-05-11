@@ -29,6 +29,7 @@ class InstallerType(StrEnum):
     PIPX = "pipx"
     UV = "uv"
     PIP = "pip"
+    CARGO = "cargo"
 
     def __str__(self) -> str:
         return self.value
@@ -62,6 +63,7 @@ class PackageSpec:
     python_version: str | None = None
     extras: list[str] = field(default_factory=list)
     module_name: str | None = None
+    installer: InstallerType | None = None
 
     @property
     def base_name(self) -> str:
@@ -198,7 +200,7 @@ class PackageInstallerService:
     def install(
         self,
         spec: PackageSpec,
-        action: InstallAction,
+        _action: InstallAction,  # pyright: ignore[reportUnusedParameter]
         *,
         force: bool = False,
         upgrade: bool = False,
@@ -207,15 +209,21 @@ class PackageInstallerService:
 
         Args:
             spec: The package specification.
-            action: The installation action to perform.
+            _action: The installation action to perform (accepted for API
+                compatibility; actual action is computed from is_installed,
+                force, and upgrade flags).
             force: Force reinstall even if already installed.
             upgrade: Upgrade to latest version.
 
         Returns:
             Tuple of (success, message).
         """
+        # _action is intentionally unused; actual action is computed below.
         is_installed = self.is_installed(spec)
-        installer = self._detect_installer()
+        # If spec pins a specific installer (e.g. cargo for Rust binaries), honor it.
+        installer = (
+            spec.installer if spec.installer is not None else self._detect_installer()
+        )
 
         # Determine actual action based on flags
         if upgrade and is_installed:
@@ -305,6 +313,33 @@ class PackageInstallerService:
                 text=True,
             )  # nosec B603 B607
 
+        elif installer == InstallerType.CARGO:
+            if not shutil.which("cargo"):
+                raise subprocess.CalledProcessError(
+                    1,
+                    "cargo",
+                    output="",
+                    stderr=(
+                        "cargo not found. Install Rust from https://rustup.rs/ "
+                        "and ensure ~/.cargo/bin is on PATH."
+                    ),
+                )
+            # Prefer cargo-binstall when available for faster prebuilt installs.
+            if shutil.which("cargo-binstall"):
+                subprocess.run(
+                    ["cargo", "binstall", "--no-confirm", spec.base_name],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )  # nosec B603 B607
+            else:
+                subprocess.run(
+                    ["cargo", "install", spec.base_name],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )  # nosec B603 B607
+
     def _do_upgrade(self, spec: PackageSpec, installer: InstallerType) -> None:
         """Perform package upgrade.
 
@@ -345,6 +380,24 @@ class PackageInstallerService:
                 capture_output=True,
                 text=True,
             )  # nosec B603 B607
+
+        elif installer == InstallerType.CARGO:
+            # `cargo install` re-installs the latest version when run again.
+            # `--force` makes it idempotent for upgrades.
+            if shutil.which("cargo-binstall"):
+                subprocess.run(
+                    ["cargo", "binstall", "--no-confirm", "--force", spec.base_name],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )  # nosec B603 B607
+            else:
+                subprocess.run(
+                    ["cargo", "install", "--force", spec.base_name],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )  # nosec B603 B607
 
     def _do_reinstall(self, spec: PackageSpec, installer: InstallerType) -> None:
         """Perform package reinstall.
@@ -389,6 +442,23 @@ class PackageInstallerService:
                 capture_output=True,
                 text=True,
             )  # nosec B603 B607
+
+        elif installer == InstallerType.CARGO:
+            # cargo doesn't have a separate reinstall; --force overwrites.
+            if shutil.which("cargo-binstall"):
+                subprocess.run(
+                    ["cargo", "binstall", "--no-confirm", "--force", spec.base_name],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )  # nosec B603 B607
+            else:
+                subprocess.run(
+                    ["cargo", "install", "--force", spec.base_name],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )  # nosec B603 B607
 
 
 # Package specifications for each service
@@ -441,6 +511,16 @@ def get_package_specs() -> dict[SetupService, PackageSpec]:
             name="notion-mpm",
             binary_name="notion-mpm",
             module_name="notion_mpm",
+        ),
+        SetupService.TRUSTY_SEARCH: PackageSpec(
+            name="trusty-search",
+            binary_name="trusty-search",
+            installer=InstallerType.CARGO,
+        ),
+        SetupService.TRUSTY_MEMORY: PackageSpec(
+            name="trusty-memory",
+            binary_name="trusty-memory",
+            installer=InstallerType.CARGO,
         ),
     }
 
