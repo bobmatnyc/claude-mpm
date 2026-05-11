@@ -12,6 +12,7 @@ from __future__ import annotations
 import shutil
 import subprocess  # nosec B404
 from pathlib import Path
+from typing import Any
 
 from ....constants import SetupService
 from ....shared import CommandResult
@@ -21,6 +22,15 @@ from ..mcp_config import _mcp_config_transaction
 
 class TrustyMixin:
     """Mixin: trusty-search / trusty-memory / trusty-analyzer setup."""
+
+    # ------------------------------------------------------------------
+    # Declare methods provided by McpConfigMixin at runtime via MRO.
+    # These stubs satisfy Pyright without creating circular imports.
+    # ------------------------------------------------------------------
+
+    def _load_mcp_config(self) -> dict[str, Any]: ...  # pragma: no cover
+
+    def _save_mcp_config(self, config: dict[str, Any]) -> None: ...  # pragma: no cover
 
     # ------------------------------------------------------------------
     # Generic Rust-binary helpers
