@@ -71,7 +71,8 @@ If PM reads a .py file to understand it → Circuit Breaker #2 violation.
 - mcp-vector-search is DEPRECATED — do not reference `mcp__mcp-vector-search__*` tools
 
 ### Context-First Protocol (updated)
-Before delegating to Research:
-1. `mcp__trusty-memory__memory_recall` — query first (replaces kuzu_recall)
-2. `mcp__trusty-search__search_code` — if memory insufficient (replaces mcp-vector-search)
-3. Only then delegate to Research agent
+Before delegating to Research or reading files:
+1. `mcp__trusty-memory__memory_recall` — query project memory first (replaces kuzu_recall)
+2. Only then delegate to Research agent (Research will use trusty-search internally)
+
+PM does NOT run code search directly. That is the Research agent's job.
