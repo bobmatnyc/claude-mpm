@@ -13,10 +13,22 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 from questionary import Choice, Separator
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 
 if TYPE_CHECKING:
     from .configure import ConfigureCommand
+
+
+def _prompt():
+    """Return the configure module's ``Prompt`` symbol.
+
+    Tests patch ``claude_mpm.cli.commands.configure.Prompt`` to feed inputs;
+    looking it up dynamically here keeps that patch effective even though the
+    actual call site lives in this handler module.
+    """
+    from . import configure as _cfg
+
+    return _cfg.Prompt
 
 
 class SkillsHandler:
@@ -52,7 +64,9 @@ class SkillsHandler:
             self.console.print("  [b] Back to main menu")
             self.console.print()
 
-            choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
+            choice = _prompt().ask(
+                "[bold blue]Select an option[/bold blue]", default="b"
+            )
 
             if choice == "1":
                 # Install/Uninstall skills with category-based selection
@@ -85,7 +99,7 @@ class SkillsHandler:
                     self.console.print(
                         "Please enable agents first in Agent Management."
                     )
-                    Prompt.ask("\nPress Enter to continue")
+                    _prompt().ask("\nPress Enter to continue")
                     continue
 
                 # Run skills wizard
@@ -100,7 +114,7 @@ class SkillsHandler:
                         "\n[yellow]Skills configuration cancelled.[/yellow]"
                     )
 
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
             elif choice == "3":
                 # View current mappings
@@ -127,7 +141,7 @@ class SkillsHandler:
 
                     self.console.print(table)
 
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
             elif choice == "4":
                 # Auto-link skills
@@ -158,7 +172,7 @@ class SkillsHandler:
                     self.console.print(
                         "Please enable agents first in Agent Management."
                     )
-                    Prompt.ask("\nPress Enter to continue")
+                    _prompt().ask("\nPress Enter to continue")
                     continue
 
                 # Auto-link
@@ -181,13 +195,13 @@ class SkillsHandler:
                 else:
                     self.console.print("\n[yellow]Auto-linking cancelled.[/yellow]")
 
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
             elif choice == "b":
                 break
             else:
                 self.console.print("[red]Invalid choice. Please try again.[/red]")
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
     def detect_skill_patterns(self, skills: list[dict]) -> dict[str, list[dict]]:
         """Group skills by detected common prefixes.
@@ -277,7 +291,7 @@ class SkillsHandler:
             self.console.print(
                 "[yellow]No skills available. Try syncing skills first.[/yellow]"
             )
-            Prompt.ask("\nPress Enter to continue")
+            _prompt().ask("\nPress Enter to continue")
             return
 
         # Get deployed skills
@@ -517,7 +531,7 @@ class SkillsHandler:
 
             # Show completion message
             if to_install or to_uninstall:
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
 
     def get_all_skills_from_git(self) -> list:
         """Get all skills from Git-based skill manager.
