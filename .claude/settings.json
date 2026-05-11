@@ -100,6 +100,16 @@
             "timeout": 60
           }
         ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -m claude_mpm.hooks.message_check_hook",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PermissionRequest": [
