@@ -71,7 +71,9 @@ class TrustyMixin:
         """Ensure a cargo-installed Rust binary is present.
 
         Returns ``None`` on success (continue setup) or an error
-        :class:`CommandResult` if installation failed.
+        :class:`CommandResult` if installation failed. All error paths emit
+        a red console line with the underlying reason so users never see a
+        bare "Setup failed for trusty-*" with no explanation.
         """
         from .....services.package_installer import (
             InstallAction,
@@ -91,16 +93,24 @@ class TrustyMixin:
             return None
 
         if not shutil.which("cargo"):
-            console.print(
-                "[red]✗ cargo not found. Install Rust from https://rustup.rs/ "
-                "and ensure ~/.cargo/bin is on PATH, then re-run setup.[/red]"
+            msg = (
+                "cargo not found. Install Rust from https://rustup.rs/ "
+                "and ensure ~/.cargo/bin is on PATH, then re-run setup."
             )
-            return CommandResult.error_result("cargo is required for Rust binaries")
+            console.print(f"[red]✗ {msg}[/red]")
+            return CommandResult.error_result(msg)
 
         console.print(f"[cyan]Installing {spec.base_name} via cargo...[/cyan]")
-        success, message = installer.install(
-            spec, InstallAction.INSTALL, force=force, upgrade=upgrade
-        )
+        try:
+            success, message = installer.install(
+                spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+            )
+        except Exception as exc:
+            msg = (
+                f"cargo install of {spec.base_name} raised {type(exc).__name__}: {exc}"
+            )
+            console.print(f"[red]✗ {msg}[/red]")
+            return CommandResult.error_result(msg)
         # Silence "unused import" for InstallerType (kept for type clarity).
         _ = InstallerType
         if success:
@@ -290,18 +300,32 @@ class TrustyMixin:
         console.print(
             f"[cyan]Indexing project: {project_root.name} ({project_root})[/cyan]"
         )
-        index_result = subprocess.run(
-            [binary_path, "index", str(project_root)],
-            check=False,
-            capture_output=True,
-            text=True,
-        )  # nosec B603 B607
-        if index_result.returncode == 0:
-            console.print("[green]✓ Project indexed[/green]")
-        else:
+        try:
+            index_result = subprocess.run(
+                [binary_path, "index", str(project_root)],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )  # nosec B603 B607
+            if index_result.returncode == 0:
+                console.print("[green]✓ Project indexed[/green]")
+            else:
+                console.print(
+                    f"[yellow]⚠ trusty-search index returned "
+                    f"{index_result.returncode}: {index_result.stderr.strip()}[/yellow]"
+                )
+        except subprocess.TimeoutExpired:
             console.print(
-                f"[yellow]⚠ trusty-search index returned "
-                f"{index_result.returncode}: {index_result.stderr.strip()}[/yellow]"
+                "[yellow]⚠ trusty-search index timed out after 120s — "
+                "continuing; re-run `trusty-search index` later if needed.[/yellow]"
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            # Don't fail the whole setup because indexing hiccupped; the MCP
+            # config write below is the real success criterion.
+            console.print(
+                f"[yellow]⚠ trusty-search index raised "
+                f"{type(exc).__name__}: {exc} — continuing.[/yellow]"
             )
 
         # 4. Write .mcp.json entry (with rollback on failure)
@@ -352,18 +376,30 @@ class TrustyMixin:
 
         # 2. Ensure daemon running. trusty-memory exposes `status` rather than
         #    a documented /health endpoint; use the CLI for detection.
-        status_result = subprocess.run(
-            [binary_path, "status"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )  # nosec B603 B607
-        daemon_healthy = status_result.returncode == 0 and (
-            "healthy" in status_result.stdout.lower()
-            or "ok" in status_result.stdout.lower()
-            or self._http_health_check("http://127.0.0.1:3038/health")
-        )
+        # NOTE: `trusty-memory status` can hang when the daemon is wedged or
+        # being started; we MUST tolerate the timeout instead of letting
+        # subprocess.TimeoutExpired bubble up as a generic "Command failed"
+        # from BaseCommand.execute (which hides the real reason and prevents
+        # remaining services from being processed).
+        try:
+            status_result = subprocess.run(
+                [binary_path, "status"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )  # nosec B603 B607
+            daemon_healthy = status_result.returncode == 0 and (
+                "healthy" in status_result.stdout.lower()
+                or "ok" in status_result.stdout.lower()
+                or self._http_health_check("http://127.0.0.1:3038/health")
+            )
+        except subprocess.TimeoutExpired:
+            console.print(
+                "[yellow]⚠ `trusty-memory status` timed out — assuming daemon "
+                "is not healthy and will (re)load the launchd agent.[/yellow]"
+            )
+            daemon_healthy = self._http_health_check("http://127.0.0.1:3038/health")
 
         if daemon_healthy:
             console.print("[green]✓ trusty-memory daemon already running[/green]")
