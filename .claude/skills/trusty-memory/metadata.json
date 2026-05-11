@@ -1,0 +1,23 @@
+{
+  "name": "trusty-memory",
+  "version": "1.0.0",
+  "category": "tools",
+  "toolchain": "trusty",
+  "framework": null,
+  "tags": [
+    "memory",
+    "mcp",
+    "persistence",
+    "knowledge-graph",
+    "context"
+  ],
+  "author": "bobmatnyc",
+  "license": "MIT",
+  "requires": [],
+  "updated": "2026-05-10",
+  "created": "2026-05-10",
+  "modified": "2026-05-10",
+  "maintainer": "Claude MPM Team",
+  "attribution_required": false,
+  "repository": "https://github.com/bobmatnyc/claude-mpm"
+}
