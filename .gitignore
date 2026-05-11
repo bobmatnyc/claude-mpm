@@ -47,6 +47,7 @@ dist/
 build/
 *.egg-info/
 .claude/
+.claude/settings.local.json
 .env
 .env.make
 
