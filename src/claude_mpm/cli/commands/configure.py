@@ -11,7 +11,6 @@ DESIGN DECISIONS:
 - Allow direct navigation to specific sections
 """
 
-import json
 import shutil
 from collections import defaultdict
 from pathlib import Path
@@ -869,48 +868,22 @@ class ConfigureCommand(BaseCommand):
     # Non-interactive command methods
 
     def _list_agents_non_interactive(self) -> CommandResult:
-        """List agents in non-interactive mode."""
-        if self.agent_manager is None:
-            return CommandResult.error_result("Agent manager not initialized")
-        agents = self.agent_manager.discover_agents()
-        # Filter BASE_AGENT from all agent lists (1M-502 Phase 1)
-        agents = self._filter_agent_configs(agents, filter_deployed=False)
+        """List agents in non-interactive mode (delegated)."""
+        from .configure_non_interactive import NonInteractiveHandler
 
-        data = []
-        for agent in agents:
-            data.append(
-                {
-                    "name": agent.name,
-                    "enabled": self.agent_manager.is_agent_enabled(agent.name),
-                    "description": agent.description,
-                    "dependencies": agent.dependencies,
-                }
-            )
-
-        # Print as JSON for scripting
-        print(json.dumps(data, indent=2))
-
-        return CommandResult.success_result("Agents listed", data={"agents": data})
+        return NonInteractiveHandler(self).list_agents_non_interactive()
 
     def _enable_agent_non_interactive(self, agent_name: str) -> CommandResult:
-        """Enable an agent in non-interactive mode."""
-        if self.agent_manager is None:
-            return CommandResult.error_result("Agent manager not initialized")
-        try:
-            self.agent_manager.set_agent_enabled(agent_name, True)
-            return CommandResult.success_result(f"Agent '{agent_name}' enabled")
-        except Exception as e:
-            return CommandResult.error_result(f"Failed to enable agent: {e}")
+        """Enable an agent in non-interactive mode (delegated)."""
+        from .configure_non_interactive import NonInteractiveHandler
+
+        return NonInteractiveHandler(self).enable_agent_non_interactive(agent_name)
 
     def _disable_agent_non_interactive(self, agent_name: str) -> CommandResult:
-        """Disable an agent in non-interactive mode."""
-        if self.agent_manager is None:
-            return CommandResult.error_result("Agent manager not initialized")
-        try:
-            self.agent_manager.set_agent_enabled(agent_name, False)
-            return CommandResult.success_result(f"Agent '{agent_name}' disabled")
-        except Exception as e:
-            return CommandResult.error_result(f"Failed to disable agent: {e}")
+        """Disable an agent in non-interactive mode (delegated)."""
+        from .configure_non_interactive import NonInteractiveHandler
+
+        return NonInteractiveHandler(self).disable_agent_non_interactive(agent_name)
 
     def _export_config(self, file_path: str) -> CommandResult:
         """Export configuration to a file."""
@@ -943,24 +916,16 @@ class ConfigureCommand(BaseCommand):
         return self.hook_manager.uninstall_hooks()
 
     def _run_agent_management(self) -> CommandResult:
-        """Jump directly to agent management."""
-        try:
-            self._manage_agents()
-            return CommandResult.success_result("Agent management completed")
-        except KeyboardInterrupt:
-            return CommandResult.success_result("Agent management cancelled")
-        except Exception as e:
-            return CommandResult.error_result(f"Agent management failed: {e}")
+        """Jump directly to agent management (delegated)."""
+        from .configure_non_interactive import NonInteractiveHandler
+
+        return NonInteractiveHandler(self).run_agent_management()
 
     def _run_template_editing(self) -> CommandResult:
-        """Jump directly to template editing."""
-        try:
-            self._edit_templates()
-            return CommandResult.success_result("Template editing completed")
-        except KeyboardInterrupt:
-            return CommandResult.success_result("Template editing cancelled")
-        except Exception as e:
-            return CommandResult.error_result(f"Template editing failed: {e}")
+        """Jump directly to template editing (delegated)."""
+        from .configure_non_interactive import NonInteractiveHandler
+
+        return NonInteractiveHandler(self).run_template_editing()
 
     def _run_behavior_management(self) -> CommandResult:
         """Jump directly to behavior management."""
@@ -969,18 +934,10 @@ class ConfigureCommand(BaseCommand):
         return self.behavior_manager.run_behavior_management()
 
     def _run_startup_configuration(self) -> CommandResult:
-        """Jump directly to startup configuration."""
-        try:
-            proceed = self._manage_startup_configuration()
-            if proceed:
-                return CommandResult.success_result(
-                    "Startup configuration saved, proceeding to startup"
-                )
-            return CommandResult.success_result("Startup configuration completed")
-        except KeyboardInterrupt:
-            return CommandResult.success_result("Startup configuration cancelled")
-        except Exception as e:
-            return CommandResult.error_result(f"Startup configuration failed: {e}")
+        """Jump directly to startup configuration (delegated)."""
+        from .configure_non_interactive import NonInteractiveHandler
+
+        return NonInteractiveHandler(self).run_startup_configuration()
 
     # ========================================================================
     # Enhanced Agent Management Methods (Remote Agent Discovery Integration)
