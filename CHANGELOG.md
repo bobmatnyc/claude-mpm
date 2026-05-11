@@ -1,3 +1,15 @@
+## v6.2.72 (2026-05-11)
+
+### Feat
+
+- **setup**: add _setup_trusty_analyze handler + dispatch + help
+- **setup**: add TRUSTY_ANALYZE service + TRUSTY_ANALYZER binary enum
+
+### Fix
+
+- **setup**: read dynamic http_addr instead of hardcoded port (closes #61)
+- **setup**: cargo install trusty-* from GitHub git URLs
+
 ## v6.2.71 (2026-05-10)
 
 ## v6.2.70 (2026-05-10)
