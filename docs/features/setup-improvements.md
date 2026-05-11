@@ -76,13 +76,48 @@ claude-mpm setup <service-name>
 # Setup with force re-run
 claude-mpm setup --force <service-name>
 
+# Setup with upgrade (for Rust binaries)
+claude-mpm setup --upgrade <service-name>
+
 # Setup with verbose output
 claude-mpm setup --verbose <service-name>
 ```
 
 ### Examples
 
-#### Example 1: Setup LangGraph
+#### Example 1: Setup Trusty Search (Rust Binary)
+
+```bash
+$ claude-mpm setup trusty-search
+Checking Rust/cargo installation...
+✓ Rust found at /usr/local/bin/cargo
+Building trusty-search Rust binary...
+✓ Binary installed: trusty-search
+Starting daemon on port 7878...
+✓ Daemon started (PID: 1234)
+Registering project index...
+✓ Index registered
+✓ Configured in .mcp.json
+✓ Registered in SetupRegistry
+```
+
+#### Example 2: Setup Trusty Memory (Rust Binary)
+
+```bash
+$ claude-mpm setup trusty-memory
+Checking Rust/cargo installation...
+✓ Rust found at /usr/local/bin/cargo
+Building trusty-memory Rust binary...
+✓ Binary installed: trusty-memory
+Starting daemon on port 3038...
+✓ Daemon started (PID: 5678)
+Creating project palace...
+✓ Palace created at .trusty-memory/
+✓ Configured in .mcp.json
+✓ Registered in SetupRegistry
+```
+
+#### Example 3: Setup LangGraph
 
 ```bash
 $ claude-mpm setup langgraph
@@ -92,7 +127,19 @@ Running setup for langgraph...
 ✓ Registered in SetupRegistry
 ```
 
-#### Example 2: Setup Custom Tool
+#### Example 4: Force Upgrade Trusty Search
+
+```bash
+$ claude-mpm setup --upgrade trusty-search
+[Upgrade flag detected]
+Rebuilding trusty-search Rust binary (latest)...
+✓ Binary rebuilt
+Restarting daemon on port 7878...
+✓ Daemon restarted
+✓ Registry updated
+```
+
+#### Example 5: Setup Custom Tool
 
 ```bash
 $ claude-mpm setup my-custom-tool
@@ -102,7 +149,7 @@ Running setup for my-custom-tool...
 ✓ Registered in SetupRegistry
 ```
 
-#### Example 3: Force Re-run
+#### Example 6: Force Re-run
 
 ```bash
 $ claude-mpm setup --force kuzu-memory
@@ -265,12 +312,61 @@ rm .claude/setup_registry.json
 # All services will re-run setup on next invocation
 ```
 
-## Common Workflows
+## Rust Binary Support (v6.4+)
 
-### Setting Up New Project
+Trusty Search and Trusty Memory are first-class setup handlers for Rust binaries:
+
+### Rust Binary Installation
+
+Both services follow the same pattern:
+1. Check Rust/cargo installation
+2. Build binary via `cargo install`
+3. Start persistent daemon (launchd on macOS)
+4. Register project configuration
+5. Write `.mcp.json` MCP server configuration
+
+### Prerequisites for Rust Binaries
 
 ```bash
-# Setup all tools for a new project
+# Install Rust from https://rustup.rs/
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Verify installation
+rustup --version
+cargo --version
+```
+
+### Daemon Management
+
+Both services run as persistent daemons:
+
+```bash
+# Trusty Search daemon (port 7878)
+launchctl list | grep trusty-search
+launchctl start trusty-search
+launchctl stop trusty-search
+
+# Trusty Memory daemon (port 3038)
+launchctl list | grep trusty-memory
+launchctl start trusty-memory
+launchctl stop trusty-memory
+```
+
+## Common Workflows
+
+### Setting Up New Project (Recommended)
+
+```bash
+# Setup with Rust-based tools (recommended)
+claude-mpm setup trusty-search
+claude-mpm setup trusty-memory
+claude-mpm setup gworkspace-mcp
+```
+
+### Setting Up New Project (Legacy)
+
+```bash
+# Setup with legacy tools
 claude-mpm setup anthropic
 claude-mpm setup kuzu-memory
 claude-mpm setup mcp-vector-search
