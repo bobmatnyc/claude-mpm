@@ -234,7 +234,7 @@ class SetupCommand(
         console.print(
             f"\n[bold cyan]Configuring API provider: {provider_name}...[/bold cyan]"
         )
-        from ...config.api_provider import APIBackend, APIProviderConfig
+        from ....config.api_provider import APIBackend, APIProviderConfig
 
         config_path = self.working_dir / ".claude-mpm" / "configuration.yaml"
         config = APIProviderConfig.load(config_path)
