@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from ....shared import CommandResult
 from .._shared import console
@@ -10,6 +11,15 @@ from .._shared import console
 
 class SearchToolsMixin:
     """Mixin: web search MCP server setup (brave / tavily / firecrawl)."""
+
+    # ------------------------------------------------------------------
+    # Declare methods provided by McpConfigMixin at runtime via MRO.
+    # These stubs satisfy Pyright without creating circular imports.
+    # ------------------------------------------------------------------
+
+    def _load_mcp_config(self) -> dict[str, Any]: ...  # pragma: no cover
+
+    def _save_mcp_config(self, config: dict[str, Any]) -> None: ...  # pragma: no cover
 
     def _setup_brave_search(self, _args) -> CommandResult:
         """Set up Brave Search MCP server for web search."""
