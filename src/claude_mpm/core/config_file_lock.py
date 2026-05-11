@@ -41,7 +41,7 @@ def config_file_lock(
     config_path: Path,
     timeout: float = 5.0,
     poll_interval: float = 0.1,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """Acquire an advisory file lock on a configuration file.
 
     Args:
