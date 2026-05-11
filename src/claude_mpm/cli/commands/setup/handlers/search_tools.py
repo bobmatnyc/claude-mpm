@@ -19,7 +19,7 @@ class SearchToolsMixin:
 
     def _load_mcp_config(self) -> dict[str, Any]: ...  # pragma: no cover
 
-    def _save_mcp_config(self, config: dict[str, Any]) -> None: ...  # pragma: no cover
+    def _save_mcp_config(self, _config: dict[str, Any]) -> None: ...  # pragma: no cover
 
     def _setup_brave_search(self, _args) -> CommandResult:
         """Set up Brave Search MCP server for web search."""
