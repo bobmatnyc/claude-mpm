@@ -37,6 +37,7 @@ class MCPServiceInstaller:
     CARGO_SERVICES = {
         "trusty-search",
         "trusty-memory",
+        "trusty-analyzer",
     }
 
     # Known missing dependencies for MCP services that pipx doesn't handle
