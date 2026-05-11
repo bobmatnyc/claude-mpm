@@ -9,8 +9,8 @@ Comprehensive integration documentation for connecting Claude MPM with external 
 claude-mpm setup <integration-name>
 
 # Examples:
-claude-mpm setup kuzu-memory
-claude-mpm setup mcp-vector-search
+claude-mpm setup trusty-memory
+claude-mpm setup trusty-search
 claude-mpm setup google-workspace-mcp
 claude-mpm setup slack-mpm
 claude-mpm setup confluence
@@ -20,13 +20,63 @@ claude-mpm setup confluence
 
 ### Core Integrations (Enabled by Default)
 
-#### [Kuzu Memory](kuzu-memory.md)
+#### [Trusty Memory](trusty-memory.md) (Recommended)
+**High-performance Rust-based semantic memory for project context**
+
+- Graph-based memory with fast semantic search
+- Persistent launchd daemon on macOS
+- Automatic memory indexing and storage
+- Project-scoped memory isolation
+- Replaces `kuzu-memory` with better performance
+
+```bash
+claude-mpm setup trusty-memory
+```
+
+**Key Features**:
+- Semantic memory storage with graph relationships
+- Natural language memory queries
+- Automatic context enhancement
+- Low memory footprint (Rust implementation)
+- Per-project isolated "palace" (memory namespace)
+
+**Prerequisites**: Rust/cargo (https://rustup.rs/)
+
+---
+
+#### [Trusty Search](trusty-search.md) (Recommended)
+**High-performance Rust-based semantic code search**
+
+- Vector-based code discovery with fast search
+- Three search modes: text-to-code, code-to-code, contextual
+- Automatic codebase indexing
+- Persistent daemon on port 7878
+- PM agent uses it before file reading
+- Replaces `mcp-vector-search` with better performance
+
+```bash
+claude-mpm setup trusty-search
+```
+
+**Key Features**:
+- Sub-second semantic search
+- Find code by meaning, not keywords
+- Discover similar patterns
+- Low memory footprint (Rust implementation)
+- Integration with PM agent
+
+**Prerequisites**: Rust/cargo (https://rustup.rs/)
+
+---
+
+#### [Kuzu Memory](kuzu-memory.md) (Legacy)
 **Graph-based semantic memory for project context**
 
 - Replaces static file-based memory with graph database
 - Semantic search for context retrieval
 - Automatic memory indexing and storage
 - Project-scoped memory isolation
+- **Note**: Trusty Memory recommended as replacement
 
 ```bash
 claude-mpm setup kuzu-memory
@@ -40,13 +90,14 @@ claude-mpm setup kuzu-memory
 
 ---
 
-#### [MCP Vector Search](mcp-vector-search.md)
+#### [MCP Vector Search](mcp-vector-search.md) (Legacy)
 **AI-powered semantic code search**
 
 - Vector-based code discovery
 - Three search modes: text-to-code, code-to-code, contextual
 - Automatic codebase indexing
 - PM agent uses it before file reading
+- **Note**: Trusty Search recommended as replacement
 
 ```bash
 claude-mpm setup mcp-vector-search
@@ -248,16 +299,18 @@ claude-mpm tools confluence pages-batch-export --page-ids "..." --output export.
 
 ## Integration Comparison
 
-| Integration | Type | Tools | Auth Method | Use Case |
-|-------------|------|-------|-------------|----------|
-| **Kuzu Memory** | Core | 4 MCP | None | Project memory |
-| **Vector Search** | Core | 3 MCP | None | Code discovery |
-| **Google Workspace** | External | 67 MCP | OAuth 2.0 | Productivity suite |
-| **Slack** | External | 11 MCP | OAuth User Token | Team communication |
-| **Notion** | External | Official pkg | API Token | Workspace knowledge |
-| **Confluence** | External | 7 MCP + CLI | API Token | Team documentation |
-| **Session Server** | Developer | N/A MCP | None | Automation |
-| **LSP** | Developer | 40+ MCP | None | Code intelligence |
+| Integration | Type | Tools | Auth Method | Use Case | Status |
+|-------------|------|-------|-------------|----------|--------|
+| **Trusty Memory** | Core | 5 MCP | None | Project memory | Recommended |
+| **Trusty Search** | Core | 3 MCP | None | Code discovery | Recommended |
+| **Kuzu Memory** | Core | 4 MCP | None | Project memory | Legacy |
+| **Vector Search** | Core | 3 MCP | None | Code discovery | Legacy |
+| **Google Workspace** | External | 67 MCP | OAuth 2.0 | Productivity suite | Active |
+| **Slack** | External | 11 MCP | OAuth User Token | Team communication | Active |
+| **Notion** | External | Official pkg | API Token | Workspace knowledge | Active |
+| **Confluence** | External | 7 MCP + CLI | API Token | Team documentation | Active |
+| **Session Server** | Developer | N/A MCP | None | Automation | Active |
+| **LSP** | Developer | 40+ MCP | None | Code intelligence | Active |
 
 ---
 
@@ -293,8 +346,8 @@ claude-mpm setup mcp-vector-search --force
 ### 1. Complete Development Setup
 
 ```bash
-# Core tools
-claude-mpm setup kuzu-memory mcp-vector-search
+# Core tools (recommended)
+claude-mpm setup trusty-memory trusty-search
 
 # External services
 claude-mpm setup gworkspace-mcp slack
@@ -303,7 +356,10 @@ claude-mpm setup gworkspace-mcp slack
 ### 2. Minimal Setup (Core Only)
 
 ```bash
-# Just memory and search
+# Just memory and search (recommended)
+claude-mpm setup trusty-memory trusty-search
+
+# Or with legacy tools
 claude-mpm setup kuzu-memory mcp-vector-search
 ```
 
