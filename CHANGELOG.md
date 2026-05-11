@@ -1,3 +1,31 @@
+## v6.2.73 (2026-05-11)
+
+### Feat
+
+- **setup**: add _setup_trusty_analyze handler + dispatch + help
+- **setup**: add TRUSTY_ANALYZE service + TRUSTY_ANALYZER binary enum
+- add _setup_trusty_search and _setup_trusty_memory handlers to setup command
+- add trusty-search and trusty-memory static MCP configs and CARGO_SERVICES set
+- add cargo installer support and PackageSpecs for trusty-search and trusty-memory
+- add trusty-search and trusty-memory to SetupService and MCPBinary enums
+
+### Fix
+
+- **types**: suppress unused variable warnings in agent_dependency_loader
+- **ruff**: remove unused noqa directive in analyze_git_clickup_correlation
+- **ruff**: remove redundant Python 3.13 version checks (UP036)
+- **ruff**: simplify type annotation in test_version_service_update_check
+- **ruff**: simplify type annotation in test_toolchain_analyzer
+- **ruff**: simplify Generator type annotation in config_file_lock
+- **setup**: read dynamic http_addr instead of hardcoded port (closes #61)
+- **setup**: cargo install trusty-* from GitHub git URLs
+- move module-level socketio.Client instantiation inside test scope
+- move module-level socketio.Client instantiation inside test scope
+- move module-level socketio.Client instantiation inside test scope
+- move signal handler registration from module level into start_aggregator
+- scope logging.Logger.info monkey-patch to test functions, not module level
+- add pytest timeout to prevent indefinite test hangs on Linux
+
 ## v6.2.72 (2026-05-11)
 
 ### Feat
