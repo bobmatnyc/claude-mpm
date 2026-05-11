@@ -1,3 +1,18 @@
+## v6.3.0 (2026-05-11)
+
+### Feat
+
+- **trusty-* first-class support**: integrate trusty-memory, trusty-search, and trusty-analyze as core MCP services
+- **trusty-analyzer MCP registry**: add trusty-analyzer to CARGO_SERVICES and STATIC_MCP_CONFIGS alongside trusty-search and trusty-memory
+- **crates.io-first install**: cargo installer now tries registry first (cargo binstall fallback to cargo install), only uses --git URLs if registry install fails
+- **KeepAlive persistence verified**: setup command now verifies launchd agent persistent registration after load with explicit confirmation
+- **trusty-analyze skill**: new `.claude/skills/trusty-analyze/SKILL.md` skill definition
+- **trusty-analyze integration guide**: new `docs/integrations/trusty-analyze.md` documentation
+
+### Fix
+
+- **trusty-search daemon health check**: silent `subprocess.TimeoutExpired` exceptions during setup are now caught and degraded to warning, allowing setup to continue
+
 ## v6.2.73 (2026-05-11)
 
 ### Feat
