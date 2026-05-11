@@ -603,8 +603,6 @@ class AgentDependencyLoader:
         Returns:
             Tuple of (compatible_deps, incompatible_deps)
         """
-        import sys
-
         compatible: list[str] = []
         incompatible: list[str] = []
 
@@ -615,13 +613,13 @@ class AgentDependencyLoader:
                 package_name = req.name.lower()
 
                 # Known Python 3.13 incompatibilities
-                if sys.version_info >= (3, 13):
-                    if (
-                        package_name in ["ydata-profiling", "pandas-profiling"]
-                        or package_name == "apache-airflow"
-                    ):
-                        incompatible.append(f"{dep} (requires Python <3.13)")
-                        continue
+                # (project requires Python >=3.13, so always check)
+                if (
+                    package_name in ["ydata-profiling", "pandas-profiling"]
+                    or package_name == "apache-airflow"
+                ):
+                    incompatible.append(f"{dep} (requires Python <3.13)")
+                    continue
 
                 # Default to compatible if we don't know
                 compatible.append(dep)
@@ -936,26 +934,24 @@ class AgentDependencyLoader:
             lines.append("-" * 40)
 
             # Check for Python 3.13 compatibility issues
-            import sys
-
-            if sys.version_info >= (3, 13):
-                _compatible, incompatible = self.check_python_compatibility(
-                    summary["missing_python"]
+            # (project requires Python >=3.13, so always check)
+            _compatible, incompatible = self.check_python_compatibility(
+                summary["missing_python"]
+            )
+            if incompatible:
+                lines.append("⚠️  Python 3.13 Compatibility Warning:")
+                lines.append(
+                    f"  {len(incompatible)} packages are not yet compatible with Python 3.13:"
                 )
-                if incompatible:
-                    lines.append("⚠️  Python 3.13 Compatibility Warning:")
-                    lines.append(
-                        f"  {len(incompatible)} packages are not yet compatible with Python 3.13:"
-                    )
-                    for dep in incompatible[:3]:
-                        lines.append(f"    - {dep}")
-                    if len(incompatible) > 3:
-                        lines.append(f"    ... and {len(incompatible) - 3} more")
-                    lines.append("")
-                    lines.append(
-                        "  Consider using Python 3.12 or earlier for full compatibility."
-                    )
-                    lines.append("")
+                for dep in incompatible[:3]:
+                    lines.append(f"    - {dep}")
+                if len(incompatible) > 3:
+                    lines.append(f"    ... and {len(incompatible) - 3} more")
+                lines.append("")
+                lines.append(
+                    "  Consider using Python 3.12 or earlier for full compatibility."
+                )
+                lines.append("")
 
             lines.append("Option 1: Install all agent dependencies:")
             lines.append('  pip install "claude-mpm[agents]"')
