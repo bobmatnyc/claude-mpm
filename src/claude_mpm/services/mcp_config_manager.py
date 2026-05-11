@@ -14,6 +14,7 @@ import subprocess  # nosec B404 - Required for MCP service management
 import sys
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from ..core.logger import get_logger
 
@@ -37,6 +38,12 @@ class MCPConfigManager:
         "mcp-browser",
         "mcp-ticketer",
         "kuzu-memory",
+    }
+
+    # MCP services installed via cargo (Rust binaries)
+    CARGO_SERVICES = {
+        "trusty-search",
+        "trusty-memory",
     }
 
     # Known missing dependencies for MCP services that pipx doesn't handle automatically
@@ -77,6 +84,16 @@ class MCPConfigManager:
             "command": "python",  # Will be resolved to pipx venv Python
             "args": ["-m", "mcp_vector_search.mcp.server", "{project_root}"],
             "env": {},
+        },
+        "trusty-search": {
+            "type": "stdio",
+            "command": "trusty-search",
+            "args": ["serve"],
+        },
+        "trusty-memory": {
+            "type": "stdio",
+            "command": "trusty-memory",
+            "args": ["serve", "--mcp"],
         },
     }
 
@@ -715,7 +732,7 @@ class MCPConfigManager:
                 return None
 
         # Build configuration
-        config = {"type": "stdio"}
+        config: dict[str, Any] = {"type": "stdio"}
 
         # Service-specific configurations
         if service_name == "mcp-vector-search":
@@ -900,7 +917,7 @@ class MCPConfigManager:
         # Delegate to read-only check
         return self.check_mcp_services_available()
 
-    def update_mcp_config(self, force_pipx: bool = True) -> tuple[bool, str]:
+    def update_mcp_config(self, _force_pipx: bool = True) -> tuple[bool, str]:  # pyright: ignore[reportUnusedParameter]
         """
         DEPRECATED: Check MCP configuration in ~/.claude.json (READ-ONLY).
 
@@ -908,7 +925,7 @@ class MCPConfigManager:
         and configure MCP services themselves.
 
         Args:
-            force_pipx: Ignored (kept for backward compatibility)
+            _force_pipx: Ignored (kept for backward compatibility)
 
         Returns:
             Tuple of (success, message) from read-only check
