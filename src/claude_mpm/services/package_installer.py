@@ -433,46 +433,86 @@ class PackageInstallerService:
     def _run_cargo_install(self, spec: PackageSpec, *, force: bool) -> None:
         """Run ``cargo install`` (or ``cargo binstall``) for a Rust binary.
 
-        WHY: trusty-* crates are not published to crates.io yet, so plain
-        ``cargo install <name>`` fails with "crate not found". When a spec
-        provides a ``git_url`` we install from git directly. ``cargo-binstall``
-        is only used for registry installs; git installs always go through
-        ``cargo install --git``.
+        WHY: Several Rust binaries (notably the trusty-* family) ship from
+        GitHub today but are expected to publish to crates.io soon. We want
+        installs to "just work" in both states without code changes:
+
+        - **Registry first:** when ``cargo-binstall`` is available we use it
+          (prebuilt binaries, fast). Otherwise we try ``cargo install
+          <name>`` against the crates.io registry.
+        - **Git fallback:** if the registry attempt exits non-zero AND the
+          spec provides a ``git_url``, retry with
+          ``cargo install --git <url> [--bin <name>]``.
+        - **Git only:** if no ``git_url`` is provided, we just surface the
+          registry failure as before.
 
         Args:
             spec: Package spec (must have installer=CARGO).
             force: Pass ``--force`` (used for upgrade/reinstall).
         """
-        cmd: list[str]
-        if spec.git_url:
-            # Git installs always use plain `cargo install`; cargo-binstall
-            # only resolves registry crates.
-            cmd = ["cargo", "install", "--git", spec.git_url]
-            if force:
-                cmd.append("--force")
-            if spec.bin_name:
-                cmd.extend(["--bin", spec.bin_name])
-            else:
-                # Use the package name (without version specifier) so cargo
-                # picks the matching workspace member.
-                cmd.extend(["--bin", spec.base_name])
-        elif shutil.which("cargo-binstall"):
-            cmd = ["cargo", "binstall", "--no-confirm"]
-            if force:
-                cmd.append("--force")
-            cmd.append(spec.base_name)
-        else:
-            cmd = ["cargo", "install"]
-            if force:
-                cmd.append("--force")
-            cmd.append(spec.base_name)
+        registry_cmd = self._build_cargo_registry_cmd(spec, force=force)
 
+        registry_result = subprocess.run(
+            registry_cmd,
+            check=False,  # we may want to fall back to --git on failure
+            capture_output=True,
+            text=True,
+        )  # nosec B603 B607
+
+        if registry_result.returncode == 0:
+            return
+
+        # Registry failed — fall back to git if we have a URL.
+        if not spec.git_url:
+            raise subprocess.CalledProcessError(
+                registry_result.returncode,
+                registry_cmd,
+                output=registry_result.stdout,
+                stderr=registry_result.stderr,
+            )
+
+        console.print(
+            "[dim]Registry install failed; falling back to "
+            f"cargo install --git {spec.git_url}[/dim]"
+        )
+        git_cmd = self._build_cargo_git_cmd(spec, force=force)
         subprocess.run(
-            cmd,
+            git_cmd,
             check=True,
             capture_output=True,
             text=True,
         )  # nosec B603 B607
+
+    @staticmethod
+    def _build_cargo_registry_cmd(spec: PackageSpec, *, force: bool) -> list[str]:
+        """Build the cargo command for a crates.io (registry) install.
+
+        Prefers ``cargo-binstall`` when present; otherwise falls back to
+        plain ``cargo install``.
+        """
+        if shutil.which("cargo-binstall"):
+            cmd: list[str] = ["cargo", "binstall", "--no-confirm"]
+        else:
+            cmd = ["cargo", "install"]
+        if force:
+            cmd.append("--force")
+        cmd.append(spec.base_name)
+        return cmd
+
+    @staticmethod
+    def _build_cargo_git_cmd(spec: PackageSpec, *, force: bool) -> list[str]:
+        """Build the cargo command for a git-source install."""
+        assert spec.git_url, "_build_cargo_git_cmd requires spec.git_url"
+        cmd: list[str] = ["cargo", "install", "--git", spec.git_url]
+        if force:
+            cmd.append("--force")
+        if spec.bin_name:
+            cmd.extend(["--bin", spec.bin_name])
+        else:
+            # Use the package name (without version specifier) so cargo
+            # picks the matching workspace member.
+            cmd.extend(["--bin", spec.base_name])
+        return cmd
 
 
 # Package specifications for each service
