@@ -4,107 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "6.2.73"
+version = "6.3.0"
 description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
 requires-python = ">=3.13"
-keywords = [
-    # Core identity
-    "claude",
-    "claude-code",
-    "anthropic",
-    "ai-agents",
-    "multi-agent",
-    # Framework type
-    "workflow-automation",
-    "agent-orchestration",
-    "developer-tools",
-    "cli-tools",
-    # Key features
-    "mcp",
-    "model-context-protocol",
-    "skills-system",
-    "session-management",
-    "semantic-search",
-    "code-search",
-    # Integrations
-    "google-workspace",
-    "gmail-api",
-    "google-calendar",
-    "google-drive",
-    "google-tasks",
-    "github-integration",
-    "ticket-management",
-    # Development
-    "ai-development",
-    "code-generation",
-    "devops",
-    "automation",
-]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Framework :: AsyncIO",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Information Technology",
-    "License :: Other/Proprietary License",
-    "Operating System :: MacOS",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Software Development",
-    "Topic :: Software Development :: Build Tools",
-    "Topic :: Software Development :: Code Generators",
-    "Topic :: Software Development :: Libraries :: Application Frameworks",
-    "Topic :: Software Development :: Quality Assurance",
-    "Topic :: Software Development :: Testing",
-    "Topic :: System :: Software Distribution",
-    "Typing :: Typed",
-]
-dependencies = [
- "ai-trackdown-pytools>=1.4.0",
- "pyyaml>=6.0",
- "python-dotenv>=1.0.0",
- "click>=8.0.0",
- "pexpect>=4.8.0",
- "psutil>=5.9.0",
- "requests>=2.25.0",
- "flask>=3.0.0",
- "flask-cors>=4.0.0",
- "watchdog>=3.0.0",
- "python-socketio>=5.14.0",
- "aiohttp>=3.9.0",
- "aiohttp-cors>=0.7.0,<0.8.0",
- "python-engineio>=4.8.0",
- "aiofiles>=23.0.0",
- "websockets>=12.0",
- "python-frontmatter>=1.0.0",
- "mistune>=3.0.0",
- "tree-sitter>=0.21.0",
- "ijson>=3.2.0",
- "toml>=0.10.2",
- "packaging>=21.0",
- "pydantic>=2.0.0",
- "pydantic-settings>=2.0.0",
- "rich>=13.0.0",
- "questionary>=2.0.0",
- "pyee>=13.0.0",
- "pathspec>=0.11.0",
- "fastapi>=0.100.0",
- "uvicorn>=0.20.0",
- "httpx>=0.24.0",
- "keyring>=24.0.0",
- "cryptography>=41.0.0",
- "mcp>=1.0.0",
- "huey>=2.5.0",
- "commitizen>=4.13.9",
-]
+keywords = [ "claude", "claude-code", "anthropic", "ai-agents", "multi-agent", "workflow-automation", "agent-orchestration", "developer-tools", "cli-tools", "mcp", "model-context-protocol", "skills-system", "session-management", "semantic-search", "code-search", "google-workspace", "gmail-api", "google-calendar", "google-drive", "google-tasks", "github-integration", "ticket-management", "ai-development", "code-generation", "devops", "automation",]
+classifiers = [ "Development Status :: 4 - Beta", "Environment :: Console", "Framework :: AsyncIO", "Intended Audience :: Developers", "Intended Audience :: Information Technology", "License :: Other/Proprietary License", "Operating System :: MacOS", "Operating System :: POSIX :: Linux", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.13", "Topic :: Software Development", "Topic :: Software Development :: Build Tools", "Topic :: Software Development :: Code Generators", "Topic :: Software Development :: Libraries :: Application Frameworks", "Topic :: Software Development :: Quality Assurance", "Topic :: Software Development :: Testing", "Topic :: System :: Software Distribution", "Typing :: Typed",]
+dependencies = [ "ai-trackdown-pytools>=1.4.0", "pyyaml>=6.0", "python-dotenv>=1.0.0", "click>=8.0.0", "pexpect>=4.8.0", "psutil>=5.9.0", "requests>=2.25.0", "flask>=3.0.0", "flask-cors>=4.0.0", "watchdog>=3.0.0", "python-socketio>=5.14.0", "aiohttp>=3.9.0", "aiohttp-cors>=0.7.0,<0.8.0", "python-engineio>=4.8.0", "aiofiles>=23.0.0", "websockets>=12.0", "python-frontmatter>=1.0.0", "mistune>=3.0.0", "tree-sitter>=0.21.0", "ijson>=3.2.0", "toml>=0.10.2", "packaging>=21.0", "pydantic>=2.0.0", "pydantic-settings>=2.0.0", "rich>=13.0.0", "questionary>=2.0.0", "pyee>=13.0.0", "pathspec>=0.11.0", "fastapi>=0.100.0", "uvicorn>=0.20.0", "httpx>=0.24.0", "keyring>=24.0.0", "cryptography>=41.0.0", "mcp>=1.0.0", "huey>=2.5.0", "commitizen>=4.13.9",]
 [[project.authors]]
 name = "Bob Matsuoka"
 email = "bob@matsuoka.com"
 
 [[project.maintainers]]
 name = "Claude MPM Team"
+
+[dependency-groups]
+dev = [ "deepeval>=1.0.0", "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0", "pytest-xdist>=3.8.0", "playwright>=1.40.0", "pytest-timeout>=2.4.0", "commitizen>=4.13.9",]
 
 [project.license]
 text = "Elastic-2.0"
@@ -116,60 +31,24 @@ Issues = "https://github.com/bobmatnyc/claude-mpm/issues"
 Documentation = "https://github.com/bobmatnyc/claude-mpm/blob/main/README.md"
 
 [project.optional-dependencies]
-# DEPRECATED: MCP gateway archived 2025-12-11. Use direct MCP server integration instead.
-# Kept for backward compatibility only. Will be removed in future major version.
 mcp = [ "mcp>=0.1.0", "mcp-vector-search>=0.1.0", "mcp-browser>=0.1.0", "mcp-ticketer>=0.1.0",]
 dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "pylint>=3.0.0", "pre-commit", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
 eval = [ "deepeval>=1.0.0", "pytest>=7.4.0", "pytest-asyncio>=0.21.0", "pytest-timeout>=2.1.0",]
 docs = [ "sphinx>=7.2.0", "sphinx-rtd-theme>=1.3.0", "sphinx-autobuild>=2021.3.14",]
 monitor = [ "python-socketio>=5.14.0", "aiohttp>=3.9.0", "aiohttp-cors>=0.7.0,<0.8.0", "python-engineio>=4.8.0", "aiofiles>=23.0.0", "websockets>=12.0",]
 data-processing = [ "pandas>=2.1.0", "openpyxl>=3.1.0", "xlsxwriter>=3.1.0", "numpy>=1.24.0", "pyarrow>=14.0.0", "dask>=2023.12.0", "polars>=0.19.0", "xlrd>=2.0.0", "xlwt>=1.3.0", "csvkit>=1.3.0", "tabulate>=0.9.0", "python-dateutil>=2.8.0", "lxml>=4.9.0", "sqlalchemy>=2.0.0", "psycopg2-binary>=2.9.0", "pymongo>=4.5.0", "redis>=5.0.0", "beautifulsoup4>=4.12.0", "jsonschema>=4.19.0",]
-# KuzuMemory requires cmake to build - optional for users who want graph-based memory
 memory = [ "kuzu-memory>=1.1.5",]
-# Slack MPM client for team collaboration
 slack = [ "slack-bolt>=1.18.0", "slack-sdk>=3.23.0",]
-# HTTP transport with SSE and ngrok for remote MCP access
 http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "pyngrok>=7.0.0",]
-# Claude Agent SDK for in-process agent execution (alternative to CLI subprocess)
 sdk = [ "claude-agent-sdk>=0.1.48",]
-# Telegram bot client for remote Claude control via Telegram
 telegram = [ "python-telegram-bot>=20.0",]
-# Google Workspace extended features (rclone for Drive sync)
-# NOTE: Requires rclone CLI binary installed separately (https://rclone.org/downloads/)
-# The implementation uses rclone via subprocess, not a Python package.
 google = []
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
 claude-hook = "claude_mpm.hooks.claude_hooks.hook_handler:main"
-# Deprecated - use 'claude-mpm doctor' instead (will be removed in next major release)
 claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
-# Deprecated - use 'claude-mpm mcp serve <name>' instead
-# mpm-session-server = "claude_mpm.mcp.session_server:main"
-# mpm-session-server-http = "claude_mpm.mcp.session_server_http:main"
-# confluence-mcp = "claude_mpm.mcp.confluence_server:main"
-# notion-mpm = "claude_mpm.mcp.notion_setup:main"
-# Deprecated - use 'claude-mpm monitor' instead
-# claude-mpm-monitor = "claude_mpm.scripts.launch_monitor:main"
-# claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
-# claude-mpm-ui = "claude_mpm.services.ui_service.main:main"
 claude-mpm-serve = "claude_mpm.services.ui_service.main:main"
-
-[dependency-groups]
-dev = [
- "deepeval>=1.0.0",
- "pytest>=7.0",
- "pytest-asyncio",
- "pytest-cov",
- "ruff>=0.8.0",
- "mypy>=1.0.0",
- "types-PyYAML>=6.0.0",
- "types-requests>=2.25.0",
- "pytest-xdist>=3.8.0",
- "playwright>=1.40.0",
- "pytest-timeout>=2.4.0",
- "commitizen>=4.13.9",
-]
 
 [tool.mypy]
 python_version = "3.13"
@@ -178,128 +57,9 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
-# Target Python 3.13+ (matches requires-python)
 target-version = "py313"
 line-length = 88
-
-# Exclude common directories
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "*.egg-info",
-    ".pytest_cache",
-    "_archive",
-    "tools",
-]
-
-[tool.ruff.lint]
-# Enable comprehensive rule sets (replaces flake8, isort, pyupgrade, etc.)
-select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort (import sorting)
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "ARG",    # flake8-unused-arguments
-    "SIM",    # flake8-simplify
-    "TCH",    # flake8-type-checking
-    "PTH",    # flake8-use-pathlib
-    "RUF",    # Ruff-specific rules
-]
-
-# Disable specific rules (maintain compatibility with existing codebase)
-ignore = [
-    "E501",   # line too long (handled by formatter)
-    "E203",   # whitespace before ':' (Black compatibility)
-    "B008",   # do not perform function calls in argument defaults
-    "B905",   # zip without explicit strict parameter
-    "RUF005", # collection concatenation
-    "RUF043", # dict/set literal
-    "RUF059", # dict/set literal
-    "PTH123", # pathlib usage
-    "PTH100", # pathlib usage
-    "PTH109", # pathlib usage
-    "PTH110", # pathlib usage
-    "PTH111", # pathlib usage
-    "PTH118", # pathlib usage
-    "PTH120", # pathlib usage
-    "DTZ003", # datetime timezone
-    "DTZ005", # datetime timezone
-    "DTZ006", # datetime timezone
-    "DTZ007", # datetime timezone
-    "C401",   # unnecessary list comprehension
-    "PLW0108", # lambda may be unnecessary
-    "UP046",   # PEP 695 generic class syntax (requires manual rewrite)
-    "UP049",   # PEP 695 private type parameters (requires manual rewrite)
-]
-
-# Allow autofix for all rules
-fixable = ["ALL"]
-unfixable = ["RUF043", "RUF059"]
-
-# Allow unused variables when underscore-prefixed
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-[tool.ruff.format]
-# Like Black, use double quotes for strings
-quote-style = "double"
-
-# Like Black, indent with spaces
-indent-style = "space"
-
-# Like Black, respect magic trailing commas
-skip-magic-trailing-comma = false
-
-# Like Black, automatically detect line endings
-line-ending = "auto"
-
-[tool.ruff.lint.isort]
-# Group imports by type (replaces isort)
-force-single-line = false
-force-sort-within-sections = false
-lines-after-imports = 2
-combine-as-imports = true
-
-[tool.ruff.lint.per-file-ignores]
-# Ignore specific rules in specific files
-"__init__.py" = [
-    "F401",    # Unused imports in __init__.py are ok (re-exports)
-    "F403",    # Star imports ok in __init__.py
-]
-"tests/**/*.py" = [
-    "F403",    # Star imports ok in tests
-    "F405",    # Undefined names from star imports
-    "C401",    # Unnecessary list comprehension
-    "ARG",     # Unused function arguments in tests are ok
-    "S101",    # Use of assert in tests is ok
-]
-"src/claude_mpm/cli/interactive/skills_wizard.py" = [
-    "RUF005",  # Collection concatenation allowed
-]
-"src/claude_mpm/skills/skill_manager.py" = [
-    "PTH123",  # Pathlib usage not required here
-]
+exclude = [ ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv", "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv", "*.egg-info", ".pytest_cache", "_archive", "tools",]
 
 [tool.pylint]
 max-line-length = 88
@@ -312,11 +72,24 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "6.2.73"
+version = "6.3.0"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version", "pyproject.toml:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_incremental = true
+
+[tool.ruff.lint]
+select = [ "E", "W", "F", "I", "B", "C4", "UP", "ARG", "SIM", "TCH", "PTH", "RUF",]
+ignore = [ "E501", "E203", "B008", "B905", "RUF005", "RUF043", "RUF059", "PTH123", "PTH100", "PTH109", "PTH110", "PTH111", "PTH118", "PTH120", "DTZ003", "DTZ005", "DTZ006", "DTZ007", "C401", "PLW0108", "UP046", "UP049",]
+fixable = [ "ALL",]
+unfixable = [ "RUF043", "RUF059",]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.setuptools.package-data]
 claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "scripts/setup/*", "scripts/setup/*.sh", "commands/*.md", "config/*.yaml", "skills/bundled/**/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*", "templates/*.yaml", "templates/.pre-commit-config.yaml", "templates/claude/**/*", "templates/claude/hooks/scripts/*.sh", "templates/claude/commands/*.md", "bin/ztk", "bin/ztk_LICENSE",]
@@ -330,6 +103,18 @@ addopts = [ "--tb=short", "--strict-markers", "--disable-warnings", "--timeout=1
 markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests", "serial: Mark tests that must run serially (not parallelized)", "behavioral: PM behavioral compliance tests", "delegation: Delegation behavior tests", "tools: Tool usage behavior tests", "circuit_breaker: Circuit breaker compliance tests", "workflow: Workflow behavior tests", "evidence: Evidence-based assertion tests", "file_tracking: File tracking behavior tests", "memory: Memory management behavior tests", "performance: Performance benchmarking tests", "critical: Critical severity tests", "high: High severity tests", "medium: Medium severity tests", "low: Low severity tests",]
 asyncio_mode = "auto"
 norecursedirs = [ "archive", "benchmarks", "manual", "stress", ".*", "_*",]
+
+[tool.ruff.lint.isort]
+force-single-line = false
+force-sort-within-sections = false
+lines-after-imports = 2
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [ "F401", "F403",]
+"tests/**/*.py" = [ "F403", "F405", "C401", "ARG", "S101",]
+"src/claude_mpm/cli/interactive/skills_wizard.py" = [ "RUF005",]
+"src/claude_mpm/skills/skill_manager.py" = [ "PTH123",]
 
 [tool.setuptools.packages.find]
 where = [ "src",]
