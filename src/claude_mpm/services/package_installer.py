@@ -56,6 +56,14 @@ class PackageSpec:
         python_version: Python version requirement for uv tool install
         extras: Extra dependencies for uv --with flag
         module_name: Python module name for importlib check (e.g., "kuzu_memory")
+        installer: Optional pinned installer (e.g., CARGO for Rust binaries)
+        git_url: Optional git URL to install from when the crate/package is
+            not published to a registry. When set with a CARGO installer the
+            install runs ``cargo install --git <git_url> [bin_name]`` instead
+            of pulling from crates.io.
+        bin_name: Optional cargo --bin name to select when a workspace exposes
+            multiple binaries (e.g. the crate package name differs from the
+            installed binary). Only used with the CARGO installer.
     """
 
     name: str
@@ -64,6 +72,8 @@ class PackageSpec:
     extras: list[str] = field(default_factory=list)
     module_name: str | None = None
     installer: InstallerType | None = None
+    git_url: str | None = None
+    bin_name: str | None = None
 
     @property
     def base_name(self) -> str:
@@ -324,21 +334,7 @@ class PackageInstallerService:
                         "and ensure ~/.cargo/bin is on PATH."
                     ),
                 )
-            # Prefer cargo-binstall when available for faster prebuilt installs.
-            if shutil.which("cargo-binstall"):
-                subprocess.run(
-                    ["cargo", "binstall", "--no-confirm", spec.base_name],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )  # nosec B603 B607
-            else:
-                subprocess.run(
-                    ["cargo", "install", spec.base_name],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )  # nosec B603 B607
+            self._run_cargo_install(spec, force=False)
 
     def _do_upgrade(self, spec: PackageSpec, installer: InstallerType) -> None:
         """Perform package upgrade.
@@ -384,20 +380,7 @@ class PackageInstallerService:
         elif installer == InstallerType.CARGO:
             # `cargo install` re-installs the latest version when run again.
             # `--force` makes it idempotent for upgrades.
-            if shutil.which("cargo-binstall"):
-                subprocess.run(
-                    ["cargo", "binstall", "--no-confirm", "--force", spec.base_name],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )  # nosec B603 B607
-            else:
-                subprocess.run(
-                    ["cargo", "install", "--force", spec.base_name],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )  # nosec B603 B607
+            self._run_cargo_install(spec, force=True)
 
     def _do_reinstall(self, spec: PackageSpec, installer: InstallerType) -> None:
         """Perform package reinstall.
@@ -445,20 +428,51 @@ class PackageInstallerService:
 
         elif installer == InstallerType.CARGO:
             # cargo doesn't have a separate reinstall; --force overwrites.
-            if shutil.which("cargo-binstall"):
-                subprocess.run(
-                    ["cargo", "binstall", "--no-confirm", "--force", spec.base_name],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )  # nosec B603 B607
+            self._run_cargo_install(spec, force=True)
+
+    def _run_cargo_install(self, spec: PackageSpec, *, force: bool) -> None:
+        """Run ``cargo install`` (or ``cargo binstall``) for a Rust binary.
+
+        WHY: trusty-* crates are not published to crates.io yet, so plain
+        ``cargo install <name>`` fails with "crate not found". When a spec
+        provides a ``git_url`` we install from git directly. ``cargo-binstall``
+        is only used for registry installs; git installs always go through
+        ``cargo install --git``.
+
+        Args:
+            spec: Package spec (must have installer=CARGO).
+            force: Pass ``--force`` (used for upgrade/reinstall).
+        """
+        cmd: list[str]
+        if spec.git_url:
+            # Git installs always use plain `cargo install`; cargo-binstall
+            # only resolves registry crates.
+            cmd = ["cargo", "install", "--git", spec.git_url]
+            if force:
+                cmd.append("--force")
+            if spec.bin_name:
+                cmd.extend(["--bin", spec.bin_name])
             else:
-                subprocess.run(
-                    ["cargo", "install", "--force", spec.base_name],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )  # nosec B603 B607
+                # Use the package name (without version specifier) so cargo
+                # picks the matching workspace member.
+                cmd.extend(["--bin", spec.base_name])
+        elif shutil.which("cargo-binstall"):
+            cmd = ["cargo", "binstall", "--no-confirm"]
+            if force:
+                cmd.append("--force")
+            cmd.append(spec.base_name)
+        else:
+            cmd = ["cargo", "install"]
+            if force:
+                cmd.append("--force")
+            cmd.append(spec.base_name)
+
+        subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+        )  # nosec B603 B607
 
 
 # Package specifications for each service
@@ -516,11 +530,25 @@ def get_package_specs() -> dict[SetupService, PackageSpec]:
             name="trusty-search",
             binary_name="trusty-search",
             installer=InstallerType.CARGO,
+            # Not published to crates.io yet; install from GitHub directly.
+            git_url="https://github.com/bobmatnyc/trusty-search.git",
+            bin_name="trusty-search",
         ),
         SetupService.TRUSTY_MEMORY: PackageSpec(
             name="trusty-memory",
             binary_name="trusty-memory",
             installer=InstallerType.CARGO,
+            git_url="https://github.com/bobmatnyc/trusty-memory.git",
+            bin_name="trusty-memory",
+        ),
+        SetupService.TRUSTY_ANALYZE: PackageSpec(
+            # Crate package + binary are both named `trusty-analyzer`, but the
+            # repo (and the user-facing setup verb) is `trusty-analyze`.
+            name="trusty-analyzer",
+            binary_name="trusty-analyzer",
+            installer=InstallerType.CARGO,
+            git_url="https://github.com/bobmatnyc/trusty-analyze.git",
+            bin_name="trusty-analyzer",
         ),
     }
 
