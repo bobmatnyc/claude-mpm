@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import questionary
-from rich.prompt import Prompt
 from rich.text import Text
 
 from ...utils.agent_filters import (
@@ -28,6 +27,18 @@ from ...utils.agent_filters import (
 if TYPE_CHECKING:
     from .configure import ConfigureCommand
     from .configure_models import AgentConfig
+
+
+def _prompt():
+    """Return the configure module's ``Prompt`` symbol.
+
+    Tests patch ``claude_mpm.cli.commands.configure.Prompt`` to feed inputs;
+    looking it up dynamically here keeps that patch effective even though the
+    actual call site lives in this handler module.
+    """
+    from . import configure as _cfg
+
+    return _cfg.Prompt
 
 
 class AgentManagementHandler:
@@ -63,7 +74,7 @@ class AgentManagementHandler:
                 self.console.print(
                     "[dim]Configure sources with 'claude-mpm agent-source add'[/dim]\n"
                 )
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
                 break
 
             # Now display everything at once (after all data loaded)
@@ -111,7 +122,7 @@ class AgentManagementHandler:
                     self.console.print(
                         "[dim]  claude-mpm configure --enable-agent <id>[/dim]"
                     )
-                Prompt.ask("\nPress Enter to continue")
+                _prompt().ask("\nPress Enter to continue")
                 break
 
     def load_agents_with_spinner(self) -> list[AgentConfig]:
@@ -242,7 +253,8 @@ class AgentManagementHandler:
             self.console.print(text_cancel)
 
             choice = (
-                Prompt.ask("[bold blue]Select an option[/bold blue]", default="s")
+                _prompt()
+                .ask("[bold blue]Select an option[/bold blue]", default="s")
                 .strip()
                 .lower()
             )
@@ -256,12 +268,12 @@ class AgentManagementHandler:
                     self.auto_deploy_enabled_agents(agents)
                 else:
                     self.console.print("[yellow]No changes to save.[/yellow]")
-                Prompt.ask("Press Enter to continue")
+                _prompt().ask("Press Enter to continue")
                 break
             if choice == "c":
                 self.cmd.agent_manager.discard_deferred_changes()
                 self.console.print("[yellow]Changes discarded.[/yellow]")
-                Prompt.ask("Press Enter to continue")
+                _prompt().ask("Press Enter to continue")
                 break
             if choice == "a":
                 for agent in agents:
@@ -271,7 +283,7 @@ class AgentManagementHandler:
                     self.cmd.agent_manager.set_agent_enabled_deferred(agent.name, False)
             elif choice == "t" or choice.replace(",", "").replace("-", "").isdigit():
                 selected_ids = self.cmd._parse_id_selection(
-                    choice if choice != "t" else Prompt.ask("Enter IDs"), len(agents)
+                    choice if choice != "t" else _prompt().ask("Enter IDs"), len(agents)
                 )
                 for idx in selected_ids:
                     if 1 <= idx <= len(agents):
@@ -621,9 +633,6 @@ class AgentManagementHandler:
                 detected_langs = (
                     ", ".join(summary.get("detected_languages", [])) or "None"
                 )
-                _detected_frameworks = (
-                    ", ".join(summary.get("detected_frameworks", [])) or "None"
-                )
                 self.console.print(
                     f"\n[dim]* = recommended for this project "
                     f"(detected: {detected_langs})[/dim]"
@@ -657,4 +666,4 @@ class AgentManagementHandler:
         self.console.print("  claude-mpm agent-source add <git-url>")
         self.console.print("  claude-mpm agent-source remove <identifier>")
         self.console.print("  claude-mpm agent-source list")
-        Prompt.ask("\nPress Enter to continue")
+        _prompt().ask("\nPress Enter to continue")
