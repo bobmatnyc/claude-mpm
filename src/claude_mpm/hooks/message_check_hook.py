@@ -359,3 +359,23 @@ def message_check_hook() -> str | None:
     except Exception as e:
         logger.error(f"Message check hook failed: {e}", exc_info=True)
         return None
+
+
+if __name__ == "__main__":
+    import sys
+
+    # Read stdin (Claude Code sends hook JSON there, but we don't need it)
+    sys.stdin.read()
+
+    result = message_check_hook()
+
+    if result:
+        output = {
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": result,
+            }
+        }
+        print(json.dumps(output))
+
+    sys.exit(0)
