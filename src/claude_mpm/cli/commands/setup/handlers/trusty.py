@@ -173,6 +173,12 @@ class TrustyMixin:
     def _ensure_launchd_loaded(self, label: str, plist_path: Path) -> bool:
         """Reload a launchd plist (unload then load) without prompting.
 
+        After load, verify the agent appears in ``launchctl list`` so we know
+        the daemon will survive reboots / process crashes (the plist's
+        ``KeepAlive=true`` + ``RunAtLoad=true`` is only meaningful once the
+        agent is actually loaded). A green/red console line communicates the
+        persistence state to the user.
+
         Returns True on best-effort success. Logs warnings if launchctl is
         missing (non-macOS); callers should handle that gracefully.
         """
@@ -201,7 +207,24 @@ class TrustyMixin:
                 f"{load_result.stderr.strip()}[/yellow]"
             )
             return False
-        console.print(f"[green]✓ Loaded launchd agent: {label}[/green]")
+        # Verify the agent is registered with launchd. `launchctl list <label>`
+        # exits non-zero when the agent isn't loaded (which would mean it
+        # won't auto-restart on crash or survive a reboot).
+        list_result = subprocess.run(
+            ["launchctl", "list", label],
+            check=False,
+            capture_output=True,
+            text=True,
+        )  # nosec B603 B607
+        if list_result.returncode != 0:
+            console.print(
+                f"[yellow]⚠ launchd agent {label} loaded but not visible in "
+                f"`launchctl list` — daemon may not persist across reboots.[/yellow]"
+            )
+            return False
+        console.print(
+            f"[green]✓ Loaded launchd agent: {label} (KeepAlive enabled)[/green]"
+        )
         return True
 
     @staticmethod
