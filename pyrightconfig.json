@@ -4,5 +4,6 @@
   "pythonVersion": "3.13",
   "typeCheckingMode": "basic",
   "reportMissingImports": "warning",
-  "reportMissingModuleSource": "warning"
+  "reportMissingModuleSource": "warning",
+  "extraPaths": ["src"]
 }
