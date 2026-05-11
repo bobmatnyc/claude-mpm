@@ -45,6 +45,7 @@ class SetupService(StrEnum):
     FIRECRAWL = "firecrawl"
     TRUSTY_SEARCH = "trusty-search"
     TRUSTY_MEMORY = "trusty-memory"
+    TRUSTY_ANALYZE = "trusty-analyze"
 
     def __str__(self) -> str:
         return self.value
@@ -83,6 +84,7 @@ class MCPBinary(StrEnum):
     MCP_SKILLSET = "mcp-skillset"
     TRUSTY_SEARCH = "trusty-search"
     TRUSTY_MEMORY = "trusty-memory"
+    TRUSTY_ANALYZER = "trusty-analyzer"
 
     def __str__(self) -> str:
         return self.value
