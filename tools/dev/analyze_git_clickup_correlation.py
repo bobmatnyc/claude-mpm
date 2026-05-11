@@ -71,7 +71,7 @@ class GitCommitExtractor:
         Returns:
             Dictionary mapping ticket IDs to list of commits
         """
-        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")  # noqa: DTZ005
+        since_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         # Git log format: hash|author|date|subject|body
         git_cmd = [
