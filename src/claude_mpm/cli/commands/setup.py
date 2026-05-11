@@ -340,6 +340,8 @@ class SetupCommand(BaseCommand):
                 result = self._setup_trusty_search(service_args)
             elif service_name == "trusty-memory":
                 result = self._setup_trusty_memory(service_args)
+            elif service_name == "trusty-analyze":
+                result = self._setup_trusty_analyze(service_args)
             else:
                 # Open-world fallback: if the binary exists and supports `setup`,
                 # delegate automatically without requiring a custom _setup_* method.
@@ -472,6 +474,7 @@ class SetupCommand(BaseCommand):
   notion-mpm             Set up Notion MCP server (official @notionhq package)
   trusty-search          Set up trusty-search Rust hybrid code search daemon
   trusty-memory          Set up trusty-memory Rust AI memory daemon
+  trusty-analyze         Set up trusty-analyzer Rust code-analysis sidecar daemon
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -1848,6 +1851,87 @@ class SetupCommand(BaseCommand):
             "  • Logs: /tmp/trusty-memory.log\n"
         )
         return CommandResult.success_result("trusty-memory setup complete")
+
+    def _setup_trusty_analyze(self, args) -> CommandResult:
+        """Set up trusty-analyzer Rust code-analysis sidecar daemon.
+
+        The installed binary is ``trusty-analyzer`` (note the trailing "r");
+        only the user-facing setup verb is ``trusty-analyze`` so it matches
+        the GitHub repo name.
+
+        Steps:
+        1. Install via cargo (from git) if missing.
+        2. Ensure daemon is running on http://127.0.0.1:7879 (launchd plist).
+        3. Write ``.mcp.json`` entry pointing at ``trusty-analyzer mcp``.
+        """
+        console.print("\n[bold cyan]Trusty Analyzer MCP Setup[/bold cyan]")
+        console.print(
+            "Installs trusty-analyzer (Rust code-analysis sidecar daemon) and "
+            "wires it into this project's .mcp.json. Sits next to trusty-search "
+            "on port 7879.\n"
+        )
+
+        # 1. Install binary
+        install_err = self._install_cargo_binary(args, SetupService.TRUSTY_ANALYZE)
+        if install_err is not None:
+            return install_err
+
+        binary_path = self._cargo_bin_path("trusty-analyzer")
+
+        # 2. Ensure daemon running on 7879
+        health_url = "http://127.0.0.1:7879/health"
+        if self._http_health_check(health_url):
+            console.print("[green]✓ trusty-analyzer daemon already running[/green]")
+        else:
+            console.print(
+                "[cyan]Daemon not running — installing persistent launchd agent...[/cyan]"
+            )
+            plist_path = self._write_launchd_plist(
+                label="com.bobmatnyc.trusty-analyzer",
+                binary_path=binary_path,
+                args=["serve"],
+                stdout_path="/tmp/trusty-analyzer.log",  # nosec B108
+                stderr_path="/tmp/trusty-analyzer-error.log",  # nosec B108
+            )
+            self._ensure_launchd_loaded("com.bobmatnyc.trusty-analyzer", plist_path)
+
+            # Give the daemon a moment to come up, then re-probe.
+            import time
+
+            for _ in range(10):
+                if self._http_health_check(health_url):
+                    break
+                time.sleep(0.5)
+            else:
+                console.print(
+                    "[yellow]⚠ Could not confirm daemon health on "
+                    "http://127.0.0.1:7879 — continuing anyway. "
+                    "Check /tmp/trusty-analyzer-error.log if MCP calls fail.[/yellow]"
+                )
+
+        # 3. Write .mcp.json entry (with rollback on failure)
+        try:
+            with _mcp_config_transaction():
+                mcp_config = self._load_mcp_config()
+                mcp_config.setdefault("mcpServers", {})
+                mcp_config["mcpServers"]["trusty-analyzer"] = {
+                    "type": "stdio",
+                    "command": "trusty-analyzer",
+                    "args": ["mcp"],
+                }
+                self._save_mcp_config(mcp_config)
+                console.print("[green]✓ Added trusty-analyzer to .mcp.json[/green]")
+        except Exception as e:
+            console.print(f"[red]✗ Failed to update .mcp.json: {e}[/red]")
+            return CommandResult.error_result(f".mcp.json update failed: {e}")
+
+        console.print(
+            "\n[bold green]✓ trusty-analyze setup complete![/bold green]\n"
+            "  • Daemon: http://127.0.0.1:7879\n"
+            "  • MCP server: stdio via `trusty-analyzer mcp`\n"
+            "  • Logs: /tmp/trusty-analyzer.log\n"
+        )
+        return CommandResult.success_result("trusty-analyze setup complete")
 
     def _setup_kuzu_memory(self, args) -> CommandResult:
         """Set up kuzu-memory graph-based memory backend."""
