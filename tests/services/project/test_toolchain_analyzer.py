@@ -34,7 +34,7 @@ from claude_mpm.services.project.toolchain_analyzer import ToolchainAnalyzerServ
 
 
 @pytest.fixture
-def temp_project_dir() -> Generator[Path, None, None]:
+def temp_project_dir() -> Generator[Path]:
     """Create a temporary project directory."""
     temp_dir = Path(tempfile.mkdtemp())
     yield temp_dir
