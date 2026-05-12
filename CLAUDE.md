@@ -87,6 +87,7 @@ Key packages:
 
 Notable agents:
 - **Planner** (`.claude/agents/planner.md`) — routes complex architecture/planning tasks to `claude-opus-4-7`; model is user-configurable via `~/.claude-mpm/config/configuration.yaml` under `models.planning`
+- **Per-agent model overrides** — set `models.agents.<agent-name>` in `~/.claude-mpm/config/configuration.yaml` (or `.claude-mpm/configuration.yaml` for project overrides) to pin any agent to `haiku`/`sonnet`/`opus` or a full model name. Takes priority over built-in tier defaults and agent frontmatter; explicit `model=` in an Agent tool call still wins.
 
 ---
 
