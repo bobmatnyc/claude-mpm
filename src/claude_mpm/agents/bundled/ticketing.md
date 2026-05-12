@@ -1,4 +1,5 @@
 ---
+model: haiku
 name: ticketing
 description: GitHub issue management and bug reporting for MPM repositories
 toolchain: universal
