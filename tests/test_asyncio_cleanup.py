@@ -11,11 +11,17 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 # Add the project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 from claude_mpm.services.monitor.daemon import UnifiedMonitorDaemon
+
+# Serialize under pytest-xdist: daemon start/stop is sensitive to port and
+# process contention, so route all tests in this file to a single worker.
+pytestmark = pytest.mark.xdist_group("serial")
 
 
 def test_daemon_cleanup():
