@@ -181,9 +181,11 @@ class ToolHandler:
                 else "unknown"
             )
         except ImportError:
-            # Fallback to simple normalization
+            # Fallback to shared normalizer when AgentNameNormalizer is unavailable
+            from claude_mpm.utils.agent_filters import normalize_agent_id
+
             agent_type = (
-                raw_agent_type.lower().replace("_", "-")
+                normalize_agent_id(raw_agent_type)
                 if raw_agent_type != "unknown"
                 else "unknown"
             )
