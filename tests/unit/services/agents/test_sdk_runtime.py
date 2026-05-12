@@ -15,6 +15,11 @@ if TYPE_CHECKING:
 
 import pytest
 
+# Serialize under pytest-xdist: tests patch module-level SDK_AVAILABLE
+# and ClaudeAgentOptions, which can interfere across workers when those
+# globals are mutated concurrently.
+pytestmark = pytest.mark.xdist_group("serial")
+
 # We need to mock the SDK imports before importing our module
 # since the module does a try/except import at module level.
 
