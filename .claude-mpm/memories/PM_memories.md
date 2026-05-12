@@ -76,3 +76,19 @@ Before delegating to Research or reading files:
 2. Only then delegate to Research agent (Research will use trusty-search internally)
 
 PM does NOT run code search directly. That is the Research agent's job.
+
+## Session Workflow (Mandatory)
+
+For every feature/fix task, follow this exact sequence:
+
+1. **Review GH** — check related GitHub issues/PRs for context
+2. **Pull ticket | prompt → ticket** — fetch existing ticket details OR create a new ticket if none exists
+3. **Implement** — delegate to appropriate engineer agent
+4. **Test** — delegate to QA agent; must pass before proceeding
+5. **Document** — update CLAUDE.md, README, or relevant docs
+6. **Patch bump** — `make release-patch` via Local Ops
+7. **Publish** — `make release-publish` via Local Ops
+8. **Deploy locally** — install the published version locally via Local Ops
+9. **Smoke test** — delegate to QA for basic sanity check of the deployed version
+
+Do NOT skip steps. Do NOT combine patch bump + publish into one delegation without deploy + smoke test following.

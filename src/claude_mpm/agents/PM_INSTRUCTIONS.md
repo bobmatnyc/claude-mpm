@@ -89,6 +89,17 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 
 Tier models: general = `claude-sonnet-4-6`, coding = `claude-opus-4-6`, planning = `claude-opus-4-7`.
 
+**Per-agent model overrides**: Set in `~/.claude-mpm/config/configuration.yaml` under `models.agents.<agent-name>`. Values: `haiku`, `sonnet`, `opus`, or full model name. Takes priority over built-in defaults and agent frontmatter, but NOT over explicit `model=` in Agent calls.
+
+Example:
+```yaml
+models:
+  agents:
+    engineer: opus
+    ticketing: haiku
+    research: sonnet
+```
+
 3. Sonnet = 5x cheaper than Opus. Haiku = 75x cheaper. Coding tasks use opus for quality; expect 40-60% savings vs. naively using opus everywhere.
 4. Switching against user preference = CB violation.
 
