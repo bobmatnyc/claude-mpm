@@ -80,6 +80,91 @@ _DEFAULT_MODEL = "claude-sonnet-4-6"
 _OPUS_MODEL = "claude-opus-4-6"
 _HAIKU_MODEL = "haiku"
 
+# Tier alias -> concrete model ID. Users may also pass full model names
+# (e.g. "claude-opus-4-7"), which are passed through unchanged.
+_TIER_ALIASES: dict[str, str] = {
+    "haiku": _HAIKU_MODEL,
+    "sonnet": _DEFAULT_MODEL,
+    "opus": _OPUS_MODEL,
+}
+
+# Module-level cache for per-agent model preferences. ``None`` means not yet
+# loaded; the empty dict means loaded with no overrides. Caching avoids
+# re-reading YAML on every Agent tool call.
+_AGENT_MODEL_CONFIG: dict[str, str] | None = None
+
+
+def _resolve_tier_alias(value: str) -> str:
+    """Map a tier alias to its concrete model ID, or pass through unchanged."""
+    return _TIER_ALIASES.get(value.strip().lower(), value)
+
+
+def _load_yaml_agents_section(path: Path) -> dict[str, str]:
+    """Read ``models.agents`` from a YAML config file.
+
+    Returns an empty dict if the file is missing, unreadable, or has no
+    ``models.agents`` mapping. Uses PyYAML if available; otherwise silently
+    returns empty (the hook must never crash Claude Code).
+    """
+    if not path.is_file():
+        return {}
+    try:
+        import yaml  # type: ignore[import-untyped]
+    except ImportError:
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    models_section = data.get("models")
+    if not isinstance(models_section, dict):
+        return {}
+    agents = models_section.get("agents")
+    if not isinstance(agents, dict):
+        return {}
+    # Normalize: lowercase agent IDs, stringify values, drop non-string entries.
+    result: dict[str, str] = {}
+    for agent_name, model_value in agents.items():
+        if not isinstance(agent_name, str) or not isinstance(model_value, str):
+            continue
+        result[normalize_agent_id(agent_name)] = model_value.strip()
+    return result
+
+
+def _load_agent_model_config(cwd: str) -> dict[str, str]:
+    """Load per-agent model overrides from user + project config.
+
+    Reads ``~/.claude-mpm/config/configuration.yaml`` first, then merges in
+    ``<cwd>/.claude-mpm/configuration.yaml`` so the project file wins for
+    duplicate agent keys. Result is cached at module level for the lifetime
+    of the hook process.
+    """
+    global _AGENT_MODEL_CONFIG
+    if _AGENT_MODEL_CONFIG is not None:
+        return _AGENT_MODEL_CONFIG
+
+    merged: dict[str, str] = {}
+    user_config = Path.home() / ".claude-mpm" / "config" / "configuration.yaml"
+    merged.update(_load_yaml_agents_section(user_config))
+    if cwd:
+        project_config = Path(cwd) / ".claude-mpm" / "configuration.yaml"
+        merged.update(_load_yaml_agents_section(project_config))
+
+    _AGENT_MODEL_CONFIG = merged
+    return merged
+
+
+def _read_model_from_config(agent_name: str, cwd: str) -> str | None:
+    """Look up an agent's configured model, resolving tier aliases."""
+    config = _load_agent_model_config(cwd)
+    value = config.get(normalize_agent_id(agent_name))
+    if not value:
+        return None
+    return _resolve_tier_alias(value)
+
 
 def _read_model_from_frontmatter(agent_name: str, cwd: str) -> str | None:
     """Try to read model: from agent .md frontmatter."""
@@ -147,12 +232,16 @@ def main() -> None:
     agent_type = tool_input.get("subagent_type", "")
     cwd = event.get("cwd", "")
 
-    # Frontmatter `model:` field always wins when present (e.g. planner.md
-    # pins claude-opus-4-7 explicitly). Fall back to tier-based mapping:
-    #   haiku  -> low-cost ops/docs/routing agents
-    #   opus   -> coding/engineering agents (stronger code quality)
-    #   sonnet -> everything else (PM/orchestrator default)
-    model = _read_model_from_frontmatter(agent_type, cwd)
+    # Resolution priority (highest -> lowest):
+    #   1. Explicit ``model`` in the Agent tool call (handled above).
+    #   2. ``models.agents.<name>`` from ~/.claude-mpm/config/configuration.yaml
+    #      (with project-level .claude-mpm/configuration.yaml as override).
+    #   3. Frontmatter ``model:`` field in .claude/agents/<name>.md.
+    #   4. Built-in tier-based mapping (_HAIKU_AGENTS / _OPUS_AGENTS).
+    #   5. Default sonnet.
+    model = _read_model_from_config(agent_type, cwd)
+    if model is None:
+        model = _read_model_from_frontmatter(agent_type, cwd)
     if model is None:
         name_lower = normalize_agent_id(agent_type)
         if name_lower in _HAIKU_AGENTS:
