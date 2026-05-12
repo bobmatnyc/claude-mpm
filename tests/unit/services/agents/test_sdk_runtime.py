@@ -937,10 +937,7 @@ class TestCreateRuntime:
         assert runtime.system_prompt == "hi"
 
     def test_default_is_sdk(self) -> None:
-        from claude_mpm.services.agents.agent_runtime import (
-            AgentRuntime,
-            create_runtime,
-        )
+        from claude_mpm.services.agents.agent_runtime import create_runtime
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
         runtime = create_runtime()
