@@ -1,3 +1,10 @@
+## v6.3.2 (2026-05-12)
+
+### Fix
+
+- **agents**: add model: haiku to bundled ticketing agent frontmatter
+- **agents**: default ticketing_agent model to haiku for cost efficiency
+
 ## v6.3.1 (2026-05-11)
 
 ### Fix
