@@ -6,7 +6,6 @@ This script starts and stops the monitor daemon to ensure no asyncio
 cleanup errors occur.
 """
 
-import subprocess
 import sys
 import time
 from pathlib import Path
