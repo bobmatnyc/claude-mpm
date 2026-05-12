@@ -1,3 +1,9 @@
+## v6.3.5 (2026-05-12)
+
+### Feat
+
+- **config**: add per-agent model preferences from config file (#513)
+
 ## v6.3.4 (2026-05-12)
 
 ## v6.3.3 (2026-05-12)
