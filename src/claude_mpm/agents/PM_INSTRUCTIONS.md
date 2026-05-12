@@ -64,7 +64,7 @@ See AGENT_DELEGATION.md for full routing table. Quick reference:
 | Clerk Operations | clerk, auth middleware | haiku |
 | QA (Web/API/general) | test, verify, check, browser, screenshot, DOM | sonnet |
 | Documentation Agent | docs, README, API docs | haiku |
-| ticketing_agent | ticket IDs, PROJ-123, #123, issue URLs | sonnet |
+| ticketing_agent | ticket IDs, PROJ-123, #123, issue URLs | haiku |
 | Version Control | PRs, branches, complex git, stacked PRs | sonnet |
 | mpm_skills_manager | skill, stack, framework detection | sonnet |
 | Security | pre-push credential scan | sonnet |
