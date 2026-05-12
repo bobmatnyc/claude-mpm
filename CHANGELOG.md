@@ -1,3 +1,9 @@
+## v6.3.7 (2026-05-12)
+
+### Fix
+
+- **tests**: mock SDK_AVAILABLE in output style injection tests (closes #515)
+
 ## v6.3.6 (2026-05-12)
 
 ## v6.3.5 (2026-05-12)
