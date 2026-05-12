@@ -21,7 +21,7 @@ import pytest
 class TestSessionWorkerOutputStyleInjection:
     """Test output style injection in SessionWorker."""
 
-    def _make_worker(self) -> MagicMock:  # type: ignore[return-value]
+    def _make_worker(self) -> MagicMock:  # pyright: ignore[reportReturnType]
         """Create a minimal SessionWorker-like object for testing the method."""
         from claude_mpm.services.channels.session_worker import SessionWorker
 
