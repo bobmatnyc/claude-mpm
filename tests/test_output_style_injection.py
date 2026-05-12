@@ -21,7 +21,7 @@ import pytest
 class TestSessionWorkerOutputStyleInjection:
     """Test output style injection in SessionWorker."""
 
-    def _make_worker(self) -> MagicMock:
+    def _make_worker(self) -> MagicMock:  # type: ignore[return-value]
         """Create a minimal SessionWorker-like object for testing the method."""
         from claude_mpm.services.channels.session_worker import SessionWorker
 
@@ -193,7 +193,7 @@ class _FakeClaudeAgentOptions:
 
 
 @pytest.fixture(autouse=True)
-def _mock_sdk_available(request):
+def mock_sdk_available(request):
     """Make SDKAgentRunner constructible even when claude-agent-sdk is absent.
 
     The runtime check raises RuntimeError if the optional SDK package is not
@@ -218,7 +218,7 @@ def _mock_sdk_available(request):
 class TestSDKAgentRunnerOutputStyleInjection:
     """Test output style injection in SDKAgentRunner."""
 
-    def test_build_options_injects_style(self, tmp_path: Path) -> None:
+    def test_build_options_injects_style(self, _tmp_path: Path) -> None:
         """_build_options prepends style content to the system prompt."""
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
@@ -258,7 +258,7 @@ class TestSDKAgentRunnerOutputStyleInjection:
 
         assert options.system_prompt == "# Style Only"
 
-    def test_style_id_mapping(self, tmp_path: Path) -> None:
+    def test_style_id_mapping(self, _tmp_path: Path) -> None:
         """Verify the reverse mapping from style IDs to types."""
         from claude_mpm.core.output_style_manager import _STYLE_ID_TO_TYPE
 
