@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from claude_mpm.services.agents.hook_event_bus import (
     HookEventBus,
@@ -19,7 +23,7 @@ pytestmark = pytest.mark.xdist_group("serial")
 
 
 @pytest.fixture()
-def bus(tmp_path: pytest.TempPathFactory) -> HookEventBus:
+def bus(tmp_path: Path) -> HookEventBus:
     return HookEventBus(queue_path=tmp_path / "q.jsonl")
 
 
