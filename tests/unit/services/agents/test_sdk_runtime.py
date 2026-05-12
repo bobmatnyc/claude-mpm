@@ -238,7 +238,7 @@ class TestRun:
     async def test_run_returns_result(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(content=[FakeTextBlock(text="response")])
             yield FakeResultMessage(session_id="s-run", total_cost_usd=0.002)
 
@@ -259,7 +259,7 @@ class TestRun:
     ) -> None:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(
                 content=[
                     FakeToolUseBlock(id="t1", name="Glob", input={"pattern": "*.py"}),
@@ -337,7 +337,7 @@ class TestRunWithHooks:
 
         guard_calls: list[str] = []
 
-        async def my_guard(name: str, _inp: dict[str, Any]) -> bool:
+        async def my_guard(name: str, _inp: dict[str, Any]) -> bool:  # pyright: ignore[reportUnusedVariable]
             guard_calls.append(name)
             return name != "Bash"
 
@@ -367,7 +367,7 @@ class TestInject:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        async def fake_query(prompt: str, **_kw: Any) -> None:
+        async def fake_query(prompt: str, **_kw: Any) -> None:  # pyright: ignore[reportUnusedVariable]
             queries_sent.append(prompt)
 
         mock_client.query = fake_query
@@ -458,7 +458,7 @@ class TestResumeFork:
         mock_options_cls = MagicMock()
         monkeypatch.setattr(sdk_runtime, "ClaudeAgentOptions", mock_options_cls)
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(content=[FakeTextBlock(text="resumed")])
             yield FakeResultMessage(session_id="s-resumed")
 
@@ -483,7 +483,7 @@ class TestResumeFork:
         mock_options_cls = MagicMock()
         monkeypatch.setattr(sdk_runtime, "ClaudeAgentOptions", mock_options_cls)
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(content=[FakeTextBlock(text="forked")])
             yield FakeResultMessage(session_id="s-forked")
 
@@ -513,7 +513,7 @@ class TestRunStreaming:
     ) -> None:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(
                 content=[
                     FakeTextBlock(text="chunk1"),
@@ -544,7 +544,7 @@ class TestRunStreaming:
     ) -> None:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(
                 content=[
                     FakeToolUseBlock(id="t1", name="Read", input={"file": "x.py"}),
@@ -574,7 +574,7 @@ class TestRunStreaming:
     ) -> None:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(content=[FakeTextBlock(text="no-cb")])
             yield FakeResultMessage()
 
@@ -698,7 +698,7 @@ class TestAgentRuntimeABC:
         from claude_mpm.services.agents.agent_runtime import AgentResult
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        async def fake_query(**_kwargs: Any) -> Any:
+        async def fake_query(**_kwargs: Any) -> Any:  # pyright: ignore[reportUnusedVariable]
             yield FakeAssistantMessage(content=[FakeTextBlock(text="abc")])
             yield FakeResultMessage(session_id="s1")
 
