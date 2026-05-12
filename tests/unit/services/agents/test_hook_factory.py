@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from claude_mpm.services.agents.hook_event_bus import (
     HookEventBus,
@@ -13,9 +17,13 @@ from claude_mpm.services.agents.hook_event_bus import (
 )
 from claude_mpm.services.agents.hook_factory import create_pretooluse_hook
 
+# Serialize under pytest-xdist: tests share an asyncio event loop and
+# JSONL queue files which can race when run across multiple workers.
+pytestmark = pytest.mark.xdist_group("serial")
+
 
 @pytest.fixture()
-def bus(tmp_path: pytest.TempPathFactory) -> HookEventBus:
+def bus(tmp_path: Path) -> HookEventBus:
     return HookEventBus(queue_path=tmp_path / "q.jsonl")
 
 

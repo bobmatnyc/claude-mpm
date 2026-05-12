@@ -19,7 +19,13 @@ logging.basicConfig(
 
 
 def _make_patched_info(success_messages, original_info):
-    """Return a patched Logger.info that appends to success_messages."""
+    """Return a patched Logger.debug that appends to success_messages.
+
+    Note: Despite the legacy name, the config loader now emits the
+    "Successfully loaded configuration" message at DEBUG level (not INFO)
+    to reduce log noise. This helper still captures every emission of that
+    message so duplicate-message regressions remain detectable.
+    """
 
     def patched_info(self, msg, *args, **kwargs):
         if "Successfully loaded configuration" in str(msg):
@@ -32,9 +38,11 @@ def _make_patched_info(success_messages, original_info):
 def test_single_success_message(monkeypatch):
     """Test that the success message only appears once."""
     success_messages = []
-    original_info = logging.Logger.info
+    # Config loader emits "Successfully loaded configuration" at DEBUG level,
+    # so patch Logger.debug to capture it.
+    original_info = logging.Logger.debug
     monkeypatch.setattr(
-        logging.Logger, "info", _make_patched_info(success_messages, original_info)
+        logging.Logger, "debug", _make_patched_info(success_messages, original_info)
     )
 
     # Reset singleton for clean test
@@ -77,9 +85,11 @@ def test_single_success_message(monkeypatch):
 def test_with_explicit_config_file(monkeypatch):
     """Test with explicit config file paths."""
     success_messages = []
-    original_info = logging.Logger.info
+    # Config loader emits "Successfully loaded configuration" at DEBUG level,
+    # so patch Logger.debug to capture it.
+    original_info = logging.Logger.debug
     monkeypatch.setattr(
-        logging.Logger, "info", _make_patched_info(success_messages, original_info)
+        logging.Logger, "debug", _make_patched_info(success_messages, original_info)
     )
 
     # Reset singleton for clean test
@@ -121,8 +131,8 @@ def main():
     print("=" * 60)
 
     success_messages_1 = []
-    original_info = logging.Logger.info
-    logging.Logger.info = _make_patched_info(success_messages_1, original_info)
+    original_info = logging.Logger.debug
+    logging.Logger.debug = _make_patched_info(success_messages_1, original_info)
     try:
         Config.reset_singleton()
         config1 = Config()
@@ -131,10 +141,10 @@ def main():
         assert config1 is config2 is config3
         test1_pass = len(success_messages_1) <= 1
     finally:
-        logging.Logger.info = original_info
+        logging.Logger.debug = original_info
 
     success_messages_2 = []
-    logging.Logger.info = _make_patched_info(success_messages_2, original_info)
+    logging.Logger.debug = _make_patched_info(success_messages_2, original_info)
     try:
         Config.reset_singleton()
         config_file = Path.cwd() / ".claude-mpm" / "configuration.yaml"
@@ -146,7 +156,7 @@ def main():
         else:
             test2_pass = True
     finally:
-        logging.Logger.info = original_info
+        logging.Logger.debug = original_info
 
     print("\n" + "=" * 60)
     print("FINAL RESULTS:")
