@@ -181,6 +181,17 @@ class TestSessionWorkerOutputStyleInjection:
 # ---------------------------------------------------------------------------
 
 
+class _FakeClaudeAgentOptions:
+    """Stand-in for the real ClaudeAgentOptions when SDK is not installed."""
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        # Ensure system_prompt attribute always exists for assertions.
+        if not hasattr(self, "system_prompt"):
+            self.system_prompt = None
+
+
 @pytest.fixture(autouse=True)
 def _mock_sdk_available(request):
     """Make SDKAgentRunner constructible even when claude-agent-sdk is absent.
@@ -188,11 +199,17 @@ def _mock_sdk_available(request):
     The runtime check raises RuntimeError if the optional SDK package is not
     installed. Tests in this module only exercise pure-Python helpers
     (_get_output_style_content, _build_options) and do not require the real
-    SDK, so we patch SDK_AVAILABLE to True for tests that need to instantiate
-    the runner.
+    SDK, so we patch SDK_AVAILABLE to True and provide a fake
+    ClaudeAgentOptions for tests that need to instantiate the runner.
     """
     if "TestSDKAgentRunnerOutputStyleInjection" in request.node.nodeid:
-        with patch("claude_mpm.services.agents.sdk_runtime.SDK_AVAILABLE", True):
+        with (
+            patch("claude_mpm.services.agents.sdk_runtime.SDK_AVAILABLE", True),
+            patch(
+                "claude_mpm.services.agents.sdk_runtime.ClaudeAgentOptions",
+                _FakeClaudeAgentOptions,
+            ),
+        ):
             yield
     else:
         yield
