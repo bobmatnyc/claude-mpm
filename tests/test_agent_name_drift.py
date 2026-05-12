@@ -66,18 +66,21 @@ class TestCanonicalNamesDrift:
         )
 
     def test_no_unknown_canonical_entries(self):
-        """CANONICAL_NAMES should not have entries for non-existent agents."""
-        cached = _get_cached_agents()
-        if not cached:
-            pytest.skip("No cached agents found")
+        """CANONICAL_NAMES should not have entries for unknown agents.
 
-        # Build set of all valid agent keys (both dash and underscore variants)
+        Validates against AGENT_NAME_MAP (the single source of truth from
+        which CANONICAL_NAMES is built) rather than the user's filesystem
+        cache, which is environment-dependent and unreliable in CI.
+        """
+        # Build set of all valid agent keys from AGENT_NAME_MAP
+        # (both dash and underscore variants)
         valid_keys = set()
-        for stem in cached:
+        for stem in AGENT_NAME_MAP:
             valid_keys.add(stem)
             valid_keys.add(stem.replace("-", "_"))
 
-        # Known aliases that don't map 1:1 to files
+        # Known aliases that don't map 1:1 to AGENT_NAME_MAP entries
+        # (these are added manually to CANONICAL_NAMES in agent_name_normalizer.py)
         known_aliases = {"architect", "pm"}
 
         unknown = []
@@ -86,7 +89,8 @@ class TestCanonicalNamesDrift:
                 unknown.append(key)
 
         assert not unknown, (
-            f"CANONICAL_NAMES has entries for non-existent agents: {unknown}"
+            f"CANONICAL_NAMES has entries for unknown agents "
+            f"(not in AGENT_NAME_MAP and not in known_aliases): {unknown}"
         )
 
 
