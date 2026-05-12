@@ -1,3 +1,9 @@
+## v6.3.1 (2026-05-11)
+
+### Fix
+
+- **setup**: pass through trusty-search indexing progress bars to terminal
+
 ## v6.3.0 (2026-05-11)
 
 ### Feat
