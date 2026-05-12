@@ -13,6 +13,10 @@ from claude_mpm.services.agents.hook_event_bus import (
 )
 from claude_mpm.services.agents.hook_factory import create_pretooluse_hook
 
+# Serialize under pytest-xdist: tests share an asyncio event loop and
+# JSONL queue files which can race when run across multiple workers.
+pytestmark = pytest.mark.xdist_group("serial")
+
 
 @pytest.fixture()
 def bus(tmp_path: pytest.TempPathFactory) -> HookEventBus:
