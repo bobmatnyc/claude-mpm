@@ -364,6 +364,49 @@ claude-mpm cleanup-memory
 
 ---
 
+## Model Configuration
+
+Claude MPM lets you pin any agent — including the Planner — to a specific model tier or full model name via `~/.claude-mpm/config/configuration.yaml`.
+
+### Tier aliases
+
+| Alias | Resolves to |
+|-------|-------------|
+| `haiku` | `claude-3-5-haiku-20241022` |
+| `sonnet` | `claude-sonnet-4-5` |
+| `opus` | `claude-opus-4-7` |
+
+Full Anthropic model names (e.g. `claude-opus-4-7`) are also accepted in place of an alias.
+
+### Priority order (highest to lowest)
+
+1. Explicit `model=` argument in an `Agent` tool call
+2. `models.agents.<agent-name>` in `configuration.yaml`
+3. `model:` field in the agent's frontmatter (`.claude/agents/*.md`)
+4. Built-in resource-tier defaults
+
+### Example configuration
+
+```yaml
+# ~/.claude-mpm/config/configuration.yaml
+
+models:
+  # Override the Planner agent's model
+  planning: sonnet
+
+  # Override individual agents by name
+  agents:
+    researcher: haiku
+    engineer: claude-sonnet-4-5
+    qa: haiku
+```
+
+`models.planning` is a shortcut for the Planner agent specifically. `models.agents.<name>` applies to any agent whose `agent_id` (or filename without `.md`) matches `<name>`.
+
+Project-level overrides can be placed in `.claude-mpm/configuration.yaml` inside the repository root; they take precedence over the global file for that project.
+
+---
+
 ## SDK Runtime Mode (Experimental)
 
 **New in v5.11.0** -- Claude MPM can now run the PM agent via the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk) instead of spawning a CLI subprocess. This enables programmatic control, real-time event streaming, and live session observability.
