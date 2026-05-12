@@ -1,3 +1,36 @@
+## v6.3.8 (2026-05-12)
+
+### Feat
+
+- **config**: per-agent model preferences via configuration.yaml (#513) (#514)
+
+### Fix
+
+- **tests**: fix remaining pre-existing failures and Pyright cleanups (closes #515) (#517)
+- **tests**: remove unused AgentRuntime import in test_sdk_runtime
+- **tests**: replace named discard params with bare _ in test_sdk_runtime
+- **tests**: use correct pyright ignore code reportUnusedParameter in test_sdk_runtime
+- **tests**: suppress pyright unused **_kwargs warnings in test_sdk_runtime
+- **tests**: fix unused imports and variables in test_sdk_runtime
+- **tests**: remove unused subprocess import in test_asyncio_cleanup
+- **tests**: correct tmp_path type annotation in test_hook_factory
+- **tests**: patch Logger.debug to detect duplicate config success messages (closes #515)
+- **tests**: validate CANONICAL_NAMES against AGENT_NAME_MAP source of truth (closes #515)
+- **tests**: use tmp_path fixture name in sdk runner tests (closes #515)
+- **tests**: move pyright ignore to return statement, remove unused fixture params
+- **tests**: fix remaining Pyright diagnostics in test_output_style_injection
+- **tests**: resolve Pyright diagnostics in test_output_style_injection (closes #515)
+- **tests**: validate CANONICAL_NAMES against AGENT_NAME_MAP source of truth (closes #515)
+- **tests**: move pyright ignore to return statement, remove unused fixture params
+- **tests**: fix remaining Pyright diagnostics in test_output_style_injection
+- **tests**: use tmp_path fixture name in sdk runner tests (closes #515)
+- **tests**: resolve Pyright diagnostics in test_output_style_injection (closes #515)
+
+### Refactor
+
+- **hooks**: use shared normalize_agent_id instead of inline normalization
+- **hooks**: use shared normalize_agent_id instead of inline normalization
+
 ## v6.3.7 (2026-05-12)
 
 ### Fix
