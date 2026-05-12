@@ -30,7 +30,7 @@ class TrustyMixin:
 
     def _load_mcp_config(self) -> dict[str, Any]: ...  # pragma: no cover
 
-    def _save_mcp_config(self, _config: dict[str, Any]) -> None: ...  # pragma: no cover
+    def _save_mcp_config(self, _: dict[str, Any]) -> None: ...  # pragma: no cover
 
     # ------------------------------------------------------------------
     # Generic Rust-binary helpers
@@ -327,8 +327,6 @@ class TrustyMixin:
             index_result = subprocess.run(
                 [binary_path, "index", str(project_root)],
                 check=False,
-                capture_output=True,
-                text=True,
                 timeout=120,
             )  # nosec B603 B607
             if index_result.returncode == 0:
@@ -336,7 +334,7 @@ class TrustyMixin:
             else:
                 console.print(
                     f"[yellow]⚠ trusty-search index returned "
-                    f"{index_result.returncode}: {index_result.stderr.strip()}[/yellow]"
+                    f"{index_result.returncode}[/yellow]"
                 )
         except subprocess.TimeoutExpired:
             console.print(
