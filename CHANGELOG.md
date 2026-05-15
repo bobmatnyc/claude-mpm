@@ -1,3 +1,19 @@
+## v6.3.11 (2026-05-15)
+
+### Feat
+
+- handle run_always migrations in runner
+- support run_always migrations and register trusty autodetect
+- add trusty-search/trusty-memory autodetect migration
+
+### Fix
+
+- remove unused addr_file variable in trusty autodetect test
+- use addr-file discovery instead of hardcoded ports in trusty autodetect
+- eliminate unused timeout variable in trusty autodetect test
+- cast resp.status to int in trusty autodetect health check
+- remove unused timeout variable in trusty autodetect test
+
 ## v6.3.10 (2026-05-12)
 
 ## v6.3.9 (2026-05-12)
