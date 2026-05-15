@@ -45,15 +45,19 @@ def _save_state(state: dict) -> None:
 
 
 def get_pending_migrations() -> list[Migration]:
-    """Get migrations that haven't been run yet.
+    """Get migrations that should run this startup.
 
-    Returns:
-        List of pending migrations in order
+    Includes:
+      * One-shot migrations that haven't been recorded in the completed list.
+      * All ``run_always`` migrations regardless of completion state.
+
+    ``run_always`` migrations are expected to be cheap and idempotent — see
+    :class:`Migration` for the contract.
     """
     state = _load_state()
     completed = set(state.get("completed", []))
 
-    return [m for m in MIGRATIONS if m.id not in completed]
+    return [m for m in MIGRATIONS if m.run_always or m.id not in completed]
 
 
 def mark_migration_complete(migration_id: str, version: str) -> None:
@@ -103,22 +107,31 @@ def run_pending_migrations(current_version: str | None = None) -> int:
 
     count = 0
     for migration in pending:
-        logger.info(f"Running migration: {migration.description}")
-        print(f"🔄 Running migration: {migration.description}")
+        # run_always migrations are silent probes (e.g., daemon autodetect):
+        # avoid noisy "Running migration..." output on every startup.
+        verbose = not migration.run_always
+        if verbose:
+            logger.info(f"Running migration: {migration.description}")
+            print(f"🔄 Running migration: {migration.description}")
 
         try:
             success = migration.run()
             if success:
-                mark_migration_complete(migration.id, current_version)
+                if not migration.run_always:
+                    # Only persist completion for one-shot migrations.
+                    mark_migration_complete(migration.id, current_version)
                 logger.info(f"Migration complete: {migration.id}")
-                print(f"✅ Migration complete: {migration.id}")
+                if verbose:
+                    print(f"✅ Migration complete: {migration.id}")
                 count += 1
-            else:
+            elif verbose:
                 logger.warning(f"Migration returned False: {migration.id}")
                 print(f"⚠️ Migration skipped: {migration.id}")
         except Exception as e:
+            # Always surface failures, even for run_always migrations.
             logger.error(f"Migration failed: {migration.id}: {e}")
-            print(f"❌ Migration failed: {migration.id}: {e}")
+            if verbose:
+                print(f"❌ Migration failed: {migration.id}: {e}")
             # Continue with other migrations
 
     return count

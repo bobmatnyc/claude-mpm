@@ -10,12 +10,20 @@ from typing import NamedTuple
 
 
 class Migration(NamedTuple):
-    """A migration definition."""
+    """A migration definition.
+
+    Set ``run_always=True`` for migrations that should re-run on every startup
+    (e.g., environment auto-detection probes). Run-always migrations are NOT
+    persisted to the ``completed`` state file and must therefore be cheap and
+    idempotent — see :mod:`migrate_trusty_autodetect` for the canonical
+    example.
+    """
 
     id: str  # Unique identifier (e.g., "5.6.91_async_hooks")
     version: str  # Version this migration applies to
     description: str  # Human-readable description
     run: Callable[[], bool]  # Function that returns True on success
+    run_always: bool = False  # If True, run every startup (skip completion gate)
 
 
 def _run_async_hooks_migration() -> bool:
@@ -154,6 +162,13 @@ def _run_statusline_user_level_migration() -> bool:
     return run_migration(installation_dir=Path.cwd())
 
 
+def _run_trusty_autodetect_migration() -> bool:
+    """Detect running trusty-search / trusty-memory daemons and wire into .mcp.json."""
+    from .migrate_trusty_autodetect import run_migration
+
+    return run_migration()
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -245,6 +260,13 @@ MIGRATIONS: list[Migration] = [
         version="6.3.2",
         description="Move legacy project-level statusline.sh and settings entries to ~/.claude/",
         run=_run_statusline_user_level_migration,
+    ),
+    Migration(
+        id="trusty_autodetect",
+        version="6.3.10",
+        description="Auto-detect and configure trusty-search/trusty-memory MCP servers",
+        run=_run_trusty_autodetect_migration,
+        run_always=True,
     ),
 ]
 
