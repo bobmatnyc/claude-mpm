@@ -69,7 +69,7 @@ def _http_health_check(url: str, timeout: float = 2.0) -> bool:
     try:
         req = urllib.request.Request(url, method="GET")  # nosec B310 - localhost
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
-            return 200 <= resp.status < 300
+            return 200 <= int(resp.status) < 300
     except (urllib.error.URLError, TimeoutError, OSError):
         return False
 
