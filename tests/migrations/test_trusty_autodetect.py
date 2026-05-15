@@ -86,7 +86,7 @@ def test_no_op_when_binaries_missing(project_dir: Path) -> None:
     """No binary on PATH → skip without probing HTTP."""
     probe_called = []
 
-    def tracking_probe(url: str, _timeout: float = 2.0) -> bool:
+    def tracking_probe(url: str) -> bool:
         probe_called.append(url)
         return True
 
