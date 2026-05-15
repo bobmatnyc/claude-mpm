@@ -3,6 +3,9 @@
 .ai-trackdown/logs/
 *.tmp
 
+# Trusty search local config
+.trusty-search
+
 # AI Code Review docs
 ai-code-review-docs/
 
