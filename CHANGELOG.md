@@ -1,5 +1,9 @@
 ## v6.3.10 (2026-05-12)
 
+### Feat
+
+- **integrations**: auto-detect trusty-search and trusty-memory daemons on every session start; inject MCP entries into `.mcp.json` without manual setup (`run_always` migration `trusty_autodetect`)
+
 ## v6.3.9 (2026-05-12)
 
 ## v6.3.8 (2026-05-12)
