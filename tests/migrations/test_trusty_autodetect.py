@@ -29,7 +29,7 @@ def _make_which(installed: set[str]) -> Callable[[str], str | None]:
     return fake_which
 
 
-def _fake_resolve_base_url(addr_file: Path, fallback_addr: str) -> str:
+def _fake_resolve_base_url(_: Path, fallback_addr: str) -> str:
     """Deterministic addr resolver: always returns the fallback.
 
     Avoids depending on real ``~/.trusty-*/http_addr`` files on the test
