@@ -44,6 +44,7 @@ claude-mpm run --monitor
 - **[AutoTodos](features/autotodos.md)** - AutoTodos feature overview
 - **[Startup Migrations](features/startup-migrations.md)** - Startup migration handling
 - **[Tasklist Session Integration](features/tasklist-session-integration.md)** - Session integration
+- **[Trusty Services](features/trusty-services.md)** - trusty-search (code search) and trusty-memory (project memory) integration
 
 ### Architecture
 - **[Overview](architecture/overview.md)** - Architecture overview
