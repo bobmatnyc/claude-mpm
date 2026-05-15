@@ -8,14 +8,18 @@ from __future__ import annotations
 
 import json
 from pathlib import Path  # noqa: TC003 - used at runtime in fixtures & call sites
+from typing import TYPE_CHECKING
 from unittest.mock import patch
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import pytest
 
 from claude_mpm.migrations import migrate_trusty_autodetect as mod
 
 
-def _make_which(installed: set[str]):
+def _make_which(installed: set[str]) -> Callable[[str], str | None]:
     """Return a ``shutil.which`` stand-in matching the given binary set."""
 
     def fake_which(name: str) -> str | None:
@@ -82,7 +86,7 @@ def test_no_op_when_binaries_missing(project_dir: Path) -> None:
     """No binary on PATH → skip without probing HTTP."""
     probe_called = []
 
-    def tracking_probe(url: str, timeout: float = 2.0) -> bool:
+    def tracking_probe(url: str, _timeout: float = 2.0) -> bool:
         probe_called.append(url)
         return True
 
