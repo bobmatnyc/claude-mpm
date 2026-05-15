@@ -17,6 +17,16 @@ Design constraints:
   when the binary isn't installed.
 * **Safe writes**: uses :func:`_mcp_config_transaction` so a write failure
   rolls ``.mcp.json`` back to its prior state.
+
+Address discovery:
+
+Both ``trusty-search`` and ``trusty-memory`` use OS-chosen dynamic ports
+written to ``~/.trusty-<svc>/http_addr`` (format: ``host:port`` on a single
+line). Hardcoded ports (7878 / 3038) would cause the autodetect to silently
+fail whenever the daemons picked different ports. We mirror the discovery
+logic used by the ``claude-mpm setup trusty-*`` handlers: read the addr file
+when present, fall back to the legacy port only when the file is missing or
+unreadable.
 """
 
 from __future__ import annotations
@@ -34,12 +44,16 @@ logger = logging.getLogger(__name__)
 
 # Service descriptors. Kept inline (not a dataclass) to avoid pulling in
 # extra modules during the startup-hot migration path.
+#
+# ``addr_file`` points at the daemon's discovery file (single-line
+# ``host:port``). ``fallback_addr`` is the legacy hardcoded address used only
+# when the discovery file is missing/unreadable.
 _SERVICES: tuple[dict[str, Any], ...] = (
     {
         "name": "trusty-search",
         "binary": "trusty-search",
-        "health_url": "http://127.0.0.1:7878/health",
-        "port": 7878,
+        "addr_file": Path.home() / ".trusty-search" / "http_addr",
+        "fallback_addr": "127.0.0.1:7878",
         "mcp_entry": {
             "type": "stdio",
             "command": "trusty-search",
@@ -49,8 +63,8 @@ _SERVICES: tuple[dict[str, Any], ...] = (
     {
         "name": "trusty-memory",
         "binary": "trusty-memory",
-        "health_url": "http://127.0.0.1:3038/health",
-        "port": 3038,
+        "addr_file": Path.home() / ".trusty-memory" / "http_addr",
+        "fallback_addr": "127.0.0.1:3038",
         "mcp_entry": {
             "type": "stdio",
             "command": "trusty-memory",
@@ -58,6 +72,22 @@ _SERVICES: tuple[dict[str, Any], ...] = (
         },
     },
 )
+
+
+def _resolve_base_url(addr_file: Path, fallback_addr: str) -> str:
+    """Return the daemon's base URL ``http://host:port``.
+
+    Reads ``addr_file`` (canonical dynamic-port discovery file) when present;
+    falls back to ``fallback_addr`` otherwise. Mirrors the logic in
+    :meth:`TrustyMixin._trusty_search_base_url`.
+    """
+    try:
+        addr = addr_file.read_text(encoding="utf-8").strip()
+        if addr:
+            return f"http://{addr}"
+    except OSError:
+        pass
+    return f"http://{fallback_addr}"
 
 
 def _http_health_check(url: str, timeout: float = 2.0) -> bool:
@@ -120,7 +150,8 @@ def run_migration(project_dir: Path | None = None) -> bool:
     for svc in _SERVICES:
         if shutil.which(svc["binary"]) is None:
             continue
-        if not _http_health_check(svc["health_url"]):
+        base_url = _resolve_base_url(svc["addr_file"], svc["fallback_addr"])
+        if not _http_health_check(f"{base_url}/health"):
             continue
         detected.append(svc)
 
@@ -147,9 +178,9 @@ def run_migration(project_dir: Path | None = None) -> bool:
             for svc in to_write:
                 servers[svc["name"]] = svc["mcp_entry"]
                 logger.info(
-                    "Auto-configured %s MCP server (daemon detected at port %d)",
+                    "Auto-configured %s MCP server (daemon detected via %s)",
                     svc["name"],
-                    svc["port"],
+                    svc["addr_file"],
                 )
             _save_mcp_config(mcp_path, config)
     except Exception as exc:
