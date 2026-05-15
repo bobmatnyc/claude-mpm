@@ -1,7 +1,8 @@
 """Tests for the trusty-search / trusty-memory autodetect migration.
 
-These tests deliberately mock both ``shutil.which`` and the HTTP health probe
-so they never depend on a real daemon being installed on the test runner.
+These tests deliberately mock ``shutil.which``, the addr-file resolver, and
+the HTTP health probe so they never depend on a real daemon being installed
+on the test runner or on real ``~/.trusty-*/http_addr`` files existing.
 """
 
 from __future__ import annotations
@@ -28,6 +29,15 @@ def _make_which(installed: set[str]) -> Callable[[str], str | None]:
     return fake_which
 
 
+def _fake_resolve_base_url(addr_file: Path, fallback_addr: str) -> str:
+    """Deterministic addr resolver: always returns the fallback.
+
+    Avoids depending on real ``~/.trusty-*/http_addr`` files on the test
+    runner.
+    """
+    return f"http://{fallback_addr}"
+
+
 @pytest.fixture
 def project_dir(tmp_path: Path) -> Path:
     """Empty project directory (no pre-existing .mcp.json)."""
@@ -42,6 +52,7 @@ def test_writes_entries_when_both_daemons_healthy(project_dir: Path) -> None:
             "which",
             side_effect=_make_which({"trusty-search", "trusty-memory"}),
         ),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
         patch.object(mod, "_http_health_check", return_value=True),
     ):
         changed = mod.run_migration(project_dir=project_dir)
@@ -74,6 +85,7 @@ def test_no_op_when_daemons_not_running(project_dir: Path) -> None:
             "which",
             side_effect=_make_which({"trusty-search", "trusty-memory"}),
         ),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
         patch.object(mod, "_http_health_check", return_value=False),
     ):
         changed = mod.run_migration(project_dir=project_dir)
@@ -83,21 +95,28 @@ def test_no_op_when_daemons_not_running(project_dir: Path) -> None:
 
 
 def test_no_op_when_binaries_missing(project_dir: Path) -> None:
-    """No binary on PATH → skip without probing HTTP."""
-    probe_called = []
+    """No binary on PATH → skip without probing HTTP or reading addr files."""
+    probe_called: list[str] = []
+    resolve_called: list[Path] = []
 
     def tracking_probe(url: str) -> bool:
         probe_called.append(url)
         return True
 
+    def tracking_resolve(addr_file: Path, fallback_addr: str) -> str:
+        resolve_called.append(addr_file)
+        return f"http://{fallback_addr}"
+
     with (
         patch.object(mod.shutil, "which", side_effect=_make_which(set())),
+        patch.object(mod, "_resolve_base_url", side_effect=tracking_resolve),
         patch.object(mod, "_http_health_check", side_effect=tracking_probe),
     ):
         changed = mod.run_migration(project_dir=project_dir)
 
     assert changed is False
     assert probe_called == [], "Health probe should be skipped when binary missing"
+    assert resolve_called == [], "addr resolution should be skipped when binary missing"
     assert not (project_dir / ".mcp.json").exists()
 
 
@@ -127,6 +146,7 @@ def test_idempotent_when_entries_already_present(project_dir: Path) -> None:
             "which",
             side_effect=_make_which({"trusty-search", "trusty-memory"}),
         ),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
         patch.object(mod, "_http_health_check", return_value=True),
     ):
         changed = mod.run_migration(project_dir=project_dir)
@@ -157,6 +177,7 @@ def test_partial_injection_preserves_unrelated_entries(project_dir: Path) -> Non
             "which",
             side_effect=_make_which({"trusty-search", "trusty-memory"}),
         ),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
         patch.object(mod, "_http_health_check", return_value=True),
     ):
         changed = mod.run_migration(project_dir=project_dir)
