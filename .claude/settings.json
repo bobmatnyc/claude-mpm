@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -m claude_mpm.hooks.model_tier_hook",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.model_tier_hook"],
             "timeout": 5
           }
         ]
@@ -16,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -m claude_mpm.hooks.ztk_hook",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.ztk_hook"],
             "timeout": 5
           }
         ]
@@ -26,7 +28,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -m claude_mpm.hooks.context_circuit_breaker",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.context_circuit_breaker"],
             "timeout": 5
           }
         ]
@@ -106,7 +109,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -m claude_mpm.hooks.message_check_hook",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.message_check_hook"],
             "timeout": 10
           }
         ]
@@ -118,7 +122,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -m claude_mpm.hooks.model_tier_hook",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.model_tier_hook"],
             "timeout": 60
           }
         ]
