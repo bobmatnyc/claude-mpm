@@ -1,3 +1,17 @@
+## v6.3.13 (2026-05-16)
+
+### Feat
+
+- **agents**: inline trusty-analyze MCP server in code-analyzer agent
+- **agents**: inline trusty-search and mcp-vector-search MCP in Research agent
+- **hooks**: use additionalContext for informational hook output in model_tier_hook
+- **hooks**: subscribe to PostToolUseFailure event
+- **agents**: add effort frontmatter to .claude/agents/code-analyzer
+- **agents**: add effort frontmatter to bundled/ticketing agent
+- **agents**: add effort frontmatter to bundled/rust-engineer agent
+- **hooks**: migrate hook definitions to exec form
+- **hooks**: add claude-opus-4-7 to model tier alias map
+
 ## v6.3.12 (2026-05-15)
 
 ## v6.3.11 (2026-05-15)
