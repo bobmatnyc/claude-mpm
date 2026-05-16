@@ -64,7 +64,7 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["-m", "claude_mpm.hooks.model_tier_hook"],
+            "args": ["-m", "claude_mpm.hooks.tool_failure_hook"],
             "timeout": 5
           }
         ]
