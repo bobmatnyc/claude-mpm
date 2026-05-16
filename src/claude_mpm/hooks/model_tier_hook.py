@@ -77,7 +77,10 @@ _OPUS_AGENTS: frozenset[str] = frozenset(
 # Explicit model IDs so Claude Code routes to the intended tier rather than
 # resolving bare "sonnet"/"opus" aliases that can drift over time.
 _DEFAULT_MODEL = "claude-sonnet-4-6"
-_OPUS_MODEL = "claude-opus-4-6"
+# claude-opus-4-7 is the default opus model as of Claude Code v2.1.142, which
+# changed fast mode to default to opus-4-7 instead of opus-4-6.  Both versions
+# belong to the same tier and are used interchangeably for coding tasks.
+_OPUS_MODEL = "claude-opus-4-7"
 _HAIKU_MODEL = "haiku"
 
 # Tier alias -> concrete model ID. Users may also pass full model names
@@ -86,6 +89,10 @@ _TIER_ALIASES: dict[str, str] = {
     "haiku": _HAIKU_MODEL,
     "sonnet": _DEFAULT_MODEL,
     "opus": _OPUS_MODEL,
+    # Explicit versioned opus names — both map to the opus tier model so that
+    # callers referencing either generation get consistent routing.
+    "claude-opus-4-6": _OPUS_MODEL,
+    "claude-opus-4-7": _OPUS_MODEL,
 }
 
 # Module-level cache for per-agent model preferences. ``None`` means not yet
