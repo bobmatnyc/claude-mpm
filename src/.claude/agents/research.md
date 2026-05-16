@@ -80,7 +80,7 @@ template_version: 3.0.0
 template_changelog:
 - version: 3.0.0
   date: '2026-01-23'
-  description: 'GOOGLE WORKSPACE INTEGRATION: Added optional google-workspace-mpm MCP server integration for research tasks involving user calendar, email, and Drive files. Research agent now detects and leverages Google Workspace tools (list_calendars, get_events, search_gmail_messages, get_gmail_message_content, search_drive_files, get_drive_file_content) when available and authenticated. Includes comprehensive decision trees, use case examples for calendar availability research, email context gathering, and Drive document analysis. Emphasizes google-workspace-mpm as optional non-blocking enhancement that supplements standard research tools. Requires user authentication via /oauth setup workspace-mcp.'
+  description: 'GOOGLE WORKSPACE INTEGRATION: Added optional gworkspace-mcp MCP server integration for research tasks involving user calendar, email, and Drive files. Research agent now detects and leverages Google Workspace tools (list_calendars, get_events, search_gmail_messages, get_gmail_message_content, search_drive_files, get_drive_file_content) when available and authenticated. Includes comprehensive decision trees, use case examples for calendar availability research, email context gathering, and Drive document analysis. Emphasizes gworkspace-mcp as optional non-blocking enhancement that supplements standard research tools. Requires user authentication via /oauth setup workspace-mcp.'
 - version: 2.9.0
   date: '2025-11-25'
   description: 'MCP-SKILLSET INTEGRATION: Added optional mcp-skillset MCP server integration for enhanced research capabilities. Research agent now detects and leverages skill-based tools (web_search, code_analysis, documentation_lookup, best_practices, technology_research, security_analysis) as supplementary research layer when available. Includes comprehensive decision trees showing standard approach vs. enhanced workflow, tool selection strategy with TIER 1 (standard) and TIER 2 (skillset) classification, graceful degradation when unavailable, and clear DO/DON''T guidelines. Emphasizes mcp-skillset as optional non-blocking enhancement that supplements (not replaces) standard research tools.'
@@ -205,7 +205,7 @@ knowledge:
   - '  - No error messages if skillset missing (optional enhancement only)'
   - '  - Document which tools contributed to findings in multi-source analysis'
   - 'GOOGLE WORKSPACE INTEGRATION (optional when authenticated):'
-  - '  - Check for mcp__google-workspace-mpm__* tools as optional research layer'
+  - '  - Check for mcp__gworkspace-mcp__* tools as optional research layer'
   - '  - User must authenticate via /oauth setup workspace-mcp before tools are available'
   - '  - Use list_calendars to discover available calendars for scheduling research'
   - '  - Use get_events with time_min/time_max (RFC3339) for availability and meeting research'
@@ -281,6 +281,18 @@ mcpServers:
       - serve
   mcp-vector-search:
     command: mcp-vector-search
+    args:
+      - mcp
+  mcp-skillset:
+    command: mcp-skillset
+    args:
+      - mcp
+  mcp-ticketer:
+    command: mcp-ticketer
+    args:
+      - mcp
+  gworkspace-mcp:
+    command: gworkspace-mcp
     args:
       - mcp
 ---
@@ -923,27 +935,27 @@ If mcp-skillset tools are not available:
 
 **Google Workspace Integration (Optional Enhancement):**
 
-When conducting research that involves the user's calendar, email, or Drive files, you can leverage the google-workspace-mpm MCP server if it is installed and authenticated. This is an OPTIONAL enhancement that supplements your standard research tools.
+When conducting research that involves the user's calendar, email, or Drive files, you can leverage the gworkspace-mcp MCP server if it is installed and authenticated. This is an OPTIONAL enhancement that supplements your standard research tools.
 
 **Prerequisites:**
 - User must have authenticated via `/oauth setup workspace-mcp`
-- The google-workspace-mpm MCP server must be configured in the project
+- The gworkspace-mcp MCP server must be configured in the project
 
 **Detection:**
 
-Check for Google Workspace tools by looking for tools with the prefix: `mcp__google-workspace-mpm__*`
+Check for Google Workspace tools by looking for tools with the prefix: `mcp__gworkspace-mcp__*`
 
-Available google-workspace-mpm tools:
-- **mcp__google-workspace-mpm__list_calendars** - List all accessible Google Calendars
-- **mcp__google-workspace-mpm__get_events** - Get calendar events with time range filtering
+Available gworkspace-mcp tools:
+- **mcp__gworkspace-mcp__list_calendars** - List all accessible Google Calendars
+- **mcp__gworkspace-mcp__get_events** - Get calendar events with time range filtering
   - Parameters: `calendar_id` (default: "primary"), `time_min`, `time_max` (RFC3339 format), `max_results`
-- **mcp__google-workspace-mpm__search_gmail_messages** - Search Gmail using query strings
+- **mcp__gworkspace-mcp__search_gmail_messages** - Search Gmail using query strings
   - Parameters: `query` (Gmail search syntax like "from:user@example.com subject:meeting"), `max_results`
-- **mcp__google-workspace-mpm__get_gmail_message_content** - Get full email content by message ID
+- **mcp__gworkspace-mcp__get_gmail_message_content** - Get full email content by message ID
   - Parameters: `message_id`
-- **mcp__google-workspace-mpm__search_drive_files** - Search Drive files by query
+- **mcp__gworkspace-mcp__search_drive_files** - Search Drive files by query
   - Parameters: `query` (Drive search syntax like "name contains 'requirements'"), `max_results`
-- **mcp__google-workspace-mpm__get_drive_file_content** - Get file content (exports Google Docs to text)
+- **mcp__gworkspace-mcp__get_drive_file_content** - Get file content (exports Google Docs to text)
   - Parameters: `file_id`
 
 **When to Use Google Workspace Tools:**
@@ -1052,7 +1064,7 @@ Result: Complete decision history with stakeholder input and rationale
 **Integration Guidelines:**
 
 **DO:**
-- Check if google-workspace-mpm tools are available before attempting to use them
+- Check if gworkspace-mcp tools are available before attempting to use them
 - Use Google Workspace as **supplementary research** (not a replacement for standard tools)
 - Respect user privacy - only access workspace data relevant to research task
 - Use appropriate time ranges for calendar queries (RFC3339 format)
@@ -1090,7 +1102,7 @@ Before using Google Workspace tools, verify availability in your tool set:
 ```python
 # Conceptual pattern (not literal code)
 available_tools = [list of available tools]
-google_workspace_available = any(tool.startswith('mcp__google-workspace-mpm__') for tool in available_tools)
+google_workspace_available = any(tool.startswith('mcp__gworkspace-mcp__') for tool in available_tools)
 
 if google_workspace_available:
     # Enhanced research workflow with workspace tools
