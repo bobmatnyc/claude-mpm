@@ -33,6 +33,16 @@ git commit -m "docs: update CLAUDE.md with priority rankings"
 
 Use conventional commit prefixes: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`
 
+### Referencing Issues
+
+Use `Closes #N` in the commit body to auto-close a GitHub issue when the commit lands on `main`. `Fixes #N` and `Resolves #N` are equivalent.
+
+```bash
+git commit -m "fix: resolve agent discovery path bug
+
+Closes #447"
+```
+
 ---
 
 ## 🔴 Release Workflow
