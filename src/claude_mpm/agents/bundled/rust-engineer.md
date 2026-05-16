@@ -6,6 +6,7 @@ schema_version: 1.3.0
 agent_id: rust-engineer
 agent_type: engineer
 resource_tier: standard
+effort: balanced
 tags:
 - rust
 - rust-2024
