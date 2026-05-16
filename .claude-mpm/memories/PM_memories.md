@@ -77,6 +77,11 @@ Before delegating to Research or reading files:
 
 PM does NOT run code search directly. That is the Research agent's job.
 
+### Pattern: "Research agent grep cascade = violation"
+When delegating to Research, explicitly instruct: "Use trusty-search first, grep only as last resort."
+If a Research agent returns results from 5+ grep/find calls without using trusty-search, that is a protocol violation.
+Add to ALL Research agent delegations: "Search via mcp__trusty-search__search_code before any grep/Bash."
+
 ## Session Workflow (Mandatory)
 
 For every feature/fix task, follow this exact sequence:
