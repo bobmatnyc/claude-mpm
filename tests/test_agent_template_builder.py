@@ -293,6 +293,106 @@ class TestAgentTemplateBuilder:
         # This is intentional for Claude Code compatibility
         assert "tools:" not in result  # Tools field omitted for full-capability agents
 
+    def _build_with_resource_tier(
+        self, template_builder, temp_dir, base_agent_data, **template_overrides
+    ):
+        """Helper: build agent markdown from a template with given fields."""
+        template_data = {"name": "tier-agent", **template_overrides}
+        template_file = temp_dir / "tier_test.json"
+        template_file.write_text(json.dumps(template_data))
+        return template_builder.build_agent_markdown(
+            agent_name="tier_agent",
+            template_path=template_file,
+            base_agent_data=base_agent_data,
+        )
+
+    def test_resource_tier_intensive_injects_opus_thorough(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """`intensive` tier should inject model: opus and effort: thorough."""
+        result = self._build_with_resource_tier(
+            template_builder, temp_dir, base_agent_data, resource_tier="intensive"
+        )
+
+        assert "model: opus" in result
+        assert "effort: thorough" in result
+
+    def test_resource_tier_lightweight_injects_haiku_balanced(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """`lightweight` tier should inject model: haiku and effort: balanced."""
+        result = self._build_with_resource_tier(
+            template_builder, temp_dir, base_agent_data, resource_tier="lightweight"
+        )
+
+        assert "model: haiku" in result
+        assert "effort: balanced" in result
+
+    def test_resource_tier_high_injects_sonnet_thorough(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """`high` tier should inject model: sonnet and effort: thorough."""
+        result = self._build_with_resource_tier(
+            template_builder, temp_dir, base_agent_data, resource_tier="high"
+        )
+
+        assert "model: sonnet" in result
+        assert "effort: thorough" in result
+
+    def test_resource_tier_explicit_model_preserved(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """An explicit `model` in the source must NOT be overwritten by tier injection."""
+        result = self._build_with_resource_tier(
+            template_builder,
+            temp_dir,
+            base_agent_data,
+            resource_tier="lightweight",  # would normally inject haiku
+            model="opus",  # explicit override
+        )
+
+        assert "model: opus" in result
+        assert "model: haiku" not in result
+        # effort still injected from tier since not explicitly set
+        assert "effort: balanced" in result
+
+    def test_resource_tier_explicit_effort_preserved(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """An explicit `effort` in the source must NOT be overwritten by tier injection."""
+        result = self._build_with_resource_tier(
+            template_builder,
+            temp_dir,
+            base_agent_data,
+            resource_tier="intensive",  # would normally inject thorough
+            effort="balanced",  # explicit override
+        )
+
+        assert "effort: balanced" in result
+        assert "effort: thorough" not in result
+
+    def test_resource_tier_unknown_falls_back_to_sonnet_balanced(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """An unrecognized tier should fall back to model: sonnet and effort: balanced."""
+        result = self._build_with_resource_tier(
+            template_builder, temp_dir, base_agent_data, resource_tier="bogus-tier"
+        )
+
+        assert "model: sonnet" in result
+        assert "effort: balanced" in result
+
+    def test_resource_tier_missing_falls_back_to_sonnet_balanced(
+        self, template_builder, temp_dir, base_agent_data
+    ):
+        """A template with no resource_tier should fall back to sonnet/balanced."""
+        result = self._build_with_resource_tier(
+            template_builder, temp_dir, base_agent_data
+        )
+
+        assert "model: sonnet" in result
+        assert "effort: balanced" in result
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
