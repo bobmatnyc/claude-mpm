@@ -258,12 +258,15 @@ def main() -> None:
         else:
             model = _DEFAULT_MODEL
 
-    # Return modified tool_input via hookSpecificOutput.updatedInput
+    # Return modified tool_input via hookSpecificOutput.updatedInput.
+    # Use additionalContext instead of permissionDecision/reason so the model
+    # tier info is injected into the context window rather than surfaced as a
+    # chat message (Claude Code v2.1.133+ additionalContext support).
     tool_input["model"] = model
     result = {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "permissionDecision": "allow",
+            "additionalContext": f"Model tier resolved for agent '{agent_type}': {model}",
             "updatedInput": tool_input,
         }
     }
