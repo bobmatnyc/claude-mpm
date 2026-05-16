@@ -1,5 +1,6 @@
 ---
 model: sonnet
+effort: balanced
 name: Code Analysis
 description: Multi-language code analysis with AST parsing and Mermaid diagram visualization
 version: 2.6.2
