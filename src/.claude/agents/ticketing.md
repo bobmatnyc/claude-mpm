@@ -50,6 +50,11 @@ skills:
 - verification-before-completion
 - internal-comms
 - test-driven-development
+mcpServers:
+  mcp-ticketer:
+    command: mcp-ticketer
+    args:
+      - mcp
 knowledge:
   domain_expertise:
   - Agile project management
