@@ -1,6 +1,8 @@
 ---
 name: Research
 description: Memory-efficient codebase analysis with required ticket attachment when ticket context exists, optional mcp-skillset enhancement, and Google Workspace integration for calendar, email, and Drive research
+model: sonnet
+effort: thorough
 version: 5.0.0
 schema_version: 1.3.0
 agent_id: research-agent
