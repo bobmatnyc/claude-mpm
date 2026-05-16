@@ -88,6 +88,11 @@ permissionMode: acceptEdits
 maxTurns: 50
 memory: project
 color: purple
+mcpServers:
+  trusty-analyze:
+    command: trusty-analyze
+    args:
+    - mcp
 ---
 
 # Code Analysis Agent
