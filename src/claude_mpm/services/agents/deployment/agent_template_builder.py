@@ -431,7 +431,7 @@ class AgentTemplateBuilder:
         agent_name: str,
         template_path: Path,
         base_agent_data: dict,
-        source_info: str = "unknown",
+        _source_info: str = "unknown",
     ) -> str:
         """
         Build a complete agent markdown file with YAML frontmatter.
@@ -440,7 +440,7 @@ class AgentTemplateBuilder:
             agent_name: Name of the agent
             template_path: Path to the agent template (JSON or Markdown file)
             base_agent_data: Base agent configuration data
-            source_info: Source of the agent (system/project/user)
+            _source_info: Source of the agent (system/project/user, unused)
 
         Returns:
             Complete markdown content with YAML frontmatter
@@ -647,17 +647,6 @@ class AgentTemplateBuilder:
 
         # Check if we should include tools field (only if significantly restricting)
         # Claude Code approach: omit tools field unless specifically restricting
-
-        # Convert tools to set for comparison
-        agent_tools = set(tools) if isinstance(tools, list) else set(tools.split(","))
-
-        # Only include tools field if agent is missing several important tools
-        # This matches Claude Code's approach of omitting tools for general-purpose agents
-        core_tools = {"Read", "Write", "Edit", "Bash", "Grep", "Glob"}
-        has_core_tools = len(agent_tools.intersection(core_tools)) >= 5
-
-        # Include tools field only if agent is clearly restricted (missing core tools or very few tools)
-        _include_tools = not has_core_tools or len(agent_tools) < 6
 
         # Build YAML frontmatter with all relevant metadata from JSON template
         # Include all fields that are useful for agent management and functionality
@@ -1092,7 +1081,7 @@ Only include memories that are:
         raw_description: str,
         agent_name: str,
         agent_type: str,
-        template_data: dict,
+        _template_data: dict,
     ) -> str:
         """
         Create an enhanced description based on agent type that follows Claude's format.
