@@ -283,7 +283,7 @@ class OptimizedStartup:
         try:
             # Use cache for config if available
             cache = get_file_cache()
-            config_path = Path.home() / ".claude-mpm" / "config.yaml"
+            config_path = Path.home() / ".claude-mpm" / "configuration.yaml"
 
             if config_path.exists():
                 config = cache.get_or_compute(
@@ -415,7 +415,7 @@ class OptimizedStartup:
     async def _async_load_config(self):
         """Load configuration asynchronously."""
         loop = asyncio.get_event_loop()
-        config_path = Path.home() / ".claude-mpm" / "config.yaml"
+        config_path = Path.home() / ".claude-mpm" / "configuration.yaml"
 
         if config_path.exists():
             config = await loop.run_in_executor(None, self._parse_config, config_path)
