@@ -160,7 +160,7 @@ claude-mpm configure
 # → Confirm
 ```
 
-Configuration is saved to `.claude-mpm/config.yaml`:
+Configuration is saved to `.claude-mpm/configuration.yaml`:
 
 ```yaml
 skills:
@@ -617,8 +617,8 @@ claude-mpm configure
 
 **Or edit configuration directly:**
 ```bash
-# Edit .claude-mpm/config.yaml
-nano .claude-mpm/config.yaml
+# Edit .claude-mpm/configuration.yaml
+nano .claude-mpm/configuration.yaml
 
 # Remove skills from assignments:
 skills:
@@ -900,7 +900,7 @@ Topics covered:
 
 ### Configuration File Structure
 
-Skills configuration is stored in `.claude-mpm/config.yaml`:
+Skills configuration is stored in `.claude-mpm/configuration.yaml`:
 
 ```yaml
 skills:
@@ -956,7 +956,7 @@ mkdir -p .claude/skills
 
 **Custom Paths:**
 ```yaml
-# Override in .claude-mpm/config.yaml
+# Override in .claude-mpm/configuration.yaml
 skills:
   paths:
     user: ~/my-custom-skills-directory
@@ -994,10 +994,10 @@ skills:
 **Edit configuration directly:**
 ```bash
 # Open in editor
-nano .claude-mpm/config.yaml
+nano .claude-mpm/configuration.yaml
 
 # Or use your preferred editor
-code .claude-mpm/config.yaml
+code .claude-mpm/configuration.yaml
 ```
 
 **Validate after editing:**
@@ -1053,7 +1053,7 @@ claude-mpm configure
 1. **Verify skill assignment:**
    ```bash
    # Check if skill is assigned to agent
-   cat .claude-mpm/config.yaml | grep -A 10 "assignments:"
+   cat .claude-mpm/configuration.yaml | grep -A 10 "assignments:"
    ```
 
 2. **Assign skill manually:**
@@ -1396,7 +1396,7 @@ When using `claude-mpm auto-configure`:
 
 1. **Framework Detection** automatically suggests relevant skills
 2. **Skills Auto-Assigned** to framework-appropriate agents
-3. **Configuration Saved** to `.claude-mpm/config.yaml`
+3. **Configuration Saved** to `.claude-mpm/configuration.yaml`
 
 **Example:**
 ```bash
