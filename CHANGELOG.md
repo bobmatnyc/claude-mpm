@@ -1,3 +1,24 @@
+## v6.3.14 (2026-05-16)
+
+### Feat
+
+- **agents**: scope mcp-ticketer to ticketing agent frontmatter
+- **agents**: scope mcp-skillset, mcp-ticketer, gworkspace-mcp to research agent; fix gworkspace server name
+- **hooks**: add dedicated PostToolUseFailure logging handler
+- **agents**: inject model/effort from resource_tier in AgentTemplateBuilder
+- **agents**: add model and effort frontmatter to web-qa source
+- **agents**: add model and effort frontmatter to ticketing source
+- **agents**: add model and effort frontmatter to documentation source
+- **agents**: add model and effort frontmatter to ops source
+- **agents**: add model and effort frontmatter to qa source
+- **agents**: add model and effort frontmatter to engineer source
+- **agents**: add model and effort frontmatter to research source
+
+### Fix
+
+- **hooks**: route PostToolUseFailure to dedicated tool_failure_hook
+- **agents**: resolve unused variable warnings in AgentTemplateBuilder
+
 ## v6.3.13 (2026-05-16)
 
 ### Feat
