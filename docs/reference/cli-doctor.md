@@ -246,7 +246,7 @@ claude-mpm doctor --output-file reports/health.md
 - Paths valid
 
 **Checked Files**:
-- `~/.claude-mpm/config/config.yaml`
+- `~/.claude-mpm/config/configuration.yaml` (user-level)
 - `.claude-mpm/configuration.yaml` (project-level)
 - `~/.claude-mpm/config/agent_sources.yaml`
 
