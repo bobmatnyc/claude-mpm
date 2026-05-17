@@ -247,7 +247,7 @@ claude-mpm doctor --output-file reports/health.md
 
 **Checked Files**:
 - `~/.claude-mpm/config/config.yaml`
-- `.claude-mpm/config.yaml` (project-level)
+- `.claude-mpm/configuration.yaml` (project-level)
 - `~/.claude-mpm/config/agent_sources.yaml`
 
 **Common Issues**:
