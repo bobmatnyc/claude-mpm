@@ -42,8 +42,8 @@ Claude MPM reads configuration in this priority order:
 
 1. CLI args
 2. Environment variables
-3. Project config: `.claude-mpm/config.yaml`
-4. User config: `~/.claude-mpm/config.yaml`
+3. Project config: `.claude-mpm/configuration.yaml`
+4. User config: `~/.claude-mpm/configuration.yaml`
 5. Defaults
 
 See [Configuration Reference](../configuration/reference.md) for full options.
