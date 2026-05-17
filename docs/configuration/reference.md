@@ -23,11 +23,10 @@ Claude MPM uses YAML configuration files located in `.claude-mpm/`:
 ```
 .claude-mpm/
 ├── configuration.yaml      # Main configuration
-├── local-ops-config.yaml  # Local deployment config
-└── config.yaml            # Legacy/alternative config
+└── local-ops-config.yaml  # Local deployment config
 ```
 
-**Primary Configuration**: `.claude-mpm/configuration.yaml`
+**Configuration File**: `.claude-mpm/configuration.yaml` is the standard configuration filename.
 
 ## Configuration Structure
 
