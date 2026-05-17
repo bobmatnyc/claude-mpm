@@ -163,7 +163,7 @@ class ConfigLoader:
                 "claude-mpm.yml",
                 ".claude-mpm.yaml",
                 ".claude-mpm.yml",
-                "config.yaml",
+                "configuration.yaml",
                 "config.yml",
             ],
             search_paths=["~/.config/claude-mpm", ".", "./config", "/etc/claude-mpm"],
