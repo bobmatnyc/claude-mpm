@@ -912,7 +912,7 @@ claude-mpm run --monitor
 # View latency in dashboard
 
 # Verify caching enabled
-# Check .claude-mpm/config.yaml:
+# Check .claude-mpm/configuration.yaml:
 performance:
   caching:
     git_branch: true
@@ -937,7 +937,7 @@ pkill -f claude-mpm
 claude-mpm run
 
 # Reduce cache size
-# Edit .claude-mpm/config.yaml:
+# Edit .claude-mpm/configuration.yaml:
 performance:
   cache_size_mb: 50  # Reduce from 100
 ```
@@ -950,7 +950,7 @@ performance:
 
 ```bash
 # Disable unused hooks temporarily
-# Edit .claude-mpm/config.yaml:
+# Edit .claude-mpm/configuration.yaml:
 hooks:
   pre_execution:
     enabled: false
