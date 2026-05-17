@@ -422,7 +422,6 @@ class ProjectPaths:
     MPM_CACHE_DIR = ".claude-mpm/cache"
 
     # Config files
-    MPM_CONFIG_FILE = "config.yaml"
     AGENT_CONFIG_FILE = "agent_config.yaml"
     EXPERIMENTAL_CONFIG = "experimental.json"
     SOCKETIO_CONFIG = "socketio_config.yaml"
