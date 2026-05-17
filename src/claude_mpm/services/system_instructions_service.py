@@ -11,6 +11,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 
 import re
 from datetime import UTC, datetime
+from pathlib import Path
 
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
@@ -184,14 +185,39 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
     def create_system_prompt(self, system_instructions: str | None = None) -> str:
         """Create the complete system prompt including instructions.
 
+        Appends a user-level PM_INSTRUCTIONS override from
+        ~/.claude-mpm/PM_INSTRUCTIONS.md when present, so users can
+        customize PM behavior without modifying package source files.
+
         Args:
             system_instructions: Optional pre-loaded instructions, will load if None
 
         Returns:
-            Complete system prompt
+            Complete system prompt, optionally augmented with user-level override
         """
         if system_instructions is None:
             system_instructions = self.load_system_instructions()
+
+        # Apply user-level PM_INSTRUCTIONS override if present.
+        # Failure to read the file is non-fatal: log at DEBUG and continue.
+        user_override_path = Path.home() / ".claude-mpm" / "PM_INSTRUCTIONS.md"
+        if user_override_path.is_file():
+            try:
+                override_content = user_override_path.read_text(encoding="utf-8")
+                marker = "# User-Level PM Override"
+                if marker not in system_instructions:
+                    system_instructions = (
+                        system_instructions
+                        + f"\n\n---\n{marker}\n\n"
+                        + override_content
+                    )
+                    self.logger.info(
+                        f"Applied user-level PM_INSTRUCTIONS override ({len(override_content)} chars)"
+                    )
+            except (IOError, OSError) as e:
+                self.logger.debug(
+                    f"User-level override exists but couldn't read: {e}"
+                )
 
         return system_instructions
 
