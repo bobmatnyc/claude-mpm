@@ -47,7 +47,9 @@ class DependencyStrategy:
         Args:
             config_path: Optional path to configuration file
         """
-        self.config_path = config_path or Path.home() / ".claude-mpm" / "config.yaml"
+        self.config_path = (
+            config_path or Path.home() / ".claude-mpm" / "configuration.yaml"
+        )
         self.cache_path = Path.home() / ".claude-mpm" / ".dep_cache.json"
         self.mode = self._determine_mode()
 
