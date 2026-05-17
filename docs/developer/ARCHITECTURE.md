@@ -292,7 +292,7 @@ async def log_completion(context: HookContext) -> HookResult:
 
 ### Hook Configuration
 
-In `.claude-mpm/config.yaml`:
+In `.claude-mpm/configuration.yaml`:
 
 ```yaml
 hooks:
