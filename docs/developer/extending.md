@@ -194,7 +194,7 @@ async def post_execution_hook(context: HookContext) -> HookResult:
 
 ### Hook Registration
 
-In `.claude-mpm/config.yaml`:
+In `.claude-mpm/configuration.yaml`:
 
 ```yaml
 hooks:
@@ -399,7 +399,7 @@ settings:
 
 Register with MCP Gateway:
 
-In `.claude-mpm/config.yaml`:
+In `.claude-mpm/configuration.yaml`:
 
 ```yaml
 mcp_gateway:
