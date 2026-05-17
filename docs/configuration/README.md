@@ -8,8 +8,8 @@ Configuration reference and key paths for Claude MPM.
 
 ## Locations
 
-- **Project**: `.claude-mpm/config.yaml`
-- **User**: `~/.claude-mpm/config.yaml`
+- **Project**: `.claude-mpm/configuration.yaml`
+- **User**: `~/.claude-mpm/configuration.yaml`
 
 ## Priority Order
 
