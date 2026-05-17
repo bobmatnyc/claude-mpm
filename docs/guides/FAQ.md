@@ -83,8 +83,8 @@ See [Skills Guide](../user/skills-guide.md).
 
 ### Where are config files stored?
 
-- Project: `.claude-mpm/config.yaml`
-- User: `~/.claude-mpm/config.yaml`
+- Project: `.claude-mpm/configuration.yaml`
+- User: `~/.claude-mpm/configuration.yaml`
 
 See [Configuration Reference](../configuration/reference.md).
 
