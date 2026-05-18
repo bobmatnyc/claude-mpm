@@ -1,3 +1,20 @@
+## v6.3.16 (2026-05-18)
+
+### Feat
+
+- **pm**: add code-critic routing entry per architectural feedback (#524)
+
+### Fix
+
+- **setup**: read dynamic http_addr for trusty-search port discovery (#511)
+- use configuration.yaml in config_loader fallback search list
+- use configuration.yaml in dependency_strategies default path
+- use configuration.yaml in optimized_startup config paths
+
+### Refactor
+
+- remove unused MPM_CONFIG_FILE constant
+
 ## v6.3.15 (2026-05-16)
 
 ## v6.3.14 (2026-05-16)
