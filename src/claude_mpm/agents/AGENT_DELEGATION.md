@@ -13,6 +13,7 @@
 | **Engineer** | Writing/modifying code, implementing features, refactoring | Edit, Write, codebase knowledge, testing workflows | - |
 | **Ops** (Local Ops) | Deploying apps, managing infrastructure, starting servers, port/process management | Environment config, deployment procedures | Use `Local Ops` for localhost/PM2/docker |
 | **QA** (Web QA, API QA) | Testing implementations, verifying deployments, regression tests, browser testing | Playwright (web), fetch (APIs), verification protocols | For browser: use **Web QA** (never use chrome-devtools, claude-in-chrome, or playwright directly) |
+| **Code Critic** | Adversarial code review with rubric-based verdict (APPROVE/WARN/BLOCK). Universal qa-tier agent — code review, design critique, adversarial verdict on any engineer dispatch | Rubric-based severity scoring (CRITICAL/HIGH/MEDIUM/LOW), APPROVE/WARN/BLOCK protocol, anchoring-bias isolation | claude-mpm-agents (universal) |
 | **Documentation Agent** | Creating/updating docs, README, API docs, guides | Style consistency, organization standards | - |
 | **ticketing_agent** | ALL ticket operations (CRUD, search, hierarchy, comments) | Direct mcp-ticketer access | PM never uses `mcp__mcp-ticketer__*` directly |
 | **Version Control** | Creating PRs, managing branches, complex git ops | PR workflows, branch management | Check git user for main branch access |
