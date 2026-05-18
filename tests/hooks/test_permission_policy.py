@@ -211,7 +211,10 @@ def test_pre_tool_use_agent_path_still_works() -> None:
     )
     spec = out["hookSpecificOutput"]
     assert spec["hookEventName"] == "PreToolUse"
-    assert spec["permissionDecision"] == "allow"
+    # The newer wire format uses additionalContext + updatedInput instead of
+    # permissionDecision so the model-routing info is injected as context
+    # rather than surfaced as a chat message (Claude Code v2.1.133+).
+    assert "additionalContext" in spec
     # Engineering tier defaults to the Opus model.
     assert spec["updatedInput"]["model"]
 
