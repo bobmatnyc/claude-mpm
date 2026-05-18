@@ -76,6 +76,45 @@ class ToolHandler:
                 }
             }
 
+        # Model-tier injection (Agent calls) and ztk rewriting (Bash calls).
+        # These were previously handled by the pretooluse_dispatcher subprocess;
+        # calling them as functions here removes that extra process per tool call.
+        #
+        # Priority (highest wins):
+        #   1. Agent tool  -> model_tier_hook.build_model_tier_response()
+        #   2. Bash tool   -> ztk_hook.build_ztk_response()
+        #   3. Anything else -> fall through to normal observability path below.
+        #
+        # Both functions are fail-open: they return {"continue": True} on any
+        # error or non-matching input, so we only short-circuit when there is
+        # actual work to do (model injection or ztk rewrite).
+        _tool_name_early = event.get("tool_name", "")
+        if _tool_name_early == "Agent":
+            try:
+                from claude_mpm.hooks.model_tier_hook import build_model_tier_response
+
+                _tier_response = build_model_tier_response(event)
+                if _tier_response.get("hookSpecificOutput"):
+                    # Model was injected; return immediately so the modified
+                    # tool_input reaches Claude Code.  Dashboard observability
+                    # for this call is intentionally skipped (low-value for
+                    # model-routing events; keeps the hot path fast).
+                    return _tier_response
+            except Exception as _e:
+                if DEBUG:
+                    _log(f"model_tier_hook failed (fail-open): {_e}")
+        elif _tool_name_early == "Bash":
+            try:
+                from claude_mpm.hooks.ztk_hook import build_ztk_response
+
+                _ztk_response = build_ztk_response(event)
+                if _ztk_response.get("hookSpecificOutput"):
+                    # ztk rewrote the command; return the modified tool_input.
+                    return _ztk_response
+            except Exception as _e:
+                if DEBUG:
+                    _log(f"ztk_hook failed (fail-open): {_e}")
+
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
         if DEBUG:
