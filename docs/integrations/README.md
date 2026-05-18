@@ -11,7 +11,6 @@ claude-mpm setup <integration-name>
 # Examples:
 claude-mpm setup trusty-memory
 claude-mpm setup trusty-search
-claude-mpm setup trusty-analyze
 claude-mpm setup google-workspace-mcp
 claude-mpm setup slack-mpm
 claude-mpm setup confluence
@@ -67,32 +66,6 @@ claude-mpm setup trusty-search
 - Integration with PM agent
 
 **Prerequisites**: Rust/cargo (https://rustup.rs/)
-
----
-
-#### [Trusty Analyze](trusty-analyze.md) (Recommended)
-**High-performance Rust-based code-analysis sidecar**
-
-- Static-analysis sidecar that consumes `trusty-search` indexes
-- Complexity hotspots, smell detection, A–F quality grading
-- Concept clustering (neural/tfidf/hybrid) for architectural overviews
-- Persistent daemon on port 7879 with `KeepAlive=true`
-- Used by the `code-analyzer` agent in preference to manual AST parsing
-
-```bash
-claude-mpm setup trusty-analyze
-```
-
-**Key Features**:
-- `analyzer_health`, `complexity_hotspots`, `find_smells`, `analyze_quality`,
-  `cluster_concepts`, `list_facts` MCP tools
-- Read-only consumer of `trusty-search` indexes — no separate indexing
-- Pair with `trusty-search` (locate) and `trusty-memory` (persist) for an
-  index → triage → remember loop
-
-**Prerequisites**: Rust/cargo (https://rustup.rs/) and a running
-`trusty-search` daemon. The installed binary is `trusty-analyzer` (with a
-trailing "r"); the setup verb / repo name is `trusty-analyze`.
 
 ---
 
@@ -330,7 +303,6 @@ claude-mpm tools confluence pages-batch-export --page-ids "..." --output export.
 |-------------|------|-------|-------------|----------|--------|
 | **Trusty Memory** | Core | 5 MCP | None | Project memory | Recommended |
 | **Trusty Search** | Core | 3 MCP | None | Code discovery | Recommended |
-| **Trusty Analyze** | Core | 6 MCP | None | Code analysis (complexity, smells, quality) | Recommended |
 | **Kuzu Memory** | Core | 4 MCP | None | Project memory | Legacy |
 | **Vector Search** | Core | 3 MCP | None | Code discovery | Legacy |
 | **Google Workspace** | External | 67 MCP | OAuth 2.0 | Productivity suite | Active |
@@ -374,8 +346,8 @@ claude-mpm setup mcp-vector-search --force
 ### 1. Complete Development Setup
 
 ```bash
-# Core trusty trio (recommended)
-claude-mpm setup trusty-search trusty-memory trusty-analyze
+# Core tools (recommended)
+claude-mpm setup trusty-memory trusty-search
 
 # External services
 claude-mpm setup gworkspace-mcp slack
