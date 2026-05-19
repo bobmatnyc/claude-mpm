@@ -185,9 +185,21 @@ class ConnectionManagerService:
                 _log(f"⚠️ HTTP POST error for {event}: {e}")
 
     def cleanup(self):
-        """Cleanup connections on service destruction."""
-        # Shutdown HTTP executor gracefully
+        """Cleanup connections on service destruction.
+
+        WHY wait=False + cancel_futures=True: Hook handlers are ephemeral
+        processes. Python's atexit shuts ThreadPoolExecutor down with wait=True
+        by default, which blocks up to 2s (the HTTP request timeout) on every
+        hook exit when the dashboard server is not running. We must not block
+        process exit, so we shut down without waiting and cancel any pending
+        futures that have not started.
+        """
+        # Shutdown HTTP executor gracefully without blocking process exit
         if hasattr(self, "_http_executor"):
-            self._http_executor.shutdown(wait=False)
+            try:
+                self._http_executor.shutdown(wait=False, cancel_futures=True)
+            except TypeError:
+                # cancel_futures added in Python 3.9; fall back gracefully
+                self._http_executor.shutdown(wait=False)
             if DEBUG:
                 _log("✅ HTTP executor shutdown")
