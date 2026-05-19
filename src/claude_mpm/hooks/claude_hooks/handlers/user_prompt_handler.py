@@ -115,20 +115,12 @@ class UserPromptHandler:
                 if DEBUG:
                     _log(f"Auto-pause user message recording error: {e}")
 
-        # Check for incoming messages (cross-project messaging)
-        try:
-            from claude_mpm.hooks import message_check_hook
-
-            message_notification = message_check_hook()
-            if message_notification:
-                # Inject message notification into PM context
-                # This will appear in the next system reminder
-                prompt_data["message_notification"] = message_notification
-                if DEBUG:
-                    _log("Message notification added to prompt data")
-        except Exception as e:
-            if DEBUG:
-                _log(f"Message check hook error: {e}")
+        # NOTE: The cross-project message check is intentionally NOT invoked
+        # inline here. message_check_hook runs as its own hook subprocess; a
+        # second inline invocation raced on the same SQLite database and could
+        # block the user-prompt handler. The result was only used for a
+        # dashboard emit (never injected as additionalContext), so removing the
+        # inline call has no functional impact.
 
         # Emit normalized event (namespace no longer needed with normalized events)
         self.hook_handler._emit_socketio_event("", "user_prompt", prompt_data)
