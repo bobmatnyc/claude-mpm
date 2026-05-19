@@ -218,21 +218,16 @@ class BaseEventHandler:
 
         # Try to get git branch
         try:
-            # Change to the working directory temporarily
-            original_cwd = Path.cwd()
-            os.chdir(working_dir)
-
-            # Run git command to get current branch
+            # Use ``git -C <dir>`` instead of os.chdir(). os.chdir() is
+            # process-global and, on edge cases (NFS mount, unmounted
+            # worktree), can stall the entire process.
             result = subprocess.run(  # nosec B603 B607
-                ["git", "branch", "--show-current"],
+                ["git", "-C", str(working_dir), "branch", "--show-current"],
                 capture_output=True,
                 text=True,
                 timeout=TimeoutConfig.QUICK_TIMEOUT,
                 check=False,  # Quick timeout to avoid hanging
             )
-
-            # Restore original directory
-            os.chdir(original_cwd)
 
             if result.returncode == 0 and result.stdout.strip():
                 branch = result.stdout.strip()
