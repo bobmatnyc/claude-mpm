@@ -119,13 +119,70 @@ def _resolve_ztk() -> str | None:
     return None
 
 
-def main() -> None:
+def build_ztk_response(event: dict) -> dict:
+    """Build the ztk-rewrite response for a Bash tool call.
+
+    Returns the full ``hookSpecificOutput``-wrapped payload dict when the Bash
+    command is rewritten, or ``{"continue": True}`` for any pass-through case
+    (disabled, non-Bash tool, already wrapped, excluded pattern, ztk missing).
+
+    Exposed as an importable function so ``pretooluse_dispatcher`` can call it
+    directly without spawning a subprocess.
+    """
     # Environment-variable disable: fast, session-level override.
     if os.environ.get(_DISABLE_ENV_VAR, "").lower() in ("1", "true", "yes"):
         _log_debug(f"{_DISABLE_ENV_VAR} is set; ztk disabled")
-        _passthrough()
-        return
+        return {"continue": True}
 
+    tool_name = event.get("tool_name", "")
+    tool_input = event.get("tool_input", {}) or {}
+
+    # Only act on Bash tool calls
+    if tool_name != "Bash":
+        return {"continue": True}
+
+    command = tool_input.get("command", "")
+    if not isinstance(command, str) or not command.strip():
+        return {"continue": True}
+
+    # Idempotency: skip commands that are already wrapped
+    stripped = command.lstrip()
+    if stripped.startswith("ztk ") or stripped.startswith("ztk\t"):
+        _log_debug("command already wrapped; skipping")
+        return {"continue": True}
+
+    # Exclusions: skip commands that ztk blocks by default
+    # Commands with ' -c ' (e.g., python3 -c, bash -c, sh -c, perl -e) are denied by ztk
+    if " -c " in command or " -e " in command:
+        _log_debug("command contains ' -c ' or ' -e '; ztk blocks these patterns")
+        return {"continue": True}
+
+    # Skip multi-statement compound commands (contain newlines)
+    if "\n" in command:
+        _log_debug("command contains newlines; skipping multi-statement compound")
+        return {"continue": True}
+
+    # Graceful degradation: ztk must be resolvable
+    ztk_path = _resolve_ztk()
+    if ztk_path is None:
+        _log_debug("ztk not found (system or bundled); pass-through")
+        return {"continue": True}
+
+    # Rewrite the command using the resolved ztk path
+    tool_input["command"] = f"{ztk_path} run {command}"
+    _log_debug(f"rewrote Bash command: {command[:80]!r} -> {ztk_path} run ...")
+    _log_intercepted(command)
+
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "updatedInput": tool_input,
+        }
+    }
+
+
+def main() -> None:
     try:
         event = json.load(sys.stdin)
     except Exception as exc:
@@ -133,59 +190,7 @@ def main() -> None:
         _passthrough()
         return
 
-    tool_name = event.get("tool_name", "")
-    tool_input = event.get("tool_input", {}) or {}
-
-    # Only act on Bash tool calls
-    if tool_name != "Bash":
-        _passthrough()
-        return
-
-    command = tool_input.get("command", "")
-    if not isinstance(command, str) or not command.strip():
-        _passthrough()
-        return
-
-    # Idempotency: skip commands that are already wrapped
-    stripped = command.lstrip()
-    if stripped.startswith("ztk ") or stripped.startswith("ztk\t"):
-        _log_debug("command already wrapped; skipping")
-        _passthrough()
-        return
-
-    # Exclusions: skip commands that ztk blocks by default
-    # Commands with ' -c ' (e.g., python3 -c, bash -c, sh -c, perl -e) are denied by ztk
-    if " -c " in command or " -e " in command:
-        _log_debug("command contains ' -c ' or ' -e '; ztk blocks these patterns")
-        _passthrough()
-        return
-
-    # Skip multi-statement compound commands (contain newlines)
-    if "\n" in command:
-        _log_debug("command contains newlines; skipping multi-statement compound")
-        _passthrough()
-        return
-
-    # Graceful degradation: ztk must be resolvable
-    ztk_path = _resolve_ztk()
-    if ztk_path is None:
-        _log_debug("ztk not found (system or bundled); pass-through")
-        _passthrough()
-        return
-
-    # Rewrite the command using the resolved ztk path
-    tool_input["command"] = f"{ztk_path} run {command}"
-    _log_debug(f"rewrote Bash command: {command[:80]!r} -> {ztk_path} run ...")
-    _log_intercepted(command)
-
-    result = {
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "allow",
-            "updatedInput": tool_input,
-        }
-    }
-    print(json.dumps(result))
+    print(json.dumps(build_ztk_response(event)))
 
 
 if __name__ == "__main__":

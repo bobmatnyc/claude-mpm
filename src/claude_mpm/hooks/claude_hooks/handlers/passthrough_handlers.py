@@ -299,26 +299,25 @@ class PassthroughHandlers:
         """Handle PermissionRequest events.
 
         WHY this exists:
-        - Surface tool-permission decisions on the dashboard for auditing.
-        - Provide a single source of truth for the policy decision so the
-          dashboard reflects what ``permission_policy.evaluate`` returned.
-        - Wire ``PermissionRequest`` into the hook dispatch table (#421); the
-          actual allow/deny decision is rendered by ``model_tier_hook.py`` and
-          consumed by Claude Code.
+        - Evaluate the permission policy and return the wire-format allow/deny
+          decision to Claude Code (replaces the pretooluse_dispatcher subprocess
+          that previously owned this contract — issue #421).
+        - Also surface the decision on the dashboard for auditing.
 
-        The handler does NOT modify the harness's permission decision — that
-        contract belongs to ``model_tier_hook.py`` so the response can be
-        emitted before the dashboard event is dispatched. Returning ``None``
-        here keeps the dispatcher happy.
+        Returns a ``hookSpecificOutput``-wrapped dict so ``hook_handler.py``
+        emits it directly instead of the default ``{"continue": true}``.
         """
         # Lazy import to keep startup paths cheap and avoid circular imports
         # (hook_handler imports event_handlers which would otherwise pull in
         # the policy engine on every hook invocation).
         try:
             from claude_mpm.hooks import permission_policy
+            from claude_mpm.hooks.model_tier_hook import (
+                build_permission_request_response,
+            )
         except Exception as exc:  # pragma: no cover - defensive
-            _log(f"PermissionRequest: failed to import permission_policy: {exc}")
-            return
+            _log(f"PermissionRequest: failed to import policy modules: {exc}")
+            return None
 
         decision = permission_policy.evaluate(event)
         tool_name = event.get("tool_name", "")
@@ -347,4 +346,8 @@ class PassthroughHandlers:
         self.hook_handler._emit_socketio_event(
             "", "permission_request", permission_data
         )
-        return
+
+        # Build and return the wire-format response so hook_handler.py emits it
+        # instead of the default {"continue": true}.  This replaces the
+        # pretooluse_dispatcher subprocess entry in settings.json.
+        return build_permission_request_response(event)

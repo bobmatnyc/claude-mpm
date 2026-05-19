@@ -1,3 +1,21 @@
+## v6.3.17 (2026-05-18)
+
+### Feat
+
+- **hooks**: handle_permission_request_fast now returns wire-format allow/deny decision
+- **hooks**: integrate model tier injection and ztk rewrite into handle_pre_tool_fast
+- **hooks**: add pretooluse_dispatcher as consolidated in-process hook dispatcher
+
+### Fix
+
+- **hooks**: consolidate PreToolUse to single dispatcher, fix claude-hook timeout 60s->15s
+- **hooks**: propagate PermissionRequest hookSpecificOutput through _route_event
+
+### Refactor
+
+- **hooks**: expose build_ztk_response as importable function
+- **hooks**: expose build_model_tier_response and build_permission_request_response as importable functions
+
 ## v6.3.16 (2026-05-18)
 
 ### Feat

@@ -190,51 +190,45 @@ def _read_model_from_frontmatter(agent_name: str, cwd: str) -> str | None:
     return None
 
 
-def _handle_permission_request(event: dict) -> None:
-    """Run the permission policy engine and emit the wire-format decision.
+def build_permission_request_response(event: dict) -> dict:
+    """Run the permission policy engine and build the wire-format response.
 
     Claude Code expects the ``permissionDecision`` field inside
     ``hookSpecificOutput``. We always include ``permissionDecisionReason`` so
     the harness can surface why a request was approved/denied.
+
+    Returns the full ``hookSpecificOutput``-wrapped payload dict. Exposed as an
+    importable function so ``pretooluse_dispatcher`` can call it directly.
     """
     decision = permission_policy.evaluate(event)
-    payload = {
+    return {
         "hookSpecificOutput": {
             "hookEventName": "PermissionRequest",
             "permissionDecision": decision.decision,
             "permissionDecisionReason": decision.reason,
         }
     }
-    print(json.dumps(payload))
 
 
-def main() -> None:
-    try:
-        event = json.load(sys.stdin)
-    except Exception:
-        # Can't parse — allow through unchanged
-        print(json.dumps({"continue": True}))
-        return
+def _handle_permission_request(event: dict) -> None:
+    """Emit the wire-format permission decision for a PermissionRequest event."""
+    print(json.dumps(build_permission_request_response(event)))
 
-    # Route by hook_event_name so one entrypoint handles both
-    # PreToolUse (Agent model injection) and PermissionRequest (policy).
-    hook_event = (
-        event.get("hook_event_name")
-        or event.get("event")
-        or event.get("hook_event_type")
-        or ""
-    )
-    if hook_event == "PermissionRequest":
-        _handle_permission_request(event)
-        return
 
+def build_model_tier_response(event: dict) -> dict:
+    """Resolve and inject the model tier for an Agent tool call.
+
+    Returns the full ``hookSpecificOutput``-wrapped payload dict, or
+    ``{"continue": True}`` when the event is not an Agent call or already has a
+    model set. Exposed as an importable function so ``pretooluse_dispatcher``
+    can call it directly without spawning a subprocess.
+    """
     tool_name = event.get("tool_name", "")
     tool_input = event.get("tool_input", {})
 
     # Only intercept Agent tool calls that don't already have a model
     if tool_name != "Agent" or "model" in tool_input:
-        print(json.dumps({"continue": True}))
-        return
+        return {"continue": True}
 
     agent_type = tool_input.get("subagent_type", "")
     cwd = event.get("cwd", "")
@@ -263,14 +257,36 @@ def main() -> None:
     # tier info is injected into the context window rather than surfaced as a
     # chat message (Claude Code v2.1.133+ additionalContext support).
     tool_input["model"] = model
-    result = {
+    return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "additionalContext": f"Model tier resolved for agent '{agent_type}': {model}",
             "updatedInput": tool_input,
         }
     }
-    print(json.dumps(result))
+
+
+def main() -> None:
+    try:
+        event = json.load(sys.stdin)
+    except Exception:
+        # Can't parse — allow through unchanged
+        print(json.dumps({"continue": True}))
+        return
+
+    # Route by hook_event_name so one entrypoint handles both
+    # PreToolUse (Agent model injection) and PermissionRequest (policy).
+    hook_event = (
+        event.get("hook_event_name")
+        or event.get("event")
+        or event.get("hook_event_type")
+        or ""
+    )
+    if hook_event == "PermissionRequest":
+        _handle_permission_request(event)
+        return
+
+    print(json.dumps(build_model_tier_response(event)))
 
 
 if __name__ == "__main__":

@@ -573,10 +573,19 @@ class ClaudeHookHandler:
                 success = True
                 # PreToolUse handlers return modified input
                 # Stop handlers can return decision dicts (e.g., {"decision": "block", "reason": "..."})
-                if (hook_type == "PreToolUse" and result is not None) or (
-                    hook_type == "Stop"
-                    and isinstance(result, dict)
-                    and "decision" in result
+                # PermissionRequest handlers return hookSpecificOutput allow/deny decisions.
+                if (
+                    (hook_type == "PreToolUse" and result is not None)
+                    or (
+                        hook_type == "Stop"
+                        and isinstance(result, dict)
+                        and "decision" in result
+                    )
+                    or (
+                        hook_type == "PermissionRequest"
+                        and isinstance(result, dict)
+                        and "hookSpecificOutput" in result
+                    )
                 ):
                     return_value = result
                 else:
