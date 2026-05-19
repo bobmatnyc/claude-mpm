@@ -324,14 +324,31 @@ class ToolHandler:
                             )
                         )
                     except RuntimeError:
-                        # No running loop, create one
+                        # No running loop, create one.
+                        # WHY asyncio.wait_for: log_manager.log_prompt may make a
+                        # network call. Without a timeout this blocks the hook
+                        # subprocess forever, hanging Claude Code. Cap logging at
+                        # 2s and degrade gracefully on timeout.
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
-                        loop.run_until_complete(
-                            log_manager.log_prompt(
-                                f"agent_{agent_type}", prompt_content, metadata
+                        try:
+                            loop.run_until_complete(
+                                asyncio.wait_for(
+                                    log_manager.log_prompt(
+                                        f"agent_{agent_type}",
+                                        prompt_content,
+                                        metadata,
+                                    ),
+                                    timeout=2.0,
+                                )
                             )
-                        )
+                        except TimeoutError:
+                            if DEBUG:
+                                _log(
+                                    f"  - Agent prompt logging timed out for {agent_type}"
+                                )
+                        finally:
+                            loop.close()
 
                     if DEBUG:
                         _log(f"  - Agent prompt logged for {agent_type}")
