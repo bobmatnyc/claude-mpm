@@ -124,6 +124,17 @@ Hooks are configured in `.claude/settings.json` (team-shared) and `.claude/setti
 
 Key hook events: `PreToolUse`, `PostToolUse`, `Stop`, `SubagentStop`, `SessionStart`, `UserPromptSubmit`
 
+### Stability Patterns
+
+When adding new hooks or hook handlers, follow these patterns to prevent hangs:
+
+- **Stdin reads**: Always guard `sys.stdin.read()` and `json.load(sys.stdin)` with `select.select(timeout=1.0)` to prevent blocking on empty stdin
+- **Async operations**: Wrap blocking async calls with `asyncio.wait_for(timeout=N)` to prevent indefinite waits
+- **External process calls**: Use subprocess-relative operations (`git -C`) instead of process-global state (e.g., `os.chdir`) to avoid race conditions
+- **I/O timeouts**: Add explicit timeouts to database connections (e.g., `sqlite3.connect(timeout=1.0)`) and HTTP executor shutdown (use `wait=False`)
+- **Version checks**: Cache expensive version checks to disk (keyed by binary mtime) to prevent re-entrancy hangs
+- **Subprocess management**: Use `executor.shutdown(wait=False)` when shutting down HTTP executors in signal handlers to avoid blocking exit
+
 ---
 
 ## 🟡 Configuration Hierarchy
