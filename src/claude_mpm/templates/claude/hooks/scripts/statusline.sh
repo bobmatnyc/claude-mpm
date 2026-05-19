@@ -61,11 +61,17 @@ case "$REMAINING" in
 esac
 
 # ---------------------------------------------------------------------------
-# Read outputStyle from ~/.claude/settings.json (requires jq).
+# Read outputStyle: project settings first, fall back to global settings.
 # ---------------------------------------------------------------------------
+PROJECT_SETTINGS="$(pwd)/.claude/settings.json"
 OUTPUT_STYLE=""
 if command -v jq >/dev/null 2>&1; then
-    OUTPUT_STYLE=$(jq -r '.outputStyle // "default"' "$HOME/.claude/settings.json" 2>/dev/null || echo "default")
+    if [ -f "$PROJECT_SETTINGS" ]; then
+        OUTPUT_STYLE=$(jq -r '.outputStyle // empty' "$PROJECT_SETTINGS" 2>/dev/null)
+    fi
+    if [ -z "$OUTPUT_STYLE" ] || [ "$OUTPUT_STYLE" = "null" ]; then
+        OUTPUT_STYLE=$(jq -r '.outputStyle // "default"' "$HOME/.claude/settings.json" 2>/dev/null || echo "default")
+    fi
     [ "$OUTPUT_STYLE" = "null" ] && OUTPUT_STYLE="default"
 fi
 
