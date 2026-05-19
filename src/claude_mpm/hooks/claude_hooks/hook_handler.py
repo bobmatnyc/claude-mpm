@@ -60,6 +60,7 @@ import subprocess  # nosec B404
 import sys
 import threading
 from datetime import UTC, datetime
+from pathlib import Path
 
 # Import extracted modules with fallback for direct execution
 try:
@@ -77,8 +78,6 @@ try:
     )
 except ImportError:
     # Fall back to absolute imports (when run directly)
-    from pathlib import Path
-
     # Add parent directory to path
     sys.path.insert(0, str(Path(__file__).parent))
 
@@ -274,6 +273,76 @@ def check_claude_version() -> tuple[bool, str | None]:
         _log(f"Warning: Could not detect Claude Code version: {e}")
 
     return False, None
+
+
+# ==============================================================================
+# Disk-cached version check
+# ==============================================================================
+# WHY: main() runs as a fresh subprocess on every hook invocation. A module-level
+# cache does not persist between invocations, so check_claude_version() would
+# spawn `claude --version` on every hook call. Spawning the claude binary inside
+# an active Claude Code session causes re-entrancy stalls/deadlocks.
+#
+# Fix: persist the result to ~/.claude-mpm/version_compat.json keyed by the
+# claude binary's mtime. Re-run only when the binary changes or the cache is
+# missing/corrupt.
+# ==============================================================================
+_COMPAT_CACHE_PATH = Path.home() / ".claude-mpm" / "version_compat.json"
+
+
+def _cached_check_claude_version() -> tuple[bool, str | None]:
+    """Check Claude version with a disk cache keyed by binary mtime.
+
+    Avoids spawning `claude --version` on every hook invocation, which causes
+    re-entrancy stalls inside an active Claude Code session.
+
+    Returns:
+        Tuple[bool, Optional[str]]: (compatible, version)
+    """
+    try:
+        import shutil
+        import time
+
+        # Find the claude binary
+        claude_bin = shutil.which("claude")
+        if not claude_bin:
+            # Can't find binary - assume OK to avoid blocking hooks
+            return True, "unknown"
+
+        bin_mtime = Path(claude_bin).stat().st_mtime
+
+        # Try to read the cache
+        if _COMPAT_CACHE_PATH.exists():
+            try:
+                cached = json.loads(_COMPAT_CACHE_PATH.read_text())
+                if cached.get("mtime") == bin_mtime:
+                    return cached["compatible"], cached.get("version", "unknown")
+            except Exception:  # nosec B110 - corrupt cache, fall through to re-check
+                pass
+
+        # Cache miss or stale - run the real version check
+        compatible, version = check_claude_version()
+
+        # Write the cache for subsequent invocations
+        try:
+            _COMPAT_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _COMPAT_CACHE_PATH.write_text(
+                json.dumps(
+                    {
+                        "mtime": bin_mtime,
+                        "compatible": compatible,
+                        "version": version,
+                        "checked_at": time.time(),
+                    }
+                )
+            )
+        except Exception:  # nosec B110 - cache write failure is non-fatal
+            pass
+
+        return compatible, version
+    except Exception:  # nosec B110 - on any error, assume compatible
+        # Never block hook execution on a version-check failure
+        return True, "unknown"
 
 
 class ClaudeHookHandler:
@@ -607,6 +676,28 @@ class ClaudeHookHandler:
                     error_message=error_message,
                 )
 
+            # Safe fallback for PermissionRequest events.
+            # WHY: if handle_permission_request_fast returns None (e.g. import
+            # error or unhandled path), the normal flow falls back to
+            # {"continue": true}. Claude Code requires a proper allow/deny
+            # payload for PermissionRequest events and will hang waiting for a
+            # valid response. Emit an explicit allow decision instead of
+            # leaving Claude Code hanging.
+            if hook_type == "PermissionRequest" and return_value is None:
+                print(
+                    json.dumps(
+                        {
+                            "allow": True,
+                            "hookSpecificOutput": {
+                                "decision": "allow",
+                                "reason": "hook fallback",
+                            },
+                        }
+                    ),
+                    flush=True,
+                )
+                sys.exit(0)
+
             return return_value
 
         return None
@@ -822,8 +913,11 @@ def main():
     global _global_handler
     _continue_printed = False  # Track if we've already printed continue
 
-    # Check Claude Code version compatibility first
-    is_compatible, version = check_claude_version()
+    # Check Claude Code version compatibility first.
+    # Use the disk-cached variant: main() is a fresh subprocess on every hook
+    # invocation, so spawning `claude --version` each time would cause
+    # re-entrancy stalls inside an active Claude Code session.
+    is_compatible, version = _cached_check_claude_version()
     if not is_compatible:
         # Version incompatible - just continue without processing
         # This prevents errors on older Claude Code versions
@@ -864,7 +958,17 @@ def main():
         handler.handle()
         _continue_printed = True  # Mark as printed since handle() always prints it
 
-        # handler.handle() already calls _continue_execution(), so we don't need to do it again
+        # handler.handle() already calls _continue_execution(), so we don't need to do it again.
+        # Explicitly shut down the HTTP executor with wait=False BEFORE sys.exit.
+        # WHY: Python's atexit shuts ThreadPoolExecutor down with wait=True,
+        # which blocks up to 2s (HTTP timeout) on every hook exit when the
+        # dashboard server is not running. Explicit non-blocking cleanup here
+        # prevents that hang.
+        try:
+            handler.connection_manager.cleanup()
+        except Exception:  # nosec B110 - cleanup failure must not block exit
+            pass
+
         # Just exit cleanly
         sys.exit(0)
 
@@ -873,6 +977,12 @@ def main():
         if not _continue_printed:
             print(json.dumps({"continue": True}), flush=True)
             _continue_printed = True
+        # Best-effort non-blocking executor cleanup to prevent atexit join hang
+        try:
+            if _global_handler is not None:
+                _global_handler.connection_manager.cleanup()
+        except Exception:  # nosec B110 - cleanup failure must not block exit
+            pass
         # Log error for debugging
         _log(f"Hook handler error: {e}")
         sys.exit(0)  # Exit cleanly even on error
