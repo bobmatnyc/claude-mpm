@@ -362,10 +362,14 @@ def message_check_hook() -> str | None:
 
 
 if __name__ == "__main__":
+    import select as _select
     import sys
 
-    # Read stdin (Claude Code sends hook JSON there, but we don't need it)
-    sys.stdin.read()
+    # Read stdin (Claude Code sends hook JSON there, but we don't need it).
+    # Guard the read with select so a pipe that never reaches EOF cannot
+    # block this hook until the Claude Code hook timeout.
+    if not sys.stdin.isatty() and _select.select([sys.stdin], [], [], 1.0)[0]:
+        sys.stdin.read()
 
     result = message_check_hook()
 
