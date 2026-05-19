@@ -40,7 +40,7 @@ class MessagingDatabase:
     @contextmanager
     def get_connection(self):
         """Get a database connection with proper handling."""
-        conn = sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path), timeout=1.0)
         conn.row_factory = sqlite3.Row
         try:
             # Enable WAL mode for concurrent access
