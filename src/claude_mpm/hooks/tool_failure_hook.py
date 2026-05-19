@@ -51,6 +51,15 @@ def _append_entry(entry: dict) -> None:
 
 def main() -> None:
     """Read a failure event from stdin, log it, and emit a continue signal."""
+    import select as _select
+
+    # Guard the stdin read with select: json.load blocks until EOF, so a pipe
+    # that is never cleanly closed would hang until the Claude Code hook
+    # timeout. If no data is ready within the window, continue gracefully.
+    if sys.stdin.isatty() or not _select.select([sys.stdin], [], [], 2.0)[0]:
+        print(json.dumps({"continue": True}), flush=True)
+        sys.exit(0)
+
     try:
         event = json.load(sys.stdin)
         if not isinstance(event, dict):
