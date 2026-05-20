@@ -440,6 +440,15 @@ def execute_command(command: str, args) -> int:
             args.days = 0
         return run_ztk_stats(args)
 
+    # Handle llmlingua-stats command with lazy import (experimental)
+    if command == "llmlingua-stats":
+        from .commands.llmlingua_stats import run_llmlingua_stats
+
+        # --all-time flag is shorthand for --days 0
+        if getattr(args, "all_time", False):
+            args.days = 0
+        return run_llmlingua_stats(args)
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
@@ -503,6 +512,7 @@ def execute_command(command: str, args) -> int:
         "provider",
         "update-statusline",
         "ztk-stats",
+        "llmlingua-stats",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)
