@@ -1,3 +1,20 @@
+## v6.3.19 (2026-05-20)
+
+### Feat
+
+- **migrations**: use _mpm marker as primary hook identification in v6.3.19
+- **templates**: add _mpm:true marker to all hook entries in settings template
+- **migrations**: register v6.3.19 hooks-to-project-level migration
+- **migrations**: add v6.3.19 migration to move hooks to project-level
+- **templates**: expand canonical settings.json with full hook set
+
+### Refactor
+
+- **hooks**: tag MPM hook commands with _mpm:true in HookInstallerService
+- **hooks**: tag MPM hook commands with _mpm:true marker
+- **hooks**: write hooks to settings.json in HookInstallerService
+- **hooks**: write project-level hooks to settings.json
+
 ## v6.3.18 (2026-05-18)
 
 ### Fix
