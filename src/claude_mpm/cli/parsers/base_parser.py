@@ -889,6 +889,14 @@ def create_parser(
             add_ztk_stats_parser(subparsers)
         except ImportError:
             pass
+
+        # Add llmlingua-stats command (experimental LLMLingua-2 compression)
+        try:
+            from ..commands.llmlingua_stats import add_llmlingua_stats_parser
+
+            add_llmlingua_stats_parser(subparsers)
+        except ImportError:
+            pass
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
