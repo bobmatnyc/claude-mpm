@@ -11,10 +11,13 @@ Previously, ``HookInstaller`` wrote MPM hooks to ``.claude/settings.local.json``
 and merges them into ``<project>/.claude/settings.json``, deduplicating by
 ``event + command`` so re-running the migration is idempotent.
 
-A hook entry is considered an "MPM hook" if its ``command`` (or any of its
-``args``) contains one of: ``claude-hook``, ``claude-hook-fast``,
-``claude-hook-handler``, ``message_check_hook``, ``tool_failure_hook``, or
-``claude_mpm``.
+A hook entry is considered an "MPM hook" if it has ``"_mpm": True`` set
+(the authoritative marker written by the installer as of this change). For
+backward compatibility with hooks written before this marker was introduced,
+the migration also falls back to substring matching: a hook is considered
+MPM if its ``command`` (or any of its ``args``) contains one of:
+``claude-hook``, ``claude-hook-fast``, ``claude-hook-handler``,
+``message_check_hook``, ``tool_failure_hook``, or ``claude_mpm``.
 
 When MPM hooks are successfully moved out of ``settings.local.json``, this
 migration also strips ``"disableAllHooks": true`` from that file (it was a
@@ -40,12 +43,27 @@ _MPM_HOOK_MARKERS: tuple[str, ...] = (
 
 
 def _is_mpm_hook_command(hook_cmd: dict[str, Any]) -> bool:
-    """Return True if a single hook command dict belongs to claude-mpm."""
+    """Return True if a single hook command dict belongs to claude-mpm.
+
+    Identification strategy:
+    1. Primary: ``hook_cmd["_mpm"] is True`` — the authoritative marker
+       written by the installer for all new hook entries.
+    2. Legacy fallback: substring-match the ``command`` field (and any
+       string entries in ``args``) against a known list of MPM markers.
+       This keeps the migration idempotent for hooks written before the
+       ``_mpm`` marker was introduced.
+    """
     if not isinstance(hook_cmd, dict):
         return False
     if hook_cmd.get("type") != "command":
         return False
 
+    # Primary: explicit marker is the certain signal.
+    if hook_cmd.get("_mpm") is True:
+        return True
+
+    # Legacy fallback: substring matching for hooks written before the
+    # ``_mpm`` marker was introduced.
     command = str(hook_cmd.get("command", ""))
     if any(marker in command for marker in _MPM_HOOK_MARKERS):
         return True
