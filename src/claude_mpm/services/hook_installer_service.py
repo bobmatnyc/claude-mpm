@@ -24,9 +24,11 @@ class HookInstallerService:
         # This ensures hooks are scoped to the current project only
         self.project_root = Path.cwd()
         self.claude_dir = self.project_root / ".claude"
-        # Use settings.local.json for project-level hook settings
-        # Claude Code reads project-level settings from .claude/settings.local.json
-        self.settings_file = self.claude_dir / "settings.local.json"
+        # Use settings.json for project-level (team-shared, checked-in) hook settings.
+        # Previously this service wrote to settings.local.json; writing to settings.json
+        # keeps MPM hooks consistent with the project-level HookInstaller and allows
+        # hooks to be shared across the team.
+        self.settings_file = self.claude_dir / "settings.json"
 
     def is_hooks_configured(self) -> bool:
         """Check if hooks are configured in Claude settings.
