@@ -1,3 +1,32 @@
+## v6.3.20 (2026-05-20)
+
+### Feat
+
+- **migrations**: use _mpm marker as primary hook identification in v6.3.19
+- **templates**: add _mpm:true marker to all hook entries in settings template
+- **migrations**: register v6.3.19 hooks-to-project-level migration
+- **migrations**: add v6.3.19 migration to move hooks to project-level
+- **templates**: expand canonical settings.json with full hook set
+
+### Fix
+
+- **hooks**: guard tool_failure_hook stdin read with select
+- **hooks**: use git -C instead of os.chdir for branch lookup
+- **hooks**: remove duplicate inline message_check_hook call
+- **hooks**: guard message_check_hook stdin read with select
+- **hooks**: add 1s connect timeout to messaging SQLite
+- **hooks**: add asyncio timeout to task delegation log call
+- **hooks**: cache check_claude_version to disk to prevent re-entrancy hang
+- **hooks**: shutdown http executor with wait=False to prevent exit block
+- statusline reads project outputStyle before falling back to global
+
+### Refactor
+
+- **hooks**: tag MPM hook commands with _mpm:true in HookInstallerService
+- **hooks**: tag MPM hook commands with _mpm:true marker
+- **hooks**: write hooks to settings.json in HookInstallerService
+- **hooks**: write project-level hooks to settings.json
+
 ## v6.3.19 (2026-05-20)
 
 ### Feat

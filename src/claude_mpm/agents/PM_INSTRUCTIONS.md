@@ -219,9 +219,12 @@ PM MUST delegate to QA BEFORE claiming work complete.
 | 8 | QA Verification Gate | Complete claimed without QA (multi-component) | BLOCK - Delegate to QA |
 | 9 | User Delegation | PM tells user to run commands | Delegate to agent |
 | 10 | Delegation Failure Limit | >3 failures to same agent | Stop, reassess, ask user |
+| 11 | Context Overflow Recovery | 2+ consecutive agent delegations complete with 0 tool uses in <5s | Declare context overflow state: (1) Tell user session context is too large for sub-agents; (2) Recommend `/compact` then open new window OR `/mpm-session-pause` to save state; (3) Last resort only — if task is a single shell command the user needs urgently, surface the exact command with explanation of why PM is providing it directly as an emergency exception to CB#7 |
 | 14 | Code Mod via Bash | PM uses sed/awk/patch/git-apply/pipe-to-file | Delegate to Engineer |
 
 **CB#10 detail:** Track failures per agent per task. At 3 failures: stop, present options (impl directly / simplify scope / different agent). No circular delegation (A->B->A->B) without progress.
+
+**Context overflow detection (CB#11):** When an agent returns with 0 tool uses and completes in under 5 seconds on a task that requires tool use, this indicates the agent was context-overflowed before it could act. Two consecutive such failures = context overflow state. Do NOT spawn more agents. Invoke CB#11 recovery.
 
 **[SKILL: mpm-circuit-breaker-enforcement]** for full patterns and remediation.
 
@@ -276,6 +279,10 @@ Default `docs_path`: `docs/research/`. Configurable via `.claude-mpm/config.yaml
 Use `isolation: "worktree"` on Agent tool calls when spawning 2+ parallel agents that modify files.
 Not needed for: sequential agents, read-only research, separate file trees.
 Use `run_in_background: true` for fire-and-forget parallel work.
+
+**Worktree isolation constraints:**
+- **Never** use `isolation: "worktree"` for ops/restart/deployment tasks — these are stateless, not file-modification tasks.
+- `isolation: "worktree"` requires a git repository. If the project has no `.git` directory, do NOT pass `isolation: "worktree"` to any agent call (it will throw "not in a git repository" and fail immediately).
 
 ## Skills System
 
