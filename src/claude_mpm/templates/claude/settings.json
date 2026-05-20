@@ -1,6 +1,6 @@
 {
   "_mpm_managed": true,
-  "_mpm_version": "6.3.3",
+  "_mpm_version": "6.3.19",
   "autoMemoryEnabled": true,
   "statusLine": {
     "type": "command",
@@ -9,6 +9,55 @@
     "refreshInterval": 10
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.tool_failure_hook"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "StopFailure": [
       {
         "matcher": "*",
@@ -21,14 +70,26 @@
         ]
       }
     ],
-    "PostCompact": [
+    "SubagentStop": [
       {
         "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "claude-hook-fast.sh PostCompact",
-            "timeout": 60
+            "command": "claude-hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15
           }
         ]
       }
@@ -40,6 +101,53 @@
           {
             "type": "command",
             "command": "claude-hook-fast.sh SessionEnd",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["-m", "claude_mpm.hooks.message_check_hook"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude-hook-fast.sh PostCompact",
             "timeout": 60
           }
         ]
