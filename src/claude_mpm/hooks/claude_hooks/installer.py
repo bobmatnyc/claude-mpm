@@ -219,12 +219,14 @@ main "$@"
         self.project_root = Path.cwd()
         self.claude_dir = self.project_root / ".claude"
         self.hooks_dir = self.claude_dir / "hooks"  # Kept for backward compatibility
-        # Use settings.local.json for project-level hook settings
-        # Claude Code reads project-level settings from .claude/settings.local.json
-        self.settings_file = self.claude_dir / "settings.local.json"
-        # There is no legacy settings file - this was a bug where both pointed to same file
-        # Setting to None to disable cleanup that was deleting freshly installed hooks
-        self.old_settings_file = None
+        # Use settings.json for project-level (team-shared, checked-in) hook settings.
+        # Previously hooks were written to settings.local.json (user-local, git-ignored),
+        # but writing to settings.json makes hooks team-shared so different projects
+        # can use different harnesses while sharing a base configuration.
+        self.settings_file = self.claude_dir / "settings.json"
+        # settings.local.json is the legacy hook location; clean up any MPM hooks
+        # left there so they don't conflict with the project-level settings.json.
+        self.old_settings_file = self.claude_dir / "settings.local.json"
         self._claude_version: str | None = None
         self._hook_script_path: Path | None = None
 
