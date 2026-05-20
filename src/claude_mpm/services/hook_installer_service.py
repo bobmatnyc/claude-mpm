@@ -330,10 +330,14 @@ class HookInstallerService:
             # Configure hooks with async timeout
             # The hook script returns {"async": true} for non-blocking execution
             # timeout: 60 seconds max wait for initial response (async returns immediately)
+            # The "_mpm": True marker is the authoritative signal that this
+            # hook belongs to claude-mpm (used by the v6_3_19 migration to
+            # identify MPM hooks; substring matching is only a legacy fallback).
             new_hook_command = {
                 "type": "command",
                 "command": hook_script_path,
                 "timeout": 60,
+                "_mpm": True,
             }
 
             # Update settings
