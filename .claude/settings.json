@@ -7,7 +7,14 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       }
@@ -19,7 +26,14 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       }
@@ -31,8 +45,12 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["-m", "claude_mpm.hooks.tool_failure_hook"],
-            "timeout": 5
+            "args": [
+              "-m",
+              "claude_mpm.hooks.tool_failure_hook"
+            ],
+            "timeout": 5,
+            "_mpm": true
           }
         ]
       }
@@ -44,7 +62,14 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       }
@@ -56,7 +81,14 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       }
@@ -68,7 +100,8 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
           }
         ]
       }
@@ -80,7 +113,14 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       },
@@ -90,8 +130,12 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["-m", "claude_mpm.hooks.message_check_hook"],
-            "timeout": 10
+            "args": [
+              "-m",
+              "claude_mpm.hooks.message_check_hook"
+            ],
+            "timeout": 10,
+            "_mpm": true
           }
         ]
       }
@@ -103,7 +147,8 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15
+            "timeout": 15,
+            "_mpm": true
           }
         ]
       }
