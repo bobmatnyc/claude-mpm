@@ -853,8 +853,13 @@ main "$@"
         if "hooks" not in settings:
             settings["hooks"] = {}
 
-        # Hook configuration for each event type
-        hook_command = {"type": "command", "command": hook_cmd}
+        # Hook configuration for each event type.
+        # The "_mpm": True marker is the authoritative signal that this hook
+        # belongs to claude-mpm. The migration in
+        # ``migrations/v6_3_19_hooks_to_project_level.py`` uses this marker as
+        # the primary identifier, with substring matching only as a legacy
+        # fallback for hooks written before this marker was introduced.
+        hook_command = {"type": "command", "command": hook_cmd, "_mpm": True}
 
         def is_our_hook(cmd: dict) -> bool:
             """Check if a hook command belongs to claude-mpm."""
