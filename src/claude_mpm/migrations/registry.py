@@ -169,6 +169,17 @@ def _run_trusty_autodetect_migration() -> bool:
     return run_migration()
 
 
+def _run_hooks_to_project_level_migration() -> bool:  # pyright: ignore[unused-function]
+    """Move MPM hooks from settings.local.json (and ~/.claude/settings.json) into project settings.json."""
+    from pathlib import Path
+
+    from .v6_3_19_hooks_to_project_level import (
+        run_migration,  # type: ignore[import-untyped]  # fmt: skip
+    )
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -267,6 +278,12 @@ MIGRATIONS: list[Migration] = [
         description="Auto-detect and configure trusty-search/trusty-memory MCP servers",
         run=_run_trusty_autodetect_migration,
         run_always=True,
+    ),
+    Migration(
+        id="v6_3_19_hooks_to_project_level",
+        version="6.3.19",
+        description="Move MPM hooks from settings.local.json to project-level settings.json for team-shared hook configuration",
+        run=_run_hooks_to_project_level_migration,
     ),
 ]
 
