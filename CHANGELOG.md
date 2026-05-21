@@ -1,3 +1,12 @@
+## Unreleased
+
+### Added
+
+- Code Contracts capability for engineer agents: preconditions, postconditions, invariants via `icontract` (Python), guard functions (JS/TS), `debug_assert!` (Rust), Guava (Java)
+- Contract-driven testing for QA agents: three-level pyramid (contract-targeted unit tests, property-based tests via `hypothesis`/`fast-check`, precondition violation tests)
+
+---
+
 ## v6.3.20 (2026-05-20)
 
 ### Feat
