@@ -1,11 +1,14 @@
-## Unreleased
+## v6.4.0 (2026-05-21)
 
-### Added
+### Feat
 
-- Code Contracts capability for engineer agents: preconditions, postconditions, invariants via `icontract` (Python), guard functions (JS/TS), `debug_assert!` (Rust), Guava (Java)
-- Contract-driven testing for QA agents: three-level pyramid (contract-targeted unit tests, property-based tests via `hypothesis`/`fast-check`, precondition violation tests)
-
----
+- **agents**: add contract-driven testing to code-critic QA agent
+- **agents**: add Code Contracts authoring to BASE_ENGINEER.md
+- **cli**: register llmlingua-stats parser in base parser
+- **cli**: register llmlingua-stats CLI command dispatch
+- **cli**: add llmlingua-stats command for compression metrics
+- **hooks**: wire LLMLingua-2 hook into PostToolUse dispatcher
+- **hooks**: add LLMLingua-2 PostToolUse compression hook (experiment)
 
 ## v6.3.20 (2026-05-20)
 
