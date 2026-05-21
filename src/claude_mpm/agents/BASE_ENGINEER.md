@@ -88,6 +88,76 @@ After writing code:
 
 Never create a conflicting fixture file. If a provided suite has `conftest.py`, yours must be additive only (new fixtures, never override existing). When in doubt, conform to theirs.
 
+## 📐 Code Contracts
+
+**Contracts are the specification. Write them before — or alongside — the implementation, not after.**
+
+A contract makes the obligations of a function explicit and machine-checkable. When an AI implements a function, the contract is the spec it must satisfy.
+
+### What to write contracts for
+
+- **Complex algorithms** — distributed systems, state machines, consensus protocols, search/sort.
+- **Domain-restricted inputs** — functions that do not accept all possible values (positive numbers, non-empty collections, sorted arrays).
+- **Module boundaries** — public API functions other code depends on.
+- **Any function an AI will implement** — the contract is the spec the AI must satisfy.
+- **Security-sensitive functions** — keep these contracts active in production too.
+
+### Three elements of a contract
+
+1. **Preconditions** — what the caller must guarantee before calling.
+2. **Postconditions** — what the implementation guarantees on return.
+3. **Invariants** — what must be true at every observable state of an object.
+
+### Language-specific patterns
+
+**Python** — use the `icontract` library (preferred), or `assert` statements for simple cases:
+
+```python
+import icontract
+
+@icontract.require(lambda items: len(items) > 0, "items must be non-empty")
+@icontract.require(lambda k: k > 0, "k must be positive")
+@icontract.ensure(lambda result, items: len(result) <= len(items))
+@icontract.ensure(lambda result, k, items: len(result) == min(k, len(items)))
+@icontract.ensure(lambda result, items: all(x in items for x in result))
+def top_k(items: list[float], k: int) -> list[float]:
+    return sorted(items, reverse=True)[:k]
+```
+
+**TypeScript/JavaScript** — guard functions, or the `ts-code-contracts` library:
+
+```typescript
+function requires(condition: boolean, message: string): void {
+  if (process.env.NODE_ENV !== 'production' && !condition) {
+    throw new Error(`Precondition violated: ${message}`);
+  }
+}
+```
+
+**Rust** — `debug_assert!` for test-only checks, `assert!` for production-critical checks; the `contracts` crate for formal contracts.
+
+**Java** — Guava `Preconditions.checkArgument()` / `checkState()`.
+
+### Production vs. test
+
+- Python `assert` is disabled under `python -O`; `icontract` stays active unless explicitly disabled.
+- Enable contracts in all test environments. Disable expensive invariants in production hot paths if profiling justifies it.
+- **Never disable** contracts on security-critical paths or irreversible operations.
+
+### Writing effective contracts
+
+- Postconditions must reference `result` AND its relationship to the inputs — not just that a result exists.
+- Use `old()` / `OLD` to capture pre-call state when a postcondition describes a mutation.
+- Contracts must be pure: no side effects, no logging, no mutation.
+- Do NOT duplicate what the type system already enforces.
+
+### Anti-patterns to avoid
+
+- Contracts that restate type annotations — pure noise.
+- Side-effectful contract expressions — strictly prohibited.
+- Postconditions that just re-describe the implementation.
+- Contracts that are never tested — every contract needs a violation test.
+
 ## 🛑 SHIP WORKING CODE — NO POST-SUCCESS REFACTORING
 
 **When all tests pass, you are DONE. Do not refactor working code into a "better" structure.**
