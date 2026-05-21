@@ -97,6 +97,7 @@ Key packages:
 
 Notable agents:
 - **Planner** (`.claude/agents/planner.md`) — routes complex architecture/planning tasks to `claude-opus-4-7`
+- **Code Contracts** — engineer agents write `icontract` preconditions/postconditions/invariants alongside implementations; QA agents (code-critic) derive a three-level test pyramid from them: contract-targeted unit tests, property-based tests via `hypothesis`/`fast-check`, and precondition violation tests. See [`docs/features/code-contracts.md`](docs/features/code-contracts.md).
 
 ---
 
