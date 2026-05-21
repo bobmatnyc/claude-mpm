@@ -39,6 +39,7 @@ claude-mpm run --monitor
 - **[Delegation Hook Summary](features/delegation/delegation-hook-summary.md)** - Summary of delegation hooks
 
 #### Other Features
+- **[Code Contracts](features/code-contracts.md)** - Preconditions, postconditions, invariants and the engineer/QA contract-driven testing workflow
 - **[Incremental Pause Workflow](features/incremental-pause-workflow.md)** - Workflow for incremental development
 - **[AutoTodos Architecture](features/autotodos-architecture.md)** - Architecture of AutoTodos feature
 - **[AutoTodos](features/autotodos.md)** - AutoTodos feature overview
