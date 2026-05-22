@@ -63,6 +63,7 @@ def add_doctor_parser(subparsers):
             "agents",
             "agent-sources",
             "mcp",
+            "memory-capture",
             "monitor",
             "common",
         ],
