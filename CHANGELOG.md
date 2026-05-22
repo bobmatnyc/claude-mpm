@@ -1,3 +1,9 @@
+## v6.4.1 (2026-05-22)
+
+### Fix
+
+- **trusty**: fix trusty-memory port detection (3038 → 7070) and replace palace CLI with HTTP API
+
 ## v6.4.0 (2026-05-21)
 
 ### Feat

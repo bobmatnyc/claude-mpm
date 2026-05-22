@@ -294,6 +294,29 @@ class TrustyMixin:
             pass
         return "http://127.0.0.1:7878"
 
+    @staticmethod
+    def _trusty_memory_base_url() -> str:
+        """Discover the running trusty-memory daemon's base URL.
+
+        Why: trusty-memory writes its bound address to ``~/.trusty-memory/http_addr``
+        (same pattern as trusty-search). Hardcoding a port causes silent failures
+        when the daemon picks a different address.
+        What: reads ``~/.trusty-memory/http_addr`` and returns
+        ``http://<host>:<port>``; falls back to ``http://127.0.0.1:7070``
+        when the file is missing or unreadable.
+        Test: with ``~/.trusty-memory/http_addr`` containing ``127.0.0.1:7070``
+        → returns ``http://127.0.0.1:7070``; with the file absent →
+        returns ``http://127.0.0.1:7070``.
+        """
+        addr_file = Path.home() / ".trusty-memory" / "http_addr"
+        try:
+            addr = addr_file.read_text(encoding="utf-8").strip()
+            if addr:
+                return f"http://{addr}"
+        except OSError:
+            pass
+        return "http://127.0.0.1:7070"
+
     # ------------------------------------------------------------------
     # Hook injection (Claude Code settings.json)
     # ------------------------------------------------------------------
@@ -626,12 +649,29 @@ class TrustyMixin:
     def _setup_trusty_memory(self, args) -> CommandResult:
         """Set up trusty-memory Rust AI memory daemon.
 
+        Why: trusty-memory provides persistent AI memory palaces keyed to
+        projects; without a correctly-running daemon and matching palace,
+        all MCP memory calls silently fail.
+        What: installs the binary, ensures the daemon is reachable via its
+        HTTP API (port 7070 / dynamic via ~/.trusty-memory/http_addr), creates
+        the project palace via REST if absent, wires the MCP stdio entry into
+        .mcp.json, then injects claude-hook SessionStart/Stop/SubagentStop hooks.
+        Test: run ``claude-mpm setup trusty-memory`` in a project directory and
+        verify (a) the palace appears via GET /api/v1/palaces, (b) .mcp.json
+        contains the trusty-memory entry, and (c) settings.json contains the
+        SessionStart hook entry tagged with ``_mpm_service: trusty-memory``.
+
         Steps:
         1. Install via cargo (or cargo-binstall) if missing.
-        2. Ensure daemon is running (launchd plist).
-        3. Create palace named after current project directory.
+        2. Ensure daemon is running (launchd plist + HTTP health check).
+        3. Create palace named after current project via HTTP API.
         4. Write ``.mcp.json`` entry pointing at ``trusty-memory serve --mcp``.
+        5. Inject SessionStart/Stop/SubagentStop hooks via claude-hook architecture.
         """
+        import json as _json
+        import urllib.error
+        import urllib.request
+
         console.print("\n[bold cyan]Trusty Memory MCP Setup[/bold cyan]")
         console.print(
             "Installs trusty-memory (Rust AI memory daemon) and creates a "
@@ -645,8 +685,11 @@ class TrustyMixin:
 
         binary_path = self._cargo_bin_path("trusty-memory")
 
-        # 2. Ensure daemon running. trusty-memory exposes `status` rather than
-        #    a documented /health endpoint; use the CLI for detection.
+        # 2. Ensure daemon running.  Prefer HTTP health check on the discovery
+        #    URL; fall back to launchd if unreachable.
+        base_url = self._trusty_memory_base_url()
+        health_url = f"{base_url}/health"
+
         # NOTE: `trusty-memory status` can hang when the daemon is wedged or
         # being started; we MUST tolerate the timeout instead of letting
         # subprocess.TimeoutExpired bubble up as a generic "Command failed"
@@ -663,17 +706,19 @@ class TrustyMixin:
             daemon_healthy = status_result.returncode == 0 and (
                 "healthy" in status_result.stdout.lower()
                 or "ok" in status_result.stdout.lower()
-                or self._http_health_check("http://127.0.0.1:3038/health")
+                or self._http_health_check(health_url)
             )
         except subprocess.TimeoutExpired:
             console.print(
                 "[yellow]⚠ `trusty-memory status` timed out — assuming daemon "
                 "is not healthy and will (re)load the launchd agent.[/yellow]"
             )
-            daemon_healthy = self._http_health_check("http://127.0.0.1:3038/health")
+            daemon_healthy = self._http_health_check(health_url)
 
         if daemon_healthy:
-            console.print("[green]✓ trusty-memory daemon already running[/green]")
+            console.print(
+                f"[green]✓ trusty-memory daemon already running at {base_url}[/green]"
+            )
         else:
             console.print(
                 "[cyan]Daemon not running — installing persistent launchd agent...[/cyan]"
@@ -681,38 +726,85 @@ class TrustyMixin:
             plist_path = self._write_launchd_plist(
                 label="com.bobmatnyc.trusty-memory",
                 binary_path=binary_path,
-                args=["serve", "--http", "127.0.0.1:3038"],
+                args=["serve"],
                 stdout_path="/tmp/trusty-memory.log",  # nosec B108
                 stderr_path="/tmp/trusty-memory-error.log",  # nosec B108
             )
             self._ensure_launchd_loaded("com.bobmatnyc.trusty-memory", plist_path)
 
-        # 3. Create palace (named after project directory)
+            # Re-discover address after daemon start; poll until healthy.
+            import time
+
+            confirmed = False
+            for _ in range(10):
+                time.sleep(0.5)
+                base_url = self._trusty_memory_base_url()
+                health_url = f"{base_url}/health"
+                if self._http_health_check(health_url):
+                    confirmed = True
+                    break
+            if not confirmed:
+                console.print(
+                    f"[yellow]⚠ Could not confirm daemon health on "
+                    f"{base_url} — continuing anyway. "
+                    f"Check /tmp/trusty-memory-error.log if MCP calls fail.[/yellow]"
+                )
+
+        # 3. Create palace via HTTP API (the binary has no `palace` subcommand).
         palace_name = Path.cwd().name
         console.print(f"[cyan]Ensuring palace exists: {palace_name}[/cyan]")
-        # `palace new` is idempotent-ish; we tolerate "already exists" by
-        # falling back to `palace info`.
-        new_result = subprocess.run(
-            [binary_path, "palace", "new", palace_name],
-            check=False,
-            capture_output=True,
-            text=True,
-        )  # nosec B603 B607
-        if new_result.returncode == 0:
-            console.print(f"[green]✓ Created palace: {palace_name}[/green]")
+
+        palaces_url = f"{base_url}/api/v1/palaces"
+        palace_found = False
+        try:
+            req = urllib.request.Request(palaces_url, method="GET")  # nosec B310
+            with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+                raw = resp.read().decode("utf-8")
+                data = _json.loads(raw)
+                palace_list = (
+                    data if isinstance(data, list) else data.get("palaces", [])
+                )
+                for p in palace_list:
+                    if p.get("name", "").lower() == palace_name.lower():
+                        palace_found = True
+                        break
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            OSError,
+            _json.JSONDecodeError,
+        ) as exc:
+            console.print(
+                f"[yellow]⚠ Could not list palaces ({exc}); "
+                "will attempt to create anyway.[/yellow]"
+            )
+
+        if palace_found:
+            console.print(f"[green]✓ Palace already exists: {palace_name}[/green]")
         else:
-            info_result = subprocess.run(
-                [binary_path, "palace", "info", "--palace", palace_name],
-                check=False,
-                capture_output=True,
-                text=True,
-            )  # nosec B603 B607
-            if info_result.returncode == 0:
-                console.print(f"[green]✓ Palace already exists: {palace_name}[/green]")
-            else:
+            try:
+                body = _json.dumps(
+                    {
+                        "name": palace_name,
+                        "description": "Claude Code session memory for project",
+                    }
+                ).encode("utf-8")
+                req = urllib.request.Request(  # nosec B310
+                    palaces_url,
+                    data=body,
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+                    if 200 <= resp.status < 300:
+                        console.print(f"[green]✓ Created palace: {palace_name}[/green]")
+                    else:
+                        console.print(
+                            f"[yellow]⚠ Palace creation returned HTTP {resp.status}[/yellow]"
+                        )
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 console.print(
-                    f"[yellow]⚠ Could not create or verify palace: "
-                    f"{new_result.stderr.strip() or info_result.stderr.strip()}[/yellow]"
+                    f"[yellow]⚠ Could not create palace '{palace_name}': {exc}[/yellow]"
                 )
 
         # 4. Write .mcp.json entry (with rollback on failure)
@@ -723,7 +815,7 @@ class TrustyMixin:
                 mcp_config["mcpServers"]["trusty-memory"] = {
                     "type": "stdio",
                     "command": "trusty-memory",
-                    "args": ["serve", "--mcp", "--palace", palace_name],
+                    "args": ["serve", "--mcp"],
                 }
                 self._save_mcp_config(mcp_config)
                 console.print("[green]✓ Added trusty-memory to .mcp.json[/green]")
@@ -737,7 +829,7 @@ class TrustyMixin:
         console.print(
             "\n[bold green]✓ trusty-memory setup complete![/bold green]\n"
             f"  • Palace: {palace_name}\n"
-            "  • Daemon HTTP: http://127.0.0.1:3038\n"
+            f"  • Daemon HTTP: {base_url}\n"
             "  • MCP server: stdio via `trusty-memory serve --mcp`\n"
             "  • Logs: /tmp/trusty-memory.log\n"
         )

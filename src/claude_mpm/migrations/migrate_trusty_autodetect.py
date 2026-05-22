@@ -22,7 +22,7 @@ Address discovery:
 
 Both ``trusty-search`` and ``trusty-memory`` use OS-chosen dynamic ports
 written to ``~/.trusty-<svc>/http_addr`` (format: ``host:port`` on a single
-line). Hardcoded ports (7878 / 3038) would cause the autodetect to silently
+line). Hardcoded ports (7878 / 7070) would cause the autodetect to silently
 fail whenever the daemons picked different ports. We mirror the discovery
 logic used by the ``claude-mpm setup trusty-*`` handlers: read the addr file
 when present, fall back to the legacy port only when the file is missing or
@@ -64,7 +64,7 @@ _SERVICES: tuple[dict[str, Any], ...] = (
         "name": "trusty-memory",
         "binary": "trusty-memory",
         "addr_file": Path.home() / ".trusty-memory" / "http_addr",
-        "fallback_addr": "127.0.0.1:3038",
+        "fallback_addr": "127.0.0.1:7070",
         "mcp_entry": {
             "type": "stdio",
             "command": "trusty-memory",
