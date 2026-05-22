@@ -182,6 +182,22 @@
             "_mpm": true
           }
         ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-m",
+              "claude_mpm.hooks.memory_capture"
+            ],
+            "timeout": 5,
+            "_mpm": true,
+            "_mpm_service": "memory-capture"
+          }
+        ]
       }
     ],
     "PermissionRequest": [
