@@ -1,3 +1,19 @@
+## v6.4.2 (2026-05-22)
+
+### Feat
+
+- add mpm-migrate catalog skill for migration wizard routing
+- add trusty-services migration subskill with install/verify scripts
+- add migration-wizard protocol skill with shared scripts
+- extend SkillManager with migration skill type support
+- register MigrationSkillsCheck in diagnostic runner
+- export MigrationSkillsCheck from diagnostics checks package
+- add MigrationSkillsCheck diagnostic for pending installation wizards
+- register check_migration_skills migration in registry (v6.4.1)
+- add startup migration to detect and surface pending migration skills
+- add user_choices_cli module for shell-accessible choice recording
+- add UserChoicesManager for tracking migration skill user decisions
+
 ## v6.4.1 (2026-05-22)
 
 ### Fix
