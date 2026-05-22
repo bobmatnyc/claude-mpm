@@ -100,6 +100,12 @@ class SkillManager:
     def _load_pm_skill(self, skill_file: Path) -> dict[str, Any] | None:
         """Load a single PM skill from SKILL.md file.
 
+        Recognizes ``type: migration`` frontmatter and extracts migration skill
+        fields (``state_key``, ``services``, ``recommended``, ``check_commands``)
+        when present. Migration skills are still returned as regular PM skill
+        dicts so existing prompt-injection code keeps working; the additional
+        fields are surfaced under ``is_migration`` / ``state_key`` / etc.
+
         Args:
             skill_file: Path to SKILL.md file
 
@@ -113,10 +119,10 @@ class SkillManager:
             if content.startswith("---"):
                 parts = content.split("---", 2)
                 if len(parts) >= 3:
-                    metadata = yaml.safe_load(parts[1])
+                    metadata = yaml.safe_load(parts[1]) or {}
                     body = parts[2].strip()
 
-                    return {
+                    skill_dict: dict[str, Any] = {
                         "name": metadata.get("name", skill_file.parent.name),
                         "version": metadata.get("version", "1.0.0"),
                         "description": metadata.get("description", ""),
@@ -124,10 +130,154 @@ class SkillManager:
                         "content": body,
                         "is_pm_skill": True,
                     }
+
+                    # Migration skill extension: parse additional fields when
+                    # ``type: migration`` is declared.
+                    if metadata.get("type") == "migration":
+                        skill_dict["is_migration"] = True
+                        skill_dict["state_key"] = metadata.get(
+                            "state_key", skill_dict["name"]
+                        )
+                        # Parent protocol reference (e.g. "migration-wizard").
+                        # Optional: subskills without an explicit protocol
+                        # inherit the default wizard behaviour.
+                        skill_dict["protocol"] = metadata.get("protocol")
+
+                        services = metadata.get("services", [])
+                        skill_dict["services"] = (
+                            list(services) if isinstance(services, list) else []
+                        )
+                        skill_dict["recommended"] = bool(
+                            metadata.get("recommended", True)
+                        )
+
+                        # Phase 1 detection commands.
+                        check_commands = metadata.get("check_commands", [])
+                        skill_dict["check_commands"] = (
+                            list(check_commands)
+                            if isinstance(check_commands, list)
+                            else []
+                        )
+
+                        # Phase 1 health checks (list of {url, service} dicts).
+                        health_checks = metadata.get("health_checks", [])
+                        skill_dict["health_checks"] = (
+                            list(health_checks)
+                            if isinstance(health_checks, list)
+                            else []
+                        )
+
+                        # Phase 2 system requirements.
+                        system_requirements = metadata.get("system_requirements")
+                        skill_dict["system_requirements"] = (
+                            dict(system_requirements)
+                            if isinstance(system_requirements, dict)
+                            else {}
+                        )
+
+                        # Phase 3 installation.
+                        install_commands = metadata.get("install_commands", [])
+                        skill_dict["install_commands"] = (
+                            list(install_commands)
+                            if isinstance(install_commands, list)
+                            else []
+                        )
+                        skill_dict["install_script"] = metadata.get("install_script")
+
+                        # Phase 4 verification.
+                        verify_commands = metadata.get("verify_commands", [])
+                        skill_dict["verify_commands"] = (
+                            list(verify_commands)
+                            if isinstance(verify_commands, list)
+                            else []
+                        )
+                        verify_scripts = metadata.get("verify_scripts", [])
+                        skill_dict["verify_scripts"] = (
+                            list(verify_scripts)
+                            if isinstance(verify_scripts, list)
+                            else []
+                        )
+
+                        # Phase 5 completion notes (free-form text).
+                        skill_dict["post_install_notes"] = metadata.get(
+                            "post_install_notes", ""
+                        )
+
+                    return skill_dict
         except Exception as e:
             logger.warning(f"Failed to load PM skill {skill_file}: {e}")
 
         return None
+
+    def get_migration_skills(
+        self, project_dir: Path | None = None
+    ) -> list[dict[str, Any]]:
+        """Return all migration-type skills (project + user level).
+
+        Args:
+            project_dir: Override project directory. Defaults to ``Path.cwd()``.
+
+        Returns:
+            List of migration skill dicts with ``is_migration=True``,
+            deduplicated by ``state_key`` (project-level wins over user-level).
+        """
+        search_dirs: list[Path] = []
+        if project_dir is None:
+            project_dir = Path.cwd()
+        search_dirs.append(project_dir / ".claude" / "skills")
+        search_dirs.append(Path.home() / ".claude-mpm" / "skills")
+        search_dirs.append(Path.home() / ".claude" / "skills")
+
+        seen: dict[str, dict[str, Any]] = {}
+        for search_dir in search_dirs:
+            if not search_dir.exists() or not search_dir.is_dir():
+                continue
+            try:
+                iterator = list(search_dir.iterdir())
+            except OSError:
+                continue
+            for skill_dir in iterator:
+                if not skill_dir.is_dir():
+                    continue
+                skill_file = skill_dir / "SKILL.md"
+                if not skill_file.exists():
+                    continue
+                skill = self._load_pm_skill(skill_file)
+                if not skill or not skill.get("is_migration"):
+                    continue
+                state_key = skill.get("state_key") or skill.get("name")
+                if state_key in seen:
+                    continue
+                seen[state_key] = skill
+
+        return list(seen.values())
+
+    def get_pending_migration_skills(
+        self, project_dir: Path | None = None
+    ) -> list[dict[str, Any]]:
+        """Return migration skills that are pending (not declined/completed).
+
+        Cross-references discovered migration skills against
+        :class:`UserChoicesManager` and the on-disk pending notification file
+        produced by the ``check_migration_skills`` startup migration.
+        """
+        # Local import to avoid circular dependency at module load time.
+        try:
+            from claude_mpm.migrations.user_choices import UserChoicesManager
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("UserChoicesManager unavailable: %s", exc)
+            return []
+
+        manager = UserChoicesManager()
+        all_migrations = self.get_migration_skills(project_dir=project_dir)
+        pending = []
+        for skill in all_migrations:
+            state_key = skill.get("state_key") or skill.get("name")
+            if not isinstance(state_key, str):
+                continue
+            if manager.is_pending(state_key):
+                pending.append(skill)
+        return pending
 
     def get_agent_skills(self, agent_type: str) -> list[Skill]:
         """
@@ -207,26 +357,77 @@ class SkillManager:
         else:
             skills = self.get_agent_skills(agent_type)
 
-        if not skills:
+        # Build pending migration recommendations section (PM agent only).
+        migration_section = ""
+        if agent_type.lower() in ("pm", "project-manager", "project_manager"):
+            try:
+                pending = self.get_pending_migration_skills()
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.debug("Could not load pending migration skills: %s", exc)
+                pending = []
+            if pending:
+                migration_section = self._format_pending_migrations(pending)
+
+        if not skills and not migration_section:
             return base_prompt
 
         # Build skills section
-        skills_section = "\n\n" + "=" * 80 + "\n"
-        skills_section += "## 🎯 Available Skills\n\n"
-        skills_section += f"You have access to {len(skills)} specialized skills:\n\n"
+        sections: list[str] = []
+        if skills:
+            skills_section = "\n\n" + "=" * 80 + "\n"
+            skills_section += "## Available Skills\n\n"
+            skills_section += (
+                f"You have access to {len(skills)} specialized skills:\n\n"
+            )
 
-        for skill in skills:
-            skills_section += f"### 📚 {skill.name.replace('-', ' ').title()}\n\n"
-            skills_section += f"**Source:** {skill.source}\n"
-            if skill.description:
-                skills_section += f"**Description:** {skill.description}\n"
-            skills_section += "\n```\n"
-            skills_section += skill.content
-            skills_section += "\n```\n\n"
+            for skill in skills:
+                skills_section += f"### {skill.name.replace('-', ' ').title()}\n\n"
+                skills_section += f"**Source:** {skill.source}\n"
+                if skill.description:
+                    skills_section += f"**Description:** {skill.description}\n"
+                skills_section += "\n```\n"
+                skills_section += skill.content
+                skills_section += "\n```\n\n"
 
-        skills_section += "=" * 80 + "\n"
+            skills_section += "=" * 80 + "\n"
+            sections.append(skills_section)
 
-        return base_prompt + skills_section
+        if migration_section:
+            sections.append(migration_section)
+
+        return base_prompt + "".join(sections)
+
+    def _format_pending_migrations(self, pending: list[dict[str, Any]]) -> str:
+        """Render pending migration skills as a PM prompt section."""
+        lines = ["\n\n" + "=" * 80 + "\n"]
+        lines.append("## Pending Setup Recommendations\n\n")
+        lines.append(
+            "The following optional services are recommended but not yet installed:\n\n"
+        )
+        for skill in pending:
+            name = skill.get("name", "unknown")
+            state_key = skill.get("state_key", name)
+            services = skill.get("services") or []
+            description = skill.get("description", "")
+
+            if services:
+                service_label = " + ".join(services)
+                header = f"- **{state_key}** ({service_label})"
+            else:
+                header = f"- **{state_key}**"
+            if description:
+                header += f": {description}"
+            lines.append(header + "\n")
+            lines.append(
+                f"  Run `/mpm-migrate {state_key}` to install, or tell me "
+                f'"decline {state_key}" to stop showing this.\n'
+            )
+        lines.append(
+            "\nThese enhance your workflow significantly. Use the migration "
+            "skill to walk through installation.\n"
+        )
+        lines.append("=" * 80 + "\n")
+        return "".join(lines)
 
     def list_agent_skill_mappings(self) -> dict[str, list[str]]:
         """
