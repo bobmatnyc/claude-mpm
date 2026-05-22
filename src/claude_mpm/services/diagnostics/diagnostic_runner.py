@@ -29,6 +29,7 @@ from .checks import (
     InstructionsCheck,
     MCPCheck,
     MCPServicesCheck,
+    MemoryCaptureCheck,
     MigrationSkillsCheck,
     MonitorCheck,
     SkillSourcesCheck,
@@ -73,6 +74,7 @@ class DiagnosticRunner:
             SkillSourcesCheck,  # Check skill sources configuration
             MCPCheck,
             MCPServicesCheck,  # Check external MCP services
+            MemoryCaptureCheck,  # Memory auto-capture backend (#536/#537)
             MonitorCheck,
             StartupLogCheck,  # Check startup logs for recent issues
             MigrationSkillsCheck,  # Surface pending migration skill wizards
@@ -144,6 +146,7 @@ class DiagnosticRunner:
             SkillSourcesCheck,
             MCPCheck,
             MCPServicesCheck,
+            MemoryCaptureCheck,
             MonitorCheck,
             StartupLogCheck,
             MigrationSkillsCheck,
@@ -240,6 +243,9 @@ class DiagnosticRunner:
             "mcp_services": MCPServicesCheck,
             "mcp-services": MCPServicesCheck,
             "external": MCPServicesCheck,
+            "memory_capture": MemoryCaptureCheck,
+            "memory-capture": MemoryCaptureCheck,
+            "memory": MemoryCaptureCheck,
             "monitor": MonitorCheck,
             "monitoring": MonitorCheck,
             "common": CommonIssuesCheck,

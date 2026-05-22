@@ -34,6 +34,17 @@
             "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
             "timeout": 60,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-m",
+              "claude_mpm.hooks.memory_capture"
+            ],
+            "timeout": 5,
+            "_mpm": true,
+            "_mpm_service": "memory-capture"
           }
         ]
       }
@@ -70,6 +81,17 @@
             "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
             "timeout": 60,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-m",
+              "claude_mpm.hooks.memory_capture"
+            ],
+            "timeout": 5,
+            "_mpm": true,
+            "_mpm_service": "memory-capture"
           }
         ]
       }
@@ -89,6 +111,17 @@
             "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
             "timeout": 60,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-m",
+              "claude_mpm.hooks.memory_capture"
+            ],
+            "timeout": 5,
+            "_mpm": true,
+            "_mpm_service": "memory-capture"
           }
         ]
       }
@@ -102,6 +135,17 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-m",
+              "claude_mpm.hooks.memory_capture"
+            ],
+            "timeout": 5,
+            "_mpm": true,
+            "_mpm_service": "memory-capture"
           }
         ]
       }
