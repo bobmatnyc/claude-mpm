@@ -56,6 +56,11 @@ class MemoryCaptureCheck(BaseDiagnosticCheck):
         details["active_backend"] = active
         details["palace"] = Path.cwd().name
 
+        # UserPromptSubmit enrichment / capture status (issue #538).
+        enrichment_active = active != "none"
+        details["enrichment_enabled"] = enrichment_active
+        details["prompt_capture_enabled"] = enrichment_active
+
         if active == "none":
             return DiagnosticResult(
                 category=self.category,
