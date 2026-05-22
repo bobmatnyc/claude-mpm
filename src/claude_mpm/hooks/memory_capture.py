@@ -44,6 +44,19 @@ _HTTP_TIMEOUT_S = 0.2
 _SUBPROCESS_TIMEOUT_S = 2.0
 _STDIN_WAIT_S = 1.0
 
+# Recall-specific timeouts — slightly more generous since recall is the
+# primary value-add of the UserPromptSubmit handler, but still strictly
+# bounded so the prompt never stalls.
+_RECALL_HTTP_TIMEOUT_S = 0.8
+_RECALL_SUBPROCESS_TIMEOUT_S = 2.0
+
+# UserPromptSubmit thresholds.
+_PROMPT_MIN_WORDS = 10
+_PROMPT_QUERY_MAX_CHARS = 200
+_PROMPT_CAPTURE_MAX_CHARS = 100
+_ENRICH_MAX_CHARS = 2000
+_RECALL_LIMIT = 5
+
 # Default ports / addresses for backends.
 _DEFAULT_TRUSTY_PORT = 7070
 _TRUSTY_ADDR_FILE = Path.home() / ".trusty-memory" / "http_addr"
@@ -114,6 +127,40 @@ def _backend_enabled(backend: str) -> bool:
     return bool(section.get("enabled", True))
 
 
+def _enrich_enabled(backend: str) -> bool:
+    """Whether enrichment (recall + context injection) is enabled for backend.
+
+    Reads ``<backend>.enrich.enabled`` from config; defaults to True.
+    """
+    section = _CONFIG.get(backend, {})
+    if not isinstance(section, dict):
+        return True
+    enrich = section.get("enrich", {})
+    if not isinstance(enrich, dict):
+        return True
+    return bool(enrich.get("enabled", True))
+
+
+def _enrich_max_chars(backend: str) -> int:
+    """Max chars of injected context for backend (default ``_ENRICH_MAX_CHARS``)."""
+    section = _CONFIG.get(backend, {})
+    if not isinstance(section, dict):
+        return _ENRICH_MAX_CHARS
+    enrich = section.get("enrich", {})
+    if not isinstance(enrich, dict):
+        return _ENRICH_MAX_CHARS
+    # Config key historically named ``max_tokens`` per the task spec; treat
+    # it as a character cap (rough approximation, ~4 chars/token).
+    raw = enrich.get("max_tokens", enrich.get("max_chars", _ENRICH_MAX_CHARS))
+    if raw is None:
+        return _ENRICH_MAX_CHARS
+    try:
+        value = int(raw)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return _ENRICH_MAX_CHARS
+    return max(100, value)
+
+
 # ---------------------------------------------------------------------------
 # Backend abstract base
 # ---------------------------------------------------------------------------
@@ -131,6 +178,16 @@ class AbstractMemoryCaptureBackend(ABC):
 
     @abstractmethod
     def store(self, fact: str, tags: list[str] | None = None) -> None: ...
+
+    @abstractmethod
+    def recall(self, query: str) -> list[str]:
+        """Return relevant memory strings for query.
+
+        Returns an empty list if no results, the backend is unreachable, or on
+        any other error. Implementations MUST never raise — recall failures
+        are non-fatal.
+        """
+        ...
 
     @property
     @abstractmethod
@@ -165,6 +222,66 @@ def _trusty_palace_name() -> str:
     if configured.strip():
         return configured.strip()
     return Path.cwd().name
+
+
+def _parse_recall_payload(raw: str) -> list[str]:
+    """Parse a recall response into a list of strings.
+
+    Accepts (in order):
+      * JSON array of strings → returned as-is
+      * JSON array of objects with ``content``/``fact``/``memory``/``text`` keys
+      * JSON object with a ``memories``/``results``/``data``/``items`` key
+      * Newline-separated plain text (one fact per line)
+
+    Always returns at most ``_RECALL_LIMIT`` non-empty stripped strings.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return []
+
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        data = None
+
+    items: list[Any] | None = None
+    if isinstance(data, list):
+        items = data
+    elif isinstance(data, dict):
+        for key in ("memories", "results", "data", "items", "recalled"):
+            value = data.get(key)
+            if isinstance(value, list):
+                items = value
+                break
+
+    results: list[str] = []
+    if items is not None:
+        for entry in items:
+            if isinstance(entry, str):
+                text = entry.strip()
+            elif isinstance(entry, dict):
+                text = ""
+                for key in ("content", "fact", "memory", "text", "value"):
+                    candidate = entry.get(key)
+                    if isinstance(candidate, str) and candidate.strip():
+                        text = candidate.strip()
+                        break
+            else:
+                text = str(entry).strip()
+            if text:
+                results.append(text)
+            if len(results) >= _RECALL_LIMIT:
+                break
+        return results
+
+    # Fall back: treat as newline-separated text.
+    for line in raw.splitlines():
+        line = line.strip().lstrip("-•* ").strip()
+        if line:
+            results.append(line)
+        if len(results) >= _RECALL_LIMIT:
+            break
+    return results
 
 
 class TrustyMemoryBackend(AbstractMemoryCaptureBackend):
@@ -244,6 +361,67 @@ class TrustyMemoryBackend(AbstractMemoryCaptureBackend):
         except (subprocess.SubprocessError, OSError):
             return
 
+    def recall(self, query: str) -> list[str]:
+        """Recall via HTTP first, fall back to ``trusty-memory recall`` CLI.
+
+        Returns up to ``_RECALL_LIMIT`` memory strings. Empty list on any
+        error so callers can use the result unconditionally.
+        """
+        if not query:
+            return []
+        try:
+            palace = _trusty_palace_name()
+            results = self._http_recall(query, palace)
+            if results is not None:
+                return results
+            return self._cli_recall(query, palace)
+        except Exception:
+            return []
+
+    @staticmethod
+    def _http_recall(query: str, palace: str) -> list[str] | None:
+        """Try HTTP recall endpoint. Returns None to signal CLI fallback."""
+        from urllib.parse import quote, urlencode
+
+        base = _trusty_base_url()
+        params = urlencode({"q": query, "limit": _RECALL_LIMIT})
+        url = f"{base}/api/v1/palaces/{quote(palace, safe='')}/recall?{params}"
+        try:
+            req = urllib.request.Request(url, method="GET")  # nosec B310
+            with urllib.request.urlopen(  # nosec B310
+                req, timeout=_RECALL_HTTP_TIMEOUT_S
+            ) as resp:
+                if not (200 <= resp.status < 300):
+                    return None
+                raw = resp.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None  # endpoint missing → fall back to CLI
+            return []
+        except (urllib.error.URLError, TimeoutError, OSError):
+            return []
+
+        return _parse_recall_payload(raw)
+
+    @staticmethod
+    def _cli_recall(query: str, palace: str) -> list[str]:
+        try:
+            proc = subprocess.run(  # nosec B603 B607
+                ["trusty-memory", "recall", "--palace", palace, query],
+                check=False,
+                capture_output=True,
+                timeout=_RECALL_SUBPROCESS_TIMEOUT_S,
+            )
+        except (subprocess.SubprocessError, OSError):
+            return []
+        if proc.returncode != 0:
+            return []
+        try:
+            text = proc.stdout.decode("utf-8", errors="replace")
+        except Exception:
+            return []
+        return _parse_recall_payload(text)
+
 
 # ---------------------------------------------------------------------------
 # Kuzu memory backend (subprocess CLI)
@@ -279,6 +457,27 @@ class KuzuMemoryBackend(AbstractMemoryCaptureBackend):
             )
         except (subprocess.SubprocessError, OSError):
             return
+
+    def recall(self, query: str) -> list[str]:
+        """Shell out to ``kuzu-memory recall <query>`` and parse the output."""
+        if not query:
+            return []
+        try:
+            proc = subprocess.run(  # nosec B603 B607
+                ["kuzu-memory", "recall", query],
+                check=False,
+                capture_output=True,
+                timeout=_RECALL_SUBPROCESS_TIMEOUT_S,
+            )
+        except (subprocess.SubprocessError, OSError):
+            return []
+        if proc.returncode != 0:
+            return []
+        try:
+            text = proc.stdout.decode("utf-8", errors="replace")
+        except Exception:
+            return []
+        return _parse_recall_payload(text)
 
 
 # ---------------------------------------------------------------------------
@@ -430,6 +629,116 @@ def _handle_session_end(
     backend.store(f"Session ended in {project}", tags=["session-end", project])
 
 
+def _format_memory_context(recalled: list[str], max_chars: int) -> str:
+    """Format recalled memory facts as a bracketed context block.
+
+    Truncates the joined block (after header/footer accounting) to ``max_chars``
+    total. Returns an empty string if nothing fits.
+    """
+    if not recalled:
+        return ""
+
+    header = "[Memory context]\n"
+    footer = "\n[End memory context]"
+    budget = max_chars - len(header) - len(footer)
+    if budget <= 0:
+        return ""
+
+    bullets: list[str] = []
+    used = 0
+    for fact in recalled:
+        line = f"- {fact}"
+        # +1 for newline between bullets.
+        cost = len(line) + (1 if bullets else 0)
+        if used + cost > budget:
+            break
+        bullets.append(line)
+        used += cost
+
+    if not bullets:
+        return ""
+    return f"{header}{chr(10).join(bullets)}{footer}"
+
+
+def handle_user_prompt_submit(
+    event: dict[str, Any],
+) -> dict[str, Any]:
+    """Capture the prompt and enrich Claude's context with recalled memory.
+
+    Returns a Claude Code hook response dict. Always returns
+    ``{"continue": True}`` (possibly with ``hookSpecificOutput`` for
+    enrichment). Never raises.
+
+    Behaviour:
+      * Skip short prompts (< ``_PROMPT_MIN_WORDS`` words) — likely
+        clarifications, not real intents worth remembering.
+      * Skip when no backend is selected.
+      * Recall using the first ``_PROMPT_QUERY_MAX_CHARS`` chars of the prompt.
+      * Capture is fire-and-forget on a daemon thread so the hook returns
+        immediately (recall result is the user-visible value).
+      * Inject recalled context as ``additionalContext`` via
+        ``hookSpecificOutput`` when there are any results.
+    """
+    result: dict[str, Any] = {"continue": True}
+
+    if _BACKEND is None:
+        return result
+
+    prompt = event.get("prompt") or ""
+    if not isinstance(prompt, str):
+        return result
+    prompt = prompt.strip()
+    if not prompt:
+        return result
+    if len(prompt.split()) < _PROMPT_MIN_WORDS:
+        return result
+
+    backend = _BACKEND
+    backend_key = backend.name.replace("-", "_")
+
+    # 1) Recall (synchronous, bounded). Result drives both enrichment and
+    # whether we bother with the additionalContext payload.
+    recalled: list[str] = []
+    if _enrich_enabled(backend_key):
+        try:
+            query = prompt[:_PROMPT_QUERY_MAX_CHARS]
+            recalled = backend.recall(query) or []
+        except Exception:
+            recalled = []
+
+    # 2) Capture (fire-and-forget). Never blocks the return.
+    try:
+        import threading
+
+        snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()
+        fact = f"User prompt: {snippet}"
+
+        def _bg_store() -> None:
+            try:
+                backend.store(fact, tags=["prompt"])
+            except Exception:
+                return
+
+        threading.Thread(target=_bg_store, daemon=True).start()
+    except Exception:
+        # Even thread spawn failure must not break the hook.
+        pass
+
+    # 3) Build hookSpecificOutput if we got recall results.
+    if recalled:
+        try:
+            context = _format_memory_context(recalled, _enrich_max_chars(backend_key))
+            if context:
+                result["hookSpecificOutput"] = {
+                    "hookEventName": "UserPromptSubmit",
+                    "additionalContext": context,
+                }
+        except Exception:
+            pass
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
@@ -461,11 +770,6 @@ def _read_event() -> dict[str, Any] | None:
 
 def main() -> None:
     """Read one Claude Code hook event from stdin and dispatch to backend."""
-    # Fast path: no backend → no work to do.
-    if _BACKEND is None:
-        _emit_continue()
-        return
-
     event = _read_event()
     if event is None:
         _emit_continue()
@@ -477,6 +781,22 @@ def main() -> None:
         or event.get("hook_event_type")
         or ""
     )
+
+    # UserPromptSubmit returns a richer response (additionalContext) — handle
+    # it before the backend-required branches so the hook still produces a
+    # valid no-op response when no backend is available.
+    if hook_event == "UserPromptSubmit":
+        try:
+            response = handle_user_prompt_submit(event)
+        except Exception:
+            response = {"continue": True}
+        print(json.dumps(response))
+        return
+
+    # Fast path: no backend → no work to do for capture-only events.
+    if _BACKEND is None:
+        _emit_continue()
+        return
 
     try:
         if hook_event == "SessionStart":
