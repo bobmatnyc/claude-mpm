@@ -29,6 +29,7 @@ from .checks import (
     InstructionsCheck,
     MCPCheck,
     MCPServicesCheck,
+    MigrationSkillsCheck,
     MonitorCheck,
     SkillSourcesCheck,
     StartupLogCheck,
@@ -74,6 +75,7 @@ class DiagnosticRunner:
             MCPServicesCheck,  # Check external MCP services
             MonitorCheck,
             StartupLogCheck,  # Check startup logs for recent issues
+            MigrationSkillsCheck,  # Surface pending migration skill wizards
             CommonIssuesCheck,
         ]
 
@@ -144,6 +146,7 @@ class DiagnosticRunner:
             MCPServicesCheck,
             MonitorCheck,
             StartupLogCheck,
+            MigrationSkillsCheck,
         ]
         # Level 3: Depends on others
         level3 = [CommonIssuesCheck]
@@ -241,6 +244,9 @@ class DiagnosticRunner:
             "monitoring": MonitorCheck,
             "common": CommonIssuesCheck,
             "issues": CommonIssuesCheck,
+            "migration_skills": MigrationSkillsCheck,
+            "migration-skills": MigrationSkillsCheck,
+            "migrations": MigrationSkillsCheck,
         }
 
         for name in check_names:
