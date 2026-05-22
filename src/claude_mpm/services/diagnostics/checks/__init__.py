@@ -16,6 +16,7 @@ from .installation_check import InstallationCheck
 from .instructions_check import InstructionsCheck
 from .mcp_check import MCPCheck
 from .mcp_services_check import MCPServicesCheck
+from .memory_capture_check import MemoryCaptureCheck
 from .migration_skills_check import MigrationSkillsCheck
 from .monitor_check import MonitorCheck
 from .skill_sources_check import SkillSourcesCheck
@@ -33,6 +34,7 @@ __all__ = [
     "InstructionsCheck",
     "MCPCheck",
     "MCPServicesCheck",
+    "MemoryCaptureCheck",
     "MigrationSkillsCheck",
     "MonitorCheck",
     "SkillSourcesCheck",
