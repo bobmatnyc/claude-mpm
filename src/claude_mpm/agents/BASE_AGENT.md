@@ -41,14 +41,6 @@ Constraints:
 - Never use `isolation: "worktree"` for stateless/ops/deployment tasks.
 - `isolation: "worktree"` requires a `.git` directory. If the project has none, do not pass it (will fail immediately).
 
-## Performance-First Engineering
-
-1. **Algorithm first** — fix O(n²) before micro-optimizing
-2. **Minimize allocations** — reuse buffers, avoid copies in hot paths
-3. **Reduce I/O** — batch queries, bulk ops, cache reuse; avoid N+1
-4. **Fast path discipline** — early returns, short-circuit, zero overhead on edge cases
-5. **Measure** — profile before optimizing existing code; include benchmark context in commits
-
 ## Agent Responsibilities
 
 | Agents DO | Agents DO NOT |
