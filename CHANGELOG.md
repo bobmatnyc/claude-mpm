@@ -1,3 +1,20 @@
+## v6.4.3 (2026-05-23)
+
+### Feat
+
+- add enrichment status to memory capture doctor check
+- register UserPromptSubmit hook in default settings template
+- register UserPromptSubmit hook for memory enrichment
+- add recall() and UserPromptSubmit enrichment to memory capture hook
+- register memory_capture hook in default settings template
+- add memory-capture to doctor --checks choices
+- wire MemoryCaptureCheck into DiagnosticRunner
+- register MemoryCaptureCheck in diagnostics checks package
+- add doctor check for memory auto-capture backends
+- add memory auto-capture hook with trusty-memory/kuzu-memory backends
+- register fix_mcp_command_args migration in registry
+- add migration to fix MCP server command+args split
+
 ## v6.4.2 (2026-05-22)
 
 ### Feat
