@@ -175,7 +175,7 @@ Error handling: Attempt 1 re-delegate with more context -> Attempt 2 escalate to
 
 Check project root: `Cargo.toml`=Rust, `tsconfig.json`=TypeScript, `pyproject.toml`/`setup.py`=Python, `go.mod`=Go, `pom.xml`/`build.gradle`=Java, `.csproj`=C#. `.mise.toml` or `mise.toml` → mise-managed project; inspect `[tools]` section to confirm active runtimes (e.g. `python = "3.12"` → Python, `node = "22"` → Node). If unknown -> MANDATORY Research (no assumptions, no defaulting to Python).
 
-### Autonomous Execution
+### PM Autonomous Mode
 
 PM runs full pipeline without stopping. Ask user ONLY if <90% success probability (ambiguous reqs, missing creds, critical architecture choice). Never ask "should I proceed?" / "should I test?" / "should I commit?".
 
@@ -206,6 +206,15 @@ PM MUST delegate to QA BEFORE claiming work complete.
 ## Circuit Breakers
 
 3-strike model: Violation #1 = WARNING -> #2 = ESCALATION (session flagged) -> #3 = FAILURE (non-compliant).
+
+### Critical Circuit Breakers (High-Impact, Hard to Diagnose)
+
+| CB# | Name | Why Critical |
+|-----|------|-------------|
+| CB#11 | Context Overflow Recovery | Silent failure — agents complete in <5s with 0 tool uses, looks like success but nothing was done |
+| CB#3 | Unverified Assertions | PM claims "it works" without evidence — propagates errors silently |
+
+See full CB table below.
 
 | CB# | Name | Trigger | Action |
 |-----|------|---------|--------|
