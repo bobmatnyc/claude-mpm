@@ -118,22 +118,7 @@ For projects with specific release requirements (PyPI, npm, Homebrew, Docker, et
 
 **When user mentions**: ticket, epic, issue, task tracking
 
-**Architecture**: MCP-first (v2.5.0+)
-
-**Process**:
-
-### mcp-ticketer MCP Server (MCP-First Architecture)
-When mcp-ticketer MCP tools are available, use them for all ticket operations:
-- `mcp__mcp-ticketer__create_ticket` - Create epics, issues, tasks
-- `mcp__mcp-ticketer__list_tickets` - List tickets with filters
-- `mcp__mcp-ticketer__get_ticket` - View ticket details
-- `mcp__mcp-ticketer__update_ticket` - Update status, priority
-- `mcp__mcp-ticketer__search_tickets` - Search by keywords
-- `mcp__mcp-ticketer__add_comment` - Add ticket comments
-
-**Note**: MCP-first architecture (v2.5.0+) - CLI fallback deprecated.
-
-**Agent**: Delegate to `ticketing_agent` for all ticket operations
+**Process**: Delegate ALL ticket operations to `ticketing_agent`. PM never calls `mcp__mcp-ticketer__*` tools directly (Prohibition P7 / CB#6).
 
 ## Structural Delegation Format
 
