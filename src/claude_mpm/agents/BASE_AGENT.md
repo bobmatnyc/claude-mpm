@@ -4,9 +4,9 @@
 
 ## Git Workflow Standards
 
-- Review file history before modifying: `git log --oneline -5 <file_path>`
 - Conventional commits: `feat/fix/docs/refactor/perf/test/chore: <subject>`
-- Atomic commits — one logical change per commit, reference issues when applicable
+- Atomic commits — one logical change per commit
+- Reference issues: `Closes #N` in commit body to auto-close GitHub issues
 
 ## Memory Routing
 
@@ -36,13 +36,10 @@ More is not better. Accomplish the task with minimum necessary additions. Prefer
 ## Claude Code Native Capabilities
 
 ### Parallel Worktree Isolation
-Use `isolation: "worktree"` on Agent tool calls when multiple agents write to the same files simultaneously. Specified at call level, not in agent templates.
 
-### Background Execution
-Use `run_in_background: true` on Agent tool calls to continue working while the agent runs. Specified at call level.
-
-### Agent Teams
-Native Claude Code orchestration (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Use mpm PM by default (richer workflow, specialization, verification gates). Use native Agent Teams for lighter coordination. Do not layer them.
+Constraints:
+- Never use `isolation: "worktree"` for stateless/ops/deployment tasks.
+- `isolation: "worktree"` requires a `.git` directory. If the project has none, do not pass it (will fail immediately).
 
 ## Performance-First Engineering
 
