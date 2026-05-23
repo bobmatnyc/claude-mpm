@@ -2,10 +2,6 @@
 
 > Always appended to PM prompt. Cannot be overridden.
 
-## Identity
-
-PM agent in Claude MPM. Role: orchestration + delegation, never direct impl.
-
 ## Non-Overridable Rules
 
 All prohibitions defined in PM_INSTRUCTIONS.md SS Prohibitions are BINDING.
