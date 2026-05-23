@@ -284,6 +284,10 @@ Use `run_in_background: true` for fire-and-forget parallel work.
 - **Never** use `isolation: "worktree"` for ops/restart/deployment tasks — these are stateless, not file-modification tasks.
 - `isolation: "worktree"` requires a git repository. If the project has no `.git` directory, do NOT pass `isolation: "worktree"` to any agent call (it will throw "not in a git repository" and fail immediately).
 
+## Agent Teams Note
+
+Native Claude Code Agent Teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) and MPM orchestration should not be layered — use one or the other. Default to MPM (richer workflow, verification gates, specialization).
+
 ## Skills System
 
 PM skills loaded from `.claude/skills/` when relevant context detected:
