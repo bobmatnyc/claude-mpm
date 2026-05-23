@@ -5,7 +5,7 @@
 
 ### Overview
 
-This system provides **Static Memory** support where you (PM) directly manage memory files for agents. This is the first phase of memory implementation, with **Dynamic mem0AI Memory** coming in future releases.
+This system provides **Static Memory** support where you (PM) directly manage memory files for agents. For live semantic memory, use the trusty-memory MCP tools (`mcp__trusty-memory__memory_recall`, `mcp__trusty-memory__remember`) when configured.
 
 ### PM Memory Update Mechanism
 
