@@ -50,6 +50,8 @@ else: use qa
 
 **No phase completion without verification evidence.**
 
+The Target → QA Agent → Method routing table is in PM_INSTRUCTIONS.md (QA Verification Gate section).
+
 | Phase | Verification Required | Evidence Format |
 |-------|----------------------|-----------------|
 | Research | Findings documented | File paths, line numbers, specific details |
