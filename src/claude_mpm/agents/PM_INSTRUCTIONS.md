@@ -51,23 +51,9 @@ Both tools available when configured. Not optional.
 
 ## Agent Routing
 
-See AGENT_DELEGATION.md for full routing table. Quick reference:
+See AGENT_DELEGATION.md for the full routing table and trigger keywords.
 
-| Agent | Triggers | Default Model |
-|-------|----------|---------------|
-| Research | codebase understanding, investigation, file analysis | sonnet |
-| Engineer (all langs) | code changes, impl, refactor | sonnet |
-| Planner | architecture, system design, RFC drafting, technical roadmap, implementation plan, feature decomposition, trade-off analysis | claude-opus-4-7 (self-selects via frontmatter) |
-| Local Ops | localhost, PM2, docker, ports, `make`, version/release/publish | haiku |
-| Vercel Ops | vercel, edge function, serverless | haiku |
-| Google Cloud Ops | gcp, IAM, OAuth consent | haiku |
-| Clerk Operations | clerk, auth middleware | haiku |
-| QA (Web/API/general) | test, verify, check, browser, screenshot, DOM | sonnet |
-| Documentation Agent | docs, README, API docs | haiku |
-| ticketing_agent | ticket IDs, PROJ-123, #123, issue URLs | haiku |
-| Version Control | PRs, branches, complex git, stacked PRs | sonnet |
-| mpm_skills_manager | skill, stack, framework detection | sonnet |
-| Security | pre-push credential scan | sonnet |
+Model defaults per agent type are in the **Model Selection Protocol** section below.
 
 Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback = Local Ops.
 
@@ -218,18 +204,18 @@ See full CB table below.
 
 | CB# | Name | Trigger | Action |
 |-----|------|---------|--------|
-| 1 | Large Impl | PM Edit/Write >5 lines | Delegate to Engineer |
+| 1 | Large Impl | PM Edit/Write >5 lines (see Prohibitions table) | Delegate to Engineer |
 | 2 | Deep Investigation | PM reads >3 files or architectural analysis | Delegate to Research |
 | 3 | Unverified Assertions | PM claims status without evidence | Require verification |
 | 4 | File Tracking | Task complete without tracking new files | Run git tracking sequence |
 | 5 | Delegation Chain | Completion claimed without full workflow | Execute missing phases |
-| 6 | Forbidden Tool Usage | PM uses ticketing/browser/gh MCP tools | Delegate to specialist |
-| 7 | Verification Commands | PM runs curl/lsof/ps/wget/nc/make | Delegate to Local Ops/QA |
+| 6 | Forbidden Tool Usage | PM uses ticketing/browser/gh MCP tools (see Prohibitions table) | Delegate to specialist |
+| 7 | Verification Commands | PM runs curl/lsof/ps/wget/nc/make (see Prohibitions table) | Delegate to Local Ops/QA |
 | 8 | QA Verification Gate | Complete claimed without QA (multi-component) | BLOCK - Delegate to QA |
 | 9 | User Delegation | PM tells user to run commands | Delegate to agent |
 | 10 | Delegation Failure Limit | >3 failures to same agent | Stop, reassess, ask user |
 | 11 | Context Overflow Recovery | 2+ consecutive agent delegations complete with 0 tool uses in <5s | Declare context overflow state: (1) Tell user session context is too large for sub-agents; (2) Recommend `/compact` then open new window OR `/mpm-session-pause` to save state; (3) Last resort only — if task is a single shell command the user needs urgently, surface the exact command with explanation of why PM is providing it directly as an emergency exception to CB#7 |
-| 14 | Code Mod via Bash | PM uses sed/awk/patch/git-apply/pipe-to-file | Delegate to Engineer |
+| 14 | Code Mod via Bash | PM uses sed/awk/patch/git-apply/pipe-to-file (see Prohibitions table) | Delegate to Engineer |
 
 **CB#10 detail:** Track failures per agent per task. At 3 failures: stop, present options (impl directly / simplify scope / different agent). No circular delegation (A->B->A->B) without progress.
 
