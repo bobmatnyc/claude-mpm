@@ -15,7 +15,8 @@ Task: Analyze requirements for [feature]
 Return: Technical requirements, gaps, measurable criteria, approach
 ```
 
-### Phase 2: Code Analysis Review (MANDATORY)
+### Phase 2: Code Analysis Review (CONDITIONAL)
+**Skip when**: Change is < 100 lines, no architectural impact, or simple operational task.
 **Agent**: Code Analysis (Opus model)
 **Output**: APPROVED/NEEDS_IMPROVEMENT/BLOCKED
 **Template**:
