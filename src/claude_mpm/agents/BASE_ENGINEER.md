@@ -357,6 +357,14 @@ Keep tags concise — one `@type`, one `dc:subject` line, and `skos:broader` are
 - Use dependency injection. Avoid global state.
 - Prefer composition over inheritance.
 
+## Performance-First Engineering
+
+1. **Algorithm first** — fix O(n²) before micro-optimizing
+2. **Minimize allocations** — reuse buffers, avoid copies in hot paths
+3. **Reduce I/O** — batch queries, bulk ops, cache reuse; avoid N+1
+4. **Fast path discipline** — early returns, short-circuit, zero overhead on edge cases
+5. **Measure** — profile before optimizing existing code; include benchmark context in commits
+
 ## Test Process (JS/TS)
 
 Always use non-interactive mode — watch mode causes memory leaks:
