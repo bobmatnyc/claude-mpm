@@ -261,8 +261,17 @@ def _parse_recall_payload(raw: str) -> list[str]:
                 text = entry.strip()
             elif isinstance(entry, dict):
                 text = ""
+                # Unwrap recall response's `drawer` wrapper if present —
+                # /api/v1/palaces/<palace>/recall returns entries shaped as
+                # {"drawer": {"content": ..., "tags": [...]}, "layer": N, "score": F}
+                # so the content keys live one level down.
+                raw_entry = (
+                    entry.get("drawer")
+                    if isinstance(entry.get("drawer"), dict)
+                    else entry
+                )
                 for key in ("content", "fact", "memory", "text", "value"):
-                    candidate = entry.get(key)
+                    candidate = raw_entry.get(key)
                     if isinstance(candidate, str) and candidate.strip():
                         text = candidate.strip()
                         break
@@ -289,7 +298,7 @@ class TrustyMemoryBackend(AbstractMemoryCaptureBackend):
 
     Availability requires both the ``trusty-memory`` binary on PATH AND a
     reachable ``/health`` endpoint on the discovered base URL (≤200ms).
-    Store path attempts a POST to ``/api/v1/palaces/<palace>/memories``;
+    Store path attempts a POST to ``/api/v1/palaces/<palace>/drawers``;
     if that returns 404/405 (older daemon) the implementation falls back to
     a subprocess ``trusty-memory remember`` call.
     """
@@ -317,7 +326,7 @@ class TrustyMemoryBackend(AbstractMemoryCaptureBackend):
         try:
             base = _trusty_base_url()
             palace = _trusty_palace_name()
-            url = f"{base}/api/v1/palaces/{palace}/memories"
+            url = f"{base}/api/v1/palaces/{palace}/drawers"
             body = json.dumps(
                 {
                     "content": fact,
