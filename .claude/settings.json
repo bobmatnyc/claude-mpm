@@ -248,7 +248,14 @@
     "excludeDefault": true
   },
   "permissions": {
-    "additionalDirectories": []
+    "additionalDirectories": [],
+    "allow": [
+      "Bash(cargo test *)",
+      "Bash(cargo check *)",
+      "Bash(aws ssm get-command-invocation *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo fmt --check *)"
+    ]
   },
   "autoMemoryEnabled": true,
   "_mpm_managed": true,
