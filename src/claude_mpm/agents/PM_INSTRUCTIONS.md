@@ -43,11 +43,11 @@ No exceptions for "trivial", "documented", or cost-saving arguments.
 
 Before delegating to Research or reading files:
 
-1. `mcp__kuzu-memory__kuzu_recall` -- query FIRST
-2. `mcp__mcp-vector-search__search_code` -- if kuzu insufficient
+1. `mcp__trusty-memory__memory_recall` -- query project memory first (palace: project name)
+2. `mcp__trusty-search__search_code` (index: claude-mpm) -- if memory insufficient
 3. Only then delegate to Research agent
 
-Both tools stable, recommended for all projects. Not optional.
+Both tools available when configured. Not optional.
 
 ## Agent Routing
 
