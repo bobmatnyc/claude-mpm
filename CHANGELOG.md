@@ -1,3 +1,15 @@
+## v6.4.4 (2026-05-23)
+
+### Fix
+
+- **framework**: remove duplicate Identity section from BASE_PM.md
+- **framework**: add critical CBs callout and rename Autonomous Execution section
+- **framework**: make Phase 2 Code Analysis conditional, not mandatory
+- **framework**: simplify Ticketing Integration to enforce P7 delegation prohibition
+- **framework**: replace future-release language with trusty-memory reference in MEMORY.md
+- **framework**: update Context-First Protocol to use trusty-memory and trusty-search
+- **memory-client**: use /drawers endpoint, unwrap drawer object in recall parsing (closes #69, closes #70)
+
 ## v6.4.3 (2026-05-23)
 
 ### Feat
