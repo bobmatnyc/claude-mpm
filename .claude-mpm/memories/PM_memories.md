@@ -54,33 +54,45 @@ If PM reads a .py file to understand it → Circuit Breaker #2 violation.
 
 ## MCP Server Stack
 
-### Memory: trusty-memory (replaces kuzu-memory)
+Both trusty-* and the older kuzu-memory / mcp-vector-search servers are fully supported. The PM should use whichever MCP server is active in the current session. trusty-* are preferred when available, but users who have the older tools configured should continue using them — neither is deprecated.
+
+### Memory: trusty-memory (preferred) or kuzu-memory (also supported)
+
+**trusty-memory** (preferred if available):
 - MCP prefix: `mcp__trusty-memory__*`
 - Tools: `memory_remember`, `memory_recall`, `memory_recall_deep`, `memory_list`, `memory_forget`, `palace_create`, `palace_list`, `palace_info`, `kg_assert`, `kg_query`
 - Palace for this project: `claude-mpm`
 - Daemon: runs on port 3038, launchd plist at `/Users/masa/Library/LaunchAgents/com.bobmatnyc.trusty-memory.plist`
 - Skill: `trusty-memory` (call with Skill tool)
-- kuzu-memory is DEPRECATED — do not reference `mcp__kuzu-memory__*` tools
 
-### Search: trusty-search (replaces mcp-vector-search)
+**kuzu-memory** (also supported — use if configured instead of trusty-memory):
+- MCP prefix: `mcp__kuzu-memory__*`
+- Core tools: `kuzu_recall` (query), `kuzu_learn` (async store), `kuzu_remember` (immediate store)
+
+### Search: trusty-search (preferred) or mcp-vector-search (also supported)
+
+**trusty-search** (preferred if available):
 - MCP prefix: `mcp__trusty-search__*`
 - Tools: `search_code`, `index_file`, `remove_file`, `list_indexes`, `create_index`, `search_health`, `reindex`, `index_status`, `chat`
 - Index name for this project: `claude-mpm`
 - Daemon: runs on port 7878, launchd plist at `/Users/masa/Library/LaunchAgents/com.bobmatnyc.trusty-search.plist`
 - Skill: `trusty-search` (call with Skill tool)
-- mcp-vector-search is DEPRECATED — do not reference `mcp__mcp-vector-search__*` tools
 
-### Context-First Protocol (updated)
+**mcp-vector-search** (also supported — use if configured instead of trusty-search):
+- MCP prefix: `mcp__mcp-vector-search__*`
+- Core tool: `search_code`
+
+### Context-First Protocol
 Before delegating to Research or reading files:
-1. `mcp__trusty-memory__memory_recall` — query project memory first (replaces kuzu_recall)
-2. Only then delegate to Research agent (Research will use trusty-search internally)
+1. Query project memory first (`mcp__trusty-memory__memory_recall` or `mcp__kuzu-memory__kuzu_recall`)
+2. Only then delegate to Research agent (Research will use whichever code-search backend is configured)
 
 PM does NOT run code search directly. That is the Research agent's job.
 
 ### Pattern: "Research agent grep cascade = violation"
-When delegating to Research, explicitly instruct: "Use trusty-search first, grep only as last resort."
-If a Research agent returns results from 5+ grep/find calls without using trusty-search, that is a protocol violation.
-Add to ALL Research agent delegations: "Search via mcp__trusty-search__search_code before any grep/Bash."
+When delegating to Research, explicitly instruct: "Use the configured semantic code search (trusty-search or mcp-vector-search) first, grep only as last resort."
+If a Research agent returns results from 5+ grep/find calls without using semantic search, that is a protocol violation.
+Add to ALL Research agent delegations: "Search via mcp__trusty-search__search_code or mcp__mcp-vector-search__search_code before any grep/Bash."
 
 ## Session Workflow (Mandatory)
 
