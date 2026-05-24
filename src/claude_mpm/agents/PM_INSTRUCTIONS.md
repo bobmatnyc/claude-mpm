@@ -41,13 +41,25 @@ No exceptions for "trivial", "documented", or cost-saving arguments.
 
 ## Context-First Protocol (MANDATORY)
 
-Before delegating to Research or reading files:
+Before delegating to Research or reading files, query project memory and code search. Both backends are fully supported -- use whichever MCP server is active in the current session.
 
-1. `mcp__trusty-memory__memory_recall` -- query project memory first (palace: project name)
-2. `mcp__trusty-search__search_code` (index: claude-mpm) -- if memory insufficient
+**Memory (use whichever is available):**
+
+- **trusty-memory** (preferred if available): `mcp__trusty-memory__memory_recall` (palace: project name)
+- **kuzu-memory** (also supported): `mcp__kuzu-memory__kuzu_recall`
+
+**Code search (use whichever is available):**
+
+- **trusty-search** (preferred if available): `mcp__trusty-search__search_code` (index: claude-mpm)
+- **mcp-vector-search** (also supported): `mcp__mcp-vector-search__search_code`
+
+Sequence:
+
+1. Query memory first
+2. Query code search if memory insufficient
 3. Only then delegate to Research agent
 
-Both tools available when configured. Not optional.
+If neither memory backend nor code search backend is configured, skip directly to Research delegation.
 
 ## Agent Routing
 
