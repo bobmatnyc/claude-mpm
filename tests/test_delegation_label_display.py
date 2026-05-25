@@ -92,6 +92,10 @@ def test_interactive_session_unknown_agent_falls_back() -> None:
     assert "some-custom-agent" not in printed_line
     # ``normalize`` falls back to "Engineer" for unknown inputs, so the
     # display name should be "Engineer" per the contract.
+    # TODO: The "Engineer" fallback is a surprising default for truly unknown
+    # agents — ideally normalize() would return a title-cased version of the
+    # raw input (e.g. "some-custom-agent" → "Some Custom Agent") instead of
+    # conflating every unknown type with the Engineer agent.  Tracked as M2.
     assert display_name == "Engineer"
 
 
