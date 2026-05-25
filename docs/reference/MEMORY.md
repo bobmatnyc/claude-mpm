@@ -72,16 +72,18 @@ claude-mpm doctor --checks memory
 ### Memory Integration
 
 **Automatic Context Enrichment:**
-When using [kuzu-memory](https://pypi.org/project/kuzu-memory/) (recommended partner product):
+When using [trusty-memory](../integrations/trusty-memory.md) (recommended partner product):
 
-- Persistent knowledge graphs
-- Intelligent prompt enrichment
-- Structured storage of project knowledge
+- Persistent memory palace with hierarchical storage (palace/wing/room/closet/drawer)
+- Intelligent prompt enrichment via `get_prompt_context()`
+- Structured semantic recall of project knowledge
+- Temporal knowledge graph for cross-session context
 - Seamless zero-configuration integration
 
 Install with:
 ```bash
-pipx install kuzu-memory
+uv tool install trusty-memory
+claude-mpm setup trusty-memory
 ```
 
 See [../developer/memory-integration.md](../developer/memory-integration.md) for technical details.
@@ -352,33 +354,37 @@ Graduated warning system:
 
 ## Integration with Partner Products
 
-### kuzu-memory
+### trusty-memory (Recommended)
 
-**Advanced memory management** with knowledge graphs:
+**Advanced memory management** with a hierarchical knowledge palace and temporal graph:
 
 ```bash
 # Install
-pipx install kuzu-memory
+uv tool install trusty-memory
 
-# Automatic integration with Claude MPM
-# No configuration needed
+# Configure for current project
+claude-mpm setup trusty-memory
 ```
 
 **Benefits:**
-- 🧠 Persistent project knowledge graphs
-- 🎯 Intelligent prompt enrichment
-- 📊 Structured storage
-- 🔄 Seamless integration
+- 🧠 Persistent memory palace (palace/wing/room/closet/drawer hierarchy)
+- 🎯 Intelligent prompt enrichment via `get_prompt_context()`
+- 📊 Progressive retrieval (L0–L3) for token-efficient recall
+- 🕓 Temporal knowledge graph for cross-session context
+- 🔄 Seamless integration via MCP stdio server
 
-See [kuzu-memory documentation](https://pypi.org/project/kuzu-memory/) for details.
+See [trusty-memory integration guide](../integrations/trusty-memory.md) for details.
 
-### mcp-vector-search
+### trusty-search (Recommended)
 
-**Semantic code search** for context discovery:
+**Semantic code search** with hybrid retrieval (BM25 + vector + KG):
 
 ```bash
 # Install
-pipx install mcp-vector-search
+uv tool install trusty-search
+
+# Configure for current project
+claude-mpm setup trusty-search
 
 # Use in Claude MPM
 claude-mpm search "authentication logic"
@@ -386,9 +392,35 @@ claude-mpm search "authentication logic"
 
 **Benefits:**
 - 🔍 Find code by intent, not keywords
-- 🎯 Context-aware discovery
-- ⚡ Fast indexing
-- 📊 Pattern recognition
+- 🎯 Context-aware discovery with RRF fusion ranking
+- ⚡ Fast indexing via persistent daemon
+- 📊 Pattern recognition across the codebase
+
+See [trusty-search integration guide](../integrations/trusty-search.md) for details.
+
+---
+
+## Legacy Backends (Deprecated)
+
+The following backends are retained for backward compatibility with existing installations. New setups should use **trusty-memory** and **trusty-search** instead.
+
+### kuzu-memory (deprecated — superseded by trusty-memory)
+
+```bash
+# Legacy installation — prefer trusty-memory for new setups
+pipx install kuzu-memory
+```
+
+See [kuzu-memory integration guide](../integrations/kuzu-memory.md) for the legacy reference.
+
+### mcp-vector-search (deprecated — superseded by trusty-search)
+
+```bash
+# Legacy installation — prefer trusty-search for new setups
+pipx install mcp-vector-search
+```
+
+See [mcp-vector-search integration guide](../integrations/mcp-vector-search.md) for the legacy reference.
 
 ## Troubleshooting
 
