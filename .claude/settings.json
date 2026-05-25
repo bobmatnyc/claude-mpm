@@ -240,7 +240,7 @@
       "Start with plan mode for complex orchestration tasks",
       "One file per commit keeps history clean",
       "Delegate to specialist agents — PM never edits code directly",
-      "Use kuzu-memory to persist decisions across sessions",
+      "Use trusty-memory to persist decisions across sessions",
       "Circuit breakers protect against runaway delegation chains",
       "Feature-specific subagents outperform general-purpose agents",
       "Skills preload context without consuming prompt tokens unnecessarily"
