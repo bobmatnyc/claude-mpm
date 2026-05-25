@@ -1,3 +1,24 @@
+## [6.4.9] (2026-05-25)
+
+### Fixed
+
+- **doctor**: output style check now looks at `~/.claude/output-styles/claude-mpm.md` (was `~/.claude/responses/OUTPUT_STYLE.md`)
+- **doctor**: MCP integration check now reads `~/.claude/plugins/installed_plugins.json` (was `~/.claude.json`)
+- **doctor**: instructions scan now excludes `site-packages`, `dist-packages`, and `archive-v0` paths to eliminate false positives
+
+### Features
+
+- **env-guards**: PM subprocess now receives `CLAUDE_MPM_IS_PM=1` environment variable; sub-agents receive `CLAUDE_MPM_SUB_AGENT=1` via `model_tier_hook`; hook scripts can guard with `[[ -n "$CLAUDE_MPM_SUB_AGENT" ]] && exit 0` to skip processing in sub-agent processes
+- **agent-registry**: `AgentNameNormalizer` now reads dynamically from `.claude/agents/` and `~/.claude-mpm/cache/agents/` via `get_agent_name_map()` instead of a static hardcoded map; project-local custom agents are automatically discovered
+- **agent-registry**: `code-critic` QA/review agent added to `AGENT_NAME_MAP`
+- **pm-instructions**: users can customize PM behavior by creating `~/.claude-mpm/PM_INSTRUCTIONS.md`; content is appended to the system prompt without replacing defaults
+- **trusty-memory**: at session start, if trusty-memory MCP is connected, PM calls `get_prompt_context()` to load project aliases; silently skipped when unavailable
+
+### Changed
+
+- **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
+- **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
+
 ## v6.4.8 (2026-05-25)
 
 ### Feat
