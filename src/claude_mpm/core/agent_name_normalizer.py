@@ -18,6 +18,7 @@ exported for convenience.
 
 from claude_mpm.core.agent_name_registry import (
     AGENT_NAME_MAP,  # type: ignore[import-untyped]
+    get_agent_name_map,
 )
 from claude_mpm.core.logging_utils import get_logger
 
@@ -59,6 +60,80 @@ def _build_canonical_names_from_registry() -> dict[str, str]:
     return result
 
 
+def _build_canonical_names_dynamic() -> dict[str, str]:
+    """Build canonical names dict merging the static registry with runtime-discovered agents.
+
+    Why: ``get_agent_name_map()`` scans ``.claude/agents/`` at runtime and
+    discovers agents not present in the hardcoded :data:`AGENT_NAME_MAP`.
+    This function builds the underscore-keyed lookup table required by
+    :class:`AgentNameNormalizer` by starting from the curated static map and
+    then *extending* (not overriding) it with newly-discovered agents so that
+    custom or third-party agents become reachable for the first time without
+    disrupting the carefully-maintained display names for existing agents.
+
+    Priority (highest to lowest):
+        1. Static :data:`AGENT_NAME_MAP` entries (curated display names win for
+           known agents — they may differ intentionally from the raw ``name:``
+           frontmatter value, e.g. ``"Clerk Operations"`` vs ``"clerk-ops"``).
+        2. Runtime-discovered agents from ``.claude/agents/`` *not already
+           covered* by the static map (new/custom agents get added here).
+        3. Hard-wired ``architect`` and ``pm`` entries (not yet in the registry).
+
+    What: Starts from :func:`_build_canonical_names_from_registry` (static
+    map, underscore keys) and calls ``get_agent_name_map()`` to obtain the
+    full runtime map; for each runtime entry whose underscore key is *not*
+    already present in the result, the entry is appended.  This means only
+    genuinely new agents — those not described in :data:`AGENT_NAME_MAP` — are
+    added from the scan.
+
+    Test: In a project with a custom ``my-agent.md`` (``name: My Agent``),
+    after calling :func:`invalidate_names_cache`, this function should return
+    a dict containing ``"my_agent" -> "My Agent"`` alongside all existing
+    static entries unchanged.
+    """
+    # Start from the curated static map (underscore keys).
+    result: dict[str, str] = _build_canonical_names_from_registry()
+
+    # Extend with runtime-discovered agents that are not already covered.
+    for stem, display_name in get_agent_name_map().items():
+        underscore_key = stem.replace("-", "_")
+        # Only add if not already present — static map takes priority.
+        if underscore_key not in result:
+            result[underscore_key] = display_name
+
+    # These two entries are not in the registry but must always be present.
+    result.setdefault("architect", "Architect")
+    result.setdefault("pm", "PM")
+    return result
+
+
+class _ClassProperty:
+    """Read-only descriptor that exposes a classmethod as a class-level property.
+
+    Why: Python 3.13 removed support for chaining ``@classmethod`` and
+    ``@property``.  We need ``AgentNameNormalizer.CANONICAL_NAMES`` to behave
+    like a dict (so existing code that does ``cls.CANONICAL_NAMES.items()``
+    works) while the underlying value is computed lazily by a classmethod.
+
+    What: A non-data descriptor that, when accessed via the class *or* an
+    instance, calls the supplied *fget* callable with the owning class as the
+    sole argument and returns the result.
+
+    Test: ``AgentNameNormalizer.CANONICAL_NAMES`` must return a dict;
+    ``AgentNameNormalizer.CANONICAL_NAMES["research"] == "Research"`` must be
+    ``True``; and ``"research" in AgentNameNormalizer.CANONICAL_NAMES`` must
+    also be ``True``.
+    """
+
+    def __init__(self, fget):
+        self._fget = fget
+
+    def __get__(self, obj, objtype=None):
+        if objtype is None:
+            objtype = type(obj)
+        return self._fget(objtype)
+
+
 class AgentNameNormalizer:
     """Handles agent name normalization to ensure consistency across the system.
 
@@ -86,16 +161,63 @@ class AgentNameNormalizer:
     - Color coding
     """
 
-    # Canonical agent names (standardized format)
-    # These are the display names used in TodoWrite prefixes.
-    # Populated from AGENT_NAME_MAP (agent_name_registry) as the single source of truth,
-    # with additional entries for agents not yet in the registry (architect, pm).
-    CANONICAL_NAMES: dict[str, str] = {
-        **_build_canonical_names_from_registry(),
-        # Entries not yet present in AGENT_NAME_MAP:
-        "architect": "Architect",
-        "pm": "PM",
-    }
+    # ---------------------------------------------------------------------------
+    # Lazy canonical-names cache — populated on first access from the dynamic
+    # agent name map so newly-deployed .claude/agents/*.md files are included.
+    # ---------------------------------------------------------------------------
+    _canonical_names_cache: dict[str, str] | None = None
+
+    @classmethod
+    def _get_canonical_names(cls) -> dict[str, str]:
+        """Return the canonical-names dict, building it lazily on first call.
+
+        Why: ``CANONICAL_NAMES`` used to be a class attribute built once at
+        import time from the static ``AGENT_NAME_MAP``.  That meant agents
+        deployed to ``.claude/agents/`` after package installation were
+        invisible to the normalizer.  This method replaces the static attribute
+        with a cached call to ``get_agent_name_map()``, which scans the
+        deployed agent files at runtime.
+
+        What: Calls :func:`_build_canonical_names_dynamic` on the first access
+        and caches the result in ``_canonical_names_cache``.  Subsequent calls
+        return the cached dict without additional I/O.  Call
+        :meth:`invalidate_names_cache` to force a refresh after deploying new
+        agents.
+
+        Test: After adding a new ``.md`` file to ``.claude/agents/`` and
+        calling ``invalidate_names_cache()``, this method should return a dict
+        that includes the new agent's stem→name mapping.
+        """
+        if cls._canonical_names_cache is None:
+            cls._canonical_names_cache = _build_canonical_names_dynamic()
+        return cls._canonical_names_cache
+
+    @classmethod
+    def invalidate_names_cache(cls) -> None:
+        """Invalidate the canonical-names cache to force a re-scan on next access.
+
+        Why: :meth:`_get_canonical_names` caches its result to avoid repeated
+        filesystem scans.  After an agent is deployed or removed, the cache is
+        stale.  Callers (e.g. deployment handlers) must invoke this method to
+        force a fresh scan on the next access.
+
+        What: Resets ``_canonical_names_cache`` to ``None`` and also calls
+        :func:`~claude_mpm.core.agent_name_registry.invalidate_cache` so that
+        the underlying registry re-reads ``.claude/agents/`` as well.
+
+        Test: Call ``_get_canonical_names()``, add a new agent file, call
+        ``invalidate_names_cache()``, then call ``_get_canonical_names()``
+        again and verify the new agent is present.
+        """
+        from claude_mpm.core.agent_name_registry import invalidate_cache
+
+        cls._canonical_names_cache = None
+        invalidate_cache()
+
+    # Descriptor alias: ``cls.CANONICAL_NAMES`` → ``cls._get_canonical_names()``
+    # This keeps all existing code that accesses the dict via the class
+    # attribute working without modification.
+    CANONICAL_NAMES: dict[str, str] = _ClassProperty(_get_canonical_names.__func__)  # type: ignore[attr-defined]
 
     # Aliases and variations that map to canonical names
     # Keys are normalized (lowercase, underscores) and map to canonical keys
