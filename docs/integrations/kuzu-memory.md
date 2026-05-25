@@ -1,5 +1,9 @@
 # Kuzu Memory Integration
 
+> **⚠️ DEPRECATED**: kuzu-memory has been superseded by [trusty-memory](./trusty-memory.md).
+> New installations should use `uv tool install trusty-memory` instead.
+> This document is retained for reference for existing kuzu-memory installations.
+
 ## Overview
 
 Kuzu Memory provides graph-based semantic memory for Claude MPM, replacing static file-based memory with a powerful knowledge graph that enables semantic search and enhanced context management.
