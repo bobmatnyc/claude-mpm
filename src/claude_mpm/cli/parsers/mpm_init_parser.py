@@ -22,7 +22,8 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
     """
     mpm_init_parser = subparsers.add_parser(
         "mpm-init",
-        help="Initialize project for optimal Claude Code and Claude MPM usage",
+        aliases=["init"],
+        help="Initialize project for optimal Claude Code and Claude MPM usage (alias: init)",
         description=(
             "Initialize a project with comprehensive documentation, single-path workflows, "
             "and optimized structure for AI agent understanding. Uses the Agentic Coder "
@@ -31,6 +32,7 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         epilog=(
             "Examples:\n"
             "  claude-mpm mpm-init                                    # Initialize/update current directory\n"
+            "  claude-mpm init                                        # Same as 'mpm-init' (alias)\n"
             "  claude-mpm mpm-init --catchup                          # Show recent git history for context\n"
             "  claude-mpm mpm-init --review                           # Review project state without changes\n"
             "  claude-mpm mpm-init --update                           # Update existing CLAUDE.md\n"
