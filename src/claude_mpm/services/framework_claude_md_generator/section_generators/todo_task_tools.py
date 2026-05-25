@@ -6,13 +6,72 @@ from typing import Any
 
 from . import BaseSectionGenerator
 
+# Baseline agents guaranteed to be in the list even when no .claude/agents/
+# directory exists (e.g. in CI or during first-run initialisation).
+_BASELINE_AGENTS: list[str] = [
+    "research",
+    "engineer",
+    "qa",
+    "documentation",
+    "security",
+    "ops",
+    "version-control",
+    "data-engineer",
+    "pm",
+]
+
+
+def _get_deployed_agent_stems() -> list[str]:
+    """Return sorted hyphen-stem list of currently deployed agents.
+
+    Why: The list of valid ``subagent_type`` values must reflect agents that
+    are actually deployed to ``.claude/agents/`` rather than a hardcoded
+    snapshot that goes stale.  Using ``get_agent_name_map()`` guarantees the
+    PM's instructions always enumerate the real set of available agents.
+
+    What: Calls ``get_agent_name_map()`` (which scans ``.claude/agents/`` and
+    the cache directory) and converts each stem to its hyphenated form.
+    The result is de-duplicated against legacy ``-agent``-suffixed keys so
+    callers see clean, canonical stems only.
+
+    Fallback: If the import or scan fails for any reason, returns
+    ``_BASELINE_AGENTS`` so the generator never produces an empty list.
+
+    Test: In a project where ``code-critic.md`` is deployed, this function
+    should include ``"code-critic"`` in its return value.
+    """
+    try:
+        from claude_mpm.core.agent_name_registry import get_agent_name_map
+
+        name_map = get_agent_name_map()
+        stems: list[str] = []
+        seen_names: set[str] = set()
+        for stem, display_name in name_map.items():
+            # Skip legacy -agent suffixed duplicates; only keep canonical stems.
+            if stem.endswith("-agent"):
+                continue
+            if display_name in seen_names:
+                continue
+            seen_names.add(display_name)
+            stems.append(stem)
+        return sorted(stems) if stems else _BASELINE_AGENTS
+    except Exception:
+        return list(_BASELINE_AGENTS)
+
 
 class TodoTaskToolsGenerator(BaseSectionGenerator):
     """Generates the Todo and Task Tools section."""
 
     def generate(self, data: dict[str, Any]) -> str:
         """Generate the todo and task tools section."""
-        return """
+        deployed_stems = _get_deployed_agent_stems()
+
+        # Build the bullet list of valid subagent_type values dynamically.
+        stem_bullets = "\n".join(
+            f'- `subagent_type="{stem}"`' for stem in deployed_stems
+        )
+
+        return f"""
 ## B) TODO AND TASK TOOLS
 
 ### 🚨 MANDATORY: TodoWrite Integration with Task Tool
@@ -47,15 +106,7 @@ Task(description="[task description]", subagent_type="[agent-type]")
 **Valid subagent_type values (use lowercase format for Claude Code compatibility):**
 
 **Required format (Claude Code expects these exact values from deployed agent YAML names — lowercase with hyphens):**
-- `subagent_type="research"` - For investigation and analysis
-- `subagent_type="engineer"` - For coding and implementation
-- `subagent_type="qa"` - For testing and quality assurance
-- `subagent_type="documentation"` - For docs and guides
-- `subagent_type="security"` - For security assessments
-- `subagent_type="ops"` - For deployment and infrastructure
-- `subagent_type="version-control"` - For git and version management
-- `subagent_type="data-engineer"` - For data processing and APIs
-- `subagent_type="pm"` - For project management coordination
+{stem_bullets}
 
 **Note:** Claude Code's Task tool requires exact agent names as defined in the deployed agent YAML frontmatter. Per Claude Code's spec, all `name:` values are lowercase with hyphens (no `-agent` suffix, no underscores).
 
