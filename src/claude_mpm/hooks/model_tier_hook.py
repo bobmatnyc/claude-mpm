@@ -234,6 +234,12 @@ def build_model_tier_response(event: dict) -> dict:
     # tier info is injected into the context window rather than surfaced as a
     # chat message (Claude Code v2.1.133+ additionalContext support).
     tool_input["model"] = model
+
+    # Mark sub-agents so their hooks can self-guard with CLAUDE_MPM_SUB_AGENT.
+    # Merge with any existing env dict to avoid overwriting other keys.
+    existing_env = tool_input.get("env") or {}
+    tool_input["env"] = {**existing_env, "CLAUDE_MPM_SUB_AGENT": "1"}
+
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
