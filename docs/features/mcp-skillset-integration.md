@@ -141,12 +141,12 @@ The mcp-skillset MCP server provides:
 
 ## Comparison: User-Level vs Project-Level
 
-| Aspect | mcp-skillset (USER-LEVEL) | mcp-vector-search (PROJECT-LEVEL) |
-|--------|---------------------------|-------------------------------------|
+| Aspect | mcp-skillset (USER-LEVEL) | trusty-search (PROJECT-LEVEL) |
+|--------|---------------------------|-------------------------------|
 | Config Location | Claude Desktop config | Project `.mcp.json` |
 | Scope | All projects | Single project |
 | Purpose | Skill recommendations | Code semantic search |
-| Setup Command | `claude-mpm setup mcp-skillset` | `claude-mpm setup mcp-vector-search` |
+| Setup Command | `claude-mpm setup mcp-skillset` | `claude-mpm setup trusty-search` |
 | Deployment | One-time user-level | Per-project |
 
 ## Troubleshooting
