@@ -80,9 +80,9 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 - **Notion** - 7 tools + bulk operations for databases, pages, markdown import
 - **Confluence** - 7 tools + bulk operations for pages, spaces, CQL search
 - **Slack** - User proxy for channels, messages, DMs, search
-- **Semantic Code Search** - AI-powered code discovery via mcp-vector-search
+- **Semantic Code Search** - AI-powered code discovery via trusty-search
 - **Ticket Management** - GitHub, Linear, Jira integration via mcp-ticketer
-- **Graph Memory** - Persistent project knowledge via kuzu-memory
+- **Persistent Memory** - Project knowledge palace via trusty-memory
 
 ### 📊 Session & Workflow Management
 - **Session Resume** - Continue work with full context preservation
@@ -197,8 +197,8 @@ claude-mpm auto-configure
 
 **Recommended Partners**: Install these companion tools for enhanced capabilities:
 ```bash
-uv tool install kuzu-memory --python 3.13
-uv tool install mcp-vector-search --python 3.13
+uv tool install trusty-memory --python 3.13
+uv tool install trusty-search --python 3.13
 uv tool install mcp-ticketer --python 3.13
 uv tool install mcp-browser --python 3.13
 ```
@@ -235,7 +235,7 @@ uv tool install mcp-browser --python 3.13
 [→ Learn more: Skills Guide](docs/user/skills-guide.md)
 
 ### 🔍 Semantic Code Search
-- **AI-Powered Discovery** with mcp-vector-search integration
+- **AI-Powered Discovery** with trusty-search integration
 - **Find by Intent** not just keywords ("authentication logic" finds relevant code)
 - **Pattern Recognition** for discovering similar implementations
 - **Live Updates** tracking code changes automatically
@@ -697,8 +697,10 @@ Claude MPM supports multiple integrations for enhanced functionality. See **[Com
 
 ### Core Integrations
 
-- **[kuzu-memory](docs/integrations/kuzu-memory.md)** - Graph-based semantic memory for project context
-- **[mcp-vector-search](docs/integrations/mcp-vector-search.md)** - AI-powered semantic code search and discovery
+- **[trusty-memory](docs/integrations/trusty-memory.md)** - High-performance semantic memory palace for project context (recommended)
+- **[trusty-search](docs/integrations/trusty-search.md)** - High-performance semantic code search and discovery (recommended)
+- **[kuzu-memory](docs/integrations/kuzu-memory.md)** *(deprecated — superseded by trusty-memory)*
+- **[mcp-vector-search](docs/integrations/mcp-vector-search.md)** *(deprecated — superseded by trusty-search)*
 
 ### External Services
 
@@ -714,8 +716,8 @@ Claude MPM supports multiple integrations for enhanced functionality. See **[Com
 claude-mpm setup <integration>
 
 # Examples:
-claude-mpm setup kuzu-memory
-claude-mpm setup mcp-vector-search
+claude-mpm setup trusty-memory
+claude-mpm setup trusty-search
 claude-mpm setup gworkspace-mcp         # Canonical name (preferred)
 claude-mpm setup google-workspace-mcp   # Legacy alias (also works)
 claude-mpm setup slack-mpm
@@ -723,7 +725,7 @@ claude-mpm setup notion
 claude-mpm setup confluence
 
 # Setup multiple at once
-claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
+claude-mpm setup trusty-memory trusty-search gworkspace-mcp
 ```
 
 **Integration Features:**
