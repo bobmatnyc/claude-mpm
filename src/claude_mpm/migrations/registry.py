@@ -183,6 +183,13 @@ def _run_fix_mcp_command_args_migration() -> bool:
     return run_migration()
 
 
+def _run_remove_memory_capture_hook_migration() -> bool:
+    """Remove stale memory_capture hook entries (moved to trusty-memory, issue #555)."""
+    from .migrate_remove_memory_capture_hook import run_migration
+
+    return run_migration()
+
+
 def _run_hooks_to_project_level_migration() -> bool:  # pyright: ignore[unused-function]
     """Move MPM hooks from settings.local.json (and ~/.claude/settings.json) into project settings.json."""
     from pathlib import Path
@@ -311,6 +318,12 @@ MIGRATIONS: list[Migration] = [
         version="6.4.2",
         description="Fix MCP server configs where command contains spaces (split into command + args)",
         run=_run_fix_mcp_command_args_migration,
+    ),
+    Migration(
+        id="remove_memory_capture_hook",
+        version="6.4.9",
+        description="Remove stale memory_capture hook entries from .claude/settings.json (module moved to trusty-memory, issue #555)",
+        run=_run_remove_memory_capture_hook_migration,
     ),
 ]
 
