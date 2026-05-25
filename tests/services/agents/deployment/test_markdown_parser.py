@@ -244,7 +244,7 @@ class TestMarkdownTemplateParser:
             agent_name="engineer",
             template_path=template_file,
             base_agent_data=base_agent_data,
-            source_info="test",
+            _source_info="test",
         )
 
         # Verify result is a string
@@ -273,7 +273,7 @@ class TestMarkdownTemplateParser:
             agent_name="test",
             template_path=template_file,
             base_agent_data=base_agent_data,
-            source_info="test",
+            _source_info="test",
         )
 
         # Verify result is a string
