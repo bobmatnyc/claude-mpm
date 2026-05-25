@@ -1,7 +1,7 @@
 ---
 model: haiku
 effort: fast
-name: ticketing
+name: Ticketing
 description: GitHub issue management and bug reporting for MPM repositories
 toolchain: universal
 category: mpm

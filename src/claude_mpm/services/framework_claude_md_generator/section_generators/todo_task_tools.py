@@ -46,30 +46,29 @@ Task(description="[task description]", subagent_type="[agent-type]")
 
 **Valid subagent_type values (use lowercase format for Claude Code compatibility):**
 
-**Required format (Claude Code expects these exact values from deployed agent YAML names):**
-- `subagent_type="research-agent"` - For investigation and analysis
+**Required format (Claude Code expects these exact values from deployed agent YAML names — lowercase with hyphens):**
+- `subagent_type="research"` - For investigation and analysis
 - `subagent_type="engineer"` - For coding and implementation
-- `subagent_type="qa-agent"` - For testing and quality assurance
-- `subagent_type="documentation-agent"` - For docs and guides
-- `subagent_type="security-agent"` - For security assessments
-- `subagent_type="ops-agent"` - For deployment and infrastructure
+- `subagent_type="qa"` - For testing and quality assurance
+- `subagent_type="documentation"` - For docs and guides
+- `subagent_type="security"` - For security assessments
+- `subagent_type="ops"` - For deployment and infrastructure
 - `subagent_type="version-control"` - For git and version management
 - `subagent_type="data-engineer"` - For data processing and APIs
 - `subagent_type="pm"` - For project management coordination
-- `subagent_type="test_integration"` - For integration testing
 
-**Note:** Claude Code's Task tool requires exact agent names as defined in the deployed agent YAML frontmatter. The names must match exactly - including hyphens where specified.
+**Note:** Claude Code's Task tool requires exact agent names as defined in the deployed agent YAML frontmatter. Per Claude Code's spec, all `name:` values are lowercase with hyphens (no `-agent` suffix, no underscores).
 
 **Examples of Proper Task Tool Usage (must match deployed agent YAML names):**
-- ✅ `Task(description="Update framework documentation", subagent_type="documentation-agent")`
-- ✅ `Task(description="Execute test suite validation", subagent_type="qa-agent")`
+- ✅ `Task(description="Update framework documentation", subagent_type="documentation")`
+- ✅ `Task(description="Execute test suite validation", subagent_type="qa")`
 - ✅ `Task(description="Create feature branch and sync", subagent_type="version-control")`
-- ✅ `Task(description="Investigate performance patterns", subagent_type="research-agent")`
+- ✅ `Task(description="Investigate performance patterns", subagent_type="research")`
 - ✅ `Task(description="Implement authentication system", subagent_type="engineer")`
 - ✅ `Task(description="Configure database and optimize queries", subagent_type="data-engineer")`
 - ✅ `Task(description="Coordinate project tasks", subagent_type="pm")`
-- ❌ `Task(description="Analyze code patterns", subagent_type="research")` (WRONG - missing '-agent' suffix)
-- ❌ `Task(description="Update API docs", subagent_type="documentation")` (WRONG - missing '-agent' suffix)
+- ❌ `Task(description="Analyze code patterns", subagent_type="research-agent")` (WRONG - no '-agent' suffix in deployed name)
+- ❌ `Task(description="Update API docs", subagent_type="Documentation")` (WRONG - lowercase only)
 - ❌ `Task(description="Create release tags", subagent_type="version_control")` (WRONG - should be 'version-control')
 
 ### 🚨 MANDATORY: THREE SHORTCUT COMMANDS
@@ -100,8 +99,8 @@ Task(description="[task description]", subagent_type="[agent-type]")
 - ☐ [Version Control] Apply semantic version bump and create release tags
 
 # Corresponding Task Tool delegations (must match deployed agent names):
-Task(description="Generate changelog and analyze version impact", subagent_type="documentation-agent")
-Task(description="Execute full test suite and quality validation", subagent_type="qa-agent")
+Task(description="Generate changelog and analyze version impact", subagent_type="documentation")
+Task(description="Execute full test suite and quality validation", subagent_type="qa")
 Task(description="Validate data integrity and verify API connectivity", subagent_type="data-engineer")
 Task(description="Apply semantic version bump and create release tags", subagent_type="version-control")
 

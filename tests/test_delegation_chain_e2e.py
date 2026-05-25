@@ -158,9 +158,11 @@ class TestDelegationChainE2E:
           2. Normalize the display name (should be stable).
           3. Convert back to task format and verify it resolves to a valid stem.
 
-        We skip entries whose display name is in ID-style format (e.g. 'ticketing_agent',
-        'mpm_agent_manager') and legacy -agent suffix variants, since those are
-        backward-compatibility entries, not part of the user-facing delegation chain.
+        We skip entries whose display name is in ID-style format (contains underscores)
+        or matches the stem verbatim (e.g. 'ticketing', 'nestjs-engineer', 'aws-ops',
+        'mpm-agent-manager') and legacy -agent suffix variants, since those are
+        canonical dispatch keys whose display representation is derived separately
+        in AgentNameNormalizer.CANONICAL_NAMES (not part of the AGENT_NAME_MAP roundtrip).
 
         Known roundtrip failures are documented in KNOWN_ROUNDTRIP_FAILURES and
         tested separately in test_known_roundtrip_failures_are_documented.

@@ -4,6 +4,8 @@ import logging
 
 from slack_bolt import App
 
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
+
 logger = logging.getLogger(__name__)
 
 
@@ -116,7 +118,12 @@ def register_commands(app: App) -> None:
         ticket_id = parts[0]
         agent_type = parts[1] if len(parts) > 1 else "engineer"
 
+        # Slack does not render ANSI escapes, so use normalize (Title Case, no ANSI)
+        # rather than colorize. The normalized form gives users a friendly display
+        # name like "Python Engineer" instead of the raw "python-engineer".
+        display_agent = AgentNameNormalizer.normalize(agent_type)
+
         # TODO: Delegate to MPM agent
-        respond(f"🤖 Delegating `{ticket_id}` to *{agent_type}* agent...")
+        respond(f"🤖 Delegating `{ticket_id}` to *{display_agent}* agent...")
 
     logger.info("Registered 6 Slack command handlers")

@@ -879,14 +879,14 @@ PM: mcp__mcp-ticketer__ticket_update(...)     # VIOLATION - direct ticket update
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="ticketing_agent", task="Create ticket for bug: Authentication fails on login")
-PM: Task(agent="ticketing_agent", task="Read ticket TICKET-123 and report status")
-PM: Task(agent="ticketing_agent", task="Update ticket TICKET-123 state to 'in_progress'")
-PM: Task(agent="ticketing_agent", task="Create epic for authentication feature with 3 child issues")
-PM: Task(agent="ticketing_agent", task="List all open tickets assigned to current user")
+PM: Task(agent="Ticketing", task="Create ticket for bug: Authentication fails on login")
+PM: Task(agent="Ticketing", task="Read ticket TICKET-123 and report status")
+PM: Task(agent="Ticketing", task="Update ticket TICKET-123 state to 'in_progress'")
+PM: Task(agent="Ticketing", task="Create epic for authentication feature with 3 child issues")
+PM: Task(agent="Ticketing", task="List all open tickets assigned to current user")
 ```
 
-### ticketing Capabilities
+### Ticketing Capabilities
 
 **ticketing automatically handles:**
 - MCP-ticketer detection and usage (if available)
@@ -1243,19 +1243,19 @@ PM: "You need React and FastAPI skills"  # ❌ VIOLATION - no technology detecti
 ```
 # Correct: Skill creation delegation
 User: "Create a FastAPI skill"
-PM: Task(agent="mpm_skills_manager", task="Create comprehensive skill for FastAPI framework")
+PM: Task(agent="MPM Skills Manager", task="Create comprehensive skill for FastAPI framework")
 
 # Correct: Skill recommendation delegation
 User: "What skills do I need for this project?"
-PM: Task(agent="mpm_skills_manager", task="Detect project technology stack and recommend relevant skills")
+PM: Task(agent="MPM Skills Manager", task="Detect project technology stack and recommend relevant skills")
 
 # Correct: Skill improvement delegation
 User: "The React skill is missing hooks patterns"
-PM: Task(agent="mpm_skills_manager", task="Improve React skill by adding hooks patterns section")
+PM: Task(agent="MPM Skills Manager", task="Improve React skill by adding hooks patterns section")
 
 # Correct: Technology detection delegation
 User: "What frameworks are we using?"
-PM: Task(agent="mpm_skills_manager", task="Analyze project files and identify all frameworks and technologies")
+PM: Task(agent="MPM Skills Manager", task="Analyze project files and identify all frameworks and technologies")
 ```
 
 ### Enforcement Levels

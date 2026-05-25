@@ -7,6 +7,8 @@ import logging
 import os
 from typing import TYPE_CHECKING, Any
 
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
+
 if TYPE_CHECKING:
     from .models import ChannelMessage, ChannelSession
     from .session_registry import SessionRegistry
@@ -221,15 +223,27 @@ class SessionWorker:
                                     elif isinstance(block, ToolUseBlock):
                                         tracker.record_tool_call(block.name)
                                         if block.name in ("Agent", "Task"):
-                                            subagent = (
+                                            raw_subagent = (
                                                 block.input.get("subagent_type")
                                                 or block.input.get("description", "")[
                                                     :30
                                                 ]
                                                 or "Agent"
                                             )
-                                            tool_id_to_agent[block.id] = subagent
-                                            label = f"[{current_agent}:{block.name} -> {subagent}]"
+                                            # Normalize to Title Case for non-terminal
+                                            # consumers (Slack, Web UI). Channels do
+                                            # not render ANSI escapes, so we emit the
+                                            # plain normalized form per Option 2a in
+                                            # the research doc.
+                                            display_subagent = (
+                                                AgentNameNormalizer.normalize(
+                                                    raw_subagent
+                                                )
+                                            )
+                                            tool_id_to_agent[block.id] = (
+                                                display_subagent
+                                            )
+                                            label = f"[{current_agent}:{block.name} -> {display_subagent}]"
                                         else:
                                             label = f"[{current_agent}:{block.name}]"
                                         await self.registry.broadcast(
