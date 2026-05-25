@@ -97,6 +97,7 @@ AGENT_NAME_MAP: dict[str, str] = {
     "web-qa": "Web QA",
     "api-qa": "API QA",
     "real-user": "Real User",
+    "code-critic": "code-critic",
     # ── Utility agents ────────────────────────────────────────────────────
     "memory-manager-agent": "Memory Manager",
     "project-organizer": "Project Organizer",
