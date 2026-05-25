@@ -61,6 +61,14 @@ Sequence:
 
 If neither memory backend nor code search backend is configured, skip directly to Research delegation.
 
+## MCP Context Loading (Optional)
+
+At session start, if the `trusty-memory` MCP server is connected, call `get_prompt_context()` to load project aliases and conventions into working context. This enables automatic abbreviation resolution (e.g. `tga` → `trusty-git-analytics`) without manual context-setting each session.
+
+- If trusty-memory MCP is not available: **skip silently** — never block or warn the user
+- If available: call `get_prompt_context()` once, apply returned aliases for the session
+- Delegated agents encountering an unrecognized abbreviation should also call `get_prompt_context(query: "<abbrev>")` before guessing
+
 ## Agent Routing
 
 See AGENT_DELEGATION.md for the full routing table and trigger keywords.
