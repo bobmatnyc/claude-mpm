@@ -601,6 +601,9 @@ class InteractiveSession:
         # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
         apply_subprocess_env_defaults(clean_env)
 
+        # Mark all MPM-spawned Claude Code processes so hooks can detect them
+        clean_env["CLAUDE_MPM_IS_PM"] = "1"
+
         return clean_env
 
     def _change_to_user_directory(self, env: dict) -> None:
