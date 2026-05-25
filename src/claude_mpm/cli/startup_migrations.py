@@ -456,11 +456,17 @@ def _remove_hook_handler_sh() -> bool:
 
 
 def _check_needs_fast_hook_upgrade() -> bool:
-    """Check if hooks need upgrading to the fast bash hook.
+    """Check if hooks need upgrading to the PATH-based claude-hook entry point.
+
+    The migration upgrades older absolute-path-based hook commands (the slow
+    ``claude-hook-handler.sh`` and stale absolute paths to
+    ``claude-hook-fast.sh``) to the PATH-based ``claude-hook`` entry point,
+    which resolves correctly regardless of where the package is installed.
 
     Returns:
-        True if any hook uses claude-hook entry point or slow handler,
-        but not the fast hook.
+        True if any hook uses the deprecated ``claude-hook-handler.sh`` or
+        an absolute path to ``claude-hook-fast.sh`` (rather than the
+        PATH-based ``claude-hook`` entry point).
     """
     settings_files = [
         Path.home() / ".claude" / "settings.local.json",
@@ -473,15 +479,36 @@ def _check_needs_fast_hook_upgrade() -> bool:
 
         try:
             with open(settings_file) as f:
-                content = f.read()
-                # Check if using old hooks but not fast hook
-                has_old_hooks = (
-                    '"claude-hook"' in content or "claude-hook-handler.sh" in content
-                )
-                has_fast_hook = "claude-hook-fast.sh" in content
+                data = json.load(f)
 
-                if has_old_hooks and not has_fast_hook:
-                    return True
+            hooks = data.get("hooks", {})
+            if not hooks:
+                continue
+
+            for hook_list in hooks.values():
+                if not isinstance(hook_list, list):
+                    continue
+                for hook_entry in hook_list:
+                    if not isinstance(hook_entry, dict):
+                        continue
+                    hook_commands = hook_entry.get("hooks", [])
+                    if not isinstance(hook_commands, list):
+                        continue
+                    for cmd_entry in hook_commands:
+                        if not isinstance(cmd_entry, dict):
+                            continue
+                        command = cmd_entry.get("command", "")
+                        # Already using the PATH-based entry point — skip.
+                        if command == "claude-hook":
+                            continue
+                        # Old slow handler script needs upgrading.
+                        if "claude-hook-handler.sh" in command:
+                            return True
+                        # Baked-in absolute path to fast hook is stale-prone
+                        # and should be replaced with the PATH-based entry
+                        # point.
+                        if "claude-hook-fast.sh" in command:
+                            return True
         except Exception as e:
             logger.debug(f"Failed to check {settings_file}: {e}")
             continue
@@ -490,26 +517,25 @@ def _check_needs_fast_hook_upgrade() -> bool:
 
 
 def _upgrade_to_fast_hook() -> bool:
-    """Upgrade hooks to use the fast bash hook.
+    """Upgrade hooks to use the PATH-based ``claude-hook`` entry point.
+
+    Historically this migration baked a fully-resolved absolute path to
+    ``claude-hook-fast.sh`` into project ``settings.local.json`` files.  That
+    path became stale whenever the uv tools installation was removed or the
+    package was reinstalled, causing every hook invocation to fail.
+
+    The migration now writes the PATH-based ``claude-hook`` entry point
+    instead, which resolves correctly regardless of where the package is
+    installed.  Any existing args (e.g. session/event type) are preserved.
 
     This migration:
-    1. Finds all settings files with old hook commands
-    2. Replaces them with the fast hook path
-    3. Preserves other hook settings
+    1. Finds all settings files with old/stale hook commands.
+    2. Replaces them with ``"claude-hook"``.
+    3. Preserves other hook settings (e.g. ``args``, ``type``).
 
     Returns:
         True if migration succeeded.
     """
-    # Get the fast hook path
-    try:
-        from ..hooks.claude_hooks.installer import HookInstaller
-
-        installer = HookInstaller()
-        fast_hook_path = str(installer._get_fast_hook_script_path().absolute())
-    except Exception as e:
-        logger.warning(f"Could not get fast hook path: {e}")
-        return False
-
     settings_files = [
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
@@ -544,16 +570,20 @@ def _upgrade_to_fast_hook() -> bool:
                     if not isinstance(hook_commands, list):
                         continue
 
-                    # Upgrade old hook commands to fast hook
+                    # Upgrade legacy hook commands to the PATH-based entry
+                    # point.  Anything already set to ``"claude-hook"`` is
+                    # left alone so the migration is idempotent.
                     for cmd in hook_commands:
                         if not isinstance(cmd, dict):
                             continue
                         command = cmd.get("command", "")
+                        if command == "claude-hook":
+                            continue
                         if (
-                            command == "claude-hook"
-                            or "claude-hook-handler.sh" in command
+                            "claude-hook-handler.sh" in command
+                            or "claude-hook-fast.sh" in command
                         ):
-                            cmd["command"] = fast_hook_path
+                            cmd["command"] = "claude-hook"
                             file_upgraded += 1
 
             if file_upgraded > 0:
@@ -561,7 +591,8 @@ def _upgrade_to_fast_hook() -> bool:
                     json.dump(data, f, indent=2)
                 total_upgraded += file_upgraded
                 logger.info(
-                    f"Upgraded {file_upgraded} hooks to fast hook in {settings_file}"
+                    f"Upgraded {file_upgraded} hooks to PATH-based claude-hook "
+                    f"entry point in {settings_file}"
                 )
 
         except Exception as e:
@@ -569,7 +600,9 @@ def _upgrade_to_fast_hook() -> bool:
             continue
 
     if total_upgraded > 0:
-        print(f"   Upgraded {total_upgraded} hooks to fast bash hook (~52x faster)")
+        print(
+            f"   Upgraded {total_upgraded} hooks to PATH-based claude-hook entry point"
+        )
     else:
         print("   No hooks needed upgrading")
 
