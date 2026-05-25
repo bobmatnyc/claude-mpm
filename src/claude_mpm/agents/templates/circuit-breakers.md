@@ -886,7 +886,7 @@ PM: Task(agent="Ticketing", task="Create epic for authentication feature with 3 
 PM: Task(agent="Ticketing", task="List all open tickets assigned to current user")
 ```
 
-### ticketing Capabilities
+### Ticketing Capabilities
 
 **ticketing automatically handles:**
 - MCP-ticketer detection and usage (if available)
