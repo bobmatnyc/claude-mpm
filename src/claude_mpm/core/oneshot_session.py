@@ -322,6 +322,9 @@ class OneshotSession:
         # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
         apply_subprocess_env_defaults(env)
 
+        # Mark all MPM-spawned Claude Code processes so hooks can detect them
+        env["CLAUDE_MPM_IS_PM"] = "1"
+
         return env
 
     def _build_command(self) -> list:
