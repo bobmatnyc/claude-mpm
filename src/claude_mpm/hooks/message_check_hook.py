@@ -362,8 +362,14 @@ def message_check_hook() -> str | None:
 
 
 if __name__ == "__main__":
+    import os as _os
     import select as _select
     import sys
+
+    # Skip message checks and state writes in MPM sub-agent processes.
+    # Sub-agents should not poll for messages or write to shared state files.
+    if _os.environ.get("CLAUDE_MPM_SUB_AGENT"):
+        sys.exit(0)
 
     # Read stdin (Claude Code sends hook JSON there, but we don't need it).
     # Guard the read with select so a pipe that never reaches EOF cannot
