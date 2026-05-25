@@ -5,10 +5,10 @@
 
 ### Overview
 
-This system provides **Static Memory** support where you (PM) directly manage memory files for agents. For live semantic memory, use whichever MCP memory backend is configured in the current session -- both are fully supported:
+This system provides **Static Memory** support where you (PM) directly manage memory files for agents. For live semantic memory, use whichever MCP memory backend is configured in the current session. **trusty-memory** is the primary recommended backend for new setups; **kuzu-memory** is retained for backward compatibility with existing installations only.
 
-- **trusty-memory** (preferred if available): `mcp__trusty-memory__memory_recall`, `mcp__trusty-memory__memory_remember`
-- **kuzu-memory** (also supported): `mcp__kuzu-memory__kuzu_recall`, `mcp__kuzu-memory__kuzu_learn`, `mcp__kuzu-memory__kuzu_remember`
+- **trusty-memory** (primary — recommended for all new setups): `mcp__trusty-memory__memory_recall`, `mcp__trusty-memory__memory_remember`
+- **kuzu-memory** *(deprecated — legacy fallback for existing installations)*: `mcp__kuzu-memory__kuzu_recall`, `mcp__kuzu-memory__kuzu_learn`, `mcp__kuzu-memory__kuzu_remember`
 
 ### PM Memory Update Mechanism
 
