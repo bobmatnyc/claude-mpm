@@ -1,3 +1,13 @@
+## v6.4.8 (2026-05-25)
+
+### Feat
+
+- add 'init' as alias for 'mpm-init' CLI command
+
+### Fix
+
+- correct source_info parameter name to _source_info in markdown parser tests
+
 ## v6.4.7 (2026-05-25)
 
 ### Fix
