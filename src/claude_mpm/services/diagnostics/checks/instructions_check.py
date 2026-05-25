@@ -134,6 +134,9 @@ class InstructionsCheck(BaseDiagnosticCheck):
                             ".claude",
                             ".claude-mpm",
                             "cache",
+                            "site-packages",  # pip/system Python installs
+                            "dist-packages",  # Debian/Ubuntu Python installs
+                            "archive-v0",  # uv cache
                         ]
                     ):
                         continue
