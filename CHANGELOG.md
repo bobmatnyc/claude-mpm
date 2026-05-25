@@ -1,3 +1,9 @@
+## v6.4.7 (2026-05-25)
+
+### Fix
+
+- use PATH-based claude-hook instead of absolute path in _upgrade_to_fast_hook
+
 ## v6.4.6 (2026-05-23)
 
 ## v6.4.5 (2026-05-23)
