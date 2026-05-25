@@ -41,17 +41,17 @@ No exceptions for "trivial", "documented", or cost-saving arguments.
 
 ## Context-First Protocol (MANDATORY)
 
-Before delegating to Research or reading files, query project memory and code search. Both backends are fully supported -- use whichever MCP server is active in the current session.
+Before delegating to Research or reading files, query project memory and code search. Use whichever MCP server is active in the current session.
 
 **Memory (use whichever is available):**
 
-- **trusty-memory** (preferred if available): `mcp__trusty-memory__memory_recall` (palace: project name)
-- **kuzu-memory** (also supported): `mcp__kuzu-memory__kuzu_recall`
+- **trusty-memory** (primary, recommended): `mcp__trusty-memory__memory_recall` (palace: project name)
+- **kuzu-memory** *(deprecated — legacy fallback for existing installations)*: `mcp__kuzu-memory__kuzu_recall`
 
 **Code search (use whichever is available):**
 
-- **trusty-search** (preferred if available): `mcp__trusty-search__search_code` (index: claude-mpm)
-- **mcp-vector-search** (also supported): `mcp__mcp-vector-search__search_code`
+- **trusty-search** (primary, recommended): `mcp__trusty-search__search_code` (index: claude-mpm)
+- **mcp-vector-search** *(deprecated — legacy fallback for existing installations)*: `mcp__mcp-vector-search__search_code`
 
 Sequence:
 
