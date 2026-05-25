@@ -69,48 +69,6 @@ claude-mpm setup trusty-search
 
 ---
 
-#### [Kuzu Memory](kuzu-memory.md) (Legacy)
-**Graph-based semantic memory for project context**
-
-- Replaces static file-based memory with graph database
-- Semantic search for context retrieval
-- Automatic memory indexing and storage
-- Project-scoped memory isolation
-- **Note**: Trusty Memory recommended as replacement
-
-```bash
-claude-mpm setup kuzu-memory
-```
-
-**Key Features**:
-- Semantic memory storage
-- Natural language queries
-- Automatic context enhancement
-- Per-agent memory namespaces
-
----
-
-#### [MCP Vector Search](mcp-vector-search.md) (Legacy)
-**AI-powered semantic code search**
-
-- Vector-based code discovery
-- Three search modes: text-to-code, code-to-code, contextual
-- Automatic codebase indexing
-- PM agent uses it before file reading
-- **Note**: Trusty Search recommended as replacement
-
-```bash
-claude-mpm setup mcp-vector-search
-```
-
-**Key Features**:
-- Sub-second semantic search
-- Find code by meaning, not keywords
-- Discover similar patterns
-- Integration with PM agent
-
----
-
 ### External Service Integrations
 
 #### [Google Workspace MCP](gworkspace-mcp.md)
@@ -297,14 +255,47 @@ claude-mpm tools confluence pages-batch-export --page-ids "..." --output export.
 
 ---
 
+### Legacy / Deprecated Integrations
+
+> The integrations below have been superseded by the `trusty-*` family above.
+> They remain documented for users with existing installations. **New setups should not use these.**
+
+#### [Kuzu Memory](kuzu-memory.md) (Deprecated — use trusty-memory)
+**Graph-based semantic memory — replaced by [Trusty Memory](trusty-memory.md)**
+
+- Legacy graph database backend for project memory
+- Project-scoped memory isolation
+- Retained only for backward compatibility with existing installations
+
+```bash
+# Legacy only — prefer trusty-memory for new setups
+claude-mpm setup kuzu-memory
+```
+
+---
+
+#### [MCP Vector Search](mcp-vector-search.md) (Deprecated — use trusty-search)
+**Vector-based code search — replaced by [Trusty Search](trusty-search.md)**
+
+- Legacy vector embeddings backend for semantic code search
+- Three search modes: text-to-code, code-to-code, contextual
+- Retained only for backward compatibility with existing installations
+
+```bash
+# Legacy only — prefer trusty-search for new setups
+claude-mpm setup mcp-vector-search
+```
+
+---
+
 ## Integration Comparison
 
 | Integration | Type | Tools | Auth Method | Use Case | Status |
 |-------------|------|-------|-------------|----------|--------|
 | **Trusty Memory** | Core | 5 MCP | None | Project memory | Recommended |
 | **Trusty Search** | Core | 3 MCP | None | Code discovery | Recommended |
-| **Kuzu Memory** | Core | 4 MCP | None | Project memory | Legacy |
-| **Vector Search** | Core | 3 MCP | None | Code discovery | Legacy |
+| **Kuzu Memory** | Core | 4 MCP | None | Project memory | Deprecated (use trusty-memory) |
+| **Vector Search** | Core | 3 MCP | None | Code discovery | Deprecated (use trusty-search) |
 | **Google Workspace** | External | 67 MCP | OAuth 2.0 | Productivity suite | Active |
 | **Slack** | External | 11 MCP | OAuth User Token | Team communication | Active |
 | **Notion** | External | Official pkg | API Token | Workspace knowledge | Active |
@@ -327,7 +318,7 @@ claude-mpm setup <integration-name>
 
 ```bash
 # Setup multiple at once
-claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
+claude-mpm setup trusty-memory trusty-search gworkspace-mcp
 ```
 
 ### With Options
@@ -336,7 +327,7 @@ claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
 # Setup with flags
 claude-mpm setup gworkspace-mcp --no-launch --no-browser
 claude-mpm setup slack-mpm --no-launch
-claude-mpm setup mcp-vector-search --force
+claude-mpm setup trusty-search --force
 ```
 
 ---
@@ -358,9 +349,6 @@ claude-mpm setup gworkspace-mcp slack
 ```bash
 # Just memory and search (recommended)
 claude-mpm setup trusty-memory trusty-search
-
-# Or with legacy tools
-claude-mpm setup kuzu-memory mcp-vector-search
 ```
 
 ### 3. Team Collaboration Setup
@@ -426,14 +414,14 @@ CONFLUENCE_API_TOKEN="..."  # pragma: allowlist secret
 ```json
 {
   "mcpServers": {
-    "kuzu-memory": {
-      "command": "uvx",
-      "args": ["kuzu-memory"],
+    "trusty-memory": {
+      "command": "trusty-memory",
+      "args": ["mcp"],
       "env": {}
     },
-    "mcp-vector-search": {
-      "command": "uvx",
-      "args": ["mcp-vector-search"],
+    "trusty-search": {
+      "command": "trusty-search",
+      "args": ["mcp"],
       "env": {}
     },
     "google-workspace-mcp": {
@@ -452,10 +440,10 @@ CONFLUENCE_API_TOKEN="..."  # pragma: allowlist secret
 
 ```yaml
 memory:
-  backend: kuzu
-  kuzu:
+  backend: trusty
+  trusty:
     project_root: /path/to/project
-    db_path: /path/to/project/kuzu-memories
+    palace: my-project
 ```
 
 ---
