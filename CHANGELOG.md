@@ -19,6 +19,32 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.4.9 (2026-05-25)
+
+### Feat
+
+- add migration to strip stale memory_capture hook entries
+- **pm**: native trusty-memory get_prompt_context startup (#534)
+- skip message checks and state writes in MPM sub-agent processes
+- skip dashboard events for MPM sub-agent processes
+- inject CLAUDE_MPM_SUB_AGENT=1 into Agent tool calls for sub-agent hook guard
+- set CLAUDE_MPM_IS_PM=1 in oneshot session environment
+- set CLAUDE_MPM_IS_PM=1 in PM subprocess environment
+- **agents**: colorize delegation labels with Title Case display names (#504)
+
+### Fix
+
+- **agents**: dynamically enumerate deployed agents in PM instructions generator
+- **agents**: wire AgentNameNormalizer to dynamic get_agent_name_map() scan
+- **agents**: add code-critic to AGENT_NAME_MAP
+- register remove_memory_capture_hook migration in registry
+- update doctor to use current Claude Code paths for output-styles and plugin registry
+- exclude site-packages, dist-packages, archive-v0 from doctor instructions scan
+
+### Refactor
+
+- default all subagents to sonnet 4.6, remove auto-opus for engineering agents
+
 ## v6.4.8 (2026-05-25)
 
 ### Feat
