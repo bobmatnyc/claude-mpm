@@ -174,7 +174,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
 
     def _check_output_style(self) -> DiagnosticResult:
         """Check if output style is deployed."""
-        style_path = Path.home() / ".claude/responses/OUTPUT_STYLE.md"
+        style_path = Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
 
         if not style_path.exists():
             return DiagnosticResult(
@@ -217,52 +217,48 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
 
     def _check_mcp_integration(self) -> DiagnosticResult:
         """Check MCP server integration with Claude Code CLI."""
-        # Claude Code CLI uses ~/.claude.json for configuration
-        config_path = Path.home() / ".claude.json"
+        plugins_file = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
 
-        if not config_path.exists():
+        if not plugins_file.exists():
             return DiagnosticResult(
                 category="MCP Integration",
                 status=ValidationSeverity.WARNING,
-                message="Claude Code CLI config not found",
-                details={"configured": False, "config_path": str(config_path)},
+                message="Claude Code plugin registry not found",
+                details={"configured": False, "config_path": str(plugins_file)},
                 fix_command="claude-mpm mcp install",
                 fix_description="Install MCP server integration for Claude Code CLI",
             )
 
         try:
-            with config_path.open() as f:
-                config = json.load(f)
+            with plugins_file.open() as f:
+                data = json.load(f)
+            plugins = data.get("plugins", data)
+            candidates = []
+            if isinstance(plugins, dict):
+                candidates.extend(plugins.keys())
+                candidates.extend(str(v) for v in plugins.values())
+            elif isinstance(plugins, list):
+                candidates.extend(str(p) for p in plugins)
 
-                mcp_servers = config.get("mcpServers", {})
-                if "claude-mpm" in mcp_servers:
-                    return DiagnosticResult(
-                        category="MCP Integration",
-                        status=OperationResult.SUCCESS,
-                        message="MCP server configured",
-                        details={
-                            "configured": True,
-                            "server_count": len(mcp_servers),
-                            "config_path": str(config_path),
-                        },
-                    )
+            if any("claude-mpm" in str(c) for c in candidates):
                 return DiagnosticResult(
                     category="MCP Integration",
-                    status=ValidationSeverity.WARNING,
-                    message="MCP server not configured",
-                    details={
-                        "configured": False,
-                        "server_count": len(mcp_servers),
-                        "config_path": str(config_path),
-                    },
-                    fix_command="claude-mpm mcp install",
-                    fix_description="Configure MCP server for Claude Code CLI",
+                    status=OperationResult.SUCCESS,
+                    message="Claude-mpm plugin configured",
+                    details={"configured": True, "config_path": str(plugins_file)},
                 )
-
+            return DiagnosticResult(
+                category="MCP Integration",
+                status=ValidationSeverity.WARNING,
+                message="claude-mpm plugin not found in registry",
+                details={"configured": False, "config_path": str(plugins_file)},
+                fix_command="claude-mpm mcp install",
+                fix_description="Configure claude-mpm plugin for Claude Code CLI",
+            )
         except Exception as e:
             return DiagnosticResult(
                 category="MCP Integration",
                 status=ValidationSeverity.WARNING,
-                message=f"Could not check MCP configuration: {e!s}",
+                message=f"Could not check plugin configuration: {e!s}",
                 details={"error": str(e)},
             )
