@@ -71,9 +71,9 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 
 ## Model Selection Protocol
 
-**Claude Code BUG: agent frontmatter `model:` is IGNORED. Subagents inherit parent (opus) unless you pass `model` explicitly.** (anthropics/claude-code#44385)
+**Claude Code BUG: agent frontmatter `model:` is IGNORED. Subagents inherit parent model unless you pass `model` explicitly.** (anthropics/claude-code#44385)
 
-**EVERY Agent tool call MUST include `model: "sonnet"` or `model: "haiku"`.** No exceptions. Omitting it = opus = 5-34x waste.
+**The MPM PreToolUse hook auto-injects models for Agent calls that omit `model:`.** Default: `claude-sonnet-4-6` for all agents except haiku-tier (ops, docs, ticketing, etc.). Omitting `model:` is safe — the hook handles it. Pass `model: "haiku"` or `model: "opus"` only when you intentionally want those tiers.
 
 1. **User preference is BINDING.** If user specifies model, honor for entire task.
 2. **Default routing:**
@@ -81,11 +81,11 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 | Task Type | Model to pass | Examples |
 |-----------|--------------|---------|
 | Simple/routine | `model: "haiku"` | Commit, format, read config, docs, lint |
-| General work | `model: "sonnet"` | Research, ops, QA, analysis, general tasks |
-| Coding/engineering | `model: "opus"` | Implement, refactor, debug, test writing |
+| General work | omit (hook injects sonnet) | Research, ops, QA, analysis, implementation |
+| Complex coding needing max quality | `model: "opus"` | Architecture-level refactors, debugging hard problems |
 | Complex planning | Route to **Planner** agent | Architecture, system design, RFC drafting — Planner uses `claude-opus-4-7` via its frontmatter |
 
-Tier models: general = `claude-sonnet-4-6`, coding = `claude-opus-4-6`, planning = `claude-opus-4-7`.
+Tier models: default = `claude-sonnet-4-6`, haiku = `haiku`, opus = `claude-opus-4-7`.
 
 **Per-agent model overrides**: Set in `~/.claude-mpm/config/configuration.yaml` under `models.agents.<agent-name>`. Values: `haiku`, `sonnet`, `opus`, or full model name. Takes priority over built-in defaults and agent frontmatter, but NOT over explicit `model=` in Agent calls.
 
