@@ -572,7 +572,11 @@ class TestOneshotSession:
         """Test environment preparation."""
         with patch("os.environ.copy", return_value={"TEST": "value"}):
             result = oneshot_session._prepare_environment()
-            assert result == {"TEST": "value", "DISABLE_TELEMETRY": "1"}
+            assert result == {
+                "TEST": "value",
+                "DISABLE_TELEMETRY": "1",
+                "CLAUDE_MPM_IS_PM": "1",
+            }
 
     def test_prepare_environment_telemetry_opt_in(self, oneshot_session, monkeypatch):
         """When DISABLE_TELEMETRY=0 in shell, var must be absent from subprocess env.
