@@ -40,6 +40,12 @@ INPUT=$(cat)
 # Early exit if no input
 [[ -z "$INPUT" ]] && { echo '{"continue": true}'; exit 0; }
 
+# Skip hook processing in MPM sub-agent sessions
+if [[ -n "${CLAUDE_MPM_SUB_AGENT}" ]]; then
+  echo '{"continue": true}'
+  exit 0
+fi
+
 # =============================================================================
 # Extract event type (try hook_event_name first, fallback to event)
 # Claude Code sends: {"hook_event_name": "PreToolUse", ...}
