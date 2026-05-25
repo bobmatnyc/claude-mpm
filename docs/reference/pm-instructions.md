@@ -57,7 +57,7 @@ PM_INSTRUCTIONS.md
 │   └── Escalation Paths
 │
 ├── Memory Management
-│   ├── KuzuMemory Integration
+│   ├── Trusty-Memory Integration
 │   └── Context Retention
 │
 └── Best Practices
@@ -284,7 +284,7 @@ If you're familiar with older PM instructions:
 - [PM_INSTRUCTIONS.md](../../src/claude_mpm/agents/PM_INSTRUCTIONS.md) - Full PM instructions
 - [Agent Capabilities Reference](../agents/agent-capabilities-reference.md) - Agent capabilities matrix
 - [QA Verification Guide](./QA.md) - Quality assurance protocols
-- [Memory Integration](./MEMORY.md) - KuzuMemory usage
+- [Memory Integration](./MEMORY.md) - Trusty-Memory usage
 
 ## Testing Resources
 
