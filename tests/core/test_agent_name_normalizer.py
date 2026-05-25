@@ -77,7 +77,7 @@ class TestExtendedAliases:
             ("ruby_engineer", "Ruby Engineer"),
             ("php_engineer", "Php Engineer"),
             ("phoenix_engineer", "Phoenix Engineer"),
-            ("nestjs_engineer", "nestjs-engineer"),
+            ("nestjs_engineer", "NestJS Engineer"),
             # Frontend engineers
             ("react_engineer", "React Engineer"),
             ("react-engineer", "React Engineer"),
@@ -97,7 +97,7 @@ class TestExtendedAliases:
             ("api-qa", "API QA"),
             ("web_qa", "Web QA"),
             ("web-qa", "Web QA"),
-            ("real_user", "real-user"),
+            ("real_user", "Real User"),
             # Ops variants
             ("clerk_ops", "Clerk Operations"),
             ("digitalocean_ops", "DigitalOcean Ops"),
@@ -112,12 +112,12 @@ class TestExtendedAliases:
             ("content", "Content Optimization"),
             ("memory_manager", "Memory Manager"),
             ("product_owner", "Product Owner"),
-            ("ticketing", "ticketing_agent"),
+            ("ticketing", "Ticketing"),
             # MPM-specific agents
-            ("mpm_agent_manager", "mpm_agent_manager"),
-            ("mpm-agent-manager", "mpm_agent_manager"),
-            ("mpm_skills_manager", "mpm_skills_manager"),
-            ("mpm-skills-manager", "mpm_skills_manager"),
+            ("mpm_agent_manager", "MPM Agent Manager"),
+            ("mpm-agent-manager", "MPM Agent Manager"),
+            ("mpm_skills_manager", "MPM Skills Manager"),
+            ("mpm-skills-manager", "MPM Skills Manager"),
         ],
     )
     def test_extended_aliases(self, input_name: str, expected: str) -> None:
@@ -142,7 +142,7 @@ class TestShorthandAliases:
             ("ruby", "Ruby Engineer"),
             ("php", "Php Engineer"),
             ("phoenix", "Phoenix Engineer"),
-            ("nestjs", "nestjs-engineer"),
+            ("nestjs", "NestJS Engineer"),
             # Framework shorthands
             ("react", "React Engineer"),
             ("nextjs", "Nextjs Engineer"),
@@ -239,7 +239,7 @@ class TestFromTaskFormat:
             ("python-engineer", "Python Engineer"),
             ("version-control", "Version Control"),
             ("data-engineer", "Data Engineer"),
-            ("mpm-agent-manager", "mpm_agent_manager"),
+            ("mpm-agent-manager", "MPM Agent Manager"),
             ("api-qa", "API QA"),
         ],
     )
@@ -261,7 +261,7 @@ class TestRoundTrip:
             "Version Control",
             "Data Engineer",
             "API QA",
-            "mpm_agent_manager",
+            "MPM Agent Manager",
         ],
     )
     def test_round_trip_to_task_and_back(self, canonical_name: str) -> None:
