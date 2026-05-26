@@ -32,7 +32,7 @@ tests/eval/
 ### Fast (mock-based, always passes without API key)
 
 ```bash
-uv run pytest tests/eval/ -m "not live_eval" -v
+uv run pytest tests/eval/ -m "not live_eval and not tmux_eval" -v
 ```
 
 ### Live (real Anthropic API calls)
@@ -40,6 +40,24 @@ uv run pytest tests/eval/ -m "not live_eval" -v
 ```bash
 # Requires ANTHROPIC_API_KEY and PM_EVAL_LIVE=1
 PM_EVAL_LIVE=1 uv run pytest tests/eval/ -m live_eval -v
+```
+
+### Tmux-based (most realistic, tests running PM instance)
+
+```bash
+# 1. Start the test PM instance in a tmux session
+tmux kill-session -t mpm-eval 2>/dev/null || true
+tmux new-session -d -s mpm-eval -c /Volumes/Kemono/Users/masa/Projects/claude-mpm
+tmux send-keys -t mpm-eval "claude --model claude-haiku-4-5" Enter
+
+# 2. Run tmux evals (requires PM_EVAL_TMUX=1)
+PM_EVAL_TMUX=1 uv run pytest tests/eval/ -m tmux_eval -v
+
+# 3. Check instance status
+tmux capture-pane -t mpm-eval -p
+
+# 4. Clean up when done
+tmux kill-session -t mpm-eval
 ```
 
 ### Regenerate golden responses (force re-run against API)
