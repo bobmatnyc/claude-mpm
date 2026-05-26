@@ -492,6 +492,12 @@ class MemoryManager(IMemoryManager):
             try:
                 loaded_content = pm_memory_path.read_text(encoding="utf-8")
                 if loaded_content:
+                    # Cap PM_memories.md to prevent unbounded token growth.
+                    # Files over 4,000 chars (~1,000 tokens) are trimmed to their
+                    # most recent entries so the system prompt stays bounded.
+                    loaded_content = self._cap_memory_content(
+                        loaded_content, pm_memory_path
+                    )
                     pm_memories.append(
                         {
                             "source": source,
@@ -735,6 +741,77 @@ class MemoryManager(IMemoryManager):
                 )
             except Exception as e:
                 self.logger.error(f"Failed to migrate memory file {old_path.name}: {e}")
+
+    # Maximum chars for PM_memories.md before trimming (~1,000 tokens).
+    # Set conservatively: even a "full" PM_memories.md should stay well under
+    # the 20 KB hard limit while not dominating the system prompt.
+    _PM_MEMORIES_CHAR_CAP = 4_000
+
+    def _cap_memory_content(self, content: str, path: Path) -> str:
+        """Cap PM_memories.md content to prevent unbounded system-prompt growth.
+
+        If *content* exceeds ``_PM_MEMORIES_CHAR_CAP`` characters (~1,000
+        tokens), trim to the most recent bullet-point entries and log a
+        warning.  Non-bullet lines (headers, blank lines) are always kept.
+
+        This is a load-time trim: it does NOT rewrite the file on disk, so the
+        full history is preserved for archival.  Use the MCP memory backend for
+        production installations to avoid hitting this cap.
+
+        Args:
+            content: Raw PM_memories.md content.
+            path: File path (used for warning messages only).
+
+        Returns:
+            Content at or below the character cap.
+        """
+        if len(content) <= self._PM_MEMORIES_CHAR_CAP:
+            return content
+
+        self.logger.warning(
+            f"PM_memories.md at {path} is {len(content):,} chars "
+            f"(cap: {self._PM_MEMORIES_CHAR_CAP:,} chars / ~1,000 tokens). "
+            "Trimming to most recent entries. "
+            "Consider using a trusty-memory/kuzu-memory MCP backend to avoid growth."
+        )
+
+        lines = content.splitlines(keepends=True)
+
+        # Separate structural lines (headers, blank) from bullet items
+        header_lines: list[str] = []
+        bullet_lines: list[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("-"):
+                bullet_lines.append(line)
+            else:
+                header_lines.append(line)
+
+        # Keep all headers; keep as many recent bullets as fit under cap
+        header_text = "".join(header_lines)
+        budget = self._PM_MEMORIES_CHAR_CAP - len(header_text)
+
+        kept_bullets: list[str] = []
+        used = 0
+        # Iterate from most recent (end of file) backward
+        for line in reversed(bullet_lines):
+            if used + len(line) > budget:
+                break
+            kept_bullets.append(line)
+            used += len(line)
+
+        kept_bullets.reverse()  # restore chronological order
+
+        trimmed = header_text + "".join(kept_bullets)
+
+        omitted = len(bullet_lines) - len(kept_bullets)
+        if omitted > 0:
+            self.logger.info(
+                f"Trimmed {omitted} oldest PM memory entries to stay under "
+                f"{self._PM_MEMORIES_CHAR_CAP:,}-char cap"
+            )
+
+        return trimmed
 
     def _get_deployed_agents(self) -> set[str]:
         """
