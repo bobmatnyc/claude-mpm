@@ -21,6 +21,8 @@ ARCHITECTURE:
 """
 
 import logging
+import os
+import socket
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -30,6 +32,10 @@ from claude_mpm.utils.agent_filters import normalize_agent_id
 from ...core.logger import get_logger
 from ...utils.agent_filters import get_deployed_agent_ids
 from .service_interfaces import ICacheManager, IMemoryManager, IPathResolver
+
+# Default ports for MCP memory backends
+_TRUSTY_MEMORY_DEFAULT_PORT = 7878
+_KUZU_MEMORY_DEFAULT_PORT = 7777
 
 
 class MemoryManager(IMemoryManager):
@@ -76,16 +82,60 @@ class MemoryManager(IMemoryManager):
             "cache_misses": 0,
         }
 
+    def _detect_mcp_memory_backend(self) -> bool:
+        """Detect whether a trusty-memory or kuzu-memory MCP backend is active.
+
+        Strategy (in order, cheap to expensive):
+        1. Explicit opt-out: MPM_USE_MCP_MEMORY=false → return False immediately.
+        2. Explicit opt-in: MPM_USE_MCP_MEMORY=true → return True immediately.
+        3. Port reachability: try trusty-memory default port (7878), then
+           kuzu-memory default port (7777).  A successful TCP connect means the
+           daemon is running and the UserPromptSubmit hook will inject memories
+           dynamically, so PM_memories.md injection is redundant.
+
+        The check uses a 100 ms timeout to avoid slowing startup on installations
+        without a memory backend.
+
+        Returns:
+            True when an MCP memory backend is reachable and PM_memories.md
+            injection should be skipped.
+        """
+        env_val = os.environ.get("MPM_USE_MCP_MEMORY", "").strip().lower()
+        if env_val == "false":
+            return False
+        if env_val == "true":
+            return True
+
+        # Fast TCP reachability check (100 ms timeout)
+        for port in (_TRUSTY_MEMORY_DEFAULT_PORT, _KUZU_MEMORY_DEFAULT_PORT):
+            try:
+                with socket.create_connection(("127.0.0.1", port), timeout=0.1):
+                    self.logger.debug(
+                        f"MCP memory backend detected on port {port} — "
+                        "will skip PM_memories.md injection"
+                    )
+                    return True
+            except OSError:
+                pass  # Not reachable — try next port / fall through
+
+        return False
+
     def load_memories(self, agent_name: str | None = None) -> dict[str, Any]:
         """
         Load memories for an agent or all agents.
+
+        When an MCP memory backend (trusty-memory or kuzu-memory) is detected,
+        PM_memories.md injection is skipped: the UserPromptSubmit hook already
+        injects relevant memories dynamically, so embedding the full file in the
+        system prompt is redundant.  This behaviour can be overridden with the
+        MPM_USE_MCP_MEMORY environment variable (true/false).
 
         Args:
             agent_name: Specific agent name or None for all
 
         Returns:
             Dictionary containing:
-            - actual_memories: PM memories content
+            - actual_memories: PM memories content (empty string when MCP backend active)
             - agent_memories: Dict of agent-specific memories
         """
         # Try to get from cache first
@@ -113,6 +163,35 @@ class MemoryManager(IMemoryManager):
         # Cache miss - perform actual loading
         self._stats["cache_misses"] += 1
         self.logger.debug("Loading memories from disk (cache miss)")
+
+        # When an MCP memory backend is active the UserPromptSubmit hook already
+        # injects relevant memories dynamically into every prompt turn.  Embedding
+        # PM_memories.md in the system prompt as well would be redundant (~1,540
+        # tokens) and could cause stale memories to shadow fresh hook-injected ones.
+        # We still load agent_memories (injected per-agent at deployment time).
+        if self._detect_mcp_memory_backend():
+            self.logger.info(
+                "MCP memory backend active — skipping PM_memories.md injection "
+                "into system prompt (hook will inject dynamically)"
+            )
+            # Still load agent_memories so per-agent memory works correctly,
+            # but suppress actual_memories (PM memories) from the system prompt.
+            deployed_agents = self._get_deployed_agents()
+            result = self._load_actual_memories(deployed_agents)
+            result["actual_memories"] = ""  # Clear PM memories — hook handles this
+            self._cache_manager.set_memories(result)
+
+            if agent_name and "agent_memories" in result:
+                if agent_name in result["agent_memories"]:
+                    return {
+                        "actual_memories": "",
+                        "agent_memories": {
+                            agent_name: result["agent_memories"][agent_name]
+                        },
+                    }
+                return {"actual_memories": "", "agent_memories": {}}
+
+            return result
 
         # Reset statistics for this load
         self._stats["loaded_count"] = 0
