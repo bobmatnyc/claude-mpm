@@ -19,6 +19,15 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.4.12 (2026-05-26)
+
+### Feat
+
+- **eval**: add tmux-based PM behavioral eval scenarios
+- **eval**: add tmux PM instance pytest fixtures
+- **eval**: add TmuxPMClient for sending prompts to PM in tmux
+- **eval**: add live PM eval runner with Anthropic API and golden-response cache
+
 ## v6.4.11 (2026-05-26)
 
 ### Feat
