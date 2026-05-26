@@ -25,8 +25,8 @@ from claude_mpm.utils.agent_filters import normalize_agent_id
 
 # Agent type -> model mapping (fallback when frontmatter unavailable).
 # Only haiku-tier agents are listed here; all other agents (including
-# engineering agents) default to sonnet.  Callers that need opus for a
-# specific task should pass model="opus" explicitly in the Agent tool call,
+# engineering agents) default to opus.  Callers that need sonnet or haiku for a
+# specific task should pass model="sonnet" or model="haiku" explicitly in the Agent tool call,
 # or set a per-agent override in ~/.claude-mpm/config/configuration.yaml.
 _HAIKU_AGENTS: frozenset[str] = frozenset(
     {
@@ -55,7 +55,7 @@ _HAIKU_AGENTS: frozenset[str] = frozenset(
 
 # Explicit model IDs so Claude Code routes to the intended tier rather than
 # resolving bare "sonnet"/"opus" aliases that can drift over time.
-_DEFAULT_MODEL = "claude-sonnet-4-6"
+_DEFAULT_MODEL = "claude-opus-4-7"
 # claude-opus-4-7 is the default opus model as of Claude Code v2.1.142, which
 # changed fast mode to default to opus-4-7 instead of opus-4-6.  Both versions
 # belong to the same tier and are used interchangeably for coding tasks.
@@ -64,9 +64,10 @@ _HAIKU_MODEL = "haiku"
 
 # Tier alias -> concrete model ID. Users may also pass full model names
 # (e.g. "claude-opus-4-7"), which are passed through unchanged.
+_SONNET_MODEL = "claude-sonnet-4-6"
 _TIER_ALIASES: dict[str, str] = {
     "haiku": _HAIKU_MODEL,
-    "sonnet": _DEFAULT_MODEL,
+    "sonnet": _SONNET_MODEL,
     "opus": _OPUS_MODEL,
     # Explicit versioned opus names — both map to the opus tier model so that
     # callers referencing either generation get consistent routing.
