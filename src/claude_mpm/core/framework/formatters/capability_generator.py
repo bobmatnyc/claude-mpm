@@ -14,6 +14,7 @@ authority, and model hints.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +124,18 @@ class CapabilityGenerator:
 
         # Display all agents with their rich descriptions
         for agent in final_agents:
+            # Strip <example>...</example> blocks from description before rendering.
+            # These blocks help Claude Code route tasks during agent-file parsing, but
+            # they are redundant here because the PM already uses the routing tables in
+            # AGENT_DELEGATION.md.  Removing them from the rendered capabilities section
+            # saves ~4,800 tokens per session without losing any routing information.
+            desc_raw = agent.get("description", "Specialized agent")
+            desc = re.sub(
+                r"\s*<example>.*?</example>", "", desc_raw, flags=re.DOTALL
+            ).strip()
+            if not desc:
+                desc = "Specialized agent"
+
             # Clean up display name - handle common acronyms
             display_name = agent.get("display_name", agent["id"])
             display_name = (
@@ -140,7 +153,7 @@ class CapabilityGenerator:
             else:
                 section += f"\n### {display_name} (`{agent['id']}`)\n"
 
-            section += f"{agent.get('description', 'Specialized agent')}\n"
+            section += f"{desc}\n"
 
             # Add routing information if available
             if agent.get("routing"):
