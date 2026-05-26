@@ -136,6 +136,18 @@ class MemoryConfig(BaseModel):
         default=500, ge=1, description="Warning threshold for Claude JSON size"
     )
 
+    # MCP memory backend integration
+    use_mcp_backend: bool = Field(
+        default=True,
+        description=(
+            "When true, skip PM_memories.md injection into the system prompt when a "
+            "trusty-memory or kuzu-memory MCP daemon is reachable.  The "
+            "UserPromptSubmit hook injects relevant memories dynamically, making the "
+            "static file redundant.  Set to false to force PM_memories.md injection "
+            "regardless of MCP backend availability (backward-compat fallback)."
+        ),
+    )
+
 
 class SecurityConfig(BaseModel):
     """Security and validation configuration."""
