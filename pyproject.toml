@@ -33,7 +33,7 @@ Documentation = "https://github.com/bobmatnyc/claude-mpm/blob/main/README.md"
 [project.optional-dependencies]
 mcp = [ "mcp>=0.1.0", "mcp-vector-search>=0.1.0", "mcp-browser>=0.1.0", "mcp-ticketer>=0.1.0",]
 dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "pylint>=3.0.0", "pre-commit", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
-eval = [ "deepeval>=1.0.0", "pytest>=7.4.0", "pytest-asyncio>=0.21.0", "pytest-timeout>=2.1.0",]
+eval = [ "anthropic>=0.40.0", "deepeval>=1.0.0", "pytest>=7.4.0", "pytest-asyncio>=0.21.0", "pytest-timeout>=2.1.0",]
 docs = [ "sphinx>=7.2.0", "sphinx-rtd-theme>=1.3.0", "sphinx-autobuild>=2021.3.14",]
 monitor = [ "python-socketio>=5.14.0", "aiohttp>=3.9.0", "aiohttp-cors>=0.7.0,<0.8.0", "python-engineio>=4.8.0", "aiofiles>=23.0.0", "websockets>=12.0",]
 data-processing = [ "pandas>=2.1.0", "openpyxl>=3.1.0", "xlsxwriter>=3.1.0", "numpy>=1.24.0", "pyarrow>=14.0.0", "dask>=2023.12.0", "polars>=0.19.0", "xlrd>=2.0.0", "xlwt>=1.3.0", "csvkit>=1.3.0", "tabulate>=0.9.0", "python-dateutil>=2.8.0", "lxml>=4.9.0", "sqlalchemy>=2.0.0", "psycopg2-binary>=2.9.0", "pymongo>=4.5.0", "redis>=5.0.0", "beautifulsoup4>=4.12.0", "jsonschema>=4.19.0",]
@@ -101,7 +101,7 @@ python_files = [ "test_*.py", "*_test.py",]
 python_classes = [ "Test*",]
 python_functions = [ "test_*",]
 addopts = [ "--tb=short", "--strict-markers", "--disable-warnings", "--timeout=120", "--timeout-method=thread",]
-markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests", "serial: Mark tests that must run serially (not parallelized)", "behavioral: PM behavioral compliance tests", "delegation: Delegation behavior tests", "tools: Tool usage behavior tests", "circuit_breaker: Circuit breaker compliance tests", "workflow: Workflow behavior tests", "evidence: Evidence-based assertion tests", "file_tracking: File tracking behavior tests", "memory: Memory management behavior tests", "performance: Performance benchmarking tests", "critical: Critical severity tests", "high: High severity tests", "medium: Medium severity tests", "low: Low severity tests",]
+markers = [ "unit: Unit tests", "integration: Integration tests", "live_eval: Live eval tests requiring ANTHROPIC_API_KEY and PM_EVAL_LIVE=1", "smoke: Fast structural tests (no external services)", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests", "serial: Mark tests that must run serially (not parallelized)", "behavioral: PM behavioral compliance tests", "delegation: Delegation behavior tests", "tools: Tool usage behavior tests", "circuit_breaker: Circuit breaker compliance tests", "workflow: Workflow behavior tests", "evidence: Evidence-based assertion tests", "file_tracking: File tracking behavior tests", "memory: Memory management behavior tests", "performance: Performance benchmarking tests", "critical: Critical severity tests", "high: High severity tests", "medium: Medium severity tests", "low: Low severity tests",]
 asyncio_mode = "auto"
 norecursedirs = [ "archive", "benchmarks", "manual", "stress", ".*", "_*",]
 
