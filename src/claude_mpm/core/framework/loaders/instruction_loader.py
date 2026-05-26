@@ -28,6 +28,13 @@ class InstructionLoader:
     def load_all_instructions(self, content: dict[str, Any]) -> None:
         """Load all instruction files into the content dictionary.
 
+        WORKFLOW.md is lazy-loaded: instead of embedding the full ~1,150-token
+        document in every session's system prompt, we inject a single-line
+        reference.  The PM can Read the file on demand via the Read tool when it
+        needs full phase detail for a complex task.  Project-level or user-level
+        WORKFLOW.md overrides are still embedded verbatim (they are smaller and
+        project-specific, so the cost is justified).
+
         Args:
             content: Dictionary to update with loaded instructions
         """
@@ -40,7 +47,8 @@ class InstructionLoader:
         # Load AGENT_DELEGATION.md (after framework, before workflow)
         self.load_agent_delegation_instructions(content)
 
-        # Load WORKFLOW.md
+        # Load WORKFLOW.md — system-level is lazy (reference only); project/user
+        # overrides are loaded verbatim so project customisations are honoured.
         self.load_workflow_instructions(content)
 
         # Load MEMORY.md (with kuzu-memory auto-injection if applicable)
@@ -223,16 +231,45 @@ class InstructionLoader:
     def load_workflow_instructions(self, content: dict[str, Any]) -> None:
         """Load WORKFLOW.md from appropriate location.
 
-        Uses the dedicated workflow_loader module for consistent priority handling
-        across the codebase.
+        Lazy-loading strategy to reduce system-prompt token cost (~1,150 tokens):
+        - Project-level (.claude-mpm/WORKFLOW.md): embedded verbatim — project
+          customisations must be immediately available.
+        - User-level (~/.claude-mpm/WORKFLOW.md): embedded verbatim — same
+          rationale as project level.
+        - System-level (src/claude_mpm/agents/WORKFLOW.md): replaced with a
+          single-line reference.  The PM already has a compact 5-row workflow
+          summary table in PM_INSTRUCTIONS.md; the full detail can be Read on
+          demand via the Read tool for complex tasks.
 
         Args:
             content: Dictionary to update with workflow instructions
         """
         workflow, level = load_workflow(self.current_dir, self.framework_path)
-        if workflow:
+        if not workflow:
+            return
+
+        if level in ("project", "user"):
+            # Project/user overrides are small, project-specific, and must be
+            # available immediately — embed them in full.
             content["workflow_instructions"] = workflow
             content["workflow_instructions_level"] = level
+            self.logger.info(
+                f"Embedded {level}-level WORKFLOW.md ({len(workflow)} chars)"
+            )
+        else:
+            # System default: inject a compact reference line instead of the
+            # full document.  Saves ~1,150 tokens per session.
+            reference = (
+                "Full workflow detail: see `src/claude_mpm/agents/WORKFLOW.md` "
+                "(also at `docs/workflow/PM_WORKFLOW.md`). "
+                "Read on demand only when full phase detail is needed."
+            )
+            content["workflow_instructions"] = reference
+            content["workflow_instructions_level"] = level
+            self.logger.info(
+                f"Lazy-loaded {level}-level WORKFLOW.md "
+                f"(reference only, saved ~1,150 tokens)"
+            )
 
     def _detect_kuzu_memory(self) -> bool:
         """Check if kuzu-memory CLI is available.
