@@ -1089,6 +1089,7 @@ class GitSourceSyncService:
         self,
         deployment_dir: Path,
         excluded_set: set[str],
+        local_only_list: list[str] | None = None,
     ) -> dict[str, list[str]]:
         """Remove excluded agents from deployment directory.
 
@@ -1096,15 +1097,22 @@ class GitSourceSyncService:
         names match the exclusion list. This ensures that excluded agents
         are cleaned up from previous deployments.
 
+        Issue #560: Agents in ``local_only_list`` are NEVER removed, even if
+        they happen to match an exclusion entry.
+
         Args:
             deployment_dir: Directory containing deployed agents
             excluded_set: Set of normalized agent names to exclude
+            local_only_list: Project-local agent IDs to protect from removal
 
         Returns:
             Dictionary with cleanup results:
             - removed: List of agent names that were removed
         """
+        from claude_mpm.utils.agent_filters import is_local_only
+
         cleanup_results: dict[str, list[str]] = {"removed": []}
+        local_only_list = list(local_only_list or [])
 
         if not deployment_dir.exists():
             logger.debug("Deployment directory does not exist, no cleanup needed")
@@ -1121,6 +1129,11 @@ class GitSourceSyncService:
 
             # Normalize agent name for comparison
             agent_name = _normalize_agent_name(item.stem)
+
+            # Issue #560: protect project-local-only agents
+            if is_local_only(item.stem, local_only_list):
+                logger.info("Skipping cleanup of local_only agent: %s", item.stem)
+                continue
 
             # Check if this agent is excluded
             if agent_name in excluded_set:
@@ -1195,6 +1208,11 @@ class GitSourceSyncService:
         """
 
         from claude_mpm.core.config import Config
+        from claude_mpm.utils.agent_filters import (
+            is_local_only,
+            load_local_only_agents,
+            warn_missing_local_only_agents,
+        )
 
         # Deploy to .claude/agents/ where Claude Code expects them
         deployment_dir = project_dir / ".claude" / "agents"
@@ -1216,6 +1234,13 @@ class GitSourceSyncService:
         else:
             # No project config, no exclusions
             excluded_agents = []
+
+        # Issue #560: load agents.local_only and warn on drift before any
+        # destructive operation. local_only agents are skipped from both
+        # cleanup and deployment overwrite paths below.
+        local_only_list = load_local_only_agents(project_dir)
+        if local_only_list:
+            warn_missing_local_only_agents(local_only_list, project_dir)
 
         # Create normalized exclusion set
         excluded_set: set[str] = (
@@ -1246,10 +1271,30 @@ class GitSourceSyncService:
             if filtered_count > 0:
                 logger.info(f"Filtered out {filtered_count} excluded agents")
 
+        # Issue #560: skip deployment of any cached agent whose normalized id
+        # matches a local_only entry. This prevents remote/cached versions from
+        # overwriting hand-crafted project-local agents.
+        if local_only_list:
+            original_count = len(agent_list)
+            protected: list[str] = []
+            kept: list[str] = []
+            for agent_path in agent_list:
+                if is_local_only(Path(agent_path).stem, local_only_list):
+                    protected.append(Path(agent_path).stem)
+                else:
+                    kept.append(agent_path)
+            agent_list = kept
+            if protected:
+                logger.info(
+                    "Skipping deploy/overwrite of %d local_only agent(s): %s",
+                    original_count - len(agent_list),
+                    ", ".join(sorted(protected)),
+                )
+
         # Clean up any previously deployed excluded agents
         if excluded_set:
             cleanup_results = self._cleanup_excluded_agents(
-                deployment_dir, excluded_set
+                deployment_dir, excluded_set, local_only_list=local_only_list
             )
             if cleanup_results["removed"]:
                 logger.info(
