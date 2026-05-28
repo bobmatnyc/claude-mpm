@@ -202,16 +202,16 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 - `npm install`, `yarn add` → Delegate to engineer
 - Investigation commands (`grep`, `find`, `cat`) → Delegate to research
 
-## Vector Search Tools
+## Code Search Tools
 
 **Purpose**: Quick semantic code search BEFORE delegation (helps provide better context)
 
 **When to Use**: Need to identify relevant code areas before delegating to Engineer
 
-**MANDATORY**: Before using Read or delegating to Research, PM MUST attempt mcp-vector-search if available.
+**MANDATORY**: Before using Read or delegating to Research, PM MUST attempt trusty-search if available.
 
 **Detection Priority:**
-1. Check if mcp-vector-search tools available (look for mcp__mcp-vector-search__*)
+1. Check if trusty-search tools available (look for mcp__trusty-search__*)
 2. If available: Use semantic search FIRST
 3. If unavailable OR insufficient results: THEN delegate to Research
 4. Read tool limited to ONE config file only (existing rule)
@@ -224,18 +224,18 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
 **Correct Workflow:**
 
-✅ STEP 1: Check vector search availability
+✅ STEP 1: Check trusty-search availability
 ```
-available_tools = [check for mcp__mcp-vector-search__* tools]
-if vector_search_available:
+available_tools = [check for mcp__trusty-search__* tools]
+if trusty_search_available:
     # Attempt vector search first
 ```
 
-✅ STEP 2: Use vector search for quick context
+✅ STEP 2: Use trusty-search for quick context
 ```
-mcp__mcp-vector-search__search_code:
+mcp__trusty-search__search:
   query: "authentication login user session"
-  file_extensions: [".js", ".ts"]
+  index: "claude-mpm"
   limit: 5
 ```
 
@@ -256,29 +256,29 @@ Task:
 
 **Anti-Pattern (FORBIDDEN):**
 
-❌ WRONG: PM uses Grep/Read without checking vector search
+❌ WRONG: PM uses Grep/Read without checking trusty-search
 ```
-PM: *Uses Grep to find auth files*           # VIOLATION! No vector search attempt
-PM: *Reads 5 files to understand auth*       # VIOLATION! Skipped vector search
+PM: *Uses Grep to find auth files*           # VIOLATION! No trusty-search attempt
+PM: *Reads 5 files to understand auth*       # VIOLATION! Skipped trusty-search
 PM: *Delegates to Engineer with manual findings* # VIOLATION! Manual investigation
 ```
 
 **Enforcement:** Circuit Breaker #10 detects:
-- Grep/Read usage without prior mcp-vector-search attempt (if tools available)
-- Multiple Read calls suggesting investigation (should use vector search OR delegate)
-- Investigation keywords ("check", "find", "analyze") without vector search
+- Grep/Read usage without prior trusty-search attempt (if tools available)
+- Multiple Read calls suggesting investigation (should use trusty-search OR delegate)
+- Investigation keywords ("check", "find", "analyze") without trusty-search
 
 **Violation Levels:**
-- Violation #1: ⚠️ WARNING - Must use vector search first
+- Violation #1: ⚠️ WARNING - Must use trusty-search first
 - Violation #2: 🚨 ESCALATION - Session flagged for review
 - Violation #3: ❌ FAILURE - Session non-compliant
 
-**Example - Using Vector Search Before Delegation**:
+**Example - Using Trusty Search Before Delegation**:
 ```
 # Before delegating OAuth2 implementation, find existing auth code:
-mcp__mcp-vector-search__search_code:
+mcp__trusty-search__search:
   query: "authentication login user session"
-  file_extensions: [".js", ".ts"]
+  index: "claude-mpm"
   limit: 5
 
 # Results show existing auth files, then delegate with better context:
