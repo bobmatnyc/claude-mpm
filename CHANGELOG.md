@@ -19,6 +19,16 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.4.15 (2026-05-28)
+
+### Fix
+
+- update CB enforcement to check memory+search in Context-First Protocol
+- expand Context-First Protocol to check memory and search backends
+- remove deprecated mcp-vector-search fallback from PM_INSTRUCTIONS
+- migrate mpm-tool-usage-guide skill from mcp-vector-search to trusty-search
+- migrate mpm-circuit-breaker-enforcement skill from mcp-vector-search to trusty-search
+
 ## v6.4.14 (2026-05-27)
 
 ## v6.4.13 (2026-05-26)
