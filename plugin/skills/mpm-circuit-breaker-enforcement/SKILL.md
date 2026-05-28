@@ -68,7 +68,7 @@ PM: Uses git tracking after Engineer completes work
 **Allowed Exception:**
 - ONE config file read for delegation context (package.json, pyproject.toml, etc.)
 - Single Grep to verify file existence before delegation
-- Must use mcp-vector-search first if available (Circuit Breaker #10)
+- Must use trusty-search first if available (Circuit Breaker #10)
 
 **Example Violation:**
 ```
@@ -359,11 +359,11 @@ web-qa: "Verified changes at http://localhost:3000"
 
 ## Circuit Breaker #10: Vector Search First
 
-**Trigger**: PM uses Read/Grep tools without attempting mcp-vector-search first
+**Trigger**: PM uses Read/Grep tools without attempting trusty-search first
 
 **Detection Patterns**:
-- Read or Grep called without prior mcp-vector-search attempt
-- mcp-vector-search tools available but not used
+- Read or Grep called without prior trusty-search attempt
+- trusty-search tools available but not used
 - Investigation keywords present ("check", "find", "analyze") without vector search
 
 **Action**: REQUIRE - Must attempt vector search before Read/Grep
@@ -371,7 +371,7 @@ web-qa: "Verified changes at http://localhost:3000"
 **Enforcement**: Violation #1 = Warning, #2 = Session flagged, #3 = Non-compliant
 
 **Allowed Exception:**
-- mcp-vector-search tools not available in environment
+- trusty-search tools not available in environment
 - Vector search already attempted (insufficient results → delegate to Research)
 - ONE config file read for delegation context (package.json, pyproject.toml, etc.)
 
@@ -379,13 +379,13 @@ web-qa: "Verified changes at http://localhost:3000"
 ```
 PM: Read(src/auth/oauth2.js)        # Violation: No vector search attempt
 PM: Grep("authentication", path="src/")  # Violation: Investigation without vector search
-Trigger: Read/Grep usage without checking mcp-vector-search availability
+Trigger: Read/Grep usage without checking trusty-search availability
 Action: Must attempt vector search first OR delegate to Research
 ```
 
 **Correct Alternative:**
 ```
-PM: mcp__mcp-vector-search__search_code(query="authentication", file_extensions=[".js"])
+PM: mcp__trusty-search__search(query="authentication", index="claude-mpm")
     # ✅ CORRECT: Vector search attempted first
 PM: *Uses results for delegation context*  # ✅ CORRECT: Context for Engineer
     # OR
@@ -433,7 +433,7 @@ PM: Uses Research findings for Engineer delegation
 ```
 
 **Integration with Circuit Breaker #10:**
-- If mcp-vector-search available: Must attempt vector search BEFORE Read
+- If trusty-search available: Must attempt vector search BEFORE Read
 - If vector search insufficient: Delegate to Research (don't use Read)
 - Read tool is LAST RESORT for context (ONE file maximum)
 
