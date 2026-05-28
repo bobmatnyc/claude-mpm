@@ -68,7 +68,7 @@ PM: Uses git tracking after Engineer completes work
 **Allowed Exception:**
 - ONE config file read for delegation context (package.json, pyproject.toml, etc.)
 - Single Grep to verify file existence before delegation
-- Must use trusty-search first if available (Circuit Breaker #10)
+- Must check memory AND search first if available (Circuit Breaker #10)
 
 **Example Violation:**
 ```
@@ -357,39 +357,50 @@ web-qa: "Verified changes at http://localhost:3000"
     # ✅ CORRECT: Agents handle server and verification
 ```
 
-## Circuit Breaker #10: Vector Search First
+## Circuit Breaker #10: Context-First (Memory + Search)
 
-**Trigger**: PM uses Read/Grep tools without attempting trusty-search first
+**Trigger**: PM uses Read/Grep tools OR delegates to Research without attempting memory recall AND code search first
 
 **Detection Patterns**:
-- Read or Grep called without prior trusty-search attempt
-- trusty-search tools available but not used
-- Investigation keywords present ("check", "find", "analyze") without vector search
+- Read or Grep called without prior memory recall AND/OR code search attempt
+- Research delegation without prior memory recall AND/OR code search attempt
+- Memory tools (`mcp__trusty-memory__memory_recall`, `mcp__kuzu-memory__kuzu_recall`) available but not used
+- Code search tool (`mcp__trusty-search__search`) available but not used
+- Investigation keywords present ("check", "find", "analyze") without memory+search
 
-**Action**: REQUIRE - Must attempt vector search before Read/Grep
+**Action**: REQUIRE - Must attempt memory AND search (whichever backends are installed) before Read/Grep or Research delegation
 
 **Enforcement**: Violation #1 = Warning, #2 = Session flagged, #3 = Non-compliant
 
+**Required Order:**
+1. **Memory** (use first available): `mcp__trusty-memory__memory_recall` → `mcp__kuzu-memory__kuzu_recall`
+2. **Code Search** (if available): `mcp__trusty-search__search`
+3. Then: evaluate results and either delegate with enhanced context OR delegate to Research
+
 **Allowed Exception:**
-- trusty-search tools not available in environment
-- Vector search already attempted (insufficient results → delegate to Research)
+- Neither memory nor search tools available in environment (skip those steps)
+- Memory + search already attempted (insufficient results → delegate to Research)
 - ONE config file read for delegation context (package.json, pyproject.toml, etc.)
 
 **Example Violation:**
 ```
-PM: Read(src/auth/oauth2.js)        # Violation: No vector search attempt
-PM: Grep("authentication", path="src/")  # Violation: Investigation without vector search
-Trigger: Read/Grep usage without checking trusty-search availability
-Action: Must attempt vector search first OR delegate to Research
+PM: Read(src/auth/oauth2.js)             # Violation: No memory/search attempt
+PM: Grep("authentication", path="src/")  # Violation: Investigation without memory/search
+PM: *Delegates to Research immediately*  # Violation: Skipped memory+search first
+Trigger: Read/Grep/Research without checking memory+search availability
+Action: Must attempt memory AND search first OR delegate to Research after both
 ```
 
 **Correct Alternative:**
 ```
+PM: mcp__trusty-memory__memory_recall(palace="claude-mpm", query="authentication")
+    # ✅ STEP 1: Memory recall (primary backend)
+    # (or mcp__kuzu-memory__kuzu_recall if trusty-memory unavailable)
 PM: mcp__trusty-search__search(query="authentication", index="claude-mpm")
-    # ✅ CORRECT: Vector search attempted first
-PM: *Uses results for delegation context*  # ✅ CORRECT: Context for Engineer
+    # ✅ STEP 2: Code search (if available)
+PM: *Uses combined results for delegation context*  # ✅ CORRECT: Enhanced context
     # OR
-PM: *Delegates to Research*         # ✅ CORRECT: If vector search insufficient
+PM: *Delegates to Research*  # ✅ CORRECT: If memory+search insufficient
 ```
 
 ## Circuit Breaker #11: Read Tool Limit Enforcement
@@ -433,8 +444,9 @@ PM: Uses Research findings for Engineer delegation
 ```
 
 **Integration with Circuit Breaker #10:**
-- If trusty-search available: Must attempt vector search BEFORE Read
-- If vector search insufficient: Delegate to Research (don't use Read)
+- If memory tools (trusty-memory / kuzu-memory) available: Must attempt memory recall BEFORE Read
+- If trusty-search available: Must attempt code search BEFORE Read
+- If memory + search insufficient: Delegate to Research (don't use Read)
 - Read tool is LAST RESORT for context (ONE file maximum)
 
 ## Circuit Breaker #12: Bash Implementation Detection
