@@ -3,6 +3,8 @@ Agent filtering utilities for claude-mpm.
 
 WHY: This module provides centralized filtering logic to remove non-deployable
 agents (BASE_AGENT) and already-deployed agents from user-facing displays.
+It also exposes the ``local_only`` allow-list helpers used to protect
+project-managed agents from MPM sync/cleanup.
 
 ARCHITECTURE:
 - SOURCE: ~/.claude-mpm/cache/agents/ (git repository cache)
@@ -14,6 +16,12 @@ DESIGN DECISIONS:
 - Supports both virtual (.mpm_deployment_state) and physical (.md files) detection
 - Case-insensitive BASE_AGENT detection for robustness
 - Pure functions for easy testing and reuse
+
+TERMINOLOGY:
+- ``local_only`` agents are committed to the project git repo; "local_only"
+  means MPM-unmanaged, not git-ignored. These agents live in
+  ``.claude/agents/`` and should be tracked in git, but MPM sync/cleanup
+  must never delete or overwrite them.
 
 IMPLEMENTATION NOTES:
 - Related to ticket 1M-502 Phase 1: UX improvements for agent filtering
@@ -309,8 +317,10 @@ def filter_deployed_agents(
 def load_local_only_agents(project_dir: Path | None = None) -> list[str]:
     """Load the ``agents.local_only`` list from ``.claude-mpm/configuration.yaml``.
 
-    Project-local agents are hand-crafted by the project owner and must NEVER
-    be deleted or overwritten by MPM sync/cleanup (Issue #560).
+    ``local_only`` agents are committed to the project git repo; "local_only"
+    means MPM-unmanaged, not git-ignored. They are hand-crafted by the
+    project owner, live in ``.claude/agents/``, and must NEVER be deleted or
+    overwritten by MPM sync/cleanup (Issue #560).
 
     This loader reads the project configuration file directly (without going
     through ``UnifiedConfig``) so it can be called cheaply from filesystem
@@ -380,6 +390,10 @@ def load_local_only_agents(project_dir: Path | None = None) -> list[str]:
 def is_local_only(agent_id: str, local_only_list: list[str]) -> bool:
     """Check if ``agent_id`` is in the project-local-only allow list.
 
+    ``local_only`` agents are committed to the project git repo; "local_only"
+    means MPM-unmanaged, not git-ignored. Membership in this list signals
+    that MPM sync/cleanup must skip the agent.
+
     Comparison is performed against normalized IDs (see
     :func:`normalize_agent_id`) so callers do not need to worry about
     case, separators, or ``-agent`` suffixes.
@@ -423,6 +437,10 @@ def warn_missing_local_only_agents(
 ) -> list[str]:
     """Warn when ``local_only`` agents are configured but not present on disk.
 
+    ``local_only`` agents are committed to the project git repo; "local_only"
+    means MPM-unmanaged, not git-ignored. They are expected to exist as
+    ``.md`` files in ``.claude/agents/`` and to be tracked in source control.
+
     Issue #560 requires a warning (not an error) when a configured
     ``local_only`` agent has no corresponding ``.md`` file in
     ``.claude/agents/``. This helps surface drift between the config and the
@@ -457,9 +475,11 @@ def warn_missing_local_only_agents(
         import logging
 
         logging.getLogger(__name__).warning(
-            "Configured local_only agents not found on disk in %s: %s. "
-            "These agents will be skipped by MPM sync/cleanup but should "
-            "exist as .md files in .claude/agents/.",
+            "Configured local_only agents not found in %s: %s. "
+            "These agents are MPM-unmanaged (skipped by MPM sync/cleanup) "
+            "but should be committed to the project repo as .md files in "
+            ".claude/agents/. 'local_only' means MPM-unmanaged, not "
+            "git-ignored.",
             project_dir / ".claude" / "agents",
             ", ".join(sorted(missing)),
         )
