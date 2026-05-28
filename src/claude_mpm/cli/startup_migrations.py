@@ -1767,6 +1767,174 @@ def _deploy_claude_assets() -> bool:
     return True
 
 
+# =============================================================================
+# Migration: v6.4.15-rewrite-baked-hook-paths
+# =============================================================================
+
+# Substrings that indicate a hook ``command`` was written by the earlier
+# implementation of ``HookInstaller.get_hook_command()`` — i.e. a baked
+# absolute path under ``~/.local/share/uv/tools/claude-mpm/.../`` pointing at
+# ``claude-hook-fast.sh``.  Such paths go stale whenever the uv tools
+# environment is rebuilt and break every hook event (issue #552).
+_BAKED_HOOK_PATH_SUBSTRINGS: tuple[str, ...] = (
+    "claude-hook-fast.sh",
+    "uv/tools/claude-mpm/",
+)
+
+
+def _settings_files_for_baked_hook_paths() -> list[Path]:
+    """Settings files scanned by the baked-hook-path remediation migration.
+
+    Mirrors the set scanned by :func:`_check_stale_hook_paths_exist` so that
+    any file that may have been corrupted by the legacy installer is
+    addressed.
+    """
+    return [
+        Path.cwd() / ".claude" / "settings.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+
+def _command_has_baked_hook_path(command: str) -> bool:
+    """Return True if ``command`` looks like a baked uv-tools hook path."""
+    if not command or command == "claude-hook":
+        return False
+    return any(token in command for token in _BAKED_HOOK_PATH_SUBSTRINGS)
+
+
+def _check_baked_hook_paths_exist() -> bool:
+    """Check if any project settings file contains baked uv-tools hook paths.
+
+    The earlier ``HookInstaller.get_hook_command()`` baked an absolute path
+    under ``~/.local/share/uv/tools/claude-mpm/.../claude-hook-fast.sh`` into
+    project ``.claude/settings.json`` and ``.claude/settings.local.json``
+    files.  When the uv tools environment is rebuilt the path goes stale and
+    every hook event fails.
+
+    Returns:
+        True if any hook command in the project's ``.claude/settings.json``
+        or ``.claude/settings.local.json`` contains a baked uv-tools path.
+    """
+    for settings_file in _settings_files_for_baked_hook_paths():
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.debug(f"Failed to read {settings_file}: {e}")
+            continue
+
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict) or not hooks:
+            continue
+
+        for hook_list in hooks.values():
+            if not isinstance(hook_list, list):
+                continue
+            for hook_entry in hook_list:
+                if not isinstance(hook_entry, dict):
+                    continue
+                hook_commands = hook_entry.get("hooks", [])
+                if not isinstance(hook_commands, list):
+                    continue
+                for cmd_entry in hook_commands:
+                    if not isinstance(cmd_entry, dict):
+                        continue
+                    if _command_has_baked_hook_path(cmd_entry.get("command", "")):
+                        logger.debug(
+                            f"Found baked hook path '{cmd_entry.get('command')}' "
+                            f"in {settings_file}"
+                        )
+                        return True
+
+    return False
+
+
+def _migrate_baked_hook_paths() -> bool:
+    """Rewrite baked uv-tools hook paths to the PATH-based ``claude-hook``.
+
+    For each project settings file (``.claude/settings.json`` and
+    ``.claude/settings.local.json``), replace any hook ``command`` that
+    contains either ``claude-hook-fast.sh`` or ``uv/tools/claude-mpm/`` with
+    the literal string ``"claude-hook"``.  All sibling fields on the hook
+    entry (``type``, ``matcher``, ``args``, ``disable``, ``_mpm``, etc.) are
+    preserved verbatim.
+
+    The migration is idempotent: a ``command`` already set to
+    ``"claude-hook"`` is left alone, and a clean file produces no writes.
+
+    Returns:
+        True (the migration never aborts startup; failures are logged).
+    """
+    total_rewritten = 0
+
+    for settings_file in _settings_files_for_baked_hook_paths():
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.warning(
+                f"Failed to read {settings_file} during baked-hook-path "
+                f"remediation: {e}"
+            )
+            continue
+
+        hooks = data.get("hooks", {})
+        if not isinstance(hooks, dict) or not hooks:
+            continue
+
+        file_rewritten = 0
+
+        for hook_list in hooks.values():
+            if not isinstance(hook_list, list):
+                continue
+            for hook_entry in hook_list:
+                if not isinstance(hook_entry, dict):
+                    continue
+                hook_commands = hook_entry.get("hooks", [])
+                if not isinstance(hook_commands, list):
+                    continue
+                for cmd_entry in hook_commands:
+                    if not isinstance(cmd_entry, dict):
+                        continue
+                    command = cmd_entry.get("command", "")
+                    if _command_has_baked_hook_path(command):
+                        cmd_entry["command"] = "claude-hook"
+                        file_rewritten += 1
+
+        if file_rewritten:
+            try:
+                with open(settings_file, "w") as f:
+                    json.dump(data, f, indent=2)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to write {settings_file} during baked-hook-path "
+                    f"remediation: {e}"
+                )
+                continue
+            total_rewritten += file_rewritten
+            logger.info(
+                f"Rewrote {file_rewritten} baked uv-tools hook path(s) to "
+                f"'claude-hook' in {settings_file}"
+            )
+
+    if total_rewritten:
+        print(
+            f"   Rewrote {total_rewritten} baked uv-tools hook path(s) "
+            f"to PATH-based claude-hook"
+        )
+    else:
+        print("   No baked uv-tools hook paths found")
+
+    print("   ✓ Migration complete")
+    return True
+
+
 MIGRATIONS: list[Migration] = [
     Migration(
         id="v5.6.76-cache-dir-rename",
@@ -1797,6 +1965,12 @@ MIGRATIONS: list[Migration] = [
         description="Remove stale hook paths and invalid hook events from all settings files",
         check=_check_stale_hook_paths_exist,
         migrate=_clean_stale_hook_paths,
+    ),
+    Migration(
+        id="v6.4.15-rewrite-baked-hook-paths",
+        description="Rewrite baked uv-tools absolute paths in hook entries to PATH-based claude-hook (fixes #552)",
+        check=_check_baked_hook_paths_exist,
+        migrate=_migrate_baked_hook_paths,
     ),
     Migration(
         id="v5.9.48-remove-unsupported-hook-events",
