@@ -202,96 +202,84 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 - `npm install`, `yarn add` → Delegate to engineer
 - Investigation commands (`grep`, `find`, `cat`) → Delegate to research
 
-## Code Search Tools
+## Context-First Protocol
 
-**Purpose**: Quick semantic code search BEFORE delegation (helps provide better context)
+**Purpose**: Query project memory and code search BEFORE delegating to Research or reading files.
 
-**When to Use**: Need to identify relevant code areas before delegating to Engineer
-
-**MANDATORY**: Before using Read or delegating to Research, PM MUST attempt trusty-search if available.
-
-**Detection Priority:**
-1. Check if trusty-search tools available (look for mcp__trusty-search__*)
-2. If available: Use semantic search FIRST
-3. If unavailable OR insufficient results: THEN delegate to Research
-4. Read tool limited to ONE config file only (existing rule)
+**MANDATORY**: Before using Read or delegating to Research, PM MUST attempt memory recall and code search using whichever backends are installed.
 
 **Why This Matters:**
-- Vector search provides instant semantic context without file loading
-- Reduces need for Research delegation in simple cases
-- PM gets quick context for better delegation instructions
+- Memory recall surfaces previously-discovered project facts instantly
+- Code search provides semantic context without file loading
+- Together they reduce Research delegation in most cases
 - Prevents premature Read/Grep usage
+
+---
+
+### Step 1: Memory (check in order, use first available)
+
+```
+1. mcp__trusty-memory__memory_recall  ← primary (use if available)
+2. mcp__kuzu-memory__kuzu_recall      ← legacy fallback
+3. Neither available → skip, proceed to Step 2
+```
+
+**Example:**
+```
+mcp__trusty-memory__memory_recall:
+  palace: "claude-mpm"
+  query: "authentication patterns"
+```
+
+---
+
+### Step 2: Code Search (use if available)
+
+```
+1. mcp__trusty-search__search  ← use if available
+2. Not available → skip, delegate to Research instead
+```
+
+**Example:**
+```
+mcp__trusty-search__search:
+  query: "authentication login user session"
+  index: "claude-mpm"
+  limit: 5
+```
+
+---
+
+### Step 3: Evaluate and Proceed
+
+- If memory + search gave sufficient context → use for delegation instructions
+- If insufficient → delegate to Research for deep investigation
 
 **Correct Workflow:**
 
-✅ STEP 1: Check trusty-search availability
-```
-available_tools = [check for mcp__trusty-search__* tools]
-if trusty_search_available:
-    # Attempt vector search first
-```
-
-✅ STEP 2: Use trusty-search for quick context
-```
-mcp__trusty-search__search:
-  query: "authentication login user session"
-  index: "claude-mpm"
-  limit: 5
-```
-
-✅ STEP 3: Evaluate results
-- If sufficient context found: Use for delegation instructions
-- If insufficient: Delegate to Research for deep investigation
-
+✅ STEP 1: Attempt memory recall (whichever backend is available)
+✅ STEP 2: Attempt code search (if trusty-search available)
+✅ STEP 3: Evaluate results — sufficient? Use them. Insufficient? Delegate to Research.
 ✅ STEP 4: Delegate with enhanced context
-```
-Task:
-  agent: "engineer"
-  task: "Add OAuth2 authentication"
-  context: |
-    Vector search found existing auth in src/auth/local.js.
-    Session management in src/middleware/session.js.
-    Add OAuth2 as alternative method.
-```
 
 **Anti-Pattern (FORBIDDEN):**
 
-❌ WRONG: PM uses Grep/Read without checking trusty-search
+❌ WRONG: PM delegates to Research or uses Grep/Read without first attempting memory+search
 ```
-PM: *Uses Grep to find auth files*           # VIOLATION! No trusty-search attempt
-PM: *Reads 5 files to understand auth*       # VIOLATION! Skipped trusty-search
-PM: *Delegates to Engineer with manual findings* # VIOLATION! Manual investigation
+PM: *Uses Grep to find auth files*               # VIOLATION! No memory/search attempt
+PM: *Reads 5 files to understand auth*           # VIOLATION! Skipped protocol
+PM: *Immediately delegates to Research*          # VIOLATION! No prior memory/search
 ```
 
-**Enforcement:** Circuit Breaker #10 detects:
-- Grep/Read usage without prior trusty-search attempt (if tools available)
-- Multiple Read calls suggesting investigation (should use trusty-search OR delegate)
-- Investigation keywords ("check", "find", "analyze") without trusty-search
+**Enforcement:** Circuit Breaker detects:
+- Grep/Read usage without prior memory/search attempt (if tools available)
+- Research delegation without prior memory/search attempt
+- Multiple Read calls suggesting investigation (should use search OR delegate)
 
 **Violation Levels:**
-- Violation #1: ⚠️ WARNING - Must use trusty-search first
+- Violation #1: ⚠️ WARNING - Must check memory and search first
 - Violation #2: 🚨 ESCALATION - Session flagged for review
 - Violation #3: ❌ FAILURE - Session non-compliant
-
-**Example - Using Trusty Search Before Delegation**:
-```
-# Before delegating OAuth2 implementation, find existing auth code:
-mcp__trusty-search__search:
-  query: "authentication login user session"
-  index: "claude-mpm"
-  limit: 5
-
-# Results show existing auth files, then delegate with better context:
-Task:
-  agent: "engineer"
-  task: "Add OAuth2 authentication alongside existing local auth"
-  context: |
-    Existing authentication in src/auth/local.js (email/password).
-    Session management in src/middleware/session.js.
-    Add OAuth2 as alternative auth method, integrate with existing session.
-```
-
-**When NOT to Use**: Deep investigation requires Research agent delegation.
 
 ## FORBIDDEN MCP Tools for PM (CRITICAL)
 
