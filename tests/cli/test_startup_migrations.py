@@ -798,6 +798,66 @@ class TestRewriteBakedHookPathsMigration:
         # Unchanged.
         assert data["hooks"]["PreToolUse"][0]["hooks"][0]["command"] == unrelated
 
+    # ----- user-global settings (issue #552 devil's advocate gap) -----
+
+    @pytest.fixture
+    def patch_cwd_and_home(self, tmp_path):
+        """Patch both ``Path.cwd()`` and ``Path.home()`` to isolated tmp dirs.
+
+        Required for tests that exercise the user-global settings paths
+        ``~/.claude/settings.json`` and ``~/.claude/settings.local.json``,
+        because :func:`_all_claude_settings_files` derives them from
+        ``Path.home()``.
+        """
+        home = tmp_path / "home"
+        project = tmp_path / "project"
+        (home / ".claude").mkdir(parents=True)
+        (project / ".claude").mkdir(parents=True)
+        with patch.object(Path, "home", return_value=home):
+            with patch.object(Path, "cwd", return_value=project):
+                yield home, project
+
+    def test_check_true_when_user_global_settings_has_baked_path(
+        self, patch_cwd_and_home
+    ):
+        """check() must inspect ~/.claude/settings.json, not just project dir.
+
+        Reproduces the gap identified by the devil's advocate review of
+        v6.4.15: ``pip install --user`` installs cause
+        ``HookInstaller._update_claude_settings`` to write hook commands
+        into ``~/.claude/settings.json``.  Without this scan, the baked
+        path stays there forever.
+        """
+        from claude_mpm.cli.startup_migrations import (
+            _check_baked_hook_paths_exist,
+        )
+
+        home, _project = patch_cwd_and_home
+        user_global = home / ".claude" / "settings.json"
+        self._write_settings(
+            user_global, self._settings_with_command(self._baked_fast_path())
+        )
+
+        assert _check_baked_hook_paths_exist() is True
+
+    def test_run_rewrites_user_global_settings(self, patch_cwd_and_home):
+        """run() must rewrite the baked path in ~/.claude/settings.json too."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_baked_hook_paths,
+        )
+
+        home, _project = patch_cwd_and_home
+        user_global = home / ".claude" / "settings.json"
+        baked = self._baked_uv_path()
+        self._write_settings(user_global, self._settings_with_command(baked))
+
+        assert _migrate_baked_hook_paths() is True
+
+        data = json.loads(user_global.read_text())
+        assert data["hooks"]["PreToolUse"][0]["hooks"][0]["command"] == "claude-hook"
+        # And the file no longer contains the baked path substring.
+        assert "uv/tools/claude-mpm/" not in user_global.read_text()
+
 
 class TestGetHookCommandPathBased:
     """Integration-style test for ``HookInstaller.get_hook_command()``.
