@@ -611,6 +611,38 @@ def _upgrade_to_fast_hook() -> bool:
 
 
 # =============================================================================
+# Shared helper: canonical Claude settings file list
+# =============================================================================
+
+
+def _all_claude_settings_files() -> list[Path]:
+    """Return the canonical list of Claude settings files scanned by hook
+    remediation migrations.
+
+    Both ``v5.9.41-clean-stale-hook-paths`` and
+    ``v6.4.15-rewrite-baked-hook-paths`` need to walk every Claude settings
+    file that may have been written by ``HookInstaller`` — including the
+    user-global ones, because ``pip install --user`` and similar installs
+    cause ``HookInstaller._update_claude_settings`` to write hook commands
+    into ``~/.claude/settings.json``.  Issue #552 demonstrated that scanning
+    only the project-local files leaves user-global baked paths in place
+    indefinitely.
+
+    Returned files (some may not exist on disk; callers must check):
+      1. ``~/.claude/settings.json``           (user-global, team-shared)
+      2. ``~/.claude/settings.local.json``     (user-global, personal)
+      3. ``cwd/.claude/settings.json``         (project, team-shared)
+      4. ``cwd/.claude/settings.local.json``   (project, personal)
+    """
+    return [
+        Path.home() / ".claude" / "settings.json",
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+
+# =============================================================================
 # Migration: v5.9.41-clean-stale-hook-paths
 # =============================================================================
 
@@ -629,11 +661,7 @@ def _check_stale_hook_paths_exist() -> bool:
     Returns:
         True if stale entries are found in any settings file.
     """
-    settings_files = [
-        Path.home() / ".claude" / "settings.json",  # global settings
-        Path.home() / ".claude" / "settings.local.json",
-        Path.cwd() / ".claude" / "settings.local.json",
-    ]
+    settings_files = _all_claude_settings_files()
 
     for settings_file in settings_files:
         if not settings_file.exists():
@@ -707,11 +735,7 @@ def _clean_stale_hook_paths() -> bool:
     Returns:
         True if the migration ran without fatal errors.
     """
-    settings_files = [
-        Path.home() / ".claude" / "settings.json",  # global settings
-        Path.home() / ".claude" / "settings.local.json",
-        Path.cwd() / ".claude" / "settings.local.json",
-    ]
+    settings_files = _all_claude_settings_files()
 
     total_removed_paths = 0
     total_removed_events = 0
@@ -1785,14 +1809,15 @@ _BAKED_HOOK_PATH_SUBSTRINGS: tuple[str, ...] = (
 def _settings_files_for_baked_hook_paths() -> list[Path]:
     """Settings files scanned by the baked-hook-path remediation migration.
 
-    Mirrors the set scanned by :func:`_check_stale_hook_paths_exist` so that
-    any file that may have been corrupted by the legacy installer is
-    addressed.
+    Delegates to :func:`_all_claude_settings_files` so that the user-global
+    settings files (``~/.claude/settings.json`` and
+    ``~/.claude/settings.local.json``) are scanned in addition to the
+    project-level files.  This is essential because
+    ``HookInstaller._update_claude_settings`` writes hook commands into
+    whichever settings file the install targets — including the user-global
+    one for ``pip install --user`` and similar installs (issue #552).
     """
-    return [
-        Path.cwd() / ".claude" / "settings.json",
-        Path.cwd() / ".claude" / "settings.local.json",
-    ]
+    return _all_claude_settings_files()
 
 
 def _command_has_baked_hook_path(command: str) -> bool:
