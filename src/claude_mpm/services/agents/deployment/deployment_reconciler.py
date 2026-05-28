@@ -24,7 +24,11 @@ from claude_mpm.services.agents.compatibility import CompatibilityResult
 from claude_mpm.services.agents.compatibility.deploy_gate import DeploymentVersionGate
 from claude_mpm.services.agents.compatibility.manifest_cache import ManifestCache
 from claude_mpm.services.agents.deployment_utils import deploy_agent_file
-from claude_mpm.utils.agent_filters import normalize_agent_id
+from claude_mpm.utils.agent_filters import (
+    is_local_only,
+    normalize_agent_id,
+    warn_missing_local_only_agents,
+)
 
 logger = get_logger(__name__)
 
@@ -244,8 +248,20 @@ class DeploymentReconciler:
 
         result = DeploymentResult(deployed=[], removed=[], unchanged=[], errors=[])
 
+        # Issue #560: Never deploy/overwrite or remove agents in agents.local_only.
+        # Load once, then gate every deploy and remove operation.
+        local_only_list = list(self.config.agents.local_only)
+        warn_missing_local_only_agents(local_only_list, project_path)
+
         # Deploy missing agents
         for agent_id in state.to_deploy:
+            if is_local_only(agent_id, local_only_list):
+                logger.info(
+                    "Skipping deploy/overwrite of local_only agent: %s", agent_id
+                )
+                result.unchanged.append(agent_id)
+                continue
+
             if agent_id not in state.cached:
                 error_msg = f"Agent '{agent_id}' not found in cache. Run 'claude-mpm agents sync' first."
                 logger.warning(error_msg)
@@ -263,6 +279,11 @@ class DeploymentReconciler:
 
         # Remove unneeded agents (only MPM agents, not user-created)
         for agent_id in state.to_remove:
+            if is_local_only(agent_id, local_only_list):
+                logger.info("Skipping removal of local_only agent: %s", agent_id)
+                result.unchanged.append(agent_id)
+                continue
+
             try:
                 if self._is_mpm_agent(deploy_dir, agent_id):
                     self._remove_agent(agent_id, deploy_dir)
