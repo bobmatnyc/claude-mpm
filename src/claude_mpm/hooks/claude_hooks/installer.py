@@ -421,51 +421,52 @@ main "$@"
         return self._version_meets_minimum(version, self.MIN_NEW_HOOKS_VERSION)
 
     def get_hook_command(self, use_fast_hook: bool = True) -> str:
-        """Get the hook command based on installation method.
+        """Get the hook command for new installations.
 
-        Priority order (when use_fast_hook=True, the default):
-        1. Fast bash hook script (~15ms) - claude-hook-fast.sh
-        2. claude-hook entry point (if fast hook not available)
-        3. Full Python bash script fallback
+        Always returns the literal string ``"claude-hook"`` — the PATH-based
+        entry point declared in ``pyproject.toml``.  This is unconditional by
+        design: previous implementations baked an absolute path to
+        ``claude-hook-fast.sh`` (resolved via ``importlib.resources``) into
+        settings files.  When the uv tools environment was rebuilt, that path
+        went stale and every hook event failed.  See issue #552.
 
-        Priority order (when use_fast_hook=False):
-        1. claude-hook entry point (uv tool install, pipx install, pip install)
-        2. Full Python bash script (claude-hook-handler.sh)
+        Resolving via PATH defers script lookup to invocation time, so the
+        entry point keeps working across uv tool reinstalls, Python version
+        bumps, and other environment churn.
+
+        The ``use_fast_hook`` parameter is retained for backwards
+        compatibility with existing callers but is now ignored: the fast hook
+        is dispatched internally by the ``claude-hook`` entry point itself.
 
         Args:
-            use_fast_hook: If True (default), prefer the fast bash hook for better performance.
-                          The fast hook is ~30x faster (~15ms vs ~450ms) but only supports
-                          event forwarding to the dashboard. Set to False if you need
-                          full Python processing (memory integration, auto-pause, etc.)
+            use_fast_hook: Ignored.  Retained for API compatibility.
 
         Returns:
-            Command string for the hook handler
-
-        Raises:
-            FileNotFoundError: If no hook handler can be found
+            The literal string ``"claude-hook"``.
         """
-        # Try fast hook first (default for performance)
-        if use_fast_hook:
-            try:
-                fast_script_path = self._get_fast_hook_script_path()
-                self.logger.info(f"Using fast bash hook (~15ms): {fast_script_path}")
-                return str(fast_script_path.absolute())
-            except FileNotFoundError:
-                self.logger.debug("Fast hook not found, falling back to standard hook")
-
-        # Check if claude-hook entry point is available in PATH
-        claude_hook_path = shutil.which("claude-hook")
-        if claude_hook_path:
-            self.logger.info(f"Using claude-hook entry point: {claude_hook_path}")
-            return "claude-hook"
-
-        # Fallback to full Python bash script for development installs
-        script_path = self._get_hook_script_path()
-        self.logger.info(f"Using full Python bash script (~450ms): {script_path}")
-        return str(script_path.absolute())
+        # See issue #552: returning an absolute path here was the root cause
+        # of stale-path failures after uv tool reinstall.  ``claude-hook`` is
+        # the entry point declared in ``pyproject.toml`` and dispatches to
+        # the fast bash hook internally when appropriate.
+        del use_fast_hook  # parameter retained for backwards compatibility
+        self.logger.info("Using PATH-based claude-hook entry point")
+        return "claude-hook"
 
     def _get_fast_hook_script_path(self) -> Path:
         """Get the path to the fast bash hook handler script.
+
+        .. deprecated::
+            This method must not be used to populate hook ``command`` entries
+            in any settings file.  Resolving and baking the absolute path
+            into ``settings.local.json`` is the root cause of issue #552:
+            the path becomes stale when the uv tools environment is
+            rebuilt and every hook invocation fails.  Use
+            :meth:`get_hook_command` (which returns the PATH-based
+            ``"claude-hook"`` entry point) instead.
+
+            The method is retained for diagnostic/status callers
+            (e.g. :meth:`get_status`) and for the legacy
+            ``v5.6.86-upgrade-to-fast-hook`` migration that references it.
 
         The fast hook (~15ms) is a pure bash script that:
         - Extracts event data using string manipulation (no Python)
