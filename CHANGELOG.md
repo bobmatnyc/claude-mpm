@@ -19,6 +19,18 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.4.16 (2026-05-28)
+
+### Feat
+
+- honor local_only agents list to prevent sync deletion (#560)
+- skip local_only agents in multi-source cleanup
+- skip local_only agents in git sync deploy and cleanup
+- protect local_only agents from orphan removal at startup
+- skip local_only agents during deployment reconciliation
+- add is_local_only / load_local_only_agents helpers
+- add agents.local_only field to AgentConfig
+
 ## v6.4.15 (2026-05-28)
 
 ### Fix
