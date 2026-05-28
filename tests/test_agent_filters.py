@@ -6,8 +6,10 @@ Tests cover:
 - Deployed agent detection (new and legacy directories)
 - Combined filtering operations
 - Edge cases and error handling
+- agents.local_only protection (Issue #560)
 """
 
+import logging
 import tempfile
 from pathlib import Path
 
@@ -19,6 +21,9 @@ from claude_mpm.utils.agent_filters import (
     filter_deployed_agents,
     get_deployed_agent_ids,
     is_base_agent,
+    is_local_only,
+    load_local_only_agents,
+    warn_missing_local_only_agents,
 )
 
 
@@ -494,3 +499,234 @@ class TestApplyAllFilters:
         filtered = apply_all_filters(agents)
         assert len(filtered) == 2
         assert "BASE_AGENT" not in [a["agent_id"] for a in filtered]
+
+
+# ============================================================================
+# Issue #560: agents.local_only protection
+# ============================================================================
+
+
+class TestIsLocalOnly:
+    """Test is_local_only predicate."""
+
+    def test_exact_match(self):
+        assert is_local_only("writer", ["writer", "fact-checker"]) is True
+
+    def test_case_insensitive_match(self):
+        assert is_local_only("WRITER", ["writer"]) is True
+        assert is_local_only("writer", ["WRITER"]) is True
+
+    def test_md_extension_stripped(self):
+        assert is_local_only("writer.md", ["writer"]) is True
+
+    def test_agent_suffix_normalized(self):
+        assert is_local_only("writer-agent", ["writer"]) is True
+        assert is_local_only("writer", ["writer-agent"]) is True
+
+    def test_underscore_normalized(self):
+        assert is_local_only("fact_checker", ["fact-checker"]) is True
+
+    def test_not_in_list(self):
+        assert is_local_only("engineer", ["writer", "fact-checker"]) is False
+
+    def test_empty_allow_list(self):
+        assert is_local_only("writer", []) is False
+
+    def test_empty_agent_id(self):
+        assert is_local_only("", ["writer"]) is False
+
+    def test_none_agent_id(self):
+        # type: ignore[arg-type]
+        assert is_local_only(None, ["writer"]) is False  # type: ignore[arg-type]
+
+
+class TestLoadLocalOnlyAgents:
+    """Test loading agents.local_only from .claude-mpm/configuration.yaml."""
+
+    def _write_config(self, project_dir: Path, content: str) -> Path:
+        config_dir = project_dir / ".claude-mpm"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        config_path = config_dir / "configuration.yaml"
+        config_path.write_text(content, encoding="utf-8")
+        return config_path
+
+    def test_loads_local_only_list(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            self._write_config(
+                project_dir,
+                "agents:\n  local_only:\n    - writer\n    - fact-checker\n",
+            )
+            result = load_local_only_agents(project_dir)
+            assert result == ["writer", "fact-checker"]
+
+    def test_missing_config_returns_empty(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            assert load_local_only_agents(project_dir) == []
+
+    def test_missing_agents_section(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            self._write_config(project_dir, "other:\n  foo: 1\n")
+            assert load_local_only_agents(project_dir) == []
+
+    def test_missing_local_only_key(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            self._write_config(project_dir, "agents:\n  enabled:\n    - engineer\n")
+            assert load_local_only_agents(project_dir) == []
+
+    def test_non_list_local_only_returns_empty(self, caplog):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            self._write_config(project_dir, "agents:\n  local_only: not-a-list\n")
+            with caplog.at_level(logging.WARNING):
+                result = load_local_only_agents(project_dir)
+            assert result == []
+
+    def test_malformed_yaml_returns_empty(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            self._write_config(project_dir, "::: not valid yaml :::")
+            assert load_local_only_agents(project_dir) == []
+
+    def test_yml_extension_fallback(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            config_dir = project_dir / ".claude-mpm"
+            config_dir.mkdir(parents=True)
+            (config_dir / "configuration.yml").write_text(
+                "agents:\n  local_only:\n    - writer\n", encoding="utf-8"
+            )
+            assert load_local_only_agents(project_dir) == ["writer"]
+
+
+class TestWarnMissingLocalOnlyAgents:
+    """Test missing-agent warnings for local_only entries."""
+
+    def test_all_present_no_warning(self, caplog):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "writer.md").write_text("# Writer")
+            (agents_dir / "fact-checker.md").write_text("# Fact Checker")
+
+            with caplog.at_level(logging.WARNING):
+                missing = warn_missing_local_only_agents(
+                    ["writer", "fact-checker"], project_dir
+                )
+            assert missing == []
+
+    def test_missing_emits_warning(self, caplog):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "writer.md").write_text("# Writer")
+            # fact-checker is missing
+
+            with caplog.at_level(logging.WARNING):
+                missing = warn_missing_local_only_agents(
+                    ["writer", "fact-checker"], project_dir
+                )
+            assert missing == ["fact-checker"]
+            assert any(
+                "local_only" in record.message.lower() for record in caplog.records
+            )
+
+    def test_empty_list_no_warning(self, caplog):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            with caplog.at_level(logging.WARNING):
+                missing = warn_missing_local_only_agents([], project_dir)
+            assert missing == []
+            assert len(caplog.records) == 0
+
+
+class TestLocalOnlyDeploymentProtection:
+    """Integration tests: local_only agents survive cleanup/deploy operations."""
+
+    def test_cleanup_excluded_agents_skips_local_only(self, tmp_path):
+        """git_source_sync_service._cleanup_excluded_agents must not delete
+        a local_only agent even when its normalized name appears in
+        the excluded_set."""
+        from claude_mpm.services.agents.sources.git_source_sync_service import (
+            GitSourceSyncService,
+        )
+
+        deployment_dir = tmp_path / ".claude" / "agents"
+        deployment_dir.mkdir(parents=True)
+        (deployment_dir / "writer.md").write_text("# Project-local writer")
+        (deployment_dir / "engineer.md").write_text("# Engineer")
+
+        service = GitSourceSyncService()
+        result = service._cleanup_excluded_agents(
+            deployment_dir,
+            excluded_set={"writer", "engineer"},
+            local_only_list=["writer"],
+        )
+
+        # writer protected, engineer removed
+        assert (deployment_dir / "writer.md").exists()
+        assert not (deployment_dir / "engineer.md").exists()
+        assert "writer" not in result["removed"]
+        assert "engineer" in result["removed"]
+
+    def test_cleanup_excluded_agents_backward_compat_no_local_only(self, tmp_path):
+        """Calling _cleanup_excluded_agents without local_only_list keeps
+        the existing behavior (all excluded agents removed)."""
+        from claude_mpm.services.agents.sources.git_source_sync_service import (
+            GitSourceSyncService,
+        )
+
+        deployment_dir = tmp_path / ".claude" / "agents"
+        deployment_dir.mkdir(parents=True)
+        (deployment_dir / "writer.md").write_text("# Writer")
+        (deployment_dir / "engineer.md").write_text("# Engineer")
+
+        service = GitSourceSyncService()
+        result = service._cleanup_excluded_agents(
+            deployment_dir,
+            excluded_set={"writer", "engineer"},
+        )
+
+        # Default behavior: both removed
+        assert not (deployment_dir / "writer.md").exists()
+        assert not (deployment_dir / "engineer.md").exists()
+        assert set(result["removed"]) == {"writer", "engineer"}
+
+    def test_deployment_reconciler_skips_local_only_removal(self, tmp_path):
+        """DeploymentReconciler.reconcile_agents() must not remove
+        agents listed in agents.local_only, even if they are deployed
+        but not in agents.enabled."""
+        from claude_mpm.core.unified_config import UnifiedConfig
+        from claude_mpm.services.agents.deployment.deployment_reconciler import (
+            DeploymentReconciler,
+        )
+
+        # Stage a deployed-only agent that is not in enabled list
+        deploy_dir = tmp_path / ".claude" / "agents"
+        deploy_dir.mkdir(parents=True)
+        (deploy_dir / "writer.md").write_text(
+            "---\nname: Writer\n---\n# Hand-crafted project-local writer"
+        )
+
+        # Build a config where 'writer' is local_only and NOT enabled
+        config = UnifiedConfig(
+            agents={
+                "enabled": [],
+                "required": [],
+                "include_universal": False,
+                "auto_discover": False,
+                "local_only": ["writer"],
+            }
+        )
+
+        reconciler = DeploymentReconciler(config)
+        result = reconciler.reconcile_agents(project_path=tmp_path)
+
+        # writer.md must still exist (was not removed)
+        assert (deploy_dir / "writer.md").exists()
+        assert "writer" not in result.removed

@@ -306,6 +306,167 @@ def filter_deployed_agents(
     ]
 
 
+def load_local_only_agents(project_dir: Path | None = None) -> list[str]:
+    """Load the ``agents.local_only`` list from ``.claude-mpm/configuration.yaml``.
+
+    Project-local agents are hand-crafted by the project owner and must NEVER
+    be deleted or overwritten by MPM sync/cleanup (Issue #560).
+
+    This loader reads the project configuration file directly (without going
+    through ``UnifiedConfig``) so it can be called cheaply from filesystem
+    code paths that do not already hold a config instance.
+
+    Args:
+        project_dir: Project directory to check. Defaults to ``Path.cwd()``.
+
+    Returns:
+        List of agent IDs marked as ``local_only`` in the project config,
+        or ``[]`` if the config is missing, malformed, or has no list.
+
+    Failure Modes:
+        - Missing file: returns ``[]``
+        - Malformed YAML: returns ``[]`` (logs debug message)
+        - Missing ``agents`` or ``agents.local_only`` key: returns ``[]``
+        - Non-list ``local_only`` value: returns ``[]`` (logs warning)
+    """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    candidate_paths = [
+        project_dir / ".claude-mpm" / "configuration.yaml",
+        project_dir / ".claude-mpm" / "configuration.yml",
+    ]
+
+    for config_path in candidate_paths:
+        if not config_path.exists():
+            continue
+
+        try:
+            import yaml
+
+            with config_path.open(encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).debug(
+                "Failed to read local_only from %s: %s", config_path, e
+            )
+            return []
+
+        if not isinstance(data, dict):
+            return []
+
+        agents_section = data.get("agents", {})
+        if not isinstance(agents_section, dict):
+            return []
+
+        local_only = agents_section.get("local_only", [])
+        if not isinstance(local_only, list):
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "agents.local_only in %s is not a list (got %s); ignoring",
+                config_path,
+                type(local_only).__name__,
+            )
+            return []
+
+        return [str(a) for a in local_only]
+
+    return []
+
+
+def is_local_only(agent_id: str, local_only_list: list[str]) -> bool:
+    """Check if ``agent_id`` is in the project-local-only allow list.
+
+    Comparison is performed against normalized IDs (see
+    :func:`normalize_agent_id`) so callers do not need to worry about
+    case, separators, or ``-agent`` suffixes.
+
+    Args:
+        agent_id: Raw agent ID (filename stem, frontmatter id, etc.).
+        local_only_list: List of agent IDs from ``agents.local_only``.
+
+    Returns:
+        ``True`` if ``agent_id`` matches any entry in ``local_only_list``
+        under normalized comparison; ``False`` otherwise (including empty
+        inputs).
+
+    Examples:
+        >>> is_local_only("writer", ["writer", "fact-checker"])
+        True
+        >>> is_local_only("WRITER", ["writer"])
+        True
+        >>> is_local_only("writer.md", ["writer"])
+        True
+        >>> is_local_only("writer-agent", ["writer"])
+        True
+        >>> is_local_only("engineer", ["writer", "fact-checker"])
+        False
+        >>> is_local_only("anything", [])
+        False
+    """
+    if not agent_id or not local_only_list:
+        return False
+
+    normalized_id = normalize_agent_id(agent_id)
+    if not normalized_id:
+        return False
+
+    normalized_allow = {normalize_agent_id(name) for name in local_only_list}
+    return normalized_id in normalized_allow
+
+
+def warn_missing_local_only_agents(
+    local_only_list: list[str], project_dir: Path | None = None
+) -> list[str]:
+    """Warn when ``local_only`` agents are configured but not present on disk.
+
+    Issue #560 requires a warning (not an error) when a configured
+    ``local_only`` agent has no corresponding ``.md`` file in
+    ``.claude/agents/``. This helps surface drift between the config and the
+    actual project state without breaking deployment.
+
+    Args:
+        local_only_list: List of agent IDs from ``agents.local_only``.
+        project_dir: Project directory to check. Defaults to ``Path.cwd()``.
+
+    Returns:
+        List of normalized agent IDs that are configured but missing from
+        ``.claude/agents/``. Empty list when all agents are present or the
+        input list is empty.
+    """
+    if not local_only_list:
+        return []
+
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    deployed = get_deployed_agent_ids(project_dir)
+    missing: list[str] = []
+
+    for agent_id in local_only_list:
+        normalized = normalize_agent_id(agent_id)
+        if not normalized:
+            continue
+        if normalized not in deployed:
+            missing.append(normalized)
+
+    if missing:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "Configured local_only agents not found on disk in %s: %s. "
+            "These agents will be skipped by MPM sync/cleanup but should "
+            "exist as .md files in .claude/agents/.",
+            project_dir / ".claude" / "agents",
+            ", ".join(sorted(missing)),
+        )
+
+    return missing
+
+
 def apply_all_filters(
     agents: list[dict],
     project_dir: Path | None = None,

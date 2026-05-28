@@ -109,6 +109,18 @@ def _detect_and_remove_orphaned_agents(
     if config.agents.required:
         expected_stems.update(config.agents.required)
 
+    # Source 2b (Issue #560): Project-local-only agents must NEVER be removed
+    # by orphan detection, even if they are not in cache or other config sources.
+    if config.agents.local_only:
+        from claude_mpm.utils.agent_filters import normalize_agent_id
+
+        for agent_id in config.agents.local_only:
+            normalized = normalize_agent_id(agent_id)
+            if normalized:
+                expected_stems.add(normalized)
+            # Also add the raw form for direct stem comparison
+            expected_stems.add(agent_id)
+
     # Source 3: Local templates (project-level)
     local_template_dir = project_path / ".claude-mpm" / "agents"
     if local_template_dir.exists():
@@ -203,6 +215,28 @@ def _detect_and_remove_orphaned_agents(
             )
             return []
 
+    # Issue #560: Defense-in-depth — even if a local_only agent somehow leaked
+    # into orphan_candidates (e.g. stem normalization mismatch), filter it out
+    # before any unlink() call.
+    local_only_list = list(config.agents.local_only or [])
+    if local_only_list:
+        from claude_mpm.utils.agent_filters import is_local_only
+
+        protected: list[tuple[Path, str]] = []
+        filtered_candidates: list[tuple[Path, str]] = []
+        for deployed_file, stem in orphan_candidates:
+            if is_local_only(stem, local_only_list):
+                protected.append((deployed_file, stem))
+            else:
+                filtered_candidates.append((deployed_file, stem))
+        if protected:
+            logger.info(
+                "Preserved %d local_only agent(s) from orphan removal: %s",
+                len(protected),
+                ", ".join(stem for _, stem in protected),
+            )
+        orphan_candidates = filtered_candidates
+
     # Remove confirmed orphans
     removed: list[str] = []
     for deployed_file, stem in orphan_candidates:
@@ -240,6 +274,14 @@ def perform_startup_reconciliation(
     # Load config if not provided
     if config is None:
         config = UnifiedConfig()
+
+    # Issue #560: Warn (do not error) when configured local_only agents are
+    # missing from .claude/agents/. This surfaces drift early so users can
+    # restore their hand-crafted agents from git history.
+    if config.agents.local_only:
+        from claude_mpm.utils.agent_filters import warn_missing_local_only_agents
+
+        warn_missing_local_only_agents(list(config.agents.local_only), project_path)
 
     # Initialize reconciler
     reconciler = DeploymentReconciler(config)
