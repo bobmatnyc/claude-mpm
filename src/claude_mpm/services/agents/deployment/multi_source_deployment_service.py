@@ -29,7 +29,11 @@ from typing import Any
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.deployment_utils import normalize_deployment_filename
-from claude_mpm.utils.agent_filters import normalize_agent_id
+from claude_mpm.utils.agent_filters import (
+    is_local_only,
+    load_local_only_agents,
+    normalize_agent_id,
+)
 
 from .agent_merger import AgentMerger
 from .agent_version_manager import AgentVersionManager
@@ -393,6 +397,17 @@ class MultiSourceAgentDeploymentService:
         # Build set of agent names that should exist (file stems without .md extension)
         expected_agents = set(agents_to_deploy.keys())
 
+        # Issue #560: load project agents.local_only and treat them as protected.
+        # Project dir is inferred as the parent of .claude/agents/ when that
+        # matches the deployment dir, otherwise the cwd is used as a fallback.
+        project_dir = (
+            deployed_agents_dir.parent.parent
+            if deployed_agents_dir.name == "agents"
+            and deployed_agents_dir.parent.name == ".claude"
+            else Path.cwd()
+        )
+        local_only_list = load_local_only_agents(project_dir)
+
         try:
             # Check each file in deployed_agents_dir
             for item in deployed_agents_dir.iterdir():
@@ -406,6 +421,13 @@ class MultiSourceAgentDeploymentService:
 
                 # Get agent name (file stem)
                 agent_name = item.stem
+
+                # Issue #560: protect project-local-only agents
+                if is_local_only(agent_name, local_only_list):
+                    self.logger.info(
+                        "Skipping cleanup of local_only agent: %s", agent_name
+                    )
+                    continue
 
                 # Check if this agent should be kept
                 if agent_name not in expected_agents:
