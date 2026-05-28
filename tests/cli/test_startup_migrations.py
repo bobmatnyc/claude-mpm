@@ -583,3 +583,244 @@ class TestDeploySpinnerGlobalMigration:
 
         ids = [m.id for m in MIGRATIONS]
         assert "v6.3.2-deploy-spinner-global" in ids
+
+
+class TestRewriteBakedHookPathsMigration:
+    """Tests for the v6.4.15-rewrite-baked-hook-paths migration (issue #552).
+
+    Earlier versions of ``HookInstaller.get_hook_command()`` baked an
+    absolute path to ``claude-hook-fast.sh`` under
+    ``~/.local/share/uv/tools/claude-mpm/...`` into project settings files.
+    When the uv tools environment is rebuilt that path becomes stale and
+    every hook event fails.  This migration rewrites such commands to the
+    PATH-based ``claude-hook`` entry point.
+    """
+
+    @pytest.fixture
+    def project_dir(self, tmp_path):
+        """Create an isolated project directory with a .claude subdir."""
+        project = tmp_path / "project"
+        (project / ".claude").mkdir(parents=True)
+        return project
+
+    @pytest.fixture
+    def patch_cwd(self, project_dir):
+        """Patch Path.cwd() to return the isolated project dir."""
+        with patch.object(Path, "cwd", return_value=project_dir):
+            yield project_dir
+
+    @staticmethod
+    def _baked_fast_path() -> str:
+        """A representative baked uv-tools path to claude-hook-fast.sh."""
+        return (
+            "/Users/example/.local/share/uv/tools/claude-mpm/lib/python3.13/"
+            "site-packages/claude_mpm/scripts/claude-hook-fast.sh"
+        )
+
+    @staticmethod
+    def _baked_uv_path() -> str:
+        """A baked uv-tools path that does NOT mention claude-hook-fast.sh."""
+        return (
+            "/home/user/.local/share/uv/tools/claude-mpm/lib/python3.13/"
+            "site-packages/claude_mpm/scripts/some-other-script.sh"
+        )
+
+    def _write_settings(self, path: Path, payload: dict) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2))
+
+    def _settings_with_command(self, command: str) -> dict:
+        return {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "*",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": command,
+                                "_mpm": True,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+
+    # ----- check() -----
+
+    def test_check_true_when_settings_local_has_fast_sh_path(self, patch_cwd):
+        """check() returns True when settings.local.json has a stale fast.sh path."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_baked_hook_paths_exist,
+        )
+
+        self._write_settings(
+            patch_cwd / ".claude" / "settings.local.json",
+            self._settings_with_command(self._baked_fast_path()),
+        )
+
+        assert _check_baked_hook_paths_exist() is True
+
+    def test_check_true_when_settings_json_has_uv_tools_path(self, patch_cwd):
+        """check() returns True for the broader uv/tools/claude-mpm/ pattern."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_baked_hook_paths_exist,
+        )
+
+        self._write_settings(
+            patch_cwd / ".claude" / "settings.json",
+            self._settings_with_command(self._baked_uv_path()),
+        )
+
+        assert _check_baked_hook_paths_exist() is True
+
+    def test_check_false_when_no_hooks_match_patterns(self, patch_cwd):
+        """check() returns False when no hook commands match either pattern."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_baked_hook_paths_exist,
+        )
+
+        self._write_settings(
+            patch_cwd / ".claude" / "settings.local.json",
+            self._settings_with_command("/usr/local/bin/some-unrelated-tool"),
+        )
+
+        assert _check_baked_hook_paths_exist() is False
+
+    def test_check_false_when_already_claude_hook(self, patch_cwd):
+        """check() returns False when all hooks are already 'claude-hook'."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_baked_hook_paths_exist,
+        )
+
+        self._write_settings(
+            patch_cwd / ".claude" / "settings.json",
+            self._settings_with_command("claude-hook"),
+        )
+        self._write_settings(
+            patch_cwd / ".claude" / "settings.local.json",
+            self._settings_with_command("claude-hook"),
+        )
+
+        assert _check_baked_hook_paths_exist() is False
+
+    def test_check_false_when_no_settings_files_exist(self, patch_cwd):
+        """check() returns False when no .claude/settings*.json files exist."""
+        from claude_mpm.cli.startup_migrations import (
+            _check_baked_hook_paths_exist,
+        )
+
+        assert _check_baked_hook_paths_exist() is False
+
+    # ----- run() -----
+
+    def test_run_rewrites_command_and_preserves_sibling_fields(self, patch_cwd):
+        """run() rewrites command to 'claude-hook' and keeps siblings intact."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_baked_hook_paths,
+        )
+
+        baked = self._baked_fast_path()
+        settings_path = patch_cwd / ".claude" / "settings.local.json"
+        payload = {
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Bash",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": baked,
+                                "args": ["--session", "abc"],
+                                "disable": False,
+                                "_mpm": True,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+        self._write_settings(settings_path, payload)
+
+        assert _migrate_baked_hook_paths() is True
+
+        rewritten = json.loads(settings_path.read_text())
+        cmd_entry = rewritten["hooks"]["PreToolUse"][0]["hooks"][0]
+
+        # Command rewritten to the PATH-based entry point.
+        assert cmd_entry["command"] == "claude-hook"
+        # All sibling fields preserved verbatim.
+        assert cmd_entry["type"] == "command"
+        assert cmd_entry["args"] == ["--session", "abc"]
+        assert cmd_entry["disable"] is False
+        assert cmd_entry["_mpm"] is True
+        # The hook entry's matcher is also preserved.
+        assert rewritten["hooks"]["PreToolUse"][0]["matcher"] == "Bash"
+
+    def test_run_is_idempotent(self, patch_cwd):
+        """Running the migration twice produces identical output."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_baked_hook_paths,
+        )
+
+        settings_path = patch_cwd / ".claude" / "settings.local.json"
+        self._write_settings(
+            settings_path,
+            self._settings_with_command(self._baked_fast_path()),
+        )
+
+        assert _migrate_baked_hook_paths() is True
+        first = settings_path.read_text()
+
+        assert _migrate_baked_hook_paths() is True
+        second = settings_path.read_text()
+
+        assert first == second
+        # And the file is definitely on the cleaned-up form.
+        assert "claude-hook-fast.sh" not in second
+        data = json.loads(second)
+        assert data["hooks"]["PreToolUse"][0]["hooks"][0]["command"] == "claude-hook"
+
+    def test_run_does_not_touch_unrelated_commands(self, patch_cwd):
+        """Commands that don't match the patterns are left untouched."""
+        from claude_mpm.cli.startup_migrations import (
+            _migrate_baked_hook_paths,
+        )
+
+        unrelated = "/usr/local/bin/my-custom-hook --flag"
+        settings_path = patch_cwd / ".claude" / "settings.local.json"
+        self._write_settings(settings_path, self._settings_with_command(unrelated))
+
+        assert _migrate_baked_hook_paths() is True
+
+        data = json.loads(settings_path.read_text())
+        # Unchanged.
+        assert data["hooks"]["PreToolUse"][0]["hooks"][0]["command"] == unrelated
+
+
+class TestGetHookCommandPathBased:
+    """Integration-style test for ``HookInstaller.get_hook_command()``.
+
+    After the fix for issue #552 the method must return the literal
+    ``"claude-hook"`` unconditionally, regardless of whether
+    ``claude-hook-fast.sh`` is discoverable on disk.
+    """
+
+    def test_get_hook_command_returns_claude_hook_unconditionally(self):
+        """Returns the literal 'claude-hook' with no script-on-disk dependency."""
+        from claude_mpm.hooks.claude_hooks.installer import HookInstaller
+
+        installer = HookInstaller()
+
+        # Even if every legacy path resolution mechanism is broken, the
+        # method must return "claude-hook".  Force the fast-hook path
+        # lookup to fail to prove no fallback happens.
+        with patch.object(
+            HookInstaller,
+            "_get_fast_hook_script_path",
+            side_effect=FileNotFoundError("simulated stale uv tools install"),
+        ):
+            assert installer.get_hook_command() == "claude-hook"
+            assert installer.get_hook_command(use_fast_hook=True) == "claude-hook"
+            assert installer.get_hook_command(use_fast_hook=False) == "claude-hook"
