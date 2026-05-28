@@ -50,8 +50,7 @@ Before delegating to Research or reading files, query project memory and code se
 
 **Code search (use whichever is available):**
 
-- **trusty-search** (primary, recommended): `mcp__trusty-search__search_code` (index: claude-mpm)
-- **mcp-vector-search** *(deprecated — legacy fallback for existing installations)*: `mcp__mcp-vector-search__search_code`
+- **trusty-search** (primary, recommended): `mcp__trusty-search__search` (index: claude-mpm)
 
 Sequence:
 
