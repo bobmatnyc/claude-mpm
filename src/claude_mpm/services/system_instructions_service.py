@@ -9,6 +9,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+import hashlib
 import re
 from datetime import UTC, datetime
 
@@ -23,8 +24,12 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
 
     # Marker injected into the prompt when the user-level override is applied.
     # Used as a defensive check against double-append in addition to the
-    # _system_prompt_cache field.
+    # augmented-prompt cache.
     USER_OVERRIDE_MARKER = "# User-Level PM Override"
+
+    # Maximum size of the user-level PM_INSTRUCTIONS.md override file. Larger
+    # files are ignored (treated as absent) to bound prompt size and memory.
+    USER_OVERRIDE_MAX_BYTES = 65536  # 64 KB
 
     def __init__(self, agent_capabilities_service=None):
         """Initialize the system instructions service.
@@ -36,12 +41,18 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         self.agent_capabilities_service = agent_capabilities_service
         self._framework_loader = None  # Cache the framework loader instance
         self._loaded_instructions = None  # Cache loaded instructions
-        # Cache the augmented system prompt so the user-level override is
-        # appended at most once per service instance.  Previously the
-        # idempotency guard checked the cached *base* content (which never
-        # contains the marker), causing the override to be re-appended on
-        # every create_system_prompt() call.
-        self._system_prompt_cache: str | None = None
+        # Cache the augmented system prompt keyed on a hash of the *base*
+        # content. This makes the append-once guarantee work for BOTH the
+        # no-arg path and explicit-arg callers (production always passes an
+        # explicit base via ClaudeRunner._create_system_prompt), so the
+        # override is appended at most once per distinct base.
+        self._augmented_prompt_cache: dict[str, str] = {}
+        # One-time resolution of the user-level override content. Resolved
+        # lazily on the first create_system_prompt() call and cached
+        # (including the "absent/unreadable/oversized" outcome of None) so
+        # subsequent calls never touch the filesystem.
+        self._user_override_loaded: bool = False
+        self._user_override_content: str | None = None
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
@@ -193,6 +204,57 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             self.logger.warning(f"Error stripping metadata comments: {e}")
             return content
 
+    def _load_user_override(self) -> str | None:
+        """Resolve and read the user-level PM_INSTRUCTIONS.md override once.
+
+        Reads ``~/.claude-mpm/PM_INSTRUCTIONS.md`` (via the unified path
+        manager so the directory name stays in sync with
+        ``UnifiedPathManager.CONFIG_DIR_NAME``) exactly once per service
+        instance. The result — including the "absent / unreadable /
+        oversized" outcome of ``None`` — is cached so subsequent calls never
+        touch the filesystem.
+
+        Files larger than ``USER_OVERRIDE_MAX_BYTES`` (64 KB) are ignored
+        (treated as absent) and a WARNING is logged. Read failures are
+        non-fatal: a DEBUG message is logged and ``None`` is returned.
+
+        Returns:
+            The override file content, or ``None`` when no usable override
+            should be applied.
+        """
+        if self._user_override_loaded:
+            return self._user_override_content
+
+        # Mark as loaded up front so any early return still caches the
+        # (None) outcome and we never re-touch the filesystem.
+        self._user_override_loaded = True
+
+        user_override_path = (
+            get_path_manager().get_user_config_dir() / "PM_INSTRUCTIONS.md"
+        )
+        if not user_override_path.is_file():
+            return None
+
+        try:
+            size = user_override_path.stat().st_size
+            if size > self.USER_OVERRIDE_MAX_BYTES:
+                self.logger.warning(
+                    "user-level PM_INSTRUCTIONS.md exceeds 64KB cap "
+                    f"({size} bytes); skipping override"
+                )
+                return None
+
+            self._user_override_content = user_override_path.read_text(encoding="utf-8")
+            self.logger.info(
+                "Loaded user-level PM_INSTRUCTIONS override "
+                f"({len(self._user_override_content)} chars)"
+            )
+        except OSError as e:
+            self.logger.debug(f"User-level override exists but couldn't read: {e}")
+            self._user_override_content = None
+
+        return self._user_override_content
+
     def create_system_prompt(self, system_instructions: str | None = None) -> str:
         """Create the complete system prompt including instructions.
 
@@ -200,12 +262,11 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         ~/.claude-mpm/PM_INSTRUCTIONS.md when present, so users can
         customize PM behavior without modifying package source files.
 
-        The augmented prompt is cached on the service instance via
-        ``self._system_prompt_cache`` so the override is appended at most
-        once per service lifetime — subsequent calls return the cached
-        result. The cache is keyed on the service instance, not on the
-        argument, so explicit ``system_instructions`` arguments bypass
-        the cache (used for callers that need to compose their own base).
+        The augmented prompt is cached keyed on a hash of the *base*
+        content, so the override is appended at most once per distinct base
+        — for BOTH the no-arg path and explicit-arg callers (production
+        always passes an explicit base). The override file itself is read
+        at most once per service instance via ``_load_user_override``.
 
         Args:
             system_instructions: Optional pre-loaded instructions, will load if None
@@ -213,54 +274,35 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         Returns:
             Complete system prompt, optionally augmented with user-level override
         """
-        # Track whether the caller supplied explicit instructions so we
-        # only cache results built from our own canonical base. Explicit
-        # callers get their own augmented result back but don't pollute
-        # the shared cache.
-        caller_supplied = system_instructions is not None
-
-        # Fast path: caller did not supply explicit instructions and the
-        # augmented prompt has already been built. Return it directly so
-        # the override is appended at most once per service instance.
-        if not caller_supplied and self._system_prompt_cache is not None:
-            return self._system_prompt_cache
-
-        if system_instructions is None:
-            system_instructions = self.load_system_instructions()
-
-        # Apply user-level PM_INSTRUCTIONS override if present.
-        # Use the unified path manager so the directory name stays in sync
-        # with UnifiedPathManager.CONFIG_DIR_NAME (currently ".claude-mpm").
-        # Failure to read the file is non-fatal: log at DEBUG and continue
-        # with the base (un-augmented) instructions.
-        user_override_path = (
-            get_path_manager().get_user_config_dir() / "PM_INSTRUCTIONS.md"
+        # Determine the canonical base content.
+        base = (
+            system_instructions
+            if system_instructions is not None
+            else self.load_system_instructions()
         )
-        if user_override_path.is_file():
-            try:
-                override_content = user_override_path.read_text(encoding="utf-8")
-                # Defensive: don't double-append if the marker is somehow
-                # already present in the base instructions (e.g. caller
-                # passed an already-augmented prompt).
-                if self.USER_OVERRIDE_MARKER not in system_instructions:
-                    system_instructions = (
-                        system_instructions
-                        + f"\n\n---\n{self.USER_OVERRIDE_MARKER}\n\n"
-                        + override_content
-                    )
-                    self.logger.info(
-                        f"Applied user-level PM_INSTRUCTIONS override ({len(override_content)} chars)"
-                    )
-            except OSError as e:
-                self.logger.debug(f"User-level override exists but couldn't read: {e}")
 
-        # Cache the augmented result so subsequent no-arg calls return
-        # immediately without re-reading the override file or risking
-        # double-append. Only populate the cache when we built the prompt
-        # from our own canonical base (system_instructions arg was None).
-        if not caller_supplied:
-            self._system_prompt_cache = system_instructions
-        return system_instructions
+        # Return the cached augmented prompt for this base if we've already
+        # built it. Keying on the base hash bounds memory and makes the
+        # append-once guarantee hold for the explicit-arg (production) path.
+        cache_key = hashlib.sha256(base.encode("utf-8")).hexdigest()
+        cached = self._augmented_prompt_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Lazily load the override content (read at most once per instance).
+        override_content = self._load_user_override()
+
+        # Apply the override unless it's absent or the marker is already
+        # present in the base (defensive against an already-augmented base).
+        if override_content is not None and self.USER_OVERRIDE_MARKER not in base:
+            augmented = (
+                base + f"\n\n---\n{self.USER_OVERRIDE_MARKER}\n\n" + override_content
+            )
+        else:
+            augmented = base
+
+        self._augmented_prompt_cache[cache_key] = augmented
+        return augmented
 
     def _process_base_pm_content(self, base_pm_content: str) -> str:
         """Internal method for processing BASE_PM content."""
