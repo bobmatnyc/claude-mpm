@@ -29,6 +29,25 @@ class TestSystemInstructionsService:
         )
         return SystemInstructionsService(agent_capabilities_service=mock_agent_service)
 
+    @pytest.fixture
+    def empty_user_config_dir(self, tmp_path, monkeypatch):
+        """Redirect get_user_config_dir() to an empty tmp directory.
+
+        Keeps create_system_prompt() tests hermetic: no user-level
+        PM_INSTRUCTIONS.md override exists, regardless of the host machine,
+        and no global Path patching is needed.
+        """
+        fake_dir = tmp_path / ".claude-mpm"
+        fake_dir.mkdir()
+
+        mock_manager = Mock()
+        mock_manager.get_user_config_dir.return_value = fake_dir
+        monkeypatch.setattr(
+            "claude_mpm.services.system_instructions_service.get_path_manager",
+            lambda: mock_manager,
+        )
+        return fake_dir
+
     def test_load_system_instructions_project_found(self, service):
         """Test loading system instructions via FrameworkLoader."""
         instructions_content = "# Project Instructions\nProject-specific instructions"
@@ -164,30 +183,30 @@ Just regular content
         expected = content.lstrip("\n")
         assert result == expected
 
-    def test_create_system_prompt_with_instructions(self, service):
+    def test_create_system_prompt_with_instructions(
+        self, service, empty_user_config_dir
+    ):
         """Test system prompt creation with provided instructions.
 
-        The user-level override file is mocked away so this test passes
-        regardless of whether ~/.claude-mpm/PM_INSTRUCTIONS.md exists on
-        the host machine.
+        The user config dir is redirected to an empty tmp directory so this
+        test passes regardless of whether ~/.claude-mpm/PM_INSTRUCTIONS.md
+        exists on the host machine (no global Path patching).
         """
         instructions = "Test system instructions"
 
-        with patch.object(Path, "is_file", return_value=False):
-            result = service.create_system_prompt(instructions)
+        result = service.create_system_prompt(instructions)
 
         assert result == instructions
 
-    def test_create_system_prompt_load_instructions(self, service):
+    def test_create_system_prompt_load_instructions(
+        self, service, empty_user_config_dir
+    ):
         """Test system prompt creation loads via FrameworkLoader."""
         instructions_content = "# Loaded Instructions\nLoaded content"
 
-        with (
-            patch(
-                "claude_mpm.core.framework_loader.FrameworkLoader"
-            ) as mock_loader_class,
-            patch.object(Path, "is_file", return_value=False),
-        ):
+        with patch(
+            "claude_mpm.core.framework_loader.FrameworkLoader"
+        ) as mock_loader_class:
             mock_loader = Mock()
             mock_loader.get_framework_instructions.return_value = instructions_content
             mock_loader_class.return_value = mock_loader
@@ -197,19 +216,16 @@ Just regular content
         assert result is not None
         assert "Loaded Instructions" in result
 
-    def test_create_system_prompt_fallback(self, service):
+    def test_create_system_prompt_fallback(self, service, empty_user_config_dir):
         """Test system prompt creation delegates to load_system_instructions.
 
-        The user-level override file is mocked away so the assertion
-        ``result == "Fallback context"`` holds regardless of whether
-        ~/.claude-mpm/PM_INSTRUCTIONS.md exists on the host machine.
+        The user config dir is redirected to an empty tmp directory so the
+        assertion ``result == "Fallback context"`` holds regardless of
+        whether ~/.claude-mpm/PM_INSTRUCTIONS.md exists on the host machine.
         """
-        with (
-            patch.object(
-                service, "load_system_instructions", return_value="Fallback context"
-            ) as mock_load,
-            patch.object(Path, "is_file", return_value=False),
-        ):
+        with patch.object(
+            service, "load_system_instructions", return_value="Fallback context"
+        ) as mock_load:
             result = service.create_system_prompt()
 
         assert result == "Fallback context"
@@ -405,6 +421,76 @@ class TestUserLevelPMOverride:
             "User-level override exists but couldn't read" in msg
             for msg in debug_messages
         ), f"Expected debug log not found in: {debug_messages}"
+
+    def test_override_appended_only_once_with_explicit_arg(
+        self, service, user_config_dir
+    ):
+        """Regression test for the production (explicit-arg) double-append bug.
+
+        ClaudeRunner._create_system_prompt() always calls
+        create_system_prompt() with an explicit base string. This test
+        exercises that path twice and asserts the override is appended
+        exactly once. This FAILS against the pre-fix code, which only
+        cached the no-arg path and re-appended on every explicit call.
+        """
+        (user_config_dir / "PM_INSTRUCTIONS.md").write_text(
+            "Explicit-arg override body", encoding="utf-8"
+        )
+
+        base = "# Base PM Instructions\nDefault behavior."
+        first = service.create_system_prompt(base)
+        second = service.create_system_prompt(base)
+
+        # Both explicit-arg calls return the identical augmented prompt.
+        assert first == second
+        # The override marker appears exactly once, not twice.
+        assert first.count(SystemInstructionsService.USER_OVERRIDE_MARKER) == 1
+        assert first.count("Explicit-arg override body") == 1
+
+    def test_override_file_read_at_most_once_across_explicit_calls(
+        self, service, user_config_dir
+    ):
+        """The override file is read at most once across multiple explicit calls.
+
+        Wraps Path.read_text to count invocations and asserts it is called
+        exactly once even when create_system_prompt(base) is called twice.
+        Pre-fix, the explicit-arg path re-read the file on every call.
+        """
+        (user_config_dir / "PM_INSTRUCTIONS.md").write_text(
+            "Override body", encoding="utf-8"
+        )
+
+        base = "# Base PM Instructions\nDefault behavior."
+        original_read_text = Path.read_text
+        call_count = 0
+
+        def counting_read_text(self, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return original_read_text(self, *args, **kwargs)
+
+        with patch.object(Path, "read_text", counting_read_text):
+            service.create_system_prompt(base)
+            service.create_system_prompt(base)
+
+        assert call_count == 1, f"Expected 1 read_text call, got {call_count}"
+
+    def test_override_skipped_when_exceeds_64kb_cap(self, service, user_config_dir):
+        """Override files larger than the 64KB cap are ignored (treated as absent).
+
+        Writes a >64KB override file and asserts the marker is NOT present
+        and the base content is returned unchanged.
+        """
+        # Build content strictly larger than the 64 KB cap.
+        oversized = "x" * (SystemInstructionsService.USER_OVERRIDE_MAX_BYTES + 1)
+        (user_config_dir / "PM_INSTRUCTIONS.md").write_text(oversized, encoding="utf-8")
+
+        base = "# Base PM Instructions\nDefault behavior."
+        result = service.create_system_prompt(base)
+
+        assert result == base
+        assert SystemInstructionsService.USER_OVERRIDE_MARKER not in result
+        assert "xxxx" not in result
 
 
 if __name__ == "__main__":
