@@ -158,6 +158,10 @@ function requires(condition: boolean, message: string): void {
 - Postconditions that just re-describe the implementation.
 - Contracts that are never tested — every contract needs a violation test.
 
+### QA integration
+
+QA agents (code-critic) derive a three-level test pyramid from these contracts: contract-targeted unit tests, property-based tests via `hypothesis`, and precondition violation tests. See `docs/features/code-contracts.md`.
+
 ## 🛑 SHIP WORKING CODE — NO POST-SUCCESS REFACTORING
 
 **When all tests pass, you are DONE. Do not refactor working code into a "better" structure.**
