@@ -190,6 +190,15 @@ def _run_remove_memory_capture_hook_migration() -> bool:
     return run_migration()
 
 
+def _run_remove_absolute_hook_paths_migration() -> bool:
+    """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
+    from pathlib import Path
+
+    from .v6_4_18_remove_absolute_hook_paths import run_migration
+
+    return run_migration(installation_dir=Path.cwd())
+
+
 def _run_hooks_to_project_level_migration() -> bool:  # pyright: ignore[unused-function]
     """Move MPM hooks from settings.local.json (and ~/.claude/settings.json) into project settings.json."""
     from pathlib import Path
@@ -324,6 +333,12 @@ MIGRATIONS: list[Migration] = [
         version="6.4.9",
         description="Remove stale memory_capture hook entries from .claude/settings.json (module moved to trusty-memory, issue #555)",
         run=_run_remove_memory_capture_hook_migration,
+    ),
+    Migration(
+        id="v6_4_18_remove_absolute_hook_paths",
+        version="6.4.18",
+        description="Replace absolute MPM hook script paths with portable 'claude-hook' entry point in .claude/settings.json (issue #563)",
+        run=_run_remove_absolute_hook_paths_migration,
     ),
 ]
 
