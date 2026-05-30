@@ -19,6 +19,15 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.0 (2026-05-29)
+
+### Feat
+
+- register v6_4_18_remove_absolute_hook_paths migration in registry
+- add migration to replace absolute MPM hook paths with portable entry point
+- add contracts optional-dependency group with icontract (closes #531)
+- add QA integration cross-reference to Code Contracts section (closes #531)
+
 ## v6.4.17 (2026-05-28)
 
 ## v6.4.16 (2026-05-28)

@@ -10,6 +10,18 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 60,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       }
@@ -22,6 +34,18 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 60,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
             "_mpm": true
           }
         ]
@@ -53,6 +77,18 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 60,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
+            "_mpm": true
           }
         ]
       }
@@ -65,6 +101,18 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 60,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
             "_mpm": true
           }
         ]
@@ -91,6 +139,18 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 60,
+            "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
+            "timeout": 60,
             "_mpm": true
           }
         ]
@@ -150,7 +210,7 @@
       "Use /compact at ~50% context to stay sharp",
       "Start with plan mode for complex orchestration tasks",
       "One file per commit keeps history clean",
-      "Delegate to specialist agents — PM never edits code directly",
+      "Delegate to specialist agents \u2014 PM never edits code directly",
       "Use trusty-memory to persist decisions across sessions",
       "Circuit breakers protect against runaway delegation chains",
       "Feature-specific subagents outperform general-purpose agents",
