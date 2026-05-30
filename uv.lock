@@ -294,6 +294,18 @@ wheels = [
 ]
 
 [[package]]
+name = "asttokens"
+version = "2.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/45/1d/f03bcb60c4a3212e15f99a56085d93093a497718adf828d050b9d675da81/asttokens-2.4.1.tar.gz", hash = "sha256:b03869718ba9a6eb027e134bfdf69f38a236d681c83c160d510768af11254ba0", size = 62284, upload-time = "2023-10-26T10:03:05.06Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/86/4736ac618d82a20d87d2f92ae19441ebc7ac9e7a581d7e58bbe79233b24a/asttokens-2.4.1-py2.py3-none-any.whl", hash = "sha256:051ed49c3dcae8913ea7cd08e46a606dba30b79993209636c4875bc1d637bc24", size = 27764, upload-time = "2023-10-26T10:03:01.789Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -678,6 +690,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+contracts = [
+    { name = "icontract" },
+    { name = "icontract-hypothesis" },
+]
 data-processing = [
     { name = "beautifulsoup4" },
     { name = "csvkit" },
@@ -797,6 +813,8 @@ requires-dist = [
     { name = "flask-cors", specifier = ">=4.0.0" },
     { name = "httpx", specifier = ">=0.24.0" },
     { name = "huey", specifier = ">=2.5.0" },
+    { name = "icontract", marker = "extra == 'contracts'", specifier = ">=2.6.0" },
+    { name = "icontract-hypothesis", marker = "extra == 'contracts'", specifier = ">=0.1.0" },
     { name = "ijson", specifier = ">=3.2.0" },
     { name = "jsonschema", marker = "extra == 'data-processing'", specifier = ">=4.19.0" },
     { name = "keyring", specifier = ">=24.0.0" },
@@ -868,7 +886,7 @@ requires-dist = [
     { name = "xlsxwriter", marker = "extra == 'data-processing'", specifier = ">=3.1.0" },
     { name = "xlwt", marker = "extra == 'data-processing'", specifier = ">=1.3.0" },
 ]
-provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory", "slack", "http", "sdk", "telegram", "google", "llmlingua"]
+provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory", "slack", "http", "sdk", "telegram", "google", "llmlingua", "contracts"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1693,6 +1711,41 @@ sdist = { url = "https://files.pythonhosted.org/packages/7c/b7/8cb61d2eece5fb05a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a8/af/48ac8483240de756d2438c380746e7130d1c6f75802ef22f3c6d49982787/huggingface_hub-0.36.2-py3-none-any.whl", hash = "sha256:48f0c8eac16145dfce371e9d2d7772854a4f591bcb56c9cf548accf531d54270", size = 566395, upload-time = "2026-02-06T09:24:11.133Z" },
 ]
+
+[[package]]
+name = "hypothesis"
+version = "6.155.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sortedcontainers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/49/ef/4a94c12429986a90076057513e084bf32106a9bdc62c8e29f58673dd85a2/hypothesis-6.155.1.tar.gz", hash = "sha256:07c102031612b98d7c1be15ca3608c43e1234d9d07e3a190a53fa01536700196", size = 477300, upload-time = "2026-05-29T23:12:57.515Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/26/6e/8c9cf32201238617454303b1605dfa667d90cd1ef51226f92d9c2b3b8f7c/hypothesis-6.155.1-py3-none-any.whl", hash = "sha256:2753f469df3ba3c483b08e0c37dbcbc41d8316ebb921abcc07493ee9c8a7d187", size = 543715, upload-time = "2026-05-29T23:12:54.77Z" },
+]
+
+[[package]]
+name = "icontract"
+version = "2.7.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asttokens" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/41/93/8a7d5850d848cba73aa094b961459d8101b7c96837b2e8dc91083adcf7ae/icontract-2.7.3.tar.gz", hash = "sha256:df37a43d86d532407bc6b84dea29dd9f7ece794b73211769fa8a33a76b8ed145", size = 68361, upload-time = "2026-01-29T13:11:14.724Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/aa/ffc16b7ed17e052e7d2140e66336f829e9383f61f31249c4d181e12fcdea/icontract-2.7.3-py3-none-any.whl", hash = "sha256:8fb0f93f71211416f214f37c01b8017fdc8c079d70159f49f0ddcc10918c14d0", size = 40983, upload-time = "2026-01-29T13:11:13.198Z" },
+]
+
+[[package]]
+name = "icontract-hypothesis"
+version = "1.1.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "hypothesis" },
+    { name = "icontract" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8d/8e/958e577be5a3f74e87a83cb85cad3e5cd16d856079eee1daa015c26a751c/icontract-hypothesis-1.1.7.tar.gz", hash = "sha256:40f5be35ae5a7d32b7058b579b1eb574367c80709de8bebb52bef685aa01662f", size = 51329, upload-time = "2021-07-23T07:27:13.139Z" }
 
 [[package]]
 name = "identify"
@@ -4638,6 +4691,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/75/a7/9810d872919697c9d01295633f5d574fb416d47e535f258272ca1f01f447/snowballstemmer-3.0.1.tar.gz", hash = "sha256:6d5eeeec8e9f84d4d56b847692bacf79bc2c8e90c7f80ca4444ff8b6f2e52895", size = 105575, upload-time = "2025-05-09T16:34:51.843Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/78/3565d011c61f5a43488987ee32b6f3f656e7f107ac2782dd57bdd7d91d9a/snowballstemmer-3.0.1-py3-none-any.whl", hash = "sha256:6cd7b3897da8d6c9ffb968a6781fa6532dce9c3618a4b127d920dab764a19064", size = 103274, upload-time = "2025-05-09T16:34:50.371Z" },
+]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/c4/ba2f8066cceb6f23394729afe52f3bf7adec04bf9ed2c820b39e19299111/sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88", size = 30594, upload-time = "2021-05-16T22:03:42.897Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0", size = 29575, upload-time = "2021-05-16T22:03:41.177Z" },
 ]
 
 [[package]]
