@@ -8,6 +8,7 @@ from claude_mpm.core.workflow_loader import load_workflow
 
 from .file_loader import FileLoader
 from .packaged_loader import PackagedLoader
+from .workflow_constants import WORKFLOW_SYSTEM_REFERENCE
 
 
 class InstructionLoader:
@@ -259,12 +260,7 @@ class InstructionLoader:
         else:
             # System default: inject a compact reference line instead of the
             # full document.  Saves ~1,150 tokens per session.
-            reference = (
-                "Full workflow detail: see `src/claude_mpm/agents/WORKFLOW.md` "
-                "(also at `docs/workflow/PM_WORKFLOW.md`). "
-                "Read on demand only when full phase detail is needed."
-            )
-            content["workflow_instructions"] = reference
+            content["workflow_instructions"] = WORKFLOW_SYSTEM_REFERENCE
             content["workflow_instructions_level"] = level
             self.logger.info(
                 f"Lazy-loaded {level}-level WORKFLOW.md "
