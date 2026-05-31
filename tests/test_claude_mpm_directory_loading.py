@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 # Add src to path for tests
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -199,22 +200,31 @@ class TestClaudeMpmDirectoryLoading:
         pm_content = "# PM Memories\n- Project uses Python\n- Testing is important"
         (memories_dir / "PM_memories.md").write_text(pm_content)
 
-        # Change to test directory
+        # Change to test directory.
+        # Force flat-file mode so a live MCP memory backend on this host does
+        # not clear actual_memories before the assertions.
         original_cwd = Path.cwd()
         try:
             os.chdir(tmp_path)
-            loader = FrameworkLoader()
+            with patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}):
+                loader = FrameworkLoader()
 
-            # The FrameworkLoader uses a singleton DI container shared across instances.
-            # Clear the memory cache to force reload from the current (tmp_path) directory,
-            # then re-populate framework_content with fresh memories.
-            loader.clear_memory_caches()
-            loader._load_actual_memories(loader.framework_content)
+                # The FrameworkLoader uses a singleton DI container shared across
+                # instances.  Clear the memory cache to force reload from the
+                # current (tmp_path) directory, then re-populate framework_content
+                # with fresh memories.
+                loader.clear_memory_caches()
+                loader._load_actual_memories(loader.framework_content)
 
-            # Verify PM memories were loaded
-            assert loader.framework_content.get("actual_memories") is not None
-            assert "Project uses Python" in loader.framework_content["actual_memories"]
-            assert "Testing is important" in loader.framework_content["actual_memories"]
+                # Verify PM memories were loaded
+                assert loader.framework_content.get("actual_memories") is not None
+                assert (
+                    "Project uses Python" in loader.framework_content["actual_memories"]
+                )
+                assert (
+                    "Testing is important"
+                    in loader.framework_content["actual_memories"]
+                )
         finally:
             os.chdir(original_cwd)
 
