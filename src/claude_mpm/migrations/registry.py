@@ -190,6 +190,13 @@ def _run_remove_memory_capture_hook_migration() -> bool:
     return run_migration()
 
 
+def _run_fix_trusty_memory_bridge_migration() -> bool:
+    """Repair broken trusty-memory MCP entries to use the bridge binary (issue #567)."""
+    from .migrate_fix_trusty_memory_bridge import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -339,6 +346,12 @@ MIGRATIONS: list[Migration] = [
         version="6.4.18",
         description="Replace absolute MPM hook script paths with portable 'claude-hook' entry point in .claude/settings.json (issue #563)",
         run=_run_remove_absolute_hook_paths_migration,
+    ),
+    Migration(
+        id="fix_trusty_memory_bridge",
+        version="6.5.0",
+        description="Repair broken trusty-memory MCP entries (command=trusty-memory args=[serve,--mcp]) to use the trusty-memory-mcp-bridge binary (issue #567)",
+        run=_run_fix_trusty_memory_bridge_migration,
     ),
 ]
 
