@@ -57,9 +57,29 @@ WORKFLOW_COMPACT_INDICATORS = [
 
 @pytest.fixture(scope="module")
 def base_prompt() -> str:
-    """Assembled PM system prompt with no project/user WORKFLOW.md override."""
-    loader = FrameworkLoader()
-    return loader.get_framework_instructions()
+    """Assembled PM system prompt with no project/user WORKFLOW.md override.
+
+    The fixture uses a clean temporary directory as the working directory so
+    that any project-local .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md artefact
+    (a gitignored compiled file that may pre-date the lazy-load change) is not
+    picked up by InstructionLoader.  Without this isolation the stale deployed
+    file would inline the full WORKFLOW.md content and cause the 'not in base
+    prompt' assertions to fail.
+    """
+    with tempfile.TemporaryDirectory() as _clean_cwd:
+        clean_path = Path(_clean_cwd)
+        # Patch cwd inside both the framework_loader module and the
+        # instruction_loader so that InstructionLoader.current_dir resolves to
+        # a directory that has no PM_INSTRUCTIONS_DEPLOYED.md.
+        with (
+            patch(
+                "claude_mpm.core.framework.loaders.instruction_loader.Path.cwd",
+                return_value=clean_path,
+            ),
+            patch("claude_mpm.core.framework_loader.Path.cwd", return_value=clean_path),
+        ):
+            loader = FrameworkLoader()
+            return loader.get_framework_instructions()
 
 
 @pytest.fixture(scope="module")
