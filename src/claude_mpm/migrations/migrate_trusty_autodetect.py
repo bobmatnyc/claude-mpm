@@ -67,8 +67,8 @@ _SERVICES: tuple[dict[str, Any], ...] = (
         "fallback_addr": "127.0.0.1:7070",
         "mcp_entry": {
             "type": "stdio",
-            "command": "trusty-memory",
-            "args": ["serve", "--mcp"],
+            "command": "trusty-memory-mcp-bridge",
+            "args": [],
         },
     },
 )
