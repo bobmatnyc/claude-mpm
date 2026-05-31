@@ -52,15 +52,27 @@ fi
 # =============================================================================
 EVENT=""
 
-# Try hook_event_name first (Claude Code's primary field)
+# Try hook_event_name first (Claude Code's primary field).
+# Claude Code serialises JSON with a space after ':', e.g.:
+#   {"hook_event_name": "PreToolUse", ...}
+# Strip everything up to (and including) the opening quote of the value,
+# accounting for an optional space between ':' and '"'.
 if [[ "$INPUT" == *'"hook_event_name":'* ]]; then
-    TEMP=${INPUT#*\"hook_event_name\":\"}
+    # Remove the prefix up to and including 'hook_event_name": ' (with space)
+    TEMP=${INPUT#*\"hook_event_name\": \"}
+    if [[ "$TEMP" == "$INPUT" ]]; then
+        # No space variant: 'hook_event_name":"'
+        TEMP=${INPUT#*\"hook_event_name\":\"}
+    fi
     EVENT=${TEMP%%\"*}
 fi
 
 # Fallback to "event" field if hook_event_name not found
 if [[ -z "$EVENT" ]] && [[ "$INPUT" == *'"event":'* ]]; then
-    TEMP=${INPUT#*\"event\":\"}
+    TEMP=${INPUT#*\"event\": \"}
+    if [[ "$TEMP" == "$INPUT" ]]; then
+        TEMP=${INPUT#*\"event\":\"}
+    fi
     EVENT=${TEMP%%\"*}
 fi
 
@@ -144,9 +156,34 @@ PORT="${CLAUDE_MPM_SOCKETIO_PORT:-8765}"
 } &
 
 # =============================================================================
-# Return async response immediately
-# async: true tells Claude Code this hook runs in background (non-blocking)
-# asyncTimeout: 60000ms (60s) - maximum time for background operations
-# This is the critical path - must be fast to not block Claude Code
+# Return the correct response shape for each event type.
+#
+# IMPORTANT: Claude Code's hook contract differs by event:
+#
+#   PreToolUse, PermissionRequest — these are DECISION events.  Claude Code
+#     expects a synchronous response that includes a "continue" or "block"
+#     decision.  Returning {"async": true} here is contractually wrong: it
+#     silently breaks model-tier injection (model_tier_hook.py) and the
+#     context circuit-breaker, and would hang PermissionRequest.
+#     We emit {"continue": true} — a safe pass-through no-op decision.
+#     The dedicated full Python handler (model_tier_hook.py / claude-hook
+#     entry point) is separately wired in settings.json for these events
+#     and handles the actual decision injection.
+#
+#   All other events (PostToolUse, Stop, SubagentStop, UserPromptSubmit,
+#     SessionStart, Notification, AssistantResponse, WorktreeCreate,
+#     WorktreeRemove, etc.) — pure fire-and-forget observability events.
+#     {"async": true} is correct: it lets the background dashboard curl
+#     complete without blocking Claude Code's hot path.
 # =============================================================================
-echo '{"async": true, "asyncTimeout": 60000}'
+case "$EVENT" in
+    PreToolUse|PermissionRequest)
+        # Decision events require synchronous "continue" (safe pass-through).
+        # The full Python handler is wired separately for actual logic.
+        echo '{"continue": true}'
+        ;;
+    *)
+        # Observability events: fire-and-forget async is safe and fast.
+        echo '{"async": true, "asyncTimeout": 60000}'
+        ;;
+esac
