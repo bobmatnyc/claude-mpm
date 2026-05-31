@@ -21,6 +21,8 @@ import pytest
 from claude_mpm.core.config import Config
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.core.service_container import get_global_container
+from claude_mpm.services.core.service_interfaces import ICacheManager
 
 
 class TestMemorySystemQA:
@@ -497,10 +499,15 @@ class TestMemorySystemQA:
             # Mock working directory for framework loader.
             # Force flat-file mode so a live MCP memory backend on this host
             # does not suppress PM_memories.md injection.
+            # Also clear any stale cached memories from earlier test runs that
+            # share the global DI container's CacheManager singleton.
             with (
                 patch("pathlib.Path.cwd", return_value=self.test_project_dir),
                 patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}),
             ):
+                container = get_global_container()
+                if container.is_registered(ICacheManager):
+                    container.resolve(ICacheManager).clear_memory_caches()
                 framework_loader = FrameworkLoader()
                 framework_instructions = framework_loader.get_framework_instructions()
 
