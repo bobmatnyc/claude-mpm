@@ -2,12 +2,8 @@
   "mcpServers": {
     "trusty-memory": {
       "type": "stdio",
-      "command": "trusty-memory",
-      "args": [
-        "serve",
-        "--palace",
-        "claude-mpm"
-      ]
+      "command": "trusty-memory-mcp-bridge",
+      "args": []
     },
     "trusty-search": {
       "type": "stdio",
