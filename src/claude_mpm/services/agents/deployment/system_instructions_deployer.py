@@ -9,6 +9,10 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from claude_mpm.core.framework.loaders.workflow_constants import (
+    WORKFLOW_SYSTEM_REFERENCE,
+)
+
 # Markers that uniquely identify content belonging to specific blocks.
 # Used to detect stale override files that contain previously-deployed merged content.
 BLOCK_MARKERS: dict[str, list[str]] = {
@@ -48,6 +52,76 @@ class SystemInstructionsDeployer:
                 other_markers.extend(markers)
 
         return any(marker in content for marker in other_markers)
+
+    def _resolve_workflow_block(self, agents_path: Path) -> str:
+        """Resolve WORKFLOW.md with lazy-load logic identical to InstructionLoader.
+
+        When no user or project override is present the full system-level
+        WORKFLOW.md is NOT inlined; instead ``WORKFLOW_SYSTEM_REFERENCE`` is
+        used.  This mirrors the behaviour of
+        ``InstructionLoader.load_workflow_instructions()`` so the deployed
+        ``PM_INSTRUCTIONS_DEPLOYED.md`` and the live assembled prompt stay in
+        sync.
+
+        If a project (``.claude-mpm/WORKFLOW.md``) or user-level
+        (``~/.claude-mpm/WORKFLOW.md``) override exists the override content
+        is inlined verbatim, exactly as ``_resolve_block`` does for all other
+        blocks.
+
+        Args:
+            agents_path: Path to the system agents directory
+
+        Returns:
+            Resolved content string — either override content or the reference
+            stub for the system default.
+        """
+        user_path = Path.home() / ".claude-mpm" / "WORKFLOW.md"
+        project_path = self.working_directory / ".claude-mpm" / "WORKFLOW.md"
+
+        has_override = False
+        parts: list[str] = []
+
+        if user_path.exists():
+            user_content = user_path.read_text(encoding="utf-8")
+            if self._detect_stale_override("WORKFLOW.md", user_content):
+                self.logger.warning(
+                    "Stale override detected: ~/.claude-mpm/WORKFLOW.md contains "
+                    "content from other blocks. Ignoring override and using "
+                    "system default. Remove ~/.claude-mpm/WORKFLOW.md to suppress "
+                    "this warning.",
+                )
+            else:
+                parts.append(user_content)
+                has_override = True
+
+        if project_path.exists():
+            project_content = project_path.read_text(encoding="utf-8")
+            if self._detect_stale_override("WORKFLOW.md", project_content):
+                self.logger.warning(
+                    "Stale override detected: .claude-mpm/WORKFLOW.md contains "
+                    "content from other blocks. Ignoring override and using "
+                    "system default. Remove .claude-mpm/WORKFLOW.md to suppress "
+                    "this warning.",
+                )
+            else:
+                parts.append(project_content)
+                has_override = True
+
+        if has_override:
+            # User/project override present — inline it verbatim (it is
+            # project-specific and typically small, so the cost is justified).
+            self.logger.debug(
+                "Inlining WORKFLOW.md override in PM_INSTRUCTIONS_DEPLOYED.md"
+            )
+            return "\n\n".join(parts)
+
+        # System default only: substitute the compact reference stub to avoid
+        # re-injecting ~1,150 tokens of workflow detail into every PM prompt.
+        self.logger.debug(
+            "Using WORKFLOW_SYSTEM_REFERENCE in PM_INSTRUCTIONS_DEPLOYED.md "
+            "(system default, no user/project override)"
+        )
+        return WORKFLOW_SYSTEM_REFERENCE
 
     def _resolve_block(self, block_name: str, agents_path: Path) -> str:
         """Resolve a block file with additive project+user override semantics.
@@ -140,8 +214,16 @@ class SystemInstructionsDeployer:
                 "MEMORY.md",
             ]
 
-            # Resolve each block with additive override semantics
-            merged_content = [self._resolve_block(b, agents_path) for b in BLOCKS]
+            # Resolve each block with additive override semantics.
+            # WORKFLOW.md uses a dedicated helper that applies the same
+            # lazy-load logic as InstructionLoader: system-level → reference
+            # stub; user/project override → inline verbatim.
+            def _resolve(block: str) -> str:
+                if block == "WORKFLOW.md":
+                    return self._resolve_workflow_block(agents_path)
+                return self._resolve_block(block, agents_path)
+
+            merged_content = [_resolve(b) for b in BLOCKS]
             merged_content = [c for c in merged_content if c]  # drop empty blocks
 
             if not merged_content:
