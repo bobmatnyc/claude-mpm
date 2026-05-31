@@ -15,6 +15,7 @@ The service consolidates path management logic while maintaining backward compat
 
 import os
 import subprocess  # nosec B404
+import tempfile
 from enum import Enum
 from pathlib import Path
 
@@ -167,6 +168,10 @@ class PathResolver(IPathResolver):
             "CLAUDE.md",  # Claude project instructions
         ]
 
+        # Resolve OS temp root (including /private/tmp on macOS) so the walk
+        # never escapes into shared temp storage and picks up stray markers.
+        _tmp_root = Path(tempfile.gettempdir()).resolve()
+
         current = start_path
         while current != current.parent:  # Stop at filesystem root
             for indicator in root_indicators:
@@ -175,6 +180,9 @@ class PathResolver(IPathResolver):
                         f"Found project root at {current} (indicator: {indicator})"
                     )
                     return current
+            # Do not ascend into or past the OS temp directory.
+            if current == _tmp_root:
+                break
             current = current.parent
 
         # If no indicators found, return None
