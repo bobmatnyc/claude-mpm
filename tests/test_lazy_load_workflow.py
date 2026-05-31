@@ -26,6 +26,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework.loaders.instruction_loader import InstructionLoader
 from claude_mpm.core.framework_loader import FrameworkLoader
+from claude_mpm.services.core.service_container import get_global_container
+from claude_mpm.services.core.service_interfaces import ICacheManager
 
 # Path to the actual WORKFLOW.md file (used for content checks)
 WORKFLOW_MD_PATH = (
@@ -354,6 +356,13 @@ def test_pm_memories_excluded_with_mcp_backend(
     (the explicit opt-in path in MemoryManager._detect_mcp_memory_backend).
     """
     monkeypatch.setenv("MPM_USE_MCP_MEMORY", "true")
+
+    # Clear any stale memory cache from earlier tests that share the global DI
+    # container so the MCP detection code is actually exercised (not bypassed
+    # by a cached result with non-empty actual_memories).
+    container = get_global_container()
+    if container.is_registered(ICacheManager):
+        container.resolve(ICacheManager).clear_memory_caches()
 
     loader = FrameworkLoader()
     prompt = loader.get_framework_instructions()
