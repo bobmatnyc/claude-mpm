@@ -21,7 +21,7 @@ Complete guide to using `/mpm-ticket` slash command for comprehensive project ma
 
 ## Overview
 
-The `/mpm-ticket` slash command provides high-level ticketing workflows that delegate ALL operations to the **ticketing agent**. This ensures consistent, reliable ticket management across Linear, GitHub Issues, JIRA, Asana, and AiTrackDown.
+The `/mpm-ticket` slash command provides high-level ticketing workflows that delegate ALL operations to the **ticketing agent**. This ensures consistent, reliable ticket management across Linear, GitHub Issues, JIRA, and Asana.
 
 ### Key Principles
 
@@ -36,7 +36,7 @@ The `/mpm-ticket` slash command provides high-level ticketing workflows that del
 - **GitHub Issues** (via MCP Ticketer) - Milestones, issues, and labels
 - **JIRA** (via MCP Ticketer) - Epics, issues, and sprints
 - **Asana** (via MCP Ticketer) - Projects and tasks
-- **AiTrackDown** (CLI fallback) - Local file-based tracking
+- **GitHub Issues** (via `gh` CLI) - Default fallback when no MCP server configured
 
 ## Getting Started
 
@@ -47,13 +47,13 @@ The `/mpm-ticket` slash command provides high-level ticketing workflows that del
 2. Platform credentials (Linear API key, GitHub token, JIRA API key, etc.)
 3. Project/team access configured
 
-**For AiTrackDown Fallback:**
+**For gh CLI Fallback (GitHub Issues):**
 ```bash
-# Install AiTrackDown
-pip install aitrackdown
+# Install GitHub CLI
+brew install gh  # or https://cli.github.com/
 
-# Initialize in project
-aitrackdown init
+# Authenticate
+gh auth login
 ```
 
 ### Initial Setup
@@ -378,14 +378,14 @@ The ticketing agent uses MCP Ticketer tools for all operations:
 
 **Automatic Fallback:**
 
-If MCP Ticketer unavailable, ticketing agent uses AiTrackDown CLI:
+If MCP Ticketer unavailable, ticketing agent falls back to `gh` CLI (GitHub Issues):
 
 ```bash
 # Fallback CLI commands (handled internally by ticketing agent)
-aitrackdown status tasks              # List tickets
-aitrackdown show TICKET-123           # Read ticket
-aitrackdown transition TICKET-123 done  # Update state
-aitrackdown comment TICKET-123 "text" # Add comment
+gh issue list                         # List tickets
+gh issue view 123                     # Read ticket
+gh issue close 123                    # Update state (close)
+gh issue comment 123 --body "text"    # Add comment
 ```
 
 **No User Intervention Required** - Ticketing agent handles fallback seamlessly.
@@ -544,9 +544,9 @@ User request → PM receives → PM delegates → Ticketing agent executes → P
 
 **Issue:** "MCP Ticketer unavailable"
 ```bash
-# Ticketing agent automatically falls back to AiTrackDown CLI
-# Initialize if needed:
-aitrackdown init
+# Ticketing agent automatically falls back to gh CLI (GitHub Issues)
+# Ensure gh is installed and authenticated:
+gh auth login
 ```
 
 **Issue:** "Ticketing agent not responding"

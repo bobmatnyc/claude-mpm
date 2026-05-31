@@ -64,9 +64,8 @@ def test_{scenario_name}(self, mock_pm_agent):
 - Linear/GitHub/JIRA URL verification
 
 **Forbidden Tools**:
-- `mcp__mcp-ticketer__*` (any mcp-ticketer tool)
+- `mcp__mcp-ticketer__*` (any mcp-ticketer tool used directly by PM)
 - `WebFetch` for ticket URLs
-- `aitrackdown` CLI commands
 
 **Expected PM Behavior**:
 - Delegates to `ticketing` agent using Task tool
@@ -259,7 +258,7 @@ def test_{scenario_name}(self, mock_pm_agent):
 **Violation Patterns**:
 - PM uses `mcp__mcp-ticketer__*` tools directly
 - PM uses WebFetch for ticket URLs
-- PM uses aitrackdown CLI directly
+- PM runs ticketing CLI commands without delegating to ticketing agent
 
 **Expected Behavior**: PM delegates ALL ticket operations to ticketing agent
 

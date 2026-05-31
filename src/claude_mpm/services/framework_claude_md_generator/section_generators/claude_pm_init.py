@@ -63,7 +63,7 @@ claude-pm init --verify
    Data Engineer Agent: Verify data store connectivity and AI API availability.
    ```
 
-6. **Review active tickets** using PM's direct ai-trackdown interface with date context
+6. **Review active tickets** by delegating to ticketing agent (GitHub Issues via gh CLI, or mcp-ticketer if configured)
 7. **Provide status summary** of current tasks, framework health, agent registry status, and core system status
 8. **Ask** what specific tasks or framework operations to perform
 

@@ -59,7 +59,7 @@ Circuit breakers enforce strict delegation discipline by detecting violations BE
 | **#3 Unverified Assertion** | PM making claims without evidence | Any assertion without agent verification | Delegate verification to appropriate agent |
 | **#4 Implementation Before Delegation** | PM working without delegating first | Any implementation attempt without Task use | Use Task tool to delegate |
 | **#5 File Tracking** | PM not tracking new files in git | Session ending with untracked files | Track files with proper context commits |
-| **#6 Ticketing Tool Misuse** | PM using ticketing tools directly | PM calls mcp-ticketer tools or aitrackdown CLI | ALWAYS delegate to ticketing |
+| **#6 Ticketing Tool Misuse** | PM using ticketing tools directly | PM calls mcp-ticketer tools or ticketing CLI directly | ALWAYS delegate to ticketing |
 | **#7 Research Gate Violation** | PM skipping research for ambiguous tasks | Delegates to implementation without research validation | Delegate to Research agent FIRST |
 
 ---
@@ -761,7 +761,7 @@ PM: "All test files tracked in git"
 
 #### Ticketing Tool Direct Usage (BLOCKING)
 - PM uses any mcp-ticketer tools (`mcp__mcp-ticketer__*`)
-- PM runs aitrackdown CLI commands (`aitrackdown create`, `aitrackdown show`, etc.)
+- PM runs ticketing CLI commands directly (`gh issue create`, etc.) without delegating
 - PM accesses Linear/GitHub/JIRA APIs directly
 - PM reads/writes ticket data without delegating
 - PM uses WebFetch on ticket URLs (Linear, GitHub, JIRA)
@@ -773,8 +773,7 @@ PM: "All test files tracked in git"
 ```python
 # Forbidden tool patterns for PM
 FORBIDDEN_TICKETING_TOOLS = [
-    "mcp__mcp-ticketer__",  # All mcp-ticketer tools
-    "aitrackdown",           # CLI commands
+    "mcp__mcp-ticketer__",  # All mcp-ticketer tools (when used directly by PM)
     "linear.app",            # Linear URLs in WebFetch
     "github.com/*/issues/",  # GitHub issue URLs
     "*/jira/",               # JIRA URLs
@@ -802,16 +801,11 @@ def before_pm_tool_use(tool_name, tool_params):
                     f"URL: {url}"
                 )
 
-    # Block Bash commands for ticketing CLIs
+    # Block Bash commands that bypass ticketing agent
     if tool_name == "Bash":
         command = tool_params.get("command", "")
-        if "aitrackdown" in command:
-            raise ViolationError(
-                "Circuit Breaker #6 VIOLATION: "
-                "PM cannot use aitrackdown CLI directly. "
-                "MUST delegate to ticketing agent. "
-                f"Command: {command}"
-            )
+        # PM should not run ticketing commands directly; delegate to ticketing agent
+        # (ticketing agent itself may use gh, mcp-ticketer, etc. — that is fine)
 ```
 
 #### Tool Usage Detection Patterns
@@ -846,7 +840,7 @@ def before_pm_tool_use(tool_name, tool_params):
 User: "Create a ticket for this bug"
 PM: "I'll delegate to ticketing for ticket creation"
 [Delegates to ticketing]
-ticketing: [Uses mcp-ticketer if available, else aitrackdown CLI]
+ticketing: [Uses mcp-ticketer if available, else gh CLI (GitHub Issues)]
 ```
 
 ### Violation Pattern
@@ -870,9 +864,9 @@ PM: [Calls mcp__mcp-ticketer__ticket_create directly]  ← VIOLATION
 
 ```
 PM: mcp__mcp-ticketer__ticket_create(...)     # VIOLATION - direct tool usage
-PM: Bash("aitrackdown create ...")            # VIOLATION - direct CLI usage
+PM: Bash("gh issue create ...")               # VIOLATION - direct CLI usage (must delegate)
 PM: mcp__mcp-ticketer__ticket_read(...)       # VIOLATION - direct ticket read
-PM: Bash("aitrackdown show TICKET-123")       # VIOLATION - direct CLI access
+PM: Bash("gh issue view 123")                 # VIOLATION - direct CLI access (must delegate)
 PM: mcp__mcp-ticketer__ticket_update(...)     # VIOLATION - direct ticket update
 ```
 
@@ -890,7 +884,7 @@ PM: Task(agent="Ticketing", task="List all open tickets assigned to current user
 
 **ticketing automatically handles:**
 - MCP-ticketer detection and usage (if available)
-- Graceful fallback to aitrackdown CLI
+- Graceful fallback to `gh` CLI (GitHub Issues) when no MCP server configured
 - Error messages with setup instructions
 - All ticket CRUD operations
 - Epic/Issue/Task hierarchy management

@@ -300,20 +300,32 @@ class HookInstallerService:
 
             self.logger.info("Installing Claude Code hooks...")
 
-            # Find hook script
-            hook_script = self._find_hook_script()
-            if not hook_script:
-                self.logger.error("Could not find claude-mpm hook script!")
-                self.logger.error("Make sure claude-mpm is properly installed.")
-                return False
+            # Resolve hook command: always prefer the PATH-based ``claude-hook``
+            # entry point so that the installed command never becomes stale after
+            # a package reinstall or Python version upgrade (issue #552).
+            hook_command_str = shutil.which("claude-hook")
+            if hook_command_str:
+                hook_command_str = "claude-hook"
+                self.logger.info("Using claude-hook entry point (PATH-based, portable)")
+            else:
+                # Fall back to the local script path only when the entry point is
+                # not on PATH (e.g. plain ``uv run`` in a local dev environment).
+                hook_script = self._find_hook_script()
+                if not hook_script:
+                    self.logger.error("Could not find claude-mpm hook script!")
+                    self.logger.error("Make sure claude-mpm is properly installed.")
+                    return False
 
-            # Make sure the script is executable
-            st = Path(hook_script).stat()
-            Path(hook_script).chmod(st.st_mode | stat.S_IEXEC)
-            self.logger.debug(f"Made hook script executable: {hook_script}")
+                # Make sure the script is executable
+                st = Path(hook_script).stat()
+                Path(hook_script).chmod(st.st_mode | stat.S_IEXEC)
+                hook_command_str = str(hook_script.absolute())
+                self.logger.info(
+                    "claude-hook not on PATH; falling back to absolute path: %s",
+                    hook_command_str,
+                )
 
-            hook_script_path = str(hook_script.absolute())
-            self.logger.info(f"Hook script path: {hook_script_path}")
+            self.logger.info("Hook command: %s", hook_command_str)
 
             # Create claude directory if it doesn't exist
             self.claude_dir.mkdir(exist_ok=True)
@@ -335,7 +347,7 @@ class HookInstallerService:
             # identify MPM hooks; substring matching is only a legacy fallback).
             new_hook_command = {
                 "type": "command",
-                "command": hook_script_path,
+                "command": hook_command_str,
                 "timeout": 60,
                 "_mpm": True,
             }

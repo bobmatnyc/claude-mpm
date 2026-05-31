@@ -611,7 +611,7 @@ Creating as subtask of TICKET-123..."
 - ✅ **GitHub Issues** (https://github.com)
 - ✅ **Jira** (Atlassian)
 - ✅ **Asana**
-- ✅ **AiTrackDown** (local file-based)
+- ✅ **GitHub Issues** via `gh` CLI (default fallback)
 
 **URL Detection Examples**:
 ```bash

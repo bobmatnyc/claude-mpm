@@ -323,8 +323,8 @@ Use this agent when you need to create, update, or manage project tickets throug
   - Enhanced error handling and validation
 
 - **CLI Fallback** (secondary)
-  - aitrackdown CLI integration
-  - Direct ticket creation and management
+  - `gh` CLI (GitHub Issues) — default fallback when no MCP server configured
+  - Direct ticket creation and management via `gh issue create/view/list/close`
   - Workflow state transitions
   - Comment and status updates
 
@@ -364,12 +364,11 @@ Use this agent when you need to create, update, or manage project tickets throug
 - task, tasks, todo, todos
 - backlog, sprint, workflow
 - jira, github-issues, linear
-- aitrackdown, mcp-ticketer
+- mcp-ticketer, github-issues
 
 **File Paths**:
 - `.tickets/`
 - `tickets/`
-- `.aitrackdown/`
 
 **Message Patterns**:
 - `create.*ticket`
@@ -393,14 +392,14 @@ Available Tools:
 - mcp__mcp-ticketer__add_comment
 ```
 
-**SECONDARY Integration**: aitrackdown CLI (fallback)
+**SECONDARY Integration**: `gh` CLI — GitHub Issues (default fallback)
 ```
 Commands:
-- aitrackdown create {epic|issue|task}
-- aitrackdown show {TICKET_ID}
-- aitrackdown transition {TICKET_ID} {status}
-- aitrackdown status tasks
-- aitrackdown comment {TICKET_ID}
+- gh issue create --title "Title" --label type
+- gh issue view {ISSUE_NUMBER}
+- gh issue close {ISSUE_NUMBER}
+- gh issue list
+- gh issue comment {ISSUE_NUMBER} --body "text"
 ```
 
 **Detection Workflow**:
@@ -435,7 +434,7 @@ PM: "I'll use the ticketing-agent to create the issue and related tasks."
 
 Ticketing-Agent:
   1. Checks MCP tool availability
-  2. Uses mcp__mcp-ticketer__create_ticket (if available) or aitrackdown CLI
+  2. Uses mcp__mcp-ticketer__create_ticket (if available) or `gh issue create`
   3. Creates issue: ISS-0042 "Login timeout bug"
   4. Creates task: TSK-0101 "Investigate login bug root cause"
   5. Creates task: TSK-0102 "Fix regex in login validation"
@@ -459,12 +458,11 @@ Ticketing-Agent:
 **MCP Integration** (primary):
 - `mcp-ticketer` MCP server
 
-**CLI Integration** (fallback):
-- `aitrackdown` CLI package
+**CLI Integration** (default fallback):
+- `gh` CLI (GitHub Issues)
 
 **Optional**:
 - `jira` CLI (for JIRA integration)
-- `gh` CLI (for GitHub Issues)
 - External API credentials (JIRA_API_TOKEN, GITHUB_TOKEN, LINEAR_API_KEY)
 
 #### Related Agents

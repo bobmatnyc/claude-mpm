@@ -510,6 +510,15 @@ class ClaudeHookHandler:
                     # PreToolUse hook returned a permissionDecision envelope
                     # (e.g. context circuit-breaker deny) -- emit it directly.
                     print(json.dumps(handler_result), flush=True)
+                elif (
+                    isinstance(handler_result, dict)
+                    and "terminalSequence" in handler_result
+                ):
+                    # PostToolUse hook (terminal-title feature) returned an OSC
+                    # sequence.  Merge it into the standard continue response.
+                    self._continue_execution(
+                        terminal_sequence=handler_result["terminalSequence"]
+                    )
                 else:
                     # Normal continue (with optional modified input for PreToolUse)
                     self._continue_execution(handler_result)
@@ -643,6 +652,7 @@ class ClaudeHookHandler:
                 # PreToolUse handlers return modified input
                 # Stop handlers can return decision dicts (e.g., {"decision": "block", "reason": "..."})
                 # PermissionRequest handlers return hookSpecificOutput allow/deny decisions.
+                # PostToolUse handlers may return {"terminalSequence": "..."} for tab-title updates.
                 if (
                     (hook_type == "PreToolUse" and result is not None)
                     or (
@@ -654,6 +664,11 @@ class ClaudeHookHandler:
                         hook_type == "PermissionRequest"
                         and isinstance(result, dict)
                         and "hookSpecificOutput" in result
+                    )
+                    or (
+                        hook_type == "PostToolUse"
+                        and isinstance(result, dict)
+                        and "terminalSequence" in result
                     )
                 ):
                     return_value = result
@@ -706,7 +721,12 @@ class ClaudeHookHandler:
         """Delegate subagent stop processing to the specialized processor."""
         self.subagent_processor.process_subagent_stop(event)
 
-    def _continue_execution(self, modified_input: dict | None = None) -> None:
+    def _continue_execution(
+        self,
+        modified_input: dict | None = None,
+        *,
+        terminal_sequence: str | None = None,
+    ) -> None:
         """
         Send continue action to Claude with optional input modification.
 
@@ -715,11 +735,23 @@ class ClaudeHookHandler:
 
         Args:
             modified_input: Modified tool parameters for PreToolUse hooks (v2.0.30+)
+            terminal_sequence: Optional OSC escape sequence string to include in
+                the ``terminalSequence`` field (Claude Code v2.1.141+).  When
+                present the hook response becomes
+                ``{"continue": true, "terminalSequence": "<seq>"}`` so Claude
+                Code sets the terminal tab/window title without the hook needing
+                direct terminal access.  This field is ignored by older Claude
+                Code versions (they treat unknown response fields as no-ops).
         """
         if modified_input is not None:
             # Claude Code v2.0.30+ supports modifying PreToolUse tool inputs
+            payload: dict = {"continue": True, "tool_input": modified_input}
+            if terminal_sequence:
+                payload["terminalSequence"] = terminal_sequence
+            print(json.dumps(payload), flush=True)
+        elif terminal_sequence:
             print(
-                json.dumps({"continue": True, "tool_input": modified_input}),
+                json.dumps({"continue": True, "terminalSequence": terminal_sequence}),
                 flush=True,
             )
         else:

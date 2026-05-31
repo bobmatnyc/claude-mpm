@@ -6,8 +6,8 @@ state changes and maintaining workflow integrity.
 
 DESIGN DECISIONS:
 - Enforces valid state transitions
-- Direct aitrackdown CLI calls have been removed; ticket operations
-  should go through the mcp-ticketer MCP server via the ticketing_agent.
+- Direct CLI calls have been removed; ticket operations
+  should go through the mcp-ticketer MCP server or gh CLI via the ticketing_agent.
 - Provides workflow history tracking
 - Workflow state validation is kept for reference/documentation.
 """
@@ -59,8 +59,8 @@ class TicketWorkflowService:
         """
         Transition a ticket to a new workflow state.
 
-        Direct aitrackdown CLI transitions have been removed.
-        Use mcp-ticketer MCP tools via the ticketing_agent instead.
+        Direct CLI transitions have been removed.
+        Use mcp-ticketer MCP tools or gh CLI via the ticketing_agent instead.
 
         Args:
             ticket_id: ID of the ticket
@@ -73,12 +73,12 @@ class TicketWorkflowService:
         """
         _deprecation_logger.warning(
             "Direct ticket transitions deprecated. "
-            "Use mcp-ticketer MCP tools via ticketing_agent."
+            "Use mcp-ticketer MCP tools or gh CLI via ticketing_agent."
         )
         return {
             "success": False,
             "error": "Direct ticket transitions deprecated. "
-            "Use mcp-ticketer MCP tools via ticketing_agent.",
+            "Use mcp-ticketer MCP tools or gh CLI via ticketing_agent.",
         }
 
     def validate_transition(
@@ -99,8 +99,8 @@ class TicketWorkflowService:
         """
         Add a comment to a ticket.
 
-        Direct aitrackdown CLI comments have been removed.
-        Use mcp-ticketer MCP tools via the ticketing_agent instead.
+        Direct CLI comments have been removed.
+        Use mcp-ticketer MCP tools or gh CLI via the ticketing_agent instead.
 
         Args:
             ticket_id: ID of the ticket
@@ -111,12 +111,12 @@ class TicketWorkflowService:
         """
         _deprecation_logger.warning(
             "Direct ticket comments deprecated. "
-            "Use mcp-ticketer MCP tools via ticketing_agent."
+            "Use mcp-ticketer MCP tools or gh CLI via ticketing_agent."
         )
         return {
             "success": False,
             "error": "Direct ticket comments deprecated. "
-            "Use mcp-ticketer MCP tools via ticketing_agent.",
+            "Use mcp-ticketer MCP tools or gh CLI via ticketing_agent.",
         }
 
     def get_workflow_states(self) -> list[str]:
@@ -158,8 +158,8 @@ class TicketWorkflowService:
         """
         Transition multiple tickets to a new state.
 
-        Direct aitrackdown CLI transitions have been removed.
-        Use mcp-ticketer MCP tools via the ticketing_agent instead.
+        Direct CLI transitions have been removed.
+        Use mcp-ticketer MCP tools or gh CLI via the ticketing_agent instead.
 
         Args:
             ticket_ids: List of ticket IDs

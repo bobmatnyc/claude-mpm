@@ -630,6 +630,143 @@ class TestHookInstaller(unittest.TestCase):
         # This is a conceptual test for backup/restore functionality
 
 
+class TestGetHookCommandPathBased(unittest.TestCase):
+    """Tests for issue #552: get_hook_command() must prefer the PATH-based
+    ``claude-hook`` entry point over absolute script paths.
+
+    Absolute paths become stale when claude-mpm is reinstalled or the Python
+    interpreter is upgraded.  The ``claude-hook`` entry point is resolved via
+    PATH at runtime and therefore always points to the current installation.
+    """
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.installer = HookInstaller()
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        shutil.rmtree(self.temp_dir)
+
+    def test_get_hook_command_returns_entry_point_when_on_path(self):
+        """When ``claude-hook`` is on PATH, get_hook_command must return ``"claude-hook"``.
+
+        This is the critical regression test for issue #552.  Returning the
+        PATH-based entry point guarantees the command stays valid after a
+        reinstall because PATH resolution happens at runtime.
+        """
+        with patch(
+            "claude_mpm.hooks.claude_hooks.installer.shutil.which",
+            return_value="/some/dir/claude-hook",
+        ):
+            cmd = self.installer.get_hook_command()
+        self.assertEqual(
+            cmd,
+            "claude-hook",
+            "get_hook_command() must return the portable entry point 'claude-hook' "
+            "when it is available on PATH (issue #552).",
+        )
+
+    def test_get_hook_command_not_absolute_when_entry_point_available(self):
+        """When ``claude-hook`` is on PATH, the returned command must not be an
+        absolute path (absolute paths become stale after reinstalls).
+        """
+        with patch(
+            "claude_mpm.hooks.claude_hooks.installer.shutil.which",
+            return_value="/some/dir/claude-hook",
+        ):
+            cmd = self.installer.get_hook_command()
+        self.assertFalse(
+            cmd.startswith("/"),
+            f"get_hook_command() returned an absolute path '{cmd}' even though "
+            "claude-hook is on PATH.  Absolute paths are stale-prone (issue #552).",
+        )
+
+    def test_get_hook_command_falls_back_to_fast_hook_when_entry_point_missing(self):
+        """When ``claude-hook`` is NOT on PATH, the fast bash hook is the fallback.
+
+        This covers local development environments where the package is used via
+        ``uv run`` without ``uv tool install``.
+        """
+        fake_fast_hook = Path(self.temp_dir) / "claude-hook-fast.sh"
+        fake_fast_hook.write_text("#!/bin/bash\n")
+
+        with (
+            patch(
+                "claude_mpm.hooks.claude_hooks.installer.shutil.which",
+                return_value=None,
+            ),
+            patch.object(
+                self.installer,
+                "_get_fast_hook_script_path",
+                return_value=fake_fast_hook,
+            ),
+        ):
+            cmd = self.installer.get_hook_command(use_fast_hook=True)
+        self.assertIn(
+            "claude-hook-fast.sh",
+            cmd,
+            "When claude-hook is not on PATH, the fast hook script should be used "
+            "as the fallback.",
+        )
+
+    def test_install_hooks_writes_entry_point_not_absolute_path(self):
+        """After install_hooks(), settings must contain ``"claude-hook"``, not an
+        absolute path.
+
+        This is the end-to-end regression test for issue #552.  It simulates the
+        scenario where the user has ``claude-hook`` on PATH and verifies that the
+        written settings never contain an absolute script path.
+        """
+        import tempfile as _tempfile
+
+        with _tempfile.TemporaryDirectory() as tmpdir:
+            installer = HookInstaller()
+            claude_dir = Path(tmpdir) / ".claude"
+            claude_dir.mkdir()
+            installer.claude_dir = claude_dir
+            installer.settings_file = claude_dir / "settings.json"
+
+            with (
+                patch.object(
+                    installer,
+                    "is_version_compatible",
+                    return_value=(True, "Compatible"),
+                ),
+                patch(
+                    "claude_mpm.hooks.claude_hooks.installer.shutil.which",
+                    return_value="/usr/local/bin/claude-hook",
+                ),
+                patch.object(installer, "_install_commands"),
+                patch.object(installer, "_deploy_user_level_skills"),
+                patch.object(installer, "_deploy_user_level_agents"),
+                patch.object(installer, "_cleanup_old_deployment"),
+            ):
+                result = installer.install_hooks()
+
+            self.assertTrue(result, "install_hooks() should succeed")
+
+            with installer.settings_file.open() as f:
+                settings = json.load(f)
+
+            for event_type, blocks in settings.get("hooks", {}).items():
+                for block in blocks:
+                    for hook_cmd in block.get("hooks", []):
+                        command = hook_cmd.get("command", "")
+                        self.assertFalse(
+                            command.startswith("/"),
+                            f"Absolute path '{command}' found in hooks[{event_type!r}] "
+                            "after install_hooks() with claude-hook on PATH (issue #552).",
+                        )
+                        if hook_cmd.get("_mpm"):
+                            self.assertEqual(
+                                command,
+                                "claude-hook",
+                                f"MPM hook command in hooks[{event_type!r}] is "
+                                f"'{command}', expected 'claude-hook' (issue #552).",
+                            )
+
+
 class TestMatcherPatternValidation(unittest.TestCase):
     """Test matcher pattern validation for hook events."""
 

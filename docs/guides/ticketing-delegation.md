@@ -34,7 +34,7 @@ This is enforced by **Circuit Breaker #6: Ticketing Tool Misuse Detection**.
 **ticketing-agent provides critical functionality that PM lacks:**
 
 1. **MCP-First Routing**: Automatically detects and uses `mcp-ticketer` MCP tools when available
-2. **Graceful Fallback**: Falls back to `aitrackdown` CLI when MCP tools unavailable
+2. **Graceful Fallback**: Falls back to `gh` CLI (GitHub Issues) when MCP tools unavailable
 3. **Ticket Management Expertise**: PM lacks specialized ticket management knowledge
 4. **Error Handling**: Provides proper error messages with setup instructions
 5. **Consistency**: Ensures consistent ticket operations across all PM sessions
@@ -85,8 +85,8 @@ The ticketing delegation workflow uses an **MCP-first architecture** that provid
 │      │                     │                      │
 │      v                     v                      │
 │  ┌─────────────────┐  ┌──────────────────────┐  │
-│  │ Use MCP Tools   │  │ Use aitrackdown CLI  │  │
-│  │ mcp-ticketer    │  │ $ aitrackdown create │  │
+│  │ Use MCP Tools   │  │ Use gh CLI           │  │
+│  │ mcp-ticketer    │  │ $ gh issue create    │  │
 │  └─────────────────┘  └──────────────────────┘  │
 │           │                     │                 │
 │           └──────────┬──────────┘                │
@@ -120,7 +120,7 @@ The ticketing delegation workflow uses an **MCP-first architecture** that provid
 #### ticketing-agent
 - **Ticket Management Specialist** - Handles all ticketing operations
 - **MCP Detection** - Automatically detects mcp-ticketer availability
-- **Tool Selection** - Uses MCP when available, falls back to CLI
+- **Tool Selection** - Uses MCP when available, falls back to `gh` CLI (GitHub Issues)
 - **Error Handling** - Provides setup instructions when tools unavailable
 - **CRUD Operations** - Create, Read, Update, Delete tickets
 - **Hierarchy Management** - Handles Epic → Issue → Task relationships
@@ -139,7 +139,7 @@ The ticketing delegation workflow uses an **MCP-first architecture** that provid
    - Linear (GraphQL API)
    - GitHub Issues (REST API)
    - JIRA (REST API v3)
-   - File-based tracking (aitrackdown backend)
+   - GitHub Issues (via `gh` CLI, default fallback)
 
 2. **Rich Functionality**:
    - `mcp__mcp-ticketer__ticket_create` - Create tickets
@@ -179,15 +179,15 @@ The ticketing delegation workflow uses an **MCP-first architecture** that provid
         │           │
         v           v
 ┌─────────────┐  ┌──────────────────┐
-│ USE MCP     │  │ CHECK CLI        │
-│ TOOLS       │  │ (aitrackdown)    │
+│ USE MCP     │  │ CHECK gh CLI     │
+│ TOOLS       │  │ (GitHub Issues)  │
 └─────────────┘  └────┬─────────────┘
                       │
                YES ───┴─── NO
                 │           │
                 v           v
          ┌─────────────┐  ┌─────────────────────┐
-         │ USE CLI     │  │ REPORT ERROR        │
+         │ USE gh CLI  │  │ REPORT ERROR        │
          │ FALLBACK    │  │ Provide setup guide │
          └─────────────┘  └─────────────────────┘
 ```
@@ -202,15 +202,15 @@ ticketing-agent uses the following detection logic:
 # Step 1: Check MCP tool availability
 mcp_available = "mcp__mcp-ticketer__ticket_create" in available_tools
 
-# Step 2: If MCP not available, check CLI
+# Step 2: If MCP not available, check for gh CLI (GitHub Issues default)
 if not mcp_available:
-    cli_available = bash("which aitrackdown") returns successfully
+    cli_available = bash("which gh") returns successfully
 
 # Step 3: Choose integration
 if mcp_available:
     use_mcp_tools()
 elif cli_available:
-    use_cli_fallback()
+    use_gh_cli_fallback()  # gh issue create/view/list/close
 else:
     report_error_with_setup_instructions()
 ```
@@ -219,9 +219,9 @@ else:
 
 The ticketing workflow degrades gracefully:
 
-1. **Optimal Path**: MCP tools available → Use mcp-ticketer
-2. **Fallback Path**: MCP unavailable, CLI available → Use aitrackdown
-3. **Error Path**: Both unavailable → Provide setup instructions
+1. **Optimal Path**: MCP tools available → Use mcp-ticketer (Linear, GitHub Issues, JIRA)
+2. **Fallback Path**: MCP unavailable → Use `gh` CLI (GitHub Issues)
+3. **Error Path**: `gh` unavailable → Provide setup instructions
 
 **No ticket operations fail silently.** User always gets actionable feedback.
 
@@ -238,8 +238,8 @@ The ticketing workflow degrades gracefully:
 **Purpose**: Enforce mandatory delegation of ALL ticketing operations to ticketing-agent
 
 **Trigger Conditions**:
-- PM uses any `mcp__mcp-ticketer__*` tool
-- PM runs `aitrackdown` CLI commands
+- PM uses any `mcp__mcp-ticketer__*` tool directly
+- PM runs `gh issue` CLI commands without delegating to ticketing-agent
 - PM accesses Linear/GitHub/JIRA APIs directly
 - PM reads/writes ticket data without delegating
 
@@ -260,11 +260,10 @@ The ticketing workflow degrades gracefully:
 ❌ Call `mcp__mcp-ticketer__ticket_create()` directly
 ❌ Call `mcp__mcp-ticketer__ticket_read()` directly
 ❌ Call `mcp__mcp-ticketer__ticket_update()` directly
-❌ Run `aitrackdown create issue "..."` via Bash
-❌ Run `aitrackdown show TICKET-123` via Bash
-❌ Run `aitrackdown transition ...` via Bash
+❌ Run `gh issue create` via Bash (without delegating to ticketing-agent)
+❌ Run `gh issue view 123` via Bash (without delegating to ticketing-agent)
 ❌ Make `curl` requests to Linear/GitHub/JIRA APIs
-❌ Read ticket files directly from `.aitrackdown/` directory
+❌ Edit ticket data directly without delegating
 ❌ Edit ticket YAML files manually
 
 **All of the above are VIOLATIONS.**
@@ -275,7 +274,7 @@ The ticketing workflow degrades gracefully:
 
 **Ticketing Keywords:**
 - "ticket", "epic", "issue", "task"
-- "Linear", "GitHub Issues", "JIRA", "aitrackdown"
+- "Linear", "GitHub Issues", "JIRA"
 - "create ticket", "update ticket", "read ticket", "list tickets"
 - "track this", "file a ticket", "log this"
 - Any ticket ID reference (e.g., "ISS-0042", "MPM-101", "PROJ-123")
@@ -304,7 +303,7 @@ Task(
 **How violations are detected:**
 
 1. **Tool Call Monitoring**: System monitors PM's tool calls
-2. **Pattern Matching**: Detects `mcp__mcp-ticketer__*` or `aitrackdown` usage
+2. **Pattern Matching**: Detects `mcp__mcp-ticketer__*` or direct ticketing CLI usage by PM
 3. **Immediate Stop**: Circuit breaker triggers before tool executes
 4. **Violation Logged**: Recorded in session violation log
 5. **User Notification**: Warning displayed to user
@@ -341,7 +340,7 @@ Task(
 [ticketing-agent executes:]
 - Checks for mcp-ticketer tools
 - IF available: Uses mcp__mcp-ticketer__ticket_create()
-- ELSE: Uses aitrackdown CLI: `aitrackdown create issue "Bug - Authentication fails..." --priority high --tag bug --tag authentication --tag frontend`
+- ELSE: Uses `gh` CLI: `gh issue create --title "Bug - Authentication fails..." --label bug,authentication,frontend`
 - Returns: ISS-0042 created
 
 PM: "Ticket created: ISS-0042 - Bug: Authentication fails for users with special characters"
@@ -362,7 +361,7 @@ Task(
 
 [ticketing-agent executes:]
 - Uses mcp__mcp-ticketer__ticket_read(ticket_id="ISS-0042") if available
-- Else: Uses `aitrackdown show ISS-0042`
+- Else: Uses `gh issue view 42` (GitHub issue number)
 - Returns ticket details
 
 PM: "Ticket ISS-0042 status: in_progress
@@ -386,7 +385,7 @@ Task(
 )
 
 [ticketing-agent executes:]
-- Uses mcp__mcp-ticketer__ticket_transition() or aitrackdown CLI
+- Uses mcp__mcp-ticketer__ticket_transition() or `gh issue close/edit`
 - Updates state and adds comment
 
 PM: "Ticket ISS-0042 updated to 'ready' state with QA comment"
@@ -417,7 +416,7 @@ Task(agent="ticketing", ...)  ← CORRECT
 ```
 User: "What's the status of ISS-0042?"
 
-PM: Bash("aitrackdown show ISS-0042")  ← VIOLATION
+PM: Bash("gh issue view 42")  ← VIOLATION (must delegate to ticketing-agent)
 
 ❌ [VIOLATION #6] PM attempted ticketing CLI usage - Must delegate to ticketing-agent
 ```
@@ -523,7 +522,7 @@ ticketing-agent is the **single source of truth** for all ticketing operations.
 - ✅ Linear (via mcp-ticketer or GraphQL API)
 - ✅ GitHub Issues (via mcp-ticketer or REST API)
 - ✅ JIRA (via mcp-ticketer or REST API v3)
-- ✅ aitrackdown (file-based tracking)
+- ✅ GitHub Issues via `gh` CLI (default fallback)
 
 ### MCP Tool Detection
 
@@ -556,16 +555,16 @@ When MCP tools unavailable, ticketing-agent falls back to CLI:
 
 **Fallback Operations:**
 
-| Operation | MCP Tool | CLI Fallback |
-|-----------|----------|--------------|
-| Create Epic | `mcp__mcp-ticketer__epic_create()` | `aitrackdown create epic "Title" --description "..."` |
-| Create Issue | `mcp__mcp-ticketer__issue_create()` | `aitrackdown create issue "Title" --priority high` |
-| Create Task | `mcp__mcp-ticketer__task_create()` | `aitrackdown create task "Title" --issue ISS-001` |
-| Read Ticket | `mcp__mcp-ticketer__ticket_read()` | `aitrackdown show ISS-001` |
-| Update State | `mcp__mcp-ticketer__ticket_transition()` | `aitrackdown transition ISS-001 in-progress` |
-| List Tickets | `mcp__mcp-ticketer__ticket_list()` | `aitrackdown status tasks` |
-| Search | `mcp__mcp-ticketer__ticket_search()` | `aitrackdown search tasks "keyword"` |
-| Add Comment | `mcp__mcp-ticketer__ticket_comment()` | `aitrackdown comment ISS-001 "Comment text"` |
+| Operation | MCP Tool | gh CLI Fallback |
+|-----------|----------|----------------|
+| Create Epic | `mcp__mcp-ticketer__epic_create()` | `gh issue create --title "Title" --label epic` |
+| Create Issue | `mcp__mcp-ticketer__issue_create()` | `gh issue create --title "Title" --label bug` |
+| Create Task | `mcp__mcp-ticketer__task_create()` | `gh issue create --title "Title"` |
+| Read Ticket | `mcp__mcp-ticketer__ticket_read()` | `gh issue view 42` |
+| Update State | `mcp__mcp-ticketer__ticket_transition()` | `gh issue close 42` / `gh issue edit 42 --add-label in-progress` |
+| List Tickets | `mcp__mcp-ticketer__ticket_list()` | `gh issue list` |
+| Search | `mcp__mcp-ticketer__ticket_search()` | `gh issue list --search "keyword"` |
+| Add Comment | `mcp__mcp-ticketer__ticket_comment()` | `gh issue comment 42 --body "Comment text"` |
 
 **CLI commands are executed via Bash tool with proper error handling.**
 
@@ -584,14 +583,14 @@ Option 1: mcp-ticketer (Recommended)
   - Installation: npm install -g @modelcontextprotocol/mcp-ticketer
   - Configuration: Add to MCP servers in Claude Desktop
 
-Option 2: aitrackdown CLI (Fallback)
-  - File-based ticket tracking
-  - Installation: pip install aitrackdown
-  - Initialization: Run `aitrackdown init` in project directory
+Option 2: gh CLI (Default Fallback - GitHub Issues)
+  - GitHub Issues via GitHub CLI
+  - Installation: brew install gh (or https://cli.github.com/)
+  - Setup: gh auth login
 
 Visit docs for setup instructions:
   - MCP setup: https://docs.claude-mpm.com/ticketing/mcp-setup
-  - CLI setup: https://docs.claude-mpm.com/ticketing/cli-setup
+  - GitHub CLI: https://cli.github.com/
 ```
 
 **When invalid ticket ID provided:**
@@ -600,7 +599,7 @@ Error: Ticket not found: ISS-0999
 
 Possible issues:
   - Ticket ID does not exist
-  - Incorrect ticket system (are you using Linear vs aitrackdown?)
+  - Incorrect ticket system (are you using Linear vs GitHub Issues?)
   - Typo in ticket ID
 
 To list all tickets: Use "list all open tickets" command
@@ -616,7 +615,7 @@ To list all tickets: Use "list all open tickets" command
 
 1. **No Adapter Available**
    - System not supported by mcp-ticketer
-   - System not supported by aitrackdown CLI
+   - System not supported by `gh` CLI
    - Example: Proprietary internal ticket system
 
 2. **Custom/Proprietary Ticketing Systems**
@@ -732,7 +731,7 @@ Expected PM Behavior:
 4. PM reports status to user
 
 Expected Violation (if PM does it directly):
-❌ PM runs `aitrackdown show ISS-0042` → VIOLATION
+❌ PM runs `gh issue view 42` directly → VIOLATION (must delegate)
 ```
 
 **Test Case 3: Linear/JIRA/GitHub References**
@@ -759,7 +758,7 @@ Expected Violation (if PM does it directly):
 
 **❌ Violation Indicators:**
 - PM calls `mcp__mcp-ticketer__*` tools directly
-- PM runs `aitrackdown` commands via Bash
+- PM runs ticketing CLI commands directly without delegating
 - PM makes API calls to Linear/GitHub/JIRA
 - PM reads/writes ticket files directly
 - Error: "VIOLATION #6: PM attempted ticketing tool usage"
@@ -797,37 +796,37 @@ npx -y @modelcontextprotocol/mcp-ticketer --version
 3. Restart Claude Desktop
 4. Verify tools available: "What ticketing tools do you have?"
 
-### CLI Not Available
+### gh CLI Not Available
 
-**Symptom**: Error message "aitrackdown command not found"
+**Symptom**: Error message "gh command not found"
 
 **Diagnosis:**
 ```bash
-# Check if aitrackdown installed
-which aitrackdown
+# Check if gh CLI installed
+which gh
 
-# Expected: /path/to/aitrackdown
+# Expected: /usr/local/bin/gh
 # Not found: command not found
 ```
 
 **Solution:**
 ```bash
-# Install aitrackdown
-pip install aitrackdown
+# Install GitHub CLI
+brew install gh  # macOS
+# or: https://cli.github.com/
 
-# Initialize in project directory
-cd /path/to/project
-aitrackdown init
+# Authenticate
+gh auth login
 
 # Verify installation
-aitrackdown --version
+gh --version
 ```
 
 ### Both Unavailable
 
 **Symptom**: Error message "No ticket integration available"
 
-**Diagnosis**: Neither MCP nor CLI installed
+**Diagnosis**: Neither MCP server nor `gh` CLI available
 
 **Solution**: Install one of:
 
@@ -837,11 +836,10 @@ npm install -g @modelcontextprotocol/mcp-ticketer
 # Add to Claude Desktop config
 ```
 
-**Option 2: aitrackdown CLI**
+**Option 2: gh CLI (GitHub Issues)**
 ```bash
-pip install aitrackdown
-cd /path/to/project
-aitrackdown init
+brew install gh
+gh auth login
 ```
 
 ### PM Violating Delegation
@@ -912,10 +910,10 @@ Error: JIRA authentication failed
 - MCP Specification: https://modelcontextprotocol.io
 - Installation: `npm install -g @modelcontextprotocol/mcp-ticketer`
 
-**aitrackdown CLI Documentation:**
-- GitHub: https://github.com/bobmatnyc/aitrackdown
-- PyPI: https://pypi.org/project/aitrackdown/
-- Installation: `pip install aitrackdown`
+**GitHub CLI Documentation:**
+- GitHub: https://cli.github.com/
+- Installation: `brew install gh`
+- Authentication: `gh auth login`
 
 **Linear API Documentation:**
 - GraphQL API: https://developers.linear.app/docs/graphql/working-with-the-graphql-api
@@ -937,7 +935,7 @@ Error: JIRA authentication failed
 
 **When user message contains any of:**
 - "ticket", "epic", "issue", "task"
-- "Linear", "GitHub Issues", "JIRA", "aitrackdown"
+- "Linear", "GitHub Issues", "JIRA"
 - "create ticket", "update ticket", "read ticket", "list tickets"
 - "track this", "file a ticket", "log this"
 - Ticket ID patterns: `ISS-XXXX`, `EP-XXXX`, `TSK-XXXX`, `MPM-XXX`, `PROJ-XXX`
@@ -955,8 +953,8 @@ Error: JIRA authentication failed
 2. Detect MCP tool availability
 3. IF mcp-ticketer available:
      Use MCP tools (mcp__mcp-ticketer__*)
-   ELSE IF aitrackdown CLI available:
-     Use CLI commands (aitrackdown ...)
+   ELSE IF gh CLI available:
+     Use GitHub Issues via gh CLI
    ELSE:
      Report error with setup instructions
 4. Execute ticket operation
@@ -968,7 +966,7 @@ Error: JIRA authentication failed
 
 **Is PM doing this?**
 - ❌ Calling `mcp__mcp-ticketer__*` tools → VIOLATION
-- ❌ Running `aitrackdown` commands → VIOLATION
+- ❌ Running ticketing CLI commands without delegating → VIOLATION
 - ❌ Making API calls to ticket systems → VIOLATION
 - ✅ Using Task tool to delegate to ticketing-agent → CORRECT
 

@@ -209,7 +209,6 @@ def evidence_patterns():
             r"mcp__mcp-ticketer__",
             r"WebFetch.*linear\.app",
             r"WebFetch.*github\.com/.*issues",
-            r"aitrackdown",
         ],
         "correct_delegation": [
             r"Task\(agent=['\"]ticketing['\"]",

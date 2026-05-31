@@ -94,7 +94,10 @@ def test_ticketing_agent_template():
             ),
             ("MCP Gateway Layer" in instructions, "MCP Gateway understanding"),
             ("Closing Tickets" in instructions, "Close command documentation"),
-            ("aitrackdown CLI tool" in instructions, "Backend understanding"),
+            (
+                "gh CLI" in instructions or "mcp-ticketer" in instructions,
+                "Backend understanding",
+            ),
         ]
 
         all_passed = True

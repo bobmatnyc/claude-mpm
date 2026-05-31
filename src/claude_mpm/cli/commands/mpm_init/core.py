@@ -207,6 +207,7 @@ class MPMInitCommand:
             if result.get("status") == OperationResult.SUCCESS:
                 self._deploy_pm_skills()
                 self._generate_environment_config()
+                self._scaffold_adr_directory()
 
             return result
 
@@ -704,6 +705,29 @@ class MPMInitCommand:
         This is a rough estimate but sufficient for displaying progress.
         """
         return len(text) // 4
+
+    def _scaffold_adr_directory(self) -> None:
+        """Create docs/adr/ with README and Nygard template if not present.
+
+        This is idempotent — running mpm-init on an already-initialised
+        project will never clobber an edited README or template.
+        """
+        try:
+            from .adr_scaffold import scaffold_adr_directory
+
+            created = scaffold_adr_directory(self.project_path)
+            newly_created = [
+                path for path, was_created in created.items() if was_created
+            ]
+
+            if newly_created:
+                for path in newly_created:
+                    self.console.print(f"[green]✓ Created {path}[/green]")
+            else:
+                logger.debug("ADR scaffold: docs/adr/ already present, skipping")
+
+        except Exception as e:
+            logger.warning(f"ADR scaffold failed (non-fatal): {e}")
 
     def _deploy_pm_skills(self) -> None:
         """Deploy PM skills templates to project .claude directory.

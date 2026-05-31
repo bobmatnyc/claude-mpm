@@ -1,6 +1,16 @@
 """
 Cross-project message service for Claude MPM.
 
+.. deprecated::
+    ``MessageService`` (and the ``/mpm-message`` skill backed by it) is
+    **soft-deprecated** in favour of trusty-memory palace messaging
+    (``mcp__memory__palace_save`` / ``mcp__memory__palace_recall`` with a
+    message-typed drawer).  The service remains **fully functional** and will
+    not be removed until a future major release.  See
+    `bobmatnyc/trusty-tools#99 <https://github.com/bobmatnyc/trusty-tools/issues/99>`_
+    for migration guidance and
+    ``scripts/migrate_messaging_to_trusty.py`` for a one-shot export utility.
+
 WHY: Enables asynchronous communication between Claude MPM instances across
 different projects, allowing coordinated work without manual intervention.
 
@@ -13,6 +23,7 @@ DESIGN:
 
 import os
 import uuid
+import warnings
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,6 +34,17 @@ from ...core.logging_utils import get_logger
 from .messaging_db import MessagingDatabase
 
 logger = get_logger(__name__)
+
+# Emit the deprecation warning at most once per process.
+_DEPRECATION_WARNED: bool = False
+
+_DEPRECATION_MESSAGE = (
+    "MessageService and the /mpm-message skill are soft-deprecated in favour of "
+    "trusty-memory palace messaging (mcp__memory__palace_save / palace_recall with "
+    "a message-typed drawer).  The service remains functional until a future removal "
+    "release.  See bobmatnyc/trusty-tools#99 and "
+    "scripts/migrate_messaging_to_trusty.py for migration guidance."
+)
 
 
 @dataclass
@@ -130,7 +152,15 @@ class Message:
 
 
 class MessageService:
-    """Service for managing cross-project messages."""
+    """Service for managing cross-project messages.
+
+    .. deprecated::
+        ``MessageService`` is soft-deprecated.  Prefer trusty-memory palace
+        messaging (``mcp__memory__palace_save`` / ``mcp__memory__palace_recall``
+        with a ``message``-typed drawer).  This class remains functional until
+        a future major release.  See ``scripts/migrate_messaging_to_trusty.py``
+        for a one-shot export helper.
+    """
 
     def __init__(
         self,
@@ -146,6 +176,12 @@ class MessageService:
             registry_path: Override for global session registry path (for testing)
             messaging_db_path: Override for shared messaging database path (for testing)
         """
+        global _DEPRECATION_WARNED
+        if not _DEPRECATION_WARNED:
+            warnings.warn(_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=2)
+            logger.warning("DEPRECATED: %s", _DEPRECATION_MESSAGE)
+            _DEPRECATION_WARNED = True
+
         # Normalize project root with FS-canonical case (see _canonical_path docstring)
         self.project_root = Path(self._canonical_path(str(project_root)))
 

@@ -624,3 +624,145 @@ class SessionResumeHelper:
                     sessions.append(session_data)
 
         return sessions
+
+    def format_session_list(self) -> str:
+        """Return a human-readable numbered list of saved sessions.
+
+        Produces one line per session, most-recent first, with:
+        - 1-based index
+        - truncated session ID (14 chars after the ``session-`` prefix, i.e.
+          the ``YYYYMMDD-HHMMSS`` portion)
+        - human-readable timestamp (paused_at or file mtime fallback)
+        - project name (last component of project_path)
+        - topic/summary snippet (first 60 chars of conversation.summary)
+
+        Returns an empty-sessions message if no sessions are found.
+
+        Returns:
+            Formatted string ready for printing.
+        """
+        sessions = self.list_all_sessions()
+        if not sessions:
+            return (
+                "No saved sessions found in .claude-mpm/sessions/\n"
+                "\nTo create a session use: /mpm-pause"
+            )
+
+        lines: list[str] = [
+            f"Saved sessions ({len(sessions)} total, most recent first):",
+            "",
+        ]
+        for idx, sess in enumerate(sessions, start=1):
+            session_id: str = sess.get("session_id", "unknown")
+            # Show only the timestamp portion (YYYYMMDD-HHMMSS) so the line
+            # stays compact; strip the leading "session-" prefix if present.
+            short_id = session_id.removeprefix("session-")
+
+            # Timestamp: prefer ISO paused_at, fall back to file mtime.
+            paused_at: str = sess.get("paused_at", "")
+            if paused_at:
+                time_ago = self.get_time_elapsed(paused_at)
+            else:
+                fp = sess.get("file_path")
+                if fp and isinstance(fp, Path):
+                    try:
+                        from datetime import UTC, datetime
+
+                        mtime = fp.stat().st_mtime
+                        mtime_dt = datetime.fromtimestamp(mtime, tz=UTC)
+                        time_ago = self.get_time_elapsed(mtime_dt.isoformat())
+                    except Exception:
+                        time_ago = "unknown time ago"
+                else:
+                    time_ago = "unknown time ago"
+
+            # Project name: last path component of project_path.
+            project_path: str = sess.get("project_path", "")
+            project_name = Path(project_path).name if project_path else "unknown"
+
+            # Topic/summary: first 60 chars of conversation.summary.
+            summary: str = (
+                sess.get("conversation", {}).get("summary", "") or ""
+            ).strip()
+            topic = (summary[:60] + "…") if len(summary) > 60 else summary
+            if not topic:
+                topic = "(no summary)"
+
+            lines.append(
+                f"  {idx:2d}. [{short_id}]  {time_ago:<18}  {project_name:<20}  {topic}"
+            )
+
+        lines.append("")
+        lines.append("Resume by index:      /mpm-session-resume --select 1")
+        lines.append("Resume by partial ID: /mpm-session-resume --select 20240101")
+        return "\n".join(lines)
+
+    def resolve_session_by_selection(
+        self, selector: str
+    ) -> tuple[dict[str, Any] | None, str]:
+        """Resolve a ``--select`` argument to a session data dict.
+
+        The *selector* is tried as:
+        1. A 1-based integer index into the most-recent-first session list.
+        2. A partial case-insensitive substring match against session IDs.
+
+        Edge cases handled gracefully:
+        - No sessions → ``(None, "No saved sessions found…")``
+        - Index out of range → ``(None, "Index N is out of range…")``
+        - No partial-ID matches → ``(None, "No session matches…")``
+        - Ambiguous partial-ID (>1 match) → ``(None, "Ambiguous selector…")``
+
+        Args:
+            selector: The raw string from the user's ``--select`` argument.
+
+        Returns:
+            A ``(session_data_dict, message)`` tuple.  When a session is
+            resolved the message is an empty string; when resolution fails
+            the session is ``None`` and the message describes the problem.
+        """
+        sessions = self.list_all_sessions()
+        if not sessions:
+            return None, (
+                "No saved sessions found in .claude-mpm/sessions/\n"
+                "\nTo create a session use: /mpm-pause"
+            )
+
+        # Try integer index when the selector looks like a small positive
+        # integer that is within the list bounds.  Strings like "20250115"
+        # that exceed the number of sessions fall through to partial-ID
+        # matching so date-prefix selectors work naturally.
+        if selector.lstrip("-").isdigit():
+            index = int(selector)
+            if 1 <= index <= len(sessions):
+                return sessions[index - 1], ""
+            # Out-of-range integers with ≤ 3 digits cannot plausibly be
+            # partial timestamps; return a helpful error immediately.
+            if len(selector.lstrip("-")) <= 3:
+                return None, (
+                    f"Index {index} is out of range. "
+                    f"There are {len(sessions)} saved session(s). "
+                    f"Run /mpm-session-resume with no arguments to list them."
+                )
+            # Longer digit strings fall through to partial-ID match so
+            # date-prefix selectors like "2025" still work.
+
+        # Partial case-insensitive ID match.
+        selector_lower = selector.lower()
+        matches = [
+            s for s in sessions if selector_lower in s.get("session_id", "").lower()
+        ]
+
+        if not matches:
+            return None, (
+                f"No session matches '{selector}'. "
+                f"Run /mpm-session-resume with no arguments to list all sessions."
+            )
+
+        if len(matches) > 1:
+            ids = ", ".join(s.get("session_id", "?") for s in matches)
+            return None, (
+                f"Ambiguous selector '{selector}' matches {len(matches)} sessions: "
+                f"{ids}. Please use a more specific partial ID or the numeric index."
+            )
+
+        return matches[0], ""

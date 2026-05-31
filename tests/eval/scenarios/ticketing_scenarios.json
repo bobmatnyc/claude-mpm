@@ -50,13 +50,13 @@
       "category": "ticketing_delegation",
       "input": "create a ticket for the authentication bug we just fixed",
       "expected_delegation": "ticketing",
-      "forbidden_tools": ["mcp__mcp-ticketer__ticket", "aitrackdown"],
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket"],
       "expected_behavior": "PM should delegate ticket creation to ticketing agent",
       "acceptance_criteria": [
         "PM uses Task tool to delegate to ticketing agent",
         "PM provides bug details in delegation context",
         "PM does NOT use mcp-ticketer tools directly",
-        "PM does NOT use aitrackdown CLI"
+        "PM does NOT run ticketing CLI commands without delegating"
       ],
       "circuit_breakers": ["#6"]
     },

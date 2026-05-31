@@ -7,9 +7,9 @@ separating data access from presentation logic.
 DESIGN DECISIONS:
 - Uses TicketManager as backend (can be replaced with actual implementation)
 - Returns standardized response objects
-- Direct ticket CLI operations (aitrackdown) have been removed; ticket
-  operations should go through the mcp-ticketer MCP server via the
-  ticketing_agent.
+- Direct ticket CLI operations have been removed; ticket
+  operations should go through the mcp-ticketer MCP server or gh CLI
+  via the ticketing_agent.
 - Provides consistent error handling
 """
 
@@ -221,8 +221,8 @@ class TicketCRUDService:
         """
         Delete a ticket.
 
-        Direct CLI deletion via aitrackdown has been removed.
-        Use mcp-ticketer MCP tools via the ticketing_agent instead.
+        Direct CLI deletion has been removed.
+        Use mcp-ticketer MCP tools or gh CLI via the ticketing_agent instead.
 
         Returns:
             Dict with success status and message

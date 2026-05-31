@@ -76,61 +76,77 @@ def _clean_hooks(settings: dict[str, Any]) -> int:
     return replaced
 
 
-def check_needs_migration(installation_dir: Path | None = None) -> bool:
-    """Return True if ``.claude/settings.json`` contains absolute MPM hook paths.
+def _settings_paths(installation_dir: Path | None = None) -> list[Path]:
+    """Return all settings files that should be scanned for absolute hook paths.
+
+    Covers both the team-shared ``settings.json`` and the personal
+    ``settings.local.json`` at project and global level.
 
     Args:
         installation_dir: Project root (defaults to ``Path.cwd()``).
     """
     project_root = installation_dir or Path.cwd()
-    settings_path = project_root / ".claude" / "settings.json"
-    if not settings_path.exists():
-        return False
-    try:
-        data = json.loads(settings_path.read_text(encoding="utf-8"))
-    except Exception:
-        return False
+    project_claude = project_root / ".claude"
+    global_claude = Path.home() / ".claude"
+    return [
+        project_claude / "settings.json",
+        project_claude / "settings.local.json",
+        global_claude / "settings.local.json",
+    ]
 
-    hooks = data.get("hooks")
-    if not isinstance(hooks, dict):
-        return False
 
-    for _event, matcher_blocks in hooks.items():
-        if not isinstance(matcher_blocks, list):
+def check_needs_migration(installation_dir: Path | None = None) -> bool:
+    """Return True if any settings file contains absolute MPM hook paths.
+
+    Scans both ``.claude/settings.json``, ``.claude/settings.local.json``, and
+    ``~/.claude/settings.local.json``.
+
+    Args:
+        installation_dir: Project root (defaults to ``Path.cwd()``).
+    """
+    for settings_path in _settings_paths(installation_dir):
+        if not settings_path.exists():
             continue
-        for block in matcher_blocks:
-            if not isinstance(block, dict):
+        try:
+            data = json.loads(settings_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        hooks = data.get("hooks")
+        if not isinstance(hooks, dict):
+            continue
+
+        for _event, matcher_blocks in hooks.items():
+            if not isinstance(matcher_blocks, list):
                 continue
-            for hook_cmd in block.get("hooks") or []:
-                if isinstance(hook_cmd, dict) and _is_absolute_mpm_hook(
-                    hook_cmd.get("command", "")
-                ):
-                    return True
+            for block in matcher_blocks:
+                if not isinstance(block, dict):
+                    continue
+                for hook_cmd in block.get("hooks") or []:
+                    if isinstance(hook_cmd, dict) and _is_absolute_mpm_hook(
+                        hook_cmd.get("command", "")
+                    ):
+                        return True
     return False
 
 
-def run_migration(installation_dir: Path | None = None) -> bool:
-    """Remove absolute MPM hook paths from ``.claude/settings.json``.
+def _migrate_single_file(settings_path: Path) -> bool:
+    """Replace absolute MPM hook paths with ``"claude-hook"`` in one file.
 
     Args:
-        installation_dir: Project root (defaults to ``Path.cwd()``).
+        settings_path: Path to the settings file to update.
 
     Returns:
-        True on success (including no-op runs).
+        True on success (including no-op); False on parse / write error.
     """
-    project_root = installation_dir or Path.cwd()
-    settings_path = project_root / ".claude" / "settings.json"
-
     if not settings_path.exists():
-        logger.debug("No .claude/settings.json found — nothing to migrate")
+        logger.debug("Settings file not found — skipping: %s", settings_path)
         return True
 
     try:
         data = json.loads(settings_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        logger.warning(
-            "Could not parse %s: %s — skipping migration", settings_path, exc
-        )
+        logger.warning("Could not parse %s: %s — skipping", settings_path, exc)
         return False
 
     replaced = _clean_hooks(data)
@@ -154,3 +170,24 @@ def run_migration(installation_dir: Path | None = None) -> bool:
         return False
 
     return True
+
+
+def run_migration(installation_dir: Path | None = None) -> bool:
+    """Remove absolute MPM hook paths from all settings files.
+
+    Scans and updates:
+    - ``.claude/settings.json`` (team-shared, checked-in)
+    - ``.claude/settings.local.json`` (personal project overrides)
+    - ``~/.claude/settings.local.json`` (global personal settings)
+
+    Args:
+        installation_dir: Project root (defaults to ``Path.cwd()``).
+
+    Returns:
+        True on success (including no-op runs).
+    """
+    all_ok = True
+    for settings_path in _settings_paths(installation_dir):
+        if not _migrate_single_file(settings_path):
+            all_ok = False
+    return all_ok

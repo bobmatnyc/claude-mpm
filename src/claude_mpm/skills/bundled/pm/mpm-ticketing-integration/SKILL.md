@@ -20,7 +20,7 @@ Routing order (evaluated by ticketing_agent):
 2. User mentions "linear", a `LIN-`/`TEAM-`-style ID, or env has `LINEAR_API_KEY` → Linear
 3. All other cases → **GitHub** (`mcp__github__*`)
 
-`aitrackdown` is a last-resort fallback only — never use when GitHub MCP tools are available.
+When GitHub MCP tools are unavailable, fall back to `gh issue` CLI commands.
 
 ## Ask Before Creating
 

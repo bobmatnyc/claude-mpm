@@ -52,7 +52,7 @@ class InstructionLoader:
         # overrides are loaded verbatim so project customisations are honoured.
         self.load_workflow_instructions(content)
 
-        # Load MEMORY.md (with kuzu-memory auto-injection if applicable)
+        # Load MEMORY.md (with memory backend auto-injection if applicable)
         self.load_memory_instructions(content)
 
     def load_custom_instructions(self, content: dict[str, Any]) -> None:
@@ -290,7 +290,9 @@ class InstructionLoader:
         """Load MEMORY.md from appropriate location.
 
         If kuzu-memory is detected AND no project-level .claude-mpm/MEMORY.md exists,
-        prepends kuzu-memory active instructions to the memory content.
+        prepends a legacy kuzu-memory notice to the memory content.
+        trusty-memory is the primary recommended backend; kuzu-memory is a
+        deprecated legacy fallback retained for backward compatibility.
 
         Args:
             content: Dictionary to update with memory instructions
@@ -299,16 +301,18 @@ class InstructionLoader:
             self.current_dir, self.framework_path or Path()
         )
 
-        # Auto-inject kuzu-memory instructions when detected and no project override
+        # Auto-inject legacy kuzu-memory notice when detected and no project override.
+        # trusty-memory is primary; if the user has kuzu-memory installed but not
+        # trusty-memory, surface a notice so they know memory is still active.
         if level != "project" and self._detect_kuzu_memory():
             kuzu_prefix = (
-                "## Memory: kuzu-memory Active\n\n"
-                "kuzu-memory is installed. Use MCP tools for all memory operations:\n"
+                "## Memory: kuzu-memory Active (legacy fallback)\n\n"
+                "kuzu-memory is installed and active as a legacy memory backend.\n"
+                "Use MCP tools for memory operations:\n"
                 "- `mcp__kuzu-memory__kuzu_recall` — query memories before delegating research\n"
                 "- `mcp__kuzu-memory__kuzu_learn` — store important decisions asynchronously\n"
-                "- `mcp__kuzu-memory__kuzu_remember` — store facts immediately\n"
-                "- `mcp__kuzu-memory__kuzu_enhance` — enhance prompts with project context\n\n"
-                "Prefer kuzu-memory over static PM_memories.md for project knowledge.\n\n"
+                "- `mcp__kuzu-memory__kuzu_remember` — store facts immediately\n\n"
+                "Consider migrating to trusty-memory (primary recommended backend).\n\n"
             )
             if memory:
                 memory = kuzu_prefix + memory
