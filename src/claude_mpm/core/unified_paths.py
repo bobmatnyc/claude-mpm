@@ -25,6 +25,7 @@ Architecture:
 
 import os
 import sys
+import tempfile
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -422,12 +423,19 @@ class UnifiedPathManager:
             logger.debug(f"Using CLAUDE_MPM_USER_PWD as project root: {user_pwd}")
             return Path(user_pwd)
 
+        # Resolve OS temp root (including /private/tmp on macOS) so the walk
+        # never escapes into shared temp storage and picks up stray markers.
+        _tmp_root = Path(tempfile.gettempdir()).resolve()
+
         current = _safe_cwd()
         while current != current.parent:
             for marker in self._project_markers:
                 if (current / marker).exists():
                     logger.debug(f"Found project root at {current} via {marker}")
                     return current
+            # Do not ascend into or past the OS temp directory.
+            if current == _tmp_root:
+                break
             current = current.parent
 
         # Fallback to current directory

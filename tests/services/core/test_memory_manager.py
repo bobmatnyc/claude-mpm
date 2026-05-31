@@ -9,6 +9,7 @@ Tests cover:
 - Memory search and statistics
 """
 
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -86,10 +87,15 @@ class TestMemoryManager:
             agent_file = memories_dir / "test_memories.md"
             agent_file.write_text("# Agent Memory: test\n- Test agent memory")
 
-            # Mock Path.cwd() to return our temp directory
-            with patch(
-                "claude_mpm.services.core.memory_manager.Path.cwd",
-                return_value=Path(tmpdir),
+            # Mock Path.cwd() to return our temp directory.
+            # Force flat-file mode so a live MCP memory backend on this host
+            # doesn't cause actual_memories to be cleared.
+            with (
+                patch(
+                    "claude_mpm.services.core.memory_manager.Path.cwd",
+                    return_value=Path(tmpdir),
+                ),
+                patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}),
             ):
                 # Load memories
                 result = memory_manager.load_memories()
@@ -388,7 +394,8 @@ class TestMemoryManager:
             project_pm = project_dir / "PM_memories.md"
             project_pm.write_text("# PM Memory\n- Project task 1\n- Common task")
 
-            # Mock paths
+            # Mock paths.  Force flat-file mode so a live MCP memory backend
+            # on this host doesn't cause actual_memories to be cleared.
             with (
                 patch(
                     "claude_mpm.services.core.memory_manager.Path.home",
@@ -398,6 +405,7 @@ class TestMemoryManager:
                     "claude_mpm.services.core.memory_manager.Path.cwd",
                     return_value=Path(tmpdir) / "project",
                 ),
+                patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}),
             ):
                 # Load memories
                 result = memory_manager.load_memories()
