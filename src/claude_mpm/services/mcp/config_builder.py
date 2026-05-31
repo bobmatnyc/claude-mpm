@@ -60,8 +60,8 @@ class MCPServiceConfigBuilder:
         },
         "trusty-memory": {
             "type": "stdio",
-            "command": "trusty-memory",
-            "args": ["serve", "--mcp"],
+            "command": "trusty-memory-mcp-bridge",
+            "args": [],
         },
         "trusty-analyzer": {
             "type": "stdio",
