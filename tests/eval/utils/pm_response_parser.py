@@ -114,7 +114,6 @@ class PMResponseParser:
     FORBIDDEN_PM_TOOLS = [
         r"mcp__mcp-ticketer__",
         r"WebFetch.*(?:linear\.app|github\.com.*issues|jira)",
-        r"aitrackdown",
         r"Edit.*\.(?:py|js|ts)",  # Implementation
         r"Write.*\.(?:py|js|ts)",  # Implementation
     ]

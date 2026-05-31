@@ -2,7 +2,7 @@
 name: mpm-session-resume
 description: Load context from paused session
 user-invocable: true
-version: "1.1.0"
+version: "1.2.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -10,13 +10,15 @@ effort: medium
 
 # /mpm-session-resume
 
-Load and display context from the most recent paused session.
+Load and display context from a paused session, with optional browsing and
+selection when multiple sessions exist.
 
 ## What This Does
 
 When invoked, this skill:
 1. Scans the project-local session store at `.claude-mpm/sessions/` for paused sessions
-2. Loads the most recent session (by file modification time)
+2. Loads the most recent session (by file modification time) **or** a specific
+   session selected with `--select`
 3. **Validates** that the session's `project_path` matches the current project — sessions from other projects are skipped
 4. Calculates time elapsed since pause and git changes since pause
 5. Displays a formatted resume prompt with summary, accomplishments, and next steps
@@ -28,10 +30,18 @@ When invoked, this skill:
 ## Usage
 
 ```
-/mpm-resume
+/mpm-session-resume                    # resume most recent session (existing behaviour)
+/mpm-session-resume                    # with no args: also lists sessions when >1 exists
+/mpm-session-resume --select 2         # resume the 2nd most-recent session (1-based index)
+/mpm-session-resume --select 20240101  # resume by partial session ID match
+/mpm-session-resume <session-id>       # resume by exact session ID (backward-compatible)
 ```
 
-**What it shows:**
+**What it shows (listing mode — no args, multiple sessions):**
+- Numbered list of sessions, most-recent first
+- Session ID (timestamp portion), time elapsed, project name, topic/summary
+
+**What it shows (resume mode):**
 - Session summary and time elapsed since pause
 - Completed work and current tasks
 - Git context and recent commits (new commits since pause)
@@ -40,35 +50,121 @@ When invoked, this skill:
 
 ## Implementation
 
-**Execute the following Python code to load and display the paused session:**
+**Execute the following Python code.  Parse the user's invocation arguments first,
+then dispatch to the appropriate code path.**
 
 ```python
+import sys
 from pathlib import Path
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 
-# Create resume helper scoped to the current project.
-# Sessions are stored under <project-root>/.claude-mpm/sessions/, and the
-# helper validates that the loaded session's project_path matches.
+# --------------------------------------------------------------------------
+# Argument parsing
+# Invocation forms:
+#   /mpm-session-resume                    → list_mode=True if >1 session, else resume most recent
+#   /mpm-session-resume --select <value>   → select by index or partial ID
+#   /mpm-session-resume <session-id>       → exact session-id (backward-compatible)
+# --------------------------------------------------------------------------
+
+# The skill receives user arguments via the 'args' variable set by the harness,
+# or you can parse from the invocation line.  Use whichever is available.
+# For safety, default to an empty list if 'args' is not defined.
+try:
+    raw_args = args  # type: ignore[name-defined]  # set by skill harness
+except NameError:
+    raw_args = []
+
+select_value: str | None = None
+exact_session_id: str | None = None
+
+i = 0
+while i < len(raw_args):
+    token = str(raw_args[i])
+    if token == "--select" and i + 1 < len(raw_args):
+        select_value = str(raw_args[i + 1])
+        i += 2
+    elif not token.startswith("--"):
+        exact_session_id = token
+        i += 1
+    else:
+        i += 1
+
+# --------------------------------------------------------------------------
+# Create helper scoped to the current project.
+# --------------------------------------------------------------------------
 helper = SessionResumeHelper(project_path=Path.cwd())
 
-# Check for paused sessions and display the resume prompt.
-# This prints the formatted context and returns the session data dict.
-session_data = helper.check_and_display_resume_prompt()
+# --------------------------------------------------------------------------
+# Dispatch
+# --------------------------------------------------------------------------
 
-if session_data is None:
-    print("No paused sessions found for this project in .claude-mpm/sessions/")
-    print("")
-    print("To create a paused session, use: /mpm-pause")
+if select_value is not None:
+    # --select <index-or-partial-id>
+    session_data, error_msg = helper.resolve_session_by_selection(select_value)
+    if session_data is None:
+        print(error_msg)
+    else:
+        prompt_text = helper.format_resume_prompt(session_data)
+        print(prompt_text)
+        session_id = session_data.get("session_id", "unknown")
+        file_path = session_data.get("file_path")
+        print(f"Loaded session: {session_id}")
+        if file_path:
+            print(f"Source: {file_path}")
+
+elif exact_session_id is not None:
+    # Exact session ID supplied (backward-compatible form).
+    all_sessions = helper.list_all_sessions()
+    matched = [
+        s for s in all_sessions
+        if s.get("session_id") == exact_session_id
+    ]
+    if not matched:
+        print(f"No session found with ID: {exact_session_id}")
+        print("")
+        print(helper.format_session_list())
+    else:
+        session_data = matched[0]
+        prompt_text = helper.format_resume_prompt(session_data)
+        print(prompt_text)
+        file_path = session_data.get("file_path")
+        print(f"Loaded session: {exact_session_id}")
+        if file_path:
+            print(f"Source: {file_path}")
+
 else:
-    # Session data is now loaded — PM continues from here using
-    # the displayed context (summary, accomplishments, next steps,
-    # git changes, and pending tasks).
-    session_id = session_data.get("session_id", "unknown")
-    file_path = session_data.get("file_path")
-    print(f"")
-    print(f"Loaded session: {session_id}")
-    if file_path:
-        print(f"Source: {file_path}")
+    # No arguments — list when multiple sessions exist, else resume most recent.
+    session_count = helper.get_session_count()
+    if session_count == 0:
+        print("No paused sessions found for this project in .claude-mpm/sessions/")
+        print("")
+        print("To create a paused session, use: /mpm-pause")
+    elif session_count > 1:
+        # Show numbered list so the user can pick.
+        print(helper.format_session_list())
+        print("")
+        print("Resuming the most recent session automatically…")
+        session_data = helper.check_and_display_resume_prompt()
+        if session_data:
+            session_id = session_data.get("session_id", "unknown")
+            file_path = session_data.get("file_path")
+            print(f"Loaded session: {session_id}")
+            if file_path:
+                print(f"Source: {file_path}")
+    else:
+        # Only one session — resume it directly (existing behaviour).
+        session_data = helper.check_and_display_resume_prompt()
+        if session_data is None:
+            print("No paused sessions found for this project in .claude-mpm/sessions/")
+            print("")
+            print("To create a paused session, use: /mpm-pause")
+        else:
+            session_id = session_data.get("session_id", "unknown")
+            file_path = session_data.get("file_path")
+            print(f"")
+            print(f"Loaded session: {session_id}")
+            if file_path:
+                print(f"Source: {file_path}")
 ```
 
 ## Session Storage Location

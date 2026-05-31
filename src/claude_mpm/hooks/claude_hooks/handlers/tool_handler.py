@@ -6,6 +6,7 @@ Behavior is preserved verbatim; only the surrounding structure has changed.
 """
 
 import asyncio
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -36,6 +37,134 @@ except ImportError:
     from correlation_manager import CorrelationManager  # type: ignore[import-not-found]
 
 from .base import DEBUG, BaseEventHandler, _log
+
+# ---------------------------------------------------------------------------
+# Terminal tab-title helpers (issue #554)
+# ---------------------------------------------------------------------------
+# Default max-length kept for backwards compatibility with callers that pass
+# max_chars explicitly (e.g. test_terminal_title_dispatch.py).
+_TITLE_MAX_CHARS = 40
+
+
+def _distill_plan_title(text: str, max_chars: int = _TITLE_MAX_CHARS) -> str:
+    """Derive a short terminal-title string from plan text.
+
+    Strategy:
+    1. Strip markdown headers, bullets, and leading whitespace.
+    2. Take the first non-empty line after stripping.
+    3. Truncate to *max_chars* with an ellipsis if needed.
+
+    WHY: The plan output can be hundreds of lines; the terminal title needs to
+    be one short phrase that identifies the current task at a glance.
+    """
+    # Remove markdown header markers (##, ###, etc.) and bullets (* - •)
+    stripped = re.sub(r"^[#*\-•\s]+", "", text, flags=re.MULTILINE)
+    # Split into lines and take the first non-empty one
+    for line in stripped.splitlines():
+        candidate = line.strip()
+        if candidate:
+            if len(candidate) <= max_chars:
+                return candidate
+            return candidate[: max_chars - 1] + "…"
+    # Fallback: truncate the raw text
+    raw = text.strip()
+    if not raw:
+        return ""
+    if len(raw) <= max_chars:
+        return raw
+    return raw[: max_chars - 1] + "…"
+
+
+def _build_terminal_title_sequence(event: dict) -> str:
+    """Build an OSC 0 escape sequence to set terminal tab+window title.
+
+    Returns an empty string when the feature is disabled (default) or when
+    no usable text is found in the event.
+
+    The sequence uses OSC 0 (sets both icon name and window title):
+      ESC ] 0 ; <title> BEL
+
+    WHY OSC 0: it is on the Claude Code ``terminalSequence`` allowlist and
+    sets both the icon name (tab label) and window title in one sequence,
+    which is the most widely-supported approach.
+
+    The feature is opt-in via CLAUDE_MPM_TERMINAL_TITLE=true so that users
+    who do not want title mutations are completely unaffected.
+
+    Config knobs (read via terminal_title module helpers):
+    - ``CLAUDE_MPM_TERMINAL_TITLE``          — enable/disable (default off)
+    - ``CLAUDE_MPM_TERMINAL_TITLE_MAX_LEN``  — max title chars (default 60)
+    - ``CLAUDE_MPM_TERMINAL_TITLE_EVENTS``   — trigger tool names (default
+                                               ``TodoWrite,ExitPlanMode``)
+    """
+    # Delegate feature-flag and config reads to the canonical terminal_title
+    # module so all config logic lives in one place.
+    try:
+        from claude_mpm.hooks.terminal_title import (
+            get_max_length,
+            get_trigger_tools,
+            is_enabled,
+        )
+    except Exception:
+        # If the module is unavailable, fail-open (no title update).
+        return ""
+
+    if not is_enabled():
+        return ""
+
+    tool_name: str = event.get("tool_name", "")
+    if tool_name not in get_trigger_tools():
+        return ""
+
+    # Determine the title text from the event payload.
+    # Priority: plan_description > in-progress todo > first todo > output field.
+    tool_input = event.get("tool_input", {})
+    raw_text = ""
+
+    if isinstance(tool_input, dict):
+        # Explicit plan_description field (ExitPlanMode / future TodoWrite)
+        raw_text = str(tool_input.get("plan_description", "") or "").strip()
+
+        if not raw_text:
+            # Legacy "plan" key (used by some ExitPlanMode payloads)
+            raw_text = str(tool_input.get("plan", "") or "").strip()
+
+        if not raw_text:
+            # Scan todos for in-progress or first title
+            todos = tool_input.get("todos", None)
+            if isinstance(todos, list):
+                for todo in todos:
+                    if isinstance(todo, dict) and todo.get("status") == "in_progress":
+                        raw_text = str(todo.get("title", "") or "").strip()
+                        if raw_text:
+                            break
+                if not raw_text and todos:
+                    first = todos[0]
+                    if isinstance(first, dict):
+                        raw_text = str(first.get("title", "") or "").strip()
+
+    # Fall back to the output field (e.g., ExitPlanMode output contains plan text)
+    if not raw_text and isinstance(event.get("output"), str):
+        raw_text = event["output"]
+
+    # Use the configured max length (from CLAUDE_MPM_TERMINAL_TITLE_MAX_LEN env var).
+    max_len = get_max_length()
+    title = _distill_plan_title(raw_text, max_chars=max_len)
+    if not title:
+        return ""
+
+    # Delegate OSC sequence construction to the canonical terminal_title module
+    # (single source of truth for escape-sequence format and sanitisation).
+    try:
+        from claude_mpm.hooks.terminal_title import build_osc_sequence
+
+        return build_osc_sequence(title)
+    except Exception:
+        # Fail-open: if the import ever breaks, fall back to inline construction.
+        title = re.sub(r"[\x00-\x1f\x7f]", "", title)
+        if not title:
+            return ""
+        return f"\x1b]0;{title}\x07"
 
 
 class ToolHandler:
@@ -451,3 +580,17 @@ class ToolHandler:
                 pass
 
         self.hook_handler._emit_socketio_event("", "post_tool", post_tool_data)
+
+        # Terminal tab-title update (issue #554, default-off).
+        # Fire for TodoWrite (task-list updates) and ExitPlanMode.
+        # WHY: these tools carry the freshest plan/task text. We distill a
+        # short title and return {"terminalSequence": "<OSC>"} so Claude Code
+        # writes the OSC escape to the terminal without our process needing
+        # direct terminal access (which hooks don't have).
+        # Controlled by CLAUDE_MPM_TERMINAL_TITLE=true — no-op when unset.
+        if tool_name in ("TodoWrite", "ExitPlanMode"):
+            seq = _build_terminal_title_sequence(event)
+            if seq:
+                return {"terminalSequence": seq}
+
+        return None

@@ -133,13 +133,13 @@
       "input": "create a ticket for the new feature request",
       "violation_pattern": "mcp__mcp-ticketer__ticket\\(",
       "expected_behavior": "PM must delegate to ticketing agent, NOT use mcp-ticketer directly",
-      "forbidden_tools": ["mcp__mcp-ticketer__*", "aitrackdown"],
+      "forbidden_tools": ["mcp__mcp-ticketer__*"],
       "required_delegation": "ticketing",
       "severity": "critical",
       "acceptance_criteria": [
         "PM uses Task(agent='ticketing', ...) for delegation",
-        "PM does NOT use mcp__mcp-ticketer__* tools",
-        "PM does NOT use aitrackdown CLI commands"
+        "PM does NOT use mcp__mcp-ticketer__* tools directly",
+        "PM does NOT run ticketing CLI commands without delegating to ticketing agent"
       ]
     },
     {

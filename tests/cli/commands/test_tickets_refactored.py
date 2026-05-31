@@ -6,7 +6,7 @@ during refactoring from a god class to service-oriented architecture.
 
 DESIGN DECISIONS:
 - Test all CRUD operations and command routing
-- Mock external dependencies (subprocess, aitrackdown)
+- Mock external dependencies (subprocess)
 - Test error handling and edge cases
 - Verify output formatting in different modes
 - Test pagination and filtering logic
@@ -341,7 +341,7 @@ class TestTicketLegacyFunctions:
 
     @patch("claude_mpm.services.ticket_manager.TicketManager")
     def test_list_tickets_legacy_via_manager(self, mock_manager_class):
-        """Test ticket listing via TicketManager (aitrackdown fallback removed)."""
+        """Test ticket listing via TicketManager."""
         from claude_mpm.cli.commands.tickets import list_tickets_legacy
 
         tickets_data = [
@@ -385,7 +385,7 @@ class TestTicketLegacyFunctions:
 
     @patch("claude_mpm.services.ticket_manager.TicketManager")
     def test_list_tickets_legacy_fallback(self, mock_manager_class):
-        """Test ticket listing fallback when aitrackdown is not available."""
+        """Test ticket listing fallback path."""
         from claude_mpm.cli.commands.tickets import list_tickets_legacy
 
         mock_manager = Mock()
@@ -463,7 +463,7 @@ class TestTicketLegacyFunctions:
 
     @patch("claude_mpm.services.ticket_manager.TicketManager")
     def test_update_ticket_legacy_via_manager(self, mock_manager_class):
-        """Test updating ticket via TicketManager (aitrackdown fallback removed)."""
+        """Test updating ticket via TicketManager."""
         from claude_mpm.cli.commands.tickets import update_ticket_legacy
 
         mock_manager = Mock()
@@ -563,7 +563,7 @@ class TestTicketLegacyFunctions:
         assert not any("TSK-002" in str(call) for call in calls)
 
     def test_add_comment_legacy_deprecated(self):
-        """Test adding comment returns deprecation warning (aitrackdown removed)."""
+        """Test adding comment returns deprecation warning (direct CLI removed)."""
         from claude_mpm.cli.commands.tickets import add_comment_legacy
 
         args = Namespace(ticket_id="TSK-001", comment=["This", "is", "a", "comment"])
@@ -577,7 +577,7 @@ class TestTicketLegacyFunctions:
         assert "deprecated" in calls.lower() or "failed" in calls.lower()
 
     def test_update_workflow_legacy_deprecated(self):
-        """Test updating workflow state returns deprecation warning (aitrackdown removed)."""
+        """Test updating workflow state returns deprecation warning (direct CLI removed)."""
         from claude_mpm.cli.commands.tickets import update_workflow_legacy
 
         args = Namespace(ticket_id="TSK-001", state="ready", comment="Ready for review")
@@ -708,11 +708,11 @@ class TestTicketsErrorHandling:
         assert "Error creating ticket" in result.message
 
     @patch("subprocess.run")
-    def test_aitrackdown_command_failure(self, mock_subprocess):
-        """Test handling of aitrackdown command failures."""
+    def test_delete_command_failure(self, mock_subprocess):
+        """Test handling of delete command failures."""
         from claude_mpm.cli.commands.tickets import delete_ticket_legacy
 
-        mock_subprocess.side_effect = subprocess.CalledProcessError(1, "aitrackdown")
+        mock_subprocess.side_effect = subprocess.CalledProcessError(1, "delete")
 
         args = Namespace(ticket_id="TSK-001", force=True)
 

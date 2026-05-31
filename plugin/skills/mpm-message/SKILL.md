@@ -1,11 +1,24 @@
 ---
 name: mpm-message
-description: Send cross-project messages to other Claude MPM instances
+description: "DEPRECATED: Send cross-project messages to other Claude MPM instances (use trusty-memory palace messaging instead)"
 user-invocable: true
 version: "3.0.0"
 category: mpm-command
-tags: [mpm-command, communication, pm-required]
+tags: [mpm-command, communication, pm-required, deprecated]
+deprecated: true
+deprecation_notice: "Soft-deprecated in favour of trusty-memory palace messaging. See bobmatnyc/trusty-tools#99."
 ---
+
+> **DEPRECATED** — This skill and its `MessageService` backend are **soft-deprecated**.
+> They remain fully functional, but new projects should use **trusty-memory palace
+> messaging** instead:
+>
+> - Store a message: `mcp__memory__palace_save` (type: `message`)
+> - Retrieve messages: `mcp__memory__palace_recall`
+>
+> A one-shot migration export is available at `scripts/migrate_messaging_to_trusty.py`.
+> See [bobmatnyc/trusty-tools#99](https://github.com/bobmatnyc/trusty-tools/issues/99)
+> for full migration guidance.  This skill will be removed in a future major release.
 
 # Cross-Project Messaging
 

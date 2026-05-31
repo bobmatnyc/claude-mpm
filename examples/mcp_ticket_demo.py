@@ -6,7 +6,7 @@ MCP Ticket Tools Demo
 Demonstrates how to use the MCP ticket tools through Claude Code.
 
 This script shows how the ticket tools can be registered and used
-via the MCP gateway for seamless aitrackdown integration.
+via the MCP gateway for seamless ticket management integration.
 
 Usage:
     python examples/mcp_ticket_demo.py
@@ -34,13 +34,13 @@ async def demo_ticket_tools():
     """
     Demonstrate the ticket tools in action.
 
-    WHY: This shows how Claude Code can interact with aitrackdown
+    WHY: This shows how Claude Code can interact with the ticketing backend
     through the MCP gateway, enabling seamless ticket management.
     """
     print("MCP Ticket Tools Demo")
     print("=" * 60)
     print("\nThis demo shows how Claude Code can manage tickets")
-    print("through the MCP gateway using aitrackdown.\n")
+    print("through the MCP gateway (mcp-ticketer or gh CLI fallback).\n")
 
     # Create a tool registry
     registry = ToolRegistry()
@@ -122,7 +122,7 @@ async def demo_ticket_tools():
     if result.success:
         print("  ✅ Success! Retrieved ticket list")
         print(f"  Execution time: {result.execution_time:.2f}s")
-        # The actual format depends on aitrackdown's output
+        # The actual format depends on the ticketing backend's output
         if "raw_output" in result.data:
             print("\n  Output preview:")
             lines = result.data["raw_output"].split("\n")[:5]

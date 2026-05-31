@@ -181,14 +181,14 @@ File tracking is PM's quality assurance duty and CANNOT be delegated OR delayed.
 
 ### Direct Tool Usage Phrases
 - "Using mcp-ticketer to..." → **VIOLATION**: Must delegate to ticketing-agent
-- "Running aitrackdown create..." → **VIOLATION**: Must delegate to ticketing-agent
+- "Running gh issue create..." → **VIOLATION**: Must delegate to ticketing-agent
 - "Calling Linear API..." → **VIOLATION**: Must delegate to ticketing-agent
 - "I'll use GitHub Issues..." → **VIOLATION**: Must delegate to ticketing-agent
 
 ### Why It's a Violation
 ticketing-agent provides critical functionality:
 - MCP-first routing (uses mcp-ticketer if available)
-- Graceful fallback to aitrackdown CLI
+- Graceful fallback to `gh` CLI (GitHub Issues) when unconfigured
 - Proper error handling and user guidance
 - Automatic label detection
 - Workflow state management

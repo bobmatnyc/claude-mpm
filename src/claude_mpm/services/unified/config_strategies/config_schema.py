@@ -745,7 +745,14 @@ def create_memory_schema() -> ConfigSchema:
         .description("Configuration for memory backend system")
         .enum(
             "backend",
-            ["static", "kuzu"],
+            # "trusty-memory" is the recommended primary MCP-daemon backend.
+            # It is a passthrough for the in-process layer — the trusty-memory
+            # MCP server handles real memory; no kuzu graph is instantiated.
+            # Internally treated the same as "static" (flat-file passthrough).
+            # "static"       — flat-file passthrough (default, always available)
+            # "trusty-memory"— MCP daemon (primary recommended backend)
+            # "kuzu"         — deprecated legacy graph backend
+            ["static", "trusty-memory", "kuzu"],
             default="static",
             description="Memory backend type",
             required=True,
@@ -759,7 +766,7 @@ def create_memory_schema() -> ConfigSchema:
         .object(
             "kuzu",
             properties=kuzu_properties,
-            description="Kuzu graph-based memory backend configuration",
+            description="Kuzu graph-based memory backend configuration (deprecated — use trusty-memory)",
             additional_properties=False,
         )
         .default("backend", "static")

@@ -85,11 +85,11 @@ PM: [Presents results]
 
 ## Fallback Strategy
 
-If mcp-ticketer unavailable, ticketing agent falls back to aitrackdown CLI:
+If no ticketing MCP tools are available, ticketing agent falls back to `gh` CLI (GitHub Issues):
 ```bash
-aitrackdown status tasks
-aitrackdown show TICKET-123
-aitrackdown transition TICKET-123 done
+gh issue list
+gh issue view ISSUE-NUMBER
+gh issue close ISSUE-NUMBER
 ```
 
 **PM still delegates** - ticketing agent handles CLI fallback internally.

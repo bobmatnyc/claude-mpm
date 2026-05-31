@@ -2,13 +2,12 @@
 Tickets command implementation for claude-mpm.
 
 WHY: This module provides comprehensive ticket management functionality, allowing users
-to create, view, update, and manage tickets through the CLI. It integrates with
-ai-trackdown-pytools for persistent ticket storage.
+to create, view, update, and manage tickets through the CLI.
 
 DESIGN DECISIONS:
 - Use BaseCommand for consistent CLI patterns
 - Leverage shared utilities for argument parsing and output formatting
-- Maintain backward compatibility with existing ai-trackdown integration
+- Ticket operations delegate to ticketing_agent (mcp-ticketer or gh CLI)
 - Support multiple output formats (json, yaml, table, text)
 - Implement full CRUD operations plus search and workflow management
 - Use service-oriented architecture to separate concerns

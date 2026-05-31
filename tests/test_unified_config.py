@@ -330,5 +330,69 @@ def test_migration_stats():
     assert stats.net_reduction >= 5000
 
 
+class TestMemorySchemaBackendValidation:
+    """Tests for memory.backend schema validation — issue #564.
+
+    Verifies that trusty-memory is accepted as a valid backend value, and
+    that both legacy values (static, kuzu) still validate, while invalid
+    values are rejected.
+    """
+
+    def setup_method(self):
+        # Import directly from config_schema to get the SchemaValidator that
+        # operates on ConfigSchema objects (not the validation_strategy variant).
+        from claude_mpm.services.unified.config_strategies.config_schema import (
+            SchemaValidator,
+            create_memory_schema,
+        )
+
+        self.schema = create_memory_schema()
+        self.validator = SchemaValidator()
+
+    def _validate_backend(self, backend_value: str) -> bool:
+        """Run schema validation against a config with the given backend value."""
+        config = {"backend": backend_value}
+        return self.validator.validate(config, self.schema)
+
+    def test_trusty_memory_backend_is_valid(self):
+        """backend: trusty-memory must pass schema validation (issue #564)."""
+        assert self._validate_backend("trusty-memory"), (
+            f"trusty-memory backend failed validation: {self.validator.errors}"
+        )
+
+    def test_static_backend_is_valid(self):
+        """backend: static must remain valid (default passthrough)."""
+        assert self._validate_backend("static"), (
+            f"static backend failed validation: {self.validator.errors}"
+        )
+
+    def test_kuzu_backend_is_valid(self):
+        """backend: kuzu must remain valid (deprecated legacy)."""
+        assert self._validate_backend("kuzu"), (
+            f"kuzu backend failed validation: {self.validator.errors}"
+        )
+
+    def test_invalid_backend_is_rejected(self):
+        """An unrecognised backend value must be rejected by validation."""
+        result = self._validate_backend("invalid-backend")
+        assert not result, "Expected validation to fail for 'invalid-backend'"
+        assert any("must be one of" in e for e in self.validator.errors), (
+            f"Expected 'must be one of' error, got: {self.validator.errors}"
+        )
+
+    def test_trusty_memory_enum_present_in_schema(self):
+        """trusty-memory must appear in the backend property enum list."""
+        # ConfigSchema.properties is keyed by property name
+        backend_prop = self.schema.properties.get("backend")
+        assert backend_prop is not None, "backend property missing from schema"
+        assert backend_prop.enum is not None, "backend property has no enum constraint"
+        assert "trusty-memory" in backend_prop.enum, (
+            f"trusty-memory not in backend enum: {backend_prop.enum}"
+        )
+        # Also verify all three expected values are present
+        assert "static" in backend_prop.enum
+        assert "kuzu" in backend_prop.enum
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

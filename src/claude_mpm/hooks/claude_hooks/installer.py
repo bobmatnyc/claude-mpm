@@ -423,45 +423,61 @@ main "$@"
     def get_hook_command(self, use_fast_hook: bool = True) -> str:
         """Get the hook command based on installation method.
 
-        Priority order (when use_fast_hook=True, the default):
-        1. Fast bash hook script (~15ms) - claude-hook-fast.sh
-        2. claude-hook entry point (if fast hook not available)
-        3. Full Python bash script fallback
+        Priority order:
+        1. ``claude-hook`` entry point (if available in PATH) — portable, never
+           becomes stale after reinstalls or Python version upgrades.
+        2. Fast bash hook script (~15ms) — absolute path fallback for local
+           development environments where ``claude-hook`` is not on PATH.
+        3. Full Python bash script (~450ms) — last resort for development
+           environments without the fast script either.
 
-        Priority order (when use_fast_hook=False):
-        1. claude-hook entry point (uv tool install, pipx install, pip install)
-        2. Full Python bash script (claude-hook-handler.sh)
+        The ``use_fast_hook`` parameter is retained for backward-compatibility
+        but no longer affects the priority of the PATH-based entry point, which
+        is always preferred.  Absolute paths are only used when the entry point
+        is genuinely unavailable (e.g. a local ``uv run`` without ``uv tool
+        install``).
 
         Args:
-            use_fast_hook: If True (default), prefer the fast bash hook for better performance.
-                          The fast hook is ~30x faster (~15ms vs ~450ms) but only supports
-                          event forwarding to the dashboard. Set to False if you need
-                          full Python processing (memory integration, auto-pause, etc.)
+            use_fast_hook: Retained for API compatibility. When the entry point
+                is not on PATH, ``True`` (the default) prefers the fast bash
+                script over the full Python script.
 
         Returns:
-            Command string for the hook handler
+            Command string for the hook handler — either ``"claude-hook"`` (the
+            portable entry point) or an absolute path to a local script.
 
         Raises:
-            FileNotFoundError: If no hook handler can be found
+            FileNotFoundError: If no hook handler can be found.
         """
-        # Try fast hook first (default for performance)
+        # Always prefer the PATH-based entry point: it is portable across
+        # reinstalls and Python version upgrades (issue #552).
+        claude_hook_path = shutil.which("claude-hook")
+        if claude_hook_path:
+            self.logger.info(
+                "Using claude-hook entry point (PATH-based, portable): %s",
+                claude_hook_path,
+            )
+            return "claude-hook"
+
+        # Fall back to absolute paths only for local development environments
+        # where the entry point has not been installed (e.g. plain ``uv run``).
         if use_fast_hook:
             try:
                 fast_script_path = self._get_fast_hook_script_path()
-                self.logger.info(f"Using fast bash hook (~15ms): {fast_script_path}")
+                self.logger.info(
+                    "claude-hook not on PATH; falling back to fast bash hook (~15ms): %s",
+                    fast_script_path,
+                )
                 return str(fast_script_path.absolute())
             except FileNotFoundError:
                 self.logger.debug("Fast hook not found, falling back to standard hook")
 
-        # Check if claude-hook entry point is available in PATH
-        claude_hook_path = shutil.which("claude-hook")
-        if claude_hook_path:
-            self.logger.info(f"Using claude-hook entry point: {claude_hook_path}")
-            return "claude-hook"
-
-        # Fallback to full Python bash script for development installs
+        # Last resort: full Python bash script for development installs
         script_path = self._get_hook_script_path()
-        self.logger.info(f"Using full Python bash script (~450ms): {script_path}")
+        self.logger.info(
+            "claude-hook not on PATH; falling back to full Python bash script (~450ms): %s",
+            script_path,
+        )
         return str(script_path.absolute())
 
     def _get_fast_hook_script_path(self) -> Path:

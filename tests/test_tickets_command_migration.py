@@ -2,7 +2,7 @@
 Test for the migrated TicketsCommand class.
 
 WHY: Verify that the migration to BaseCommand pattern works correctly
-and maintains backward compatibility with ai-trackdown integration.
+and maintains backward compatibility with ticket system integration.
 """
 
 from argparse import Namespace

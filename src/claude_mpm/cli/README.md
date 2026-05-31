@@ -115,7 +115,7 @@ command_map = {
 - Hierarchical ticket organization (Epics → Issues → Tasks)
 - Search and filtering capabilities
 - Workflow state management
-- Integration with ai-trackdown-pytools
+- Delegates to ticketing_agent (mcp-ticketer or gh CLI)
 
 **`agents`** - Manage agent deployments
 - List available agents by tier (PROJECT > USER > SYSTEM)
@@ -156,7 +156,7 @@ The `tickets` command provides a complete ticketing solution with the following 
   - Status and priority changes
   - Description and tag updates
   - Assignment management
-  - Fallback to aitrackdown CLI for complex operations
+  - Delegates complex operations to ticketing_agent
 
 #### Advanced Ticket Operations
 - **`search`** - Find tickets by content
@@ -173,17 +173,17 @@ The `tickets` command provides a complete ticketing solution with the following 
 - **`delete`** - Remove tickets permanently
   - Confirmation prompts for safety
   - Force option for batch operations
-  - Integration with aitrackdown cleanup
+  - Delegates cleanup to ticketing_agent
 
 - **`comment`** - Add discussion to tickets
   - Progress updates and technical notes
   - Team communication and coordination
-  - Rich text support through aitrackdown
+  - Rich text support through ticketing_agent
 
 - **`workflow`** - Manage workflow states
   - State transition validation
   - Comment integration for change reasons
-  - Status mapping to aitrackdown workflow
+  - Status mapping via ticketing_agent
 
 #### Ticket System Features
 
@@ -213,8 +213,9 @@ Epic (Strategic Level)      - EP-XXXX
 - `low` (P3) - Cosmetic issues, convenience features
 
 **Integration Points:**
-- **ai-trackdown-pytools**: Backend storage and advanced operations
-- **TicketManager**: Primary interface for ticket operations
+- **mcp-ticketer**: Primary MCP backend (Linear, GitHub Issues, JIRA)
+- **gh CLI**: Fallback when no MCP server is configured (GitHub Issues)
+- **TicketManager**: Internal interface for ticket operations
 - **Claude Sessions**: Automatic ticket creation from patterns
 - **Hook System**: Event-driven ticket updates and notifications
 

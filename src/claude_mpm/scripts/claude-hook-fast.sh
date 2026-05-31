@@ -30,7 +30,7 @@
 # - Response tracking
 #
 # @author Claude MPM Development Team
-# @version 2.0
+# @version 2.1
 # @since v5.6.x
 # =============================================================================
 
@@ -40,44 +40,184 @@ INPUT=$(cat)
 # Early exit if no input
 [[ -z "$INPUT" ]] && { echo '{"continue": true}'; exit 0; }
 
-# Skip hook processing in MPM sub-agent sessions
-if [[ -n "${CLAUDE_MPM_SUB_AGENT}" ]]; then
-  echo '{"continue": true}'
-  exit 0
-fi
-
 # =============================================================================
 # Extract event type (try hook_event_name first, fallback to event)
 # Claude Code sends: {"hook_event_name": "PreToolUse", ...}
+#
+# The extraction must handle both compact JSON ("key":"value") and
+# pretty-printed JSON ("key": "value" with a space after the colon).
+# Strategy: strip prefix up to and including the key colon, then strip
+# optional whitespace, then strip the opening quote.
+#
+# Event extraction is done BEFORE the sub-agent early-exit check so that
+# WorktreeCreate (and WorktreeRemove) are handled correctly regardless of
+# whether CLAUDE_MPM_SUB_AGENT is set.
 # =============================================================================
 EVENT=""
 
-# Try hook_event_name first (Claude Code's primary field).
-# Claude Code serialises JSON with a space after ':', e.g.:
-#   {"hook_event_name": "PreToolUse", ...}
-# Strip everything up to (and including) the opening quote of the value,
-# accounting for an optional space between ':' and '"'.
+# Helper: extract the string value of a JSON key from $INPUT.
+# Handles both  "key":"value"  and  "key": "value"  forms.
+# Usage: _extract_json_str "key_name"  → sets TEMP to the value.
+_extract_json_str() {
+    local key="$1"
+    # Strip everything up to and including  "key":
+    TEMP="${INPUT#*\"${key}\":}"
+    # Strip optional leading whitespace (space or tab)
+    TEMP="${TEMP#" "}"
+    TEMP="${TEMP#"	"}"
+    # Strip the leading quote
+    TEMP="${TEMP#\"}"
+    # Trim at the next unescaped quote
+    TEMP="${TEMP%%\"*}"
+}
+
+# Try hook_event_name first (Claude Code's primary field)
 if [[ "$INPUT" == *'"hook_event_name":'* ]]; then
-    # Remove the prefix up to and including 'hook_event_name": ' (with space)
-    TEMP=${INPUT#*\"hook_event_name\": \"}
-    if [[ "$TEMP" == "$INPUT" ]]; then
-        # No space variant: 'hook_event_name":"'
-        TEMP=${INPUT#*\"hook_event_name\":\"}
-    fi
-    EVENT=${TEMP%%\"*}
+    _extract_json_str "hook_event_name"
+    EVENT="$TEMP"
 fi
 
 # Fallback to "event" field if hook_event_name not found
 if [[ -z "$EVENT" ]] && [[ "$INPUT" == *'"event":'* ]]; then
-    TEMP=${INPUT#*\"event\": \"}
-    if [[ "$TEMP" == "$INPUT" ]]; then
-        TEMP=${INPUT#*\"event\":\"}
-    fi
-    EVENT=${TEMP%%\"*}
+    _extract_json_str "event"
+    EVENT="$TEMP"
 fi
 
 # Default to unknown if neither field found
 [[ -z "$EVENT" ]] && EVENT="unknown"
+
+# =============================================================================
+# WorktreeCreate: Claude Code isolation:"worktree" contract
+#
+# Contract (Claude Code spec):
+#   Input (stdin JSON): name (suggested slug), cwd (repo root)
+#   Hook must: run `git worktree add` and print the ABSOLUTE PATH to stdout
+#   Exit 0 on success, non-zero on failure
+#
+# Placement note: This branch runs BEFORE the CLAUDE_MPM_SUB_AGENT early-exit
+# so that worktrees requested for sub-agent isolation are also created.
+# INPUT is already fully read above — no double-consume of stdin.
+# =============================================================================
+if [[ "$EVENT" == "WorktreeCreate" ]]; then
+    # Extract name (suggested slug) and cwd (repo root) from already-read $INPUT.
+    # Use _extract_json_str to handle both compact and spaced JSON colon syntax.
+    NAME=""
+    CWD=""
+
+    if [[ "$INPUT" == *'"name":'* ]]; then
+        _extract_json_str "name"
+        NAME="$TEMP"
+    fi
+    if [[ "$INPUT" == *'"cwd":'* ]]; then
+        _extract_json_str "cwd"
+        CWD="$TEMP"
+    fi
+
+    # Security note: `name` is a user-supplied slug and is sanitized below
+    # (lowercase, non-alnum replaced with '-').  `cwd` and `path` are
+    # Claude-supplied inputs that represent trusted filesystem paths; they are
+    # safely double-quoted in all shell expansions below and never eval'd.
+    SAFE_NAME=""
+    if [[ -n "$NAME" ]]; then
+        SAFE_NAME=$(printf '%s' "$NAME" \
+            | tr '[:upper:]' '[:lower:]' \
+            | tr -cs 'a-z0-9-' '-' \
+            | sed 's/--*/-/g; s/^-//; s/-$//')
+    fi
+
+    # Fall back to a short unique slug when name is empty or sanitizes to empty
+    if [[ -z "$SAFE_NAME" ]]; then
+        SAFE_NAME="worktree-$(date +%s | tr -d '\n' | tail -c 6)"
+    fi
+
+    # Determine repo root: prefer cwd from JSON input, fall back to git detection
+    REPO_ROOT="${CWD:-}"
+    if [[ -z "$REPO_ROOT" ]]; then
+        REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    fi
+    # Canonicalize to an absolute path (resolves symlinks, trailing slashes, etc.)
+    REPO_ROOT=$(cd "$REPO_ROOT" 2>/dev/null && pwd) || REPO_ROOT="${CWD:-$(pwd)}"
+
+    # Worktrees live in a sibling directory: <parent>/<repo-name>-worktrees/<slug>
+    PARENT_DIR=$(dirname "$REPO_ROOT")
+    REPO_BASENAME=$(basename "$REPO_ROOT")
+    WORKTREE_DIR="$PARENT_DIR/${REPO_BASENAME}-worktrees"
+    WORKTREE_PATH="$WORKTREE_DIR/$SAFE_NAME"
+
+    # Ensure the parent directory for worktrees exists
+    mkdir -p "$WORKTREE_DIR"
+
+    # Attempt 1: create worktree and a new branch named $SAFE_NAME.
+    # Redirect both stdout and stderr to suppress "HEAD is now at..." and
+    # "Preparing worktree..." messages that git prints to stdout/stderr.
+    # The echo below is the ONLY output: the absolute worktree path.
+    if git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" -b "$SAFE_NAME" >/dev/null 2>&1; then
+        echo "$WORKTREE_PATH"
+        exit 0
+    fi
+
+    # Attempt 2: create worktree without a new branch.
+    # (branch already exists, detached HEAD, or any other branch situation)
+    if git -C "$REPO_ROOT" worktree add "$WORKTREE_PATH" >/dev/null 2>&1; then
+        echo "$WORKTREE_PATH"
+        exit 0
+    fi
+
+    # Attempt 3: path already exists as a registered worktree — re-use it.
+    if [[ -d "$WORKTREE_PATH" ]] && git -C "$REPO_ROOT" worktree list 2>/dev/null | grep -qF "$WORKTREE_PATH"; then
+        echo "$WORKTREE_PATH"
+        exit 0
+    fi
+
+    # All attempts failed — signal failure to Claude Code
+    exit 1
+fi
+
+# =============================================================================
+# WorktreeRemove: cleanup companion to WorktreeCreate
+#
+# Contract (Claude Code spec, status: not yet publicly confirmed as of 2025-05):
+#   Input (stdin JSON): path (absolute path of worktree to remove)
+#   Hook must: cleanly remove the worktree
+#   Exit 0 expected; stdout not inspected by Claude Code for this event
+#
+# NOTE: If Claude Code does not emit this event the branch is a harmless no-op.
+# Follow-up ticket: confirm WorktreeRemove in Claude Code release notes.
+# =============================================================================
+if [[ "$EVENT" == "WorktreeRemove" ]]; then
+    WORKTREE_PATH=""
+    if [[ "$INPUT" == *'"path":'* ]]; then
+        _extract_json_str "path"
+        WORKTREE_PATH="$TEMP"
+    fi
+
+    if [[ -n "$WORKTREE_PATH" ]]; then
+        # Detect repo root from input cwd, or fall back to git detection
+        REPO_ROOT=""
+        if [[ "$INPUT" == *'"cwd":'* ]]; then
+            _extract_json_str "cwd"
+            REPO_ROOT="$TEMP"
+        fi
+        if [[ -z "$REPO_ROOT" ]]; then
+            REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+        fi
+        REPO_ROOT=$(cd "$REPO_ROOT" 2>/dev/null && pwd) || true
+
+        git -C "$REPO_ROOT" worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+    fi
+
+    echo '{"continue": true}'
+    exit 0
+fi
+
+# =============================================================================
+# Skip hook processing in MPM sub-agent sessions (non-worktree events only)
+# WorktreeCreate/WorktreeRemove have already been handled and exited above.
+# =============================================================================
+if [[ -n "${CLAUDE_MPM_SUB_AGENT}" ]]; then
+  echo '{"continue": true}'
+  exit 0
+fi
 
 # =============================================================================
 # Map event type to subtype for dashboard compatibility
@@ -99,8 +239,8 @@ esac
 # =============================================================================
 TOOL_NAME=""
 if [[ "$INPUT" == *'"tool_name":'* ]]; then
-    TEMP=${INPUT#*\"tool_name\":\"}
-    TOOL_NAME=${TEMP%%\"*}
+    _extract_json_str "tool_name"
+    TOOL_NAME="$TEMP"
 fi
 
 # =============================================================================
@@ -108,8 +248,8 @@ fi
 # =============================================================================
 SESSION_ID=""
 if [[ "$INPUT" == *'"session_id":'* ]]; then
-    TEMP=${INPUT#*\"session_id\":\"}
-    SESSION_ID=${TEMP%%\"*}
+    _extract_json_str "session_id"
+    SESSION_ID="$TEMP"
 fi
 
 # =============================================================================
