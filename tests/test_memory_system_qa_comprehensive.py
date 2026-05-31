@@ -10,6 +10,7 @@ Tests all aspects requested:
 5. Loading Order: User memories load first, then project memories (project overrides)
 """
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -493,8 +494,13 @@ class TestMemorySystemQA:
             stub_agent = deployed_agents_dir / "stub-agent.md"
             stub_agent.write_text("# Stub Agent\nFor testing only.\n")
 
-            # Mock working directory for framework loader
-            with patch("pathlib.Path.cwd", return_value=self.test_project_dir):
+            # Mock working directory for framework loader.
+            # Force flat-file mode so a live MCP memory backend on this host
+            # does not suppress PM_memories.md injection.
+            with (
+                patch("pathlib.Path.cwd", return_value=self.test_project_dir),
+                patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}),
+            ):
                 framework_loader = FrameworkLoader()
                 framework_instructions = framework_loader.get_framework_instructions()
 
