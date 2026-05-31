@@ -215,8 +215,8 @@ def test_pre_tool_use_agent_path_still_works() -> None:
     # permissionDecision so the model-routing info is injected as context
     # rather than surfaced as a chat message (Claude Code v2.1.133+).
     assert "additionalContext" in spec
-    # Engineering agents default to the sonnet model (same as all non-haiku agents).
-    assert spec["updatedInput"]["model"] == "claude-sonnet-4-6"
+    # Assert against the module constant so this test can't drift again.
+    assert spec["updatedInput"]["model"] == model_tier_hook._DEFAULT_MODEL
 
 
 @pytest.mark.unit
