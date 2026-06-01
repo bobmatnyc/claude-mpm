@@ -310,10 +310,14 @@ def amend_commit_message(
 
         new_msg = "\n".join(normalised_lines + trailers)
 
-        # 5. Amend commit --no-verify to avoid recursive hook triggers.
+        # 5. Amend commit.
+        # Pass _RECURSION_GUARD_ENV so the post-commit hook that fires after
+        # the amend sees the sentinel and exits immediately without re-entering.
         # Retry up to 3 times with a brief delay because git may still hold a
         # ref lock immediately after the post-commit hook fires (the original
         # commit write and the hook run slightly overlap on some systems).
+        amend_env = os.environ.copy()
+        amend_env[_RECURSION_GUARD_ENV] = "1"
         amend_result = None
         for _attempt in range(3):
             amend_result = subprocess.run(
@@ -321,8 +325,9 @@ def amend_commit_message(
                 cwd=cwd,
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=60,
                 check=False,
+                env=amend_env,
             )
             if amend_result.returncode == 0:
                 break
@@ -494,6 +499,12 @@ def _find_project_root(start: Path) -> Path | None:
         current = parent
 
 
+# Environment variable used to break recursion.  git post-commit hooks fire
+# even after `git commit --amend --no-verify`, so we must guard against
+# the amend triggering this hook a second time.
+_RECURSION_GUARD_ENV = "CLAUDE_MPM_COMMIT_COST_HOOK_RUNNING"
+
+
 def run_as_git_hook() -> None:
     """Entry point for the git post-commit hook.
 
@@ -507,12 +518,22 @@ def run_as_git_hook() -> None:
     4. Strip generic Co-Authored-By: Claude lines, ensure exactly one canonical
        Co-Authored-By: Claude MPM trailer.
     5. Append X-AI-* trailers.
-    6. Amend HEAD with the enriched message (--no-verify to avoid recursion).
+    6. Amend HEAD with the enriched message.
     7. Append a JSONL record to ~/.claude-mpm/commit-costs.jsonl.
 
     All failures are logged to the debug log and suppressed so the commit is
     never broken by hook errors.
+
+    RECURSION: git always fires post-commit after every commit/amend, even
+    with --no-verify.  We use an environment variable sentinel so the amend
+    we perform does not re-enter this function.
     """
+    # Guard: skip if we are already running (i.e. this invocation is triggered
+    # by our own amend inside step 6).
+    if os.environ.get(_RECURSION_GUARD_ENV):
+        _debug("run_as_git_hook: skipping (recursion guard set)")
+        return
+
     _debug("run_as_git_hook: invoked")
 
     try:
