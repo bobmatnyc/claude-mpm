@@ -85,6 +85,8 @@ CLI (click)  →  Services  →  Agents  →  Claude Code subprocess
                             Skills / MCP servers
 ```
 
+**Deep dive**: See [`docs/developer/AGENT_ASSEMBLY_PIPELINE.md`](docs/developer/AGENT_ASSEMBLY_PIPELINE.md) for how agent definitions are produced, composed, and delivered to running prompts.
+
 Key packages:
 - `cli/` — Click commands and interactive wizards
 - `agents/` — Agent definitions (`.md` files with YAML frontmatter)
