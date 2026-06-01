@@ -584,8 +584,8 @@ class ToolHandler:
 
         # Update context-usage.json from PostToolUse usage data.
         # Claude Code includes cumulative session token counts in PostToolUse events
-        # under the "usage" key. We persist these immediately so commit_cost_tracker
-        # can read fresh data when a git commit is detected below.
+        # under the "usage" key. We persist these so the git post-commit hook
+        # (commit_cost_tracker.run_as_git_hook) can read fresh data when it runs.
         # Fail-open: errors here must never break normal tool processing.
         _post_usage = event.get("usage")
         if _post_usage and isinstance(_post_usage, dict) and working_dir:
@@ -603,96 +603,16 @@ class ToolHandler:
                     ),
                     cache_read=int(_post_usage.get("cache_read_input_tokens", 0) or 0),
                 )
-                try:
-                    from claude_mpm.hooks.commit_cost_tracker import (
-                        _debug as _cct_debug,
-                    )
-
-                    _cct_debug(
-                        f"PostToolUse usage persisted: in={_post_usage.get('input_tokens', 0)} "
-                        f"out={_post_usage.get('output_tokens', 0)} "
-                        f"cache_read={_post_usage.get('cache_read_input_tokens', 0)} "
-                        f"cache_write={_post_usage.get('cache_creation_input_tokens', 0)}"
-                    )
-                except Exception:
-                    pass
             except Exception as _usage_exc:
                 if DEBUG:
                     _log(
                         f"  - context-usage update from PostToolUse failed (fail-open): {_usage_exc}"
                     )
 
-        # Token cost trailers + Co-Authored-By enforcement (issue #600).
-        # Detect a successful `git commit` (not an amend so we don't recurse)
-        # and amend the just-created commit to embed per-commit token delta and
-        # estimated USD cost as git trailers.
-        # Fail-open: any error logs a warning and continues normally.
-        _command = (
-            event.get("tool_input", {}).get("command", "")
-            if isinstance(event.get("tool_input"), dict)
-            else ""
-        )
-        # Always log the check so we can diagnose hook firing issues.
-        try:
-            from claude_mpm.hooks.commit_cost_tracker import _debug as _cct_debug
-
-            _cct_debug(
-                f"PostToolUse check: tool={tool_name} exit={exit_code} "
-                f"cmd_snippet={_command[:80]!r} working_dir={working_dir!r}"
-            )
-        except Exception:
-            pass
-        if (
-            tool_name == "Bash"
-            and exit_code == 0
-            and "git commit" in _command
-            and "--amend" not in _command
-        ):
-            _output = event.get("output", "")
-            try:
-                from claude_mpm.hooks.commit_cost_tracker import (
-                    _debug as _cct_debug,
-                    amend_commit_message,
-                    compute_cost,
-                    extract_commit_sha,
-                    get_token_delta,
-                    write_cost_log,
-                )
-
-                _cct_debug(f"git commit detected: output_snippet={_output[:120]!r}")
-                _sha = extract_commit_sha(_output)
-                _cct_debug(f"  extracted sha={_sha!r}")
-                if _sha and working_dir:
-                    _delta = get_token_delta(working_dir)
-                    _cost = compute_cost(_delta)
-                    amend_commit_message(_sha, _delta, _cost, working_dir)
-                    write_cost_log(_sha, _delta, _cost, working_dir, _output)
-                    _log(
-                        f"  - Embedded cost trailers for commit {_sha}: "
-                        f"in={_delta.get('input_tokens', 0)}, "
-                        f"out={_delta.get('output_tokens', 0)}, "
-                        f"cost=${_cost:.6f}"
-                    )
-                    if DEBUG:
-                        _log(
-                            f"  - Embedded cost trailers for commit {_sha}: "
-                            f"in={_delta.get('input_tokens', 0)}, "
-                            f"out={_delta.get('output_tokens', 0)}, "
-                            f"cost=${_cost:.6f}"
-                        )
-                else:
-                    _cct_debug(f"  SKIP: sha={_sha!r} working_dir={working_dir!r}")
-            except Exception as _exc:
-                try:
-                    from claude_mpm.hooks.commit_cost_tracker import (
-                        _debug as _cct_debug,
-                    )
-
-                    _cct_debug(f"  commit_cost_tracker EXCEPTION: {_exc}")
-                except Exception:
-                    pass
-                if DEBUG:
-                    _log(f"  - commit_cost_tracker failed (fail-open): {_exc}")
+        # NOTE: git commit cost tracking has moved to a git post-commit hook.
+        # The PostToolUse approach only fired for the parent session's Bash
+        # calls; subagent commits were invisible to it.  The hook is installed
+        # by mpm-init and calls commit_cost_tracker.run_as_git_hook() directly.
 
         # Terminal tab-title update (issue #554, default-off).
         # Fire for TodoWrite (task-list updates) and ExitPlanMode.
