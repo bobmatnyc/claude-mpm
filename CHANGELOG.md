@@ -19,6 +19,19 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.1 (2026-05-31)
+
+### Feat
+
+- batch-resolve issues #552 #553 #554 #557 #561 #562 #564 #565 #566 (#572)
+
+### Fix
+
+- native Claude Code compatibility batch 2 (#576, #579, #583, #580) (#586)
+- write trusty-memory-mcp-bridge MCP entry instead of broken serve --mcp (#567) (#585)
+- feature-neutral native Claude Code compatibility (#578, #582) (#584)
+- deployer applies WORKFLOW.md lazy-load reference (#575) (#577)
+
 ## v6.5.0 (2026-05-29)
 
 ### Feat
