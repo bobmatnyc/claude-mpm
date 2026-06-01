@@ -502,7 +502,7 @@ def _find_project_root(start: Path) -> Path | None:
 # Environment variable used to break recursion.  git post-commit hooks fire
 # even after `git commit --amend --no-verify`, so we must guard against
 # the amend triggering this hook a second time.
-_RECURSION_GUARD_ENV = "CLAUDE_MPM_COMMIT_COST_HOOK_RUNNING"
+_RECURSION_GUARD_ENV = "CLAUDE_MPM_COMMIT_COST_RUNNING"
 
 
 def run_as_git_hook() -> None:
