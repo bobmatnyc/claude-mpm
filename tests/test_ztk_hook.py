@@ -265,3 +265,155 @@ def test_status_off_when_disabled(tmp_path, monkeypatch):
     active, reason = ztk_hook.ztk_status()
     assert active is False
     assert reason == "disabled via --no-ztk"
+
+
+# ---------------------------------------------------------------------------
+# GOAL 1 fail-safe: timeout / hang -> passthrough
+# ---------------------------------------------------------------------------
+def test_verify_timeout_is_nonfunctional(tmp_path, monkeypatch):
+    """A hanging/unreachable binary (TimeoutExpired) -> verify False."""
+    import subprocess
+
+    ztk = _working_ztk(tmp_path / "ztk")
+
+    def _raise_timeout(*_a, **_k):
+        raise subprocess.TimeoutExpired(cmd="ztk", timeout=ztk_hook._VERIFY_TIMEOUT_S)
+
+    monkeypatch.setattr(ztk_hook.subprocess, "run", _raise_timeout)
+    assert ztk_hook.verify_ztk_binary(str(ztk), use_cache=False) is False
+
+
+def test_verify_oserror_is_nonfunctional(tmp_path, monkeypatch):
+    """Any OSError while probing -> verify False (degrade safely)."""
+    ztk = _working_ztk(tmp_path / "ztk")
+
+    def _raise_oserror(*_a, **_k):
+        raise OSError("exec format error")  # e.g. wrong-arch binary
+
+    monkeypatch.setattr(ztk_hook.subprocess, "run", _raise_oserror)
+    assert ztk_hook.verify_ztk_binary(str(ztk), use_cache=False) is False
+
+
+def test_timeout_binary_passthrough(tmp_path, monkeypatch):
+    """End-to-end: a timing-out binary must yield a clean passthrough."""
+    import subprocess
+
+    ztk = _working_ztk(tmp_path / "ztk")
+    _force_candidate(monkeypatch, ztk)
+
+    def _raise_timeout(*_a, **_k):
+        raise subprocess.TimeoutExpired(cmd="ztk", timeout=3.0)
+
+    monkeypatch.setattr(ztk_hook.subprocess, "run", _raise_timeout)
+    resp = ztk_hook.build_ztk_response(_bash_event("git status"))
+    assert resp == {"continue": True}
+
+
+def test_build_response_exception_passthrough(tmp_path, monkeypatch):
+    """If the impl raises for ANY reason, the guard returns continue=True."""
+
+    def _boom(_event):
+        raise RuntimeError("unexpected bug on the hot path")
+
+    monkeypatch.setattr(ztk_hook, "_build_ztk_response_impl", _boom)
+    resp = ztk_hook.build_ztk_response(_bash_event("git status"))
+    assert resp == {"continue": True}
+    assert "hookSpecificOutput" not in resp
+
+
+# ---------------------------------------------------------------------------
+# GOAL 2: version detection + currency
+# ---------------------------------------------------------------------------
+def _versioned_ztk(path: Path, version: str) -> Path:
+    """A working stub that also answers ``--version`` with ``ztk <version>``.
+
+    Round-trips ``run`` like _working_ztk, but prints a version line when the
+    first arg is a version flag/subcommand.
+    """
+    body = (
+        "#!/bin/sh\n"
+        'case "$1" in\n'
+        f'  --version|version|-V|-v) echo "ztk {version}"; exit 0;;\n'
+        "esac\n"
+        'shift\nexec "$@"\n'
+    )
+    return _make_exec(path, body)
+
+
+def test_detect_version_parses_semver(tmp_path):
+    ztk = _versioned_ztk(tmp_path / "ztk", "v0.2.1")
+    assert ztk_hook.detect_ztk_version(str(ztk), use_cache=False) == "v0.2.1"
+
+
+def test_detect_version_unparseable_returns_none(tmp_path):
+    """A binary with no parseable version -> None (graceful, not an error)."""
+    # _working_ztk has no version flag; --version just runs `--version` which
+    # the shell stub execs (errors), producing no semver.
+    ztk = _working_ztk(tmp_path / "ztk")
+    assert ztk_hook.detect_ztk_version(str(ztk), use_cache=False) is None
+
+
+def test_detect_version_cached(tmp_path, monkeypatch):
+    ztk = _versioned_ztk(tmp_path / "ztk", "v0.2.0")
+    calls = {"n": 0}
+    real = ztk_hook._run_ztk_version_probe
+
+    def _counting(path):
+        calls["n"] += 1
+        return real(path)
+
+    monkeypatch.setattr(ztk_hook, "_run_ztk_version_probe", _counting)
+    assert ztk_hook.detect_ztk_version(str(ztk)) == "v0.2.0"
+    assert ztk_hook.detect_ztk_version(str(ztk)) == "v0.2.0"
+    assert calls["n"] == 1  # second call served from cache
+
+
+def test_currency_current_outdated_unknown():
+    assert ztk_hook._compute_currency("v0.2.1", "v0.2.1") == "current"
+    assert ztk_hook._compute_currency("v0.2.2", "v0.2.1") == "current"
+    assert ztk_hook._compute_currency("v0.2.0", "v0.2.1") == "outdated"
+    assert ztk_hook._compute_currency(None, "v0.2.1") == "unknown"
+    assert ztk_hook._compute_currency("v0.2.1", None) == "unknown"
+
+
+def test_status_detail_current(tmp_path, monkeypatch):
+    ztk = _versioned_ztk(tmp_path / "ztk", "v0.2.1")
+    _force_candidate(monkeypatch, ztk)
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.2.1")
+    detail = ztk_hook.ztk_status_detail()
+    assert detail["active"] is True
+    assert detail["installed_version"] == "v0.2.1"
+    assert detail["currency"] == "current"
+
+
+def test_status_detail_outdated_still_active(tmp_path, monkeypatch):
+    """An OLD but functional binary stays active; only currency flags outdated."""
+    ztk = _versioned_ztk(tmp_path / "ztk", "v0.2.0")
+    _force_candidate(monkeypatch, ztk)
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.2.1")
+    detail = ztk_hook.ztk_status_detail()
+    assert detail["active"] is True  # NEVER disabled over version mismatch
+    assert detail["currency"] == "outdated"
+    assert detail["installed_version"] == "v0.2.0"
+    assert detail["required_version"] == "v0.2.1"
+
+
+def test_status_detail_unparseable_version(tmp_path, monkeypatch):
+    """Functional binary with unknown version -> active, currency unknown."""
+    ztk = _working_ztk(tmp_path / "ztk")  # no --version
+    _force_candidate(monkeypatch, ztk)
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.2.1")
+    detail = ztk_hook.ztk_status_detail()
+    assert detail["active"] is True
+    assert detail["installed_version"] is None
+    assert detail["currency"] == "unknown"
+
+
+def test_status_detail_never_raises(monkeypatch):
+    """ztk_status_detail must fail-safe to a dict, never raise."""
+    monkeypatch.setattr(
+        ztk_hook, "ztk_status", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    )
+    detail = ztk_hook.ztk_status_detail()
+    assert detail["active"] is False
+    assert detail["currency"] == "unknown"

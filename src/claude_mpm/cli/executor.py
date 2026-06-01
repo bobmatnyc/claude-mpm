@@ -440,6 +440,12 @@ def execute_command(command: str, args) -> int:
             args.days = 0
         return run_ztk_stats(args)
 
+    # Handle ztk command group (status / check / update) with lazy import
+    if command == "ztk":
+        from .commands.ztk import run_ztk
+
+        return run_ztk(args)
+
     # Handle llmlingua-stats command with lazy import (experimental)
     if command == "llmlingua-stats":
         from .commands.llmlingua_stats import run_llmlingua_stats
@@ -511,6 +517,7 @@ def execute_command(command: str, args) -> int:
         "slack",
         "provider",
         "update-statusline",
+        "ztk",
         "ztk-stats",
         "llmlingua-stats",
     ]

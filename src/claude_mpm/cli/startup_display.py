@@ -283,26 +283,40 @@ def _get_ztk_status() -> tuple[bool, str]:
     the binary is unchanged.
     """
     try:
-        from claude_mpm.hooks.ztk_hook import ztk_status as _ztk_status
+        from claude_mpm.hooks.ztk_hook import ztk_status_detail
 
-        active, reason = _ztk_status()
+        detail = ztk_status_detail()
     except Exception:
         # Fail-safe: if status probing breaks, report off rather than lie.
         return (False, "  ztk compression: off  (status unavailable)")
 
+    active = detail.get("active", False)
+    reason = detail.get("reason", "")
+    installed = detail.get("installed_version")
+    required = detail.get("required_version")
+    currency = detail.get("currency", "unknown")
+
     if active:
-        return (True, "⚡ ztk compression: on   (disable with --no-ztk)")
+        # Reflect version + currency truthfully (advisory, never gating).
+        if currency == "outdated":
+            return (
+                True,
+                f"⚡ ztk compression: outdated ({installed or '?'} < {required}) — "
+                "run 'claude-mpm ztk update'",
+            )
+        ver = f" ({installed})" if installed else ""
+        return (True, f"⚡ ztk compression: on{ver}   (disable with --no-ztk)")
 
     if reason == "disabled via --no-ztk":
         return (False, "  ztk compression: off  (disabled via --no-ztk)")
     if reason == "binary present but non-functional":
         return (
             False,
-            "  ztk compression: off  (binary non-functional — run: make download-ztk)",
+            "  ztk compression: off  (binary non-functional — run: claude-mpm ztk update)",
         )
     return (
         False,
-        "  ztk compression: off  (binary not found — run: make download-ztk)",
+        "  ztk compression: off  (binary not found — run: claude-mpm ztk update)",
     )
 
 

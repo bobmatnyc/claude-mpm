@@ -349,6 +349,13 @@ wheels/
 kuzu-memories/
 .zshrc
 bin/
+# ...but DO track the bundled-ztk version manifest (single source of truth for
+# the pinned ztk version, read by both the Makefile and ztk_hook.py). The ztk
+# binary itself stays ignored (populated at release by download_ztk_binaries.sh).
+# Re-include the dir path so git descends into it, then the specific manifest.
+!src/claude_mpm/bin/
+!src/claude_mpm/bin/ztk_version.txt
+src/claude_mpm/bin/ztk
 
 # MCP Ticketer
 .mcp-ticketer/
