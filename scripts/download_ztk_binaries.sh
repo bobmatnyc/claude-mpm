@@ -6,6 +6,11 @@
 # build CI (.github/workflows/release-wheels.yml) downloads all 4 binaries
 # in parallel; this script targets local/single-platform builds.
 #
+# The <ztk-tag> is PINNED for reproducible/deterministic builds — the canonical
+# source of truth is src/claude_mpm/bin/ztk_version.txt (the Makefile's
+# `download-ztk` target reads it; `claude-mpm ztk update` passes it here). Never
+# fetch "latest by accident"; always pass an explicit tag.
+#
 # Usage:
 #   scripts/download_ztk_binaries.sh <ztk-tag>
 #
