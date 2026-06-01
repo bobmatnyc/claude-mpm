@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
-_ZTK_REPO = "bobmatnyc/ztk"
+_ZTK_REPO = "codejunkie99/ztk"
 _LATEST_CACHE = Path.home() / ".claude-mpm" / "ztk-latest-cache.json"
 _LATEST_TTL = timedelta(hours=24)
 _LATEST_TIMEOUT_S = 4.0
