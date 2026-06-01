@@ -364,12 +364,150 @@ def _warn_nonfunctional_once() -> None:
     )
 
 
+_ZTK_AUTOINSTALL_SENTINEL_BASE = _MPM_LOG_DIR / ".ztk-autoinstall-attempted"
+_AUTOINSTALL_LOCK = False  # process-level guard: only attempt once per process
+
+
+def _auto_install_ztk() -> None:
+    """Attempt a one-time silent auto-install of ztk on first run.
+
+    Guards:
+    - Only runs when ``CLAUDE_MPM_DISABLE_ZTK`` is not set.
+    - Keyed to the required version string so it retries when the pinned
+      version bumps (e.g. after a claude-mpm upgrade).
+    - A sentinel file ``~/.claude-mpm/.ztk-autoinstall-attempted-<version>``
+      is created BEFORE the download attempt so the install never retries
+      more than once, even if the download fails.
+    - Fast-failing: any error is caught and printed as a one-line warning.
+      Never raises; never blocks the Bash hot path (only called once).
+
+    WHY inline downloader (not importing from cli.commands.ztk):
+    - ``ztk_hook.py`` runs as a subprocess on every Bash call. The auto-install
+      only triggers once (guarded by sentinel + process-level lock), but we
+      want the import cost of this module to remain minimal. The downloader
+      is implemented locally using only stdlib already imported here.
+    """
+    global _AUTOINSTALL_LOCK
+    if _AUTOINSTALL_LOCK:
+        return
+    if os.environ.get(_DISABLE_ENV_VAR, "").lower() in ("1", "true", "yes"):
+        return
+
+    required_version = _read_required_version()
+    # If we can't determine the required version, skip — nothing to install.
+    if not required_version:
+        return
+
+    sentinel = Path(str(_ZTK_AUTOINSTALL_SENTINEL_BASE) + f"-{required_version}")
+
+    if sentinel.exists():
+        return  # Already attempted for this version
+
+    _AUTOINSTALL_LOCK = True
+
+    try:
+        _MPM_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        sentinel.touch()  # Mark as attempted BEFORE download (fail-safe)
+    except OSError:
+        pass  # Best-effort; proceed anyway
+
+    print(
+        f"[ztk] First-run: installing ztk {required_version}...",
+        file=sys.stderr,
+        flush=True,
+    )
+
+    try:
+        _inline_download_ztk(required_version)
+    except Exception as exc:
+        print(
+            f"[ztk] Auto-install failed: {exc} — run 'claude-mpm ztk update' manually.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return
+
+    # Clear memo so the newly installed binary is picked up immediately.
+    _RESOLVE_MEMO.clear()
+
+
+def _inline_download_ztk(tag: str) -> None:
+    """Minimal inline ztk downloader used by the auto-install path.
+
+    Writes ONLY to ``~/.claude-mpm/bin/ztk`` (the hook always has write
+    access there; the package dir may be read-only in installed wheels).
+    Raises on any error so ``_auto_install_ztk`` can catch and warn.
+    """
+    import platform
+    import tarfile
+    import tempfile
+
+    machine = sys.platform
+    arch = platform.machine().lower()
+
+    if machine == "darwin":
+        _arch = "aarch64" if arch in ("arm64", "aarch64") else "x86_64"
+        asset = f"ztk-{_arch}-macos.tar.gz"
+    elif machine.startswith("linux"):
+        _arch = "aarch64" if arch in ("aarch64", "arm64") else "x86_64"
+        asset = f"ztk-{_arch}-linux-musl.tar.gz"
+    else:
+        raise RuntimeError(f"unsupported platform {machine}/{arch}")
+
+    url = f"https://github.com/codejunkie99/ztk/releases/download/{tag}/{asset}"
+    _log_debug(f"auto-install: downloading {url}")
+
+    import urllib.request as _urlreq
+
+    with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as _tf:
+        tmp_path = Path(_tf.name)
+    try:
+        req = _urlreq.Request(
+            url,
+            headers={"Accept": "application/octet-stream", "User-Agent": "claude-mpm"},
+        )
+        with _urlreq.urlopen(req, timeout=60) as resp:  # nosec B310 — https fixed
+            tmp_path.write_bytes(resp.read())
+
+        ztk_bytes: bytes | None = None
+        with tarfile.open(tmp_path, "r:gz") as tf:
+            for member in tf.getmembers():
+                if member.isfile() and (
+                    member.name == "ztk" or member.name.endswith("/ztk")
+                ):
+                    fobj = tf.extractfile(member)
+                    if fobj is not None:
+                        ztk_bytes = fobj.read()
+                    break
+
+        if not ztk_bytes:
+            raise RuntimeError("ztk binary not found inside tarball")
+
+        dest = _MPM_LOG_DIR / "bin" / "ztk"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(ztk_bytes)
+        mode = dest.stat().st_mode
+        dest.chmod(mode | 0o111)
+        _log_debug(f"auto-install: wrote {len(ztk_bytes)} bytes to {dest}")
+        print(
+            f"[ztk] Installed ztk {tag} to {dest}",
+            file=sys.stderr,
+            flush=True,
+        )
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 def _resolve_ztk(*, verify: bool = True) -> str | None:
     """Resolve a FUNCTIONAL ztk executable path, or None for passthrough.
 
     Resolution order:
     1. System PATH (`shutil.which("ztk")`) — user's install takes precedence
-    2. Bundled binary at `claude_mpm/bin/ztk` (chmod +x if needed)
+    2. User-local auto-install: ``~/.claude-mpm/bin/ztk``
+    3. Bundled binary at `claude_mpm/bin/ztk` (chmod +x if needed)
 
     A candidate must pass THREE gates before it is returned:
       (a) non-empty regular file (size > 0),
@@ -382,10 +520,19 @@ def _resolve_ztk(*, verify: bool = True) -> str | None:
     caller passes the command through UNCHANGED — never rewriting to a binary we
     have not proven works. Pass `verify=False` to skip the self-test (used by
     callers that only need a path candidate for status display).
+
+    Auto-install: when `verify=True` and no usable binary is found yet, a
+    one-time first-run install is triggered via `_auto_install_ztk()`.
     """
     memo_key = "1" if verify else "0"
     if memo_key in _RESOLVE_MEMO:
         return _RESOLVE_MEMO[memo_key]
+
+    # Trigger first-run auto-install when on the verified path and no binary is
+    # currently available. The install is guarded by a sentinel file so it only
+    # runs once per required version.
+    if verify:
+        _auto_install_ztk()
 
     candidates: list[Path] = []
 
@@ -394,7 +541,12 @@ def _resolve_ztk(*, verify: bool = True) -> str | None:
     if system_ztk:
         candidates.append(Path(system_ztk))
 
-    # 2. Bundled binary via importlib.resources
+    # 2. User-local auto-install location
+    user_local = _MPM_LOG_DIR / "bin" / "ztk"
+    if user_local.exists():
+        candidates.append(user_local)
+
+    # 3. Bundled binary via importlib.resources
     try:
         bundled = resources.files("claude_mpm").joinpath("bin", "ztk")
         candidates.append(Path(str(bundled)))
