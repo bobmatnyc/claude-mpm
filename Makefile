@@ -809,10 +809,12 @@ build-info-json: build-metadata ## Display build metadata from JSON
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify
 .PHONY: release-dry-run release-test-pypi increment-build download-ztk
 
-# Pinned ztk version for bundled binary distribution
-# Update this when bumping the bundled ztk; the binary is downloaded from
-# https://github.com/bobmatnyc/ztk/releases/download/$(ZTK_VERSION)/ztk-<platform>
-ZTK_VERSION ?= v0.2.1
+# Pinned ztk version for bundled binary distribution.
+# SINGLE SOURCE OF TRUTH: src/claude_mpm/bin/ztk_version.txt (also read by
+# ztk_hook.py for the startup currency check). To bump the bundled ztk, edit
+# that manifest — do not hardcode the version here. The binary is downloaded
+# from https://github.com/bobmatnyc/ztk/releases/download/$(ZTK_VERSION)/ztk-<platform>
+ZTK_VERSION ?= $(shell cat src/claude_mpm/bin/ztk_version.txt 2>/dev/null || echo v0.2.1)
 
 # Download bundled ztk binary for the current build platform
 download-ztk: ## Download bundled ztk binary into src/claude_mpm/bin/
