@@ -393,3 +393,4 @@ dashboard/static/svelte-build/
 # .gh-account
 .kuzu_memory.db.wal
 .fastembed_cache/
+.trusty-search/
