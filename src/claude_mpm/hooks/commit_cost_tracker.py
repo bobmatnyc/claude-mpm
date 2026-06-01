@@ -321,7 +321,16 @@ def amend_commit_message(
         amend_result = None
         for _attempt in range(3):
             amend_result = subprocess.run(
-                ["git", "commit", "--amend", "--no-edit", "-m", new_msg, "--no-verify"],
+                [
+                    "git",
+                    "commit",
+                    "--amend",
+                    "--no-edit",
+                    "--allow-empty",
+                    "-m",
+                    new_msg,
+                    "--no-verify",
+                ],
                 cwd=cwd,
                 capture_output=True,
                 text=True,
