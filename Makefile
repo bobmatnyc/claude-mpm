@@ -978,6 +978,16 @@ publish-pypi: ## Publish package to PyPI using credentials from .env.local
 # Update Homebrew tap formula (non-blocking)
 update-homebrew-tap: ## Update Homebrew tap formula after PyPI publish (non-blocking)
 	@echo "$(YELLOW)🍺 Updating Homebrew tap...$(NC)"
+	@echo "$(YELLOW)⏳ Waiting for release-wheels.yml CI to finish before polling PyPI...$(NC)"
+	@RUN_ID=$$(gh run list --workflow=release-wheels.yml --repo bobmatnyc/claude-mpm --limit=1 --json databaseId --jq '.[0].databaseId' 2>/dev/null); \
+	if [ -n "$$RUN_ID" ]; then \
+		echo "$(BLUE)ℹ  Watching CI run $$RUN_ID (release-wheels.yml)...$(NC)"; \
+		gh run watch "$$RUN_ID" --repo bobmatnyc/claude-mpm --exit-status 2>/dev/null && \
+			echo "$(GREEN)✓ CI wheels build completed$(NC)" || \
+			echo "$(YELLOW)⚠️  CI run did not finish cleanly — attempting Homebrew update anyway$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  Could not find release-wheels.yml run ID — attempting Homebrew update anyway$(NC)"; \
+	fi
 	@VERSION=$$(cat VERSION); \
 	if [ -f "scripts/update_homebrew_tap.sh" ]; then \
 		./scripts/update_homebrew_tap.sh "$$VERSION" --auto-push || { \
