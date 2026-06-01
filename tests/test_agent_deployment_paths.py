@@ -46,11 +46,7 @@ def test_agent_deployment_paths():
         Path(__file__).parent.parent / "src" / "claude_mpm" / "agents" / "templates"
     )
     expected_base = (
-        Path(__file__).parent.parent
-        / "src"
-        / "claude_mpm"
-        / "agents"
-        / "base_agent.json"
+        Path(__file__).parent.parent / "src" / "claude_mpm" / "agents" / "BASE_AGENT.md"
     )
 
     print(f"\nExpected templates: {expected_templates}")
