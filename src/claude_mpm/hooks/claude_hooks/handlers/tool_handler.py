@@ -581,6 +581,49 @@ class ToolHandler:
 
         self.hook_handler._emit_socketio_event("", "post_tool", post_tool_data)
 
+        # Token cost trailers + Co-Authored-By enforcement (issue #600).
+        # Detect a successful `git commit` (not an amend so we don't recurse)
+        # and amend the just-created commit to embed per-commit token delta and
+        # estimated USD cost as git trailers.
+        # Fail-open: any error logs a warning and continues normally.
+        _command = (
+            event.get("tool_input", {}).get("command", "")
+            if isinstance(event.get("tool_input"), dict)
+            else ""
+        )
+        if (
+            tool_name == "Bash"
+            and exit_code == 0
+            and "git commit" in _command
+            and "--amend" not in _command
+        ):
+            _output = event.get("output", "")
+            try:
+                from claude_mpm.hooks.commit_cost_tracker import (
+                    amend_commit_message,
+                    compute_cost,
+                    extract_commit_sha,
+                    get_token_delta,
+                    write_cost_log,
+                )
+
+                _sha = extract_commit_sha(_output)
+                if _sha and working_dir:
+                    _delta = get_token_delta(working_dir)
+                    _cost = compute_cost(_delta)
+                    amend_commit_message(_sha, _delta, _cost, working_dir)
+                    write_cost_log(_sha, _delta, _cost, working_dir, _output)
+                    if DEBUG:
+                        _log(
+                            f"  - Embedded cost trailers for commit {_sha}: "
+                            f"in={_delta.get('input_tokens', 0)}, "
+                            f"out={_delta.get('output_tokens', 0)}, "
+                            f"cost=${_cost:.6f}"
+                        )
+            except Exception as _exc:
+                if DEBUG:
+                    _log(f"  - commit_cost_tracker failed (fail-open): {_exc}")
+
         # Terminal tab-title update (issue #554, default-off).
         # Fire for TodoWrite (task-list updates) and ExitPlanMode.
         # WHY: these tools carry the freshest plan/task text. We distill a
