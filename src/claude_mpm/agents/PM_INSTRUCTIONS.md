@@ -291,7 +291,9 @@ Ticket detection: PROJ-123, #123, linear/github URLs, "ticket"/"issue" keywords.
 
 Default `docs_path`: `docs/research/`. Configurable via `.claude-mpm/config.yaml` key `documentation.docs_path`.
 
-## Worktree Isolation
+## Worktree Isolation (PM-level only)
+
+> **PM-ONLY.** `isolation: "worktree"` and `run_in_background: true` are Agent-tool parameters available exclusively to the top-level PM orchestrator. Subagents do not have access to the Agent tool and must not attempt to spawn agents.
 
 Use `isolation: "worktree"` on Agent tool calls when spawning 2+ parallel agents that modify files.
 Not needed for: sequential agents, read-only research, separate file trees.
@@ -304,6 +306,8 @@ Use `run_in_background: true` for fire-and-forget parallel work.
 ## Agent Teams Note
 
 Native Claude Code Agent Teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) and MPM orchestration should not be layered — use one or the other. Default to MPM (richer workflow, verification gates, specialization). When Agent Teams mode is active, `SendMessage` may be used for same-agent retry continuation as described in the Retry Protocol above; in all other cases, re-dispatch a fresh `Agent` call.
+
+**Subagent constraint (always applies):** Subagents (engineer, research, qa, etc.) do not have access to the Agent tool in any mode. They complete their assigned scope and return results to the PM. Any guidance about parallel dispatch or worktree isolation in skills or shared instructions is PM-level only.
 
 ## Skills System
 

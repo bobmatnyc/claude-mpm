@@ -113,30 +113,39 @@ Task("Fix retry logic in notification service")
 
 ### Strategy 3: Hierarchical Dispatch
 
-**Best for:** Large-scale problems with clear subsystem boundaries
+> **⚠️ CONCEPTUAL / NOT SUPPORTED (#581).** This strategy depicts spawned
+> subsystem-lead agents that themselves dispatch further sub-tasks (Level 2).
+> In Claude MPM / Claude Code, **only the top-level PM orchestrator has access
+> to the `Agent`/`Task` tool; spawned subagents cannot spawn sub-subagents**
+> (harness-enforced). The "subsystem agent creates Task(...)" calls below do
+> NOT work in practice. To achieve the same scale, the **PM itself** flattens
+> the hierarchy and dispatches the Level-2 focused tasks directly (optionally
+> in waves), reviewing each subsystem's results before launching the next.
+> Treat the example below as an org-chart of work, not as runnable nesting.
+
+**Best for (PM-level only):** Large-scale problems with clear subsystem boundaries
 
 ```typescript
-// Level 1: Subsystem leads
+// CONCEPTUAL MODEL — illustrates the logical grouping, NOT real nesting.
+// Level 1: Subsystem leads (conceptual grouping of work)
 Task("Auth subsystem: Investigate and delegate 5 test failures")
 Task("Payments subsystem: Investigate and delegate 4 test failures")
 
-// Level 2: Each subsystem agent dispatches focused tasks
-// Auth agent creates:
+// Level 2: NOT spawned by the subsystem agents (subagents cannot spawn agents).
+// The PM dispatches these focused tasks directly instead:
   Task("Fix OAuth token refresh logic")
   Task("Fix session timeout handling")
-
-// Payments agent creates:
   Task("Fix Stripe webhook handling")
   Task("Fix refund processing")
 ```
 
 **Advantages:**
-- Scales to large problem sets
-- Domain experts coordinate sub-tasks
+- Scales to large problem sets (PM-flattened waves)
+- Domain grouping aids verification
 - Natural verification points
 
 **Disadvantages:**
-- Higher coordination overhead
+- Higher coordination overhead (all on the PM — no real sub-delegation)
 - More complex integration
 - Requires clear subsystem boundaries
 
