@@ -32,6 +32,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -93,6 +94,10 @@ _COAUTHORED_CANONICAL_RE = re.compile(
     r"^Co-Authored-By:\s+Claude MPM\s+<https://github\.com/bobmatnyc/claude-mpm>",
     re.IGNORECASE | re.MULTILINE,
 )
+
+# Regex to strip X-AI-* trailers that already exist so we never duplicate them.
+# Matches lines like "X-AI-Tokens-In: 123" or "X-AI-Est-Cost-USD: 0.000012".
+_XAI_TRAILER_RE = re.compile(r"^X-AI-[^\n]+$", re.MULTILINE)
 
 # Regex to extract the short SHA from a successful `git commit` output.
 # Example: "[main abc1234] Add feature"
@@ -257,6 +262,12 @@ def amend_commit_message(
         # 3. Remove any existing canonical trailer so we add exactly one.
         cleaned_msg = _COAUTHORED_CANONICAL_RE.sub("", cleaned_msg)
 
+        # 3b. Remove any existing X-AI-* trailers so they are never duplicated.
+        #     This is the idempotency guard: if the hook runs twice on the same
+        #     commit (e.g. from parallel processes or manual re-runs) the second
+        #     pass strips the first set of trailers before appending a fresh one.
+        cleaned_msg = _XAI_TRAILER_RE.sub("", cleaned_msg)
+
         # Strip trailing whitespace from each line and remove consecutive blank lines.
         lines = cleaned_msg.splitlines()
         normalised_lines: list[str] = []
@@ -300,22 +311,35 @@ def amend_commit_message(
         new_msg = "\n".join(normalised_lines + trailers)
 
         # 5. Amend commit --no-verify to avoid recursive hook triggers.
-        amend_result = subprocess.run(
-            ["git", "commit", "--amend", "--no-edit", "-m", new_msg, "--no-verify"],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-        if amend_result.returncode != 0:
-            _debug(
-                f"  amend FAILED (rc={amend_result.returncode}): {amend_result.stderr.strip()}"
+        # Retry up to 3 times with a brief delay because git may still hold a
+        # ref lock immediately after the post-commit hook fires (the original
+        # commit write and the hook run slightly overlap on some systems).
+        amend_result = None
+        for _attempt in range(3):
+            amend_result = subprocess.run(
+                ["git", "commit", "--amend", "--no-edit", "-m", new_msg, "--no-verify"],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
             )
+            if amend_result.returncode == 0:
+                break
+            # "cannot lock ref" or "index.lock" means git is still busy
+            if "lock" in amend_result.stderr.lower():
+                _debug(f"  amend attempt {_attempt + 1} hit lock, retrying after 0.3s")
+                time.sleep(0.3)
+            else:
+                break  # Non-lock error; no point retrying
+
+        if amend_result is None or amend_result.returncode != 0:
+            stderr = amend_result.stderr.strip() if amend_result else "no result"
+            _debug(f"  amend FAILED: {stderr}")
             logger.warning(
                 "commit_cost_tracker: amend failed for %s: %s",
                 commit_sha,
-                amend_result.stderr.strip(),
+                stderr,
             )
         else:
             _debug(f"  amend OK for {commit_sha}")
