@@ -1,7 +1,13 @@
 ---
-description: "Run the test suite"
+description: "Run the test suite (MPM-provided command — may be shadowed by a user command of the same name)"
 argument-hint: "[path or pytest flags]"
 ---
+
+> **Note (MPM-provided command)**: This `/test` command is shipped by claude-mpm.
+> If you have a project or user-level command also named `/test`, it will shadow
+> this one.  The collision is intentional — user commands take precedence.  If
+> you need both, rename your local command or invoke this via `/test` while the
+> MPM copy is active.
 
 Run the claude-mpm test suite.
 
