@@ -275,6 +275,65 @@ ztk run find src/ -name "*.py"
 
 ---
 
+## Version Currency
+
+Claude MPM pins the ztk version it expects and surfaces whether your installed
+binary is current.
+
+### Single source of truth
+
+The pinned version lives in `src/claude_mpm/bin/ztk_version.txt` (e.g. `v0.2.1`).
+Both the release process (`make download-ztk` / `scripts/download_ztk_binaries.sh`)
+and the runtime currency check read this one file, so the bundled binary, the
+reproducible-fetch tag, and the startup status can never drift apart. To bump
+the bundled ztk, edit that manifest — nothing else.
+
+### Startup status (automatic, no network)
+
+At startup, claude-mpm detects the installed binary's actual version (via
+`ztk --version`/`version`/`-V`, parsed as semver) and compares it to the pinned
+version. The result is cached by binary fingerprint (mtime/size), so there is no
+per-startup subprocess cost once the binary is unchanged. The banner shows one of:
+
+- `⚡ ztk compression: on (v0.2.1)` — current and functional
+- `⚡ ztk compression: outdated (v0.2.0 < v0.2.1) — run 'claude-mpm ztk update'`
+- `ztk compression: off (...)` — disabled or non-functional
+
+If ztk exposes no parseable version, the status reads `on` with no version shown
+(version is **advisory** — a working binary is never disabled over an unknown or
+older version; only a failed functional self-test disables it).
+
+### `claude-mpm ztk` command family
+
+```bash
+# Show active state + installed/required version + currency (no network)
+claude-mpm ztk status
+
+# Compare the pinned version against the latest GitHub release.
+# Cached for 24h and fully network-failure tolerant (never blocks or errors).
+claude-mpm ztk check
+
+# Download the PINNED ztk binary (deterministic/reproducible)
+claude-mpm ztk update
+
+# Or fetch the latest upstream release explicitly
+claude-mpm ztk update --latest
+```
+
+### Automatic vs manual
+
+| Action | When | Network? |
+|--------|------|----------|
+| Version detection + currency status | Every startup (cached) | No |
+| Latest-release lookup (`ztk check`) | Manual, opt-in | Yes (cached 24h, fault-tolerant) |
+| Binary download (`ztk update`) | Manual only | Yes |
+
+There is **no** silent runtime auto-download. Updates are always explicit, so a
+session is never blocked on a network call and the binary version is always
+deterministic.
+
+---
+
 ## How It's Distributed
 
 ### Bundled Binary
