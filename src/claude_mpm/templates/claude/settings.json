@@ -78,19 +78,6 @@
         ]
       }
     ],
-    "StopFailure": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claude-hook-fast.sh StopFailure",
-            "timeout": 60,
-            "_mpm": true
-          }
-        ]
-      }
-    ],
     "SubagentStop": [
       {
         "matcher": "*",
@@ -129,19 +116,6 @@
             "timeout": 5,
             "_mpm": true,
             "_mpm_service": "memory-capture"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claude-hook-fast.sh SessionEnd",
-            "timeout": 60,
-            "_mpm": true
           }
         ]
       }
@@ -192,19 +166,6 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
-            "_mpm": true
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claude-hook-fast.sh PostCompact",
-            "timeout": 60,
             "_mpm": true
           }
         ]
