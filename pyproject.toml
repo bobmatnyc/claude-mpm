@@ -51,6 +51,7 @@ claude-mpm = "claude_mpm.cli:main"
 claude-hook = "claude_mpm.hooks.claude_hooks.hook_handler:main"
 claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 claude-mpm-serve = "claude_mpm.services.ui_service.main:main"
+commit-cost-hook = "claude_mpm.hooks.commit_cost_tracker:run_as_git_hook"
 
 [tool.mypy]
 python_version = "3.13"
