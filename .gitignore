@@ -3,6 +3,13 @@
 .ai-trackdown/logs/
 *.tmp
 
+# Temporary CI log downloads
+tmp_logs/
+run_logs*.zip
+extracted/
+run_logs_dir/
+run_logs_new/
+
 # Trusty search local config
 .trusty-search
 
