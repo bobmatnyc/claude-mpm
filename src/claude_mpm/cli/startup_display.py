@@ -274,36 +274,36 @@ def _get_ztk_status() -> tuple[bool, str]:
         Tuple of (is_active, display_line) where display_line is a one-line
         startup message string (without trailing newline).
 
-    Resolution:
-        active = ztk binary resolvable AND CLAUDE_MPM_DISABLE_ZTK not set
+    Truthful status: ``on`` only when a ztk binary is present AND passes a
+    functional round-trip self-test (run + cached here at startup by
+    ``ztk_hook.ztk_status``). A present-but-empty/invalid binary reports ``off``
+    so the banner never claims compression is active while commands actually
+    pass through unchanged (the #573 root cause). The self-test result is cached
+    by binary mtime/size, so this does not add per-startup subprocess cost once
+    the binary is unchanged.
     """
-    # Check disable env var first (fast path)
-    disable_val = os.environ.get("CLAUDE_MPM_DISABLE_ZTK", "").lower()
-    disabled_via_env = disable_val in ("1", "true", "yes")
+    try:
+        from claude_mpm.hooks.ztk_hook import ztk_status as _ztk_status
 
-    # Resolve binary: system PATH or bundled
-    ztk_found = bool(shutil.which("ztk"))
-    if not ztk_found:
-        try:
-            from importlib import resources as _res
+        active, reason = _ztk_status()
+    except Exception:
+        # Fail-safe: if status probing breaks, report off rather than lie.
+        return (False, "  ztk compression: off  (status unavailable)")
 
-            bundled = _res.files("claude_mpm").joinpath("bin", "ztk")
-            from pathlib import Path as _Path
+    if active:
+        return (True, "⚡ ztk compression: on   (disable with --no-ztk)")
 
-            bundled_path = _Path(str(bundled))
-            ztk_found = bundled_path.is_file()
-        except Exception:
-            ztk_found = False
-
-    if not ztk_found:
+    if reason == "disabled via --no-ztk":
+        return (False, "  ztk compression: off  (disabled via --no-ztk)")
+    if reason == "binary present but non-functional":
         return (
             False,
-            "  ztk compression: off  (binary not found — run: make download-ztk)",
+            "  ztk compression: off  (binary non-functional — run: make download-ztk)",
         )
-    if disabled_via_env:
-        return (False, "  ztk compression: off  (disabled via --no-ztk)")
-
-    return (True, "⚡ ztk compression: on   (disable with --no-ztk)")
+    return (
+        False,
+        "  ztk compression: off  (binary not found — run: make download-ztk)",
+    )
 
 
 def _get_cwd_display(max_width: int = 40) -> str:
