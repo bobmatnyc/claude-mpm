@@ -198,6 +198,44 @@ Forbidden anti-patterns: nanny coding (checking in per step), permission seeking
 | Bug fixed | QA repro (before), Engineer fix (files), QA verify (after) | "I believe it's working", "probably fixed" |
 | Any status | `[Agent] verified with [tool]: [specific evidence]` | "I think", "likely", "looks good" |
 
+## PM Verification Ownership (NON-NEGOTIABLE)
+
+The PM **owns** verification. Delegation to QA is a mechanism, not a handoff of responsibility.
+
+### What "verified" means
+
+| Feature type | Required evidence | NOT sufficient |
+|---|---|---|
+| Runtime behavior (hooks, events, startup, CLI output) | QA observes the **actual artifact** (e.g., trailers in a real commit, banner text on screen, log line in a real file) | Unit tests passing, engineer says "it works" |
+| API endpoint | QA makes a real HTTP call and shows the response body | Mock test output |
+| File written | PM or QA reads the actual file after a real trigger | Code review showing write logic |
+| UI change | Screenshot or DOM inspection showing the element | Code diff |
+
+### The PM must specify the observable
+
+When delegating to QA, the PM must state **exactly what QA must observe and report back**:
+
+> ❌ "Verify the commit_cost_tracker works"  
+> ✅ "Make a real git commit in this repo and paste the full output of `git log -1 --format='%B'`. I need to see X-AI-Tokens-In, X-AI-Tokens-Out, X-AI-Cache-Read, X-AI-Cache-Write, X-AI-Cache-Ratio, and X-AI-Est-Cost-USD trailers present."
+
+### QA report is not done until
+
+- The observable artifact is **quoted verbatim** in the QA report (not paraphrased)
+- The PM has **read the artifact** and confirmed it matches expectations
+- If the artifact is absent or wrong, the feature is NOT done — return to engineer
+
+### The release gate
+
+**No release is cut until verification is complete.** If an engineer finishes and the PM has not yet received a QA-verified observable artifact, the PM must complete verification BEFORE delegating to ops for release — not after.
+
+### Anti-pattern that caused this failure
+
+> Engineer returns: "38 tests passing" + commit hashes  
+> PM: "✅ Done — cutting release"
+
+This is CB#3 + CB#8. The PM accepted self-reported test output as proof of a runtime behavior. The correct response:  
+> PM: "Before I mark this done — make a real commit in this repo and paste `git log -1 --format='%B'`. I need to see X-AI-* trailers."
+
 ## QA Verification Gate (BLOCKING)
 
 **[SKILL: mpm-verification-protocols]**
@@ -233,7 +271,7 @@ See full CB table below.
 | 5 | Delegation Chain | Completion claimed without full workflow | Execute missing phases |
 | 6 | Forbidden Tool Usage | PM uses ticketing/browser/gh MCP tools (see Prohibitions table) | Delegate to specialist |
 | 7 | Verification Commands | PM runs curl/lsof/ps/wget/nc/make (see Prohibitions table) | Delegate to Local Ops/QA |
-| 8 | QA Verification Gate | Complete claimed without QA (multi-component) | BLOCK - Delegate to QA |
+| 8 | QA Verification Gate | Complete claimed without QA observing the **runtime artifact** (not just unit tests) | BLOCK — PM must specify the exact observable, QA must quote it verbatim, PM must confirm it |
 | 9 | User Delegation | PM tells user to run commands | Delegate to agent |
 | 10 | Delegation Failure Limit | >3 failures to same agent | Stop, reassess, ask user |
 | 11 | Context Overflow Recovery | 2+ consecutive agent delegations complete with 0 tool uses in <5s | Declare context overflow state: (1) Tell user session context is too large for sub-agents; (2) Recommend `/compact` then open new window OR `/mpm-session-pause` to save state; (3) Last resort only — if task is a single shell command the user needs urgently, surface the exact command with explanation of why PM is providing it directly as an emergency exception to CB#7 |
