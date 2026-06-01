@@ -130,11 +130,17 @@ def _row_to_palace_entry(row: dict) -> dict:
     metadata_raw = row.get("metadata") or "{}"
     attachments_raw = row.get("attachments") or "[]"
     try:
-        metadata = json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
+        metadata = (
+            json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
+        )
     except (json.JSONDecodeError, TypeError):
         metadata = {}
     try:
-        attachments = json.loads(attachments_raw) if isinstance(attachments_raw, str) else attachments_raw
+        attachments = (
+            json.loads(attachments_raw)
+            if isinstance(attachments_raw, str)
+            else attachments_raw
+        )
     except (json.JSONDecodeError, TypeError):
         attachments = []
 

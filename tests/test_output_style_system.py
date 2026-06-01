@@ -248,21 +248,37 @@ class TestFrameworkLoaderIntegration:
             mock_result.stdout = "Claude 1.0.82"
             mock_run.return_value = mock_result
 
-            # Patch file operations to provide test content
+            # Patch file operations to provide test content.
+            # Use a callable side_effect so the mock is robust to changes in the
+            # number or order of read_text() calls made by instruction_loader.py.
+            # e7663f14 added a deployed-path version check that reads
+            # PM_INSTRUCTIONS_DEPLOYED.md and PM_INSTRUCTIONS.md before the other
+            # files; a fixed-length list caused StopIteration.
             test_instructions = "# Test Instructions\n\nTest content"
             test_base_pm = "# Base PM\n\nBase PM content"
 
+            def read_text_by_path(self_path, *args, **kwargs):
+                name = self_path.name
+                if "PM_INSTRUCTIONS_DEPLOYED" in name:
+                    return test_instructions
+                if "PM_INSTRUCTIONS" in name:
+                    return test_instructions
+                if "BASE_PM" in name:
+                    return test_base_pm
+                if "WORKFLOW" in name:
+                    return "# WORKFLOW"
+                if "MEMORY" in name:
+                    return "# MEMORY"
+                if "AGENT_DELEGATION" in name:
+                    return "# AGENT_DELEGATION"
+                if "INSTRUCTIONS" in name:
+                    return test_instructions
+                # Output style file and any other reads
+                return "# Content"
+
             with (
                 patch("pathlib.Path.exists", return_value=True),
-                patch(
-                    "pathlib.Path.read_text",
-                    side_effect=[
-                        test_instructions,  # INSTRUCTIONS.md
-                        test_base_pm,  # BASE_PM.md
-                        "# WORKFLOW",  # WORKFLOW.md
-                        "# MEMORY",  # MEMORY.md
-                    ],
-                ),
+                patch("pathlib.Path.read_text", read_text_by_path),
                 patch("pathlib.Path.glob", return_value=[]),
             ):
                 loader = FrameworkLoader()
