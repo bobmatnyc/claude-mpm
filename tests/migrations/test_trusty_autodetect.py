@@ -72,8 +72,8 @@ def test_writes_entries_when_both_daemons_healthy(project_dir: Path) -> None:
     }
     assert servers["trusty-memory"] == {
         "type": "stdio",
-        "command": "trusty-memory",
-        "args": ["serve", "--mcp"],
+        "command": "trusty-memory-mcp-bridge",
+        "args": [],
     }
 
 
@@ -131,8 +131,8 @@ def test_idempotent_when_entries_already_present(project_dir: Path) -> None:
             },
             "trusty-memory": {
                 "type": "stdio",
-                "command": "trusty-memory",
-                "args": ["serve", "--mcp"],
+                "command": "trusty-memory-mcp-bridge",
+                "args": [],
             },
         }
     }

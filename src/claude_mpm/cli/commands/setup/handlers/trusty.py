@@ -665,7 +665,7 @@ class TrustyMixin:
         1. Install via cargo (or cargo-binstall) if missing.
         2. Ensure daemon is running (launchd plist + HTTP health check).
         3. Create palace named after current project via HTTP API.
-        4. Write ``.mcp.json`` entry pointing at ``trusty-memory serve --mcp``.
+        4. Write ``.mcp.json`` entry pointing at ``trusty-memory-mcp-bridge``.
         5. Inject SessionStart/Stop/SubagentStop hooks via claude-hook architecture.
         """
         import json as _json
@@ -814,8 +814,8 @@ class TrustyMixin:
                 mcp_config.setdefault("mcpServers", {})
                 mcp_config["mcpServers"]["trusty-memory"] = {
                     "type": "stdio",
-                    "command": "trusty-memory",
-                    "args": ["serve", "--mcp"],
+                    "command": "trusty-memory-mcp-bridge",
+                    "args": [],
                 }
                 self._save_mcp_config(mcp_config)
                 console.print("[green]✓ Added trusty-memory to .mcp.json[/green]")
@@ -830,7 +830,7 @@ class TrustyMixin:
             "\n[bold green]✓ trusty-memory setup complete![/bold green]\n"
             f"  • Palace: {palace_name}\n"
             f"  • Daemon HTTP: {base_url}\n"
-            "  • MCP server: stdio via `trusty-memory serve --mcp`\n"
+            "  • MCP server: stdio via `trusty-memory-mcp-bridge`\n"
             "  • Logs: /tmp/trusty-memory.log\n"
         )
         return CommandResult.success_result("trusty-memory setup complete")
