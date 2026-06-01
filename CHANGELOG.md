@@ -19,6 +19,26 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.7 (2026-06-01)
+
+### Feat
+
+- install commit-cost-hook in .git/hooks/post-commit during mpm-init
+- register commit-cost-hook CLI entry point in pyproject.toml
+- add run_as_git_hook() entry point for git post-commit hook
+
+### Fix
+
+- strip all X-AI-* trailers line-by-line to prevent duplicate trailer blocks
+- align recursion guard env var name between Python and shell hook
+- prevent post-commit hook recursion with environment variable sentinel
+- add X-AI-* trailer deduplication to prevent duplicate trailers on re-runs
+- persist PostToolUse usage data to context-usage.json for commit cost tracking
+
+### Refactor
+
+- remove PostToolUse git commit detection from tool_handler
+
 ## v6.5.6 (2026-06-01)
 
 ### Feat
