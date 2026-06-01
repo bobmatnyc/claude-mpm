@@ -105,13 +105,28 @@ jobs:
           fi
           ls -la src/claude_mpm/bin/
 
+      - name: Verify bundled ztk binary is present
+        run: |
+          set -euo pipefail
+          # A successful leg MUST ship its platform binary. The download step is
+          # non-fatal (#594) so a missing upstream asset won't hard-fail the
+          # matrix, but if the binary is here we confirm it landed before the
+          # wheel is built/retagged with this leg's platform tag.
+          if [ -f src/claude_mpm/bin/ztk ]; then
+            echo "ztk binary bundled for ${{ matrix.platform }}:"
+            ls -la src/claude_mpm/bin/ztk
+          else
+            echo "WARNING: no ztk binary for ${{ matrix.platform }} — wheel will ship without bundled ztk"
+          fi
+
       - name: Build wheel
         run: python -m build --wheel
 
       - name: Retag wheel with platform
         run: |
           set -euo pipefail
-          # Source build produces py3-none-any.whl; retag to platform-specific.
+          # Source build produces py3-none-any.whl; retag to platform-specific so
+          # pip selects the wheel carrying the correct per-platform ztk binary.
           orig=$(ls dist/*.whl | head -n1)
           echo "Original wheel: $orig"
           python -m wheel tags --platform-tag '${{ matrix.platform }}' --remove "$orig"
@@ -124,35 +139,64 @@ jobs:
           path: dist/*.whl
           if-no-files-found: error
 
-  publish:
-    name: Publish to PyPI
-    needs: build
+  # Build the sdist exactly once (separate from the wheel matrix) so a single
+  # source tarball is published — avoids duplicate-filename 400s on PyPI.
+  sdist:
+    name: Build sdist
     runs-on: ubuntu-latest
-    # Only publish on tag pushes, not manual dispatches
-    if: startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: pypi
-      url: https://pypi.org/project/claude-mpm/
     steps:
-      - name: Download all wheels
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
-
-      - name: List wheels
-        run: ls -la dist/
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
-      - name: Install twine
-        run: python -m pip install --upgrade twine
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
 
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload --non-interactive dist/*.whl
+      - name: Build sdist
+        run: python -m build --sdist
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: [build, sdist]
+    runs-on: ubuntu-latest
+    # Only publish on tag pushes, not manual dispatches
+    if: startsWith(github.ref, 'refs/tags/v')
+    # OIDC: the id-token permission lets the PyPA action mint a short-lived
+    # token via PyPI Trusted Publishing — no PYPI_API_TOKEN secret required.
+    permissions:
+      id-token: write
+      contents: read
+    # The environment name MUST match the PyPI trusted-publisher config
+    # (PyPI → claude-mpm → Publishing → environment = "pypi").
+    environment:
+      name: pypi
+      url: https://pypi.org/p/claude-mpm
+    steps:
+      - name: Download all wheels and sdist
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List distributions
+        run: ls -la dist/
+
+      - name: Publish to PyPI (Trusted Publishing / OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # skip-existing keeps a re-run (or an already-present file) from
+          # failing the whole release with a 400/403.
+          skip-existing: true

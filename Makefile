@@ -1032,17 +1032,25 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 		echo "$(YELLOW)⚠️  Sync script not found, skipping repository sync$(NC)"; \
 	fi
 	@echo ""
-	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
-	@if command -v uv >/dev/null 2>&1; then \
-		if [ -f .env.local ]; then \
-			set -a && . .env.local && set +a; \
-		fi; \
-		twine upload dist/*; \
-		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
-	else \
-		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
-		exit 1; \
-	fi
+	@echo "$(YELLOW)📤 Pushing bump commit + tag (triggers PyPI publish via CI)...$(NC)"
+	@# PyPI publishing is owned ENTIRELY by .github/workflows/release-wheels.yml.
+	@# That CI builds the per-platform wheels (each with the CORRECT platform's
+	@# ztk binary) + the sdist and publishes them via Trusted Publishing (OIDC).
+	@# The local flow must NOT twine-upload the py3-none-any wheel: it bundles
+	@# only THIS host's ztk binary (e.g. arm64-mac) and would ship the wrong
+	@# binary cross-platform AND collide with the CI-built platform wheels.
+	@# Pushing the bump commit and the v* tag is what triggers that CI.
+	@VERSION=$$(cat VERSION); \
+	BRANCH=$$(git branch --show-current); \
+	echo "Pushing $$BRANCH and tag v$$VERSION to origin..."; \
+	git push origin "$$BRANCH" && \
+	git push origin "v$$VERSION" && \
+		echo "$(GREEN)✓ Pushed — release-wheels.yml will publish to PyPI (OIDC)$(NC)" || { \
+			echo "$(RED)✗ git push failed — PyPI publish (CI) NOT triggered$(NC)"; \
+			exit 1; \
+		}
+	@echo "$(BLUE)ℹ PyPI publish runs in GitHub Actions; watch:$(NC)"
+	@echo "  https://github.com/bobmatnyc/claude-mpm/actions/workflows/release-wheels.yml"
 	@echo ""
 	@echo "$(YELLOW)🍺 Updating Homebrew tap (non-blocking)...$(NC)"
 	@$(MAKE) update-homebrew-tap || echo "$(YELLOW)⚠️  Homebrew update failed, continuing with release$(NC)"
@@ -1055,11 +1063,16 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 		echo "$(YELLOW)⚠ npm not found, skipping npm publish$(NC)"; \
 	fi
 	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
+	@# Attach ONLY the sdist tarball, never the local py3-none-any wheel: that
+	@# wheel bundles only this host's ztk binary and would mislead users on other
+	@# platforms. The per-platform wheels live on PyPI (published by CI).
 	@VERSION=$$(cat VERSION); \
+	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
+	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
 		--notes-from-tag \
-		dist/* || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
+		$$SDIST || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
 
@@ -1133,12 +1146,17 @@ release-publish-current: ## Publish current built version
 		echo "$(RED)Publishing aborted$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
-	@if command -v uv >/dev/null 2>&1; then \
-		twine upload dist/*; \
-		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
+	@echo "$(YELLOW)📤 Pushing tag (triggers PyPI publish via CI)...$(NC)"
+	@# PyPI publishing is owned by release-wheels.yml (per-platform wheels + sdist
+	@# via OIDC). Push the v* tag to trigger it instead of a local twine upload of
+	@# the single-platform py3-none-any wheel.
+	@VERSION=$$(cat VERSION); \
+	if git rev-parse "v$$VERSION" >/dev/null 2>&1; then \
+		git push origin "v$$VERSION" && \
+			echo "$(GREEN)✓ Pushed tag v$$VERSION — CI will publish to PyPI (OIDC)$(NC)" || \
+			echo "$(YELLOW)⚠ tag push failed (may already exist on origin); continuing$(NC)"; \
 	else \
-		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
+		echo "$(RED)✗ tag v$$VERSION not found locally; run a release-* bump first$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(YELLOW)📤 Publishing to npm...$(NC)"
@@ -1150,10 +1168,12 @@ release-publish-current: ## Publish current built version
 	fi
 	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
 	@VERSION=$$(cat VERSION); \
+	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
+	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
 		--notes-from-tag \
-		dist/* || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
+		$$SDIST || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
 

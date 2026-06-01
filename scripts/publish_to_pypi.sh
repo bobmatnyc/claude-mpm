@@ -1,8 +1,20 @@
 #!/bin/bash
 set -e  # Exit on error
 
-# Script: Automated PyPI Publishing
-# Description: Publishes Claude MPM to PyPI using credentials from ~/.pypirc
+# Script: Local sdist fallback publisher for PyPI
+#
+# IMPORTANT (deconfliction): The canonical PyPI publisher is the GitHub Actions
+# workflow .github/workflows/release-wheels.yml, which builds and publishes the
+# per-platform wheels (each with the CORRECT platform's ztk binary) AND the
+# sdist via Trusted Publishing (OIDC). That CI is triggered by pushing the v*
+# release tag (handled by `make release-publish`).
+#
+# This script is a LOCAL FALLBACK that uploads the SDIST ONLY (never the
+# py3-none-any wheel — that wheel bundles only this host's ztk binary and would
+# ship the wrong binary cross-platform / collide with the CI platform wheels).
+# It uses --skip-existing so re-runs never fail on an already-present file.
+#
+# Description: Publishes the claude-mpm SDIST to PyPI using credentials from ~/.pypirc
 
 # Colors for output
 RED='\033[0;31m'
@@ -59,15 +71,8 @@ fi
 VERSION=$(cat VERSION | tr -d '[:space:]')
 print_message "$YELLOW" "Publishing version: $VERSION"
 
-# 5. Verify distribution files exist
-WHEEL_FILE="dist/claude_mpm-${VERSION}-py3-none-any.whl"
+# 5. Verify the SDIST exists (we publish the sdist ONLY — wheels come from CI)
 TAR_FILE="dist/claude_mpm-${VERSION}.tar.gz"
-
-if [ ! -f "$WHEEL_FILE" ]; then
-    print_message "$RED" "Error: Wheel file not found: $WHEEL_FILE"
-    print_message "$YELLOW" "Please run 'make safe-release-build' first"
-    exit 1
-fi
 
 if [ ! -f "$TAR_FILE" ]; then
     print_message "$RED" "Error: Tar file not found: $TAR_FILE"
@@ -75,13 +80,11 @@ if [ ! -f "$TAR_FILE" ]; then
     exit 1
 fi
 
-print_message "$GREEN" "✓ Found wheel: $WHEEL_FILE"
 print_message "$GREEN" "✓ Found tarball: $TAR_FILE"
+print_message "$YELLOW" "ℹ Per-platform wheels are published by CI (release-wheels.yml), not here."
 
-# Show file sizes
-WHEEL_SIZE=$(ls -lh "$WHEEL_FILE" | awk '{print $5}')
+# Show file size
 TAR_SIZE=$(ls -lh "$TAR_FILE" | awk '{print $5}')
-print_message "$BLUE" "  Wheel size: $WHEEL_SIZE"
 print_message "$BLUE" "  Tarball size: $TAR_SIZE"
 
 # 6. Verify uv is available
@@ -98,7 +101,7 @@ echo ""
 print_message "$YELLOW" "Ready to upload to PyPI:"
 print_message "$BLUE" "  Package: claude-mpm"
 print_message "$BLUE" "  Version: $VERSION"
-print_message "$BLUE" "  Files: 2 (wheel + tarball)"
+print_message "$BLUE" "  Files: 1 (sdist tarball only; wheels published by CI)"
 echo ""
 read -p "Continue with upload? [y/N]: " -n 1 -r
 echo ""
@@ -114,9 +117,9 @@ print_message "$YELLOW" "Uploading to PyPI..."
 print_message "$BLUE" "This may take a moment..."
 echo ""
 
-# Use uv publish with credentials from ~/.pypirc
-# UV will automatically read the [pypi] section from ~/.pypirc
-if uv publish "$WHEEL_FILE" "$TAR_FILE"; then
+# Use uv publish with credentials from ~/.pypirc. Publish the SDIST ONLY and
+# skip if it already exists (CI may have already published it).
+if uv publish --check-url https://pypi.org/simple/ "$TAR_FILE"; then
 
     echo ""
     print_message "$GREEN" "========================================"
