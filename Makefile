@@ -580,16 +580,19 @@ quick-dev: setup-dev ## Alias for complete development setup
 # Individual linters
 lint-ruff: ## Run ruff linter and formatter check
 	@echo "$(YELLOW)🔍 Running ruff linter...$(NC)"
-	@if command -v ruff &> /dev/null; then \
-		ruff check src/ tests/ scripts/ || exit 1; \
-		echo "$(GREEN)✓ Ruff linting passed$(NC)"; \
-		echo "$(YELLOW)🔍 Checking code formatting...$(NC)"; \
-		ruff format --check src/ tests/ scripts/ || exit 1; \
-		echo "$(GREEN)✓ Ruff format check passed$(NC)"; \
+	@if command -v ruff > /dev/null 2>&1; then \
+		RUFF=ruff; \
+	elif uv run ruff --version > /dev/null 2>&1; then \
+		RUFF="uv run ruff"; \
 	else \
 		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
 		exit 1; \
-	fi
+	fi; \
+	$$RUFF check src/ tests/ scripts/ || exit 1; \
+	echo "$(GREEN)✓ Ruff linting passed$(NC)"; \
+	echo "$(YELLOW)🔍 Checking code formatting...$(NC)"; \
+	$$RUFF format --check src/ tests/ scripts/ || exit 1; \
+	echo "$(GREEN)✓ Ruff format check passed$(NC)"
 
 # DEPRECATED: Consolidated into ruff
 lint-black: ## (DEPRECATED: Use lint-ruff) Check code formatting with black
@@ -644,17 +647,20 @@ lint-all: ## Run all linters (ruff + mypy + structure)
 # Auto-fix what can be fixed
 lint-fix: ## Auto-fix linting issues (ruff format + ruff check --fix)
 	@echo "$(YELLOW)🔧 Auto-fixing code issues with ruff...$(NC)"
-	@if command -v ruff &> /dev/null; then \
-		echo "$(YELLOW)Fixing linting issues...$(NC)"; \
-		ruff check src/ tests/ scripts/ --fix || true; \
-		echo "$(GREEN)✓ Ruff linting fixes applied$(NC)"; \
-		echo "$(YELLOW)Formatting code...$(NC)"; \
-		ruff format src/ tests/ scripts/ || true; \
-		echo "$(GREEN)✓ Code formatted$(NC)"; \
+	@if command -v ruff > /dev/null 2>&1; then \
+		RUFF=ruff; \
+	elif uv run ruff --version > /dev/null 2>&1; then \
+		RUFF="uv run ruff"; \
 	else \
 		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
 		exit 1; \
-	fi
+	fi; \
+	echo "$(YELLOW)Fixing linting issues...$(NC)"; \
+	$$RUFF check src/ tests/ scripts/ --fix || true; \
+	echo "$(GREEN)✓ Ruff linting fixes applied$(NC)"; \
+	echo "$(YELLOW)Formatting code...$(NC)"; \
+	$$RUFF format src/ tests/ scripts/ || true; \
+	echo "$(GREEN)✓ Code formatted$(NC)"
 	@echo "$(YELLOW)Fixing structure issues...$(NC)"
 	@if [ -f "tools/dev/structure_linter.py" ]; then \
 		python tools/dev/structure_linter.py --fix || true; \
