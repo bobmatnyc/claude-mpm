@@ -39,7 +39,19 @@ When invoked, this skill:
 
 ```python
 from pathlib import Path
-from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
+
+try:
+    from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
+except ImportError:
+    print(
+        "ERROR: claude_mpm is not importable in the current Python environment.\n"
+        "If you installed via 'uv tool install claude-mpm', run:\n"
+        "  uv run python -c 'from claude_mpm.services.cli.session_pause_manager "
+        "import SessionPauseManager'\n"
+        "Or invoke directly: claude-mpm session-pause\n"
+        "Alternatively, activate the virtual environment where claude-mpm is installed."
+    )
+    raise SystemExit(1)
 
 # Optional: Get message from user's command
 # If user provided message after /mpm-pause, extract it

@@ -1,7 +1,11 @@
 ---
-description: "Release a new version of claude-mpm (patch/minor/major)"
+description: "Release a new version of claude-mpm (MPM-provided — may be shadowed by a user /release command)"
 argument-hint: "[patch|minor|major]"
 ---
+
+> **Note (MPM-provided command)**: This `/release` command is shipped by claude-mpm.
+> If you have a project or user-level command also named `/release`, it will shadow
+> this one.  User commands take precedence by design.
 
 Release a new version of claude-mpm using the Makefile workflow.
 

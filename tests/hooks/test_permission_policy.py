@@ -199,24 +199,78 @@ def test_wire_format_deny_for_destructive_bash() -> None:
 
 @pytest.mark.unit
 def test_pre_tool_use_agent_path_still_works() -> None:
-    """Non-PermissionRequest events keep the legacy Agent-injection path."""
-    # Tool=Agent without ``model`` should get a default model injected.
-    out = _run_main(
-        {
-            "hook_event_name": "PreToolUse",
-            "tool_name": "Agent",
-            "tool_input": {"subagent_type": "engineer"},
-            "cwd": "/nonexistent",
-        }
-    )
+    """Non-PermissionRequest events keep the legacy Agent-injection path.
+
+    The injected ``model`` value must be the short-alias form (opus/sonnet/haiku)
+    so that all supported Claude Code versions accept it.  The test forces
+    ``_pretool_modify_supported = True`` so the version gate does not depend on
+    whether the ``claude`` binary is present in the test environment.
+    """
+    # Force version gate to "supported" so injection always runs in tests.
+    model_tier_hook._pretool_modify_supported = True
+    try:
+        out = _run_main(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Agent",
+                "tool_input": {"subagent_type": "engineer"},
+                "cwd": "/nonexistent",
+            }
+        )
+    finally:
+        # Reset cache so other tests are not affected.
+        model_tier_hook._pretool_modify_supported = None
+
     spec = out["hookSpecificOutput"]
     assert spec["hookEventName"] == "PreToolUse"
     # The newer wire format uses additionalContext + updatedInput instead of
     # permissionDecision so the model-routing info is injected as context
     # rather than surfaced as a chat message (Claude Code v2.1.133+).
     assert "additionalContext" in spec
-    # Assert against the module constant so this test can't drift again.
-    assert spec["updatedInput"]["model"] == model_tier_hook._DEFAULT_MODEL
+    # The injected model must be the short-alias form (opus) so all Claude Code
+    # versions accept it.  _DEFAULT_MODEL is the resolved dated ID; the short
+    # alias is looked up from _INJECT_SHORT_ALIAS.
+    injected = spec["updatedInput"]["model"]
+    assert injected == model_tier_hook._INJECT_SHORT_ALIAS.get(
+        model_tier_hook._DEFAULT_MODEL, model_tier_hook._DEFAULT_MODEL
+    ), f"Expected short-alias form for default model, got: {injected!r}"
+    # Sanity check: for the opus default the short alias must be "opus".
+    assert injected == "opus"
+
+
+@pytest.mark.unit
+def test_pre_tool_use_injection_skipped_when_unsupported() -> None:
+    """Injection must be skipped when the running Claude Code is too old (<v2.0.30)."""
+    model_tier_hook._pretool_modify_supported = False
+    try:
+        out = _run_main(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Agent",
+                "tool_input": {"subagent_type": "engineer"},
+                "cwd": "/nonexistent",
+            }
+        )
+    finally:
+        model_tier_hook._pretool_modify_supported = None
+
+    # When unsupported, fall through gracefully without injection.
+    assert out == {"continue": True}, (
+        f"Expected {{continue: true}} when pretool-modify is unsupported, got: {out!r}"
+    )
+
+
+@pytest.mark.unit
+def test_default_model_is_opus() -> None:
+    """The default model constant must be in the opus tier (regression guard)."""
+    # _DEFAULT_MODEL is a dated ID; its short alias must be "opus".
+    assert model_tier_hook._DEFAULT_MODEL.startswith("claude-opus"), (
+        f"Expected an opus-tier model, got: {model_tier_hook._DEFAULT_MODEL!r}"
+    )
+    assert (
+        model_tier_hook._INJECT_SHORT_ALIAS.get(model_tier_hook._DEFAULT_MODEL)
+        == "opus"
+    )
 
 
 @pytest.mark.unit

@@ -105,7 +105,17 @@ claude-mpm message sessions                        # List active sessions
 ### Python API (PREFERRED fallback for all versions)
 ```python
 from pathlib import Path
-from claude_mpm.services.communication.message_service import MessageService
+
+try:
+    from claude_mpm.services.communication.message_service import MessageService
+except ImportError:
+    print(
+        "ERROR: claude_mpm is not importable in the current Python environment.\n"
+        "If you installed via 'uv tool install claude-mpm', use the CLI instead:\n"
+        "  claude-mpm message list / send / read / reply\n"
+        "Or activate the virtual environment where claude-mpm is installed."
+    )
+    raise SystemExit(1)
 
 service = MessageService(Path.cwd())
 msg = service.send_message(
