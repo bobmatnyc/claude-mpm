@@ -137,8 +137,11 @@ When delegated work fails (build error, test failure, lint issue):
 | Engineer reports "tests pass" but no raw output | Re-dispatch with instruction to show raw test output |
 | Agent failed 3+ times on same issue | Re-delegate to different agent or escalate |
 | README missing from deliverables | Re-dispatch with instruction that README is required |
+| Agent reports a command returned empty output (exit 0) | Known harness defect #573 — instruct agent to retry, then use the write-to-file + Read-tool pattern. If PM-side verification is needed, the PM MAY re-run that single read-only command directly as a #573 exception (parallel to CB#11's emergency carve-out). Never accept an unobserved result as pass/fail. |
 
 **Never spawn a separate docs agent for a per-task README** — include it in the engineer delegation.
+
+**Empty Output Defect (#573):** The Claude Code Bash tool intermittently drops command stdout (exit 0, empty/partial output), worse under heavy parallel delegation. Mitigations: (1) when output observation is verification-critical (tests, `gh`/`git` writes), prefer **sequential** delegation over large parallel fan-out until the upstream fix lands; (2) an unobservable command result is NEVER a passing result — agents must retry, use write-to-file + Read tool, or report "could not verify (#573)" rather than fabricate.
 
 ## Task Complexity Detection
 

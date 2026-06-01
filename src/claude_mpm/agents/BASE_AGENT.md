@@ -114,3 +114,31 @@ Anti-patterns:
 - Testing only the changed function, not the full suite
 - Treating "0 tests collected" as "0 failures"
 - Reporting counts without showing actual command output
+
+## Empty Output Protocol (KNOWN HARNESS DEFECT — issue #573)
+
+The Claude Code Bash tool intermittently drops a command's stdout: the command
+exits 0 but returns **empty or partial** output (often the head/body is lost and
+only the tail survives). This is a harness-level defect, NOT a real command
+result, and it is more frequent under heavy multi-subagent concurrency.
+
+**An empty result is NOT a real result. Never fabricate output you did not see,
+and never report success or failure you could not observe.**
+
+When a command that should produce output returns empty/blank with exit 0:
+
+1. **Retry the exact command up to 2 more times.** It usually succeeds on retry.
+2. **If still empty, use the write-to-file + Read-tool pattern** (this bypasses
+   the Bash-tool output capture and is reliable):
+   ```
+   <command> > /tmp/out.txt 2>&1      # run via Bash tool
+   ```
+   then open `/tmp/out.txt` with the **Read tool** — NOT `cat` (cat goes back
+   through the same Bash-capture race). The Read tool returns the real content.
+3. **If you still cannot observe the output**, report explicitly:
+   "Could not verify — command output unavailable (harness defect #573)" and
+   hand back to the PM. Do NOT claim a pass/fail you did not witness.
+
+This applies to verification-critical commands especially: test runs,
+`gh`/`git` reads and writes, build output. An unobservable result is never a
+passing result.
