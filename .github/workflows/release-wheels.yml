@@ -32,8 +32,8 @@ jobs:
         platform:
           - macosx_11_0_arm64
           - macosx_10_9_x86_64
-          - linux_x86_64
-          - linux_aarch64
+          - manylinux2014_x86_64
+          - manylinux2014_aarch64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,10 +72,10 @@ jobs:
           # Map the wheel platform tag -> codejunkie99/ztk release tarball asset.
           # Upstream ships .tar.gz tarballs, not bare binaries.
           case '${{ matrix.platform }}' in
-            macosx_11_0_arm64)  asset='ztk-aarch64-macos.tar.gz' ;;
-            macosx_10_9_x86_64) asset='ztk-x86_64-macos.tar.gz' ;;
-            linux_x86_64)       asset='ztk-x86_64-linux-musl.tar.gz' ;;
-            linux_aarch64)      asset='ztk-aarch64-linux-musl.tar.gz' ;;
+            macosx_11_0_arm64)    asset='ztk-aarch64-macos.tar.gz' ;;
+            macosx_10_9_x86_64)   asset='ztk-x86_64-macos.tar.gz' ;;
+            manylinux2014_x86_64)   asset='ztk-x86_64-linux-musl.tar.gz' ;;
+            manylinux2014_aarch64)  asset='ztk-aarch64-linux-musl.tar.gz' ;;
             *) echo "Unknown platform '${{ matrix.platform }}'" >&2; exit 1 ;;
           esac
           url="https://github.com/${repo}/releases/download/${tag}/${asset}"
