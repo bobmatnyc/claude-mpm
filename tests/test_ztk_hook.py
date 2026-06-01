@@ -46,8 +46,14 @@ def _isolated_state(tmp_path, monkeypatch):
     monkeypatch.setattr(ztk_hook, "_MPM_LOG_DIR", tmp_path)
     monkeypatch.setattr(ztk_hook, "_VERIFY_CACHE", cache)
     monkeypatch.setattr(ztk_hook, "_MPM_ZTK_LOG", tmp_path / "ztk-savings.log")
+    monkeypatch.setattr(
+        ztk_hook,
+        "_ZTK_AUTOINSTALL_SENTINEL_BASE",
+        tmp_path / ".ztk-autoinstall-attempted",
+    )
     ztk_hook._RESOLVE_MEMO.clear()
     ztk_hook._WARNED_NONFUNCTIONAL = False
+    ztk_hook._AUTOINSTALL_LOCK = False
     monkeypatch.delenv("CLAUDE_MPM_DISABLE_ZTK", raising=False)
     yield
 
@@ -417,3 +423,182 @@ def test_status_detail_never_raises(monkeypatch):
     detail = ztk_hook.ztk_status_detail()
     assert detail["active"] is False
     assert detail["currency"] == "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Fix 3: user-local candidate (~/.claude-mpm/bin/ztk)
+# ---------------------------------------------------------------------------
+def test_resolve_finds_user_local_binary(tmp_path, monkeypatch):
+    """_resolve_ztk picks up a working binary at ~/.claude-mpm/bin/ztk."""
+    # Suppress auto-install so it doesn't interfere.
+    monkeypatch.setattr(ztk_hook, "_auto_install_ztk", lambda: None)
+
+    # Disable system PATH and bundled binary lookups.
+    monkeypatch.setattr(ztk_hook.shutil, "which", lambda _name: None)
+
+    class _NoBundled:
+        def joinpath(self, *_parts):
+            return "/nonexistent/ztk"
+
+    monkeypatch.setattr(ztk_hook.resources, "files", lambda _pkg: _NoBundled())
+
+    # Place a working ztk in the user-local location.
+    user_bin = tmp_path / "bin"
+    user_bin.mkdir()
+    ztk_path = user_bin / "ztk"
+    _working_ztk(ztk_path)
+
+    # Point _MPM_LOG_DIR at our tmp_path so user_local resolves correctly.
+    # (Already set by _isolated_state fixture)
+
+    result = ztk_hook._resolve_ztk()
+    assert result == str(ztk_path)
+
+
+def test_resolve_user_local_zero_byte_rejected(tmp_path, monkeypatch):
+    """A 0-byte user-local binary is rejected (same gating as bundled)."""
+    monkeypatch.setattr(ztk_hook, "_auto_install_ztk", lambda: None)
+    monkeypatch.setattr(ztk_hook.shutil, "which", lambda _name: None)
+
+    class _NoBundled:
+        def joinpath(self, *_parts):
+            return "/nonexistent/ztk"
+
+    monkeypatch.setattr(ztk_hook.resources, "files", lambda _pkg: _NoBundled())
+
+    user_bin = tmp_path / "bin"
+    user_bin.mkdir()
+    ztk_path = user_bin / "ztk"
+    ztk_path.touch()  # 0-byte
+
+    result = ztk_hook._resolve_ztk()
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: auto-install sentinel gates retries
+# ---------------------------------------------------------------------------
+def test_auto_install_runs_once_per_version(tmp_path, monkeypatch):
+    """Auto-install is only attempted once per required version (sentinel file)."""
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.3.0")
+
+    download_calls: list[str] = []
+
+    def _mock_inline(tag):
+        download_calls.append(tag)
+
+    monkeypatch.setattr(ztk_hook, "_inline_download_ztk", _mock_inline)
+
+    # First call: should attempt install.
+    ztk_hook._AUTOINSTALL_LOCK = False
+    ztk_hook._auto_install_ztk()
+    assert len(download_calls) == 1
+
+    # Reset process lock to simulate a second process / second call.
+    ztk_hook._AUTOINSTALL_LOCK = False
+    ztk_hook._auto_install_ztk()
+    # Sentinel file exists → no second attempt.
+    assert len(download_calls) == 1
+
+
+def test_auto_install_skipped_when_disabled(tmp_path, monkeypatch):
+    """Auto-install does nothing when CLAUDE_MPM_DISABLE_ZTK is set."""
+    monkeypatch.setenv("CLAUDE_MPM_DISABLE_ZTK", "1")
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.3.0")
+
+    download_calls: list[str] = []
+
+    def _mock_inline(tag):
+        download_calls.append(tag)
+
+    monkeypatch.setattr(ztk_hook, "_inline_download_ztk", _mock_inline)
+    ztk_hook._AUTOINSTALL_LOCK = False
+    ztk_hook._auto_install_ztk()
+    assert download_calls == []
+
+
+def test_auto_install_skipped_when_no_required_version(tmp_path, monkeypatch):
+    """Auto-install skips when required version is unknown (no manifest)."""
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: None)
+
+    download_calls: list[str] = []
+    monkeypatch.setattr(ztk_hook, "_inline_download_ztk", download_calls.append)
+    ztk_hook._AUTOINSTALL_LOCK = False
+    ztk_hook._auto_install_ztk()
+    assert download_calls == []
+
+
+def test_auto_install_failure_does_not_raise(tmp_path, monkeypatch):
+    """A failing auto-install prints a warning but never raises."""
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.3.0")
+
+    def _boom(tag):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(ztk_hook, "_inline_download_ztk", _boom)
+    ztk_hook._AUTOINSTALL_LOCK = False
+    # Must not raise.
+    ztk_hook._auto_install_ztk()
+
+
+def test_auto_install_different_versions_each_get_attempt(tmp_path, monkeypatch):
+    """Sentinel is keyed by version — a new version triggers a new install."""
+    download_calls: list[str] = []
+
+    def _mock_inline(tag):
+        download_calls.append(tag)
+
+    monkeypatch.setattr(ztk_hook, "_inline_download_ztk", _mock_inline)
+
+    # First version
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.3.0")
+    ztk_hook._AUTOINSTALL_LOCK = False
+    ztk_hook._auto_install_ztk()
+    assert download_calls == ["v0.3.0"]
+
+    # New version — different sentinel file key
+    monkeypatch.setattr(ztk_hook, "_read_required_version", lambda: "v0.4.0")
+    ztk_hook._AUTOINSTALL_LOCK = False
+    ztk_hook._auto_install_ztk()
+    assert download_calls == ["v0.3.0", "v0.4.0"]
+
+
+def test_resolve_ztk_triggers_auto_install_when_no_binary(tmp_path, monkeypatch):
+    """_resolve_ztk with verify=True calls _auto_install_ztk when no binary found."""
+    install_calls: list[int] = []
+
+    def _mock_install():
+        install_calls.append(1)
+
+    monkeypatch.setattr(ztk_hook, "_auto_install_ztk", _mock_install)
+    monkeypatch.setattr(ztk_hook.shutil, "which", lambda _name: None)
+
+    class _NoBundled:
+        def joinpath(self, *_parts):
+            return "/nonexistent/ztk"
+
+    monkeypatch.setattr(ztk_hook.resources, "files", lambda _pkg: _NoBundled())
+
+    # No user-local binary either
+    ztk_hook._resolve_ztk(verify=True)
+    assert len(install_calls) == 1
+
+
+def test_resolve_ztk_no_auto_install_when_verify_false(tmp_path, monkeypatch):
+    """_resolve_ztk with verify=False skips auto-install (status-only path)."""
+    install_calls: list[int] = []
+
+    def _mock_install():
+        install_calls.append(1)
+
+    monkeypatch.setattr(ztk_hook, "_auto_install_ztk", _mock_install)
+    monkeypatch.setattr(ztk_hook.shutil, "which", lambda _name: None)
+
+    class _NoBundled:
+        def joinpath(self, *_parts):
+            return "/nonexistent/ztk"
+
+    monkeypatch.setattr(ztk_hook.resources, "files", lambda _pkg: _NoBundled())
+
+    ztk_hook._resolve_ztk(verify=False)
+    assert install_calls == []
