@@ -22,6 +22,7 @@ Returns hookSpecificOutput with updatedInput to modify the Bash command paramete
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -65,6 +66,66 @@ _VERIFY_CACHE = _MPM_LOG_DIR / "ztk-verify-cache.json"
 # Process-local memo so repeated calls within one process don't re-stat/re-read.
 _RESOLVE_MEMO: dict[str, str | None] = {}
 _WARNED_NONFUNCTIONAL = False
+_WARNED_OUTDATED = False
+
+# ---------------------------------------------------------------------------
+# Version currency
+# ---------------------------------------------------------------------------
+# claude-mpm pins the ztk version it ships/expects in a tiny manifest at
+# `claude_mpm/bin/ztk_version.txt`. This is the SINGLE SOURCE OF TRUTH read by
+# both the Makefile (`download-ztk` target) and this hook, so the bundled
+# binary, the reproducible-fetch tag, and the startup currency check can never
+# drift apart. We probe the installed binary's actual version and compare.
+#
+# IMPORTANT (fail-safe): version currency is ADVISORY, never gating. A binary
+# that passes the functional self-test is used even if its version is older
+# than required or cannot be parsed — we only surface a recommendation to
+# update. We never silently disable a working binary over a version mismatch.
+_ZTK_VERSION_PROBE_TIMEOUT_S = 3.0
+# Candidate version commands, tried in order. ztk's README documents no
+# `--version` flag, so we probe several conventional forms and gracefully
+# accept "unknown" if none yield a parseable semver.
+_ZTK_VERSION_COMMANDS: tuple[tuple[str, ...], ...] = (
+    ("--version",),
+    ("version",),
+    ("-V",),
+    ("-v",),
+)
+_SEMVER_RE = re.compile(r"v?(\d+)\.(\d+)\.(\d+)")
+
+
+def _read_required_version() -> str | None:
+    """Read the pinned ztk version from the bundled manifest.
+
+    Returns a normalized ``vX.Y.Z`` string, or None if the manifest is absent
+    or unparseable (in which case currency checks degrade to "unknown" — never
+    an error). This is the source of truth shared with the Makefile.
+    """
+    try:
+        manifest = resources.files("claude_mpm").joinpath("bin", "ztk_version.txt")
+        raw = Path(str(manifest)).read_text(encoding="utf-8").strip()
+    except (ModuleNotFoundError, FileNotFoundError, OSError, AttributeError) as exc:
+        _log_debug(f"required-version manifest unavailable: {exc}")
+        return None
+    return _normalize_version(raw)
+
+
+def _normalize_version(raw: str) -> str | None:
+    """Parse a semver out of arbitrary version output → ``vX.Y.Z`` or None."""
+    m = _SEMVER_RE.search(raw or "")
+    if not m:
+        return None
+    return f"v{m.group(1)}.{m.group(2)}.{m.group(3)}"
+
+
+def _version_tuple(version: str | None) -> tuple[int, int, int] | None:
+    """Convert ``vX.Y.Z`` → (X, Y, Z) for comparison, or None if unparseable."""
+    if not version:
+        return None
+    m = _SEMVER_RE.search(version)
+    if not m:
+        return None
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
 
 
 def _binary_fingerprint(path: Path) -> str:
@@ -149,6 +210,78 @@ def _run_ztk_selftest(path: str) -> bool:
     # Authoritative check: the sentinel must be present in stdout. An empty/
     # broken binary exits 0 with no output and fails here.
     return _VERIFY_SENTINEL in (proc.stdout or "")
+
+
+def detect_ztk_version(path: str, *, use_cache: bool = True) -> str | None:
+    """Detect the installed ztk binary's version as ``vX.Y.Z``, or None.
+
+    Probes ``_ZTK_VERSION_COMMANDS`` in order, parsing the first conventional
+    semver found in stdout/stderr. Returns None when the binary exposes no
+    parseable version (ztk documents no ``--version`` flag, so this is an
+    expected, gracefully-handled case — NOT an error).
+
+    The result is cached alongside the functional self-test in
+    ``ztk-verify-cache.json`` keyed by the binary fingerprint, so the probe
+    runs once per binary version rather than on every startup. FAIL-SAFE: any
+    OSError/TimeoutExpired during probing yields None (treated as "unknown"),
+    never an exception on the hot path.
+    """
+    try:
+        fp = _binary_fingerprint(Path(path))
+    except OSError as exc:
+        _log_debug(f"version: cannot stat {path}: {exc}")
+        return None
+
+    ver_key = f"ver:{fp}"
+    cache = _read_verify_cache() if use_cache else {}
+    if use_cache and ver_key in cache:
+        cached = cache[ver_key]
+        _log_debug(f"version: cache hit for {path} -> {cached}")
+        return cached if isinstance(cached, str) else None
+
+    version = _run_ztk_version_probe(path)
+    if use_cache:
+        cache[ver_key] = version
+        _write_verify_cache(cache)
+    _log_debug(f"version: probed {path} -> {version}")
+    return version
+
+
+def _run_ztk_version_probe(path: str) -> str | None:
+    """Try each version command; return the first parseable ``vX.Y.Z`` or None."""
+    for argv in _ZTK_VERSION_COMMANDS:
+        try:
+            proc = subprocess.run(
+                [path, *argv],
+                capture_output=True,
+                text=True,
+                timeout=_ZTK_VERSION_PROBE_TIMEOUT_S,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            _log_debug(f"version: probe {argv} raised {exc!r}")
+            continue
+        merged = f"{proc.stdout or ''}\n{proc.stderr or ''}"
+        version = _normalize_version(merged)
+        if version:
+            return version
+    return None
+
+
+def _warn_outdated_once(installed: str | None, required: str | None) -> None:
+    """Emit a single warning that ztk is functional but older than expected."""
+    global _WARNED_OUTDATED
+    if _WARNED_OUTDATED:
+        return
+    _WARNED_OUTDATED = True
+    shown = installed or "unknown"
+    print(
+        f"[ztk-hook] ztk is functional but outdated ({shown} < {required}) — "
+        "still compressing, but run 'claude-mpm ztk update' to refresh the "
+        "bundled binary.",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def _log_debug(message: str) -> None:
@@ -305,6 +438,69 @@ def ztk_status() -> tuple[bool, str]:
     return (False, "binary not found")
 
 
+def ztk_status_detail() -> dict:
+    """Rich ztk status including version + currency (for banner/statusline/CLI).
+
+    Returns a dict:
+        {
+          "active": bool,                  # functional AND not disabled
+          "reason": str,                   # off-state explanation (see ztk_status)
+          "installed_version": str | None, # vX.Y.Z or None if unknown/unparseable
+          "required_version": str | None,  # pinned manifest version or None
+          "currency": "current" | "outdated" | "unknown" | "n/a",
+          "path": str | None,              # resolved binary path
+        }
+
+    FAIL-SAFE: never raises. Version currency is advisory — an ``active`` (i.e.
+    functional) binary stays active regardless of currency. If the installed
+    version is older than required, ``active`` is still True but ``currency`` is
+    ``"outdated"`` and a one-time stderr warning is emitted, so a working but
+    older binary is NEVER silently disabled over a version mismatch.
+    """
+    try:
+        active, reason = ztk_status()
+        required = _read_required_version()
+        # Resolve a path for version detection. Prefer the verified path; fall
+        # back to the unverified candidate so we can still report a version for
+        # a present-but-nonfunctional binary if it happens to answer --version.
+        path = _resolve_ztk() or _resolve_ztk(verify=False)
+        installed = detect_ztk_version(path) if path else None
+
+        currency = _compute_currency(installed, required)
+        if active and currency == "outdated":
+            _warn_outdated_once(installed, required)
+
+        return {
+            "active": active,
+            "reason": reason,
+            "installed_version": installed,
+            "required_version": required,
+            "currency": currency,
+            "path": path,
+        }
+    except Exception as exc:
+        _log_debug(f"ztk_status_detail raised {exc!r}; reporting unknown")
+        return {
+            "active": False,
+            "reason": "status unavailable",
+            "installed_version": None,
+            "required_version": None,
+            "currency": "unknown",
+            "path": None,
+        }
+
+
+def _compute_currency(installed: str | None, required: str | None) -> str:
+    """Classify installed-vs-required version → currency label."""
+    inst_t = _version_tuple(installed)
+    req_t = _version_tuple(required)
+    if inst_t is None or req_t is None:
+        return "unknown"
+    if inst_t < req_t:
+        return "outdated"
+    return "current"
+
+
 def build_ztk_response(event: dict) -> dict:
     """Build the ztk-rewrite response for a Bash tool call.
 
@@ -314,7 +510,24 @@ def build_ztk_response(event: dict) -> dict:
 
     Exposed as an importable function so ``pretooluse_dispatcher`` can call it
     directly without spawning a subprocess.
+
+    FAIL-SAFE GUARANTEE: this is the single entry point on the Bash hot path, so
+    it must NEVER raise. The whole body is wrapped so that ANY unexpected error
+    (a bug here, a resolver/verify edge case, a malformed event) degrades to a
+    clean ``{"continue": True}`` passthrough — the command runs UNWRAPPED rather
+    than erroring the Bash call. The callers (``pretooluse_dispatcher`` and the
+    inline ``tool_handler`` path) also fail-open, but this inner guard makes the
+    contract hold even if a future caller forgets to wrap it.
     """
+    try:
+        return _build_ztk_response_impl(event)
+    except Exception as exc:
+        _log_debug(f"build_ztk_response raised {exc!r}; passing through")
+        return {"continue": True}
+
+
+def _build_ztk_response_impl(event: dict) -> dict:
+    """Core ztk-rewrite logic; see ``build_ztk_response`` for the fail-safe wrapper."""
     # Environment-variable disable: fast, session-level override.
     if os.environ.get(_DISABLE_ENV_VAR, "").lower() in ("1", "true", "yes"):
         _log_debug(f"{_DISABLE_ENV_VAR} is set; ztk disabled")
