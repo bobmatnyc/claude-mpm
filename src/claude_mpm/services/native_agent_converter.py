@@ -289,10 +289,6 @@ class NativeAgentConverter:
 
         for json_file in json_files:
             try:
-                # Skip base_agent.json
-                if json_file.stem == "base_agent":
-                    continue
-
                 agent_config = json.loads(json_file.read_text())
                 agents.append(agent_config)
                 self.logger.debug(f"Loaded agent: {json_file.stem}")
