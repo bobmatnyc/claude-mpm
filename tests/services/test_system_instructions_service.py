@@ -388,25 +388,36 @@ class TestUserLevelPMOverride:
         assert first.count("# User-Level PM Override") == 1
         assert first.count("Override body") == 1
 
-    def test_override_skipped_on_read_error(self, service, user_config_dir, caplog):
+    def test_override_skipped_on_read_error(
+        self, service, user_config_dir, monkeypatch, caplog
+    ):
         """When the override file raises OSError on read, fall back to base.
 
         The exception must be caught, a DEBUG-level message logged, and
         the un-augmented base instructions returned.
         """
+        import logging
+
         override_file = user_config_dir / "PM_INSTRUCTIONS.md"
         override_file.write_text("ignored", encoding="utf-8")
 
         base = "# Base instructions only"
 
-        # Patch Path.read_text to raise OSError for any call. The
-        # is_file() check still succeeds (the file exists), so we
-        # exercise the read-error branch specifically.
-        with patch.object(Path, "read_text", side_effect=OSError("permission denied")):
-            import logging
+        # Patch Path.read_text only for the specific override file path so
+        # that other Path.read_text calls (e.g. from the service internals)
+        # continue to work normally.  is_file() still succeeds because the
+        # file really exists on disk, so we exercise the read-error branch.
+        _original_read_text = Path.read_text
 
-            with caplog.at_level(logging.DEBUG):
-                result = service.create_system_prompt(base)
+        def _raise_on_override_file(self, *args, **kwargs):
+            if self == override_file:
+                raise OSError("permission denied")
+            return _original_read_text(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", _raise_on_override_file)
+
+        with caplog.at_level(logging.DEBUG):
+            result = service.create_system_prompt(base)
 
         # Fell back to base content, no marker appended.
         assert result == base
