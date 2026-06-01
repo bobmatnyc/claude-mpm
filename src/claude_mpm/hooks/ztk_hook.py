@@ -1,7 +1,7 @@
 """PreToolUse hook: rewrite Bash commands through `ztk run` for token compression.
 
-ztk (https://github.com/codejunkie99/ztk, forked at https://github.com/bobmatnyc/ztk)
-is a Zig binary that compresses shell command output before it reaches Claude.
+ztk (https://github.com/codejunkie99/ztk) is a Zig binary that compresses shell
+command output before it reaches Claude.
 Benchmarks show 80-97% token reduction on common commands (git diff, ls, grep,
 pytest, etc.) with a 90.6% overall reduction across a 256-command session.
 
