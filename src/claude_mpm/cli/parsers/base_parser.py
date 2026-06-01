@@ -890,6 +890,14 @@ def create_parser(
         except ImportError:
             pass
 
+        # Add ztk command group (status / version check / update)
+        try:
+            from ..commands.ztk import add_ztk_parser
+
+            add_ztk_parser(subparsers)
+        except ImportError:
+            pass
+
         # Add llmlingua-stats command (experimental LLMLingua-2 compression)
         try:
             from ..commands.llmlingua_stats import add_llmlingua_stats_parser
