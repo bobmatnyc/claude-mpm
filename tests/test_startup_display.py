@@ -611,3 +611,78 @@ class TestDisplayStartupBanner:
         assert "user:" in captured.out
         assert "total:" in captured.out
         assert "Sonnet" in captured.out
+
+
+class TestTrustyBannerStatus:
+    """Tests for trusty daemon status wiring into the banner (#598)."""
+
+    def test_trusty_absent_suppressed_in_wide_banner(self, capsys, monkeypatch):
+        """When both daemons return empty lines, nothing trusty appears."""
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display.get_trusty_status",
+            lambda service: ("absent", ""),
+        )
+        display_startup_banner("4.24.0")
+        captured = capsys.readouterr()
+        assert "trusty-memory" not in captured.out
+        assert "trusty-search" not in captured.out
+
+    def test_trusty_on_lines_appear_in_wide_banner(self, capsys, monkeypatch):
+        """Non-empty trusty lines are rendered in the wide banner path."""
+        lines = {
+            "trusty-memory": (
+                "on",
+                "trusty-memory: on   palace: demo   localhost:7070",
+            ),
+            "trusty-search": ("on", "trusty-search: on   localhost:7878"),
+        }
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display.get_trusty_status",
+            lambda service: lines[service],
+        )
+        display_startup_banner("4.24.0")
+        captured = capsys.readouterr()
+        assert "trusty-memory: on" in captured.out
+        assert "trusty-search: on" in captured.out
+        assert "palace: demo" in captured.out
+        assert "/ui" not in captured.out
+
+    def test_only_opted_in_service_rendered(self, capsys, monkeypatch):
+        """A suppressed service adds nothing; the opted-in one still shows."""
+        lines = {
+            "trusty-memory": (
+                "on",
+                "trusty-memory: on   palace: demo   localhost:7070",
+            ),
+            "trusty-search": ("absent", ""),
+        }
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display.get_trusty_status",
+            lambda service: lines[service],
+        )
+        display_startup_banner("4.24.0")
+        captured = capsys.readouterr()
+        assert "trusty-memory: on" in captured.out
+        assert "trusty-search" not in captured.out
+
+    def test_trusty_lines_appear_in_narrow_banner(self, capsys, monkeypatch):
+        """Narrow-terminal path also renders non-empty trusty lines (#598)."""
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display._get_terminal_width", lambda: 40
+        )
+        lines = {
+            "trusty-memory": (
+                "not_running",
+                "trusty-memory: not running  (start: x)",
+            ),
+            "trusty-search": ("absent", ""),
+        }
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display.get_trusty_status",
+            lambda service: lines[service],
+        )
+        display_startup_banner("4.24.0")
+        captured = capsys.readouterr()
+        assert "trusty-memory: not running" in captured.out
+        assert "trusty-search" not in captured.out
+        assert "/ui" not in captured.out
