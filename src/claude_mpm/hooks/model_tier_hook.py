@@ -23,6 +23,30 @@ from pathlib import Path
 from claude_mpm.hooks import permission_policy
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
+# ---------------------------------------------------------------------------
+# Version-capability guard (PreToolUse input modification, v2.0.30+)
+# ---------------------------------------------------------------------------
+# Import lazily so the module itself can be imported in any environment; the
+# guard is only evaluated when build_model_tier_response is called.
+_pretool_modify_supported: bool | None = None  # None = not yet checked
+
+
+def _check_pretool_modify_supported() -> bool:
+    """Return (and cache) whether PreToolUse input modification is supported."""
+    global _pretool_modify_supported
+    if _pretool_modify_supported is not None:
+        return _pretool_modify_supported
+    try:
+        from claude_mpm.core.capabilities import (
+            supports_pretool_modify,
+        )
+
+        _pretool_modify_supported = supports_pretool_modify()
+    except Exception:
+        _pretool_modify_supported = False
+    return _pretool_modify_supported
+
+
 # Agent type -> model mapping (fallback when frontmatter unavailable).
 # Only haiku-tier agents are listed here; all other agents (including
 # engineering agents) default to opus.  Callers that need sonnet or haiku for a
@@ -73,6 +97,25 @@ _TIER_ALIASES: dict[str, str] = {
     # callers referencing either generation get consistent routing.
     "claude-opus-4-6": _OPUS_MODEL,
     "claude-opus-4-7": _OPUS_MODEL,
+}
+
+# When injecting into the Agent tool's ``model`` field, some Claude Code
+# versions only accept the short alias forms (sonnet|opus|haiku).  Using
+# a dated ID such as "claude-opus-4-7" causes "expected one of sonnet|opus|haiku"
+# errors in those versions.  This map converts a resolved model value to its
+# safe short alias for injection so Claude Code always accepts it.
+_INJECT_SHORT_ALIAS: dict[str, str] = {
+    # opus tier — all dated opus IDs → "opus"
+    _OPUS_MODEL: "opus",
+    "claude-opus-4-6": "opus",
+    # sonnet tier
+    _SONNET_MODEL: "sonnet",
+    "claude-sonnet-4-5": "sonnet",
+    "claude-sonnet-4": "sonnet",
+    # haiku tier
+    "haiku": "haiku",
+    "claude-haiku-3-5": "haiku",
+    "claude-haiku-3": "haiku",
 }
 
 # Module-level cache for per-agent model preferences. ``None`` means not yet
@@ -199,15 +242,38 @@ def build_model_tier_response(event: dict) -> dict:
     """Resolve and inject the model tier for an Agent tool call.
 
     Returns the full ``hookSpecificOutput``-wrapped payload dict, or
-    ``{"continue": True}`` when the event is not an Agent call or already has a
-    model set. Exposed as an importable function so ``pretooluse_dispatcher``
-    can call it directly without spawning a subprocess.
+    ``{"continue": True}`` when the event is not an Agent call, already has a
+    model set, or the running Claude Code does not support PreToolUse input
+    modification (requires v2.0.30+).
+
+    Exposed as an importable function so ``pretooluse_dispatcher`` can call it
+    directly without spawning a subprocess.
+
+    Model injection is version-gated
+    ---------------------------------
+    Claude Code v2.0.30+ is required for the ``updatedInput`` field in
+    ``hookSpecificOutput``.  On older versions the field is silently ignored or
+    causes warnings, so we skip injection entirely when the running version does
+    not meet the minimum.
+
+    Short-alias form
+    ----------------
+    The Agent tool's ``model`` field accepts the short alias forms
+    (``opus``, ``sonnet``, ``haiku``) on all supported versions.  Dated IDs
+    such as ``claude-opus-4-7`` can cause "expected one of sonnet|opus|haiku"
+    validation errors on some versions.  We map known dated IDs to their short
+    alias before injecting; unknown/custom model IDs are passed through as-is.
     """
     tool_name = event.get("tool_name", "")
     tool_input = event.get("tool_input", {})
 
     # Only intercept Agent tool calls that don't already have a model
     if tool_name != "Agent" or "model" in tool_input:
+        return {"continue": True}
+
+    # Version gate: skip injection when PreToolUse input modification is
+    # unsupported (pre-v2.0.30).  Fail open so Claude Code is never blocked.
+    if not _check_pretool_modify_supported():
         return {"continue": True}
 
     agent_type = tool_input.get("subagent_type", "")
@@ -219,7 +285,7 @@ def build_model_tier_response(event: dict) -> dict:
     #      (with project-level .claude-mpm/configuration.yaml as override).
     #   3. Frontmatter ``model:`` field in .claude/agents/<name>.md.
     #   4. Built-in haiku-tier mapping (_HAIKU_AGENTS).
-    #   5. Default sonnet for all other agents (including engineering agents).
+    #   5. Default opus for all other agents (including engineering agents).
     model = _read_model_from_config(agent_type, cwd)
     if model is None:
         model = _read_model_from_frontmatter(agent_type, cwd)
@@ -230,11 +296,15 @@ def build_model_tier_response(event: dict) -> dict:
         else:
             model = _DEFAULT_MODEL
 
+    # Map to short alias form for maximum Claude Code version compatibility.
+    # Unknown model IDs (custom / future) are passed through unchanged.
+    inject_model = _INJECT_SHORT_ALIAS.get(model, model)
+
     # Return modified tool_input via hookSpecificOutput.updatedInput.
     # Use additionalContext instead of permissionDecision/reason so the model
     # tier info is injected into the context window rather than surfaced as a
     # chat message (Claude Code v2.1.133+ additionalContext support).
-    tool_input["model"] = model
+    tool_input["model"] = inject_model
 
     # Mark sub-agents so their hooks can self-guard with CLAUDE_MPM_SUB_AGENT.
     # Merge with any existing env dict to avoid overwriting other keys.
@@ -244,7 +314,7 @@ def build_model_tier_response(event: dict) -> dict:
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "additionalContext": f"Model tier resolved for agent '{agent_type}': {model}",
+            "additionalContext": f"Model tier resolved for agent '{agent_type}': {inject_model}",
             "updatedInput": tool_input,
         }
     }
