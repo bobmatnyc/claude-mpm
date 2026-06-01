@@ -19,10 +19,12 @@ Behavior:
 Returns hookSpecificOutput with updatedInput to modify the Bash command parameter.
 """
 
+import hashlib
 import json
 import os
 import shutil
 import stat
+import subprocess
 import sys
 from datetime import UTC, datetime
 from importlib import resources
@@ -42,6 +44,111 @@ from pathlib import Path
 _DISABLE_ENV_VAR = "CLAUDE_MPM_DISABLE_ZTK"
 _MPM_LOG_DIR = Path.home() / ".claude-mpm"
 _MPM_ZTK_LOG = _MPM_LOG_DIR / "ztk-savings.log"
+
+# ---------------------------------------------------------------------------
+# Functional verification cache + self-test
+# ---------------------------------------------------------------------------
+# WHY a functional self-test (not just existence + exec-bit):
+#   The bundled binary at `claude_mpm/bin/ztk` is a 0-byte placeholder that is
+#   gitignored and only populated at release time by
+#   `scripts/download_ztk_binaries.sh`. A 0-byte file still passes `is_file()`
+#   and (once chmod'd) the exec-bit check, yet running it produces exit-0 with
+#   EMPTY stdout. The hook then rewrites every Bash command to `<ztk> run <cmd>`,
+#   so the broken binary silently swallows ALL command output. This is the real
+#   root cause of the "#573/#587 Bash stdout-drop" defect (misattributed to the
+#   Claude Code harness). Existence + exec-bit are therefore INSUFFICIENT — we
+#   must prove the binary round-trips output before trusting it.
+_VERIFY_SENTINEL = "ztk_selftest_8f3a2c"
+_VERIFY_TIMEOUT_S = 3.0
+_VERIFY_CACHE = _MPM_LOG_DIR / "ztk-verify-cache.json"
+
+# Process-local memo so repeated calls within one process don't re-stat/re-read.
+_RESOLVE_MEMO: dict[str, str | None] = {}
+_WARNED_NONFUNCTIONAL = False
+
+
+def _binary_fingerprint(path: Path) -> str:
+    """Return a cache key derived from path + mtime_ns + size.
+
+    Per the CLAUDE.md stability pattern, expensive verification is keyed by the
+    binary's identity so a probe only re-runs when the binary actually changes
+    (e.g. populated at release, upgraded, or swapped on PATH).
+    """
+    st = path.stat()
+    raw = f"{path}|{st.st_mtime_ns}|{st.st_size}"
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _read_verify_cache() -> dict:
+    try:
+        with _VERIFY_CACHE.open() as fh:
+            data = json.load(fh)
+            return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _write_verify_cache(cache: dict) -> None:
+    try:
+        _MPM_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        with _VERIFY_CACHE.open("w") as fh:
+            json.dump(cache, fh)
+    except OSError as exc:
+        _log_debug(f"failed to write verify cache: {exc}")
+
+
+def verify_ztk_binary(path: str, *, use_cache: bool = True) -> bool:
+    """Functionally verify that the ztk binary round-trips command output.
+
+    Runs ``<path> run echo <SENTINEL>`` and confirms the sentinel appears in
+    stdout. This is the AUTHORITATIVE health check: the failure mode is
+    exit-0-with-empty-stdout, so checking the exit code alone is not enough —
+    we must observe the binary actually passing output through.
+
+    The boolean result is cached to ``~/.claude-mpm/ztk-verify-cache.json``
+    keyed by the binary's path + mtime + size, so the (subprocess) probe runs
+    once per binary version rather than on every Bash call.
+    """
+    try:
+        bin_path = Path(path)
+        fp = _binary_fingerprint(bin_path)
+    except OSError as exc:
+        _log_debug(f"verify: cannot stat {path}: {exc}")
+        return False
+
+    cache = _read_verify_cache() if use_cache else {}
+    if use_cache and fp in cache:
+        _log_debug(f"verify: cache hit for {path} -> {cache[fp]}")
+        return bool(cache[fp])
+
+    ok = _run_ztk_selftest(path)
+    if use_cache:
+        cache[fp] = ok
+        # Bound the cache: keep only the most recent entries so it never grows
+        # unbounded across many binary versions.
+        if len(cache) > 16:
+            cache = dict(list(cache.items())[-16:])
+        _write_verify_cache(cache)
+    _log_debug(f"verify: self-test for {path} -> {ok}")
+    return ok
+
+
+def _run_ztk_selftest(path: str) -> bool:
+    """Run the sentinel round-trip probe. Returns True only if stdout matches."""
+    try:
+        proc = subprocess.run(
+            [path, "run", "echo", _VERIFY_SENTINEL],
+            capture_output=True,
+            text=True,
+            timeout=_VERIFY_TIMEOUT_S,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        _log_debug(f"verify: self-test raised {exc!r}")
+        return False
+    # Authoritative check: the sentinel must be present in stdout. An empty/
+    # broken binary exits 0 with no output and fails here.
+    return _VERIFY_SENTINEL in (proc.stdout or "")
 
 
 def _log_debug(message: str) -> None:
@@ -78,45 +185,124 @@ def _log_intercepted(command: str) -> None:
         _log_debug(f"failed to write MPM savings log: {exc}")
 
 
-def _resolve_ztk() -> str | None:
-    """Resolve the ztk executable path.
+def _candidate_is_usable(path: Path) -> bool:
+    """Return True only if `path` is a non-empty, executable regular file.
+
+    WHY size > 0: the bundled binary ships as a 0-byte placeholder until a
+    release populates it. A 0-byte file is `is_file()` True and can carry an
+    exec-bit, but running it yields exit-0 with EMPTY stdout — the binary that
+    silently swallows all Bash output (the #573 root cause). Existence and the
+    exec-bit are necessary but NOT sufficient; we reject empty files here and
+    follow up with a functional round-trip self-test in `_resolve_ztk()`.
+    """
+    try:
+        if not path.is_file():
+            return False
+        st = path.stat()
+        if st.st_size == 0:
+            _log_debug(f"ztk candidate {path} is 0 bytes; rejecting")
+            return False
+        if not st.st_mode & stat.S_IXUSR:
+            # Wheels can drop the exec-bit; try to restore it for the bundle.
+            try:
+                path.chmod(st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                _log_debug(f"chmod +x applied to {path}")
+            except OSError as exc:
+                _log_debug(f"failed to chmod ztk candidate {path}: {exc}")
+                return False
+        return True
+    except OSError as exc:
+        _log_debug(f"ztk candidate {path} stat failed: {exc}")
+        return False
+
+
+def _warn_nonfunctional_once() -> None:
+    """Emit a single clear warning that ztk is present but non-functional."""
+    global _WARNED_NONFUNCTIONAL
+    if _WARNED_NONFUNCTIONAL:
+        return
+    _WARNED_NONFUNCTIONAL = True
+    print(
+        "[ztk-hook] ztk binary present but non-functional "
+        "(0-byte/invalid/no output) — shell compression DISABLED, "
+        "commands pass through unchanged.",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
+def _resolve_ztk(*, verify: bool = True) -> str | None:
+    """Resolve a FUNCTIONAL ztk executable path, or None for passthrough.
 
     Resolution order:
     1. System PATH (`shutil.which("ztk")`) — user's install takes precedence
     2. Bundled binary at `claude_mpm/bin/ztk` (chmod +x if needed)
 
-    Returns absolute path string, or None if neither is available.
+    A candidate must pass THREE gates before it is returned:
+      (a) non-empty regular file (size > 0),
+      (b) executable bit set (restored for the bundle if missing),
+      (c) a cached functional round-trip self-test (`verify_ztk_binary`).
+
+    WHY gate (c): existence + exec-bit are insufficient because an empty or
+    invalid binary exits 0 with no output, silently swallowing all Bash stdout
+    (the #573/#587 root cause). If no candidate verifies, we return None so the
+    caller passes the command through UNCHANGED — never rewriting to a binary we
+    have not proven works. Pass `verify=False` to skip the self-test (used by
+    callers that only need a path candidate for status display).
     """
+    memo_key = "1" if verify else "0"
+    if memo_key in _RESOLVE_MEMO:
+        return _RESOLVE_MEMO[memo_key]
+
+    candidates: list[Path] = []
+
     # 1. System install
     system_ztk = shutil.which("ztk")
     if system_ztk:
-        _log_debug(f"using system ztk: {system_ztk}")
-        return system_ztk
+        candidates.append(Path(system_ztk))
 
     # 2. Bundled binary via importlib.resources
     try:
         bundled = resources.files("claude_mpm").joinpath("bin", "ztk")
-        # `files()` returns a Traversable; for filesystem-based packages this is
-        # a concrete path. Coerce via str() and confirm existence.
-        bundled_path = Path(str(bundled))
-        if bundled_path.is_file():
-            # Ensure executable bit is set (wheels can lose it)
-            mode = bundled_path.stat().st_mode
-            if not mode & stat.S_IXUSR:
-                try:
-                    bundled_path.chmod(
-                        mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-                    )
-                    _log_debug(f"chmod +x applied to {bundled_path}")
-                except OSError as exc:
-                    _log_debug(f"failed to chmod bundled ztk: {exc}")
-                    return None
-            _log_debug(f"using bundled ztk: {bundled_path}")
-            return str(bundled_path)
+        candidates.append(Path(str(bundled)))
     except (ModuleNotFoundError, FileNotFoundError, AttributeError) as exc:
         _log_debug(f"bundled ztk not available: {exc}")
 
-    return None
+    result: str | None = None
+    saw_present_but_broken = False
+    for cand in candidates:
+        if not _candidate_is_usable(cand):
+            continue
+        if verify and not verify_ztk_binary(str(cand)):
+            saw_present_but_broken = True
+            _log_debug(f"ztk candidate {cand} failed functional verification")
+            continue
+        _log_debug(f"using verified ztk: {cand}")
+        result = str(cand)
+        break
+
+    if result is None and saw_present_but_broken:
+        _warn_nonfunctional_once()
+
+    _RESOLVE_MEMO[memo_key] = result
+    return result
+
+
+def ztk_status() -> tuple[bool, str]:
+    """Single source of truth for ztk functional status (for banner/statusline).
+
+    Returns (active, reason). ``active`` is True only when ztk is disabled via
+    neither env var nor flag AND a binary verifies functional. The reason string
+    explains the off-state so the banner/statusline can be truthful.
+    """
+    if os.environ.get(_DISABLE_ENV_VAR, "").lower() in ("1", "true", "yes"):
+        return (False, "disabled via --no-ztk")
+    if _resolve_ztk() is not None:
+        return (True, "verified functional")
+    # Distinguish "no binary at all" from "present but broken" for the message.
+    if _resolve_ztk(verify=False) is not None:
+        return (False, "binary present but non-functional")
+    return (False, "binary not found")
 
 
 def build_ztk_response(event: dict) -> dict:
@@ -157,9 +343,15 @@ def build_ztk_response(event: dict) -> dict:
         _log_debug("command contains ' -c ' or ' -e '; ztk blocks these patterns")
         return {"continue": True}
 
-    # Skip multi-statement compound commands (contain newlines)
-    if "\n" in command:
-        _log_debug("command contains newlines; skipping multi-statement compound")
+    # Skip multi-statement compound commands.
+    # WHY: `ztk run <cmd>` wraps a SINGLE program invocation. The naive rewrite
+    # `f"{ztk} run {command}"` parses only the FIRST segment as ztk's target;
+    # everything after a shell operator (`&&`, `||`, `;`, `|`) is run by the
+    # outer shell OUTSIDE ztk, so only the first segment's output is captured —
+    # the partial-output bug. Newlines have the same effect. We therefore pass
+    # any compound/piped command through UNCHANGED rather than wrap it.
+    if "\n" in command or any(op in command for op in ("&&", "||", ";", "|")):
+        _log_debug("command is compound/piped; passing through (avoids partial output)")
         return {"continue": True}
 
     # Graceful degradation: ztk must be resolvable
