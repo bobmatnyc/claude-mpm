@@ -141,26 +141,19 @@ fi
 
 # ---------------------------------------------------------------------------
 # ztk compression segment.
-# on  = binary resolvable (PATH or bundled) AND CLAUDE_MPM_DISABLE_ZTK not set
-# off = binary missing OR CLAUDE_MPM_DISABLE_ZTK=1|true|yes
+# on  = binary resolvable AND functionally VERIFIED AND CLAUDE_MPM_DISABLE_ZTK
+#       not set
+# off = disabled, binary missing, OR binary present-but-non-functional
+#
+# Truthfulness: a present-but-empty/invalid binary exits 0 with no output and
+# silently swallows all Bash stdout (the #573 root cause). We therefore defer to
+# ztk_hook.ztk_status(), which runs a cached functional self-test, instead of a
+# bare is_file() existence check that would falsely report "on".
 # ---------------------------------------------------------------------------
 ZTK_SEGMENT=""
-_ZTK_DISABLED="${CLAUDE_MPM_DISABLE_ZTK:-}"
-case "$_ZTK_DISABLED" in
-    1|true|yes) _ZTK_ACTIVE=0 ;;
-    *)          _ZTK_ACTIVE=1 ;;
-esac
-if [ "$_ZTK_ACTIVE" = "1" ]; then
-    if ! command -v ztk >/dev/null 2>&1; then
-        # Check bundled path (importlib.resources puts it next to the package)
-        _BUNDLED_ZTK="$(python3 -c \
-            "from importlib import resources; import pathlib; p=pathlib.Path(str(resources.files('claude_mpm').joinpath('bin','ztk'))); print(p if p.is_file() else '')" \
-            2>/dev/null || echo "")"
-        if [ -z "$_BUNDLED_ZTK" ]; then
-            _ZTK_ACTIVE=0
-        fi
-    fi
-fi
+_ZTK_ACTIVE="$(python3 -c \
+    "from claude_mpm.hooks.ztk_hook import ztk_status; print('1' if ztk_status()[0] else '0')" \
+    2>/dev/null || echo "0")"
 if [ "$_ZTK_ACTIVE" = "1" ]; then
     ZTK_SEGMENT="${SEP}${DIM}ztk: on${RESET}"
 else
