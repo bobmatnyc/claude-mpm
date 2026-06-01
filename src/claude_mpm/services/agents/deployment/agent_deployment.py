@@ -144,7 +144,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         Args:
             templates_dir: Directory containing agent JSON files
-            base_agent_path: Path to base_agent.md file
+            base_agent_path: Path to the BASE_AGENT.md markdown source
             working_directory: User's working directory (for project agents)
             config: Configuration instance
 
@@ -221,7 +221,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         elif configured_base_agent:
             self.base_agent_path = configured_base_agent
         else:
-            # Priority-based search for base_agent.json
+            # Priority-based search for the BASE_AGENT.md markdown source
             self.base_agent_path = self.base_agent_locator.find_base_agent_file(
                 paths.agents_dir
             )
@@ -282,7 +282,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         use_async: bool = False,
     ) -> dict[str, Any]:
         """
-        Build and deploy agents by combining base_agent.md with templates.
+        Build and deploy agents by combining BASE_AGENT.md with templates.
         Also deploys system instructions for PM framework.
 
         DEPLOYMENT MODES:
