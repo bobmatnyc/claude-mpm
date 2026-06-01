@@ -6,9 +6,13 @@ trailer to the canonical Claude MPM form and appends structured JSONL records
 to ~/.claude-mpm/commit-costs.jsonl for offline analysis.
 
 DESIGN DECISIONS:
-- Per-commit delta = cumulative snapshot at PostToolUse minus last-recorded
+- run_as_git_hook() is invoked by the .git/hooks/post-commit shell script so
+  it fires for ALL commits, including those made by Claude Code subagents.  The
+  PostToolUse approach (detecting "git commit" Bash calls) only saw the parent
+  session's Bash calls; subagent commits were invisible to it.
+- Per-commit delta = cumulative snapshot at run time minus last-recorded
   baseline. The baseline is stored in .claude-mpm/state/commit-token-baseline.json
-  inside the project directory.
+  inside the project directory (found by walking upward from cwd).
 - Atomic file I/O (write-to-temp, then rename) prevents corruption when hooks
   run concurrently across worktrees.
 - All subprocess calls use stdlib only; no new dependencies.
@@ -33,6 +37,34 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Debug log helper — always writes to ~/.claude-mpm/logs/commit-cost-debug.log
+# regardless of Python logging configuration so hook invocations are visible.
+# ---------------------------------------------------------------------------
+_DEBUG_LOG: Path = Path.home() / ".claude-mpm" / "logs" / "commit-cost-debug.log"
+_ENABLE_DEBUG: bool = os.environ.get("CLAUDE_MPM_COMMIT_COST_DEBUG", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+
+def _debug(message: str) -> None:
+    """Append *message* to the debug log file (always, unconditionally).
+
+    This persists across hook invocations (which run in ephemeral subprocesses)
+    so we can see whether the hook fires, what data it reads, and why it may
+    produce zero-delta results.
+    """
+    try:
+        _DEBUG_LOG.parent.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
+        with _DEBUG_LOG.open("a") as fh:
+            fh.write(f"[{ts}] {message}\n")
+    except Exception:
+        pass  # Never raise from a debug helper
+
 
 # ---------------------------------------------------------------------------
 # Pricing constants ($/MTok = dollars per million tokens)
@@ -92,14 +124,36 @@ def get_token_delta(cwd: str) -> dict[str, int]:
         project_root / ".claude-mpm" / "state" / "commit-token-baseline.json"
     )
 
+    _debug(f"get_token_delta: cwd={cwd}")
+    _debug(f"  usage_file={usage_file} exists={usage_file.exists()}")
+    _debug(f"  baseline_file={baseline_file} exists={baseline_file.exists()}")
+
     # Read current cumulative totals (graceful degradation if missing).
     current = _read_json_safe(usage_file)
+    _debug(f"  context-usage.json raw: {json.dumps(current)}")
+
+    # Guard against stale test data: if session_id looks like a test artifact
+    # (e.g. "summary-test") and token counts are absurdly high relative to what
+    # a single session could realistically produce, treat the file as empty so
+    # we get zero-delta rather than fraudulent large deltas.
+    _STALE_THRESHOLD = 500_000  # 500k tokens is implausible in one session
+    session_id = current.get("session_id", "")
+    raw_input = int(current.get("cumulative_input_tokens", 0))
+    raw_output = int(current.get("cumulative_output_tokens", 0))
+    if (raw_input + raw_output) > _STALE_THRESHOLD or session_id == "summary-test":
+        _debug(
+            f"  WARNING: context-usage.json appears stale (session_id={session_id!r}, "
+            f"input={raw_input}, output={raw_output}) — treating as empty"
+        )
+        current = {}
+
     cumulative = {
         "input_tokens": int(current.get("cumulative_input_tokens", 0)),
         "output_tokens": int(current.get("cumulative_output_tokens", 0)),
         "cache_read_tokens": int(current.get("cache_read_tokens", 0)),
         "cache_write_tokens": int(current.get("cache_creation_tokens", 0)),
     }
+    _debug(f"  cumulative={cumulative}")
 
     # Read previous baseline (zeros if this is the first commit).
     prev = _read_json_safe(baseline_file)
@@ -109,11 +163,13 @@ def get_token_delta(cwd: str) -> dict[str, int]:
         "cache_read_tokens": int(prev.get("cache_read_tokens", 0)),
         "cache_write_tokens": int(prev.get("cache_write_tokens", 0)),
     }
+    _debug(f"  baseline={baseline}")
 
     # Delta = current minus previous (floor at zero to guard against resets).
     delta: dict[str, int] = {
         key: max(0, cumulative[key] - baseline[key]) for key in cumulative
     }
+    _debug(f"  delta={delta}")
 
     # Persist new baseline atomically.
     _write_json_atomic(baseline_file, cumulative)
@@ -171,6 +227,9 @@ def amend_commit_message(
         cost: Estimated cost from compute_cost().
         cwd: Working directory for git commands.
     """
+    _debug(
+        f"amend_commit_message: sha={commit_sha} delta={delta} cost={cost:.6f} cwd={cwd}"
+    )
     try:
         # 1. Retrieve current commit message.
         result = subprocess.run(
@@ -250,12 +309,18 @@ def amend_commit_message(
             check=False,
         )
         if amend_result.returncode != 0:
+            _debug(
+                f"  amend FAILED (rc={amend_result.returncode}): {amend_result.stderr.strip()}"
+            )
             logger.warning(
                 "commit_cost_tracker: amend failed for %s: %s",
                 commit_sha,
                 amend_result.stderr.strip(),
             )
+        else:
+            _debug(f"  amend OK for {commit_sha}")
     except Exception as exc:
+        _debug(f"  amend_commit_message exception: {exc}")
         logger.warning("commit_cost_tracker: amend_commit_message error: %s", exc)
 
 
@@ -275,6 +340,7 @@ def write_cost_log(
         cwd: Working directory of the repository.
         output: Raw stdout from the git commit command.
     """
+    _debug(f"write_cost_log: sha={commit_sha} cost={cost:.6f}")
     try:
         log_path = Path.home() / ".claude-mpm" / "commit-costs.jsonl"
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -381,3 +447,104 @@ def _append_jsonl_atomic(path: Path, record: dict[str, Any]) -> None:
             Path(tmp).unlink(missing_ok=True)
         except Exception:
             pass
+
+
+# ---------------------------------------------------------------------------
+# Git post-commit hook entry point
+# ---------------------------------------------------------------------------
+
+
+def _find_project_root(start: Path) -> Path | None:
+    """Walk upward from *start* until we find a directory containing .claude-mpm/.
+
+    Returns the project root Path, or None if not found before the filesystem
+    root.
+    """
+    current = start.resolve()
+    while True:
+        if (current / ".claude-mpm").is_dir():
+            return current
+        parent = current.parent
+        if parent == current:
+            return None
+        current = parent
+
+
+def run_as_git_hook() -> None:
+    """Entry point for the git post-commit hook.
+
+    Called by .git/hooks/post-commit after every commit (including subagent
+    commits that are invisible to the parent session's PostToolUse hook).
+
+    Steps:
+    1. Locate the project root by walking upward from cwd.
+    2. Read context-usage.json and compute the per-commit token delta.
+    3. Get the HEAD SHA and commit message.
+    4. Strip generic Co-Authored-By: Claude lines, ensure exactly one canonical
+       Co-Authored-By: Claude MPM trailer.
+    5. Append X-AI-* trailers.
+    6. Amend HEAD with the enriched message (--no-verify to avoid recursion).
+    7. Append a JSONL record to ~/.claude-mpm/commit-costs.jsonl.
+
+    All failures are logged to the debug log and suppressed so the commit is
+    never broken by hook errors.
+    """
+    _debug("run_as_git_hook: invoked")
+
+    try:
+        cwd = Path.cwd()
+        _debug(f"  cwd={cwd}")
+
+        # 1. Find project root.
+        project_root = _find_project_root(cwd)
+        _debug(f"  project_root={project_root}")
+        if project_root is None:
+            _debug("  no .claude-mpm dir found; using cwd as project_root")
+            project_root = cwd
+
+        working_dir = str(project_root)
+
+        # 2. Compute token delta and cost.
+        delta = get_token_delta(working_dir)
+        cost = compute_cost(delta)
+        _debug(f"  delta={delta} cost={cost:.6f}")
+
+        # 3. Get HEAD SHA.
+        sha_result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=working_dir,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if sha_result.returncode != 0:
+            _debug(f"  git rev-parse failed: {sha_result.stderr.strip()}")
+            return
+        commit_sha = sha_result.stdout.strip()
+        _debug(f"  commit_sha={commit_sha!r}")
+
+        # 4-6. Amend the commit message to include trailers.
+        amend_commit_message(commit_sha, delta, cost, working_dir)
+
+        # 7. Write cost log.
+        # Re-read the amended SHA (amend rewrites the commit hash).
+        amended_sha_result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=working_dir,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        final_sha = (
+            amended_sha_result.stdout.strip()
+            if amended_sha_result.returncode == 0
+            else commit_sha
+        )
+        write_cost_log(final_sha, delta, cost, working_dir, f"[hook] {final_sha}")
+        _debug(f"  run_as_git_hook: complete for sha={final_sha}")
+
+    except Exception as exc:
+        _debug(f"  run_as_git_hook EXCEPTION: {exc}")
+        logger.warning("commit_cost_tracker.run_as_git_hook error: %s", exc)
