@@ -9,7 +9,7 @@ ZTK is a Zig-based binary that compresses shell command output before it reaches
 - **Zero configuration** — enabled by default, works immediately
 - **Transparent to users** — no changes to how you write commands
 - **Graceful degradation** — if ztk isn't available, commands pass through unchanged
-- **MIT licensed** — bundled binary from the open-source fork at [bobmatnyc/ztk](https://github.com/bobmatnyc/ztk)
+- **MIT licensed** — bundled binary from the open-source upstream at [codejunkie99/ztk](https://github.com/codejunkie99/ztk)
 
 **Overall Impact:**
 - Across an 82-command session on the claude-mpm codebase, ztk achieved **82% token reduction**
@@ -220,7 +220,7 @@ ztk run find src/ -name "*.py"
    brew install ztk
 
    # Or from source
-   cargo install --git https://github.com/bobmatnyc/ztk
+   cargo install --git https://github.com/codejunkie99/ztk
    ```
 
 4. Reinstall claude-mpm to get bundled binary:
@@ -247,7 +247,7 @@ ztk run find src/ -name "*.py"
    CLAUDE_MPM_DISABLE_ZTK=1 <rerun your command>
    ```
 
-2. Or disable ztk for the session and file an issue at [bobmatnyc/ztk](https://github.com/bobmatnyc/ztk)
+2. Or disable ztk for the session and file an issue at [codejunkie99/ztk](https://github.com/codejunkie99/ztk)
 
 3. Contact support with the command that failed and debug output
 
@@ -282,7 +282,7 @@ binary is current.
 
 ### Single source of truth
 
-The pinned version lives in `src/claude_mpm/bin/ztk_version.txt` (e.g. `v0.2.1`).
+The pinned version lives in `src/claude_mpm/bin/ztk_version.txt` (e.g. `v0.3.1`).
 Both the release process (`make download-ztk` / `scripts/download_ztk_binaries.sh`)
 and the runtime currency check read this one file, so the bundled binary, the
 reproducible-fetch tag, and the startup status can never drift apart. To bump
@@ -295,8 +295,8 @@ At startup, claude-mpm detects the installed binary's actual version (via
 version. The result is cached by binary fingerprint (mtime/size), so there is no
 per-startup subprocess cost once the binary is unchanged. The banner shows one of:
 
-- `⚡ ztk compression: on (v0.2.1)` — current and functional
-- `⚡ ztk compression: outdated (v0.2.0 < v0.2.1) — run 'claude-mpm ztk update'`
+- `⚡ ztk compression: on (v0.3.1)` — current and functional
+- `⚡ ztk compression: outdated (v0.3.0 < v0.3.1) — run 'claude-mpm ztk update'`
 - `ztk compression: off (...)` — disabled or non-functional
 
 If ztk exposes no parseable version, the status reads `on` with no version shown
@@ -346,7 +346,7 @@ claude-mpm/
     └── ztk          # Binary bundled in the wheel
 ```
 
-**License:** MIT (from [bobmatnyc/ztk](https://github.com/bobmatnyc/ztk) fork)
+**License:** MIT (from [codejunkie99/ztk](https://github.com/codejunkie99/ztk))
 
 **Distribution Methods:**
 - **PyPI** — Bundled in the wheel
@@ -359,7 +359,7 @@ To use ztk from source instead of the bundled binary:
 
 ```bash
 # Install from source (takes precedence over bundled)
-cargo install --git https://github.com/bobmatnyc/ztk
+cargo install --git https://github.com/codejunkie99/ztk
 
 # Verify it's on PATH
 which ztk
@@ -443,7 +443,7 @@ To measure token savings in your own sessions:
 
 ### Q: Can I customize compression settings?
 
-**A:** Not currently. ztk provides sensible defaults optimized for development command output. If you need different compression behavior, please open an issue at [bobmatnyc/ztk](https://github.com/bobmatnyc/ztk).
+**A:** Not currently. ztk provides sensible defaults optimized for development command output. If you need different compression behavior, please open an issue at [codejunkie99/ztk](https://github.com/codejunkie99/ztk).
 
 ### Q: What about privacy? Does ztk send data anywhere?
 
@@ -467,7 +467,7 @@ python3 -c 'print("hello")'
 
 - [PreToolUse Hooks System](../developer/hooks.md) — How hooks integrate into claude-mpm
 - [Performance Optimization](../guides/performance.md) — Other ways to reduce token usage
-- [ZTK Repository](https://github.com/bobmatnyc/ztk) — Upstream source and issues
+- [ZTK Repository](https://github.com/codejunkie99/ztk) — Upstream source and issues
 
 ---
 
