@@ -528,9 +528,9 @@ class ClaudeRunner:
 
             # Initialize deployment service with proper base agent path
             # Use the existing deployment service's base agent path if available
-            base_agent_path = project_agents_dir / "base_agent.json"
+            base_agent_path = project_agents_dir / "BASE_AGENT.md"
             if not base_agent_path.exists():
-                # Fall back to system base agent
+                # Fall back to system base agent (BASE_AGENT.md markdown source)
                 base_agent_path = self.deployment_service.base_agent_path
 
             # Lazy import to avoid circular dependencies
@@ -543,13 +543,16 @@ class ClaudeRunner:
                 working_directory=project_dir,  # Pass the project directory
             )
 
-            # Load base agent data once
+            # Load base agent data once. The base source is BASE_AGENT.md; the
+            # configuration manager parses markdown (and legacy JSON) uniformly.
+            # Note: base_agent_data is only a fallback for templates that lack
+            # their own instructions — it is not composed into deployed agents.
             base_agent_data = {}
             if base_agent_path and base_agent_path.exists():
                 try:
-                    import json
-
-                    base_agent_data = json.loads(base_agent_path.read_text())
+                    base_agent_data, _ = (
+                        project_deployment.configuration_manager.load_base_agent()
+                    )
                 except Exception as e:
                     self.logger.warning(f"Could not load base agent: {e}")
 

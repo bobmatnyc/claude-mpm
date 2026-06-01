@@ -18,7 +18,9 @@ from claude_mpm.cli.interactive.questionary_styles import (
     MPM_STYLE,
     print_section_header,
 )
+from claude_mpm.config.paths import paths
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.agents.deployment.base_agent_locator import BaseAgentLocator
 from claude_mpm.services.agents.local_template_manager import (
     LocalAgentTemplate,
     LocalAgentTemplateManager,
@@ -55,6 +57,14 @@ class AgentWizard:
             self.logger.warning(f"Failed to initialize remote discovery: {e}")
             self.source_manager = None
             self.discovery_enabled = False
+
+    def _resolve_base_agent_path(self) -> Path:
+        """Locate the BASE_AGENT.md markdown source via the shared locator.
+
+        Deployment tolerates a missing base source, so the returned path may
+        not exist; ``deploy_agent`` degrades to an empty base in that case.
+        """
+        return BaseAgentLocator(self.logger).find_base_agent_file(paths.agents_dir)
 
     @staticmethod
     def _calculate_column_widths(
@@ -1229,29 +1239,8 @@ class AgentWizard:
             template_path = Path(agent["path"])
             target_dir = Path.cwd() / ".claude" / "agents"
 
-            # Find base_agent.json in multiple possible locations
-            base_agent_candidates = [
-                Path.home()
-                / ".claude-mpm"
-                / "agents"
-                / "templates"
-                / "base_agent.json",
-                Path.home() / ".claude-mpm" / "cache" / "base_agent.json",
-                Path(__file__).parent.parent.parent
-                / "agents"
-                / "templates"
-                / "base_agent.json",
-            ]
-            base_agent_path = None
-            for candidate in base_agent_candidates:
-                if candidate.exists():
-                    base_agent_path = candidate
-                    break
-
-            if not base_agent_path:
-                base_agent_path = base_agent_candidates[
-                    0
-                ]  # Use default even if not exists
+            # Locate the BASE_AGENT.md markdown source of truth.
+            base_agent_path = self._resolve_base_agent_path()
 
             # Deploy the agent
             success = deployer.deploy_agent(
@@ -1553,29 +1542,8 @@ class AgentWizard:
                 template_path = Path(agent["path"])
                 target_dir = Path.cwd() / ".claude" / "agents"
 
-                # Find base_agent.json in multiple possible locations
-                base_agent_candidates = [
-                    Path.home()
-                    / ".claude-mpm"
-                    / "agents"
-                    / "templates"
-                    / "base_agent.json",
-                    Path.home() / ".claude-mpm" / "cache" / "base_agent.json",
-                    Path(__file__).parent.parent.parent
-                    / "agents"
-                    / "templates"
-                    / "base_agent.json",
-                ]
-                base_agent_path = None
-                for candidate in base_agent_candidates:
-                    if candidate.exists():
-                        base_agent_path = candidate
-                        break
-
-                if not base_agent_path:
-                    base_agent_path = base_agent_candidates[
-                        0
-                    ]  # Use default even if not exists
+                # Locate the BASE_AGENT.md markdown source of truth.
+                base_agent_path = self._resolve_base_agent_path()
 
                 # Deploy the agent
                 success = deployer.deploy_agent(
@@ -1759,27 +1727,8 @@ class AgentWizard:
 
                     target_dir = Path.cwd() / ".claude" / "agents"
 
-                    # Find base_agent.json
-                    base_agent_candidates = [
-                        Path.home()
-                        / ".claude-mpm"
-                        / "agents"
-                        / "templates"
-                        / "base_agent.json",
-                        Path.home() / ".claude-mpm" / "cache" / "base_agent.json",
-                        Path(__file__).parent.parent.parent
-                        / "agents"
-                        / "templates"
-                        / "base_agent.json",
-                    ]
-                    base_agent_path = None
-                    for candidate in base_agent_candidates:
-                        if candidate.exists():
-                            base_agent_path = candidate
-                            break
-
-                    if not base_agent_path:
-                        base_agent_path = base_agent_candidates[0]
+                    # Locate the BASE_AGENT.md markdown source of truth.
+                    base_agent_path = self._resolve_base_agent_path()
 
                     deployed = 0
                     failed = 0

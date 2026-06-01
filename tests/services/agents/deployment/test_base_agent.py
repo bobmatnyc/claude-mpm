@@ -62,10 +62,11 @@ class TestBaseAgentHandling:
 
     def test_find_base_agent_file_cwd(self, tmp_path, monkeypatch):
         """Test finding base agent in current working directory."""
-        # Create base agent in expected location relative to cwd
-        base_agent_path = tmp_path / "src" / "claude_mpm" / "agents" / "base_agent.json"
+        # Create base agent in expected location relative to cwd. The base
+        # source of truth is BASE_AGENT.md (markdown), not the legacy JSON.
+        base_agent_path = tmp_path / "src" / "claude_mpm" / "agents" / "BASE_AGENT.md"
         base_agent_path.parent.mkdir(parents=True, exist_ok=True)
-        base_agent_path.write_text('{"name": "base"}')
+        base_agent_path.write_text("# Base Agent\n")
 
         # Create templates dir
         templates_dir = tmp_path / "templates"
@@ -98,7 +99,7 @@ class TestBaseAgentHandling:
 
         # Should have a base_agent_path even if it doesn't exist
         assert service.base_agent_path is not None
-        assert "base_agent" in str(service.base_agent_path)
+        assert "BASE_AGENT.md" in str(service.base_agent_path)
 
     def test_base_agent_path_from_constructor(self, tmp_path):
         """Test that base_agent_path can be provided in constructor."""

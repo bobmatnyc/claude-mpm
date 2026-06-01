@@ -37,7 +37,7 @@ DEPLOYMENT PIPELINE INTEGRATION:
 TROUBLESHOOTING:
 - Template not found: Check src/claude_mpm/agents/templates/
 - JSON parse errors: Validate template files with jq
-- Missing base agent: Verify base_agent.json exists
+- Missing base agent: Verify BASE_AGENT.md exists
 - Deployment failures: Check file permissions
 """
 

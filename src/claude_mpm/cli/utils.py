@@ -91,18 +91,14 @@ def get_agent_versions_display() -> str | None:
             # Format: name (version)
             output_lines.append(f"  {name:<20} {version}")
 
-        # Add base agent version info
+        # Add base agent version info. The base source is BASE_AGENT.md; the
+        # configuration manager parses markdown (and legacy JSON) uniformly.
         try:
-            import json
-
             base_agent_path = deployment_service.base_agent_path
-            if base_agent_path.exists():
-                base_data = json.loads(base_agent_path.read_text())
-                # Parse version the same way as AgentDeploymentService
-                raw_version = base_data.get("base_version") or base_data.get(
-                    "version", 0
+            if base_agent_path and base_agent_path.exists():
+                _, base_version_tuple = (
+                    deployment_service.configuration_manager.load_base_agent()
                 )
-                base_version_tuple = deployment_service._parse_version(raw_version)
                 base_version_str = deployment_service._format_version_display(
                     base_version_tuple
                 )

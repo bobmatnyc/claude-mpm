@@ -221,11 +221,18 @@ class AgentTemplateBuilder:
         depth = 0
 
         while current_dir and depth < max_depth:
-            # Check for BASE-AGENT.md in current directory
-            base_agent_file = current_dir / "BASE-AGENT.md"
-            if base_agent_file.exists() and base_agent_file.is_file():
-                base_templates.append(base_agent_file)
-                self.logger.debug(f"Found BASE-AGENT.md at: {base_agent_file}")
+            # Check for a base agent markdown in current directory. Accept both
+            # the external-repo convention `BASE-AGENT.md` (hyphen) and the
+            # framework source `BASE_AGENT.md` (underscore) so the single
+            # markdown base source of truth is actually composed in.
+            for base_name in ("BASE-AGENT.md", "BASE_AGENT.md"):
+                base_agent_file = current_dir / base_name
+                if base_agent_file.exists() and base_agent_file.is_file():
+                    base_templates.append(base_agent_file)
+                    self.logger.debug(
+                        f"Found base agent template at: {base_agent_file}"
+                    )
+                    break
 
             # Stop at git repository root if detected (check AFTER finding BASE-AGENT.md)
             if (current_dir / ".git").exists():
