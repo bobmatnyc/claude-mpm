@@ -108,11 +108,18 @@ def run_pending_migrations(current_version: str | None = None) -> int:
     count = 0
     for migration in pending:
         # run_always migrations are silent probes (e.g., daemon autodetect):
-        # avoid noisy "Running migration..." output on every startup.
+        # avoid noisy output on every startup.
+        #
+        # For all other migrations, we only emit user-facing output when a
+        # migration actually APPLIES a change (run() returns True). Many
+        # migrations are "scan-and-repair-if-present" probes (e.g.
+        # fix_mcp_command_args, fix_trusty_memory_bridge) that return False on a
+        # clean system and are re-run every launch. Printing "Running
+        # migration..." up front — or "Migration skipped" on a clean no-op —
+        # produced cosmetic noise on every startup (issue #595). We therefore
+        # log/print only on the applied path; a clean no-op (False) is silent
+        # except for a debug trace. Genuine errors (run() raises) stay visible.
         verbose = not migration.run_always
-        if verbose:
-            logger.info(f"Running migration: {migration.description}")
-            print(f"🔄 Running migration: {migration.description}")
 
         try:
             success = migration.run()
@@ -120,13 +127,15 @@ def run_pending_migrations(current_version: str | None = None) -> int:
                 if not migration.run_always:
                     # Only persist completion for one-shot migrations.
                     mark_migration_complete(migration.id, current_version)
-                logger.info(f"Migration complete: {migration.id}")
+                logger.info(f"Migration applied: {migration.description}")
                 if verbose:
+                    print(f"🔄 Migration applied: {migration.description}")
                     print(f"✅ Migration complete: {migration.id}")
                 count += 1
-            elif verbose:
-                logger.warning(f"Migration returned False: {migration.id}")
-                print(f"⚠️ Migration skipped: {migration.id}")
+            else:
+                # No-op clean scan: nothing to fix. Keep a debug trace only —
+                # no user-facing stdout (issue #595).
+                logger.debug(f"Migration returned False (no-op): {migration.id}")
         except Exception as e:
             # Always surface failures, even for run_always migrations.
             logger.error(f"Migration failed: {migration.id}: {e}")
