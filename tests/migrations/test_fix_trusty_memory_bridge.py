@@ -87,11 +87,7 @@ def test_absent_entry_is_noop(tmp_path: Path) -> None:
     """No trusty-memory entry at all → no change, returns False."""
     mcp_path = _write_mcp(
         tmp_path,
-        {
-            "mcpServers": {
-                "some-other-server": {"type": "stdio", "command": "whatever"}
-            }
-        },
+        {"mcpServers": {"some-other-server": {"type": "stdio", "command": "whatever"}}},
     )
     original = mcp_path.read_text()
 

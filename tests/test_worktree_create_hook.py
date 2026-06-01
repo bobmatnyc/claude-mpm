@@ -36,9 +36,7 @@ SCRIPT_PATH = (
 SCRIPT = SCRIPT_PATH
 
 
-def _run_hook(
-    payload: dict, env: dict | None = None
-) -> subprocess.CompletedProcess:
+def _run_hook(payload: dict, env: dict | None = None) -> subprocess.CompletedProcess:
     """Invoke the fast hook script with the given JSON payload on stdin."""
     merged_env = os.environ.copy()
     if env:
@@ -111,7 +109,9 @@ def _cleanup_worktree(repo: Path, worktree_path: Path) -> None:
 def test_hook_script_exists() -> None:
     """The fast hook script must exist and be executable."""
     assert SCRIPT_PATH.exists(), f"Expected {SCRIPT_PATH} to exist"
-    assert SCRIPT_PATH.stat().st_mode & 0o111, f"Expected {SCRIPT_PATH} to be executable"
+    assert SCRIPT_PATH.stat().st_mode & 0o111, (
+        f"Expected {SCRIPT_PATH} to be executable"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +352,7 @@ class TestWorktreeCreateContract:
             if wt.exists():
                 _cleanup_worktree(self.repo, wt)
         import shutil
+
         parent = self.repo.parent
         repo_base = self.repo.name
         shutil.rmtree(str(self.repo), ignore_errors=True)
@@ -423,6 +424,7 @@ class TestWorktreeCreateContract:
         assert result.returncode == 0
         path = Path(result.stdout.strip())
         import re
+
         assert re.fullmatch(r"[a-z0-9-]+", path.name), (
             f"Name contains unexpected characters: {path.name!r}"
         )
@@ -489,6 +491,7 @@ class TestWorktreeCreateInSubAgentContext:
 
     def teardown_method(self) -> None:
         import shutil
+
         for wt in self.created_worktrees:
             if wt.exists():
                 _cleanup_worktree(self.repo, wt)
@@ -528,6 +531,7 @@ class TestWorktreeRemove:
 
     def teardown_method(self) -> None:
         import shutil
+
         parent = self.repo.parent
         repo_base = self.repo.name
         shutil.rmtree(str(self.repo), ignore_errors=True)
