@@ -19,6 +19,22 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.2 (2026-06-01)
+
+### Feat
+
+- **services**: support user-level PM_INSTRUCTIONS.md override (#525)
+
+### Fix
+
+- scope PM-only parallel-dispatch guidance away from subagents (#581) (#590)
+- **ztk**: verify binary function on startup; never rewrite to a non-functional binary (real #573 root cause) (#592)
+- hook and memory framework fixes (#558)
+
+### Refactor
+
+- remove deprecated base_agent.json; single markdown base source of truth (#591)
+
 ## v6.5.1 (2026-05-31)
 
 ### Feat
