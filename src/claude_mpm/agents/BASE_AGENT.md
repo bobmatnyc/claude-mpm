@@ -1,6 +1,25 @@
 # Base Agent Instructions (Root Level)
 
-> Appended to ALL agent definitions. Every token here is multiplied by N delegations.
+<!--
+BUILD INPUT — single base source of truth for subagent instructions.
+
+This file is the one canonical base markdown source. It is composed into deployed
+agent definitions at build/deploy time, NOT shipped as a standalone agent:
+
+- The publish pipeline (scripts/push_to_agents_repo.sh) copies this file into the
+  external agents repo as `agents/BASE-AGENT.md` (hyphen).
+- AgentTemplateBuilder._discover_base_agent_templates() walks the agent directory
+  hierarchy and appends every `BASE-AGENT.md` / `BASE_AGENT.md` it finds beneath
+  each agent's own instructions (see build_agent_markdown()).
+
+The legacy `base_agent.json` was removed: its `narrative_fields.instructions` were
+never reachable by the deployment builder (which only read the absent top-level
+`instructions`/`content` keys as a fallback), so it was inert build bloat.
+
+Every token here is multiplied by N delegations, so keep it lean.
+-->
+
+> Root-level base instructions composed into every deployed subagent.
 
 ## Git Workflow Standards
 
