@@ -813,8 +813,8 @@ build-info-json: build-metadata ## Display build metadata from JSON
 # SINGLE SOURCE OF TRUTH: src/claude_mpm/bin/ztk_version.txt (also read by
 # ztk_hook.py for the startup currency check). To bump the bundled ztk, edit
 # that manifest — do not hardcode the version here. The binary is downloaded
-# from https://github.com/bobmatnyc/ztk/releases/download/$(ZTK_VERSION)/ztk-<platform>
-ZTK_VERSION ?= $(shell cat src/claude_mpm/bin/ztk_version.txt 2>/dev/null || echo v0.2.1)
+# from https://github.com/codejunkie99/ztk/releases/download/$(ZTK_VERSION)/ztk-<asset>.tar.gz
+ZTK_VERSION ?= $(shell cat src/claude_mpm/bin/ztk_version.txt 2>/dev/null || echo v0.3.1)
 
 # Download bundled ztk binary for the current build platform
 download-ztk: ## Download bundled ztk binary into src/claude_mpm/bin/
