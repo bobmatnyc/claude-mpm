@@ -12,6 +12,7 @@ import subprocess  # nosec B404 - required for git operations
 from pathlib import Path
 
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.services.trusty_status import get_trusty_status
 from claude_mpm.utils.git_analyzer import is_git_repository
 
 logger = get_logger(__name__)
@@ -474,6 +475,12 @@ def display_startup_banner(
         print(f"{CYAN}Claude MPM v{version}{RESET}")
         _, ztk_message = _get_ztk_status()
         print(ztk_message)
+        # Trusty daemon connection status (#598) — suppressed services return
+        # an empty line, so only opted-in (binary present) services print.
+        for service in ("trusty-memory", "trusty-search"):
+            _, trusty_line = get_trusty_status(service)
+            if trusty_line:
+                print(trusty_line)
         print()
         return
 
@@ -704,6 +711,17 @@ def display_startup_banner(
     lines.append(
         _format_two_column_line("", ztk_message, left_panel_width, right_panel_width)
     )
+
+    # Trusty daemon connection status (#598) — suppressed services return an
+    # empty line, so only opted-in (binary present) services add a row.
+    for service in ("trusty-memory", "trusty-search"):
+        _, trusty_line = get_trusty_status(service)
+        if trusty_line:
+            lines.append(
+                _format_two_column_line(
+                    "", trusty_line, left_panel_width, right_panel_width
+                )
+            )
 
     # Line 16: Empty | empty
     lines.append(_format_two_column_line("", "", left_panel_width, right_panel_width))
