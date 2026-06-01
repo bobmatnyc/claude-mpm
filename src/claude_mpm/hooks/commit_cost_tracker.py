@@ -97,7 +97,9 @@ _COAUTHORED_CANONICAL_RE = re.compile(
 
 # Regex to strip X-AI-* trailers that already exist so we never duplicate them.
 # Matches lines like "X-AI-Tokens-In: 123" or "X-AI-Est-Cost-USD: 0.000012".
-_XAI_TRAILER_RE = re.compile(r"^X-AI-[^\n]+$", re.MULTILINE)
+# The pattern anchors at line start (MULTILINE) and matches any content on the
+# line.  Using .*  rather than [^\n]+ to ensure blank-value lines are stripped.
+_XAI_TRAILER_RE = re.compile(r"^X-AI-[A-Za-z-]+:.*$", re.MULTILINE)
 
 # Regex to extract the short SHA from a successful `git commit` output.
 # Example: "[main abc1234] Add feature"
@@ -255,36 +257,33 @@ def amend_commit_message(
 
         original_msg = result.stdout
 
-        # 2. Strip generic Co-Authored-By: Claude lines (replace with empty string,
-        #    then clean up double blank lines).
-        cleaned_msg = _COAUTHORED_GENERIC_RE.sub("", original_msg)
+        # Strip ALL X-AI-* and Co-Authored-By trailer lines from the current
+        # message using a line-by-line pass so that no existing trailer block
+        # is ever left in place.  This is the primary idempotency guard: it
+        # ensures that even if the hook fires multiple times on the same commit
+        # (due to the recursion-guard env var not propagating through the shell
+        # layer on some systems), the final message contains exactly ONE block.
+        raw_lines = original_msg.splitlines()
+        body_lines: list[str] = []
+        for line in raw_lines:
+            stripped_line = line.rstrip()
+            # Skip any line that is an X-AI-* trailer.
+            if re.match(r"^X-AI-[A-Za-z-]+:", stripped_line):
+                continue
+            # Skip any Co-Authored-By: Claude ... trailer (canonical or generic).
+            if re.match(r"^Co-Authored-By:\s+Claude\b", stripped_line, re.IGNORECASE):
+                continue
+            body_lines.append(stripped_line)
 
-        # 3. Remove any existing canonical trailer so we add exactly one.
-        cleaned_msg = _COAUTHORED_CANONICAL_RE.sub("", cleaned_msg)
+        # Remove trailing blank lines from what remains.
+        while body_lines and body_lines[-1] == "":
+            body_lines.pop()
 
-        # 3b. Remove any existing X-AI-* trailers so they are never duplicated.
-        #     This is the idempotency guard: if the hook runs twice on the same
-        #     commit (e.g. from parallel processes or manual re-runs) the second
-        #     pass strips the first set of trailers before appending a fresh one.
-        cleaned_msg = _XAI_TRAILER_RE.sub("", cleaned_msg)
+        # Remove leading blank lines.
+        while body_lines and body_lines[0] == "":
+            body_lines.pop(0)
 
-        # Strip trailing whitespace from each line and remove consecutive blank lines.
-        lines = cleaned_msg.splitlines()
-        normalised_lines: list[str] = []
-        prev_blank = False
-        for line in lines:
-            stripped = line.rstrip()
-            is_blank = stripped == ""
-            if is_blank and prev_blank:
-                continue  # Skip consecutive blank lines
-            normalised_lines.append(stripped)
-            prev_blank = is_blank
-
-        # Remove leading / trailing blank lines.
-        while normalised_lines and normalised_lines[0] == "":
-            normalised_lines.pop(0)
-        while normalised_lines and normalised_lines[-1] == "":
-            normalised_lines.pop()
+        normalised_lines = body_lines
 
         # 4. Build trailers block.
         # Compute cache ratio as integer percentage.
