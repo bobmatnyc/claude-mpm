@@ -370,7 +370,15 @@ skill_mappings:
     - code-analyzer
 
   universal/collaboration/brainstorming: *all_agents
-  universal/collaboration/dispatching-parallel-agents: *all_agents
+
+  # universal/collaboration/dispatching-parallel-agents is intentionally NOT
+  # mapped to any agent (#581). Spawning/dispatching parallel agents is a
+  # PM-orchestration-level capability: only the top-level PM has access to the
+  # Agent tool, and subagents cannot spawn sub-subagents (harness-enforced).
+  # This schema only enumerates deployable subagents (all_agents_list) and has
+  # no PM/orchestrator target, so leaving the skill unmapped keeps the PM-only
+  # parallel-dispatch guidance out of every subagent's skills frontmatter.
+
   universal/collaboration/finishing-a-development-branch:
     - python-engineer
     - typescript-engineer

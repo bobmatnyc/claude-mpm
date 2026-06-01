@@ -18,6 +18,15 @@ effort: medium
 
 # Dispatching Parallel Agents
 
+> **SCOPE: ORCHESTRATOR / PM-LEVEL ONLY (#581).** This skill describes the
+> top-level orchestrator (PM) capability to spawn parallel agents via the
+> `Agent`/`Task` tool. **Subagents do not have access to the Agent tool and
+> cannot spawn sub-subagents** — agent-spawning is harness-enforced at the
+> top level. If you are a subagent (engineer, qa, research, etc.), this skill
+> does not apply to you: complete your assigned scope and return results to
+> the PM. (This skill is intentionally not deployed to subagents; see
+> `config/skill_to_agent_mapping.yaml`.)
+
 ## Overview
 
 When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.
