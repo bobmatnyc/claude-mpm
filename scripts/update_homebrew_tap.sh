@@ -110,7 +110,10 @@ validate_version() {
 
 wait_for_pypi_package() {
     local version="$1"
-    local max_attempts=10
+    # PyPI publishing now happens in CI (release-wheels.yml), not locally, so
+    # the sdist may take a few minutes to build + publish after the tag push.
+    # Use a longer retry window so the Homebrew update rarely falls back.
+    local max_attempts=20
     local attempt=1
     local wait_time=3
 
