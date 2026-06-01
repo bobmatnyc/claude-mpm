@@ -56,7 +56,19 @@ then dispatch to the appropriate code path.**
 ```python
 import sys
 from pathlib import Path
-from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
+
+try:
+    from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
+except ImportError:
+    print(
+        "ERROR: claude_mpm is not importable in the current Python environment.\n"
+        "If you installed via 'uv tool install claude-mpm', run:\n"
+        "  uv run python -c 'from claude_mpm.services.cli.session_resume_helper "
+        "import SessionResumeHelper'\n"
+        "Or invoke directly: claude-mpm session-resume\n"
+        "Alternatively, activate the virtual environment where claude-mpm is installed."
+    )
+    raise SystemExit(1)
 
 # --------------------------------------------------------------------------
 # Argument parsing
