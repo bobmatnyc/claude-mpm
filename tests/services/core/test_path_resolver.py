@@ -61,9 +61,14 @@ class TestPathResolver:
     def test_resolve_path_relative_no_base(self, resolver):
         """Test resolving relative paths without base directory."""
         relative_path = "test/file.txt"
-        expected = (Path.cwd() / relative_path).resolve()
+        # Clear CLAUDE_MPM_USER_PWD so _get_working_dir() falls back to
+        # Path.cwd() instead of the parent process's launch directory.
+        import os
 
-        result = resolver.resolve_path(relative_path)
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_MPM_USER_PWD"}
+        with patch.dict("os.environ", env, clear=True):
+            expected = (Path.cwd() / relative_path).resolve()
+            result = resolver.resolve_path(relative_path)
         assert result == expected
 
     def test_validate_path_exists(self, resolver, tmp_path):

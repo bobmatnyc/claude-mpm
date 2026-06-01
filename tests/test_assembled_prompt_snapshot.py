@@ -12,6 +12,7 @@ identifiers are stable.
 import re
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -53,14 +54,33 @@ MAX_PROMPT_CHARS = 80_000
 
 
 @pytest.fixture(scope="module")
-def assembled_prompt() -> str:
+def assembled_prompt(tmp_path_factory: pytest.TempPathFactory) -> str:
     """Assemble the full PM system prompt once per test module.
 
     Uses a module-scoped fixture so the (relatively expensive) FrameworkLoader
     initialisation is paid only once for the whole snapshot test file.
+
+    Runs against an isolated temporary directory so that a stale
+    `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` in the project tree does not
+    shadow the source files and produce false negatives for the lazy-loading
+    checks.
+
+    The working directory is overridden by patching ``Path.cwd`` in the
+    loader modules rather than calling ``os.chdir``.  Mutating the global
+    process cwd is unsafe under ``pytest-xdist`` parallel execution, where
+    sibling workers share the process; patching keeps the isolation local to
+    this fixture.
     """
-    loader = FrameworkLoader()
-    return loader.get_framework_instructions()
+    tmp_dir = tmp_path_factory.mktemp("assembled_prompt")
+    with (
+        patch(
+            "claude_mpm.core.framework.loaders.instruction_loader.Path.cwd",
+            return_value=tmp_dir,
+        ),
+        patch("claude_mpm.core.framework_loader.Path.cwd", return_value=tmp_dir),
+    ):
+        loader = FrameworkLoader()
+        return loader.get_framework_instructions()
 
 
 @pytest.mark.unit

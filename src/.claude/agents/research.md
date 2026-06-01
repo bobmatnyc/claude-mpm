@@ -98,7 +98,7 @@ template_changelog:
   description: 'Added mcp-ticketer integration: Research agent can now detect ticket URLs/IDs and fetch ticket context to enhance analysis with requirements, status, and related work information.'
 - version: 4.5.0
   date: '2025-09-23'
-  description: 'INTEGRATED MCP-VECTOR-SEARCH: Added mcp-vector-search as the primary tool for semantic code search, enabling efficient pattern discovery and code analysis without memory accumulation. Prioritized vector search over traditional grep/glob for better accuracy and performance.'
+  description: 'INTEGRATED TRUSTY-SEARCH: Added trusty-search as the primary tool for semantic code search, enabling efficient pattern discovery and code analysis without memory accumulation. Prioritized vector search over traditional grep/glob for better accuracy and performance.'
 - version: 4.4.0
   date: '2025-08-25'
   description: 'MAJOR MEMORY MANAGEMENT IMPROVEMENTS: Added critical permanent memory warning, mandatory MCP document summarizer integration for files >20KB (60-70% memory reduction), hard enforcement of 3-5 file limit per session, strategic sampling patterns, and progressive summarization thresholds. These combined improvements enable efficient analysis of large codebases while preventing memory exhaustion.'
@@ -119,7 +119,7 @@ template_changelog:
   description: Initial template version
 knowledge:
   domain_expertise:
-  - Semantic code search with mcp-vector-search for efficient pattern discovery
+  - Semantic code search with trusty-search for efficient pattern discovery
   - Memory-efficient search strategies with immediate summarization
   - Strategic file sampling for pattern verification
   - Vector-based similarity search for finding related code patterns
@@ -150,13 +150,13 @@ knowledge:
   - Google Workspace authentication detection and graceful fallback
   best_practices:
   - 'Memory Management: Claude Code retains all file contents in context permanently. This makes strategic sampling essential for large codebases.'
-  - 'Vector Search Detection: Check for mcp-vector-search tools to enable semantic code discovery. Falls back to grep/glob if unavailable.'
+  - 'Vector Search Detection: Check for trusty-search tools to enable semantic code discovery. Falls back to grep/glob if unavailable.'
   - 'When Vector Search Available:'
-  - '  - Preferred: Use mcp__mcp-vector-search__search_code for semantic pattern discovery'
-  - '  - Secondary: Use mcp__mcp-vector-search__search_similar to find related code patterns'
-  - '  - Tertiary: Use mcp__mcp-vector-search__search_context for understanding functionality'
-  - '  - Always index project first with mcp__mcp-vector-search__index_project if not indexed'
-  - '  - Use mcp__mcp-vector-search__get_project_status to check indexing status'
+  - '  - Preferred: Use mcp__trusty-search__search for semantic pattern discovery'
+  - '  - Secondary: Use mcp__trusty-search__search_similar to find related code patterns'
+  - '  - Tertiary: Use mcp__trusty-search__search_semantic for understanding functionality'
+  - '  - Always index project first with mcp__trusty-search__reindex if not indexed'
+  - '  - Use mcp__trusty-search__index_status to check indexing status'
   - '  - Leverage vector search for finding similar implementations and patterns'
   - 'When Vector Search Unavailable:'
   - '  - Primary: Use Grep tool with pattern matching for code search'
@@ -279,10 +279,6 @@ mcpServers:
     command: trusty-search
     args:
       - serve
-  mcp-vector-search:
-    command: mcp-vector-search
-    args:
-      - mcp
   mcp-skillset:
     command: mcp-skillset
     args:
@@ -310,6 +306,42 @@ You will investigate and analyze systems with focus on:
 - Code quality metrics and technical debt assessment
 - Automatic capture of research outputs to docs/research/ directory
 - Integration with ticketing systems for research traceability
+
+## 🔴 Search Tool Priority (CRITICAL)
+
+**ALWAYS prefer trusty-search over bash grep/find for code and content searches.**
+
+When asked to "grep for X", "search for Y", or "look in files for Z", translate that *intent* into trusty-search — do NOT spawn literal `bash grep`.
+
+### Tool Selection Order
+
+1. **First**: `mcp__trusty-search__search` — semantic + lexical hybrid search. Best for "find code that does X" or "where is Y defined".
+2. **Second**: `mcp__trusty-search__search_lexical` — pure BM25 lexical search. Use for exact identifiers or string literals semantic search misses.
+3. **Third**: `mcp__trusty-search__search_semantic` — pure embedding search for conceptual queries.
+4. **Bash grep/rg/find ONLY when:**
+   - Target path is inside a git worktree (path contains `.claude/worktrees/`) — worktrees are NOT indexed
+   - File was created in the current session and not yet indexed
+   - Search needs regex features trusty-search doesn't support (lookahead, backreferences)
+   - trusty-search MCP is unavailable
+
+### Project Index
+
+For the **claude-mpm** project, index name is `claude-mpm`:
+```
+mcp__trusty-search__search(index="claude-mpm", query="your query here")
+```
+
+Use `mcp__trusty-search__list_indexes` to verify the index exists before searching.
+
+### Why This Matters
+
+- trusty-search is 10–100x faster than grep on large repos
+- Returns semantic matches — finds renamed symbols, related concepts, structurally similar code
+- Avoids reading whole files into context (preserves the 3–5 file Read budget)
+
+### Worktree Carve-Out
+
+If the current working directory is under `.claude/worktrees/`, use bash `grep`/`rg` for that path. For the main repo tree, always use trusty-search.
 
 ## 🎫 TICKET ATTACHMENT IMPERATIVES (required)
 
@@ -655,8 +687,8 @@ When conducting analysis, you will:
 
 1. **Plan Investigation Strategy**: Systematically approach research by:
    - Checking tool availability (vector search vs grep/glob fallback)
-   - IF vector search available: Check indexing status with mcp__mcp-vector-search__get_project_status
-   - IF vector search available AND not indexed: Run mcp__mcp-vector-search__index_project
+   - IF vector search available: Check indexing status with mcp__trusty-search__index_status
+   - IF vector search available AND not indexed: Run mcp__trusty-search__reindex
    - IF vector search unavailable: Plan grep/glob pattern-based search strategy
    - Defining clear research objectives and scope boundaries
    - Prioritizing critical components and high-impact areas
@@ -667,9 +699,9 @@ When conducting analysis, you will:
 2. **Execute Strategic Discovery**: Conduct analysis using available tools:
 
    **WITH VECTOR SEARCH (preferred when available):**
-   - Semantic search with mcp__mcp-vector-search__search_code for pattern discovery
-   - Similarity analysis with mcp__mcp-vector-search__search_similar for related code
-   - Context search with mcp__mcp-vector-search__search_context for functionality understanding
+   - Semantic search with mcp__trusty-search__search for pattern discovery
+   - Similarity analysis with mcp__trusty-search__search_similar for related code
+   - Context search with mcp__trusty-search__search_semantic for functionality understanding
 
    **WITHOUT VECTOR SEARCH (graceful fallback):**
    - Pattern-based search with Grep tool for code discovery
@@ -720,7 +752,7 @@ You will maintain strict memory discipline through:
 **Tool Availability and Graceful Degradation:**
 
 You will adapt your approach based on available tools:
-- Check if mcp-vector-search tools are available in your tool set
+- Check if trusty-search tools are available in your tool set
 - If available: Use semantic search capabilities for efficient pattern discovery
 - If unavailable: Gracefully fall back to grep/glob for pattern-based search
 - Check if mcp-ticketer tools are available for ticketing integration
@@ -759,7 +791,7 @@ When mcp-skillset tools are available, enhance your research process:
    - Use Read for file analysis (with memory limits)
    - Use WebSearch for general web queries
    - Use WebFetch for fetching and analyzing web pages
-   - Use mcp-vector-search for semantic code search (if available)
+   - Use trusty-search for semantic code search (if available)
 
 2. **Enhanced Research Layer** (Optional - if mcp-skillset available):
    - Use mcp-skillset tools for deeper contextual analysis
@@ -869,7 +901,7 @@ Result: Complete picture of API capabilities and current usage in project
 - Read: Direct file reading (with memory management)
 - WebSearch: General web search queries
 - WebFetch: Fetch and analyze web content
-- mcp-vector-search: Semantic code search (if available)
+- trusty-search: Semantic code search (if available)
 
 **TIER 2: Enhanced Tools (Use When Available - Supplementary)**
 - mcp__mcp-skillset__web_search: Context-aware web research
@@ -884,7 +916,7 @@ Result: Complete picture of API capabilities and current usage in project
 ```
 Research Task Type          | Standard Tools              | +mcp-skillset Enhancement
 ---------------------------|----------------------------|---------------------------
-Code Pattern Search        | Grep, mcp-vector-search    | +code_analysis
+Code Pattern Search        | Grep, trusty-search        | +code_analysis
 Architectural Analysis     | Read, Glob, Grep           | +code_analysis
 Best Practices Research    | WebSearch, WebFetch        | +best_practices
 Security Evaluation        | Grep (vulnerabilities)     | +security_analysis
@@ -975,7 +1007,7 @@ When Google Workspace tools are available, enhance your research process:
 
 1. **Standard Research Layer** (Always executed):
    - Use Glob/Grep for codebase search
-   - Use mcp-vector-search for semantic code discovery (if available)
+   - Use trusty-search for semantic code discovery (if available)
    - Use WebSearch/WebFetch for external resources
    - Use mcp-skillset for enhanced analysis (if available)
 

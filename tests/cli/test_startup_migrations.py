@@ -583,3 +583,131 @@ class TestDeploySpinnerGlobalMigration:
 
         ids = [m.id for m in MIGRATIONS]
         assert "v6.3.2-deploy-spinner-global" in ids
+
+
+class TestCleanStaleHookPathsProjectSettings:
+    """Tests for the project-level settings.json guard in the stale-hook
+    cleanup migration (v5.9.41-clean-stale-hook-paths).
+
+    The migration scans the team-shared, checked-in ``.claude/settings.json``
+    in addition to the user-level / local files.  It must NOT silently rewrite
+    a clean, user-authored project settings file on every startup — only files
+    that are MPM-managed (carry an ``_mpm`` marker or invoke an MPM-owned hook
+    command) may be mutated.
+    """
+
+    @pytest.fixture
+    def project_root(self, tmp_path):
+        """A temp directory acting as both $HOME and the project CWD.
+
+        Patching cwd here means the only settings.json the migration can find
+        is the one we create under ``tmp_path/.claude/``.
+        """
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir(parents=True)
+        with (
+            patch.object(Path, "home", return_value=tmp_path),
+            patch.object(Path, "cwd", return_value=tmp_path),
+        ):
+            yield tmp_path
+
+    def _project_settings(self, project_root: Path) -> Path:
+        return project_root / ".claude" / "settings.json"
+
+    def test_is_mpm_managed_detects_marker_and_command(self):
+        from claude_mpm.cli.startup_migrations import _is_mpm_managed_settings
+
+        # _mpm marker on a hook command
+        assert _is_mpm_managed_settings(
+            {"hooks": {"Stop": [{"hooks": [{"command": "x", "_mpm": True}]}]}}
+        )
+        # MPM-owned entry-point command
+        assert _is_mpm_managed_settings(
+            {"hooks": {"Stop": [{"hooks": [{"command": "claude-hook"}]}]}}
+        )
+        # Legacy bare script counts as MPM-owned
+        assert _is_mpm_managed_settings(
+            {"hooks": {"Stop": [{"hooks": [{"command": "claude-hook-fast.sh"}]}]}}
+        )
+        # User-authored hook for an unrelated tool is NOT managed
+        assert not _is_mpm_managed_settings(
+            {"hooks": {"Stop": [{"hooks": [{"command": "/usr/local/bin/other"}]}]}}
+        )
+        # No hooks at all is not managed
+        assert not _is_mpm_managed_settings({"permissions": {"allow": []}})
+
+    def test_clean_non_managed_project_settings_is_not_mutated(self, project_root):
+        """A clean, user-authored project settings.json must be left byte-for-
+        byte untouched (idempotence — no silent rewrite on startup)."""
+        from claude_mpm.cli.startup_migrations import _clean_stale_hook_paths
+
+        settings_file = self._project_settings(project_root)
+        # A user-authored project settings.json that references a third-party
+        # tool — even with an invalid-looking event name — is NOT MPM-managed
+        # and must not be touched.
+        original = {
+            "hooks": {
+                "SubagentStart": [
+                    {"hooks": [{"type": "command", "command": "/opt/their/hook"}]}
+                ]
+            }
+        }
+        raw = json.dumps(original, indent=2)
+        settings_file.write_text(raw)
+        original_mtime = settings_file.stat().st_mtime
+
+        _clean_stale_hook_paths()
+
+        # File contents AND mtime are unchanged.
+        assert settings_file.read_text() == raw
+        assert settings_file.stat().st_mtime == original_mtime
+
+    def test_non_managed_project_settings_not_flagged_stale(self, project_root):
+        """The existence check must not report a non-managed project file as
+        stale (which would trigger the cleanup pass)."""
+        from claude_mpm.cli.startup_migrations import _check_stale_hook_paths_exist
+
+        settings_file = self._project_settings(project_root)
+        settings_file.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "SubagentStart": [{"hooks": [{"command": "/opt/their/hook"}]}]
+                    }
+                }
+            )
+        )
+
+        assert _check_stale_hook_paths_exist() is False
+
+    def test_managed_project_settings_is_cleaned(self, project_root):
+        """An MPM-managed project settings.json with a stale bare command is
+        still upgraded to ``claude-hook`` (guard does not block managed files)."""
+        from claude_mpm.cli.startup_migrations import _clean_stale_hook_paths
+
+        settings_file = self._project_settings(project_root)
+        settings_file.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": "claude-hook-fast.sh",
+                                        "_mpm": True,
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+
+        _clean_stale_hook_paths()
+
+        cleaned = json.loads(settings_file.read_text())
+        cmd = cleaned["hooks"]["Stop"][0]["hooks"][0]["command"]
+        assert cmd == "claude-hook"

@@ -471,6 +471,10 @@ def _check_needs_fast_hook_upgrade() -> bool:
     settings_files = [
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
+        # Also scan the non-local (checked-in) project settings so that
+        # template-generated and team-shared hooks with stale references are
+        # caught and upgraded.
+        Path.cwd() / ".claude" / "settings.json",
     ]
 
     for settings_file in settings_files:
@@ -539,6 +543,10 @@ def _upgrade_to_fast_hook() -> bool:
     settings_files = [
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
+        # Also upgrade the non-local (checked-in) project settings so that
+        # template-generated and team-shared hooks with stale references are
+        # migrated to the PATH-based entry point.
+        Path.cwd() / ".claude" / "settings.json",
     ]
 
     total_upgraded = 0
@@ -617,6 +625,45 @@ def _upgrade_to_fast_hook() -> bool:
 # Events that are NOT valid Claude Code hook events and should be removed
 _INVALID_HOOK_EVENTS = frozenset(["SubagentStart"])
 
+# Bare script names that are never on PATH and must be replaced with ``claude-hook``
+_BARE_SCRIPT_TOKENS = frozenset(["claude-hook-fast.sh", "claude-hook-handler.sh"])
+
+# Hook command tokens that MPM itself writes.  A project ``settings.json`` is
+# only treated as MPM-managed (and therefore safe to rewrite) when at least one
+# of its hook commands is owned by MPM.
+_MPM_HOOK_COMMAND_TOKENS = frozenset({"claude-hook"}) | _BARE_SCRIPT_TOKENS
+
+
+def _is_mpm_managed_settings(data: dict) -> bool:
+    """Return True if a settings file is managed by claude-mpm.
+
+    The checked-in project ``.claude/settings.json`` is team-shared and may be
+    authored entirely by the user.  We must NOT silently rewrite such a file on
+    every startup.  A file is considered MPM-managed when any of its hook
+    command entries carries the ``_mpm`` marker (written by MPM's own template)
+    or invokes an MPM-owned hook command (``claude-hook`` / a legacy bare
+    script).  User-authored hooks pointing at other commands are left alone.
+    """
+    hooks = data.get("hooks", {})
+    if not isinstance(hooks, dict):
+        return False
+    for hook_list in hooks.values():
+        if not isinstance(hook_list, list):
+            continue
+        for hook_entry in hook_list:
+            if not isinstance(hook_entry, dict):
+                continue
+            for cmd in hook_entry.get("hooks", []) or []:
+                if not isinstance(cmd, dict):
+                    continue
+                if cmd.get("_mpm") is True:
+                    return True
+                command = cmd.get("command", "")
+                first_token = command.split(None, 1)[0] if command else ""
+                if first_token in _MPM_HOOK_COMMAND_TOKENS:
+                    return True
+    return False
+
 
 def _check_stale_hook_paths_exist() -> bool:
     """Check if any settings files contain stale hook paths or invalid events.
@@ -629,10 +676,12 @@ def _check_stale_hook_paths_exist() -> bool:
     Returns:
         True if stale entries are found in any settings file.
     """
+    project_settings = Path.cwd() / ".claude" / "settings.json"
     settings_files = [
         Path.home() / ".claude" / "settings.json",  # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
+        project_settings,  # project settings (team-shared, checked in)
     ]
 
     for settings_file in settings_files:
@@ -642,6 +691,12 @@ def _check_stale_hook_paths_exist() -> bool:
         try:
             with open(settings_file) as f:
                 data = json.load(f)
+
+            # Never touch the checked-in, team-shared project settings.json
+            # unless it is MPM-managed.  A user-authored project settings file
+            # must not be flagged stale (and later silently rewritten).
+            if settings_file == project_settings and not _is_mpm_managed_settings(data):
+                continue
 
             hooks = data.get("hooks", {})
             if not hooks:
@@ -680,6 +735,19 @@ def _check_stale_hook_paths_exist() -> bool:
                                 f"Found stale hook path '{command}' in {settings_file}"
                             )
                             return True
+                        # Bare command strings that reference legacy hook
+                        # script names (e.g. ``"claude-hook-fast.sh StopFailure"``)
+                        # are also stale: ``claude-hook-fast.sh`` is never on
+                        # PATH, so these always fail with "not found".  Match
+                        # the first whitespace-separated token to avoid false
+                        # positives from arguments.
+                        first_token = command.split(None, 1)[0] if command else ""
+                        if first_token in _BARE_SCRIPT_TOKENS:
+                            logger.debug(
+                                f"Found stale bare hook command '{command}' "
+                                f"in {settings_file}"
+                            )
+                            return True
 
         except Exception as e:
             logger.debug(f"Failed to check {settings_file}: {e}")
@@ -707,14 +775,17 @@ def _clean_stale_hook_paths() -> bool:
     Returns:
         True if the migration ran without fatal errors.
     """
+    project_settings = Path.cwd() / ".claude" / "settings.json"
     settings_files = [
         Path.home() / ".claude" / "settings.json",  # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
+        project_settings,  # project settings (team-shared, checked in)
     ]
 
     total_removed_paths = 0
     total_removed_events = 0
+    total_upgraded_commands = 0
 
     for settings_file in settings_files:
         if not settings_file.exists():
@@ -724,6 +795,12 @@ def _clean_stale_hook_paths() -> bool:
             with open(settings_file) as f:
                 data = json.load(f)
 
+            # Never rewrite the checked-in, team-shared project settings.json
+            # unless it is MPM-managed.  This prevents silently mutating a
+            # clean / user-authored project settings file on every startup.
+            if settings_file == project_settings and not _is_mpm_managed_settings(data):
+                continue
+
             hooks = data.get("hooks", {})
             if not hooks:
                 continue
@@ -731,6 +808,7 @@ def _clean_stale_hook_paths() -> bool:
             file_changed = False
             removed_paths = 0
             removed_events = 0
+            upgraded_commands = 0
 
             # Step 1: Remove invalid event keys entirely (e.g. SubagentStart)
             for event_type in list(hooks.keys()):
@@ -742,7 +820,34 @@ def _clean_stale_hook_paths() -> bool:
                         f"Removed invalid hook event '{event_type}' from {settings_file}"
                     )
 
-            # Step 2: Remove hook command entries with non-existent absolute paths
+            # Step 2: Replace bare legacy script names with ``claude-hook``.
+            # Commands like ``"claude-hook-fast.sh StopFailure"`` are never on
+            # PATH and always fail.  Replace the entire command string (first
+            # token and any trailing args) with the canonical entry point.
+            for hook_type, hook_list in hooks.items():
+                if not isinstance(hook_list, list):
+                    continue
+                for hook_entry in hook_list:
+                    if not isinstance(hook_entry, dict):
+                        continue
+                    hook_commands = hook_entry.get("hooks", [])
+                    if not isinstance(hook_commands, list):
+                        continue
+                    for cmd in hook_commands:
+                        if not isinstance(cmd, dict):
+                            continue
+                        command = cmd.get("command", "")
+                        first_token = command.split(None, 1)[0] if command else ""
+                        if first_token in _BARE_SCRIPT_TOKENS:
+                            cmd["command"] = "claude-hook"
+                            upgraded_commands += 1
+                            file_changed = True
+                            logger.info(
+                                f"Replaced bare script command '{command}' "
+                                f"with 'claude-hook' in {settings_file}"
+                            )
+
+            # Step 3: Remove hook command entries with non-existent absolute paths
             for hook_type, hook_list in hooks.items():
                 if not isinstance(hook_list, list):
                     continue
@@ -770,7 +875,7 @@ def _clean_stale_hook_paths() -> bool:
                         removed_paths += delta
                         file_changed = True
 
-            # Step 3: Prune hook_entry dicts that are now empty (no hooks left)
+            # Step 4: Prune hook_entry dicts that are now empty (no hooks left)
             for hook_type in list(hooks.keys()):
                 hook_list = hooks[hook_type]
                 if not isinstance(hook_list, list):
@@ -786,23 +891,26 @@ def _clean_stale_hook_paths() -> bool:
                     json.dump(data, f, indent=2)
                 total_removed_paths += removed_paths
                 total_removed_events += removed_events
+                total_upgraded_commands += upgraded_commands
                 logger.info(
                     f"Cleaned {settings_file}: "
                     f"{removed_paths} stale path(s), "
-                    f"{removed_events} invalid event(s) removed"
+                    f"{removed_events} invalid event(s) removed, "
+                    f"{upgraded_commands} bare script command(s) replaced"
                 )
 
         except Exception as e:
             logger.warning(f"Failed to clean stale hooks in {settings_file}: {e}")
             continue
 
-    if total_removed_paths or total_removed_events:
+    if total_removed_paths or total_removed_events or total_upgraded_commands:
         print(
-            f"   Removed {total_removed_paths} stale hook path(s) and "
-            f"{total_removed_events} invalid event(s)"
+            f"   Removed {total_removed_paths} stale hook path(s), "
+            f"{total_removed_events} invalid event(s); "
+            f"replaced {total_upgraded_commands} bare script command(s)"
         )
     else:
-        print("   No stale hook paths or invalid events found")
+        print("   No stale hook paths, invalid events, or bare script commands found")
 
     print("   ✓ Migration complete")
     return True
