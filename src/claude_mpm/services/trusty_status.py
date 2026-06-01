@@ -6,11 +6,15 @@ to render a one-line connection indicator per service.
 
 Design (scoped per #598)
 -------------------------
-* **Cold-path short-circuit** — if the service binary is NOT on ``PATH``
-  (``shutil.which``), we render NOTHING for that service. Only opted-in users
-  who installed the binary ever see the indicator, so there is zero HTTP cost
-  for everyone else and no banner clutter.
-* **Bounded, cached health probe** — when the binary IS present we probe
+* **Cold-path short-circuit** — if the user has not opted in to the service we
+  render NOTHING for it (zero HTTP cost, no banner clutter). Opt-in is detected
+  via a robust, latency-free filesystem check (see :func:`_is_present`): the
+  service appears in the CWD ``.mcp.json`` ``mcpServers`` map, OR a per-user
+  ``~/.trusty-<service>/http_addr`` discovery file exists. We deliberately do
+  NOT gate on the binary name (``shutil.which``): the launched binary may be a
+  bridge/wrapper (e.g. ``trusty-memory-mcp-bridge``) whose name does not match
+  the service key, which previously suppressed healthy daemons entirely.
+* **Bounded, cached health probe** — when the service is present we probe
   ``{base}/health`` with a hard ≤200ms timeout. The probe result is cached
   keyed by the ``http_addr`` discovery file's mtime (mirroring how
   ``_get_ztk_status`` caches by binary mtime), so repeat startups within an
@@ -26,7 +30,6 @@ Design (scoped per #598)
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -167,6 +170,28 @@ def _is_configured_in_mcp(service: str) -> bool:
     return service in servers
 
 
+def _is_present(service: str) -> bool:
+    """Whether the user has opted in to ``service`` (latency-free, pure filesystem).
+
+    The service is considered present / opted-in if EITHER signal holds:
+
+    1. ``service`` appears in the CWD ``.mcp.json`` ``mcpServers`` map, OR
+    2. the per-user ``~/.trusty-<service>/http_addr`` discovery file exists
+       (proof the daemon has run for this user).
+
+    Both are pure filesystem reads — no subprocess, no ``shutil.which``. This
+    intentionally does NOT depend on the launched binary's name, which may be a
+    bridge/wrapper (e.g. ``trusty-memory-mcp-bridge``) that does not match the
+    service key.
+    """
+    if _is_configured_in_mcp(service):
+        return True
+    try:
+        return _addr_file(service).exists()
+    except OSError:
+        return False
+
+
 def _start_hint(service: str) -> str:
     """The ``(start: ...)`` hint shown when a service is not running."""
     if service == "trusty-memory":
@@ -183,24 +208,30 @@ def get_trusty_status(service: str) -> tuple[str, str]:
     Returns:
         Tuple of ``(state, display_line)``:
 
-        * ``("absent", "")`` — binary not on PATH; render NOTHING. (The empty
-          line lets the caller suppress this service with a truthiness guard.)
+        * ``("absent", "")`` — not opted in (no ``.mcp.json`` entry AND no
+          ``http_addr`` discovery file); render NOTHING. (The empty line lets
+          the caller suppress this service with a truthiness guard.)
         * ``("on", "🧠 trusty-memory: on   palace: <name>   host:port")`` —
-          binary present and ``/health`` returned 2xx. Palace name only for
+          present and ``/health`` returned 2xx. Palace name only for
           ``trusty-memory``. The connected form shows ONLY ``host:port`` —
           never a ``/ui`` path.
-        * ``("configured", "... not running  (start: ...)")`` — binary present,
+        * ``("configured", "... not running  (start: ...)")`` — present,
           ``/health`` failed, and the service is in CWD ``.mcp.json``.
-        * ``("not_running", "... not running  (start: ...)")`` — binary present,
-          ``/health`` failed, NOT in ``.mcp.json``. (Binary-on-PATH means the
-          user opted in, so we still show ``not running`` rather than a bare
-          ``off`` line; ``.mcp.json`` only tweaks the hint text.)
+        * ``("not_running", "... not running  (start: ...)")`` — present (via an
+          ``http_addr`` discovery file), ``/health`` failed, NOT in
+          ``.mcp.json``. (Presence means the user opted in, so we still show
+          ``not running`` rather than a bare ``off`` line; ``.mcp.json`` only
+          tweaks the hint text.)
+
+    Presence is detected by :func:`_is_present` — a latency-free filesystem
+    check that never depends on the launched binary's name (bridges/wrappers
+    such as ``trusty-memory-mcp-bridge`` no longer suppress a healthy daemon).
 
     Never raises — every failure path falls back to a safe value.
     """
     try:
-        # Cold-path short-circuit: not installed → render nothing.
-        if shutil.which(service) is None:
+        # Cold-path short-circuit: not opted in → render nothing.
+        if not _is_present(service):
             return ("absent", "")
 
         emoji = _SERVICE_EMOJI.get(service, "")
@@ -213,7 +244,7 @@ def get_trusty_status(service: str) -> tuple[str, str]:
                 line = f"{emoji} {service}: on   {host_port}"
             return ("on", line)
 
-        # /health failed but binary is installed (opted in) → not running.
+        # /health failed but the service is present (opted in) → not running.
         hint = _start_hint(service)
         line = f"{emoji} {service}: not running  {hint}"
         state = "configured" if _is_configured_in_mcp(service) else "not_running"
