@@ -20,8 +20,11 @@ What is automatic vs manual:
 from __future__ import annotations
 
 import json
+import platform
 import subprocess
 import sys
+import tarfile
+import tempfile
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime, timedelta
@@ -108,6 +111,125 @@ def _write_latest_cache(tag: str) -> None:
         pass  # cache is best-effort; never fail the command over it
 
 
+def _python_download_ztk(tag: str, dest: Path | None = None) -> int:
+    """Pure-Python ztk downloader — no shell script required.
+
+    Used as fallback when ``scripts/download_ztk_binaries.sh`` is not present
+    (e.g. an installed pip wheel). Downloads the appropriate release asset from
+    GitHub using only stdlib (``urllib.request``, ``tarfile``, ``tempfile``).
+
+    Asset naming mirrors the shell script convention:
+        Darwin + arm64/aarch64  -> ztk-aarch64-macos.tar.gz
+        Darwin + x86_64         -> ztk-x86_64-macos.tar.gz
+        Linux  + x86_64/amd64  -> ztk-x86_64-linux-musl.tar.gz
+        Linux  + aarch64/arm64 -> ztk-aarch64-linux-musl.tar.gz
+
+    Destination preference (first writable wins):
+        1. The package bundle dir (``claude_mpm/bin/ztk``) — so the binary is
+           available for future invocations via importlib.resources.
+        2. ``~/.claude-mpm/bin/ztk`` — always writable, picked up by
+           ``_resolve_ztk()``'s user-local candidate.
+
+    Returns 0 on success (at least one destination written), 1 on failure.
+    """
+    from importlib import resources as _res
+
+    # Determine asset name from platform
+    machine = platform.machine().lower()
+    plat = sys.platform
+
+    if plat == "darwin":
+        arch = "aarch64" if machine in ("arm64", "aarch64") else "x86_64"
+        asset = f"ztk-{arch}-macos.tar.gz"
+    elif plat.startswith("linux"):
+        arch = "aarch64" if machine in ("aarch64", "arm64") else "x86_64"
+        asset = f"ztk-{arch}-linux-musl.tar.gz"
+    else:
+        print(
+            f"Unsupported platform: {plat} {machine}",
+            file=sys.stderr,
+        )
+        return 1
+
+    url = f"https://github.com/codejunkie99/ztk/releases/download/{tag}/{asset}"
+    print(f"Downloading {asset} from GitHub ({tag})...")
+
+    # Download to a temp file
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+        req = urllib.request.Request(
+            url,
+            headers={"Accept": "application/octet-stream", "User-Agent": "claude-mpm"},
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310 — https fixed
+            tmp_path.write_bytes(resp.read())
+    except (urllib.error.URLError, OSError) as exc:
+        print(f"Download failed: {exc}", file=sys.stderr)
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return 1
+
+    # Extract ztk binary from tarball
+    try:
+        ztk_bytes: bytes | None = None
+        with tarfile.open(tmp_path, "r:gz") as tf:
+            for member in tf.getmembers():
+                # Find any member named "ztk" (may be in a subdir)
+                if member.isfile() and (
+                    member.name == "ztk" or member.name.endswith("/ztk")
+                ):
+                    fobj = tf.extractfile(member)
+                    if fobj is not None:
+                        ztk_bytes = fobj.read()
+                    break
+    except (tarfile.TarError, OSError) as exc:
+        print(f"Failed to extract tarball: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    if not ztk_bytes:
+        print("ztk binary not found inside tarball.", file=sys.stderr)
+        return 1
+
+    # Write to destinations — try package bundle first, then user-local
+    destinations: list[Path] = []
+
+    if dest is not None:
+        destinations.append(dest)
+    else:
+        # Try package bundle dir
+        try:
+            pkg_bin = _res.files("claude_mpm").joinpath("bin", "ztk")
+            destinations.append(Path(str(pkg_bin)))
+        except Exception:
+            pass
+        # Always include user-local as fallback
+        destinations.append(Path.home() / ".claude-mpm" / "bin" / "ztk")
+
+    wrote_any = False
+    for target in destinations:
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(ztk_bytes)
+            # chmod +x
+            mode = target.stat().st_mode
+            target.chmod(mode | 0o111)
+            print(f"Installed ztk {tag} -> {target}")
+            wrote_any = True
+        except OSError as exc:
+            print(f"Could not write {target}: {exc}", file=sys.stderr)
+
+    if not wrote_any:
+        print("Failed to install ztk to any destination.", file=sys.stderr)
+        return 1
+
+    return 0
+
+
 def _print_status() -> int:
     from claude_mpm.hooks.ztk_hook import ztk_status_detail
 
@@ -132,30 +254,33 @@ def _print_status() -> int:
 
 def _run_update(tag: str) -> int:
     script = _download_script()
-    if not script.is_file():
-        print(
-            f"Cannot find {script} — the download script is not shipped in "
-            "installed wheels. Reinstall claude-mpm to refresh the bundled "
-            "ztk binary, or run 'make download-ztk' from a source checkout.",
-            file=sys.stderr,
-        )
-        return 1
-    print(f"Fetching ztk {tag} via {script.name}...")
-    try:
-        # fixed argv (no shell), bundled trusted release script; `tag` is the
-        # pinned manifest version or a GitHub-provided release tag.
-        proc = subprocess.run(  # nosec B603
-            ["bash", str(script), tag],
-            check=False,
-        )
-    except OSError as exc:
-        print(f"Failed to run download script: {exc}", file=sys.stderr)
-        return 1
-    if proc.returncode != 0:
-        print(f"Download script exited {proc.returncode}.", file=sys.stderr)
-        return proc.returncode
-    print(f"ztk {tag} installed. Restart claude-mpm to pick up the new binary.")
-    return 0
+    if script.is_file():
+        print(f"Fetching ztk {tag} via {script.name}...")
+        try:
+            # fixed argv (no shell), bundled trusted release script; `tag` is the
+            # pinned manifest version or a GitHub-provided release tag.
+            proc = subprocess.run(  # nosec B603
+                ["bash", str(script), tag],
+                check=False,
+            )
+        except OSError as exc:
+            print(f"Failed to run download script: {exc}", file=sys.stderr)
+            return 1
+        if proc.returncode != 0:
+            print(f"Download script exited {proc.returncode}.", file=sys.stderr)
+            return proc.returncode
+        print(f"ztk {tag} installed. Restart claude-mpm to pick up the new binary.")
+        return 0
+
+    # Shell script not available (installed wheel) — fall back to pure-Python downloader.
+    print(
+        f"Download script not found ({script}); using built-in Python downloader...",
+        file=sys.stderr,
+    )
+    rc = _python_download_ztk(tag)
+    if rc == 0:
+        print(f"ztk {tag} installed. Restart claude-mpm to pick up the new binary.")
+    return rc
 
 
 def run_ztk(args: argparse.Namespace) -> int:
