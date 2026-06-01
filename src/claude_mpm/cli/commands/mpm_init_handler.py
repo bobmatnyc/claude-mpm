@@ -13,6 +13,61 @@ from claude_mpm.core.enums import OperationResult
 
 console = Console()
 
+# ---------------------------------------------------------------------------
+# Commit-cost hook installation helper
+# ---------------------------------------------------------------------------
+
+_HOOK_MARKER = "commit-cost-hook"
+_HOOK_SNIPPET = (
+    "\n# claude-mpm commit cost tracker\n"
+    "# Embeds X-AI-* token trailers and normalises Co-Authored-By on every commit.\n"
+    "commit-cost-hook 2>/dev/null || true\n"
+)
+
+
+def _install_commit_cost_hook(project_path: Path) -> None:
+    """Ensure commit-cost-hook is called from .git/hooks/post-commit.
+
+    If no post-commit hook exists, create a minimal one.  If one already
+    exists but does not contain the marker, append the snippet.  If the
+    marker is already present, do nothing.
+
+    Fails silently so that mpm-init never breaks due to hook installation
+    issues (e.g. no .git directory for non-git projects).
+    """
+    try:
+        git_dir = project_path / ".git"
+        if not git_dir.is_dir():
+            return
+
+        hook_path = git_dir / "hooks" / "post-commit"
+        hook_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if hook_path.exists():
+            existing = hook_path.read_text()
+            if _HOOK_MARKER in existing:
+                # Already installed
+                return
+            # Append the snippet to the existing hook
+            hook_path.write_text(existing.rstrip("\n") + _HOOK_SNIPPET)
+        else:
+            # Create a new minimal post-commit hook
+            hook_path.write_text("#!/bin/sh" + _HOOK_SNIPPET)
+            hook_path.chmod(0o755)
+
+        # Ensure the hook file is executable (in case we only appended)
+        current_mode = hook_path.stat().st_mode
+        hook_path.chmod(current_mode | 0o111)
+
+        console.print(
+            "[green]commit-cost-hook installed in .git/hooks/post-commit[/green]"
+        )
+    except Exception as exc:
+        # Hook installation failure must never abort mpm-init
+        console.print(
+            f"[yellow]Warning: could not install commit-cost-hook: {exc}[/yellow]"
+        )
+
 
 def manage_mpm_init(args):
     """
@@ -169,6 +224,9 @@ def manage_mpm_init(args):
             "days": getattr(args, "days", 30),
             "export": getattr(args, "export", None),
         }
+
+        # Install commit-cost-hook in .git/hooks/post-commit (idempotent).
+        _install_commit_cost_hook(project_path)
 
         # Execute initialization (now synchronous)
         result = command.initialize_project(**init_params)
