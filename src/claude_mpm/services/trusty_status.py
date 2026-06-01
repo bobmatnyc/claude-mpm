@@ -20,6 +20,17 @@ Design (scoped per #598)
   ``_get_ztk_status`` caches by binary mtime), so repeat startups within an
   unchanged session are free. The probe never raises — it fails safe to
   "not running".
+* **Palace existence verification (#598 option 1)** — when ``trusty-memory``
+  is ``on``, we additionally GET ``{base}/api/v1/palaces`` (the same hard
+  ≤200ms timeout, also mtime-cached) to verify the resolved palace name
+  actually exists in the daemon. ``/health`` only proves the daemon is up,
+  NOT that the palace was ever created — so without this check the banner can
+  show ``palace: <name>`` for a palace that does not exist. When the palace is
+  missing we append ``(not created)``. This is the ONLY extra HTTP call and it
+  fires ONLY after a successful health check (zero added cost when down/absent).
+  It fails SAFE toward NOT appending the suffix: only a successful response
+  that definitively lacks the palace yields ``(not created)``; any
+  error/timeout/non-2xx/parse failure shows the bare name (no false negatives).
 * **No ``/ui`` path** — the connected line shows ONLY the base ``host:port``;
   the ``/ui`` dashboard route does not exist in this codebase.
 * **Self-contained** — this module intentionally keeps its own tiny copy of
@@ -51,6 +62,12 @@ _SERVICE_EMOJI: dict[str, str] = {
 # Cache: { http_addr_file_path: (mtime, is_healthy) }. Keyed by the discovery
 # file so a daemon restart (which rewrites http_addr) invalidates the cache.
 _HEALTH_CACHE: dict[str, tuple[float, bool]] = {}
+
+# Cache: { "<addr_file_path>::<palace>": (mtime, exists) }. SEPARATE from
+# _HEALTH_CACHE (compound key) so the palace-existence result never collides
+# with the health result. Keyed by the discovery file mtime + palace name so a
+# daemon restart (which rewrites http_addr) invalidates it.
+_PALACE_CACHE: dict[str, tuple[float, bool]] = {}
 
 
 def _addr_file(service: str) -> Path:
@@ -149,6 +166,88 @@ def _cached_health_check(service: str, base_url: str) -> bool:
     return healthy
 
 
+def _palace_exists(base_url: str, palace: str) -> bool:
+    """Whether ``palace`` exists in the daemon at ``base_url``.
+
+    GETs ``{base_url}/api/v1/palaces`` with the SAME hard ≤200ms timeout as the
+    health probe. urllib is imported lazily, matching :func:`_health_check`.
+
+    Response shape (confirmed against the trusty-memory daemon source,
+    ``GET /api/v1/palaces`` → ``Json<Vec<PalaceInfo>>``): a top-level JSON array
+    of objects, each with ``id`` and ``name`` string fields. We also defensively
+    accept an ``{"palaces": [...]}`` wrapper and bare-string entries (the form
+    the MCP ``palace_list`` projection emits), and match the resolved palace
+    name case-insensitively against BOTH ``id`` and ``name`` (the daemon derives
+    ``id`` from ``name`` via ``PalaceId::new(&name)``, so either may carry the
+    user-facing identifier).
+
+    Fail-SAFE semantics (#598): never raises. Returns ``True`` on ANY
+    error/timeout/non-2xx/parse failure so the caller does NOT append
+    ``(not created)`` on a probe failure (avoids false negatives). Returns
+    ``False`` ONLY when we got a successful, parseable response that
+    definitively does not contain ``palace``.
+    """
+    import json
+    import urllib.error
+    import urllib.request
+
+    url = f"{base_url}/api/v1/palaces"
+    try:
+        req = urllib.request.Request(url, method="GET")  # nosec B310 - localhost
+        with urllib.request.urlopen(  # nosec B310 - localhost
+            req, timeout=_HEALTH_TIMEOUT_S
+        ) as resp:
+            if not (200 <= resp.status < 300):
+                return True  # fail-safe: unknown → do not claim "not created"
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return True  # fail-safe: probe failure → do not claim "not created"
+
+    # Normalize to a list of palace entries.
+    if isinstance(data, dict):
+        entries = data.get("palaces", [])
+    elif isinstance(data, list):
+        entries = data
+    else:
+        return True  # unexpected shape → fail-safe
+
+    target = palace.strip().lower()
+    names: set[str] = set()
+    for entry in entries:
+        if isinstance(entry, str):
+            names.add(entry.strip().lower())
+        elif isinstance(entry, dict):
+            for field in ("name", "id"):
+                value = entry.get(field)
+                if isinstance(value, str):
+                    names.add(value.strip().lower())
+    return target in names
+
+
+def _cached_palace_exists(service: str, base_url: str, palace: str) -> bool:
+    """Palace-existence check cached by the http_addr file mtime + palace name.
+
+    Uses a SEPARATE cache (compound key ``<addr_file>::<palace>``) from
+    :func:`_cached_health_check` so the two results never collide. A daemon
+    restart rewrites ``http_addr`` (changing its mtime) and invalidates this
+    cache too. Fail-safe: see :func:`_palace_exists`.
+    """
+    addr_file = _addr_file(service)
+    try:
+        mtime = addr_file.stat().st_mtime
+    except OSError:
+        mtime = -1.0
+
+    key = f"{addr_file}::{palace}"
+    cached = _PALACE_CACHE.get(key)
+    if cached is not None and cached[0] == mtime:
+        return cached[1]
+
+    exists = _palace_exists(base_url, palace)
+    _PALACE_CACHE[key] = (mtime, exists)
+    return exists
+
+
 def _is_configured_in_mcp(service: str) -> bool:
     """Whether ``service`` appears in the CWD ``.mcp.json`` ``mcpServers`` map.
 
@@ -213,8 +312,10 @@ def get_trusty_status(service: str) -> tuple[str, str]:
           the caller suppress this service with a truthiness guard.)
         * ``("on", "🧠 trusty-memory: on   palace: <name>   host:port")`` —
           present and ``/health`` returned 2xx. Palace name only for
-          ``trusty-memory``. The connected form shows ONLY ``host:port`` —
-          never a ``/ui`` path.
+          ``trusty-memory``; the name gains a ``(not created)`` suffix when a
+          successful ``GET /api/v1/palaces`` definitively shows the palace does
+          not exist (#598 option 1). The connected form shows ONLY
+          ``host:port`` — never a ``/ui`` path.
         * ``("configured", "... not running  (start: ...)")`` — present,
           ``/health`` failed, and the service is in CWD ``.mcp.json``.
         * ``("not_running", "... not running  (start: ...)")`` — present (via an
@@ -239,7 +340,15 @@ def get_trusty_status(service: str) -> tuple[str, str]:
 
         if _cached_health_check(service, base_url):
             if service == "trusty-memory":
-                line = f"{emoji} {service}: on   palace: {_palace_name()}   {host_port}"
+                palace = _palace_name()
+                # #598 option 1: /health only proves the daemon is up — verify
+                # the palace actually exists before claiming it. Fail-safe:
+                # only append "(not created)" on a definitive negative.
+                if _cached_palace_exists(service, base_url, palace):
+                    palace_display = f"palace: {palace}"
+                else:
+                    palace_display = f"palace: {palace} (not created)"
+                line = f"{emoji} {service}: on   {palace_display}   {host_port}"
             else:
                 line = f"{emoji} {service}: on   {host_port}"
             return ("on", line)
