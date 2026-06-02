@@ -3,12 +3,126 @@
 
 Extracted from ``event_handlers.EventHandlers`` as part of the #509 refactor.
 Behavior is preserved verbatim; only the surrounding structure has changed.
+
+References
+----------
+Stop event payload (real): only ``hook_event_name``, ``session_id``, ``cwd``,
+``reason``, ``stop_hook_active`` are reliably present.  There is NO ``usage``
+field on real Claude Code Stop events (confirmed by hook log inspection:
+``Received event with keys: ['hook_event_name']``).  Token usage is obtained
+by parsing the transcript JSONL at
+``~/.claude/projects/{cwd_encoded}/{session_id}.jsonl``.
 """
 
+import json as _json
 from datetime import UTC, datetime
 from pathlib import Path
 
 from .base import DEBUG, BaseEventHandler, _log
+
+
+def _parse_transcript_usage(transcript_path: Path) -> dict[str, int] | None:
+    """Parse cumulative token usage from a Claude Code session transcript JSONL.
+
+    WHY: Real Claude Code Stop events do NOT include a ``usage`` field.  The
+    authoritative token counts live inside the session transcript as per-message
+    ``usage`` objects on ``assistant`` records.  Summing them gives the session
+    cumulative total that ``set_session_snapshot()`` expects.
+
+    WHAT: Reads ``transcript_path`` line-by-line, filters to ``type=="assistant"``
+    records that contain ``message.usage``, and sums
+    ``input_tokens``, ``output_tokens``, ``cache_creation_input_tokens``, and
+    ``cache_read_input_tokens`` across all such messages.
+
+    TEST: Call with a path containing 3 assistant messages with known usage dicts
+    and assert the returned dict equals the element-wise sum of those dicts.
+    Returns None if the file is missing, unreadable, or contains no usage data.
+
+    Args:
+        transcript_path: Absolute path to the ``.jsonl`` session transcript.
+
+    Returns:
+        Dict with keys ``input_tokens``, ``output_tokens``,
+        ``cache_creation_input_tokens``, ``cache_read_input_tokens`` (all int),
+        or None on failure / empty transcript.
+    """
+    if not transcript_path.exists():
+        if DEBUG:
+            _log(f"  - transcript not found: {transcript_path}")
+        return None
+
+    totals: dict[str, int] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+    }
+    found_any = False
+
+    try:
+        with transcript_path.open(encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                raw_line = raw_line.strip()
+                if not raw_line:
+                    continue
+                try:
+                    rec = _json.loads(raw_line)
+                except _json.JSONDecodeError:
+                    continue
+
+                if rec.get("type") != "assistant":
+                    continue
+
+                usage = rec.get("message", {}).get("usage")
+                if not usage:
+                    continue
+
+                totals["input_tokens"] += int(usage.get("input_tokens", 0) or 0)
+                totals["output_tokens"] += int(usage.get("output_tokens", 0) or 0)
+                totals["cache_creation_input_tokens"] += int(
+                    usage.get("cache_creation_input_tokens", 0) or 0
+                )
+                totals["cache_read_input_tokens"] += int(
+                    usage.get("cache_read_input_tokens", 0) or 0
+                )
+                found_any = True
+
+    except Exception as exc:
+        if DEBUG:
+            _log(f"  - transcript parse error: {exc}")
+        return None
+
+    if not found_any:
+        if DEBUG:
+            _log(f"  - no assistant usage records in transcript: {transcript_path}")
+        return None
+
+    return totals
+
+
+def _derive_transcript_path(session_id: str, cwd: str) -> Path | None:
+    """Derive the Claude Code transcript JSONL path from session_id and cwd.
+
+    WHY: Claude Code stores transcripts at
+    ``~/.claude/projects/{cwd_encoded}/{session_id}.jsonl`` where
+    ``cwd_encoded`` is the cwd with every ``/`` replaced by ``-``.
+
+    WHAT: Constructs and returns the expected path.  Does NOT check existence.
+
+    TEST: Call with cwd='/foo/bar' and session_id='abc' and assert the result
+    equals ``Path.home() / '.claude/projects/-foo-bar/abc.jsonl'``.
+
+    Args:
+        session_id: The Claude Code session UUID (from the Stop event).
+        cwd: The working directory string (from the Stop event).
+
+    Returns:
+        A Path object, or None if session_id or cwd is empty.
+    """
+    if not session_id or not cwd:
+        return None
+    encoded = cwd.replace("/", "-")
+    return Path.home() / ".claude" / "projects" / encoded / f"{session_id}.jsonl"
 
 
 class StopHandler:
@@ -36,40 +150,78 @@ class StopHandler:
         if DEBUG:
             self._log_stop_event_debug(event, session_id, metadata)
 
-        # Auto-pause integration (independent of response tracking)
-        # WHY HERE: Auto-pause must work even when response_tracking is disabled
-        # Extract usage data directly from event and trigger auto-pause if thresholds crossed
+        # ---------------------------------------------------------------------------
+        # Token usage capture — ALWAYS attempt, regardless of event["usage"].
+        #
+        # WHY: Real Claude Code Stop events do NOT include a "usage" field.  The
+        # previous implementation gated the entire snapshot path on
+        # ``if "usage" in event:``, which never fired, so context-usage.json was
+        # only ever written by the "session-real-test" test fixture.
+        #
+        # AUTHORITATIVE SOURCE: The session transcript JSONL at
+        # ~/.claude/projects/{cwd_encoded}/{session_id}.jsonl contains per-message
+        # usage objects on every assistant record.  Summing them gives the true
+        # cumulative session total.
+        #
+        # FALLBACK: If the event *does* include a "usage" key (possible in future
+        # Claude Code versions), use it directly so we don't depend on file I/O.
+        # ---------------------------------------------------------------------------
+        usage_data: dict[str, int] | None = None
+
+        # Fast path: event-level usage (future-proofing; not present today).
         if "usage" in event:
-            usage_data = event["usage"]
-            metadata["usage"] = {
-                "input_tokens": usage_data.get("input_tokens", 0),
-                "output_tokens": usage_data.get("output_tokens", 0),
-                "cache_creation_input_tokens": usage_data.get(
-                    "cache_creation_input_tokens", 0
+            ev_usage = event["usage"]
+            usage_data = {
+                "input_tokens": int(ev_usage.get("input_tokens", 0) or 0),
+                "output_tokens": int(ev_usage.get("output_tokens", 0) or 0),
+                "cache_creation_input_tokens": int(
+                    ev_usage.get("cache_creation_input_tokens", 0) or 0
                 ),
-                "cache_read_input_tokens": usage_data.get("cache_read_input_tokens", 0),
+                "cache_read_input_tokens": int(
+                    ev_usage.get("cache_read_input_tokens", 0) or 0
+                ),
+            }
+            if DEBUG:
+                _log("  - usage source: event field")
+
+        # Slow path: parse transcript JSONL (the real, always-available source).
+        if usage_data is None:
+            cwd = event.get("cwd", "")
+            transcript_path = _derive_transcript_path(session_id, cwd)
+            if DEBUG:
+                _log(f"  - transcript_path: {transcript_path}")
+            if transcript_path is not None:
+                usage_data = _parse_transcript_usage(transcript_path)
+                if DEBUG and usage_data is not None:
+                    _log(
+                        f"  - usage source: transcript "
+                        f"in={usage_data['input_tokens']} "
+                        f"out={usage_data['output_tokens']}"
+                    )
+
+        if usage_data is not None:
+            metadata["usage"] = {
+                "input_tokens": usage_data["input_tokens"],
+                "output_tokens": usage_data["output_tokens"],
+                "cache_creation_input_tokens": usage_data[
+                    "cache_creation_input_tokens"
+                ],
+                "cache_read_input_tokens": usage_data["cache_read_input_tokens"],
             }
 
-            # Persist the Stop event's cumulative usage as an authoritative
-            # snapshot in context-usage.json so the git post-commit hook can
-            # read accurate token counts for the current session turn.
+            # Persist the cumulative snapshot so the git post-commit hook reads
+            # accurate token counts.
             #
             # WHY set_session_snapshot() and NOT update_usage():
-            # Claude Code's Stop event carries CUMULATIVE session totals (not
-            # per-turn deltas). update_usage() *adds* to existing values, which
-            # would double-count: after two Stop events in one session the file
-            # would contain turn1_total + turn2_total instead of just
-            # turn2_total (the correct cumulative).  set_session_snapshot()
-            # REPLACES the stored state so the file always reflects the latest
-            # authoritative total from Claude Code.
+            # The transcript sum is already cumulative for the entire session.
+            # update_usage() *adds* to existing values, causing double-count
+            # across turns.  set_session_snapshot() REPLACES stored state so the
+            # file always reflects the true cumulative total.
             #
-            # TIMING NOTE: Stop fires *after* Claude finishes its response, so
-            # this snapshot is written after each complete turn. A git commit
-            # executed by a Bash tool call during that turn fires its
-            # post-commit hook between tool calls—before Stop—so it reads the
-            # previous turn's snapshot. That snapshot is the most accurate data
-            # available at commit time without per-call usage data in
-            # PostToolUse (which Claude Code does not provide).
+            # TIMING NOTE: Stop fires after Claude finishes responding.  A commit
+            # made via a Bash tool during that turn triggers post-commit between
+            # tool calls—before Stop—so it reads the previous turn's snapshot.
+            # That is the most accurate data available at commit time.
             try:
                 from claude_mpm.services.infrastructure.context_usage_tracker import (
                     ContextUsageTracker,
@@ -78,18 +230,17 @@ class StopHandler:
                 cwd = event.get("cwd", "")
                 _tracker = ContextUsageTracker(project_path=Path(cwd) if cwd else None)
                 _tracker.set_session_snapshot(
-                    session_id=event.get("session_id", "unknown"),
-                    input_tokens=int(metadata["usage"]["input_tokens"] or 0),
-                    output_tokens=int(metadata["usage"]["output_tokens"] or 0),
-                    cache_creation=int(
-                        metadata["usage"]["cache_creation_input_tokens"] or 0
-                    ),
-                    cache_read=int(metadata["usage"]["cache_read_input_tokens"] or 0),
+                    session_id=session_id or "unknown",
+                    input_tokens=usage_data["input_tokens"],
+                    output_tokens=usage_data["output_tokens"],
+                    cache_creation=usage_data["cache_creation_input_tokens"],
+                    cache_read=usage_data["cache_read_input_tokens"],
                 )
                 if DEBUG:
                     _log(
-                        f"  - Stop snapshot saved: in={metadata['usage']['input_tokens']} "
-                        f"out={metadata['usage']['output_tokens']}"
+                        f"  - Stop snapshot saved: "
+                        f"in={usage_data['input_tokens']} "
+                        f"out={usage_data['output_tokens']}"
                     )
             except Exception as _snap_exc:
                 if DEBUG:
