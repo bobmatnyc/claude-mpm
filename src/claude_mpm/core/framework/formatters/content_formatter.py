@@ -42,6 +42,7 @@ class ContentFormatter:
         context_section: str,
         inject_output_style: bool = False,
         output_style_content: str | None = None,
+        tool_status_section: str | None = None,
     ) -> str:
         """Format complete framework instructions.
 
@@ -51,6 +52,11 @@ class ContentFormatter:
             context_section: Generated temporal/user context section
             inject_output_style: Whether to inject output style content
             output_style_content: Output style content to inject (if needed)
+            tool_status_section: Optional per-session "Available Tool Services"
+                block (auto-detected trusty-* capabilities). When provided it is
+                appended after ``context_section`` and before the BASE_PM block.
+                Defaults to ``None`` to stay backward-compatible with existing
+                callers.
 
         Returns:
             Formatted framework instructions
@@ -122,6 +128,12 @@ class ContentFormatter:
 
             # Add enhanced temporal and user context for better awareness
             instructions += context_section
+
+            # Add per-session "Available Tool Services" block (auto-detected
+            # trusty-* capabilities). Backward-compatible: only injected when a
+            # caller supplies it; existing callers pass None and see no change.
+            if tool_status_section:
+                instructions += tool_status_section
 
             # Add BASE_PM.md framework requirements AFTER INSTRUCTIONS.md
             if framework_content.get("base_pm_instructions"):
