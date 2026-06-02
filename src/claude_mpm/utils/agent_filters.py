@@ -2,19 +2,22 @@
 Agent filtering utilities for claude-mpm.
 
 WHY: This module provides centralized filtering logic to remove non-deployable
-agents (BASE_AGENT) and already-deployed agents from user-facing displays.
-It also exposes the ``local_only`` allow-list helpers used to protect
-project-managed agents from MPM sync/cleanup.
+agents (BASE_AGENT and BASE-* composition templates) and already-deployed agents
+from user-facing displays.  It also exposes the ``local_only`` allow-list
+helpers used to protect project-managed agents from MPM sync/cleanup.
 
 ARCHITECTURE:
 - SOURCE: ~/.claude-mpm/cache/agents/ (git repository cache)
 - DEPLOYMENT: .claude/agents/ (project-level deployment location)
 
 DESIGN DECISIONS:
-- BASE_AGENT is a build tool, not a deployable agent - filter everywhere
+- BASE_AGENT / BASE-* files are composition templates, not deployable agents
+- ``is_base_template`` is the SINGLE predicate for all BASE-file guards
+- ``is_base_agent`` is preserved for backward compatibility (delegates to
+  ``is_base_template`` for the single-agent case)
 - Deployed agent detection checks .claude/agents/ for all deployed agents
 - Supports both virtual (.mpm_deployment_state) and physical (.md files) detection
-- Case-insensitive BASE_AGENT detection for robustness
+- Case-insensitive BASE-* detection for robustness
 - Pure functions for easy testing and reuse
 
 TERMINOLOGY:
@@ -26,22 +29,84 @@ TERMINOLOGY:
 IMPLEMENTATION NOTES:
 - Related to ticket 1M-502 Phase 1: UX improvements for agent filtering
 - Addresses user confusion from seeing BASE_AGENT and deployed agents in lists
+- BASE-* template exclusion: fixes parse errors for BASE-ENGINEER, BASE-QA, etc.
 """
 
 from pathlib import Path
 
 
-def is_base_agent(agent_id: str) -> bool:
-    """Check if agent is BASE_AGENT (build tool, not deployable).
+def is_base_template(filename: str) -> bool:
+    """Return True when *filename* is a BASE composition template.
 
-    BASE_AGENT is an internal build tool used to construct other agents.
-    It should never appear in user-facing agent lists or deployment menus.
+    BASE templates (``BASE-*.md`` and ``BASE_*.md``) are composition
+    ingredients composed INTO agents by the assembly pipeline.  They are
+    NOT stand-alone agents and must never be deployed to ``~/.claude/agents/``
+    or ``.claude/agents/``, nor parsed by the agent discovery/loading code.
+
+    The check is case-insensitive on the ``BASE`` prefix so that both
+    ``BASE-AGENT.md`` and ``base-engineer.md`` are caught uniformly.
+
+    WHY: Centralises the exclusion predicate in one place so every
+    deployment / discovery callsite imports the same guard rather than
+    duplicating ad-hoc string checks.
+
+    WHAT: Strips any leading path components, then tests whether the
+    bare filename starts with ``base-`` or ``base_`` (case-insensitive).
+    The file extension is irrelevant — the guard fires on ``.md``,
+    ``.yaml``, or no extension alike.
+
+    TEST: Assert ``is_base_template("BASE-AGENT.md")`` is True,
+    ``is_base_template("BASE_ENGINEER.md")`` is True,
+    ``is_base_template("base-research.md")`` is True,
+    ``is_base_template("engineer.md")`` is False,
+    ``is_base_template("code-critic.md")`` is False.
+
+    Args:
+        filename: Bare filename *or* full path string.  Only the last
+            path component is tested.
+
+    Returns:
+        ``True`` if the file is a BASE composition template; ``False``
+        otherwise.
+
+    Examples:
+        >>> is_base_template("BASE-AGENT.md")
+        True
+        >>> is_base_template("BASE_ENGINEER.md")
+        True
+        >>> is_base_template("base-qa.md")
+        True
+        >>> is_base_template("/some/path/BASE-OPS.md")
+        True
+        >>> is_base_template("engineer.md")
+        False
+        >>> is_base_template("code-critic.md")
+        False
+    """
+    if not filename:
+        return False
+    # Use only the bare filename so callers can pass full paths too.
+    basename = Path(filename).name
+    lower = basename.lower()
+    return lower.startswith("base-") or lower.startswith("base_")
+
+
+def is_base_agent(agent_id: str) -> bool:
+    """Check if agent is a BASE composition template (build tool, not deployable).
+
+    Preserved for backward compatibility.  New call sites should prefer
+    :func:`is_base_template` which covers all ``BASE-*`` / ``BASE_*`` files,
+    not only the exact ``BASE_AGENT`` / ``BASE-AGENT`` variant.
+
+    This implementation now delegates to ``is_base_template`` so it catches
+    ``BASE-ENGINEER``, ``BASE-QA``, ``BASE-OPS``, ``BASE-RESEARCH``, etc. in
+    addition to the original ``BASE_AGENT`` / ``BASE-AGENT`` forms.
 
     Args:
         agent_id: Agent identifier to check (may include path like "qa/BASE-AGENT")
 
     Returns:
-        True if agent is BASE_AGENT (case-insensitive), False otherwise
+        True if agent is a BASE template (case-insensitive), False otherwise
 
     Examples:
         >>> is_base_agent("BASE_AGENT")
@@ -49,6 +114,8 @@ def is_base_agent(agent_id: str) -> bool:
         >>> is_base_agent("base-agent")
         True
         >>> is_base_agent("qa/BASE-AGENT")
+        True
+        >>> is_base_agent("BASE-ENGINEER")
         True
         >>> is_base_agent("ENGINEER")
         False
@@ -60,8 +127,8 @@ def is_base_agent(agent_id: str) -> bool:
     # 1M-502: Remote agents may have path prefixes like "qa/", "pm/", etc.
     agent_name = agent_id.rsplit("/", maxsplit=1)[-1]
 
-    normalized_id = agent_name.lower().replace("-", "").replace("_", "")
-    return normalized_id == "baseagent"
+    # Delegate to the canonical predicate — treat any BASE-* / BASE_* as a template.
+    return is_base_template(agent_name)
 
 
 def filter_base_agents(agents: list[dict]) -> list[dict]:
@@ -263,7 +330,10 @@ def get_deployed_agent_ids(project_dir: Path | None = None) -> set[str]:
     agents_dir = project_dir / ".claude" / "agents"
     if agents_dir.exists():
         for file in agents_dir.glob("*.md"):
-            if file.stem not in {"BASE-AGENT", ".DS_Store"}:
+            # Exclude BASE composition templates (BASE-*.md / BASE_*.md) and
+            # macOS metadata files.  Use the canonical predicate so that
+            # BASE-ENGINEER, BASE-QA, BASE-OPS, etc. are all excluded here.
+            if not is_base_template(file.name) and file.stem != ".DS_Store":
                 deployed.add(normalize_agent_id_for_comparison(file.stem))
 
     # NOTE: .claude/templates/ contains PM instruction templates, NOT deployed agents
