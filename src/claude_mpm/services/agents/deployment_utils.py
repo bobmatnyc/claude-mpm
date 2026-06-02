@@ -22,12 +22,18 @@ Both SingleTierDeploymentService and GitSourceSyncService call deploy_agent_file
 to ensure consistent behavior across all deployment paths.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
+
+if TYPE_CHECKING:
+    from claude_mpm.core.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -359,6 +365,42 @@ def validate_agent_file(source_file: Path) -> ValidationResult:
     )
 
 
+def _extract_agent_type_from_content(content: str) -> str:
+    """Extract the ``agent_type`` field from YAML frontmatter.
+
+    WHAT: Parses the YAML frontmatter block of a Markdown agent file and
+    returns the value of the ``agent_type`` key, or an empty string when
+    the file has no frontmatter or the key is absent.
+
+    WHY: ``deploy_agent_file`` needs the agent type to decide whether to
+    append the SLD instruction block, but the agent type lives inside the
+    file's frontmatter rather than the filename.  This helper keeps the
+    extraction logic in one place and out of the main function body.
+
+    Test: Call with content that has ``agent_type: engineer`` in frontmatter
+    and assert the result is ``"engineer"``.  Call with content without a
+    frontmatter block and assert the result is ``""``.
+
+    Args:
+        content: Full text of the agent Markdown file.
+
+    Returns:
+        ``agent_type`` string from frontmatter, or ``""`` if absent.
+    """
+    if not content.startswith("---"):
+        return ""
+    frontmatter_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+    if not frontmatter_match:
+        return ""
+    try:
+        parsed = yaml.safe_load(frontmatter_match.group(1))
+        if isinstance(parsed, dict):
+            return str(parsed.get("agent_type", "") or "")
+    except yaml.YAMLError:
+        pass
+    return ""
+
+
 def deploy_agent_file(
     source_file: Path,
     deployment_dir: Path,
@@ -366,6 +408,7 @@ def deploy_agent_file(
     cleanup_legacy: bool = True,
     ensure_frontmatter: bool = True,
     force: bool = False,
+    config: Config | None = None,
 ) -> DeploymentResult:
     """Deploy a single agent file with standardized naming.
 
@@ -386,7 +429,8 @@ def deploy_agent_file(
     3. Clean up legacy underscore variants (if cleanup_legacy=True)
     4. Check if deployment needed (content comparison unless force=True)
     5. Ensure agent_id in frontmatter (if ensure_frontmatter=True)
-    6. Write content to deployment location
+    6. Inject SLD block when enabled and agent type qualifies (Step 6a)
+    7. Write content to deployment location
 
     Args:
         source_file: Path to source agent file (in cache)
@@ -394,6 +438,10 @@ def deploy_agent_file(
         cleanup_legacy: Remove underscore-variant files (default: True)
         ensure_frontmatter: Ensure agent_id in frontmatter (default: True)
         force: Force deployment even if content matches (default: False)
+        config: Optional Config instance for SLD feature-flag check.
+            When provided and ``workflow.spec_linked_docs.enabled`` is True,
+            engineer and documentation agents receive the SLD instruction block.
+            The block is never injected twice (idempotency guard).
 
     Returns:
         DeploymentResult with deployment status and deployed path
@@ -499,6 +547,20 @@ def deploy_agent_file(
             # "python-engineer.md") and inject a default model when missing.
             agent_name = Path(normalized_filename).stem
             deploy_content = ensure_model_in_frontmatter(deploy_content, agent_name)
+
+        # Step 6a: SLD block injection (Bug 1 fix).
+        # The cache-copy path bypasses AgentTemplateBuilder.build_agent_markdown(),
+        # so we post-process the content here when a Config is supplied and the
+        # feature flag is on.  inject_sld_block_into_content() is idempotent —
+        # it checks for SLD_BLOCK_MARKER before appending, so running deploy
+        # twice never duplicates the block.
+        if config is not None:
+            from claude_mpm.config.sld_config import inject_sld_block_into_content
+
+            agent_type = _extract_agent_type_from_content(deploy_content)
+            deploy_content = inject_sld_block_into_content(
+                deploy_content, agent_type, config=config
+            )
 
         # Step 7: Ensure deployment directory exists
         deployment_dir.mkdir(parents=True, exist_ok=True)
