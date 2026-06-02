@@ -477,7 +477,7 @@ def display_startup_banner(
         print(ztk_message)
         # Trusty daemon connection status (#598) — suppressed services return
         # an empty line, so only opted-in (binary present) services print.
-        for service in ("trusty-memory", "trusty-search"):
+        for service in ("trusty-memory", "trusty-search", "trusty-review"):
             _, trusty_line = get_trusty_status(service)
             if trusty_line:
                 print(trusty_line)
@@ -714,7 +714,7 @@ def display_startup_banner(
 
     # Trusty daemon connection status (#598) — suppressed services return an
     # empty line, so only opted-in (binary present) services add a row.
-    for service in ("trusty-memory", "trusty-search"):
+    for service in ("trusty-memory", "trusty-search", "trusty-review"):
         _, trusty_line = get_trusty_status(service)
         if trusty_line:
             lines.append(

@@ -352,6 +352,7 @@ class FrameworkLoader:
         # Generate dynamic sections
         capabilities_section = self._generate_agent_capabilities_section()
         context_section = self.context_generator.generate_temporal_user_context()
+        tool_status_section = self._generate_tool_status_section()
 
         # Format the complete framework
         return self.content_formatter.format_full_framework(
@@ -360,7 +361,120 @@ class FrameworkLoader:
             context_section,
             inject_output_style,
             output_style_content,
+            tool_status_section,
         )
+
+    def _generate_tool_status_section(self) -> str:
+        """Why: The static PM instructions (Context-First Protocol, MEMORY.md)
+        tell the PM to use trusty-memory/trusty-search unconditionally. When
+        those daemons are absent/down this session the PM wastes tool calls and
+        tokens. This injects a per-session capability block so the PM can act on
+        what is ACTUALLY available and degrade gracefully (skip + inform).
+
+        What: Calls ``get_trusty_capabilities()`` and renders a markdown block
+        ``## Available Tool Services (auto-detected at session start)`` — a
+        Service | Status | Impact table plus an explicit NEGATION line per
+        service that is not ON, plus a DEGRADED-MODE note when ALL trusty
+        services are absent/not-running. Always-on but resilient: any failure
+        (or no detected capabilities) returns ``""`` so nothing is injected and
+        startup never breaks.
+
+        Test: ``tests/test_framework_loader_tool_status.py`` — asserts the block
+        is present with the correct NEGATION line when a service is absent, the
+        degraded-mode note when all absent, and an empty string on probe error.
+        """
+        try:
+            from claude_mpm.services.trusty_status import get_trusty_capabilities
+
+            capabilities = get_trusty_capabilities()
+        except Exception as e:  # pragma: no cover - defensive
+            self.logger.debug(f"Skipping tool status section: {e}")
+            return ""
+
+        if not capabilities:
+            return ""
+
+        # Human-facing labels for each detected state.
+        status_labels = {
+            "on": "ON",
+            "configured": "NOT RUNNING",
+            "not_running": "NOT RUNNING",
+            "absent": "ABSENT",
+        }
+
+        # Per-service Impact text keyed by availability (ON vs everything else).
+        impact_on = {
+            "trusty-memory": (
+                "Context-First Protocol active: query "
+                "`mcp__trusty-memory__memory_recall` first."
+            ),
+            "trusty-search": (
+                "Code search available: use `mcp__trusty-search__search` before "
+                "delegating to Research."
+            ),
+            "trusty-analyze": (
+                "Code analysis available: `mcp__trusty-analyze__*` is usable."
+            ),
+            "trusty-review": ("`/mpm-review` and `mcp__trusty-review__*` are usable."),
+        }
+        impact_off = {
+            "trusty-memory": (
+                "Despite MEMORY.md/Context-First guidance, trusty-memory is NOT "
+                "available this session — SKIP all `mcp__trusty-memory__*` calls "
+                "and memory recall steps."
+            ),
+            "trusty-search": (
+                "trusty-search is NOT available — SKIP code search; delegate "
+                "directly to Research."
+            ),
+            "trusty-analyze": (
+                "trusty-analyze is NOT available — SKIP `mcp__trusty-analyze__*` calls."
+            ),
+            "trusty-review": (
+                "code review via trusty-review unavailable; fall back to "
+                "`openrouter-code-reviewer`."
+            ),
+        }
+
+        lines = [
+            "\n\n## Available Tool Services (auto-detected at session start)\n",
+            "This OVERRIDES the unconditional tool guidance elsewhere in these "
+            "instructions. Do NOT call any service listed as NOT available "
+            "below.\n",
+            "| Service | Status | Impact |",
+            "| --- | --- | --- |",
+        ]
+
+        negations: list[str] = []
+        for service in (
+            "trusty-memory",
+            "trusty-search",
+            "trusty-analyze",
+            "trusty-review",
+        ):
+            state = capabilities.get(service, "absent")
+            is_on = state == "on"
+            label = status_labels.get(state, "ABSENT")
+            impact = (impact_on if is_on else impact_off)[service]
+            lines.append(f"| {service} | {label} | {impact} |")
+            if not is_on:
+                negations.append(f"- {impact}")
+
+        if negations:
+            lines.append("\n**Skip the following this session:**\n")
+            lines.extend(negations)
+
+        all_unavailable = all(state != "on" for state in capabilities.values())
+        if all_unavailable:
+            lines.append(
+                "\n**DEGRADED MODE — no trusty services available this session.** "
+                "Skip all memory recall and code search; delegate directly to "
+                "the Research agent. Suggest the user run `claude-mpm setup "
+                "trusty-search` / `claude-mpm setup trusty-memory` to enable "
+                "Context-First tooling."
+            )
+
+        return "\n".join(lines) + "\n"
 
     def _format_minimal_framework(self) -> str:
         """Format minimal framework instructions."""

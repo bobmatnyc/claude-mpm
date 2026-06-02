@@ -78,6 +78,34 @@ _SERVICES: tuple[dict[str, Any], ...] = (
             "args": [],
         },
     },
+    # trusty-review is review-on-demand: it gets an .mcp.json entry so the
+    # ``mcp__trusty-review__*`` tools and ``/mpm-review`` are wired, but it
+    # has NO per-project palace and NO capture/index hooks (it is not in
+    # ``_TRUSTY_HOOK_SPECS``, so ``inject_trusty_hooks`` is a no-op for it).
+    # It ships no ``http_addr`` discovery file, so detection always resolves
+    # via the hardcoded ``fallback_addr`` (127.0.0.1:7880).
+    #
+    # The ``env`` block carries ONLY non-secret config: ``TRUSTY_REVIEW_AUTH_MODE=cli``
+    # lets a local GitHub PAT work in serve mode (learned from testing). AWS
+    # credentials and ``GITHUB_TOKEN`` are deliberately NOT set here — they are
+    # inherited from the Claude Code process environment. ``TRUSTY_SEARCH_INDEX``
+    # is intentionally omitted: the default ``main`` may not exist for a given
+    # project, so the user sets it explicitly when authoritative review is needed
+    # (documented in ``/mpm-review``).
+    {
+        "name": "trusty-review",
+        "binary": "trusty-review",
+        "addr_file": Path.home() / ".trusty-review" / "http_addr",
+        "fallback_addr": "127.0.0.1:7880",
+        "mcp_entry": {
+            "type": "stdio",
+            "command": "trusty-review",
+            "args": ["serve", "--stdio"],
+            "env": {
+                "TRUSTY_REVIEW_AUTH_MODE": "cli",
+            },
+        },
+    },
 )
 
 
