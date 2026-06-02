@@ -10,18 +10,6 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 60,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
-            "timeout": 60,
-            "_mpm": true
           }
         ]
       }
@@ -34,18 +22,6 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 60,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
-            "timeout": 60,
             "_mpm": true
           }
         ]
@@ -77,18 +53,6 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 60,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
-            "timeout": 60,
-            "_mpm": true
           }
         ]
       }
@@ -101,18 +65,6 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 60,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
-            "timeout": 60,
             "_mpm": true
           }
         ]
@@ -139,18 +91,6 @@
             "type": "command",
             "command": "claude-hook",
             "timeout": 15,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 60,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "/Volumes/SSD1/Projects/claude-mpm/src/claude_mpm/scripts/claude-hook-handler.sh",
-            "timeout": 60,
             "_mpm": true
           }
         ]
