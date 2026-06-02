@@ -198,19 +198,27 @@ def is_sld_enabled(config: Config | None = None) -> bool:
     WHY: Centralising the flag read here means callers (agent assembler, hooks,
     tests) do not hardcode the config key path.  Defaulting to False makes SLD
     purely opt-in without requiring any config migration for existing projects.
+    ``config=None`` must mean "no config available → return the documented
+    default (False)".  The previous implementation fell back to instantiating the
+    global Config() singleton, which auto-discovers this repo's
+    ``.claude-mpm/configuration.yaml`` (``enabled: true``) and caused spurious
+    SLD injection in tests and callers that deliberately pass no config.  The
+    fix removes that fallback entirely: callers that want project-aware behaviour
+    must pass an explicit Config instance (all real deploy paths already do).
 
     Parameters
     ----------
     config : Config or None
-        An initialised :class:`~claude_mpm.core.config.Config` singleton.  If
-        None the function attempts to import and use the global singleton; if
-        that too fails, False is returned.
+        An initialised :class:`~claude_mpm.core.config.Config` singleton.  Pass
+        ``None`` (or omit) to get the safe default ``False``.  Pass an explicit
+        Config instance to get project-aware behaviour.
 
     Returns
     -------
     bool
         True only when ``workflow.spec_linked_docs.enabled`` is explicitly
-        set to a truthy value.
+        set to a truthy value in the supplied *config*.  Always False when
+        *config* is None.
 
     Examples
     --------
@@ -220,12 +228,11 @@ def is_sld_enabled(config: Config | None = None) -> bool:
     False
     """
     if config is None:
-        try:
-            from claude_mpm.core.config import Config
-
-            config = Config()
-        except Exception:
-            return SLD_DEFAULT_ENABLED
+        # No config supplied → safe default (False).  Do NOT fall back to
+        # instantiating Config() here: that would auto-discover the project's
+        # configuration.yaml and silently enable SLD for all callers that
+        # omit the argument (backward-compat regression).
+        return SLD_DEFAULT_ENABLED
 
     try:
         value = config.get(SLD_CONFIG_KEY, SLD_DEFAULT_ENABLED)
