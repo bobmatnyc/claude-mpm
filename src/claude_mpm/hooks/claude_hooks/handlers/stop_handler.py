@@ -14,9 +14,13 @@ by parsing the transcript JSONL at
 ``~/.claude/projects/{cwd_encoded}/{session_id}.jsonl``.
 """
 
-import json as _json
 from datetime import UTC, datetime
 from pathlib import Path
+
+from claude_mpm.hooks.transcript_usage import (
+    derive_transcript_path as _derive_transcript_path_shared,
+    parse_transcript_usage as _parse_transcript_usage_shared,
+)
 
 from .base import DEBUG, BaseEventHandler, _log
 
@@ -58,128 +62,52 @@ def _parse_transcript_usage(
 ) -> dict | None:
     """Parse cumulative token usage from a Claude Code session transcript JSONL.
 
-    WHY: Real Claude Code Stop events do NOT include a ``usage`` field.  The
-    authoritative token counts live inside the session transcript as per-message
-    ``usage`` objects on ``assistant`` records.  Summing them gives the session
-    cumulative total that ``set_session_snapshot()`` expects.
+    WHY: Thin wrapper around the shared ``transcript_usage.parse_transcript_usage``
+    that preserves the original function signature for backward compatibility and
+    adds stop-handler-specific DEBUG logging.
 
-    WHAT: Reads ``transcript_path`` line-by-line, filters to ``type=="assistant"``
-    records that contain ``message.usage``, sums the four token fields across all
-    such messages, and also collects a per-model breakdown keyed by
-    ``message.model`` (e.g. ``"claude-opus-4-8"``).
+    WHAT: Delegates to the shared implementation and emits DEBUG log lines so
+    the stop-handler-debug.log captures parse results without changing stop_handler
+    callers.
 
-    TEST: Call with a path containing assistant records from two different models
-    with known usage dicts and assert (a) the totals equal the element-wise sum,
-    (b) ``result["models"]`` contains exactly those two model keys with the correct
-    per-model counts.  Returns None if the file is missing, unreadable, or contains
-    no usage data.
+    TEST: See ``tests/test_commit_cost_tracker.py::TestParseTranscriptUsage`` for
+    the shared implementation tests.  This wrapper adds no new logic.
 
     Args:
         transcript_path: Absolute path to the ``.jsonl`` session transcript.
 
     Returns:
-        Dict with keys ``input_tokens``, ``output_tokens``,
-        ``cache_creation_input_tokens``, ``cache_read_input_tokens`` (all int)
-        **plus** ``models`` — a nested dict mapping model name to the same four
-        token-count keys for that model only.  Returns None on failure / empty
-        transcript.
+        Same dict as ``parse_transcript_usage()``, or None.
     """
-    if not transcript_path.exists():
-        _stop_debug(f"_parse_transcript_usage: transcript not found: {transcript_path}")
+    result = _parse_transcript_usage_shared(transcript_path)
+    if result is None:
+        _stop_debug(f"_parse_transcript_usage: no data from: {transcript_path}")
         if DEBUG:
-            _log(f"  - transcript not found: {transcript_path}")
-        return None
-
-    totals: dict = {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 0,
-        "models": {},
-    }
-    found_any = False
-
-    try:
-        with transcript_path.open(encoding="utf-8", errors="replace") as fh:
-            for raw_line in fh:
-                raw_line = raw_line.strip()
-                if not raw_line:
-                    continue
-                try:
-                    rec = _json.loads(raw_line)
-                except _json.JSONDecodeError:
-                    _stop_debug(
-                        f"_parse_transcript_usage: skipping invalid JSON line: "
-                        f"{raw_line[:80]!r}"
-                    )
-                    continue
-
-                if rec.get("type") != "assistant":
-                    continue
-
-                msg = rec.get("message", {})
-                usage = msg.get("usage")
-                if not usage:
-                    continue
-
-                inp = int(usage.get("input_tokens", 0) or 0)
-                out = int(usage.get("output_tokens", 0) or 0)
-                cc = int(usage.get("cache_creation_input_tokens", 0) or 0)
-                cr = int(usage.get("cache_read_input_tokens", 0) or 0)
-
-                totals["input_tokens"] += inp
-                totals["output_tokens"] += out
-                totals["cache_creation_input_tokens"] += cc
-                totals["cache_read_input_tokens"] += cr
-
-                # Per-model breakdown — use "unknown" when model field is absent.
-                model = msg.get("model") or "unknown"
-                if model not in totals["models"]:
-                    totals["models"][model] = {
-                        "input_tokens": 0,
-                        "output_tokens": 0,
-                        "cache_creation_input_tokens": 0,
-                        "cache_read_input_tokens": 0,
-                    }
-                totals["models"][model]["input_tokens"] += inp
-                totals["models"][model]["output_tokens"] += out
-                totals["models"][model]["cache_creation_input_tokens"] += cc
-                totals["models"][model]["cache_read_input_tokens"] += cr
-
-                found_any = True
-
-    except Exception as exc:
-        _stop_debug(f"_parse_transcript_usage: parse error: {exc}")
-        if DEBUG:
-            _log(f"  - transcript parse error: {exc}")
-        return None
-
-    if not found_any:
+            _log(f"  - transcript returned no data: {transcript_path}")
+    else:
         _stop_debug(
-            f"_parse_transcript_usage: no assistant usage records in: {transcript_path}"
+            f"_parse_transcript_usage: totals "
+            f"in={result['input_tokens']} out={result['output_tokens']} "
+            f"cc={result['cache_creation_input_tokens']} "
+            f"cr={result['cache_read_input_tokens']} "
+            f"models={list(result['models'].keys())}"
         )
         if DEBUG:
-            _log(f"  - no assistant usage records in transcript: {transcript_path}")
-        return None
-
-    _stop_debug(
-        f"_parse_transcript_usage: totals "
-        f"in={totals['input_tokens']} out={totals['output_tokens']} "
-        f"cc={totals['cache_creation_input_tokens']} "
-        f"cr={totals['cache_read_input_tokens']} "
-        f"models={list(totals['models'].keys())}"
-    )
-    return totals
+            _log(
+                f"  - transcript parsed: "
+                f"in={result['input_tokens']} out={result['output_tokens']}"
+            )
+    return result
 
 
 def _derive_transcript_path(session_id: str, cwd: str) -> Path | None:
     """Derive the Claude Code transcript JSONL path from session_id and cwd.
 
-    WHY: Claude Code stores transcripts at
-    ``~/.claude/projects/{cwd_encoded}/{session_id}.jsonl`` where
-    ``cwd_encoded`` is the cwd with every ``/`` replaced by ``-``.
+    WHY: Thin wrapper around the shared ``transcript_usage.derive_transcript_path``
+    that preserves the original function signature used by existing tests and the
+    handle_stop_fast method.
 
-    WHAT: Constructs and returns the expected path.  Does NOT check existence.
+    WHAT: Delegates to the shared implementation.  Does NOT check existence.
 
     TEST: Call with cwd='/foo/bar' and session_id='abc' and assert the result
     equals ``Path.home() / '.claude/projects/-foo-bar/abc.jsonl'``.
@@ -191,10 +119,7 @@ def _derive_transcript_path(session_id: str, cwd: str) -> Path | None:
     Returns:
         A Path object, or None if session_id or cwd is empty.
     """
-    if not session_id or not cwd:
-        return None
-    encoded = cwd.replace("/", "-")
-    return Path.home() / ".claude" / "projects" / encoded / f"{session_id}.jsonl"
+    return _derive_transcript_path_shared(session_id, cwd)
 
 
 class StopHandler:
