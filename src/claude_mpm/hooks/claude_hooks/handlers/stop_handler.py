@@ -40,21 +40,66 @@ class StopHandler:
         # WHY HERE: Auto-pause must work even when response_tracking is disabled
         # Extract usage data directly from event and trigger auto-pause if thresholds crossed
         if "usage" in event:
+            usage_data = event["usage"]
+            metadata["usage"] = {
+                "input_tokens": usage_data.get("input_tokens", 0),
+                "output_tokens": usage_data.get("output_tokens", 0),
+                "cache_creation_input_tokens": usage_data.get(
+                    "cache_creation_input_tokens", 0
+                ),
+                "cache_read_input_tokens": usage_data.get("cache_read_input_tokens", 0),
+            }
+
+            # Persist the Stop event's cumulative usage as an authoritative
+            # snapshot in context-usage.json so the git post-commit hook can
+            # read accurate token counts for the current session turn.
+            #
+            # WHY set_session_snapshot() and NOT update_usage():
+            # Claude Code's Stop event carries CUMULATIVE session totals (not
+            # per-turn deltas). update_usage() *adds* to existing values, which
+            # would double-count: after two Stop events in one session the file
+            # would contain turn1_total + turn2_total instead of just
+            # turn2_total (the correct cumulative).  set_session_snapshot()
+            # REPLACES the stored state so the file always reflects the latest
+            # authoritative total from Claude Code.
+            #
+            # TIMING NOTE: Stop fires *after* Claude finishes its response, so
+            # this snapshot is written after each complete turn. A git commit
+            # executed by a Bash tool call during that turn fires its
+            # post-commit hook between tool calls—before Stop—so it reads the
+            # previous turn's snapshot. That snapshot is the most accurate data
+            # available at commit time without per-call usage data in
+            # PostToolUse (which Claude Code does not provide).
+            try:
+                from claude_mpm.services.infrastructure.context_usage_tracker import (
+                    ContextUsageTracker,
+                )
+
+                cwd = event.get("cwd", "")
+                _tracker = ContextUsageTracker(project_path=Path(cwd) if cwd else None)
+                _tracker.set_session_snapshot(
+                    session_id=event.get("session_id", "unknown"),
+                    input_tokens=int(metadata["usage"]["input_tokens"] or 0),
+                    output_tokens=int(metadata["usage"]["output_tokens"] or 0),
+                    cache_creation=int(
+                        metadata["usage"]["cache_creation_input_tokens"] or 0
+                    ),
+                    cache_read=int(metadata["usage"]["cache_read_input_tokens"] or 0),
+                )
+                if DEBUG:
+                    _log(
+                        f"  - Stop snapshot saved: in={metadata['usage']['input_tokens']} "
+                        f"out={metadata['usage']['output_tokens']}"
+                    )
+            except Exception as _snap_exc:
+                if DEBUG:
+                    _log(
+                        f"  - context-usage snapshot from Stop failed (fail-open): {_snap_exc}"
+                    )
+
             auto_pause = getattr(self.hook_handler, "auto_pause_handler", None)
             if auto_pause:
                 try:
-                    usage_data = event["usage"]
-                    metadata["usage"] = {
-                        "input_tokens": usage_data.get("input_tokens", 0),
-                        "output_tokens": usage_data.get("output_tokens", 0),
-                        "cache_creation_input_tokens": usage_data.get(
-                            "cache_creation_input_tokens", 0
-                        ),
-                        "cache_read_input_tokens": usage_data.get(
-                            "cache_read_input_tokens", 0
-                        ),
-                    }
-
                     threshold_crossed = auto_pause.on_usage_update(metadata["usage"])
                     if threshold_crossed:
                         warning = auto_pause.emit_threshold_warning(threshold_crossed)
