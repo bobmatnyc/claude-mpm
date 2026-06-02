@@ -111,19 +111,34 @@ _SHA_RE = re.compile(r"\[.*?\s+([a-f0-9]{7,40})\]")
 # ---------------------------------------------------------------------------
 
 
-def get_token_delta(cwd: str) -> dict[str, int]:
+def get_token_delta(cwd: str) -> dict[str, Any]:
     """Return per-commit token delta and update the running baseline.
 
     Reads the current cumulative totals from context-usage.json, computes the
     difference against the last-recorded baseline, then writes the new baseline
     so subsequent commits get the correct incremental numbers.
 
+    WHY: Every commit needs the incremental token cost since the previous commit
+    so that X-AI-* trailers reflect only the work done for that commit.
+
+    WHAT: Reads snapshot + baseline files, returns delta dict with integer token
+    fields plus a per-model ``models`` dict for the same delta window.  The
+    per-model delta is computed independently for each model: if a model appears
+    in the snapshot but not the baseline it gets its full snapshot value; if it
+    only appears in the baseline it contributes zero (clamped).
+
+    TEST: Seed snapshot with two models, seed baseline with one of those models,
+    call get_token_delta(), assert the model absent from baseline has its full
+    count, the shared model has the incremental delta, and the other model has
+    zero (clamped).
+
     Args:
         cwd: Working directory of the repository (used to locate .claude-mpm/).
 
     Returns:
         Dict with keys: input_tokens, output_tokens, cache_read_tokens,
-        cache_write_tokens.  All values are non-negative integers.
+        cache_write_tokens (all non-negative integers) plus ``models`` — a dict
+        mapping model name to per-model token delta (same four keys).
     """
     project_root = Path(cwd).resolve()
     usage_file = project_root / ".claude-mpm" / "state" / "context-usage.json"
@@ -140,14 +155,14 @@ def get_token_delta(cwd: str) -> dict[str, int]:
     _debug(f"  context-usage.json raw: {json.dumps(current)}")
 
     # Guard against stale test data: if session_id looks like a test artifact
-    # (e.g. "summary-test") and token counts are absurdly high relative to what
-    # a single session could realistically produce, treat the file as empty so
-    # we get zero-delta rather than fraudulent large deltas.
-    _STALE_THRESHOLD = 500_000  # 500k tokens is implausible in one session
+    # (e.g. "summary-test") treat the file as empty so we get zero-delta rather
+    # than fraudulent large deltas.  We do NOT apply a numeric threshold here
+    # because heavy caching sessions can legitimately accumulate millions of
+    # cache-read tokens; only the sentinel session_id signals stale test state.
     session_id = current.get("session_id", "")
-    raw_input = int(current.get("cumulative_input_tokens", 0))
-    raw_output = int(current.get("cumulative_output_tokens", 0))
-    if (raw_input + raw_output) > _STALE_THRESHOLD or session_id == "summary-test":
+    if session_id == "summary-test":
+        raw_input = int(current.get("cumulative_input_tokens", 0))
+        raw_output = int(current.get("cumulative_output_tokens", 0))
         _debug(
             f"  WARNING: context-usage.json appears stale (session_id={session_id!r}, "
             f"input={raw_input}, output={raw_output}) — treating as empty"
@@ -160,7 +175,10 @@ def get_token_delta(cwd: str) -> dict[str, int]:
         "cache_read_tokens": int(current.get("cache_read_tokens", 0)),
         "cache_write_tokens": int(current.get("cache_creation_tokens", 0)),
     }
+    # Per-model cumulative snapshot (may be empty for old state files).
+    cumulative_models: dict[str, dict[str, int]] = current.get("models", {}) or {}
     _debug(f"  cumulative={cumulative}")
+    _debug(f"  cumulative_models keys={list(cumulative_models.keys())}")
 
     # Read previous baseline (zeros if this is the first commit).
     prev = _read_json_safe(baseline_file)
@@ -170,16 +188,34 @@ def get_token_delta(cwd: str) -> dict[str, int]:
         "cache_read_tokens": int(prev.get("cache_read_tokens", 0)),
         "cache_write_tokens": int(prev.get("cache_write_tokens", 0)),
     }
+    baseline_models: dict[str, dict[str, int]] = prev.get("models", {}) or {}
     _debug(f"  baseline={baseline}")
 
-    # Delta = current minus previous (floor at zero to guard against resets).
-    delta: dict[str, int] = {
+    # Aggregate delta = current minus previous (floor at zero).
+    delta: dict[str, Any] = {
         key: max(0, cumulative[key] - baseline[key]) for key in cumulative
     }
+
+    # Per-model delta: for each model in the snapshot compute the increment.
+    model_delta: dict[str, dict[str, int]] = {}
+    token_keys = (
+        "input_tokens",
+        "output_tokens",
+        "cache_creation_input_tokens",
+        "cache_read_input_tokens",
+    )
+    for model, snap_counts in cumulative_models.items():
+        prev_counts = baseline_models.get(model, {})
+        model_delta[model] = {
+            k: max(0, int(snap_counts.get(k, 0)) - int(prev_counts.get(k, 0)))
+            for k in token_keys
+        }
+    delta["models"] = model_delta
     _debug(f"  delta={delta}")
 
-    # Persist new baseline atomically.
-    _write_json_atomic(baseline_file, cumulative)
+    # Persist new baseline atomically — include per-model snapshot.
+    new_baseline: dict[str, Any] = {**cumulative, "models": cumulative_models}
+    _write_json_atomic(baseline_file, new_baseline)
 
     return delta
 
@@ -216,8 +252,72 @@ def compute_cost(delta: dict[str, int]) -> float:
     return round(cost, 6)
 
 
+def _primary_model(model_delta: dict[str, dict[str, int]]) -> str | None:
+    """Return the model name with the most output tokens in the delta window.
+
+    WHY: When a session mixes models (e.g. main-loop opus + subagent sonnet),
+    the primary model is the one that produced the most output tokens in this
+    commit's delta window.
+
+    WHAT: Iterates model_delta and returns the key whose ``output_tokens`` value
+    is highest.  Returns None when model_delta is empty.
+
+    TEST: Pass {\"a\": {\"output_tokens\": 10}, \"b\": {\"output_tokens\": 50}} and assert
+    \"b\" is returned.
+
+    :spec: N/A
+    """
+    # Only consider models that actually produced tokens in this delta window.
+    active = {
+        m: c
+        for m, c in model_delta.items()
+        if c.get("input_tokens", 0) > 0 or c.get("output_tokens", 0) > 0
+    }
+    if not active:
+        return None
+    return max(active, key=lambda m: active[m].get("output_tokens", 0))
+
+
+def _format_models_trailer(model_delta: dict[str, dict[str, int]]) -> str | None:
+    """Format the X-AI-Models trailer value for a multi-model delta window.
+
+    WHY: Provides a compact, single-line, git-trailer-safe summary of each
+    model's contribution to the delta window so commit messages are self-
+    documenting.
+
+    WHAT: Returns a semicolon-separated string such as
+    ``claude-opus-4-8 (in=8954,out=572998); claude-sonnet-4-6 (in=100,out=50)``
+    sorted by descending output tokens, including only models with non-zero
+    tokens.  Returns None when fewer than two such models exist (caller emits
+    only X-AI-Model in that case).
+
+    TEST: Pass a two-model dict and assert the result contains both model names,
+    the correct token counts in ``in=...,out=...`` format, separated by ``; ``.
+
+    :spec: N/A
+    """
+    # Only include models that actually produced tokens in this delta window.
+    active = {
+        m: c
+        for m, c in model_delta.items()
+        if c.get("input_tokens", 0) > 0 or c.get("output_tokens", 0) > 0
+    }
+    if len(active) < 2:
+        return None
+    parts = []
+    for model in sorted(
+        active, key=lambda m: active[m].get("output_tokens", 0), reverse=True
+    ):
+        counts = active[model]
+        parts.append(
+            f"{model} (in={counts.get('input_tokens', 0)},"
+            f"out={counts.get('output_tokens', 0)})"
+        )
+    return "; ".join(parts)
+
+
 def amend_commit_message(
-    commit_sha: str, delta: dict[str, int], cost: float, cwd: str
+    commit_sha: str, delta: dict[str, Any], cost: float, cwd: str
 ) -> None:
     """Amend the latest commit to add token trailers and normalise Co-Authored-By.
 
@@ -225,12 +325,12 @@ def amend_commit_message(
     1. Retrieve current commit message via ``git log``.
     2. Strip any generic Co-Authored-By: Claude (not MPM) lines.
     3. Ensure exactly one canonical Co-Authored-By: Claude MPM trailer.
-    4. Append X-AI-* trailers with token counts and cost.
+    4. Append X-AI-* trailers with token counts, cost, and model info.
     5. Amend commit with ``git commit --amend --no-edit -m <msg> --no-verify``.
 
     Args:
         commit_sha: Short or full SHA of the commit to amend.
-        delta: Token delta dict from get_token_delta().
+        delta: Token delta dict from get_token_delta() — includes ``models`` key.
         cost: Estimated cost from compute_cost().
         cwd: Working directory for git commands.
     """
@@ -296,6 +396,11 @@ def amend_commit_message(
             else 0
         )
 
+        # Determine primary model and multi-model summary.
+        model_delta: dict[str, dict[str, int]] = delta.get("models") or {}
+        primary_model = _primary_model(model_delta)
+        models_trailer = _format_models_trailer(model_delta)
+
         trailers = [
             "",  # blank line before trailers
             _COAUTHORED_CANONICAL,
@@ -306,6 +411,10 @@ def amend_commit_message(
             f"X-AI-Cache-Ratio: {cache_ratio}%",
             f"X-AI-Est-Cost-USD: {cost:.6f}",
         ]
+        if primary_model:
+            trailers.append(f"X-AI-Model: {primary_model}")
+        if models_trailer:
+            trailers.append(f"X-AI-Models: {models_trailer}")
 
         new_msg = "\n".join(normalised_lines + trailers)
 
