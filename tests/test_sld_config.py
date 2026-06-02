@@ -95,27 +95,21 @@ class TestIsSldEnabled:
         cfg = _StubConfig({"workflow": {"spec_linked_docs": {"enabled": 0}}})
         assert is_sld_enabled(config=cfg) is False
 
-    def test_none_config_falls_back_to_default(self, monkeypatch):
-        """When config=None and Config singleton is unavailable, returns False."""
-        # Patch the import inside is_sld_enabled so the singleton import raises
-        from unittest import mock
+    def test_none_config_always_returns_false(self):
+        """is_sld_enabled(config=None) always returns False — no singleton lookup.
 
-        from claude_mpm.config import sld_config
+        The fix for Bug 2 removes the Config() singleton fallback entirely.
+        Passing None must immediately return the safe default (False) without
+        any auto-discovery of the project's configuration.yaml.
+        """
+        from claude_mpm.config.sld_config import is_sld_enabled
 
-        with mock.patch.dict(
-            "sys.modules",
-            {"claude_mpm.core.config": None},  # force import error
-        ):
-            # Reimport to force the patched code path
-            import importlib
-
-            # We can't easily force the import error inside the function with
-            # module patching, so test the except-branch via a broken stub.
-            result = sld_config.is_sld_enabled(config=None)
-            # Without a usable Config, the result may be True or False depending
-            # on whether Config() is available in the test environment.  The
-            # important invariant is that no exception is raised.
-            assert isinstance(result, bool)
+        # No monkey-patching needed: None must be False unconditionally.
+        result = is_sld_enabled(config=None)
+        assert result is False, (
+            "is_sld_enabled(config=None) must return False — "
+            "no singleton instantiation / auto-discovery allowed"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -394,3 +388,118 @@ class TestSldConstants:
         from claude_mpm.config.sld_config import SLD_TARGET_AGENT_TYPES
 
         assert isinstance(SLD_TARGET_AGENT_TYPES, frozenset)
+
+    def test_sld_block_marker_matches_instruction_block_header(self):
+        """SLD_BLOCK_MARKER must be a prefix of the first line of _SLD_INSTRUCTION_BLOCK."""
+        from claude_mpm.config.sld_config import (
+            SLD_BLOCK_MARKER,
+            get_sld_instruction_block,
+        )
+
+        block = get_sld_instruction_block()
+        first_line = block.splitlines()[0]
+        assert first_line.startswith(SLD_BLOCK_MARKER), (
+            "SLD_BLOCK_MARKER must match the start of the instruction block heading "
+            "so the idempotency guard works correctly"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Tests: inject_sld_block_into_content (Bug 1 helper)
+# ---------------------------------------------------------------------------
+
+
+class TestInjectSldBlockIntoContent:
+    """Unit tests for inject_sld_block_into_content()."""
+
+    def _enabled_config(self) -> _StubConfig:
+        return _StubConfig({"workflow": {"spec_linked_docs": {"enabled": True}}})
+
+    def _disabled_config(self) -> _StubConfig:
+        return _StubConfig({"workflow": {"spec_linked_docs": {"enabled": False}}})
+
+    def test_engineer_receives_block_when_enabled(self):
+        """inject_sld_block_into_content appends the block for engineer agents."""
+        from claude_mpm.config.sld_config import inject_sld_block_into_content
+
+        content = "---\nagent_type: engineer\n---\n# Body"
+        result = inject_sld_block_into_content(
+            content, "engineer", config=self._enabled_config()
+        )
+        assert "Spec-Linked Documentation" in result
+        assert result.startswith(content[:20])  # content is preserved at start
+
+    def test_documentation_receives_block_when_enabled(self):
+        """inject_sld_block_into_content appends the block for documentation agents."""
+        from claude_mpm.config.sld_config import inject_sld_block_into_content
+
+        content = "---\nagent_type: documentation\n---\n# Body"
+        result = inject_sld_block_into_content(
+            content, "documentation", config=self._enabled_config()
+        )
+        assert "Spec-Linked Documentation" in result
+
+    def test_ops_does_not_receive_block(self):
+        """Ops agent type returns content unchanged."""
+        from claude_mpm.config.sld_config import inject_sld_block_into_content
+
+        content = "---\nagent_type: ops\n---\n# Body"
+        result = inject_sld_block_into_content(
+            content, "ops", config=self._enabled_config()
+        )
+        assert "Spec-Linked Documentation" not in result
+        assert result == content
+
+    def test_no_injection_when_disabled(self):
+        """No injection when SLD flag is off."""
+        from claude_mpm.config.sld_config import inject_sld_block_into_content
+
+        content = "---\nagent_type: engineer\n---\n# Body"
+        result = inject_sld_block_into_content(
+            content, "engineer", config=self._disabled_config()
+        )
+        assert "Spec-Linked Documentation" not in result
+        assert result == content
+
+    def test_no_injection_when_config_none(self):
+        """config=None → no injection (safe default)."""
+        from claude_mpm.config.sld_config import inject_sld_block_into_content
+
+        content = "---\nagent_type: engineer\n---\n# Body"
+        result = inject_sld_block_into_content(content, "engineer", config=None)
+        assert "Spec-Linked Documentation" not in result
+        assert result == content
+
+    def test_idempotency_single_injection(self):
+        """Calling inject twice never adds the block more than once."""
+        from claude_mpm.config.sld_config import (
+            SLD_BLOCK_MARKER,
+            inject_sld_block_into_content,
+        )
+
+        content = "---\nagent_type: engineer\n---\n# Body"
+        config = self._enabled_config()
+
+        first = inject_sld_block_into_content(content, "engineer", config=config)
+        second = inject_sld_block_into_content(first, "engineer", config=config)
+
+        count = second.count(SLD_BLOCK_MARKER)
+        assert count == 1, (
+            f"SLD block must appear exactly once after double injection, got {count}"
+        )
+
+    def test_block_appended_not_prepended(self):
+        """SLD block is at the end, original content remains at start."""
+        from claude_mpm.config.sld_config import (
+            SLD_BLOCK_MARKER,
+            inject_sld_block_into_content,
+        )
+
+        body = "---\nagent_type: engineer\n---\n# Body\n\nOriginal instructions."
+        result = inject_sld_block_into_content(
+            body, "engineer", config=self._enabled_config()
+        )
+
+        sld_pos = result.find(SLD_BLOCK_MARKER)
+        body_pos = result.find("Original instructions.")
+        assert body_pos < sld_pos, "Original body must come before the SLD block"
