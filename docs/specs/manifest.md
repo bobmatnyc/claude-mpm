@@ -25,6 +25,7 @@ Design source of truth: `docs/design/manifest-config-system.md`
 | SPEC-MANIFEST-02~1 | [Deep-merge semantics including setup.services union](#deep-merge-semantics-including-setupservices-union-spec-manifest-021) | `claude_mpm.manifest.merger` |
 | SPEC-MANIFEST-03~1 | [Schema validation contract](#schema-validation-contract-spec-manifest-031) | `claude_mpm.manifest.schema` |
 | SPEC-MANIFEST-04~1 | [Preset resolution — four-step resolution order](#preset-resolution--four-step-resolution-order-spec-manifest-041) | `claude_mpm.manifest.resolver`, `claude_mpm.manifest.presets` |
+| SPEC-MANIFEST-05~1 | [CLI surface contract — manifest init/validate/show](#cli-surface-contract--manifest-initvalidateshow-spec-manifest-051) | `claude_mpm.cli.commands.manifest_commands`, `claude_mpm.cli.parsers.manifest_parser` |
 
 ---
 
@@ -291,3 +292,102 @@ Design source of truth: `docs/design/manifest-config-system.md`
 |--------|------|
 | `claude_mpm.manifest.resolver` | `resolve_preset`, `PresetResolutionError`; implements the four-step resolution order |
 | `claude_mpm.manifest.presets` | `load_builtin_preset`; loads bundled `default.json`, `minimal.json`, `enterprise.json` via `importlib.resources` |
+
+---
+
+## CLI surface contract — manifest init/validate/show {#SPEC-MANIFEST-05~1}
+
+**ID:** SPEC-MANIFEST-05~1
+**Status:** active
+
+### Behavior Contract (WHAT)
+
+The `claude-mpm manifest` command group exposes three subcommands:
+
+#### `manifest init`
+
+- **Inputs:**
+  - Optional `--extends PRESET` — built-in preset name or local path; defaults
+    to `"default"` in interactive mode when omitted.
+  - `--force` / `-f` — overwrite an existing manifest without error.
+  - `--non-interactive` / `--yes` / `-y` — skip all prompts (CI-safe mode).
+  - `--seed-agents`, `--seed-settings`, `--seed-services` — include empty
+    stub sections for the named keys.
+  - `--path PATH` — write the manifest to this exact file path instead of the
+    auto-discovered `<repo-root>/.claude-mpm/manifest.json`.
+
+- **Outputs (success):**  Writes a minimal valid `manifest.json` to disk.
+  Prints the path of the created file to stdout.  Returns exit code 0.
+
+- **Outputs (file already exists, no `--force`):**  Prints an error message to
+  stderr and returns exit code 1.  The existing file is not modified.
+
+- **Postconditions:**  The written file is a valid manifest (passes
+  `validate_manifest()`).
+
+#### `manifest validate`
+
+- **Inputs:**
+  - `--path PATH` — validate a specific file instead of the auto-discovered one.
+
+- **Outputs (dormant — no manifest found):**  Prints a clear "no manifest
+  found (system dormant)" message to stdout and exits **0**.  Absence of a
+  manifest file is not an error.
+
+- **Outputs (valid manifest):**  Prints a success message to stdout and exits
+  **0**.
+
+- **Outputs (invalid manifest or unresolvable preset):**  Prints a CLEAR,
+  ACTIONABLE error message to stderr (including the offending JSON path for
+  schema errors, or the list of sources tried for preset resolution errors)
+  and exits **non-zero (1)**.
+
+- **Exit-code contract:**
+
+  | Condition | Exit code |
+  |-----------|-----------|
+  | No manifest (dormant) | 0 |
+  | Valid manifest | 0 |
+  | Invalid JSON | 1 |
+  | Schema violation | 1 |
+  | Preset unresolvable | 1 |
+
+#### `manifest show`
+
+- **Inputs:**
+  - `--path PATH` — show the resolved config for a specific manifest file.
+
+- **Outputs (dormant — no manifest found):**  Prints "No manifest found
+  (system dormant)." to **stderr** and exits **0**.
+
+- **Outputs (valid manifest):**  Prints the fully-merged effective
+  configuration as pretty-printed JSON to **stdout** and exits **0**.  When
+  `extends` is set to a built-in preset (e.g. `"default"`), the output is the
+  result of `deep_merge(preset, repo)` and contains all keys from both sides.
+
+- **Outputs (invalid manifest or unresolvable preset):**  Prints an error
+  message to stderr and exits **1**.
+
+### Rationale (WHY)
+
+- **Dormant-exit-0 for validate and show:** Returning exit code 0 when no
+  manifest is found preserves the invariant that absence of a manifest is a
+  valid project state, not a failure.  CI scripts that run `manifest validate`
+  on every repo (whether or not they have opted in) must not fail because of
+  this.
+
+- **Non-interactive safety for init:** Providing `--non-interactive` (with
+  `--extends`) allows `manifest init` to be used safely in setup scripts and
+  CI jobs without requiring a TTY.  The flag combination is intentionally
+  explicit to prevent accidental scaffolding in pipelines.
+
+- **stdout vs stderr split for show:** Printing the effective JSON to stdout
+  and all status/error messages to stderr allows `manifest show | jq '...'`
+  to work without filtering noise.
+
+### Implementing Modules
+
+| Module | Role |
+|--------|------|
+| `claude_mpm.cli.commands.manifest_commands` | `manage_manifest`, `_cmd_init`, `_cmd_validate`, `_cmd_show`; full implementation of all three subcommands |
+| `claude_mpm.cli.parsers.manifest_parser` | `add_manifest_subparser`; registers the `manifest` command group and its subcommands with the argparse tree |
