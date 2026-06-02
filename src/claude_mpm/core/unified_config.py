@@ -310,6 +310,28 @@ class SkillConfig(BaseModel):
     )
 
 
+class TrustyConfig(BaseModel):
+    """Trusty (Rust) daemon auto-linkage configuration.
+
+    Why: when trusty-memory / trusty-search are installed and healthy,
+    claude-mpm auto-links them per project on startup (registers ``.mcp.json``,
+    creates the project memory palace, injects capture/index hooks). Some users
+    want to disable that auto-link entirely; this exposes a typed flag for it.
+    What: ``auto_link`` (default ``True``) gates the startup autodetect
+    migration. The ``CLAUDE_MPM_NO_TRUSTY_AUTO_LINK`` env var also disables it.
+    Test: ``tests/migrations/test_trusty_autodetect.py`` exercises the opt-out.
+    """
+
+    auto_link: bool = Field(
+        default=True,
+        description=(
+            "Auto-detect installed trusty-memory/-search daemons and link them "
+            "to the current project on startup (palace + MCP + hooks). Set to "
+            "false (or export CLAUDE_MPM_NO_TRUSTY_AUTO_LINK=1) to disable."
+        ),
+    )
+
+
 class UnifiedConfig(BaseSettings):
     """
     Unified configuration model for Claude MPM.
@@ -331,6 +353,7 @@ class UnifiedConfig(BaseSettings):
     agents: AgentConfig = Field(default_factory=AgentConfig)
     skills: SkillConfig = Field(default_factory=SkillConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    trusty: TrustyConfig = Field(default_factory=TrustyConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     sessions: SessionConfig = Field(default_factory=SessionConfig)
