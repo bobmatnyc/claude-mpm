@@ -2,9 +2,17 @@
 CLI Command Executor
 ====================
 
-This module handles command execution routing and argument preparation.
+WHAT: Routes a resolved command name to its handler via a two-tier dispatch
+table (lazy-import tier for experimental/heavyweight commands; dict-lookup
+tier for stable, frequently-used commands), returning an integer exit code.
 
-Part of cli/__init__.py refactoring to reduce file size and improve modularity.
+WHY: Centralises command routing so the main CLI entrypoint remains thin and
+individual handler modules are independently importable. Extracted from the
+monolithic cli/__init__.py to reduce file size and improve modularity.
+
+References
+----------
+SPEC-CLI-03~1 : docs/specs/cli.md#SPEC-CLI-03~1
 """
 
 from ..constants import CLICommands
@@ -233,9 +241,17 @@ def execute_command(command: str, args) -> int:
     """
     Execute the specified command.
 
+    WHAT: Accepts a command name string and a parsed argparse Namespace,
+    routes via lazy-import or dict-lookup tier, and returns an integer exit
+    code (0 on success, 1 on unknown command or handler error, or the
+    handler's own return value).
+
     WHY: This function maps command names to their implementations, providing
     a single place to manage command routing. Experimental commands are imported
-    lazily to avoid loading unnecessary code.
+    lazily to avoid loading unnecessary code. The two-tier structure isolates
+    startup-latency cost to commands that actually need heavy imports.
+
+    :spec: SPEC-CLI-03~1
 
     DESIGN DECISION: run_guarded is imported only when needed to maintain
     separation between stable and experimental features. Command suggestions
