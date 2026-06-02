@@ -621,6 +621,15 @@ class Config:
                     "enabled": False,  # opt-in: when true, engineer + documentation
                     # agents are guided to apply SLD (SPEC-ID docstring References
                     # blocks) alongside code changes.  Default OFF — backward compat.
+                    "wwl": {
+                        # WWL (WHAT/WHY/LINK) granularity checker thresholds.
+                        # Units exceeding EITHER threshold require a WWL doc-comment.
+                        "file_level_required": True,
+                        "function_line_threshold": 50,  # LOC (common linter default)
+                        "complexity_threshold": 10,  # McCabe / NIST SP 500-235
+                        # off | baseline | strict
+                        "enforcement": "baseline",
+                    },
                 }
             },
         }
