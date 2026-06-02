@@ -439,6 +439,13 @@ def execute_command(command: str, args) -> int:
     if command == "autotodos":
         return _handle_autotodos(args)
 
+    # Handle manifest command (init / validate / show) with lazy import
+    if command == "manifest":
+        from .commands.manifest_commands import manage_manifest
+
+        result = manage_manifest(args)
+        return result if result is not None else 0
+
     # Handle channels command with lazy import
     if command == "channels":
         from .commands.channels import handle_channels_command
@@ -542,6 +549,7 @@ def execute_command(command: str, args) -> int:
         "ztk",
         "ztk-stats",
         "llmlingua-stats",
+        "manifest",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)

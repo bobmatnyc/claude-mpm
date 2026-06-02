@@ -745,6 +745,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add manifest command parser (init / validate / show)
+    try:
+        from .manifest_parser import add_manifest_subparser
+
+        add_manifest_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Add channels command parser
     try:
         from ..commands.channels import add_channels_subcommand
