@@ -56,9 +56,31 @@ class AgentSkillsInjector(LoggerMixin):
 
         Args:
             skills_service: SkillsService instance for accessing registry
+
+        Note:
+            Programmatic skills injection via this class is currently
+            inoperative because:
+            1. ``config/skills_registry.yaml`` does not exist, so
+               ``SkillsService.get_skills_for_agent()`` always returns [].
+            2. ``src/claude_mpm/agents/templates/*.json`` do not exist;
+               ``enhance_agent_template()`` expects JSON, but current agents
+               are ``.md`` files with hand-authored ``skills:`` frontmatter.
+            All methods no-op gracefully — no errors are raised — but no
+            skills are injected.  Skills are currently authored directly in
+            deployed agent ``.md`` frontmatter.  To restore injection, create
+            ``config/skills_registry.yaml`` and port ``enhance_agent_template``
+            to handle Markdown frontmatter.
         """
         super().__init__()
         self.skills_service: SkillsService = skills_service
+        # Warn once at construction time so callers know injection is inoperative.
+        if not skills_service.registry.get("agent_skills"):
+            self.logger.warning(
+                "AgentSkillsInjector: skills registry has no agent_skills mapping "
+                "(config/skills_registry.yaml missing or empty).  "
+                "All inject/enhance calls will be no-ops.  "
+                "Skills must be authored directly in agent .md frontmatter."
+            )
 
     def enhance_agent_template(self, template_path: Path) -> dict[str, Any]:
         """Add skills field to agent template JSON.
@@ -79,6 +101,11 @@ class AgentSkillsInjector(LoggerMixin):
         Returns:
             Enhanced template dict with 'skills' field added
 
+        Note:
+            This method only handles JSON templates.  Current agents are ``.md``
+            files; passing a ``.md`` path returns an empty dict and logs a
+            warning instead of raising, to avoid breaking callers.
+
         Example:
             >>> template = injector.enhance_agent_template(
             ...     Path('src/claude_mpm/agents/templates/engineer.json')
@@ -86,6 +113,15 @@ class AgentSkillsInjector(LoggerMixin):
             >>> assert 'skills' in template
             >>> assert 'required' in template['skills']
         """
+        if Path(template_path).suffix == ".md":
+            self.logger.warning(
+                f"enhance_agent_template() received a Markdown path ({template_path}); "
+                "this method only processes JSON templates.  "
+                "Skills for .md agents are authored in the frontmatter directly.  "
+                "Returning empty dict."
+            )
+            return {}
+
         try:
             with open(template_path, encoding="utf-8") as f:
                 template = json.load(f)
