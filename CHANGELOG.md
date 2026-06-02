@@ -19,6 +19,21 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.9 (2026-06-02)
+
+### Feat
+
+- extract shared transcript_usage module from stop_handler
+
+### Fix
+
+- commit hook reads live transcript for non-zero token deltas
+- add always-on debug logging to stop handler for silent-failure visibility
+
+### Refactor
+
+- stop_handler uses shared transcript_usage module
+
 ## v6.5.8 (2026-06-02)
 
 ### Feat
