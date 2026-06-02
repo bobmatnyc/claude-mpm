@@ -69,8 +69,11 @@ class HookInstallerService:
                     self.logger.debug(f"Invalid hooks for {hook_type}")
                     return False
 
-                # Look for our hook wrapper in the configuration
-                # Accept either hook_wrapper.sh or claude-hook-handler.sh
+                # Look for our hook wrapper in the configuration.
+                # The authoritative signal is the "_mpm": true marker set by
+                # install_hooks().  We also recognise the legacy script-name
+                # substrings so that configs written by older versions of this
+                # service are still considered configured (D5 fix).
                 has_our_hook = False
                 for hook_config in hooks:
                     if "hooks" in hook_config and isinstance(
@@ -80,7 +83,9 @@ class HookInstallerService:
                             if hook.get("type") == "command":
                                 command = hook.get("command", "")
                                 if (
-                                    "hook_wrapper.sh" in command
+                                    hook.get("_mpm")  # authoritative marker
+                                    or command == "claude-hook"  # entry point
+                                    or "hook_wrapper.sh" in command
                                     or "claude-hook-handler.sh" in command
                                 ):
                                     has_our_hook = True
@@ -357,12 +362,21 @@ class HookInstallerService:
                 settings["hooks"] = {}
 
             def is_our_hook(cmd: dict[str, Any]) -> bool:
-                """Check if a hook command belongs to claude-mpm."""
+                """Check if a hook command belongs to claude-mpm.
+
+                Recognises the authoritative "_mpm": true marker as well as
+                the PATH-based "claude-hook" entry point and legacy script-name
+                substrings.  This prevents install_hooks() from adding a
+                duplicate entry when called more than once (D5 fix).
+                """
                 if cmd.get("type") != "command":
                     return False
+                if cmd.get("_mpm"):
+                    return True
                 command = cmd.get("command", "")
                 return (
-                    "hook_wrapper.sh" in command
+                    command == "claude-hook"  # PATH-based entry point
+                    or "hook_wrapper.sh" in command
                     or "claude-hook-handler.sh" in command
                     or "claude-mpm" in command
                 )
