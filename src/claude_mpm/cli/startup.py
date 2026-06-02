@@ -2,10 +2,19 @@
 CLI Startup Functions
 =====================
 
-This module contains initialization functions that run on CLI startup,
-including project registry, MCP configuration, and update checks.
+WHAT: Provides startup-time sync functions that download agent and skill files
+from remote Git sources, deploy them to the project's ``.claude/`` directories,
+and manage TTL gating and progress reporting — all without blocking CLI startup
+on failures.
 
-Part of cli/__init__.py refactoring to reduce file size and improve modularity.
+WHY: Extracted from the monolithic cli/__init__.py to reduce file size and
+improve modularity. Non-blocking sync ensures claude-mpm remains functional
+when network or remote sources are unavailable.
+
+References
+----------
+SPEC-CLI-05~1 : docs/specs/cli.md#SPEC-CLI-05~1
+SPEC-CLI-06~1 : docs/specs/cli.md#SPEC-CLI-06~1
 """
 
 import contextlib
@@ -1315,6 +1324,20 @@ def _save_deployment_state_after_reconciliation(
 def sync_remote_agents_on_startup(force_sync: bool = False):
     """Synchronize agent templates from remote sources on startup.
 
+    WHAT: Accepts a ``force_sync`` flag; downloads or validates agent files
+    from all configured Git sources via ETag-based caching, deploys the
+    resolved agent set to ``.claude/agents/`` via reconciliation, removes
+    legacy cache directories, and updates the TTL sync-state file; returns
+    implicitly without blocking startup on any error.
+
+    WHY: The two-condition TTL gate (time-based AND source-file-based) ensures
+    users see the effect of adding a new agent source immediately while still
+    avoiding unnecessary network traffic for the common no-change case.
+    Deployment state is persisted so ClaudeRunner.setup_agents() does not
+    redundantly redeploy what reconciliation already placed.
+
+    :spec: SPEC-CLI-06~1
+
     Architecture (Phase 3 unification):
         TTL gate (this function)  -->  sync_agents_on_startup()
                                           --> AgentSyncOrchestrator.sync()
@@ -1561,8 +1584,18 @@ def sync_remote_skills_on_startup(force_sync: bool = False):
     """
     Synchronize skill templates from remote sources on startup.
 
+    WHAT: Accepts a ``force_sync`` flag; downloads or caches skill files from
+    all enabled Git sources behind a 24-hour TTL gate, scans deployed agents
+    to derive the required skill set, applies profile filtering, deploys the
+    resolved skills to ``.claude/skills/``, and updates the sync-state TTL;
+    returns implicitly without blocking startup on any error.
+
     WHY: Ensures skills are up-to-date from remote Git sources (GitHub)
     without manual intervention. Provides consistency with agent syncing.
+    Selective deployment (agent-referenced skills only) bounds the skill
+    namespace and enables cleanup of skills no longer referenced.
+
+    :spec: SPEC-CLI-05~1
 
     DESIGN DECISION: Non-blocking synchronization that doesn't prevent
     startup if network is unavailable. Failures are logged but don't
