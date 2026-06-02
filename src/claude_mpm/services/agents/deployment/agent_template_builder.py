@@ -10,11 +10,15 @@ maintainability and testability.
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from claude_mpm.config.sld_config import get_sld_instruction_for_agent
 from claude_mpm.core.logging_config import get_logger
+
+if TYPE_CHECKING:
+    from claude_mpm.core.config import Config
 
 # Mapping of agent names and types to their initialPrompt for self-starting delegation.
 # When an agent is spawned, the initialPrompt auto-submits as the first turn,
@@ -126,9 +130,18 @@ class AgentTemplateBuilder:
     - Formatting YAML lists
     """
 
-    def __init__(self):
-        """Initialize the template builder."""
+    def __init__(self, config: "Config | None" = None) -> None:
+        """Initialize the template builder.
+
+        Args:
+            config: Optional :class:`~claude_mpm.core.config.Config` instance.
+                When provided, the builder reads ``workflow.spec_linked_docs.enabled``
+                to decide whether to append the SLD instruction block to engineer
+                and documentation agent prompts.  Passing *None* is safe — SLD
+                defaults to disabled, so existing callers require no changes.
+        """
         self.logger = get_logger(__name__)
+        self._config = config
 
     def normalize_tools_input(self, tools):
         """Normalize various tool input formats to a consistent list.
@@ -820,6 +833,18 @@ Only include memories that are:
 - Not already documented elsewhere
 """
             content = content + memory_instructions
+
+        # Append SLD instruction block when the feature flag is enabled and this
+        # agent type is in the target set (engineer, documentation).
+        # get_sld_instruction_for_agent returns "" when disabled or for ops/qa/etc.,
+        # so concatenating unconditionally is always safe.
+        sld_block = get_sld_instruction_for_agent(agent_type, config=self._config)
+        if sld_block:
+            content = content + "\n\n---\n\n" + sld_block
+            self.logger.debug(
+                f"Injected SLD instruction block into agent '{agent_name}' "
+                f"(agent_type={agent_type!r})"
+            )
 
         # Combine frontmatter and content
         return frontmatter + content
