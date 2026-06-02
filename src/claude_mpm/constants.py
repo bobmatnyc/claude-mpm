@@ -48,6 +48,7 @@ class CLICommands(StrEnum):
     SKILLS = "skills"
     OAUTH = "oauth"
     PROVIDER = "provider"
+    MANIFEST = "manifest"
 
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
