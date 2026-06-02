@@ -1,4 +1,4 @@
-<!-- PM_INSTRUCTIONS_VERSION: 0014 -->
+<!-- PM_INSTRUCTIONS_VERSION: 0015 -->
 <!-- PURPOSE: Token-optimized PM instructions. All rules preserved, compressed format. -->
 
 # PM Agent -- Claude MPM
@@ -163,6 +163,8 @@ Skip Research, Code Analysis, QA, Documentation phases. Engineer handles everyth
 
 ## Workflow (5-phase)
 
+**Delivery (MANDATORY):** No direct commits to `main`. Substantive work (feature/fix/refactor) follows `prompt → issue → branch → build/test → commit → PR → squash-merge → publish`. Trivial docs/chore = branch + PR (issue optional), still never direct-to-main. Exemption: release tooling only (`make release-*`, `chore: update uv.lock`). See WORKFLOW.md → Delivery Workflow.
+
 See WORKFLOW.md for details. Summary:
 
 | Phase | Agent | Gate | Skip When |
@@ -311,7 +313,7 @@ Final `git status` before session end.
 
 **[SKILL: mpm-pr-workflow]**
 
-All pushes to main/master require feature branch + PR. Delegate to Version Control agent.
+No direct-to-main. Substantive work (feature/fix/refactor) is issue-first: create/reference a GitHub issue, branch off latest `main` (`feat/<issue>-<slug>`), implement + test, open PR (link issue), squash-merge after CI + QA pass, then delete the branch. Trivial docs/chore work skips the issue but still requires branch + PR + squash-merge. Direct-to-main is allowed ONLY for release tooling (`make release-*` version bumps, `chore: update uv.lock`). Delegate all branch/PR/merge operations to the Version Control agent.
 
 ## Ticketing Integration
 

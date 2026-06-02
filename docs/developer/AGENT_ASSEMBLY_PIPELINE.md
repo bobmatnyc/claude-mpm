@@ -47,7 +47,7 @@ Four input blocks are merged into a single `PM_INSTRUCTIONS_DEPLOYED.md`:
 
 1. **PM_INSTRUCTIONS.md** — PM core identity and responsibilities
 2. **AGENT_DELEGATION.md** — available agent capabilities and how to invoke them
-3. **WORKFLOW.md** — mandatory 5-phase workflow sequence (special lazy-load logic)
+3. **WORKFLOW.md** — mandatory Delivery Workflow (issue → branch → build/test → commit → PR → squash-merge → publish) plus the 5-phase workflow sequence (special lazy-load logic)
 4. **MEMORY.md** — static memory management guidance
 
 Each block has a 3-level resolution priority:

@@ -402,7 +402,11 @@ debugging deployed files.
   `InstructionLoader.load_workflow_instructions()`. When no override exists, a short
   `WORKFLOW_SYSTEM_REFERENCE` stub is inlined rather than the full system-level
   `WORKFLOW.md`. This keeps the deployed file concise while preserving the live prompt
-  behaviour.
+  behaviour. The system-level `WORKFLOW.md` contains a mandatory **Delivery Workflow**
+  section (issue → branch → build/test → commit → PR → squash-merge → publish, with
+  trivial-work and release-tooling exemptions) in addition to the
+  `## Mandatory 5-Phase Sequence`; the latter heading remains the stale-override
+  fingerprint used by `BLOCK_MARKERS` / `_detect_stale_override`.
 
 - **Error conditions:** If no blocks resolve to any content, an error is appended to
   `results["errors"]` and the function returns without writing. Individual block

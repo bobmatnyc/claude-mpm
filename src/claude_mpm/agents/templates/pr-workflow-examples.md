@@ -415,6 +415,88 @@ Ready for review"
 
 ---
 
+## Delivery Workflow Examples
+
+The framework default delivery flow: substantive work lands on `main` ONLY via a squash-merged PR. These examples cover the three canonical paths.
+
+### Example 1: Full Substantive Flow (issue → branch → commit → PR → squash-merge)
+
+**Scenario**: Implement a new feature (`feat`).
+
+```
+prompt → issue → branch → build/test → commit → PR → squash-merge → publish
+
+1. Issue
+   PM → Ticketing: "Create issue: add retry policy to HTTP client
+   (intent + acceptance criteria)"
+   Ticketing: "Created #512"
+
+2. Branch
+   PM → Version Control: "Branch feat/512-http-retry-policy off latest main"
+
+3. Build/test
+   Engineer: implements; runs `uv run ruff check` + full `pytest` suite
+   QA: verifies the runtime artifact, attaches raw test output
+
+4. Commit (ONE FILE PER COMMIT, conventional prefix)
+   feat: add retry policy to HTTP client
+
+   Closes #512
+
+5. PR
+   PM → Version Control: "Open PR for feat/512-http-retry-policy, link #512"
+   Version Control: "PR #88 created, base main"
+
+6. Squash-merge
+   After CI + QA pass → squash-merge PR #88 → delete branch feat/512-http-retry-policy
+
+7. Publish
+   PM → Local Ops: "Release via make release-minor && make release-publish;
+   verify published artifact"
+```
+
+### Example 2: Trivial Change Flow (branch → PR → squash, NO issue)
+
+**Scenario**: Fix a typo in the README (`docs`/`chore`). Issue is OPTIONAL; branch + PR are still REQUIRED — never direct-to-main.
+
+```
+branch → commit → PR → squash-merge
+
+1. Branch
+   PM → Version Control: "Branch docs/readme-typo off latest main" (no issue needed)
+
+2. Commit
+   docs: fix typo in installation instructions
+
+3. PR
+   PM → Version Control: "Open PR for docs/readme-typo"
+   Version Control: "PR #89 created, base main"
+
+4. Squash-merge
+   After CI passes → squash-merge PR #89 → delete branch docs/readme-typo
+```
+
+### Example 3: Release-Tooling Exemption (direct-to-main ALLOWED)
+
+**Scenario**: Version bump and lockfile update during a release. These are the ONLY operations permitted to commit directly to `main`.
+
+```
+1. PM → Local Ops: "Run make release-patch"
+   Local Ops: bumps version files (pyproject.toml, package.json, VERSION)
+   Commit lands directly on main:
+     bump: version 6.5.8 → 6.5.9
+
+2. Lockfile sync also direct-to-main:
+     chore: update uv.lock for 6.5.9 version bump
+
+3. PM → Local Ops: "Run make release-publish; verify PyPI/npm/Homebrew artifacts"
+
+NOTE: This exemption covers release tooling ONLY (make release-* bumps and
+uv.lock sync). All feature/fix/refactor work still requires the PR flow above.
+```
+
+---
+
 ## Related References
 
 - **Version Control Agent**: See [version-control.md](version-control.md)

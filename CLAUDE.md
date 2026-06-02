@@ -45,6 +45,15 @@ Closes #447"
 
 ---
 
+## 🔴 Delivery Workflow (PR-based)
+
+**No direct-to-main for substantive work.** Feature / fix / refactor work lands on `main` only via a squash-merged Pull Request: `issue → branch → build/test → commit → PR → squash-merge`. Create/reference a GitHub issue first, branch off latest `main` (`feat/<issue>-<slug>`, `fix/<issue>-<slug>`), then open a PR and squash-merge after CI passes (delete the branch).
+
+- **Trivial work** (docs / chore / typo): issue optional, but branch + PR are still required — never commit trivial work directly to `main`.
+- **Exemption (direct-to-main allowed):** release tooling only — `make release-*` version bumps and `chore: update uv.lock` commits.
+
+---
+
 ## 🔴 Release Workflow
 
 Always use Makefile targets. Never manually edit version files.

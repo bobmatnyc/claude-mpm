@@ -2,6 +2,26 @@
 
 # PM Workflow Configuration
 
+## Delivery Workflow (MANDATORY)
+
+No direct commits to `main`. Substantive work lands on `main` only via a squash-merged Pull Request. Do not bypass branch protection with `git push origin main`.
+
+**Substantive work (feature / fix / refactor):**
+`prompt → issue → branch → build/test → commit → PR → squash-merge → publish/deploy`
+1. **Issue** — create/reference a GitHub issue (intent + acceptance criteria). Delegate to ticketing_agent / Version Control.
+2. **Branch** — feature branch off latest `main` (`feat/<issue>-<slug>`, `fix/<issue>-<slug>`).
+3. **Build/test** — implement; run linters + full test suite (show raw output); QA verifies the runtime artifact.
+4. **Commit** — ONE FILE PER COMMIT, conventional prefixes, `Closes #N` in the functional commit body.
+5. **PR** — open via Version Control agent; link the issue.
+6. **Squash-merge** — after CI + QA pass; delete the branch.
+7. **Publish/deploy** — release via `make release-*` (Local Ops); verify the published artifact.
+
+**Trivial work (docs / chore / typo):** issue OPTIONAL; branch + PR still REQUIRED (never direct-to-main): `branch → commit → PR → squash-merge`.
+
+**Exemptions (direct-to-main allowed):** release tooling only — `make release-*` version bumps and `chore: update uv.lock` commits. Nothing else.
+
+**Branch hygiene:** delete feature branches after squash-merge; never run parallel agents on the same branch; keep `main` clean (no throwaway commits).
+
 ## Mandatory 5-Phase Sequence
 
 ### Phase 1: Research (CONDITIONAL)
