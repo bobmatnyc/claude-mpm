@@ -32,6 +32,7 @@ from pathlib import Path
 
 from ._shared import console
 from .command import SetupCommand, manage_setup
+from .manifest_integration import ManifestSetupMixin
 from .mcp_config import (
     AuthFailedError,
     _mcp_config_transaction,
@@ -43,6 +44,7 @@ from .parse_args import AUTONOMOUS_SETUP_SERVICES, parse_service_args
 __all__ = [
     "AUTONOMOUS_SETUP_SERVICES",
     "AuthFailedError",
+    "ManifestSetupMixin",
     "Path",
     "SetupCommand",
     "_mcp_config_transaction",
