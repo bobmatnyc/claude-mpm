@@ -14,6 +14,7 @@ import yaml
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.utils.agent_filters import is_base_template
 
 
 class AgentDiscoveryService:
@@ -128,6 +129,13 @@ class AgentDiscoveryService:
             template_files = list(self.templates_dir.glob("*.md"))
 
             for template_file in template_files:
+                # Skip BASE composition templates — they are not stand-alone agents
+                # and must never be surfaced as deployable / listable agents.
+                if is_base_template(template_file.name):
+                    self.logger.debug(
+                        f"Skipping BASE composition template: {template_file.name}"
+                    )
+                    continue
                 try:
                     agent_info = self._extract_agent_metadata(template_file)
                     if agent_info:
@@ -192,6 +200,15 @@ class AgentDiscoveryService:
 
         for template_file in template_files:
             agent_name = template_file.stem
+
+            # Skip BASE composition templates unconditionally.  They have no
+            # ``description`` field and are not valid stand-alone agents.
+            if is_base_template(template_file.name):
+                excluded_count += 1
+                self.logger.debug(
+                    f"Excluding BASE composition template: {template_file.name}"
+                )
+                continue
 
             # Check if agent is excluded
             if self._is_agent_excluded(agent_name, excluded_agents, config):
