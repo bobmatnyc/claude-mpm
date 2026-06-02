@@ -151,8 +151,9 @@ class TestValidManifestLoaded:
         assert result is not None
         assert result.effective == result.repo
 
-    def test_preset_merged_is_false_when_no_resolver(self, tmp_path: Path) -> None:
-        _write_manifest(tmp_path, {"version": "1.0", "extends": "default"})
+    def test_preset_merged_is_false_when_no_extends(self, tmp_path: Path) -> None:
+        """When extends is absent, no preset is merged and preset_merged is False."""
+        _write_manifest(tmp_path, {"version": "1.0"})
         result = load_manifest(tmp_path)
         assert result is not None
         assert result.preset_merged is False
@@ -279,15 +280,43 @@ class TestInjectablePresetResolver:
         # effective should have merged data
         assert "y" in result.effective.get("agents", {})
 
-    def test_no_resolver_and_extends_present_returns_unmerged(
-        self, tmp_path: Path
-    ) -> None:
-        """Without a resolver, extends is noted but no merge happens."""
-        _write_manifest(tmp_path, {"version": "1.0", "extends": "some-preset"})
-        result = load_manifest(tmp_path, preset_resolver=None)
+    def test_no_custom_resolver_uses_builtin_resolver(self, tmp_path: Path) -> None:
+        """When preset_resolver=None and extends is set, the built-in resolver is used.
+
+        PR2 changed the behavior from PR1: passing preset_resolver=None no longer
+        skips preset resolution; instead the built-in four-step resolver is invoked
+        automatically.  Tests that need to skip resolution should use a stub that
+        returns an empty dict or raises, rather than relying on preset_resolver=None.
+        """
+        from claude_mpm.manifest.resolver import PresetResolutionError
+
+        # A known built-in preset: resolution should succeed and merge the preset.
+        _write_manifest(
+            tmp_path / "with_builtin", {"version": "1.0", "extends": "minimal"}
+        )
+        (tmp_path / "with_builtin").mkdir(exist_ok=True)
+        import json
+
+        preset_dir = tmp_path / "with_builtin" / ".claude-mpm"
+        preset_dir.mkdir(parents=True, exist_ok=True)
+        (preset_dir / "manifest.json").write_text(
+            json.dumps({"version": "1.0", "extends": "minimal"}), encoding="utf-8"
+        )
+        result = load_manifest(tmp_path / "with_builtin", preset_resolver=None)
         assert result is not None
-        assert result.preset_merged is False
-        assert result.effective == result.repo
+        assert result.preset_merged is True
+
+        # An unknown preset name: should raise PresetResolutionError.
+        unknown_dir = tmp_path / "with_unknown"
+        unknown_dir.mkdir()
+        preset_dir2 = unknown_dir / ".claude-mpm"
+        preset_dir2.mkdir()
+        (preset_dir2 / "manifest.json").write_text(
+            json.dumps({"version": "1.0", "extends": "totally-unknown-preset-xyz"}),
+            encoding="utf-8",
+        )
+        with pytest.raises(PresetResolutionError):
+            load_manifest(unknown_dir, preset_resolver=None)
 
     def test_resolver_not_called_when_extends_absent(self, tmp_path: Path) -> None:
         _write_manifest(tmp_path, {"version": "1.0"})

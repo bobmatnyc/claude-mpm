@@ -24,6 +24,7 @@ Design source of truth: `docs/design/manifest-config-system.md`
 | SPEC-MANIFEST-01~1 | [Detection-gated loading — dormant-unless-present contract](#detection-gated-loading--dormant-unless-present-contract-spec-manifest-011) | `claude_mpm.manifest.loader` |
 | SPEC-MANIFEST-02~1 | [Deep-merge semantics including setup.services union](#deep-merge-semantics-including-setupservices-union-spec-manifest-021) | `claude_mpm.manifest.merger` |
 | SPEC-MANIFEST-03~1 | [Schema validation contract](#schema-validation-contract-spec-manifest-031) | `claude_mpm.manifest.schema` |
+| SPEC-MANIFEST-04~1 | [Preset resolution — four-step resolution order](#preset-resolution--four-step-resolution-order-spec-manifest-041) | `claude_mpm.manifest.resolver`, `claude_mpm.manifest.presets` |
 
 ---
 
@@ -215,3 +216,78 @@ Design source of truth: `docs/design/manifest-config-system.md`
 | Module | Role |
 |--------|------|
 | `claude_mpm.manifest.schema` | `MANIFEST_SCHEMA` dict, `validate_manifest`, `ManifestValidationError` |
+
+---
+
+## Preset resolution — four-step resolution order {#SPEC-MANIFEST-04~1}
+
+**ID:** SPEC-MANIFEST-04~1
+**Status:** active
+
+### Behavior Contract (WHAT)
+
+- **Inputs:**
+  - `extends: str` — the value of the `extends` key in a repo manifest.  May be
+    a local path (starts with `./` or `/`), a preset name, or a built-in preset
+    name.
+
+- **Outputs:** A validated manifest dict representing the resolved preset.
+
+- **Resolution order (FIRST MATCH WINS):**
+
+  | Step | Source | Condition / Location |
+  |------|--------|----------------------|
+  | 1 | **Local path** | `extends` starts with `./` or `/`.  Resolved relative to the current working directory for `./`; absolute path used as-is for `/`. |
+  | 2 | **User preset directory** | `~/.claude-mpm/presets/<extends>.json` |
+  | 3 | **Package entry point** | `importlib.metadata.entry_points(group="claude_mpm.presets")` with key `== extends`.  Entry point must be callable; called as `get_manifest() -> dict`. |
+  | 4 | **Built-in presets** | Bundled JSON files in `claude_mpm/manifest/presets/` package; loaded via `importlib.resources` so the package works when installed as a wheel. |
+
+- **Dormant principle:** Resolution is only ever triggered when (a) a manifest
+  file is detected by the loader and (b) that manifest contains a non-empty
+  `extends` key.  Projects without a manifest file are completely unaffected.
+
+- **Validation:** Each resolved preset dict is validated against the manifest
+  JSON schema (SPEC-MANIFEST-03~1) before being returned.  A preset with an
+  invalid shape raises `ManifestValidationError`.
+
+- **Multi-level chains:** If a resolved preset itself contains an `extends` key,
+  that key is ignored for now (multi-level chaining is out of scope for this
+  implementation — see TODO referencing optional feature O1 in `resolver.py`).
+
+- **Error conditions:**
+  - No source matches: raises `PresetResolutionError` with a message listing all
+    sources that were tried.
+  - JSON file present but unreadable / invalid JSON: raises `PresetResolutionError`
+    wrapping the underlying I/O or parse error.
+  - Resolved preset fails schema validation: raises `ManifestValidationError`.
+
+### Rationale (WHY)
+
+- The four-step order mirrors common precedence conventions in tooling (local >
+  user > installed > built-in) so that more specific overrides win over more
+  general ones without surprising the user.
+
+- Local paths allow teams to version-control presets alongside their code without
+  publishing a Python package.
+
+- The user preset directory (`~/.claude-mpm/presets/`) gives individual
+  developers a personal preset slot that does not require any installation step.
+
+- Entry points are the standard Python extension mechanism (pytest plugins,
+  Sphinx extensions, Babel extractors all use the same pattern), so third-party
+  preset authors can publish a `claude-mpm-<name>` pip package and have it
+  auto-discovered without requiring the user to configure any path.
+
+- Built-in presets serve as zero-install defaults and as reference implementations
+  that demonstrate valid manifest structure.
+
+- Loading bundled JSON via `importlib.resources` (not raw `__file__` path joins)
+  is required for correct behavior when the package is installed as a zip-safe
+  wheel.
+
+### Implementing Modules
+
+| Module | Role |
+|--------|------|
+| `claude_mpm.manifest.resolver` | `resolve_preset`, `PresetResolutionError`; implements the four-step resolution order |
+| `claude_mpm.manifest.presets` | `load_builtin_preset`; loads bundled `default.json`, `minimal.json`, `enterprise.json` via `importlib.resources` |

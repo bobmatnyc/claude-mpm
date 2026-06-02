@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "agents": {
+    "engineer": {
+      "model": "claude-sonnet-4-5",
+      "resource_tier": "tier2",
+      "max_tokens": 8192
+    },
+    "qa": {
+      "model": "claude-haiku-4-5",
+      "resource_tier": "tier1",
+      "max_tokens": 4096
+    },
+    "planner": {
+      "model": "claude-sonnet-4-5",
+      "resource_tier": "tier2",
+      "max_tokens": 8192
+    }
+  },
+  "hooks": {
+    "PreToolUse": ["claude-mpm audit-hook pre"],
+    "Stop": ["claude-mpm audit-hook stop"]
+  },
+  "settings": {
+    "permissions": {
+      "additionalDirectories": []
+    },
+    "model": "claude-haiku-4-5"
+  },
+  "setup": {
+    "services": ["kuzu-memory"]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "agents": {
+    "engineer": {
+      "model": "claude-sonnet-4-5",
+      "resource_tier": "tier2",
+      "max_tokens": 8192
+    },
+    "qa": {
+      "model": "claude-haiku-4-5",
+      "resource_tier": "tier1",
+      "max_tokens": 4096
+    },
+    "planner": {
+      "model": "claude-opus-4-7",
+      "resource_tier": "tier3",
+      "max_tokens": 16384
+    },
+    "reviewer": {
+      "model": "claude-haiku-4-5",
+      "resource_tier": "tier1",
+      "max_tokens": 4096
+    }
+  },
+  "settings": {
+    "permissions": {
+      "additionalDirectories": []
+    }
+  },
+  "setup": {
+    "services": ["kuzu-memory", "mcp-ticketer"]
+  }
+}
