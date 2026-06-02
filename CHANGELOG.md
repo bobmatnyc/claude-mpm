@@ -19,6 +19,44 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.8 (2026-06-02)
+
+### Feat
+
+- emit X-AI-Model/X-AI-Models trailers in commit cost tracker
+- add models field to ContextUsageState and set_session_snapshot
+- extend _parse_transcript_usage to return per-model token breakdown
+- register remove_deployed_base_templates migration at version 6.5.8
+- add draft-status exemption to SLD traceability checker
+- add quality sub-package __init__.py with WWL docstring
+- extend sld_config with WWL instruction block and wwl defaults
+- add WWL granularity defaults to Config._apply_defaults()
+- pass config from AgentDeploymentService to AgentTemplateBuilder
+- wire SLD instruction injection into AgentTemplateBuilder.build_agent_markdown
+- add is_sld_target_agent_type helper + use it in get_sld_instruction_for_agent
+- add workflow.spec_linked_docs default to Config._apply_defaults
+- add SLD config module with instruction-injection helpers
+- **skill**: add spec-linked-docs skill — language-agnostic SLD discipline
+
+### Fix
+
+- replace hardcoded BASE-AGENT.md exclusion with is_base_template in RemoteAgentDiscoveryService
+- parse transcript JSONL for token usage — real Stop events carry no usage field
+- exclude BASE-* composition templates from AgentDiscoveryService enumeration
+- add is_base_template predicate and expand is_base_agent to cover all BASE-* templates
+- remove dead PostToolUse usage-update code in tool_handler
+- persist Stop event usage as snapshot in stop_handler for commit cost tracking
+- add set_session_snapshot() to ContextUsageTracker to replace additive update
+- pass project Config to deploy_agent_file() in deploy_agents_to_project()
+- add inject_sld_block_into_content() helper and SLD_BLOCK_MARKER constant
+- add SLD injection to deploy_agent_file() via cache-copy deploy path
+- is_sld_enabled(config=None) now returns False without singleton fallback
+- isolate TestConfigDefaults from project configuration.yaml
+- replace ast.walk with explicit DFS in _count_branches to exclude nested defs
+- AgentSkillsInjector warns on empty registry and guards .md paths (D3)
+- is_hooks_configured and install_hooks idempotency for _mpm marker (D5)
+- coerce AgentMetadata to dict in get_agent_metadata (D2)
+
 ## v6.5.7 (2026-06-01)
 
 ### Feat
