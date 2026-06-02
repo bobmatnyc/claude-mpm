@@ -462,12 +462,35 @@ workflow:
 
 **What the toggle does:**
 
-When `enabled: true`, the `get_sld_instruction_for_agent()` helper
-(`src/claude_mpm/config/sld_config.py`) returns the SLD instruction block
-for `engineer` and `documentation` agent types.  The block explains the
-References docstring format, the spec file structure, and how to run the
-CI check.  The block is empty string when the flag is off or the agent type
-is not in the target set, making it safe to concatenate unconditionally.
+When `enabled: true`, `AgentTemplateBuilder.build_agent_markdown()` appends
+the SLD instruction block to assembled agent prompts at deploy/assembly time.
+The wiring calls `get_sld_instruction_for_agent(agent_type, config)` in
+`src/claude_mpm/services/agents/deployment/agent_template_builder.py`.
+
+Agent types that **receive** the SLD block:
+- `engineer` — covers all engineer-category agents (the `agent_type` frontmatter
+  field is the category, not the slug; e.g. `rust-engineer.md` declares
+  `agent_type: engineer`).
+- `documentation` — covers all documentation-category agents.
+
+Agent types that do **not** receive the SLD block:
+- `ops`, `qa`, `research`, `security`, and any other type not in the target set.
+
+The classifier `is_sld_target_agent_type()` in `sld_config.py` uses exact
+category matching (the common case) plus a defensive suffix rule for
+hypothetical hyphenated `agent_type` values such as `"python-engineer"`.
+
+The block explains the References docstring format, the spec file structure,
+and how to run the CI check.  When the flag is off or the agent type is not
+in the target set, `get_sld_instruction_for_agent` returns `""`, making it
+safe to concatenate unconditionally.
+
+**When the effect takes place:**
+
+The SLD block is injected whenever agents are **(re)deployed or assembled**,
+i.e. whenever `build_agent_markdown()` is called — typically on startup or
+when `claude-mpm deploy` is run.  Changes to the flag take effect after the
+next deploy cycle; running agents are not patched in-place.
 
 **Absence of the key = disabled.**  Any project without this key behaves
 identically to before this feature was added.  No migration is required.
@@ -476,25 +499,20 @@ identically to before this feature was added.  No migration is required.
 
 1. Open (or create) `.claude-mpm/configuration.yaml` in the project root.
 2. Add the `workflow.spec_linked_docs.enabled: true` key shown above.
-3. Restart the MPM session.
+3. Run `claude-mpm deploy` (or restart the MPM session) to redeploy agents.
 
-**To verify the default is off (regression guard):**
+**To verify the wiring end-to-end:**
 
 ```bash
-uv run pytest tests/test_sld_config.py -p no:xdist -v
+uv run pytest tests/test_sld_config.py tests/test_sld_integration.py -p no:xdist -v
 ```
 
-All 33 tests should pass; `TestConfigDefaults::test_config_sld_default_is_false`
-is the critical backward-compatibility assertion.
+All tests should pass.  The integration tests in `test_sld_integration.py`
+call `build_agent_markdown()` directly with the real builder and confirm that:
 
-**Runtime wiring note:**
-
-Full runtime injection into agent prompts at assembly time requires a call to
-`get_sld_instruction_for_agent(agent_type, config)` inside
-`AgentTemplateBuilder.build_agent_markdown()`.  This is a minimal additive
-change to the assembly pipeline and is tracked as a follow-up to
-#task-19.  Until that wiring is in place the instruction block is available
-for manual use (e.g. in PM workflow hooks or CLI decorators).
+- Engineer and documentation agents contain the SLD block when flag is ON.
+- Ops, QA, and research agents do NOT contain the block even when flag is ON.
+- No agent receives the block when flag is OFF or config is None.
 
 ---
 
