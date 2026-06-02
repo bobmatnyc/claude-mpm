@@ -1,19 +1,19 @@
 """
 Run command implementation for claude-mpm.
 
-WHAT: Implements the ``run`` CLI command, which starts a Claude session in
-interactive, non-interactive, headless, or SDK oneshot mode and orchestrates
-the full MPM startup sequence (migrations, health checks, agent reload, session
-management, dependency checking, and process launch).
+WHAT: Contains ``filter_claude_mpm_args`` (strips MPM-specific flags before
+passing args to the Claude CLI), ``run_sdk_oneshot`` (single-prompt SDK path),
+``_run_headless_session`` (stream-json headless path), ``RunCommand``
+(BaseCommand subclass that delegates to ``run_session_legacy``), and
+``run_session_legacy`` (the full MPM startup-and-dispatch implementation that
+is transitionally preserved during the migration to BaseCommand).
 
-WHY: This module handles the main 'run' command which starts Claude sessions.
-It's the most commonly used command and handles both interactive and non-interactive modes.
-
-DESIGN DECISIONS:
-- Use BaseCommand for consistent CLI patterns
-- Leverage shared utilities for argument parsing and output formatting
-- Maintain backward compatibility with existing functionality
-- Support multiple output formats (json, yaml, table, text)
+WHY: This module is transitional: ``RunCommand`` exists to conform to the
+BaseCommand interface introduced during the CLI refactor, but the actual session
+logic still lives in ``run_session_legacy`` so that the refactor can proceed
+incrementally without re-implementing the complex startup sequence all at once.
+No structured output is produced — all user-visible output is printed as a side
+effect of the session.
 
 References
 ----------
