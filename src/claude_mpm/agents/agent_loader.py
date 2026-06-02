@@ -352,7 +352,11 @@ class AgentLoader:
         Returns:
             Agent metadata dictionary or None if not found
         """
-        agent_data = self.registry.get_agent(agent_id)
+        # Use self.get_agent() (not self.registry.get_agent()) so that the
+        # AgentMetadata dataclass is coerced to a plain dict before we call
+        # .get() on it.  registry.get_agent() returns AgentMetadata which
+        # has no .get() method and raises AttributeError (D2 regression fix).
+        agent_data = self.get_agent(agent_id)
         if not agent_data:
             return None
 
