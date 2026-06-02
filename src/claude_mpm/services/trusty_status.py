@@ -48,15 +48,19 @@ from typing import Any
 _HEALTH_TIMEOUT_S = 0.2
 
 # Default ports when the http_addr discovery file is missing/unreadable.
+# trusty-review has no http_addr discovery file of its own, so it ALWAYS falls
+# back to this default port (127.0.0.1:7880) for its /health probe.
 _DEFAULT_PORTS: dict[str, int] = {
     "trusty-memory": 7070,
     "trusty-search": 7878,
+    "trusty-review": 7880,
 }
 
 # Display emoji per service.
 _SERVICE_EMOJI: dict[str, str] = {
     "trusty-memory": "🧠",
     "trusty-search": "🔍",
+    "trusty-review": "📝",
 }
 
 # Cache: { http_addr_file_path: (mtime, is_healthy) }. Keyed by the discovery
@@ -295,6 +299,10 @@ def _start_hint(service: str) -> str:
     """The ``(start: ...)`` hint shown when a service is not running."""
     if service == "trusty-memory":
         return "(start: trusty-memory ...)"
+    if service == "trusty-analyze":
+        return "(start: trusty-analyze serve)"
+    if service == "trusty-review":
+        return "(start: trusty-review serve)"
     return "(start: trusty-search serve)"
 
 
@@ -361,3 +369,43 @@ def get_trusty_status(service: str) -> tuple[str, str]:
     except Exception:
         # Fail-safe: never break the banner over a status probe.
         return ("absent", "")
+
+
+# Services whose per-session capability is reported to the PM prompt. Order is
+# stable so the injected table renders deterministically.
+_CAPABILITY_SERVICES: tuple[str, ...] = (
+    "trusty-memory",
+    "trusty-search",
+    "trusty-analyze",
+    "trusty-review",
+)
+
+
+def get_trusty_capabilities() -> dict[str, str]:
+    """Why: The PM prompt instructs unconditional use of trusty-* tools, but
+    those daemons may be absent/down this session — wasting tool calls/tokens.
+    This is the single source of truth for per-session tool availability fed
+    into the prompt so the PM can degrade gracefully (skip + inform).
+
+    What: Returns ``{service: state}`` for ``trusty-memory``, ``trusty-search``,
+    ``trusty-analyze`` and ``trusty-review`` where ``state`` is one of
+    ``"on"`` / ``"configured"`` / ``"not_running"`` / ``"absent"``, computed
+    via :func:`get_trusty_status` (filesystem presence + cached ≤200ms
+    ``/health`` probes). Cheap and cached; ``trusty-review`` has no
+    ``http_addr`` file so it probes ``127.0.0.1:7880/health``. Per service it
+    is wrapped in try/except so a single bad probe never poisons the map, and
+    the whole call NEVER raises or blocks startup (any top-level failure yields
+    an all-``"absent"`` map).
+
+    Test: ``tests/test_trusty_status.py`` — verifies correct states for
+    all-on / mixed / all-absent combinations and that a probe that raises is
+    reported as ``"absent"`` rather than propagating.
+    """
+    capabilities: dict[str, str] = {}
+    for service in _CAPABILITY_SERVICES:
+        try:
+            state, _line = get_trusty_status(service)
+        except Exception:
+            state = "absent"
+        capabilities[service] = state
+    return capabilities
