@@ -1607,7 +1607,10 @@ def sync_remote_skills_on_startup(force_sync: bool = False):
     block startup to ensure claude-mpm remains functional.
 
     Workflow:
-    1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
+    1. Sync all enabled Git sources (download/cache files) — Phase 1 progress
+       bar; finishes with ``"Complete: N downloaded, M cached (T files, S skills)"``
+       when any files were cached, or ``"Complete: N files downloaded (S skills)"``
+       on a first (all-new) sync.
     2. Scan deployed agents for skill requirements → save to configuration.yaml
     3. Resolve which skills to deploy (user_defined vs agent_referenced)
     4. Apply profile filtering if active
