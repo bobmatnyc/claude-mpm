@@ -1,7 +1,10 @@
-from pathlib import Path
-
 """
 Run command implementation for claude-mpm.
+
+WHAT: Implements the ``run`` CLI command, which starts a Claude session in
+interactive, non-interactive, headless, or SDK oneshot mode and orchestrates
+the full MPM startup sequence (migrations, health checks, agent reload, session
+management, dependency checking, and process launch).
 
 WHY: This module handles the main 'run' command which starts Claude sessions.
 It's the most commonly used command and handles both interactive and non-interactive modes.
@@ -11,12 +14,17 @@ DESIGN DECISIONS:
 - Leverage shared utilities for argument parsing and output formatting
 - Maintain backward compatibility with existing functionality
 - Support multiple output formats (json, yaml, table, text)
+
+References
+----------
+SPEC-CLI-02~1 : docs/specs/cli.md#SPEC-CLI-02~1
 """
 
 import os
 import subprocess  # nosec B404 - required for process management
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
 from ...constants import LogLevel
 from ...core.logger import get_logger
@@ -862,8 +870,17 @@ def run_session_legacy(args):
     """
     Legacy run session implementation.
 
+    WHAT: Accepts a parsed argparse Namespace, runs the full MPM startup
+    sequence (migrations, health checks, dependency checks, session management),
+    and dispatches to interactive, non-interactive, SDK oneshot, or headless
+    execution; returns implicitly with all output as side effects.
+
     WHY: This contains the original run_session logic, preserved during migration
     to BaseCommand pattern. Will be gradually refactored into the RunCommand class.
+    Keeping it here allows RunCommand to delegate without re-implementing the
+    full startup sequence during the transition.
+
+    :spec: SPEC-CLI-02~1
 
     DESIGN DECISION: We use ClaudeRunner to handle the complexity of
     subprocess management and hook integration, keeping this function focused
