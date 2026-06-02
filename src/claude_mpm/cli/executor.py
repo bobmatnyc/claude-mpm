@@ -244,7 +244,13 @@ def execute_command(command: str, args) -> int:
     WHAT: Accepts a command name string and a parsed argparse Namespace,
     routes via lazy-import or dict-lookup tier, and returns an integer exit
     code (0 on success, 1 on unknown command or handler error, or the
-    handler's own return value).
+    handler's own return value). Return-value normalisation differs between
+    tiers: the dict-lookup tier applies a single ``result if result is not
+    None else 0`` guard; lazy-import branches normalise individually — those
+    returning a ``CommandResult`` unwrap ``.exit_code`` at each call site
+    (e.g. ``uninstall``, ``profile``, ``auto-configure``, ``local-deploy``),
+    while those returning a plain int or ``None`` use ``result if result is
+    not None else 0`` inline.
 
     WHY: This function maps command names to their implementations, providing
     a single place to manage command routing. Experimental commands are imported
