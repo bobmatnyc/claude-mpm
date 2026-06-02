@@ -49,6 +49,11 @@ SLD_SKILL_NAME = "spec-linked-docs"
 #: a hyphenated suffix (e.g. ``"python-engineer"``).
 SLD_TARGET_AGENT_TYPES = frozenset({"engineer", "documentation"})
 
+#: Idempotency marker — the exact heading that starts the SLD block.
+#: Used by :func:`inject_sld_block_into_content` to detect double-injection.
+#: Must match the first line of :data:`_SLD_INSTRUCTION_BLOCK`.
+SLD_BLOCK_MARKER = "## Spec-Linked Documentation (SLD)"
+
 # ---------------------------------------------------------------------------
 # Instruction text
 # ---------------------------------------------------------------------------
@@ -311,6 +316,63 @@ def get_sld_instruction_for_agent(
     if not is_sld_enabled(config=config):
         return ""
     return get_sld_instruction_block()
+
+
+def inject_sld_block_into_content(
+    content: str,
+    agent_type: str,
+    config: Config | None = None,
+) -> str:
+    """Append the SLD instruction block to *content* when appropriate.
+
+    WHAT: Given the full text of a deployed agent ``.md`` file, the agent's
+    ``agent_type`` value (from its frontmatter), and an optional Config, returns
+    *content* with the SLD block appended when all three conditions are true:
+    (1) SLD is enabled in *config*, (2) *agent_type* is in
+    :data:`SLD_TARGET_AGENT_TYPES`, (3) the block is not already present
+    (idempotency guard on :data:`SLD_BLOCK_MARKER`).  Returns *content*
+    unchanged in every other case.
+
+    WHY: The cache-copy deploy path (``deploy_agent_file`` in
+    ``deployment_utils.py``) copies pre-built ``.md`` files from the git-sync
+    cache directly, bypassing ``AgentTemplateBuilder.build_agent_markdown()``.
+    This helper lets that path call the same SLD gating logic without routing
+    through the full template builder, keeping the two paths consistent while
+    avoiding code duplication.
+
+    Idempotency: presence of :data:`SLD_BLOCK_MARKER` anywhere in *content*
+    prevents a second injection, so calling ``deploy_agent_file`` twice does not
+    duplicate the block.
+
+    Parameters
+    ----------
+    content : str
+        Full text of the agent ``.md`` file (may already contain the SLD block).
+    agent_type : str
+        The ``agent_type`` value extracted from the file's YAML frontmatter.
+    config : Config or None
+        Passed directly to :func:`is_sld_enabled`.  ``None`` → no injection
+        (safe default).
+
+    Returns
+    -------
+    str
+        *content* with the SLD block appended, or *content* unchanged.
+
+    Examples
+    --------
+    >>> inject_sld_block_into_content("body", "ops", config=None)
+    'body'
+    >>> inject_sld_block_into_content("body", "engineer", config=None)
+    'body'
+    """
+    sld_block = get_sld_instruction_for_agent(agent_type, config=config)
+    if not sld_block:
+        return content
+    # Idempotency guard: skip if the marker heading is already present.
+    if SLD_BLOCK_MARKER in content:
+        return content
+    return content + "\n\n---\n\n" + sld_block
 
 
 def get_sld_default_config() -> dict:
