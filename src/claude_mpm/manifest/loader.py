@@ -6,14 +6,16 @@ manifest file by walking up the directory hierarchy, and
 ``load_manifest(start_dir, preset_resolver=None) -> ManifestResult | None`` as
 the primary entry point.  Returns ``None`` immediately when no manifest file is
 found (the "dormant unless detected" contract).  When the file is present,
-parses JSON, validates against the schema, and optionally merges a preset via an
-injectable resolver callable.
+parses JSON, validates against the schema, and merges a preset via the resolver
+when ``extends`` is set.  The ``preset_resolver`` parameter accepts an optional
+callable override for testing; when ``None`` (the default), the built-in
+``resolve_preset`` from ``claude_mpm.manifest.resolver`` is used automatically.
 
 WHY: Returning ``None`` (not an empty default) when no manifest file exists
 keeps the system completely transparent to projects that have not opted in — no
 warnings, no defaults, no changed behaviour.  The injectable ``preset_resolver``
-parameter creates a clean seam so PR2 (preset resolution) can plug in without
-rewriting this module.  Walking upward from ``start_dir`` mirrors ``git`` and
+parameter creates a clean seam for tests to stub the resolver without rewriting
+this module.  Walking upward from ``start_dir`` mirrors ``git`` and
 ``tsconfig.json`` discovery conventions.
 
 References
@@ -21,6 +23,7 @@ References
 SPEC-MANIFEST-01~1 : docs/specs/manifest.md#SPEC-MANIFEST-01~1
 SPEC-MANIFEST-02~1 : docs/specs/manifest.md#SPEC-MANIFEST-02~1
 SPEC-MANIFEST-03~1 : docs/specs/manifest.md#SPEC-MANIFEST-03~1
+SPEC-MANIFEST-04~1 : docs/specs/manifest.md#SPEC-MANIFEST-04~1
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from claude_mpm.manifest.merger import deep_merge
+from claude_mpm.manifest.resolver import resolve_preset
 from claude_mpm.manifest.schema import ManifestValidationError, validate_manifest
 
 if TYPE_CHECKING:
@@ -160,23 +164,25 @@ def load_manifest(
     WHAT: Returns ``None`` when no ``.claude-mpm/manifest.json`` is found
     (the dormant-unless-present contract).  When the file is found: parses JSON,
     validates against the schema, and returns a ``ManifestResult``.  If
-    ``extends`` is present AND ``preset_resolver`` is provided, calls the
-    resolver and deep-merges the preset under the repo manifest.
+    ``extends`` is present, resolves the preset via ``preset_resolver`` (or the
+    built-in ``resolve_preset`` when no custom resolver is given) and deep-merges
+    the preset under the repo manifest.
 
     WHY: Single entry point for all manifest-aware code so every caller benefits
     from the same validation and merge semantics.  The injectable
-    ``preset_resolver`` keeps PR1 self-contained while leaving a clean seam for
-    PR2 to plug in real preset resolution without changing this function's
-    signature or callers.
+    ``preset_resolver`` parameter keeps the resolver swappable for tests while
+    defaulting to the real four-step resolver so production callers need no extra
+    plumbing.
 
     Test: In a temp dir without a manifest, assert ``None`` is returned.
     In a temp dir with a valid ``{"version": "1.0"}`` manifest, assert a
     ``ManifestResult`` is returned with ``repo["version"] == "1.0"``.
     With a malformed JSON file, assert ``ManifestLoadError`` is raised.
-    With ``extends`` set and a resolver provided, assert the resolver is called
-    and the result contains merged keys from both preset and repo.
+    With ``extends`` set and no custom resolver, assert the built-in resolver is
+    used and the result contains merged keys from both preset and repo.
 
     :spec: SPEC-MANIFEST-01~1
+    :spec: SPEC-MANIFEST-04~1
 
     Parameters
     ----------
@@ -184,9 +190,9 @@ def load_manifest(
         Directory from which to begin searching for the manifest.
     preset_resolver:
         Optional callable ``(extends_name: str) -> dict`` that returns the
-        preset manifest dict.  When ``None`` and ``extends`` is set in the
-        manifest, the repo manifest is returned unmerged with no error raised
-        (PR2 will supply the real resolver).
+        preset manifest dict.  When ``None`` (the default) and ``extends`` is
+        set, the built-in ``resolve_preset`` from
+        ``claude_mpm.manifest.resolver`` is used automatically.
 
     Returns
     -------
@@ -200,6 +206,8 @@ def load_manifest(
         When the manifest file exists but contains invalid JSON or cannot be read.
     ManifestValidationError
         When the manifest file contains valid JSON but fails schema validation.
+    PresetResolutionError
+        When ``extends`` is set and no preset source matches.
     """
     # -- DORMANT CHECK (must be first) ---------------------------------------
     manifest_path = find_manifest(start_dir)
@@ -233,12 +241,14 @@ def load_manifest(
     # -- VALIDATE -------------------------------------------------------------
     validate_manifest(repo_manifest)
 
-    # -- PRESET RESOLUTION (injectable seam) ----------------------------------
+    # -- PRESET RESOLUTION ----------------------------------------------------
     extends: str | None = repo_manifest.get("extends")
 
-    if extends is not None and preset_resolver is not None:
-        # PR2 plugs in here: resolve and merge the preset.
-        preset_dict = preset_resolver(extends)
+    if extends is not None:
+        # Use the injectable resolver when provided (allows test stubs),
+        # otherwise fall back to the real built-in four-step resolver.
+        _resolver = preset_resolver if preset_resolver is not None else resolve_preset
+        preset_dict = _resolver(extends)
         effective = deep_merge(preset_dict, repo_manifest)
         return ManifestResult(
             repo=repo_manifest,
@@ -247,8 +257,7 @@ def load_manifest(
             preset_merged=True,
         )
 
-    # No resolver (or no extends) → return the raw repo manifest unmerged.
-    # Callers that need preset resolution should provide a preset_resolver.
+    # No extends → return the raw repo manifest unmerged.
     return ManifestResult(
         repo=repo_manifest,
         effective=repo_manifest,
