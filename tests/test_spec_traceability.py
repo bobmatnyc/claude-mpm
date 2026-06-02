@@ -4,14 +4,22 @@ tests/test_spec_traceability.py — Spec-Linked Documentation (SLD) traceability
 WHAT: Parses declared spec IDs from docs/specs/*.md and docstring references
 from src/claude_mpm/**/*.py, then asserts that no ORPHANED (code ref with no
 matching spec) and no OUTDATED (revision mismatch) IDs exist. UNCOVERED specs
-(declared but unreferenced) are also asserted, but the test suite is green on
-the current empty state where no subsystem specs have been written yet.
+(declared but unreferenced) are also asserted, unless a section carries
+``**Status:** draft`` in its body, in which case it is exempt from the UNCOVERED
+check (it is allowed to have no code References yet).
 
 WHY: Enforces the bidirectional completeness required by the SLD convention
 (docs/specs/README.md). Zero runtime dependencies; only re, pathlib, and ast
 from the Python standard library are used. This is a Python-idiomatic adaptation
 of the OpenFastTrace (github.com/itsallcode/openfasttrace) four-status model —
 COVERED, UNCOVERED, ORPHANED, OUTDATED — without requiring OFT's Java runtime.
+
+Draft-status exemption (UNCOVERED only):
+    A spec section may carry ``**Status:** draft`` on a line immediately below
+    its heading anchor. Draft sections are excluded from the UNCOVERED check,
+    allowing parallel authoring of spec text before implementing code is
+    backfilled. ORPHANED and OUTDATED enforcement still applies to draft IDs —
+    if code references a draft spec ID the revision must still match.
 
 IMPORTANT — what this checker does NOT prove:
     The CI check is a necessary condition, not a sufficient one. Passing this test
@@ -69,11 +77,20 @@ _SPEC_EXCLUDE_GLOBS = [
 
 @dataclass
 class SpecLocation:
-    """A declared spec ID with its source file."""
+    """A declared spec ID with its source file and draft status.
+
+    Why: Tracks whether a section carries ``**Status:** draft`` so the
+    UNCOVERED check can exempt it.
+    What: Holds the spec ID, source file path, line number, and a flag that
+    is True when the section body contains ``**Status:** draft``.
+    Test: Construct with is_draft=True, assert the section is absent from
+    TraceabilityReport.uncovered even when no code references exist.
+    """
 
     spec_id: str
     file: Path
     line: int
+    is_draft: bool = False
 
 
 @dataclass
@@ -109,11 +126,21 @@ class TraceabilityReport:
 
     @property
     def uncovered(self) -> list[SpecLocation]:
-        """Declared spec IDs with no code reference."""
+        """Declared spec IDs with no code reference, excluding draft sections.
+
+        Why: Draft sections are explicitly allowed to have no code references
+        yet — they are authored ahead of the implementing backfill. Exempting
+        them prevents CI from blocking parallel spec authoring.
+        What: Returns every non-draft declared spec ID that has no matching
+        code reference. Draft sections (is_draft=True) are always excluded
+        regardless of coverage state.
+        Test: A draft section with no references must not appear here; a
+        non-draft section with no references must appear here.
+        """
         return [
             loc
             for spec_id, loc in self.declared.items()
-            if spec_id not in self.referenced_ids
+            if spec_id not in self.referenced_ids and not loc.is_draft
         ]
 
     @property
@@ -187,6 +214,12 @@ def _is_excluded_spec_file(path: Path, spec_dir: Path) -> bool:
     return False
 
 
+# Matches the draft-status marker in a spec section body.
+# Canonical form: **Status:** draft (pending backfill)
+# The check is case-insensitive on "draft" and accepts any trailing text.
+_DRAFT_STATUS_RE = re.compile(r"\*\*Status:\*\*\s+draft\b", re.IGNORECASE)
+
+
 def parse_declared_spec_ids(spec_dir: Path) -> dict[str, SpecLocation]:
     """
     Parse all declared spec IDs from Markdown files in spec_dir.
@@ -197,6 +230,12 @@ def parse_declared_spec_ids(spec_dir: Path) -> dict[str, SpecLocation]:
     IDs that appear only in prose, tables, or code blocks are NOT declarations.
     This prevents example IDs in docs/specs/README.md and research documents
     from being treated as authoritative spec entries.
+
+    Draft-status detection: After finding a declaration, the parser scans the
+    lines that follow the heading (until the next heading) for a line matching
+    ``**Status:** draft``. If found, ``SpecLocation.is_draft`` is set to True
+    and the ID is exempt from the UNCOVERED check. ORPHANED and OUTDATED
+    enforcement remain active for draft IDs.
 
     Args:
         spec_dir: Path to the docs/specs directory.
@@ -214,20 +253,38 @@ def parse_declared_spec_ids(spec_dir: Path) -> dict[str, SpecLocation]:
             continue
 
         text = md_file.read_text(encoding="utf-8")
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            # Only headings (lines starting with one or more #) can carry anchors.
+        lines = text.splitlines()
+
+        # First pass: collect (lineno, spec_id) for all heading-anchor declarations.
+        heading_decls: list[tuple[int, str]] = []
+        for lineno, line in enumerate(lines, start=1):
             stripped = line.lstrip()
             if not stripped.startswith("#"):
                 continue
-
             for match in _DECL_ANCHOR_RE.finditer(line):
                 spec_id = match.group(1)
                 if spec_id not in declared:
-                    declared[spec_id] = SpecLocation(
-                        spec_id=spec_id,
-                        file=md_file,
-                        line=lineno,
-                    )
+                    heading_decls.append((lineno, spec_id))
+
+        # Second pass: for each declaration, scan its section body (lines between
+        # this heading and the next heading) to detect ``**Status:** draft``.
+        for idx, (lineno, spec_id) in enumerate(heading_decls):
+            # Section body starts right after the heading line (lineno is 1-based).
+            body_start = lineno  # lines[lineno] is the first line after the heading
+            # Section body ends at the next heading or end-of-file.
+            if idx + 1 < len(heading_decls):
+                next_heading_lineno = heading_decls[idx + 1][0]
+                body_lines = lines[body_start : next_heading_lineno - 1]
+            else:
+                body_lines = lines[body_start:]
+
+            is_draft = any(_DRAFT_STATUS_RE.search(bl) for bl in body_lines)
+            declared[spec_id] = SpecLocation(
+                spec_id=spec_id,
+                file=md_file,
+                line=lineno,
+                is_draft=is_draft,
+            )
 
     return declared
 
@@ -730,3 +787,214 @@ SPEC-HOOKS-01~1 : docs/specs/hooks.md#SPEC-HOOKS-01~1
     # SPEC-HOOKS-01~2 is uncovered (code refs old revision, not new)
     assert len(report.uncovered) == 1
     assert report.uncovered[0].spec_id == "SPEC-HOOKS-01~2"
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for draft-status exemption
+# ---------------------------------------------------------------------------
+
+
+def test_draft_section_no_refs_no_uncovered_failure(tmp_path: Path) -> None:
+    """
+    (a) A draft section with no code references must NOT appear in uncovered.
+
+    Why: Draft specs are authored before their implementing backfill lands.
+    Blocking CI on an unreferenced draft would prevent parallel spec authoring.
+
+    What this test proves: is_draft=True keeps the ID out of uncovered even
+    when no code references exist anywhere.
+
+    How to verify: Build a report with one draft declaration and an empty src
+    directory; assert report.uncovered is empty.
+    """
+    spec_dir = tmp_path / "specs"
+    spec_dir.mkdir()
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+
+    (spec_dir / "agents.md").write_text(
+        """\
+## Agent Loading {#SPEC-AGENTS-01~1}
+
+**Status:** draft (pending backfill)
+
+### Behavior Contract (WHAT)
+
+Accepts an agent name, returns an AgentConfig or raises AgentNotFound.
+""",
+        encoding="utf-8",
+    )
+
+    report = build_report(spec_dir=spec_dir, src_dir=src_dir)
+
+    assert "SPEC-AGENTS-01~1" in report.declared_ids, "Draft ID must still be declared"
+    assert report.declared["SPEC-AGENTS-01~1"].is_draft, (
+        "Section must be detected as draft"
+    )
+    assert not report.uncovered, (
+        "Draft section with no code refs must not appear in uncovered"
+    )
+    assert not report.orphaned, "No code refs means no orphans"
+    assert not report.outdated, "No code refs means no outdated"
+
+
+def test_non_draft_section_no_refs_triggers_uncovered(tmp_path: Path) -> None:
+    """
+    (b) A non-draft section with no code references MUST appear in uncovered.
+
+    Why: Normal (active) spec sections require implementing code; missing refs
+    indicate an incomplete backfill that CI must catch.
+
+    What this test proves: Absence of ``**Status:** draft`` leaves UNCOVERED
+    enforcement active for the section.
+
+    How to verify: Build a report with one active declaration and empty src;
+    assert report.uncovered contains that ID.
+    """
+    spec_dir = tmp_path / "specs"
+    spec_dir.mkdir()
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+
+    (spec_dir / "agents.md").write_text(
+        """\
+## Agent Loading {#SPEC-AGENTS-01~1}
+
+**Status:** active
+
+### Behavior Contract (WHAT)
+
+Accepts an agent name, returns an AgentConfig or raises AgentNotFound.
+""",
+        encoding="utf-8",
+    )
+
+    report = build_report(spec_dir=spec_dir, src_dir=src_dir)
+
+    assert "SPEC-AGENTS-01~1" in report.declared_ids
+    assert not report.declared["SPEC-AGENTS-01~1"].is_draft, (
+        "Active section is not draft"
+    )
+    assert len(report.uncovered) == 1, "Active section with no refs must be UNCOVERED"
+    assert report.uncovered[0].spec_id == "SPEC-AGENTS-01~1"
+
+
+def test_draft_section_referenced_wrong_revision_still_flagged(tmp_path: Path) -> None:
+    """
+    (c) A draft section referenced with a WRONG revision is still ORPHANED/OUTDATED.
+
+    Why: Draft status only exempts UNCOVERED. ORPHANED and OUTDATED must still
+    be enforced so revision mismatches cannot slip through under draft cover.
+
+    What this test proves: Code that references a draft spec ID at a stale
+    revision (~1 while spec declares ~2) is flagged ORPHANED and OUTDATED even
+    though the section carries ``**Status:** draft``.
+
+    How to verify: Draft spec at ~2; code refs ~1; assert orphaned and outdated
+    are non-empty; assert uncovered is empty (draft exemption still applies).
+    """
+    spec_dir = tmp_path / "specs"
+    spec_dir.mkdir()
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+
+    # Draft spec at revision 2
+    (spec_dir / "hooks.md").write_text(
+        """\
+## Hook Dispatch {#SPEC-HOOKS-01~2}
+
+**Status:** draft (pending backfill)
+
+### Behavior Contract (WHAT)
+
+Dispatches hook events to registered handlers.
+""",
+        encoding="utf-8",
+    )
+
+    # Code references old revision 1 of the draft spec
+    (src_dir / "handler.py").write_text(
+        '''\
+"""
+Handler module.
+
+References
+----------
+SPEC-HOOKS-01~1 : docs/specs/hooks.md#SPEC-HOOKS-01~1
+"""
+''',
+        encoding="utf-8",
+    )
+
+    report = build_report(spec_dir=spec_dir, src_dir=src_dir)
+
+    # Draft exemption: SPEC-HOOKS-01~2 is draft → not in uncovered
+    assert not report.uncovered, (
+        "Draft section must not appear in uncovered even with wrong-revision ref"
+    )
+
+    # ORPHANED: code refs SPEC-HOOKS-01~1, which is not declared (draft is ~2)
+    assert len(report.orphaned) == 1, "Wrong-revision ref to draft must be ORPHANED"
+    assert report.orphaned[0].spec_id == "SPEC-HOOKS-01~1"
+
+    # OUTDATED: base ID exists at ~2, code refs ~1
+    assert len(report.outdated) == 1, "Wrong-revision ref to draft must be OUTDATED"
+    ref, loc = report.outdated[0]
+    assert ref.spec_id == "SPEC-HOOKS-01~1"
+    assert loc.spec_id == "SPEC-HOOKS-01~2"
+
+
+def test_flipping_draft_to_active_reenables_uncovered(tmp_path: Path) -> None:
+    """
+    (d) Removing ``**Status:** draft`` from a section re-enables UNCOVERED.
+
+    Why: Once a spec is backfilled and promoted to active, its code refs must
+    be present. The draft exemption must be strictly tied to the status marker.
+
+    What this test proves: The same spec ID triggers UNCOVERED after its
+    ``**Status:** draft`` line is changed to ``**Status:** active``.
+
+    How to verify: Build two reports — one with draft, one with active — and
+    assert uncovered switches from empty to non-empty.
+    """
+    spec_dir = tmp_path / "specs"
+    spec_dir.mkdir()
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+
+    spec_file = spec_dir / "agents.md"
+
+    # Phase 1: section is draft — uncovered must be empty
+    spec_file.write_text(
+        """\
+## Agent Loading {#SPEC-AGENTS-01~1}
+
+**Status:** draft (pending backfill)
+
+### Behavior Contract (WHAT)
+
+Accepts an agent name, returns an AgentConfig or raises AgentNotFound.
+""",
+        encoding="utf-8",
+    )
+    report_draft = build_report(spec_dir=spec_dir, src_dir=src_dir)
+    assert not report_draft.uncovered, "Draft: uncovered must be empty"
+    assert report_draft.declared["SPEC-AGENTS-01~1"].is_draft
+
+    # Phase 2: flip to active — uncovered must now contain the ID
+    spec_file.write_text(
+        """\
+## Agent Loading {#SPEC-AGENTS-01~1}
+
+**Status:** active
+
+### Behavior Contract (WHAT)
+
+Accepts an agent name, returns an AgentConfig or raises AgentNotFound.
+""",
+        encoding="utf-8",
+    )
+    report_active = build_report(spec_dir=spec_dir, src_dir=src_dir)
+    assert not report_active.declared["SPEC-AGENTS-01~1"].is_draft
+    assert len(report_active.uncovered) == 1, "Active: uncovered must contain the ID"
+    assert report_active.uncovered[0].spec_id == "SPEC-AGENTS-01~1"
