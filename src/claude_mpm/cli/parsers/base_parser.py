@@ -1,11 +1,20 @@
 """
 Base parser module for claude-mpm CLI.
 
+WHAT: Provides the ``create_parser`` factory that returns a fully configured
+``SuggestingArgumentParser`` with all subparsers registered, plus shared
+helpers (``create_main_parser``, ``add_top_level_run_arguments``) and the
+``SuggestingArgumentParser`` subclass with fuzzy-match error override.
+
 WHY: This module contains the main parser factory and common argument definitions
 that are shared across all commands. Extracted from the monolithic parser.py.
 
 DESIGN DECISION: Common arguments are defined once and reused to ensure consistency
 and reduce duplication across command parsers.
+
+References
+----------
+SPEC-CLI-04~1 : docs/specs/cli.md#SPEC-CLI-04~1
 """
 
 import argparse
@@ -460,9 +469,16 @@ def create_parser(
     """
     Create the main argument parser with all subcommands.
 
+    WHAT: Accepts a program name and version string; returns a fully configured
+    ``SuggestingArgumentParser`` with all ~35 subparsers registered and
+    top-level run arguments attached for backward compatibility.
+
     WHY: This factory function creates a complete parser with all commands and their
     arguments. It's the single entry point for creating the CLI parser, ensuring
-    consistency across the application.
+    consistency across the application. Per-subparser ImportErrors are silently
+    swallowed so partial installations remain functional.
+
+    :spec: SPEC-CLI-04~1
 
     DESIGN DECISION: We use subparsers for commands to provide a clean, git-like
     interface while maintaining backward compatibility with the original CLI.
