@@ -14,9 +14,11 @@
 4. [Spec ID Grammar](#4-spec-id-grammar)
 5. [Spec Section Structure](#5-spec-section-structure)
 6. [Docstring References Format](#6-docstring-references-format)
+6a. [Code-Level Granularity: The WWL Model](#6a-code-level-granularity-the-wwl-model)
 7. [The Four-Status Model](#7-the-four-status-model)
 8. [The Checker: What It Proves and What It Does Not](#8-the-checker-what-it-proves-and-what-it-does-not)
 9. [Opt-In Statement](#9-opt-in-statement)
+9a. [Backfilling Existing Codebases](#9a-backfilling-existing-codebases)
 10. [PR Review Checklist](#10-pr-review-checklist)
 11. [Enabling SLD in claude-mpm](#11-enabling-sld-in-claude-mpm)
 12. [Citations](#12-citations)
@@ -355,6 +357,71 @@ The `:spec:` field is scanned by the checker using the same regex pattern.
 
 ---
 
+## 6a. Code-Level Granularity: The WWL Model
+
+The **WWL (WHAT/WHY/LINK) Granularity Model** defines exactly which code units require explicit spec linkage in their docstrings. Not every line of code needs a link — that would create excessive maintenance burden — but every significant function should be traceable.
+
+### WHAT, WHY, LINK: The Three Parts
+
+Every governed code unit carries three elements in its docstring:
+
+- **WHAT:** One line describing observable behavior from the caller's perspective. No implementation steps.
+- **WHY:** Rationale for why this unit is designed this way. No implementation steps.
+- **LINK:** The governing `SPEC-{SUBSYSTEM}-{NN}~{rev}` ID, or `LINK: none` to flag a backfill gap.
+
+### Granularity Thresholds
+
+A function, class, or method **requires its own WHAT/WHY/LINK** when **either**:
+
+- **Lines of code > 50** (configurable; based on cognitive load research and linter consensus)
+- **Cyclomatic complexity > 10** (configurable; NIST SP 500-235 threshold for structured testing)
+
+Units below both thresholds may omit WHAT/WHY/LINK and use simple one-line docstrings instead.
+
+### Configurable Thresholds
+
+Thresholds are **project-configurable** via `.claude-mpm/configuration.yaml`:
+
+```yaml
+workflow:
+  spec_linked_docs:
+    enabled: true
+    wwl:
+      file_level_required: true          # module-level WHAT/WHY always required
+      function_line_threshold: 50        # functions > 50 LOC require WWL
+      complexity_threshold: 10           # functions > CC 10 require WWL
+      enforcement: baseline              # off | baseline | strict
+```
+
+- **`off`:** No enforcement; WWL is optional.
+- **`baseline`:** Enforce only on new/modified code; tolerate existing code until touched.
+- **`strict`:** Enforce on all code regardless of age (appropriate after backfill complete).
+
+### Thresholds Are Evidence-Based
+
+- **50 LOC threshold:** Aligns with Google Python Style Guide ("avoid functions > 40 lines"), Pylint defaults (max-function-body-length = 50), and cognitive load research on working memory limits.
+- **CC = 10 threshold:** NIST SP 500-235 ("Structured Testing") mandates CC ≤ 10 for code requiring comprehensive path testing. Also McCabe's original recommendation (1976) and SonarQube baseline.
+
+### Backfill Gaps
+
+During backfill of existing codebases, code may exist without spec coverage. Use `LINK: none` to flag:
+
+```python
+def legacy_function():
+    """Legacy function — backfill phase.
+    
+    WHAT: Accepts input, produces output.
+    WHY: Spec coverage planned in future phase.
+    LINK: none  # TODO: Add SPEC-ID when spec complete
+    """
+```
+
+The `LINK: none` annotation marks the gap as **intentional**, not forgotten.
+
+For full details, see **[WWL Granularity Model](../src/claude_mpm/skills/bundled/universal/spec-linked-docs/reference/wwl-granularity.md)**.
+
+---
+
 ## 7. The Four-Status Model
 
 SLD adopts the four-status model from OpenFastTrace. The CI checker assigns each ID one of
@@ -423,6 +490,66 @@ The underlying discipline (stable spec IDs, docstring references, four-status CI
 directly portable to TypeScript, Go, Rust, or any language with module-level documentation
 strings. The specific `References` block format and `:spec:` field are Python conventions;
 other languages would use their idiomatic equivalents.
+
+---
+
+## 9a. Backfilling Existing Codebases
+
+When SLD is first enabled on a project with existing code, **backfill** is the process of retroactively bringing subsystems into SLD compliance. It is a **five-phase progression** that keeps CI passing and maintains traceability throughout:
+
+1. **Phase 0 (Baseline):** Record current state; prioritize subsystems.
+2. **Phase 1 (Spec):** Documentation agent authors subsystem spec in `docs/specs/{subsystem}.md`.
+3. **Phase 2 (Annotate):** Engineer agent adds WHAT/WHY/LINK to code docstrings.
+4. **Phase 3 (Verify):** Human reviewer confirms semantic correctness; baseline recorded; spec marked Active.
+5. **Phase 4 (Enforce):** CI enforces WWL on new code; full SLD discipline active for this subsystem.
+
+### Prioritization
+
+Backfill **highest-impact subsystems first**:
+
+- **Tier 1:** High churn, high complexity, central to system → backfill immediately.
+- **Tier 2:** Medium churn, public API → backfill next.
+- **Tier 3:** Low churn, internal utilities → backfill last or defer.
+
+### CRITICAL: False-Confidence Risk in Backfill
+
+**The CI check validates that links are present, not that they are correct.** LLM-generated trace links have ~52% precision (TraceLLM, 2026, Springer Nature). An engineer or AI agent may write `LINK: SPEC-HOOKS-01` under the wrong function; the CI check passes; downstream reviewers see what appears to be coverage but is a false link.
+
+**Mandatory mitigation during Phase 2 (Annotation):**
+
+1. **Engineer reads the code and spec.** Engineer personally verifies that the function's observable behavior matches the spec's Behavior Contract section.
+2. **Engineer does not copy-paste links.** Do not assume a spec link from another function applies here.
+3. **Engineer flags ambiguity.** If a function could match multiple specs, flag the choice in the PR description.
+
+**Mandatory mitigation during Phase 3 (Verification):**
+
+1. **Human reviewer checks semantic correctness.** Confirm WHAT/WHY prose matches actual code behavior (read the code).
+2. **Human reviewer confirms correct linkage.** Confirm LINK points to the correct spec section (read the spec).
+3. **Human reviewer approves the PR.** Only after these checks; do not assume CI passing means links are correct.
+
+### Example: Backfilling the Hooks Subsystem
+
+**Phase 1:** Documentation agent creates `docs/specs/hooks.md` with `SPEC-HOOKS-01~1`, `SPEC-HOOKS-02~1`, etc.
+
+**Phase 2:** Engineer agent reads `hooks.py` and `docs/specs/hooks.md`, adds:
+
+```python
+"""Hook event dispatcher — routes events to handlers.
+
+WHAT: Accepts event dict, routes to handler, returns response dict.
+WHY: Centralizes routing so handlers are independently testable.
+
+References
+----------
+SPEC-HOOKS-01~1 : docs/specs/hooks.md#SPEC-HOOKS-01
+"""
+```
+
+**Phase 3:** Human reviewer checks code and spec; confirms WHAT matches code behavior; confirms SPEC-ID is correct. Updates `docs/specs/hooks.md` Implementing Modules table with `claude_mpm.hooks`. Marks spec as `Active`.
+
+**Phase 4:** CI enforces: new patches to hooks.py must maintain WHAT/WHY/LINK.
+
+For full details, see **[Backfill Workflow](../src/claude_mpm/skills/bundled/universal/spec-linked-docs/reference/backfill-workflow.md)**.
 
 ---
 
