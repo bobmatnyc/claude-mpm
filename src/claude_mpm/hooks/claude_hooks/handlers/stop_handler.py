@@ -21,7 +21,9 @@ from pathlib import Path
 from .base import DEBUG, BaseEventHandler, _log
 
 
-def _parse_transcript_usage(transcript_path: Path) -> dict[str, int] | None:
+def _parse_transcript_usage(
+    transcript_path: Path,
+) -> dict | None:
     """Parse cumulative token usage from a Claude Code session transcript JSONL.
 
     WHY: Real Claude Code Stop events do NOT include a ``usage`` field.  The
@@ -30,32 +32,37 @@ def _parse_transcript_usage(transcript_path: Path) -> dict[str, int] | None:
     cumulative total that ``set_session_snapshot()`` expects.
 
     WHAT: Reads ``transcript_path`` line-by-line, filters to ``type=="assistant"``
-    records that contain ``message.usage``, and sums
-    ``input_tokens``, ``output_tokens``, ``cache_creation_input_tokens``, and
-    ``cache_read_input_tokens`` across all such messages.
+    records that contain ``message.usage``, sums the four token fields across all
+    such messages, and also collects a per-model breakdown keyed by
+    ``message.model`` (e.g. ``"claude-opus-4-8"``).
 
-    TEST: Call with a path containing 3 assistant messages with known usage dicts
-    and assert the returned dict equals the element-wise sum of those dicts.
-    Returns None if the file is missing, unreadable, or contains no usage data.
+    TEST: Call with a path containing assistant records from two different models
+    with known usage dicts and assert (a) the totals equal the element-wise sum,
+    (b) ``result["models"]`` contains exactly those two model keys with the correct
+    per-model counts.  Returns None if the file is missing, unreadable, or contains
+    no usage data.
 
     Args:
         transcript_path: Absolute path to the ``.jsonl`` session transcript.
 
     Returns:
         Dict with keys ``input_tokens``, ``output_tokens``,
-        ``cache_creation_input_tokens``, ``cache_read_input_tokens`` (all int),
-        or None on failure / empty transcript.
+        ``cache_creation_input_tokens``, ``cache_read_input_tokens`` (all int)
+        **plus** ``models`` — a nested dict mapping model name to the same four
+        token-count keys for that model only.  Returns None on failure / empty
+        transcript.
     """
     if not transcript_path.exists():
         if DEBUG:
             _log(f"  - transcript not found: {transcript_path}")
         return None
 
-    totals: dict[str, int] = {
+    totals: dict = {
         "input_tokens": 0,
         "output_tokens": 0,
         "cache_creation_input_tokens": 0,
         "cache_read_input_tokens": 0,
+        "models": {},
     }
     found_any = False
 
@@ -73,18 +80,35 @@ def _parse_transcript_usage(transcript_path: Path) -> dict[str, int] | None:
                 if rec.get("type") != "assistant":
                     continue
 
-                usage = rec.get("message", {}).get("usage")
+                msg = rec.get("message", {})
+                usage = msg.get("usage")
                 if not usage:
                     continue
 
-                totals["input_tokens"] += int(usage.get("input_tokens", 0) or 0)
-                totals["output_tokens"] += int(usage.get("output_tokens", 0) or 0)
-                totals["cache_creation_input_tokens"] += int(
-                    usage.get("cache_creation_input_tokens", 0) or 0
-                )
-                totals["cache_read_input_tokens"] += int(
-                    usage.get("cache_read_input_tokens", 0) or 0
-                )
+                inp = int(usage.get("input_tokens", 0) or 0)
+                out = int(usage.get("output_tokens", 0) or 0)
+                cc = int(usage.get("cache_creation_input_tokens", 0) or 0)
+                cr = int(usage.get("cache_read_input_tokens", 0) or 0)
+
+                totals["input_tokens"] += inp
+                totals["output_tokens"] += out
+                totals["cache_creation_input_tokens"] += cc
+                totals["cache_read_input_tokens"] += cr
+
+                # Per-model breakdown — use "unknown" when model field is absent.
+                model = msg.get("model") or "unknown"
+                if model not in totals["models"]:
+                    totals["models"][model] = {
+                        "input_tokens": 0,
+                        "output_tokens": 0,
+                        "cache_creation_input_tokens": 0,
+                        "cache_read_input_tokens": 0,
+                    }
+                totals["models"][model]["input_tokens"] += inp
+                totals["models"][model]["output_tokens"] += out
+                totals["models"][model]["cache_creation_input_tokens"] += cc
+                totals["models"][model]["cache_read_input_tokens"] += cr
+
                 found_any = True
 
     except Exception as exc:
@@ -235,6 +259,7 @@ class StopHandler:
                     output_tokens=usage_data["output_tokens"],
                     cache_creation=usage_data["cache_creation_input_tokens"],
                     cache_read=usage_data["cache_read_input_tokens"],
+                    models=usage_data.get("models"),
                 )
                 if DEBUG:
                     _log(
