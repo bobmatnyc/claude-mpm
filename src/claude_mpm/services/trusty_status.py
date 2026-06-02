@@ -252,40 +252,78 @@ def _cached_palace_exists(service: str, base_url: str, palace: str) -> bool:
     return exists
 
 
-def _is_configured_in_mcp(service: str) -> bool:
-    """Whether ``service`` appears in the CWD ``.mcp.json`` ``mcpServers`` map.
+def _mcp_servers_from_file(path: Path) -> frozenset[str]:
+    """Why: Centralise the read-one-mcp-json logic so both the project and user
+    paths share the same parse/guard/error-handling without duplication.
 
-    Best-effort: returns ``False`` on any error (missing file, malformed JSON).
+    What: Reads ``path`` as JSON, returns the set of keys in ``mcpServers``.
+    Returns an empty frozenset on missing file, unreadable file, malformed JSON,
+    or any other error so callers can safely union-check across multiple paths.
+
+    Test: ``tests/test_trusty_status.py::TestMcpConfigRead`` — covers missing,
+    malformed, and valid inputs for both the project and user paths.
     """
     import json
 
-    mcp_path = Path.cwd() / ".mcp.json"
     try:
-        with mcp_path.open("r", encoding="utf-8") as f:
+        with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError, ValueError):
-        return False
+        return frozenset()
     if not isinstance(data, dict):
-        return False
+        return frozenset()
     servers = data.get("mcpServers", {})
     if not isinstance(servers, dict):
-        return False
-    return service in servers
+        return frozenset()
+    return frozenset(servers.keys())
+
+
+def _is_configured_in_mcp(service: str) -> bool:
+    """Whether ``service`` appears in EITHER the project or user-level MCP config.
+
+    Why: trusty-review (and other tools) may be registered at user scope
+    (``~/.claude/.mcp.json``) rather than in the project ``.mcp.json``.
+    Previously only the CWD file was checked, so user-level registrations were
+    silently ignored and the tool showed as "absent" even when present — blocking
+    ``/mpm-review`` and ``mcp__trusty-review__*`` gating.
+
+    What: Returns ``True`` if ``service`` appears in ``mcpServers`` of EITHER
+
+    1. ``Path.cwd() / ".mcp.json"`` (project-level, takes precedence), OR
+    2. ``Path.home() / ".claude" / ".mcp.json"`` (user-level fallback).
+
+    This mirrors the project-takes-precedence-then-user-fallback semantics
+    already used in ``interactive_session.py::_load_mcp_config`` (~line 1062).
+    Best-effort: returns ``False`` on missing file, malformed JSON, or any other
+    error — consistent with the previous single-file behaviour.
+
+    Test: ``tests/test_trusty_status.py::TestMcpConfigRead`` — covers
+    user-only, project-only, both, and neither configurations.
+    """
+    project_servers = _mcp_servers_from_file(Path.cwd() / ".mcp.json")
+    if service in project_servers:
+        return True
+    user_servers = _mcp_servers_from_file(Path.home() / ".claude" / ".mcp.json")
+    return service in user_servers
 
 
 def _is_present(service: str) -> bool:
     """Whether the user has opted in to ``service`` (latency-free, pure filesystem).
 
-    The service is considered present / opted-in if EITHER signal holds:
+    The service is considered present / opted-in if ANY of these signals holds:
 
-    1. ``service`` appears in the CWD ``.mcp.json`` ``mcpServers`` map, OR
-    2. the per-user ``~/.trusty-<service>/http_addr`` discovery file exists
+    1. ``service`` appears in the CWD ``.mcp.json`` ``mcpServers`` map
+       (project-level MCP config), OR
+    2. ``service`` appears in ``~/.claude/.mcp.json`` ``mcpServers`` map
+       (user-level MCP config — where tools like ``trusty-review`` are
+       registered for all projects), OR
+    3. the per-user ``~/.trusty-<service>/http_addr`` discovery file exists
        (proof the daemon has run for this user).
 
-    Both are pure filesystem reads — no subprocess, no ``shutil.which``. This
-    intentionally does NOT depend on the launched binary's name, which may be a
-    bridge/wrapper (e.g. ``trusty-memory-mcp-bridge``) that does not match the
-    service key.
+    All signals are pure filesystem reads — no subprocess, no ``shutil.which``.
+    This intentionally does NOT depend on the launched binary's name, which may
+    be a bridge/wrapper (e.g. ``trusty-memory-mcp-bridge``) that does not match
+    the service key.
     """
     if _is_configured_in_mcp(service):
         return True
@@ -325,12 +363,13 @@ def get_trusty_status(service: str) -> tuple[str, str]:
           not exist (#598 option 1). The connected form shows ONLY
           ``host:port`` — never a ``/ui`` path.
         * ``("configured", "... not running  (start: ...)")`` — present,
-          ``/health`` failed, and the service is in CWD ``.mcp.json``.
+          ``/health`` failed, and the service is in the project OR user-level
+          ``.mcp.json``.
         * ``("not_running", "... not running  (start: ...)")`` — present (via an
-          ``http_addr`` discovery file), ``/health`` failed, NOT in
+          ``http_addr`` discovery file), ``/health`` failed, NOT in any
           ``.mcp.json``. (Presence means the user opted in, so we still show
-          ``not running`` rather than a bare ``off`` line; ``.mcp.json`` only
-          tweaks the hint text.)
+          ``not running`` rather than a bare ``off`` line; ``.mcp.json``
+          membership only tweaks the hint text.)
 
     Presence is detected by :func:`_is_present` — a latency-free filesystem
     check that never depends on the launched binary's name (bridges/wrappers

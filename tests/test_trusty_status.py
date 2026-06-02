@@ -285,12 +285,40 @@ class TestPresenceSignal:
         assert trusty_status._is_present("trusty-search") is False
 
 
-class TestMcpConfigRead:
-    """.mcp.json read behavior (signal #1 helper)."""
+def _write_user_mcp_json(home: Path, *services: str) -> None:
+    """Write a user-level ``~/.claude/.mcp.json`` listing ``services``.
 
-    def test_configured_when_present(self, monkeypatch, tmp_path):
-        _point_cwd(monkeypatch, tmp_path)
-        (tmp_path / ".mcp.json").write_text(
+    Mirrors :func:`_write_mcp_json` but targets the user-scope path that
+    Claude uses for user-level MCP registrations (e.g. trusty-review wired
+    globally rather than per-project).
+    """
+    import json
+
+    claude_dir = home / ".claude"
+    claude_dir.mkdir(parents=True, exist_ok=True)
+    servers = {svc: {"command": f"{svc}-mcp-bridge"} for svc in services}
+    (claude_dir / ".mcp.json").write_text(
+        json.dumps({"mcpServers": servers}), encoding="utf-8"
+    )
+
+
+class TestMcpConfigRead:
+    """.mcp.json read behavior (signal #1 helper).
+
+    Extended to cover user-level ``~/.claude/.mcp.json`` detection — the fix
+    that makes trusty-review (registered globally at user scope) show as
+    configured rather than absent.
+    """
+
+    def test_configured_when_present_in_project(self, monkeypatch, tmp_path):
+        """Service in project .mcp.json → detected."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        (proj / ".mcp.json").write_text(
             '{"mcpServers": {"trusty-memory": {"command": "trusty-memory-mcp-bridge"}}}',
             encoding="utf-8",
         )
@@ -298,13 +326,164 @@ class TestMcpConfigRead:
         assert trusty_status._is_configured_in_mcp("trusty-search") is False
 
     def test_not_configured_when_missing_file(self, monkeypatch, tmp_path):
-        _point_cwd(monkeypatch, tmp_path)
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
         assert trusty_status._is_configured_in_mcp("trusty-memory") is False
 
     def test_not_configured_when_malformed_json(self, monkeypatch, tmp_path):
-        _point_cwd(monkeypatch, tmp_path)
-        (tmp_path / ".mcp.json").write_text("{ not valid json", encoding="utf-8")
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        (proj / ".mcp.json").write_text("{ not valid json", encoding="utf-8")
         assert trusty_status._is_configured_in_mcp("trusty-memory") is False
+
+    # --- New: user-level ~/.claude/.mcp.json detection ---
+
+    def test_configured_when_present_only_in_user_mcp(self, monkeypatch, tmp_path):
+        """Service in user ~/.claude/.mcp.json only → detected.
+
+        This is the core regression: trusty-review is registered at user scope
+        for all Claude instances. With only the CWD .mcp.json checked it
+        appeared "absent" even when present.
+        """
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)  # no project .mcp.json
+        _write_user_mcp_json(home, "trusty-review")
+
+        assert trusty_status._is_configured_in_mcp("trusty-review") is True
+        assert trusty_status._is_configured_in_mcp("trusty-memory") is False
+
+    def test_configured_when_present_only_in_project_mcp(self, monkeypatch, tmp_path):
+        """Service in project .mcp.json only → detected (regression guard)."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)  # no user .mcp.json
+        _point_cwd(monkeypatch, proj)
+        _write_mcp_json(proj, "trusty-memory")
+
+        assert trusty_status._is_configured_in_mcp("trusty-memory") is True
+        assert trusty_status._is_configured_in_mcp("trusty-review") is False
+
+    def test_configured_when_present_in_both_files(self, monkeypatch, tmp_path):
+        """Different services split across project and user scope → both found."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_mcp_json(proj, "trusty-memory")
+        _write_user_mcp_json(home, "trusty-review")
+
+        assert trusty_status._is_configured_in_mcp("trusty-memory") is True
+        assert trusty_status._is_configured_in_mcp("trusty-review") is True
+        assert trusty_status._is_configured_in_mcp("trusty-search") is False
+
+    def test_user_mcp_malformed_json_skipped_gracefully(self, monkeypatch, tmp_path):
+        """Malformed user-level .mcp.json → skip, not raise."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        claude_dir = home / ".claude"
+        claude_dir.mkdir(parents=True, exist_ok=True)
+        (claude_dir / ".mcp.json").write_text("{ not valid json", encoding="utf-8")
+
+        # Must not raise — returns False when user file is malformed
+        assert trusty_status._is_configured_in_mcp("trusty-review") is False
+
+    def test_user_mcp_missing_file_skipped_gracefully(self, monkeypatch, tmp_path):
+        """Missing user-level .mcp.json → skip, not raise."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)  # ~/.claude/.mcp.json does NOT exist
+        _point_cwd(monkeypatch, proj)
+
+        assert trusty_status._is_configured_in_mcp("trusty-review") is False
+
+
+class TestUserMcpPresenceFlow:
+    """End-to-end flow: user-level MCP registration → status correctly reported.
+
+    Verifies that the fix flows all the way from ``_is_configured_in_mcp``
+    through ``_is_present`` and into the ``get_trusty_status`` / capability
+    output that populates the "Available Tool Services" block and banner.
+    """
+
+    def test_trusty_review_user_only_health_ok_renders_on(self, monkeypatch, tmp_path):
+        """trusty-review in user .mcp.json only + healthy → state ``on``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)  # no project .mcp.json
+        _write_user_mcp_json(home, "trusty-review")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: True)
+
+        state, line = get_trusty_status("trusty-review")
+        assert state == "on"
+        assert "trusty-review: on" in line
+
+    def test_trusty_review_user_only_health_fail_state_configured(
+        self, monkeypatch, tmp_path
+    ):
+        """trusty-review in user .mcp.json only + not running → state ``configured``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_user_mcp_json(home, "trusty-review")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: False)
+
+        state, line = get_trusty_status("trusty-review")
+        assert state == "configured"
+        assert "not running" in line
+
+    def test_trusty_review_neither_file_stays_absent(self, monkeypatch, tmp_path):
+        """trusty-review absent from both files AND no addr file → state ``absent``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+
+        state, line = get_trusty_status("trusty-review")
+        assert state == "absent"
+        assert line == ""
+
+    def test_is_present_user_mcp_only(self, monkeypatch, tmp_path):
+        """``_is_present`` returns True when service only in user .mcp.json."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_user_mcp_json(home, "trusty-review")
+
+        assert trusty_status._is_present("trusty-review") is True
+        assert trusty_status._is_present("trusty-memory") is False
 
 
 class TestHealthTimeout:
