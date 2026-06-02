@@ -545,3 +545,202 @@ class TestPhase1cContentValidation:
 
         assert not agent_result.success
         assert any("broken-agent" in e for e in agent_result.errors)
+
+
+# ============================================================================
+# SLD injection tests (Bug 1 fix)
+# ============================================================================
+
+
+class _StubConfig:
+    """Minimal Config stub — dot-notation key lookup over a plain dict."""
+
+    def __init__(self, data: dict) -> None:
+        self._data = data
+
+    def get(self, key: str, default=None):
+        keys = key.split(".")
+        value = self._data
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        return value
+
+
+def _sld_on() -> _StubConfig:
+    return _StubConfig({"workflow": {"spec_linked_docs": {"enabled": True}}})
+
+
+def _sld_off() -> _StubConfig:
+    return _StubConfig({"workflow": {"spec_linked_docs": {"enabled": False}}})
+
+
+def _make_agent_file(tmp_path, agent_type: str, name: str) -> "Path":
+    """Write a minimal .md agent with YAML frontmatter and return its path."""
+    content = (
+        f'---\nname: {name}\nagent_type: {agent_type}\nversion: "1.0.0"\n---\n\n'
+        f"# {name.title()} Agent\n\nInstructions here.\n"
+    )
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    p = tmp_path / f"{name}.md"
+    p.write_text(content, encoding="utf-8")
+    return p
+
+
+class TestExtractAgentTypeFromContent:
+    """Unit tests for _extract_agent_type_from_content()."""
+
+    def test_engineer_type_extracted(self):
+        from claude_mpm.services.agents.deployment_utils import (
+            _extract_agent_type_from_content,
+        )
+
+        content = "---\nname: eng\nagent_type: engineer\n---\n# Body"
+        assert _extract_agent_type_from_content(content) == "engineer"
+
+    def test_documentation_type_extracted(self):
+        from claude_mpm.services.agents.deployment_utils import (
+            _extract_agent_type_from_content,
+        )
+
+        content = "---\nagent_type: documentation\n---\n# Body"
+        assert _extract_agent_type_from_content(content) == "documentation"
+
+    def test_ops_type_extracted(self):
+        from claude_mpm.services.agents.deployment_utils import (
+            _extract_agent_type_from_content,
+        )
+
+        content = "---\nagent_type: ops\n---\n# Body"
+        assert _extract_agent_type_from_content(content) == "ops"
+
+    def test_no_frontmatter_returns_empty(self):
+        from claude_mpm.services.agents.deployment_utils import (
+            _extract_agent_type_from_content,
+        )
+
+        content = "# Just a body\n\nNo frontmatter."
+        assert _extract_agent_type_from_content(content) == ""
+
+    def test_missing_agent_type_key_returns_empty(self):
+        from claude_mpm.services.agents.deployment_utils import (
+            _extract_agent_type_from_content,
+        )
+
+        content = "---\nname: eng\nmodel: sonnet\n---\n# Body"
+        assert _extract_agent_type_from_content(content) == ""
+
+
+class TestDeployAgentFileSLDInjection:
+    """Tests for SLD block injection in deploy_agent_file (Bug 1 fix)."""
+
+    def test_engineer_receives_sld_block_when_flag_on(self, tmp_path):
+        """Engineer agent gets SLD block on cache-copy deploy path."""
+        source_file = _make_agent_file(tmp_path / "cache", "engineer", "test-engineer")
+        deploy_dir = tmp_path / "deploy"
+
+        result = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=_sld_on(),
+        )
+
+        assert result.success is True
+        content = result.deployed_path.read_text(encoding="utf-8")
+        assert "Spec-Linked Documentation" in content, (
+            "SLD block must appear in engineer agent deployed via cache-copy path"
+        )
+
+    def test_ops_does_not_receive_sld_block_when_flag_on(self, tmp_path):
+        """Ops agent does NOT get SLD block even when flag is on."""
+        source_file = _make_agent_file(tmp_path / "cache", "ops", "test-ops")
+        deploy_dir = tmp_path / "deploy"
+
+        result = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=_sld_on(),
+        )
+
+        assert result.success is True
+        content = result.deployed_path.read_text(encoding="utf-8")
+        assert "Spec-Linked Documentation" not in content
+
+    def test_engineer_no_sld_when_flag_off(self, tmp_path):
+        """No SLD block when flag is disabled, even for engineer type."""
+        source_file = _make_agent_file(tmp_path / "cache", "engineer", "test-engineer")
+        deploy_dir = tmp_path / "deploy"
+
+        result = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=_sld_off(),
+        )
+
+        assert result.success is True
+        content = result.deployed_path.read_text(encoding="utf-8")
+        assert "Spec-Linked Documentation" not in content
+
+    def test_no_config_means_no_injection(self, tmp_path):
+        """When config=None, no SLD block is injected (backward compat)."""
+        source_file = _make_agent_file(tmp_path / "cache", "engineer", "test-engineer")
+        deploy_dir = tmp_path / "deploy"
+
+        result = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=None,
+        )
+
+        assert result.success is True
+        content = result.deployed_path.read_text(encoding="utf-8")
+        assert "Spec-Linked Documentation" not in content
+
+    def test_double_deploy_does_not_duplicate_sld_block(self, tmp_path):
+        """Deploying the same engineer agent twice never duplicates the SLD block."""
+        source_file = _make_agent_file(tmp_path / "cache", "engineer", "test-engineer")
+        deploy_dir = tmp_path / "deploy"
+        config = _sld_on()
+
+        # First deploy
+        result1 = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=config,
+            force=True,
+        )
+        assert result1.success is True
+
+        # Second deploy (force=True to ensure it goes through the write path)
+        result2 = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=config,
+            force=True,
+        )
+        assert result2.success is True
+
+        content = result2.deployed_path.read_text(encoding="utf-8")
+        # Count occurrences of the marker heading
+        marker = "## Spec-Linked Documentation (SLD)"
+        count = content.count(marker)
+        assert count == 1, (
+            f"SLD block marker must appear exactly once after two deploys, got {count}"
+        )
+
+    def test_documentation_receives_sld_block(self, tmp_path):
+        """Documentation agent also gets SLD block when flag is on."""
+        source_file = _make_agent_file(tmp_path / "cache", "documentation", "test-docs")
+        deploy_dir = tmp_path / "deploy"
+
+        result = deploy_agent_file(
+            source_file=source_file,
+            deployment_dir=deploy_dir,
+            config=_sld_on(),
+        )
+
+        assert result.success is True
+        content = result.deployed_path.read_text(encoding="utf-8")
+        assert "Spec-Linked Documentation" in content
