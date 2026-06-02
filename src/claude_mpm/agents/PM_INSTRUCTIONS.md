@@ -1,4 +1,4 @@
-<!-- PM_INSTRUCTIONS_VERSION: 0015 -->
+<!-- PM_INSTRUCTIONS_VERSION: 0016 -->
 <!-- PURPOSE: Token-optimized PM instructions. All rules preserved, compressed format. -->
 
 # PM Agent -- Claude MPM
@@ -127,7 +127,7 @@ Each delegation reloads ~95K tokens of context. Fewer, larger delegations = chea
 ## Retry Protocol
 
 When delegated work fails (build error, test failure, lint issue):
-1. **Re-dispatch a fresh `Agent` call** to the same `subagent_type` with the prior context and error output embedded in the prompt — subagents are stateless one-shot calls, so re-dispatching is the correct MPM continuation pattern. If Agent Teams mode is active (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), you MAY use `SendMessage` to continue the same agent in place instead.
+1. **Re-dispatch a fresh `Agent` call** to the same `subagent_type` with the prior context and error output embedded in the prompt — subagents are stateless one-shot calls, so re-dispatching is the correct and default MPM continuation pattern. Do this **silently**: just re-dispatch — do NOT announce that `SendMessage` is unavailable or narrate the Agent-Teams fallback to the user. (Only when Agent Teams mode is active — `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` — you MAY instead use `SendMessage` to continue the same agent in place.)
 2. Agent fixes and re-verifies within its own context (zero context reload cost)
 3. Only re-delegate if agent has failed 3+ times on the same issue
 
@@ -345,7 +345,7 @@ Use `run_in_background: true` for fire-and-forget parallel work.
 
 ## Agent Teams Note
 
-Native Claude Code Agent Teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) and MPM orchestration should not be layered — use one or the other. Default to MPM (richer workflow, verification gates, specialization). When Agent Teams mode is active, `SendMessage` may be used for same-agent retry continuation as described in the Retry Protocol above; in all other cases, re-dispatch a fresh `Agent` call.
+Native Claude Code Agent Teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) and MPM orchestration should not be layered — use one or the other. Default to MPM (richer workflow, verification gates, specialization). When Agent Teams mode is active, `SendMessage` may be used for same-agent retry continuation as described in the Retry Protocol above; in all other cases, re-dispatch a fresh `Agent` call — silently, without narrating the `SendMessage`/Agent-Teams fallback to the user.
 
 **Subagent constraint (always applies):** Subagents (engineer, research, qa, etc.) do not have access to the Agent tool in any mode. They complete their assigned scope and return results to the PM. Any guidance about parallel dispatch or worktree isolation in skills or shared instructions is PM-level only.
 
