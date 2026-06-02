@@ -43,7 +43,13 @@ from claude_mpm.hooks.claude_hooks.handlers.stop_handler import (
     _derive_transcript_path,
     _parse_transcript_usage,
 )
-from claude_mpm.hooks.commit_cost_tracker import compute_cost, get_token_delta
+from claude_mpm.hooks.commit_cost_tracker import (
+    _format_models_trailer,
+    _primary_model,
+    amend_commit_message,
+    compute_cost,
+    get_token_delta,
+)
 from claude_mpm.services.infrastructure.context_usage_tracker import ContextUsageTracker
 
 # ---------------------------------------------------------------------------
@@ -57,20 +63,24 @@ def _make_assistant_record(
     output_tokens: int,
     cache_creation: int = 0,
     cache_read: int = 0,
+    model: str | None = None,
 ) -> str:
     """Return a JSONL line representing an assistant transcript record with usage."""
+    msg: dict = {
+        "role": "assistant",
+        "content": [{"type": "text", "text": "reply"}],
+        "usage": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cache_creation_input_tokens": cache_creation,
+            "cache_read_input_tokens": cache_read,
+        },
+    }
+    if model is not None:
+        msg["model"] = model
     rec = {
         "type": "assistant",
-        "message": {
-            "role": "assistant",
-            "content": [{"type": "text", "text": "reply"}],
-            "usage": {
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "cache_creation_input_tokens": cache_creation,
-                "cache_read_input_tokens": cache_read,
-            },
-        },
+        "message": msg,
         "sessionId": "test-session",
     }
     return json.dumps(rec)
@@ -399,6 +409,7 @@ class TestStopHandlerTranscriptIntegration:
             output_tokens: int = 0,
             cache_creation: int = 0,
             cache_read: int = 0,
+            models: dict | None = None,
         ) -> MagicMock:
             captured_snapshots.append(
                 {
@@ -407,6 +418,7 @@ class TestStopHandlerTranscriptIntegration:
                     "output_tokens": output_tokens,
                     "cache_creation": cache_creation,
                     "cache_read": cache_read,
+                    "models": models,
                 }
             )
             return MagicMock()
@@ -531,4 +543,531 @@ class TestStopHandlerTranscriptIntegration:
         assert new_result_would_be_none_only_if_no_transcript is None, (
             "Old guard should have been None for real Stop events; "
             "if this fails the Stop event shape changed and the fast path is now viable"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Per-model aggregation tests  (new — model tracking feature)
+# ---------------------------------------------------------------------------
+
+
+class TestParseTranscriptUsagePerModel:
+    """Verify that _parse_transcript_usage returns correct per-model breakdowns.
+
+    REGRESSION GUARD: If the ``models`` key is absent from the result, or if
+    per-model counts are wrong, the commit trailers X-AI-Model/X-AI-Models will
+    be missing or incorrect.  These tests MUST FAIL if the model-tracking logic
+    is removed from _parse_transcript_usage().
+    """
+
+    def test_single_model_appears_in_models_dict(self, tmp_path: Path) -> None:
+        """One model → models dict has exactly one entry with correct totals."""
+        t = tmp_path / "t.jsonl"
+        _write_transcript(
+            t,
+            [
+                _make_assistant_record(
+                    input_tokens=1_000,
+                    output_tokens=200,
+                    model="claude-opus-4-8",
+                ),
+                _make_assistant_record(
+                    input_tokens=500,
+                    output_tokens=100,
+                    model="claude-opus-4-8",
+                ),
+            ],
+        )
+
+        result = _parse_transcript_usage(t)
+
+        assert result is not None
+        assert "models" in result, "models key must be present in result"
+        models = result["models"]
+        assert set(models.keys()) == {"claude-opus-4-8"}
+        m = models["claude-opus-4-8"]
+        assert m["input_tokens"] == 1_500
+        assert m["output_tokens"] == 300
+
+    def test_two_models_aggregated_independently(self, tmp_path: Path) -> None:
+        """Two models → per-model sums are independent; totals reconcile.
+
+        This is the primary regression test: without model tracking, ``models``
+        would be absent and the X-AI-Model/X-AI-Models trailers could not be
+        emitted.  Test MUST FAIL if models aggregation is removed.
+        """
+        t = tmp_path / "t.jsonl"
+        _write_transcript(
+            t,
+            [
+                # opus messages
+                _make_assistant_record(
+                    input_tokens=8_000,
+                    output_tokens=3_000,
+                    cache_creation=500,
+                    cache_read=20_000,
+                    model="claude-opus-4-8",
+                ),
+                _make_assistant_record(
+                    input_tokens=2_000,
+                    output_tokens=1_000,
+                    cache_creation=200,
+                    cache_read=5_000,
+                    model="claude-opus-4-8",
+                ),
+                # sonnet messages (subagent)
+                _make_assistant_record(
+                    input_tokens=1_500,
+                    output_tokens=400,
+                    cache_creation=0,
+                    cache_read=3_000,
+                    model="claude-sonnet-4-6",
+                ),
+                _make_assistant_record(
+                    input_tokens=500,
+                    output_tokens=150,
+                    cache_creation=0,
+                    cache_read=1_000,
+                    model="claude-sonnet-4-6",
+                ),
+            ],
+        )
+
+        result = _parse_transcript_usage(t)
+
+        assert result is not None
+
+        # --- aggregate totals must reconcile ---
+        assert result["input_tokens"] == 12_000  # 8k+2k+1.5k+0.5k
+        assert result["output_tokens"] == 4_550  # 3k+1k+400+150
+        assert result["cache_creation_input_tokens"] == 700  # 500+200
+        assert result["cache_read_input_tokens"] == 29_000  # 20k+5k+3k+1k
+
+        # --- per-model breakdown ---
+        models = result["models"]
+        assert set(models.keys()) == {"claude-opus-4-8", "claude-sonnet-4-6"}, (
+            "Both models must appear in the models dict — this test MUST FAIL "
+            "without model-tracking logic."
+        )
+
+        opus = models["claude-opus-4-8"]
+        assert opus["input_tokens"] == 10_000  # 8k+2k
+        assert opus["output_tokens"] == 4_000  # 3k+1k
+        assert opus["cache_creation_input_tokens"] == 700
+        assert opus["cache_read_input_tokens"] == 25_000  # 20k+5k
+
+        sonnet = models["claude-sonnet-4-6"]
+        assert sonnet["input_tokens"] == 2_000  # 1.5k+0.5k
+        assert sonnet["output_tokens"] == 550  # 400+150
+        assert sonnet["cache_creation_input_tokens"] == 0
+        assert sonnet["cache_read_input_tokens"] == 4_000  # 3k+1k
+
+    def test_no_model_field_falls_back_to_unknown(self, tmp_path: Path) -> None:
+        """An assistant record without a model field is counted under 'unknown'."""
+        t = tmp_path / "t.jsonl"
+        _write_transcript(
+            t,
+            [_make_assistant_record(input_tokens=300, output_tokens=60)],  # no model
+        )
+
+        result = _parse_transcript_usage(t)
+
+        assert result is not None
+        models = result["models"]
+        assert "unknown" in models, (
+            "Records without a model field must be bucketed under 'unknown'"
+        )
+        assert models["unknown"]["input_tokens"] == 300
+
+    def test_models_totals_sum_to_aggregate(self, tmp_path: Path) -> None:
+        """Sum of all per-model token counts must equal the aggregate totals."""
+        t = tmp_path / "t.jsonl"
+        _write_transcript(
+            t,
+            [
+                _make_assistant_record(
+                    input_tokens=4_000, output_tokens=1_000, model="claude-opus-4-8"
+                ),
+                _make_assistant_record(
+                    input_tokens=1_000, output_tokens=500, model="claude-sonnet-4-6"
+                ),
+            ],
+        )
+
+        result = _parse_transcript_usage(t)
+        assert result is not None
+
+        models = result["models"]
+        total_in = sum(m["input_tokens"] for m in models.values())
+        total_out = sum(m["output_tokens"] for m in models.values())
+        assert total_in == result["input_tokens"]
+        assert total_out == result["output_tokens"]
+
+
+# ---------------------------------------------------------------------------
+# _primary_model() and _format_models_trailer() unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestPrimaryModelAndTrailerFormat:
+    """Unit tests for the two helper functions that shape the commit trailers."""
+
+    def test_primary_model_empty_returns_none(self) -> None:
+        assert _primary_model({}) is None
+
+    def test_primary_model_single_entry(self) -> None:
+        assert _primary_model({"opus": {"output_tokens": 100}}) == "opus"
+
+    def test_primary_model_picks_highest_output(self) -> None:
+        """Model with most output tokens is selected as primary."""
+        delta = {
+            "claude-opus-4-8": {"output_tokens": 50_000},
+            "claude-sonnet-4-6": {"output_tokens": 500},
+        }
+        assert _primary_model(delta) == "claude-opus-4-8"
+
+    def test_primary_model_must_fail_without_logic(self) -> None:
+        """Regression: a simple dict[0] approach would pick wrong model.
+
+        If _primary_model() were removed or replaced with ``next(iter(d))``,
+        this test would fail because dict insertion order puts sonnet first.
+        """
+        delta = {
+            "claude-sonnet-4-6": {"output_tokens": 10},  # inserted first
+            "claude-opus-4-8": {"output_tokens": 999},  # should win
+        }
+        # A naive implementation that returns the first key would return sonnet.
+        naive_result = next(iter(delta))
+        assert naive_result == "claude-sonnet-4-6"  # confirms the naive trap
+        # Correct implementation must return opus.
+        assert _primary_model(delta) == "claude-opus-4-8", (
+            "MUST FAIL without the max(output_tokens) logic in _primary_model()"
+        )
+
+    def test_format_models_trailer_single_model_returns_none(self) -> None:
+        """Single model → no multi-model trailer (caller emits X-AI-Model only)."""
+        delta = {"claude-opus-4-8": {"input_tokens": 100, "output_tokens": 50}}
+        assert _format_models_trailer(delta) is None
+
+    def test_format_models_trailer_two_models(self) -> None:
+        """Two models → semicolon-separated string with in=,out= format."""
+        delta = {
+            "claude-opus-4-8": {"input_tokens": 8_954, "output_tokens": 572_998},
+            "claude-sonnet-4-6": {"input_tokens": 1_000, "output_tokens": 200},
+        }
+        result = _format_models_trailer(delta)
+
+        assert result is not None
+        # Must be a single line (no newlines — git-trailer safe)
+        assert "\n" not in result
+        # Opus appears first (highest output tokens)
+        assert result.startswith("claude-opus-4-8")
+        assert "claude-sonnet-4-6" in result
+        # Contains in= and out= for each model
+        assert "in=8954,out=572998" in result
+        assert "in=1000,out=200" in result
+        # Separated by "; "
+        assert "; " in result
+
+    def test_format_models_trailer_empty_returns_none(self) -> None:
+        assert _format_models_trailer({}) is None
+
+
+# ---------------------------------------------------------------------------
+# X-AI-Model / X-AI-Models trailer emission (amend_commit_message)
+# ---------------------------------------------------------------------------
+
+
+class TestAmendCommitMessageModelTrailers:
+    """Verify the new model trailers are included in amended commit messages."""
+
+    _DELTA_WITH_ONE_MODEL: dict = {
+        "input_tokens": 1_000,
+        "output_tokens": 500,
+        "cache_read_tokens": 200,
+        "cache_write_tokens": 50,
+        "models": {
+            "claude-opus-4-8": {
+                "input_tokens": 1_000,
+                "output_tokens": 500,
+                "cache_creation_input_tokens": 50,
+                "cache_read_input_tokens": 200,
+            }
+        },
+    }
+
+    _DELTA_WITH_TWO_MODELS: dict = {
+        "input_tokens": 3_000,
+        "output_tokens": 2_000,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "models": {
+            "claude-opus-4-8": {
+                "input_tokens": 2_500,
+                "output_tokens": 1_800,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            "claude-sonnet-4-6": {
+                "input_tokens": 500,
+                "output_tokens": 200,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+        },
+    }
+
+    def _make_log_result(self, message: str):
+        r = MagicMock()
+        r.returncode = 0
+        r.stdout = message
+        r.stderr = ""
+        return r
+
+    def _make_amend_result(self):
+        r = MagicMock()
+        r.returncode = 0
+        r.stdout = ""
+        r.stderr = ""
+        return r
+
+    def _get_amended_msg(self, delta: dict) -> str:
+        """Run amend_commit_message and return the new commit message string."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result("feat: add something\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", delta, 0.01, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        cmd = amend_call[0][0]
+        return cmd[cmd.index("-m") + 1]
+
+    def test_single_model_emits_x_ai_model(self) -> None:
+        """Single model in delta → X-AI-Model trailer present."""
+        msg = self._get_amended_msg(self._DELTA_WITH_ONE_MODEL)
+        assert "X-AI-Model: claude-opus-4-8" in msg, (
+            "MUST FAIL without model trailer logic — X-AI-Model missing"
+        )
+
+    def test_single_model_no_x_ai_models(self) -> None:
+        """Single model → X-AI-Models (plural) trailer must NOT appear."""
+        msg = self._get_amended_msg(self._DELTA_WITH_ONE_MODEL)
+        assert "X-AI-Models:" not in msg
+
+    def test_two_models_emits_both_trailers(self) -> None:
+        """Two models → both X-AI-Model and X-AI-Models trailers emitted."""
+        msg = self._get_amended_msg(self._DELTA_WITH_TWO_MODELS)
+        assert "X-AI-Model: claude-opus-4-8" in msg, (
+            "MUST FAIL without primary-model logic — X-AI-Model missing"
+        )
+        assert "X-AI-Models:" in msg, (
+            "MUST FAIL without multi-model logic — X-AI-Models missing"
+        )
+        assert "claude-sonnet-4-6" in msg
+
+    def test_model_trailers_stripped_on_re_amend(self) -> None:
+        """Re-amending a commit that already has X-AI-Model trailers doesn't duplicate them.
+
+        The stripping regex r'^X-AI-[A-Za-z-]+:' must cover X-AI-Model and X-AI-Models.
+        This test MUST FAIL if the stripping regex is narrowed to exclude those keys.
+        """
+        original_with_trailers = (
+            "feat: existing\n\n"
+            "Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>\n"
+            "X-AI-Tokens-In: 999\n"
+            "X-AI-Tokens-Out: 888\n"
+            "X-AI-Cache-Read: 0\n"
+            "X-AI-Cache-Write: 0\n"
+            "X-AI-Cache-Ratio: 0%\n"
+            "X-AI-Est-Cost-USD: 0.000100\n"
+            "X-AI-Model: old-model-name\n"
+            "X-AI-Models: old-model-name (in=999,out=888)\n"
+        )
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result(original_with_trailers),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._DELTA_WITH_TWO_MODELS, 0.05, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        cmd = amend_call[0][0]
+        new_msg = cmd[cmd.index("-m") + 1]
+
+        # Old model name must be gone
+        assert "old-model-name" not in new_msg, (
+            "MUST FAIL if X-AI-Model/X-AI-Models are not stripped before re-amend"
+        )
+        # New primary model appears exactly once
+        assert new_msg.count("X-AI-Model: claude-opus-4-8") == 1
+
+    def test_no_models_in_delta_no_model_trailers(self) -> None:
+        """Delta without models key → no X-AI-Model trailer (backward compat)."""
+        delta_no_models = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            # no "models" key
+        }
+        msg = self._get_amended_msg(delta_no_models)
+        assert "X-AI-Model:" not in msg
+        assert "X-AI-Models:" not in msg
+
+
+# ---------------------------------------------------------------------------
+# Per-model delta in get_token_delta()
+# ---------------------------------------------------------------------------
+
+
+class TestGetTokenDeltaPerModel:
+    """Verify get_token_delta() computes per-model deltas correctly."""
+
+    def _write_usage_with_models(
+        self,
+        project: Path,
+        *,
+        inp: int = 0,
+        out: int = 0,
+        read: int = 0,
+        write: int = 0,
+        models: dict | None = None,
+    ) -> None:
+        usage = {
+            "session_id": "test-session",
+            "cumulative_input_tokens": inp,
+            "cumulative_output_tokens": out,
+            "cache_read_tokens": read,
+            "cache_creation_tokens": write,
+            "models": models or {},
+            "percentage_used": 0.0,
+            "threshold_reached": None,
+            "auto_pause_active": False,
+            "last_updated": "2026-01-01T00:00:00+00:00",
+        }
+        usage_file = project / ".claude-mpm" / "state" / "context-usage.json"
+        usage_file.parent.mkdir(parents=True, exist_ok=True)
+        usage_file.write_text(json.dumps(usage))
+
+    def _write_baseline_with_models(
+        self,
+        project: Path,
+        *,
+        inp: int = 0,
+        out: int = 0,
+        read: int = 0,
+        write: int = 0,
+        models: dict | None = None,
+    ) -> None:
+        baseline = {
+            "input_tokens": inp,
+            "output_tokens": out,
+            "cache_read_tokens": read,
+            "cache_write_tokens": write,
+            "models": models or {},
+        }
+        baseline_file = project / ".claude-mpm" / "state" / "commit-token-baseline.json"
+        baseline_file.parent.mkdir(parents=True, exist_ok=True)
+        baseline_file.write_text(json.dumps(baseline))
+
+    def test_per_model_delta_computed_correctly(self, tmp_path: Path) -> None:
+        """get_token_delta returns correct per-model incremental deltas.
+
+        Snapshot has two models; baseline has one.  The model absent from
+        baseline contributes its full snapshot value; the shared model gets the
+        incremental difference.  This test MUST FAIL without per-model delta
+        logic in get_token_delta().
+        """
+        project = tmp_path
+        (project / ".claude-mpm" / "state").mkdir(parents=True, exist_ok=True)
+
+        snapshot_models = {
+            "claude-opus-4-8": {
+                "input_tokens": 10_000,
+                "output_tokens": 5_000,
+                "cache_creation_input_tokens": 500,
+                "cache_read_input_tokens": 20_000,
+            },
+            "claude-sonnet-4-6": {
+                "input_tokens": 2_000,
+                "output_tokens": 800,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 4_000,
+            },
+        }
+        self._write_usage_with_models(
+            project,
+            inp=12_000,
+            out=5_800,
+            read=24_000,
+            write=500,
+            models=snapshot_models,
+        )
+
+        # Baseline only has opus (sonnet is new this commit window)
+        baseline_models = {
+            "claude-opus-4-8": {
+                "input_tokens": 8_000,
+                "output_tokens": 4_000,
+                "cache_creation_input_tokens": 300,
+                "cache_read_input_tokens": 15_000,
+            }
+        }
+        self._write_baseline_with_models(
+            project,
+            inp=8_000,
+            out=4_000,
+            read=15_000,
+            write=300,
+            models=baseline_models,
+        )
+
+        delta = get_token_delta(str(project))
+
+        # Aggregate delta
+        assert delta["input_tokens"] == 4_000  # 12k - 8k
+        assert delta["output_tokens"] == 1_800  # 5800 - 4000
+
+        # Per-model delta
+        m = delta["models"]
+        assert "claude-opus-4-8" in m, (
+            "MUST FAIL without per-model delta logic in get_token_delta()"
+        )
+        assert "claude-sonnet-4-6" in m, (
+            "MUST FAIL without per-model delta logic in get_token_delta()"
+        )
+
+        opus = m["claude-opus-4-8"]
+        assert opus["input_tokens"] == 2_000  # 10k - 8k
+        assert opus["output_tokens"] == 1_000  # 5k - 4k
+
+        sonnet = m["claude-sonnet-4-6"]
+        assert sonnet["input_tokens"] == 2_000  # 2k - 0 (not in baseline)
+        assert sonnet["output_tokens"] == 800  # 800 - 0
+
+    def test_no_models_in_snapshot_returns_empty_models(self, tmp_path: Path) -> None:
+        """Old-format snapshot (no models key) → delta.models is empty dict."""
+        project = tmp_path
+        (project / ".claude-mpm" / "state").mkdir(parents=True, exist_ok=True)
+        usage = {
+            "session_id": "old-session",
+            "cumulative_input_tokens": 1_000,
+            "cumulative_output_tokens": 200,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "percentage_used": 0.0,
+            "threshold_reached": None,
+            "auto_pause_active": False,
+            "last_updated": "2026-01-01T00:00:00+00:00",
+        }  # deliberately no "models" key
+        usage_file = project / ".claude-mpm" / "state" / "context-usage.json"
+        usage_file.write_text(json.dumps(usage))
+
+        delta = get_token_delta(str(project))
+
+        assert delta["models"] == {}, (
+            "Old snapshot without models key must produce empty models delta "
+            "(backward compatibility — must not crash)"
         )
