@@ -13,7 +13,8 @@ for agents:
 - Preset-driven installation (deploy_agents_preset)
 - Toolchain-recommended installation (select_recommended_agents)
 - Single-agent installation primitives (deploy_single_agent)
-- Removal flows and detail view
+- Detailed agent info viewer (view_agent_details_enhanced)
+- Removal flows
 - Path helpers used by removal (agent_file_paths, deployment_state_paths)
 
 References
