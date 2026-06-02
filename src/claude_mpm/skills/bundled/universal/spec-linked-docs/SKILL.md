@@ -553,7 +553,7 @@ pytest tests/test_spec_traceability.py -v
 2. If yes, add a `:spec:` or `References` entry to the implementing function/module docstring.
 3. Re-run CI.
 
-If the spec is not yet implemented, mark it as `Status: Draft` in the spec file or delete it.
+If the spec is not yet implemented, add `**Status:** draft (pending backfill)` to the section body — this exempts the ID from the UNCOVERED check while ORPHANED/OUTDATED enforcement stays active. See `docs/specs/README.md §9b` for the full lifecycle.
 
 ### "CI says ORPHANED: SPEC-HOOKS-01 referenced in code but not found in specs/"
 
