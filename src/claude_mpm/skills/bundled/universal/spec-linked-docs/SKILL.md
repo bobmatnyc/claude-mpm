@@ -14,6 +14,8 @@ progressive_disclosure:
     - convention-v1.md
     - language-examples.md
     - ci-validation.md
+    - wwl-granularity.md
+    - backfill-workflow.md
     - engineer-workflow.md
     - documentation-workflow.md
 ---
@@ -576,14 +578,78 @@ If the spec is not yet implemented, mark it as `Status: Draft` in the spec file 
 
 ---
 
-## 8. Next Steps
+## 8. Code-Level Granularity: The WWL Model
+
+**See:** [wwl-granularity.md](./reference/wwl-granularity.md)
+
+Not every function needs a spec link — that would create excessive maintenance burden. The **WWL (WHAT/WHY/LINK) Granularity Model** defines **when** code units require explicit linkage:
+
+- **Module-level WHAT/WHY/References:** Always required for governed subsystems.
+- **Function/Class/Method level:** Required when **either** lines of code > 50 (configurable) **or** cyclomatic complexity > 10 (NIST SP 500-235 threshold).
+- **Below thresholds:** Optional; simple helpers and getters may omit WWL.
+
+The thresholds are **configurable per-project** and tied to **published industry standards** (McCabe 1976, NIST SP 500-235, linter defaults).
+
+### Backfill Gaps
+
+During **backfill of existing codebases**, code units may exist without spec coverage. Use `LINK: none` to flag these gaps:
+
+```python
+def legacy_handler(event: dict) -> dict:
+    """Legacy handler — backfill phase.
+    
+    WHAT: Accepts event dict, routes by type.
+    WHY: Pre-SLD code; spec planned in next phase.
+    LINK: none  # TODO: Add SPEC-ID when spec is ready
+    """
+```
+
+The `LINK: none` annotation signals to CI and reviewers that this gap is **intentional and tracked**, not accidental.
+
+---
+
+## 9. Backfilling Existing Codebases
+
+**See:** [backfill-workflow.md](./reference/backfill-workflow.md)
+
+SLD adoption on existing projects requires a **five-phase backfill workflow** that keeps CI passing and maintains traceability throughout:
+
+1. **Phase 0 (Baseline):** Record current state; prioritize subsystems for backfill.
+2. **Phase 1 (Spec Authoring):** Documentation agent writes subsystem spec in `docs/specs/{subsystem}.md`.
+3. **Phase 2 (Annotation):** Engineer agent annotates code with WHAT/WHY/LINK docstrings.
+4. **Phase 3 (Verification):** Human reviewer verifies semantic correctness; baseline is recorded.
+5. **Phase 4 (Enforcement):** CI enforces WWL on new code; full SLD discipline is active.
+
+### Prioritization
+
+Backfill **highest-churn / highest-complexity / most-central** modules first:
+
+- **Tier 1:** High churn, high complexity, central to system (hooks, agents, services).
+- **Tier 2:** Medium churn, public API (CLI, migrations).
+- **Tier 3:** Low churn, internal utilities (leaf modules).
+
+### False-Confidence Mitigation
+
+**CRITICAL:** The CI check validates **presence** of links, not **correctness**. LLM-generated trace links have ~52% precision (TraceLLM, 2026). **Mitigation:**
+
+1. **Engineer responsibility:** During Phase 2, engineer reads code and spec; personally verifies links are semantically correct (not copied from another function).
+2. **Reviewer responsibility:** During Phase 3, human reviewer confirms WHAT/WHY prose matches actual behavior and LINK points to correct spec.
+3. **PR checklist:** Every PR changing governed code must include semantic verification step (in addition to passing CI).
+
+**Treat CI as a floor, not a ceiling.** The check catches missing and malformed links; human review catches wrong links.
+
+---
+
+## 10. Next Steps
 
 1. **Understand the prior art:** Read `prior-art-lineage.md` to learn about OpenFastTrace, RTM, and the decades of traceability practice you are building on.
 2. **Learn the convention in detail:** Read `convention-v1.md` for the complete specification format and docstring rules.
-3. **Set up CI:** Copy `test_spec_traceability.py` to your `tests/` directory and add it to your CI pipeline.
-4. **Add engineer guidance:** Share `engineer-workflow.md` with your engineering team.
-5. **Add documentation guidance:** Share `documentation-workflow.md` with your documentation team.
-6. **Adopt gradually:** Start with a single subsystem. Once the workflow is clear, expand to others.
+3. **Master code-level granularity:** Read `wwl-granularity.md` to understand when code units require WHAT/WHY/LINK annotations, thresholds, and per-language syntax.
+4. **Plan your backfill:** Read `backfill-workflow.md` to understand the five-phase progression for bringing existing code into SLD compliance.
+5. **Set up CI:** Copy `test_spec_traceability.py` to your `tests/` directory and add it to your CI pipeline.
+6. **Add engineer guidance:** Share `engineer-workflow.md` with your engineering team.
+7. **Add documentation guidance:** Share `documentation-workflow.md` with your documentation team.
+8. **Adopt gradually:** Start with a single subsystem. Once the workflow is clear, expand to others.
 
 ---
 
