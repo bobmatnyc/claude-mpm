@@ -18,6 +18,7 @@ from typing import Any
 import yaml
 
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.utils.agent_filters import is_base_template
 
 logger = get_logger(__name__)
 
@@ -473,13 +474,15 @@ class RemoteAgentDiscoveryService:
         # Find all Markdown files recursively
         md_files = list(scan_dir.rglob("*.md"))
 
-        # Filter out non-agent files and git repository files
+        # Filter out non-agent files and git repository files.
+        # BASE-*.md / BASE_*.md files are composition templates, not agents —
+        # use the canonical ``is_base_template`` predicate rather than a
+        # hardcoded allowlist so new BASE-* files are caught automatically.
         excluded_files = {
             "README.md",
             "CHANGELOG.md",
             "CONTRIBUTING.md",
             "LICENSE.md",
-            "BASE-AGENT.md",
             "SUMMARY.md",
             "IMPLEMENTATION-SUMMARY.md",
             "REFACTORING_REPORT.md",
@@ -495,7 +498,14 @@ class RemoteAgentDiscoveryService:
             # TODO: Remove after bobmatnyc/claude-mpm-agents#XXX is merged
             "memory-manager.md",  # Superseded by memory-manager-agent.md (v1.2.0)
         }
-        md_files = [f for f in md_files if f.name not in excluded_files]
+        md_files = [
+            f
+            for f in md_files
+            # Exclude known non-agent files by exact name …
+            if f.name not in excluded_files
+            # … and exclude all BASE composition templates (BASE-*.md / BASE_*.md).
+            and not is_base_template(f.name)
+        ]
 
         # Filter out files from skills-related directories
         # Skills are not agents and should not be discovered here
