@@ -453,7 +453,10 @@ reduces user friction when a command name is misspelled.
      progress_callback=_cumulative_progress)`. The `_cumulative_progress` closure
      converts per-source monotonically-increasing counters into a single cumulative
      counter across all sources, preventing the progress bar from appearing to reset
-     between sources. Finishes the progress bar with a `"downloaded / cached"` summary.
+     between sources. Finishes the progress bar with
+     ``"Complete: N downloaded, M cached (T files, S skills)"`` when any files
+     were served from cache, or ``"Complete: N files downloaded (S skills)"``
+     on a first sync where all files are new downloads.
   5. **Phase 2 — Agent scanning:** Scans `.claude/agents/` in the current working
      directory via `get_required_skills_from_agents` to discover which skill IDs are
      referenced by deployed agents. Saves the resulting list to
