@@ -416,9 +416,45 @@ Use `importlib.metadata.entry_points(group="claude_mpm.presets")` (Python 3.9+) 
 
 ---
 
+---
+
+## Implementation Status
+
+**Status: Fully implemented in v6.5.12** — issues #613 (PR1), #614 (PR2), #615 (PR3), #616 (PR4/final).
+
+All four acceptance criteria from issue #460 have been delivered:
+
+| Criterion | Implemented In | Location |
+|-----------|----------------|----------|
+| Schema + merger + loader (core) | PR1 (#613) | `src/claude_mpm/manifest/` |
+| Preset resolver + built-in presets | PR2 (#614) | `src/claude_mpm/manifest/resolver.py`, `presets/` |
+| `manifest init/validate/show` CLI | PR3 (#615) | `src/claude_mpm/cli/commands/manifest_commands.py` |
+| `setup` integration with `setup.services` | PR4 (#616) | `src/claude_mpm/cli/commands/setup/manifest_integration.py` |
+
+See `docs/specs/manifest.md` for full behavioral contracts (SPEC-MANIFEST-01~1 through SPEC-MANIFEST-06~1).
+
+### Migration Decision
+
+No config-shape migration was required.  The manifest is an entirely new opt-in
+file (`.claude-mpm/manifest.json`); no existing config files change shape.  The
+dormant-unless-detected design ensures zero impact on projects that have not
+adopted the manifest.
+
+### Entry-Point Preset Testing
+
+The `"extends": "claude-mpm-<name>"` → Python entry-point resolution path
+(SPEC-MANIFEST-04~1, step 3) is covered by PR2's mocked-entry-point tests in
+`tests/test_manifest_resolver.py::TestResolvePresetOrder::test_entry_point_beats_builtin`.
+A real end-to-end test with an installed `claude-mpm-test-preset` package requires
+an external package not bundled with the main repo; the entry-point discovery code
+path is validated by the mock-based test.
+
+---
+
 ## Related Documentation
 
 - [Configuration Hierarchy](../configuration/README.md)
 - [Hierarchical BASE-AGENT Templates](./hierarchical-base-agents.md)
 - [Hooks System](./HOOK_EVENT_EMISSION.md)
 - [Skills Integration Design](./claude-mpm-skills-integration-design.md)
+- [Manifest Spec](../specs/manifest.md)
