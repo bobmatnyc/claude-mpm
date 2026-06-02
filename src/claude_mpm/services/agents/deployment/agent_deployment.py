@@ -156,8 +156,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         # Initialize base class with configuration
         super().__init__("agent_deployment", config=config)
 
-        # Initialize template builder service
-        self.template_builder = AgentTemplateBuilder()
+        # Initialize template builder service, forwarding config so SLD injection
+        # can read workflow.spec_linked_docs.enabled during agent assembly.
+        self.template_builder = AgentTemplateBuilder(config=config)
 
         # Initialize version manager service
         self.version_manager = AgentVersionManager()
