@@ -1,15 +1,18 @@
-"""Unit tests for commit_cost_tracker module (issue #600).
+"""Unit tests for commit_cost_tracker module (issue #600 / #601).
 
 Covers:
 - get_token_delta(): reading context-usage.json, first-call zero baseline,
   subsequent delta computation, and baseline update.
-- compute_cost(): known token counts with default and env-var prices.
-- amend_commit_message(): trailers added, Co-Authored-By normalised.
-- write_cost_log(): JSONL record appended with correct fields.
+- amend_commit_message(): trailers added (tokens + model only), Co-Authored-By
+  normalised.  Cache/cost trailers are no longer emitted.
+- write_cost_log(): JSONL record appended with correct fields (token fields
+  only; cache/cost fields removed per CHANGE 2).
 - extract_commit_sha(): SHA extracted from various git commit outputs.
 - Regression tests for the zero-trailer bug (issue #601):
-  ContextUsageTracker.set_session_snapshot() must replace (not add to)
-  context-usage.json so the git post-commit hook sees non-zero deltas.
+  - ContextUsageTracker.set_session_snapshot() must replace (not add to)
+    context-usage.json so the git post-commit hook sees non-zero deltas.
+  - CHANGE 1: commit hook parses live transcript JSONL directly and produces
+    non-zero delta even when context-usage.json is stale / zero.
 """
 
 from __future__ import annotations
@@ -18,8 +21,9 @@ import json
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -32,7 +36,6 @@ from claude_mpm.hooks.commit_cost_tracker import (
     _read_json_safe,
     _write_json_atomic,
     amend_commit_message,
-    compute_cost,
     extract_commit_sha,
     get_token_delta,
     write_cost_log,
@@ -85,19 +88,92 @@ def _read_baseline(project: Path) -> dict:
     return json.loads(baseline_file.read_text())
 
 
+def _make_assistant_record(
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    cache_creation: int = 0,
+    cache_read: int = 0,
+    model: str | None = None,
+) -> str:
+    """Return a JSONL line representing an assistant transcript record with usage."""
+    msg: dict = {
+        "role": "assistant",
+        "content": [{"type": "text", "text": "reply"}],
+        "usage": {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cache_creation_input_tokens": cache_creation,
+            "cache_read_input_tokens": cache_read,
+        },
+    }
+    if model is not None:
+        msg["model"] = model
+    rec = {
+        "type": "assistant",
+        "message": msg,
+        "sessionId": "test-session",
+    }
+    return json.dumps(rec)
+
+
+def _write_transcript(path: Path, records: list[str]) -> None:
+    """Write JSONL records to path, one per line."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(records) + "\n", encoding="utf-8")
+
+
+def _create_fake_transcript_for_cwd(
+    fake_home: Path,
+    cwd: str,
+    *,
+    input_tokens: int = 10_000,
+    output_tokens: int = 2_000,
+    model: str = "claude-opus-4-8",
+) -> Path:
+    """Create a fake transcript JSONL in the fake_home dir for the given cwd.
+
+    Places the transcript at fake_home/.claude/projects/{encoded_cwd}/{session}.jsonl
+    and returns the path.
+    """
+    encoded = cwd.replace("/", "-")
+    transcript_dir = fake_home / ".claude" / "projects" / encoded
+    transcript_dir.mkdir(parents=True, exist_ok=True)
+    transcript_path = transcript_dir / "test-session-123.jsonl"
+    _write_transcript(
+        transcript_path,
+        [
+            _make_assistant_record(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                model=model,
+            )
+        ],
+    )
+    return transcript_path
+
+
 # ---------------------------------------------------------------------------
-# get_token_delta() tests
+# get_token_delta() tests — snapshot fallback path (no transcript)
 # ---------------------------------------------------------------------------
 
 
 class TestGetTokenDelta:
+    def _patch_no_transcript(self):
+        """Return a context manager that makes find_latest_transcript() return None."""
+        return patch(
+            "claude_mpm.hooks.commit_cost_tracker.find_latest_transcript",
+            return_value=None,
+        )
+
     def test_first_call_no_baseline_returns_full_cumulative(
         self, tmp_project: Path
     ) -> None:
         """First commit: no baseline → delta equals full cumulative totals."""
         _write_usage(tmp_project, inp=1000, out=200, read=50, write=100)
 
-        delta = get_token_delta(str(tmp_project))
+        with self._patch_no_transcript():
+            delta = get_token_delta(str(tmp_project))
 
         assert delta["input_tokens"] == 1000
         assert delta["output_tokens"] == 200
@@ -108,7 +184,8 @@ class TestGetTokenDelta:
         """After get_token_delta(), the baseline file reflects the current totals."""
         _write_usage(tmp_project, inp=1000, out=200)
 
-        get_token_delta(str(tmp_project))
+        with self._patch_no_transcript():
+            get_token_delta(str(tmp_project))
 
         baseline = _read_baseline(tmp_project)
         assert baseline["input_tokens"] == 1000
@@ -119,14 +196,16 @@ class TestGetTokenDelta:
         _write_usage(tmp_project, inp=1000, out=200)
         _write_baseline(tmp_project, inp=800, out=150)
 
-        delta = get_token_delta(str(tmp_project))
+        with self._patch_no_transcript():
+            delta = get_token_delta(str(tmp_project))
 
         assert delta["input_tokens"] == 200  # 1000 - 800
         assert delta["output_tokens"] == 50  # 200  - 150
 
     def test_no_usage_file_returns_zeros(self, tmp_project: Path) -> None:
         """Missing context-usage.json → graceful degradation: delta = zeros."""
-        delta = get_token_delta(str(tmp_project))
+        with self._patch_no_transcript():
+            delta = get_token_delta(str(tmp_project))
 
         assert delta["input_tokens"] == 0
         assert delta["output_tokens"] == 0
@@ -140,7 +219,8 @@ class TestGetTokenDelta:
         _write_usage(tmp_project, inp=500)
         _write_baseline(tmp_project, inp=1000)  # Baseline is higher
 
-        delta = get_token_delta(str(tmp_project))
+        with self._patch_no_transcript():
+            delta = get_token_delta(str(tmp_project))
 
         assert delta["input_tokens"] == 0
 
@@ -148,89 +228,174 @@ class TestGetTokenDelta:
         """cache_creation_tokens in context-usage maps to cache_write_tokens in delta."""
         _write_usage(tmp_project, read=300, write=700)
 
-        delta = get_token_delta(str(tmp_project))
+        with self._patch_no_transcript():
+            delta = get_token_delta(str(tmp_project))
 
         assert delta["cache_read_tokens"] == 300
         assert delta["cache_write_tokens"] == 700
 
 
 # ---------------------------------------------------------------------------
-# compute_cost() tests
+# get_token_delta() tests — live transcript path (CHANGE 1 / issue #601 fix)
 # ---------------------------------------------------------------------------
 
 
-class TestComputeCost:
-    def test_zero_tokens_returns_zero(self) -> None:
-        delta = {
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "cache_read_tokens": 0,
-            "cache_write_tokens": 0,
-        }
-        assert compute_cost(delta) == 0.0
+class TestGetTokenDeltaFromTranscript:
+    """Verify that get_token_delta() reads the live transcript when available.
 
-    def test_default_prices(self) -> None:
-        """1M input + 1M output at default prices = $3.00 + $15.00 = $18.00."""
-        delta = {
-            "input_tokens": 1_000_000,
-            "output_tokens": 1_000_000,
-            "cache_read_tokens": 0,
-            "cache_write_tokens": 0,
-        }
-        cost = compute_cost(delta)
-        assert abs(cost - 18.0) < 0.0001
+    This is the regression guard for issue #601: the root cause was that
+    context-usage.json was stale at commit time (Stop hadn't fired yet), so
+    all deltas were zero.  CHANGE 1 fixes this by parsing the active transcript
+    directly inside get_token_delta().
+    """
 
-    def test_cache_prices_included(self) -> None:
-        """1M cache_read at $0.30 + 1M cache_write at $3.75 = $4.05."""
-        delta = {
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "cache_read_tokens": 1_000_000,
-            "cache_write_tokens": 1_000_000,
-        }
-        cost = compute_cost(delta)
-        assert abs(cost - 4.05) < 0.0001
+    def _patch_home(self, fake_home: Path):
+        """Patch Path.home() inside transcript_usage so fixtures are found."""
+        return patch(
+            "claude_mpm.hooks.transcript_usage.Path.home",
+            return_value=fake_home,
+        )
 
-    def test_env_var_price_override(self) -> None:
-        """CLAUDE_MPM_PRICE_INPUT env var overrides the default input price."""
-        delta = {
-            "input_tokens": 1_000_000,
-            "output_tokens": 0,
-            "cache_read_tokens": 0,
-            "cache_write_tokens": 0,
-        }
-        with patch.dict(os.environ, {"CLAUDE_MPM_PRICE_INPUT": "5.00"}):
-            cost = compute_cost(delta)
-        assert abs(cost - 5.0) < 0.0001
+    def test_transcript_beats_stale_snapshot(self, tmp_project: Path) -> None:
+        """When transcript exists, live counts are used instead of stale snapshot.
 
-    def test_all_env_var_overrides(self) -> None:
-        """All four price env vars can be overridden simultaneously."""
-        delta = {
-            "input_tokens": 1_000_000,
-            "output_tokens": 1_000_000,
-            "cache_read_tokens": 1_000_000,
-            "cache_write_tokens": 1_000_000,
-        }
-        env = {
-            "CLAUDE_MPM_PRICE_INPUT": "1.0",
-            "CLAUDE_MPM_PRICE_OUTPUT": "2.0",
-            "CLAUDE_MPM_PRICE_CACHE_READ": "0.1",
-            "CLAUDE_MPM_PRICE_CACHE_WRITE": "0.2",
-        }
-        with patch.dict(os.environ, env):
-            cost = compute_cost(delta)
-        assert abs(cost - 3.3) < 0.0001
+        Seed context-usage.json with zeros (stale), create a transcript with
+        known token counts, assert get_token_delta() returns the transcript values.
 
-    def test_partial_million_tokens(self) -> None:
-        """100k input tokens at $3/MTok = $0.30."""
-        delta = {
-            "input_tokens": 100_000,
-            "output_tokens": 0,
-            "cache_read_tokens": 0,
-            "cache_write_tokens": 0,
-        }
-        cost = compute_cost(delta)
-        assert abs(cost - 0.3) < 0.0001
+        This is the CORE regression guard for #601.
+        """
+        # Stale snapshot with zeros.
+        _write_usage(tmp_project, inp=0, out=0)
+        # No baseline (first commit).
+
+        fake_home = tmp_project / "fake_home"
+        cwd = str(tmp_project)
+        _create_fake_transcript_for_cwd(
+            fake_home,
+            cwd,
+            input_tokens=15_000,
+            output_tokens=3_500,
+            model="claude-opus-4-8",
+        )
+
+        with self._patch_home(fake_home):
+            delta = get_token_delta(cwd)
+
+        assert delta["input_tokens"] == 15_000, (
+            f"Expected 15000 from transcript, got {delta['input_tokens']} "
+            "(zero means stale context-usage.json was used — #601 regression)"
+        )
+        assert delta["output_tokens"] == 3_500
+        # Model should be populated from transcript
+        assert "claude-opus-4-8" in delta.get("models", {}), (
+            "Model should appear in delta when parsed from transcript"
+        )
+
+    def test_transcript_with_baseline_gives_correct_delta(
+        self, tmp_project: Path
+    ) -> None:
+        """Transcript cumulative minus baseline gives the correct incremental delta.
+
+        This tests the full flow: previous commit set baseline, now new tokens
+        appear in the transcript. Delta should be only the new tokens.
+        """
+        cwd = str(tmp_project)
+        # Previous commit baseline
+        _write_baseline(tmp_project, inp=10_000, out=1_000)
+        # Stale snapshot (doesn't matter — transcript is authoritative)
+        _write_usage(tmp_project, inp=0, out=0)
+
+        fake_home = tmp_project / "fake_home"
+        _create_fake_transcript_for_cwd(
+            fake_home,
+            cwd,
+            input_tokens=18_000,  # 8000 new tokens since baseline
+            output_tokens=1_800,  # 800 new tokens
+            model="claude-sonnet-4-6",
+        )
+
+        with self._patch_home(fake_home):
+            delta = get_token_delta(cwd)
+
+        assert delta["input_tokens"] == 8_000, (  # 18k - 10k
+            f"Expected 8000 incremental input tokens, got {delta['input_tokens']}"
+        )
+        assert delta["output_tokens"] == 800, (  # 1800 - 1000
+            f"Expected 800 incremental output tokens, got {delta['output_tokens']}"
+        )
+
+    def test_most_recent_transcript_selected_when_multiple_exist(
+        self, tmp_project: Path
+    ) -> None:
+        """When multiple JSONL files exist, the one with the latest mtime is used.
+
+        This test verifies the most-recently-modified file selection logic in
+        find_latest_transcript().
+        """
+        cwd = str(tmp_project)
+        encoded = cwd.replace("/", "-")
+        fake_home = tmp_project / "fake_home"
+        transcript_dir = fake_home / ".claude" / "projects" / encoded
+        transcript_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write an older transcript with small token counts.
+        old_transcript = transcript_dir / "old-session.jsonl"
+        _write_transcript(
+            old_transcript,
+            [_make_assistant_record(input_tokens=100, output_tokens=20)],
+        )
+        # Sleep briefly so mtime differs, then write the newer transcript.
+        time.sleep(0.05)
+        new_transcript = transcript_dir / "new-session.jsonl"
+        _write_transcript(
+            new_transcript,
+            [_make_assistant_record(input_tokens=50_000, output_tokens=5_000)],
+        )
+
+        with self._patch_home(fake_home):
+            delta = get_token_delta(cwd)
+
+        assert delta["input_tokens"] == 50_000, (
+            f"Expected 50000 (from newer transcript), got {delta['input_tokens']} "
+            "(wrong transcript selected — mtime selection broken)"
+        )
+        assert delta["output_tokens"] == 5_000
+
+    def test_fallback_to_snapshot_when_no_transcript(self, tmp_project: Path) -> None:
+        """When no transcript exists, context-usage.json is used as fallback."""
+        _write_usage(tmp_project, inp=7_000, out=1_500)
+
+        fake_home = tmp_project / "fake_home"
+        # No transcript created in fake_home
+
+        with self._patch_home(fake_home):
+            delta = get_token_delta(str(tmp_project))
+
+        # Snapshot values should be used
+        assert delta["input_tokens"] == 7_000
+        assert delta["output_tokens"] == 1_500
+
+    def test_model_trailer_populated_from_transcript(self, tmp_project: Path) -> None:
+        """Model info in the transcript flows through to the delta's models dict."""
+        cwd = str(tmp_project)
+        fake_home = tmp_project / "fake_home"
+        _create_fake_transcript_for_cwd(
+            fake_home,
+            cwd,
+            input_tokens=5_000,
+            output_tokens=1_000,
+            model="claude-opus-4-8",
+        )
+
+        with self._patch_home(fake_home):
+            delta = get_token_delta(cwd)
+
+        models = delta.get("models", {})
+        assert "claude-opus-4-8" in models, (
+            "Model from transcript must appear in delta.models for X-AI-Model trailer"
+        )
+        assert models["claude-opus-4-8"]["input_tokens"] == 5_000
+        assert models["claude-opus-4-8"]["output_tokens"] == 1_000
 
 
 # ---------------------------------------------------------------------------
@@ -264,12 +429,16 @@ class TestExtractCommitSha:
 
 
 # ---------------------------------------------------------------------------
-# amend_commit_message() tests
+# amend_commit_message() tests (CHANGE 2: token/model trailers only)
 # ---------------------------------------------------------------------------
 
 
 class TestAmendCommitMessage:
-    """Test amend_commit_message with subprocess mocked out."""
+    """Test amend_commit_message with subprocess mocked out.
+
+    Note: cost parameter removed (CHANGE 2) — amend_commit_message now takes
+    only (commit_sha, delta, cwd).  Cache/cost trailers are no longer emitted.
+    """
 
     _DELTA = {
         "input_tokens": 500,
@@ -277,7 +446,6 @@ class TestAmendCommitMessage:
         "cache_read_tokens": 200,
         "cache_write_tokens": 50,
     }
-    _COST = 0.002175
 
     def _make_log_result(self, message: str):
         r = MagicMock()
@@ -293,25 +461,39 @@ class TestAmendCommitMessage:
         r.stderr = ""
         return r
 
-    def test_trailers_added_to_clean_message(self) -> None:
+    def test_token_trailers_added(self) -> None:
+        """X-AI-Tokens-In and X-AI-Tokens-Out are present in the amended message."""
         original = "feat: add something\n"
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = [
                 self._make_log_result(original),
                 self._make_amend_result(),
             ]
-            amend_commit_message("abc1234", self._DELTA, self._COST, "/tmp")
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
 
-        # Second call is the amend; extract new message from its args.
         amend_call = mock_run.call_args_list[1]
         new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
 
         assert "X-AI-Tokens-In: 500" in new_msg
         assert "X-AI-Tokens-Out: 100" in new_msg
-        assert "X-AI-Cache-Read: 200" in new_msg
-        assert "X-AI-Cache-Write: 50" in new_msg
-        assert "X-AI-Cache-Ratio:" in new_msg
-        assert "X-AI-Est-Cost-USD:" in new_msg
+
+    def test_no_cache_or_cost_trailers(self) -> None:
+        """Cache and cost trailers must NOT appear (CHANGE 2)."""
+        original = "feat: add something\n"
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result(original),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
+
+        assert "X-AI-Cache-Read:" not in new_msg, "Cache-Read trailer must be removed"
+        assert "X-AI-Cache-Write:" not in new_msg, "Cache-Write trailer must be removed"
+        assert "X-AI-Cache-Ratio:" not in new_msg, "Cache-Ratio trailer must be removed"
+        assert "X-AI-Est-Cost-USD:" not in new_msg, "Est-Cost trailer must be removed"
 
     def test_canonical_coauthoredby_added(self) -> None:
         original = "fix: bug\n"
@@ -320,7 +502,7 @@ class TestAmendCommitMessage:
                 self._make_log_result(original),
                 self._make_amend_result(),
             ]
-            amend_commit_message("abc1234", self._DELTA, self._COST, "/tmp")
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
 
         amend_call = mock_run.call_args_list[1]
         new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
@@ -334,7 +516,7 @@ class TestAmendCommitMessage:
                 self._make_log_result(original),
                 self._make_amend_result(),
             ]
-            amend_commit_message("abc1234", self._DELTA, self._COST, "/tmp")
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
 
         amend_call = mock_run.call_args_list[1]
         new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
@@ -349,7 +531,7 @@ class TestAmendCommitMessage:
                 self._make_log_result(original),
                 self._make_amend_result(),
             ]
-            amend_commit_message("abc1234", self._DELTA, self._COST, "/tmp")
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
 
         amend_call = mock_run.call_args_list[1]
         new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
@@ -364,7 +546,7 @@ class TestAmendCommitMessage:
                 self._make_log_result(original),
                 self._make_amend_result(),
             ]
-            amend_commit_message("abc1234", self._DELTA, self._COST, "/tmp")
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
 
         amend_call = mock_run.call_args_list[1]
         new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
@@ -378,7 +560,7 @@ class TestAmendCommitMessage:
                 self._make_log_result("commit msg\n"),
                 self._make_amend_result(),
             ]
-            amend_commit_message("abc1234", self._DELTA, self._COST, "/tmp")
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
 
         amend_cmd = mock_run.call_args_list[1][0][0]
         assert "--no-verify" in amend_cmd
@@ -390,58 +572,28 @@ class TestAmendCommitMessage:
         fail.stderr = "fatal: bad object"
         with patch("subprocess.run", return_value=fail):
             # Should not raise.
-            amend_commit_message("bad_sha", self._DELTA, self._COST, "/tmp")
-
-    def test_cache_ratio_zero_when_no_cache(self) -> None:
-        delta_no_cache = {
-            "input_tokens": 100,
-            "output_tokens": 50,
-            "cache_read_tokens": 0,
-            "cache_write_tokens": 0,
-        }
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = [
-                self._make_log_result("msg\n"),
-                self._make_amend_result(),
-            ]
-            amend_commit_message("abc1234", delta_no_cache, 0.0, "/tmp")
-
-        amend_call = mock_run.call_args_list[1]
-        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
-        assert "X-AI-Cache-Ratio: 0%" in new_msg
-
-    def test_cache_ratio_100_when_all_read(self) -> None:
-        delta_all_read = {
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "cache_read_tokens": 1000,
-            "cache_write_tokens": 0,
-        }
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = [
-                self._make_log_result("msg\n"),
-                self._make_amend_result(),
-            ]
-            amend_commit_message("abc1234", delta_all_read, 0.0, "/tmp")
-
-        amend_call = mock_run.call_args_list[1]
-        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
-        assert "X-AI-Cache-Ratio: 100%" in new_msg
+            amend_commit_message("bad_sha", self._DELTA, "/tmp")
 
 
 # ---------------------------------------------------------------------------
-# write_cost_log() tests
+# write_cost_log() tests (CHANGE 2: cache/cost fields removed)
 # ---------------------------------------------------------------------------
 
 
 class TestWriteCostLog:
+    """Test write_cost_log.
+
+    Note: cost, cache_read, cache_write, and est_cost_usd fields are removed
+    from the JSONL record per CHANGE 2.  write_cost_log() now takes
+    (commit_sha, delta, cwd, output) — no cost parameter.
+    """
+
     _DELTA = {
         "input_tokens": 1000,
         "output_tokens": 200,
         "cache_read_tokens": 50,
         "cache_write_tokens": 25,
     }
-    _COST = 0.0045
     _SHA = "abc1234"
     _CWD = "/home/user/project"
     _OUTPUT = "[main abc1234] feat: something\n 1 file changed"
@@ -451,11 +603,10 @@ class TestWriteCostLog:
         return home / ".claude-mpm" / "commit-costs.jsonl"
 
     def test_jsonl_file_created_and_populated(self, tmp_path: Path) -> None:
-        # Patch Path.home() at the module level used by commit_cost_tracker.
         with patch(
             "claude_mpm.hooks.commit_cost_tracker.Path.home", return_value=tmp_path
         ):
-            write_cost_log(self._SHA, self._DELTA, self._COST, self._CWD, self._OUTPUT)
+            write_cost_log(self._SHA, self._DELTA, self._CWD, self._OUTPUT)
 
         log_path = self._log_path(tmp_path)
         assert log_path.exists()
@@ -463,10 +614,11 @@ class TestWriteCostLog:
         assert len(lines) == 1
 
     def test_jsonl_record_has_required_fields(self, tmp_path: Path) -> None:
+        """Record must contain commit_sha, cwd, tokens_in, tokens_out, timestamp, git_output."""
         with patch(
             "claude_mpm.hooks.commit_cost_tracker.Path.home", return_value=tmp_path
         ):
-            write_cost_log(self._SHA, self._DELTA, self._COST, self._CWD, self._OUTPUT)
+            write_cost_log(self._SHA, self._DELTA, self._CWD, self._OUTPUT)
 
         log_path = self._log_path(tmp_path)
         record = json.loads(log_path.read_text().strip())
@@ -475,20 +627,29 @@ class TestWriteCostLog:
         assert record["cwd"] == self._CWD
         assert record["tokens_in"] == 1000
         assert record["tokens_out"] == 200
-        assert record["cache_read"] == 50
-        assert record["cache_write"] == 25
-        assert abs(record["est_cost_usd"] - self._COST) < 0.000001
         assert "timestamp" in record
         assert "git_output" in record
+
+    def test_no_cache_or_cost_fields_in_record(self, tmp_path: Path) -> None:
+        """Cache and cost fields must NOT appear in the JSONL record (CHANGE 2)."""
+        with patch(
+            "claude_mpm.hooks.commit_cost_tracker.Path.home", return_value=tmp_path
+        ):
+            write_cost_log(self._SHA, self._DELTA, self._CWD, self._OUTPUT)
+
+        log_path = self._log_path(tmp_path)
+        record = json.loads(log_path.read_text().strip())
+
+        assert "cache_read" not in record, "cache_read must be removed from JSONL"
+        assert "cache_write" not in record, "cache_write must be removed from JSONL"
+        assert "est_cost_usd" not in record, "est_cost_usd must be removed from JSONL"
 
     def test_multiple_calls_append_lines(self, tmp_path: Path) -> None:
         with patch(
             "claude_mpm.hooks.commit_cost_tracker.Path.home", return_value=tmp_path
         ):
-            write_cost_log(self._SHA, self._DELTA, self._COST, self._CWD, self._OUTPUT)
-            write_cost_log(
-                "def5678", self._DELTA, self._COST, self._CWD, "other output"
-            )
+            write_cost_log(self._SHA, self._DELTA, self._CWD, self._OUTPUT)
+            write_cost_log("def5678", self._DELTA, self._CWD, "other output")
 
         log_path = self._log_path(tmp_path)
         lines = [ln for ln in log_path.read_text().splitlines() if ln.strip()]
@@ -505,8 +666,7 @@ class TestWriteCostLog:
             "claude_mpm.hooks.commit_cost_tracker.Path.home",
             side_effect=OSError("no home"),
         ):
-            # Should silently log a warning and not raise.
-            write_cost_log(self._SHA, self._DELTA, self._COST, self._CWD, self._OUTPUT)
+            write_cost_log(self._SHA, self._DELTA, self._CWD, self._OUTPUT)
 
 
 # ---------------------------------------------------------------------------
@@ -569,19 +729,19 @@ class TestInternalHelpers:
 # across session turns, and context-usage.json never grew beyond the stale
 # "session-real-test" fixture. Result: git hook always read delta = 0.
 #
-# FIX: set_session_snapshot() REPLACES the stored state with the Stop event's
-# authoritative totals. get_token_delta() then sees the real cumulative minus
-# the baseline, producing correct non-zero output.
+# FIX (CHANGE 1): get_token_delta() now parses the live transcript directly so
+# it does not depend on Stop-event timing.
+# FIX (set_session_snapshot): set_session_snapshot() REPLACES the stored state
+# with the Stop event's authoritative totals.
 # ---------------------------------------------------------------------------
 
 
-class TestSetSessionSnapshotRegressionIssue601:
+class TestZeroValueTrailerRegression:
     """Regression suite verifying fix for always-zero X-AI-* trailers.
 
-    The bug: context-usage.json was either never updated by real sessions
-    (PostToolUse events don't carry usage data) or was double-counted by the
-    additive update_usage() path on Stop events. Either way the baseline
-    always matched context-usage.json, so every commit showed zero tokens.
+    These tests guard the ContextUsageTracker.set_session_snapshot() path
+    (the fallback path used by the Stop event handler).  The CHANGE 1 transcript
+    path is tested in TestGetTokenDeltaFromTranscript.
     """
 
     def _state_file(self, project: Path) -> Path:
@@ -593,17 +753,10 @@ class TestSetSessionSnapshotRegressionIssue601:
     def test_set_session_snapshot_replaces_stale_values(
         self, tmp_project: Path
     ) -> None:
-        """Regression: snapshot must REPLACE old values, not add to them.
-
-        If update_usage() were called with a Stop event's cumulative total,
-        the stored cumulative would equal stale + new (wrong). This test
-        confirms set_session_snapshot() writes exactly the supplied values.
-        """
-        # Seed stale/large values as if a previous session left them.
+        """Regression: snapshot must REPLACE old values, not add to them."""
         _write_usage(tmp_project, inp=100_000, out=20_000, read=80_000, write=5_000)
 
         tracker = self._setup_tracker(tmp_project)
-        # Stop event arrives with current session's cumulative totals (smaller).
         tracker.set_session_snapshot(
             session_id="session-abc123",
             input_tokens=15_000,
@@ -622,20 +775,9 @@ class TestSetSessionSnapshotRegressionIssue601:
         assert raw["session_id"] == "session-abc123"
 
     def test_snapshot_then_delta_yields_nonzero(self, tmp_project: Path) -> None:
-        """End-to-end: simulate a session turn that ends with Stop, then commit.
-
-        1. Seed a baseline (as if a previous commit ran).
-        2. Call set_session_snapshot() with higher values (new Stop event data).
-        3. Run get_token_delta() and assert non-zero output.
-
-        This is the exact scenario that produced all-zero trailers before the fix.
-        Before fix: context-usage.json was never updated -> delta = 0.
-        After fix:  set_session_snapshot() updates it -> delta > 0.
-        """
-        # Baseline from the last commit (simulates a previously run commit hook).
+        """End-to-end (fallback path): snapshot → get_token_delta() yields > 0."""
         _write_baseline(tmp_project, inp=50_000, out=8_000, read=30_000, write=2_000)
 
-        # Stop event fires with updated cumulative for the current session turn.
         tracker = self._setup_tracker(tmp_project)
         tracker.set_session_snapshot(
             session_id="session-live",
@@ -645,24 +787,26 @@ class TestSetSessionSnapshotRegressionIssue601:
             cache_creation=4_500,
         )
 
-        # git post-commit hook runs.
-        delta = get_token_delta(str(tmp_project))
+        with patch(
+            "claude_mpm.hooks.commit_cost_tracker.find_latest_transcript",
+            return_value=None,
+        ):
+            delta = get_token_delta(str(tmp_project))
 
-        assert delta["input_tokens"] == 12_000, (  # 62000 - 50000
+        assert delta["input_tokens"] == 12_000, (
             f"Expected 12000 input delta, got {delta['input_tokens']} "
             "(zero means context-usage.json was not updated — Stop snapshot bug)"
         )
-        assert delta["output_tokens"] == 3_800  # 11800 - 8000
-        assert delta["cache_read_tokens"] == 24_000  # 54000 - 30000
-        assert delta["cache_write_tokens"] == 2_500  # 4500 - 2000
+        assert delta["output_tokens"] == 3_800
+        assert delta["cache_read_tokens"] == 24_000
+        assert delta["cache_write_tokens"] == 2_500
 
-    def test_snapshot_nonzero_cost_in_trailers(self, tmp_project: Path) -> None:
-        """Simulate the full path: snapshot -> get_token_delta -> compute_cost.
+    def test_snapshot_nonzero_tokens_in_trailers(self, tmp_project: Path) -> None:
+        """Simulate the full path: snapshot → get_token_delta → non-zero tokens.
 
         This reproduces the exact conditions under which every X-AI-* trailer
-        used to be 0. After the fix, compute_cost() must return > 0.
+        used to be 0.  After the fix, delta must contain non-zero token counts.
         """
-        # Previous baseline (matching old stale context-usage.json values).
         _write_baseline(tmp_project, inp=0, out=0, read=0, write=0)
 
         tracker = self._setup_tracker(tmp_project)
@@ -674,51 +818,44 @@ class TestSetSessionSnapshotRegressionIssue601:
             cache_creation=500,
         )
 
-        delta = get_token_delta(str(tmp_project))
-        cost = compute_cost(delta)
+        with patch(
+            "claude_mpm.hooks.commit_cost_tracker.find_latest_transcript",
+            return_value=None,
+        ):
+            delta = get_token_delta(str(tmp_project))
 
         assert delta["input_tokens"] > 0, "Regression: input tokens still zero"
         assert delta["output_tokens"] > 0, "Regression: output tokens still zero"
-        assert cost > 0.0, f"Regression: cost is {cost} — trailers would show 0.000000"
 
     def test_update_usage_with_cumulative_causes_double_count(
         self, tmp_project: Path
     ) -> None:
-        """Documents the OLD (broken) additive behaviour for contrast.
-
-        This test shows WHY update_usage() must NOT be called with Stop event
-        cumulative totals. It does NOT test the fix; it demonstrates the defect.
-        If this test fails, update_usage()'s behaviour changed unexpectedly.
-
-        We seed via set_session_snapshot() (which writes valid JSON with session_id)
-        so that _load_state() can deserialise it correctly, then call update_usage()
-        with a "cumulative" value to show the double-count that the old code path
-        would produce.
-        """
+        """Documents the OLD (broken) additive behaviour for contrast."""
         tracker = self._setup_tracker(tmp_project)
-        # Seed a valid state via set_session_snapshot (the correct write path).
         tracker.set_session_snapshot(
             session_id="session-turn1", input_tokens=50_000, output_tokens=8_000
         )
-
-        # Mistakenly call update_usage() with a Stop event's cumulative total.
-        # This simulates the old broken code path.
         tracker.update_usage(input_tokens=62_000, output_tokens=11_800)
 
-        raw = json.loads(self._state_file(tmp_project).read_text())
-        # The stored value is wrong (50k + 62k = 112k instead of the correct 62k).
+        raw = json.loads(
+            (tmp_project / ".claude-mpm" / "state" / "context-usage.json").read_text()
+        )
         assert raw["cumulative_input_tokens"] == 112_000, (
             "update_usage() should ADD to existing; this test documents the defect"
         )
 
-    def test_multiple_stop_events_do_not_accumulate(self, tmp_project: Path) -> None:
-        """Two consecutive Stop events must not inflate the stored total.
 
-        Turn 1 ends: cumulative=10k input.
-        Turn 2 ends: cumulative=18k input (1k new in turn 2).
-        After two snapshots: context-usage.json should reflect 18k, not 28k.
-        """
-        tracker = self._setup_tracker(tmp_project)
+# ---------------------------------------------------------------------------
+# Multiple Stop events regression
+# ---------------------------------------------------------------------------
+
+
+class TestMultipleStopEventsDoNotAccumulate:
+    """Two consecutive Stop events must not inflate the stored total."""
+
+    def test_multiple_stop_events_do_not_accumulate(self, tmp_project: Path) -> None:
+        """Two consecutive Stop events must not inflate the stored total."""
+        tracker = ContextUsageTracker(project_path=tmp_project)
 
         tracker.set_session_snapshot(
             session_id="session-xyz", input_tokens=10_000, output_tokens=2_000
@@ -727,7 +864,9 @@ class TestSetSessionSnapshotRegressionIssue601:
             session_id="session-xyz", input_tokens=18_000, output_tokens=3_500
         )
 
-        raw = json.loads(self._state_file(tmp_project).read_text())
+        raw = json.loads(
+            (tmp_project / ".claude-mpm" / "state" / "context-usage.json").read_text()
+        )
         assert raw["cumulative_input_tokens"] == 18_000, (
             f"After two snapshots: expected 18000, got {raw['cumulative_input_tokens']} "
             "(double-counting bug — each Stop event should replace, not add)"
