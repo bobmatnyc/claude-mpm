@@ -1099,12 +1099,6 @@
   },
   {
     "relpath": "cli/commands/configure_agent_deployment.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in cli/commands/configure_agent_deployment.py"
-  },
-  {
-    "relpath": "cli/commands/configure_agent_deployment.py",
     "qualname": "AgentDeploymentHandler",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "AgentDeploymentHandler in cli/commands/configure_agent_deployment.py exceeds thresholds (LOC=992, CC=1) but has no WWL doc-comment"
@@ -1114,12 +1108,6 @@
     "qualname": "AgentDeploymentHandler.deploy_agents_preset",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "AgentDeploymentHandler.deploy_agents_preset in cli/commands/configure_agent_deployment.py exceeds thresholds (LOC=80, CC=11) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/commands/configure_agent_deployment.py",
-    "qualname": "AgentDeploymentHandler.deploy_agents_unified",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDeploymentHandler.deploy_agents_unified in cli/commands/configure_agent_deployment.py exceeds thresholds (LOC=464, CC=84) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/configure_agent_deployment.py",
@@ -2311,12 +2299,6 @@
   },
   {
     "relpath": "cli/commands/run.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in cli/commands/run.py"
-  },
-  {
-    "relpath": "cli/commands/run.py",
     "qualname": "RunCommand",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "RunCommand in cli/commands/run.py exceeds thresholds (LOC=440, CC=1) but has no WWL doc-comment"
@@ -2356,12 +2338,6 @@
     "qualname": "filter_claude_mpm_args",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "filter_claude_mpm_args in cli/commands/run.py exceeds thresholds (LOC=108, CC=10) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/commands/run.py",
-    "qualname": "run_session_legacy",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "run_session_legacy in cli/commands/run.py exceeds thresholds (LOC=507, CC=79) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/run_guarded.py",
@@ -2995,12 +2971,6 @@
   },
   {
     "relpath": "cli/executor.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in cli/executor.py"
-  },
-  {
-    "relpath": "cli/executor.py",
     "qualname": "_handle_autotodos",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "_handle_autotodos in cli/executor.py exceeds thresholds (LOC=85, CC=21) but has no WWL doc-comment"
@@ -3010,12 +2980,6 @@
     "qualname": "_handle_hook_errors",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "_handle_hook_errors in cli/executor.py exceeds thresholds (LOC=61, CC=20) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/executor.py",
-    "qualname": "execute_command",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "execute_command in cli/executor.py exceeds thresholds (LOC=300, CC=52) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/helpers.py",
@@ -3265,12 +3229,6 @@
   },
   {
     "relpath": "cli/parsers/base_parser.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in cli/parsers/base_parser.py"
-  },
-  {
-    "relpath": "cli/parsers/base_parser.py",
     "qualname": "SuggestingArgumentParser",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "SuggestingArgumentParser in cli/parsers/base_parser.py exceeds thresholds (LOC=82, CC=1) but has no WWL doc-comment"
@@ -3292,12 +3250,6 @@
     "qualname": "add_top_level_run_arguments",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "add_top_level_run_arguments in cli/parsers/base_parser.py exceeds thresholds (LOC=233, CC=1) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/parsers/base_parser.py",
-    "qualname": "create_parser",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "create_parser in cli/parsers/base_parser.py exceeds thresholds (LOC=456, CC=43) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/parsers/config_parser.py",
@@ -3661,12 +3613,6 @@
   },
   {
     "relpath": "cli/startup.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in cli/startup.py"
-  },
-  {
-    "relpath": "cli/startup.py",
     "qualname": "_check_anthropic_auth",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "_check_anthropic_auth in cli/startup.py exceeds thresholds (LOC=85, CC=16) but has no WWL doc-comment"
@@ -3778,18 +3724,6 @@
     "qualname": "sync_hooks_on_startup",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "sync_hooks_on_startup in cli/startup.py exceeds thresholds (LOC=84, CC=12) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/startup.py",
-    "qualname": "sync_remote_agents_on_startup",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "sync_remote_agents_on_startup in cli/startup.py exceeds thresholds (LOC=243, CC=29) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/startup.py",
-    "qualname": "sync_remote_skills_on_startup",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "sync_remote_skills_on_startup in cli/startup.py exceeds thresholds (LOC=368, CC=41) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/startup.py",
