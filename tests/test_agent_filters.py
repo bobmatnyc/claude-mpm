@@ -51,8 +51,15 @@ class TestIsBaseAgent:
         assert is_base_agent("BASE-AGENT") is True
 
     def test_base_agent_no_separator(self):
-        """baseagent no separator should be detected."""
-        assert is_base_agent("baseagent") is True
+        """baseagent no separator (compound word) — not a BASE template prefix.
+
+        The canonical predicate checks for the ``base-`` / ``base_`` prefix
+        (separator required).  A bare ``baseagent`` string does not have a
+        separator so it is NOT matched — it could be a real agent named
+        ``baseagent``.  This behaviour was changed when ``is_base_agent``
+        was updated to delegate to ``is_base_template``.
+        """
+        assert is_base_agent("baseagent") is False
 
     def test_regular_agent_not_detected(self):
         """Regular agents should not be detected as BASE_AGENT."""
@@ -61,9 +68,14 @@ class TestIsBaseAgent:
         assert is_base_agent("QA") is False
 
     def test_partial_match_not_detected(self):
-        """Partial matches should not be detected."""
-        assert is_base_agent("BASE_ENGINEER") is False
-        assert is_base_agent("AGENT_BASE") is False
+        """Only genuine suffix-style non-BASE-prefixed strings are not detected.
+
+        ``BASE_ENGINEER`` and ``BASE-ENGINEER`` ARE composition templates —
+        they start with ``BASE_`` / ``BASE-`` and therefore match.
+        ``AGENT_BASE`` is NOT a template — it does not start with ``base``.
+        """
+        assert is_base_agent("BASE_ENGINEER") is True  # IS a composition template
+        assert is_base_agent("AGENT_BASE") is False  # suffix only, not a template
 
     def test_empty_string(self):
         """Empty string should not be detected."""
