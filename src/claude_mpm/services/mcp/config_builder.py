@@ -68,6 +68,16 @@ class MCPServiceConfigBuilder:
             "command": "trusty-analyzer",
             "args": ["mcp"],
         },
+        # Review-on-demand MCP server. ``env`` carries ONLY non-secret config:
+        # TRUSTY_REVIEW_AUTH_MODE=cli lets a local GitHub PAT work in serve mode.
+        # AWS creds / GITHUB_TOKEN are inherited from the Claude Code process
+        # environment and must NOT be hardcoded here.
+        "trusty-review": {
+            "type": "stdio",
+            "command": "trusty-review",
+            "args": ["serve", "--stdio"],
+            "env": {"TRUSTY_REVIEW_AUTH_MODE": "cli"},
+        },
     }
 
     def __init__(
