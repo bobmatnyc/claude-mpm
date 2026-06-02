@@ -870,21 +870,59 @@ def run_session_legacy(args):
     """
     Legacy run session implementation.
 
-    WHAT: Accepts a parsed argparse Namespace, runs the full MPM startup
-    sequence (migrations, health checks, dependency checks, session management),
-    and dispatches to interactive, non-interactive, SDK oneshot, or headless
-    execution; returns implicitly with all output as side effects.
+    WHAT: Accepts a parsed argparse Namespace and returns implicitly (all output
+    is a side effect). Execution follows this order:
 
-    WHY: This contains the original run_session logic, preserved during migration
-    to BaseCommand pattern. Will be gradually refactored into the RunCommand class.
-    Keeping it here allows RunCommand to delegate without re-implementing the
-    full startup sequence during the transition.
+    Early-exit paths (before any startup work):
+    1. **Headless** — if ``args.headless`` is set, delegates to
+       ``_run_headless_session`` and calls ``sys.exit`` immediately.
+    2. **SDK oneshot** — if ``args.sdk`` and ``args.prompt`` are set, sets
+       ``CLAUDE_MPM_RUNTIME=sdk``, calls ``run_sdk_oneshot``, and returns.
+    3. **Slack bot** — after statusline autoconfig and migrations run, if
+       ``args.slack`` is set, calls ``_start_slack_bot`` and returns.
+
+    Startup sequence (runs only for interactive/non-interactive paths):
+    - Startup logging setup and migrations (``run_pending_migrations``).
+    - Statusline autoconfig (idempotent, handles ``--update-statusline``).
+    - Old startup-log cleanup.
+    - Configuration health check and ``.claude.json`` memory warning.
+    - Optional agent reload (``--reload-agents``).
+    - Background vector-search indexing (``start_vector_search_indexing``).
+    - Session management / resumption via ``SessionManager``.
+    - Slash-command deployment (``deploy_commands_on_startup``).
+    - Smart dependency checking with optional interactive install prompt.
+    - Socket.IO / monitoring setup (``UnifiedDashboardManager``).
+    - ``ClaudeRunner`` construction.
+
+    Terminal dispatches (at the bottom of the function, mutually exclusive):
+    - SDK oneshot (late path, ``launch_method == "sdk"``): ``run_sdk_oneshot``.
+    - Non-interactive / ``--input``: ``runner.run_oneshot``.
+    - Interactive with ``--intercept-commands``: launches interactive_wrapper.py.
+    - Interactive (default): ``runner.run_interactive``.
+
+    WHY: This contains the original run_session logic, preserved intact during
+    the migration to BaseCommand pattern so that ``RunCommand`` can delegate
+    without re-implementing the complex startup sequence. The startup sequence
+    is intentionally sequential: each concern (migrations, statusline, Slack,
+    log cleanup, vector search, session, commands, dependencies, monitoring)
+    was added independently over time, and extraction into the class methods
+    of ``RunCommand`` is tracked as future work.
+
+    ``filter_claude_mpm_args`` is called before handing args to ClaudeRunner
+    because ``argparse.REMAINDER`` captures MPM-specific flags alongside
+    genuine Claude CLI flags; Claude CLI errors on any flag it does not
+    recognise.
+
+    The three early-exit paths (headless, SDK oneshot, Slack) are ordered before
+    the startup sequence so that lightweight, fire-and-forget invocations do not
+    pay the cost of migrations, dependency checks, or Socket.IO setup they do
+    not need.
+
+    Cyclomatic complexity is high because independent startup concerns have
+    accumulated sequentially in one function rather than being dispatched to
+    separate handlers.
 
     :spec: SPEC-CLI-02~1
-
-    DESIGN DECISION: We use ClaudeRunner to handle the complexity of
-    subprocess management and hook integration, keeping this function focused
-    on high-level orchestration.
 
     Args:
         args: Parsed command line arguments
