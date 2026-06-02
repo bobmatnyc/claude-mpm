@@ -7,6 +7,9 @@ Covers:
 - amend_commit_message(): trailers added, Co-Authored-By normalised.
 - write_cost_log(): JSONL record appended with correct fields.
 - extract_commit_sha(): SHA extracted from various git commit outputs.
+- Regression tests for the zero-trailer bug (issue #601):
+  ContextUsageTracker.set_session_snapshot() must replace (not add to)
+  context-usage.json so the git post-commit hook sees non-zero deltas.
 """
 
 from __future__ import annotations
@@ -33,6 +36,9 @@ from claude_mpm.hooks.commit_cost_tracker import (
     extract_commit_sha,
     get_token_delta,
     write_cost_log,
+)
+from claude_mpm.services.infrastructure.context_usage_tracker import (
+    ContextUsageTracker,
 )
 
 # ---------------------------------------------------------------------------
@@ -552,3 +558,178 @@ class TestInternalHelpers:
         lines = [l for l in target.read_text().splitlines() if l.strip()]
         assert len(lines) == 2
         assert json.loads(lines[1]) == {"x": 2}
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for the zero-trailer bug (issue #601)
+# ---------------------------------------------------------------------------
+# ROOT CAUSE: ContextUsageTracker.update_usage() ADDS to existing values.
+# Claude Code's Stop event provides CUMULATIVE session totals, not per-call
+# deltas. Calling update_usage() with cumulative totals causes double-counting
+# across session turns, and context-usage.json never grew beyond the stale
+# "session-real-test" fixture. Result: git hook always read delta = 0.
+#
+# FIX: set_session_snapshot() REPLACES the stored state with the Stop event's
+# authoritative totals. get_token_delta() then sees the real cumulative minus
+# the baseline, producing correct non-zero output.
+# ---------------------------------------------------------------------------
+
+
+class TestSetSessionSnapshotRegressionIssue601:
+    """Regression suite verifying fix for always-zero X-AI-* trailers.
+
+    The bug: context-usage.json was either never updated by real sessions
+    (PostToolUse events don't carry usage data) or was double-counted by the
+    additive update_usage() path on Stop events. Either way the baseline
+    always matched context-usage.json, so every commit showed zero tokens.
+    """
+
+    def _state_file(self, project: Path) -> Path:
+        return project / ".claude-mpm" / "state" / "context-usage.json"
+
+    def _setup_tracker(self, project: Path) -> ContextUsageTracker:
+        return ContextUsageTracker(project_path=project)
+
+    def test_set_session_snapshot_replaces_stale_values(
+        self, tmp_project: Path
+    ) -> None:
+        """Regression: snapshot must REPLACE old values, not add to them.
+
+        If update_usage() were called with a Stop event's cumulative total,
+        the stored cumulative would equal stale + new (wrong). This test
+        confirms set_session_snapshot() writes exactly the supplied values.
+        """
+        # Seed stale/large values as if a previous session left them.
+        _write_usage(tmp_project, inp=100_000, out=20_000, read=80_000, write=5_000)
+
+        tracker = self._setup_tracker(tmp_project)
+        # Stop event arrives with current session's cumulative totals (smaller).
+        tracker.set_session_snapshot(
+            session_id="session-abc123",
+            input_tokens=15_000,
+            output_tokens=3_000,
+            cache_read=12_000,
+            cache_creation=1_500,
+        )
+
+        raw = json.loads(self._state_file(tmp_project).read_text())
+        assert raw["cumulative_input_tokens"] == 15_000, (
+            "set_session_snapshot must overwrite; got double-counted value instead"
+        )
+        assert raw["cumulative_output_tokens"] == 3_000
+        assert raw["cache_read_tokens"] == 12_000
+        assert raw["cache_creation_tokens"] == 1_500
+        assert raw["session_id"] == "session-abc123"
+
+    def test_snapshot_then_delta_yields_nonzero(self, tmp_project: Path) -> None:
+        """End-to-end: simulate a session turn that ends with Stop, then commit.
+
+        1. Seed a baseline (as if a previous commit ran).
+        2. Call set_session_snapshot() with higher values (new Stop event data).
+        3. Run get_token_delta() and assert non-zero output.
+
+        This is the exact scenario that produced all-zero trailers before the fix.
+        Before fix: context-usage.json was never updated -> delta = 0.
+        After fix:  set_session_snapshot() updates it -> delta > 0.
+        """
+        # Baseline from the last commit (simulates a previously run commit hook).
+        _write_baseline(tmp_project, inp=50_000, out=8_000, read=30_000, write=2_000)
+
+        # Stop event fires with updated cumulative for the current session turn.
+        tracker = self._setup_tracker(tmp_project)
+        tracker.set_session_snapshot(
+            session_id="session-live",
+            input_tokens=62_000,
+            output_tokens=11_800,
+            cache_read=54_000,
+            cache_creation=4_500,
+        )
+
+        # git post-commit hook runs.
+        delta = get_token_delta(str(tmp_project))
+
+        assert delta["input_tokens"] == 12_000, (  # 62000 - 50000
+            f"Expected 12000 input delta, got {delta['input_tokens']} "
+            "(zero means context-usage.json was not updated — Stop snapshot bug)"
+        )
+        assert delta["output_tokens"] == 3_800  # 11800 - 8000
+        assert delta["cache_read_tokens"] == 24_000  # 54000 - 30000
+        assert delta["cache_write_tokens"] == 2_500  # 4500 - 2000
+
+    def test_snapshot_nonzero_cost_in_trailers(self, tmp_project: Path) -> None:
+        """Simulate the full path: snapshot -> get_token_delta -> compute_cost.
+
+        This reproduces the exact conditions under which every X-AI-* trailer
+        used to be 0. After the fix, compute_cost() must return > 0.
+        """
+        # Previous baseline (matching old stale context-usage.json values).
+        _write_baseline(tmp_project, inp=0, out=0, read=0, write=0)
+
+        tracker = self._setup_tracker(tmp_project)
+        tracker.set_session_snapshot(
+            session_id="session-real",
+            input_tokens=10_000,
+            output_tokens=2_000,
+            cache_read=8_000,
+            cache_creation=500,
+        )
+
+        delta = get_token_delta(str(tmp_project))
+        cost = compute_cost(delta)
+
+        assert delta["input_tokens"] > 0, "Regression: input tokens still zero"
+        assert delta["output_tokens"] > 0, "Regression: output tokens still zero"
+        assert cost > 0.0, f"Regression: cost is {cost} — trailers would show 0.000000"
+
+    def test_update_usage_with_cumulative_causes_double_count(
+        self, tmp_project: Path
+    ) -> None:
+        """Documents the OLD (broken) additive behaviour for contrast.
+
+        This test shows WHY update_usage() must NOT be called with Stop event
+        cumulative totals. It does NOT test the fix; it demonstrates the defect.
+        If this test fails, update_usage()'s behaviour changed unexpectedly.
+
+        We seed via set_session_snapshot() (which writes valid JSON with session_id)
+        so that _load_state() can deserialise it correctly, then call update_usage()
+        with a "cumulative" value to show the double-count that the old code path
+        would produce.
+        """
+        tracker = self._setup_tracker(tmp_project)
+        # Seed a valid state via set_session_snapshot (the correct write path).
+        tracker.set_session_snapshot(
+            session_id="session-turn1", input_tokens=50_000, output_tokens=8_000
+        )
+
+        # Mistakenly call update_usage() with a Stop event's cumulative total.
+        # This simulates the old broken code path.
+        tracker.update_usage(input_tokens=62_000, output_tokens=11_800)
+
+        raw = json.loads(self._state_file(tmp_project).read_text())
+        # The stored value is wrong (50k + 62k = 112k instead of the correct 62k).
+        assert raw["cumulative_input_tokens"] == 112_000, (
+            "update_usage() should ADD to existing; this test documents the defect"
+        )
+
+    def test_multiple_stop_events_do_not_accumulate(self, tmp_project: Path) -> None:
+        """Two consecutive Stop events must not inflate the stored total.
+
+        Turn 1 ends: cumulative=10k input.
+        Turn 2 ends: cumulative=18k input (1k new in turn 2).
+        After two snapshots: context-usage.json should reflect 18k, not 28k.
+        """
+        tracker = self._setup_tracker(tmp_project)
+
+        tracker.set_session_snapshot(
+            session_id="session-xyz", input_tokens=10_000, output_tokens=2_000
+        )
+        tracker.set_session_snapshot(
+            session_id="session-xyz", input_tokens=18_000, output_tokens=3_500
+        )
+
+        raw = json.loads(self._state_file(tmp_project).read_text())
+        assert raw["cumulative_input_tokens"] == 18_000, (
+            f"After two snapshots: expected 18000, got {raw['cumulative_input_tokens']} "
+            "(double-counting bug — each Stop event should replace, not add)"
+        )
+        assert raw["cumulative_output_tokens"] == 3_500
