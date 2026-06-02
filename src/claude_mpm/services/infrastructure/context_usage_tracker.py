@@ -192,6 +192,74 @@ class ContextUsageTracker:
         """
         return self._load_state()
 
+    def set_session_snapshot(
+        self,
+        session_id: str,
+        input_tokens: int,
+        output_tokens: int,
+        cache_creation: int = 0,
+        cache_read: int = 0,
+    ) -> ContextUsageState:
+        """Overwrite context-usage.json with a fresh cumulative snapshot.
+
+        WHY: Claude Code's Stop event provides *cumulative* session totals (not
+        per-call deltas). Calling ``update_usage()`` on those totals would add
+        the cumulative total to whatever was already stored, causing double- and
+        triple-counting across turns. This method REPLACES the stored state with
+        the authoritative snapshot so the git post-commit hook always reads the
+        correct cumulative total.
+
+        Correct call site: stop_handler, whenever a Stop event includes a
+        ``usage`` dict. Do NOT use ``update_usage()`` for Stop-event data.
+
+        What: Constructs a new ContextUsageState from the supplied values and
+        atomically writes it to disk, discarding any previously accumulated state.
+
+        Test: Seed context-usage.json with stale large values, call
+        set_session_snapshot() with smaller real values, assert the file now
+        reflects exactly those smaller values (not stale + new).
+
+        Args:
+            session_id: The Claude Code session identifier for this snapshot.
+            input_tokens: Cumulative input tokens for the session (from Stop usage).
+            output_tokens: Cumulative output tokens for the session (from Stop usage).
+            cache_creation: Cumulative cache-creation tokens (from Stop usage).
+            cache_read: Cumulative cache-read tokens (from Stop usage).
+
+        Returns:
+            The saved ContextUsageState.
+        """
+        if any(
+            t < 0 for t in [input_tokens, output_tokens, cache_creation, cache_read]
+        ):
+            raise ValueError("Token counts cannot be negative")
+
+        total_tokens = input_tokens + output_tokens
+        percentage_used = (total_tokens / self.CONTEXT_BUDGET) * 100
+
+        state = ContextUsageState(
+            session_id=session_id,
+            cumulative_input_tokens=input_tokens,
+            cumulative_output_tokens=output_tokens,
+            cache_creation_tokens=cache_creation,
+            cache_read_tokens=cache_read,
+            percentage_used=percentage_used,
+            threshold_reached=None,
+            auto_pause_active=False,
+            last_updated=datetime.now(UTC).isoformat(),
+        )
+        state.threshold_reached = self.check_thresholds(state)
+        if state.threshold_reached in {"auto_pause", "critical"}:
+            state.auto_pause_active = True
+
+        self._save_state(state)
+
+        logger.debug(
+            f"Session snapshot saved: {total_tokens}/{self.CONTEXT_BUDGET} tokens "
+            f"({state.percentage_used:.1f}%), session={session_id}"
+        )
+        return state
+
     def reset_session(self, new_session_id: str) -> None:
         """Reset tracking for a new session.
 
