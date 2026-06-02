@@ -9,7 +9,6 @@ import asyncio
 import re
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 
 # Import tool analysis with fallback for direct execution
 try:
@@ -582,32 +581,13 @@ class ToolHandler:
 
         self.hook_handler._emit_socketio_event("", "post_tool", post_tool_data)
 
-        # Update context-usage.json from PostToolUse usage data.
-        # Claude Code includes cumulative session token counts in PostToolUse events
-        # under the "usage" key. We persist these so the git post-commit hook
-        # (commit_cost_tracker.run_as_git_hook) can read fresh data when it runs.
-        # Fail-open: errors here must never break normal tool processing.
-        _post_usage = event.get("usage")
-        if _post_usage and isinstance(_post_usage, dict) and working_dir:
-            try:
-                from claude_mpm.services.infrastructure.context_usage_tracker import (
-                    ContextUsageTracker,
-                )
-
-                _tracker = ContextUsageTracker(project_path=Path(working_dir))
-                _tracker.update_usage(
-                    input_tokens=int(_post_usage.get("input_tokens", 0) or 0),
-                    output_tokens=int(_post_usage.get("output_tokens", 0) or 0),
-                    cache_creation=int(
-                        _post_usage.get("cache_creation_input_tokens", 0) or 0
-                    ),
-                    cache_read=int(_post_usage.get("cache_read_input_tokens", 0) or 0),
-                )
-            except Exception as _usage_exc:
-                if DEBUG:
-                    _log(
-                        f"  - context-usage update from PostToolUse failed (fail-open): {_usage_exc}"
-                    )
+        # NOTE: context-usage.json is updated by the Stop event handler, not here.
+        # Claude Code's PostToolUse events do NOT include a "usage" field; only
+        # the Stop event carries cumulative session token totals. The stop_handler
+        # calls ContextUsageTracker.set_session_snapshot() on each Stop event to
+        # persist authoritative cumulative counts so the git post-commit hook
+        # (commit_cost_tracker.run_as_git_hook) can read them at commit time.
+        # Any "usage" key present in a PostToolUse event is unexpected and ignored.
 
         # NOTE: git commit cost tracking has moved to a git post-commit hook.
         # The PostToolUse approach only fired for the parent session's Bash
