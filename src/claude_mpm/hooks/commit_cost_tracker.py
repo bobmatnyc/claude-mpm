@@ -1,9 +1,9 @@
-"""Commit cost tracker: embed token cost trailers in every git commit.
+"""Commit cost tracker: embed token trailers in every git commit.
 
 WHY: Every git commit made through Claude Code should automatically record the
-AI token cost so teams can track spend per commit. Normalises the Co-Authored-By
-trailer to the canonical Claude MPM form and appends structured JSONL records
-to ~/.claude-mpm/commit-costs.jsonl for offline analysis.
+AI token usage so teams can track activity per commit. Normalises the
+Co-Authored-By trailer to the canonical Claude MPM form and appends structured
+JSONL records to ~/.claude-mpm/commit-costs.jsonl for offline analysis.
 
 DESIGN DECISIONS:
 - run_as_git_hook() is invoked by the .git/hooks/post-commit shell script so
@@ -13,15 +13,20 @@ DESIGN DECISIONS:
 - Per-commit delta = cumulative snapshot at run time minus last-recorded
   baseline. The baseline is stored in .claude-mpm/state/commit-token-baseline.json
   inside the project directory (found by walking upward from cwd).
+- LIVE TRANSCRIPT LOOKUP (fix for #601): At commit time, context-usage.json may
+  be stale (it is only updated when a Stop event fires, but git commit runs
+  mid-turn as a tool call before Stop).  get_token_delta() now parses the active
+  session transcript directly (the most-recently-modified JSONL in
+  ~/.claude/projects/{encoded_cwd}/) to obtain live cumulative token counts.
+  Falls back to context-usage.json when no transcript is found.
 - Atomic file I/O (write-to-temp, then rename) prevents corruption when hooks
   run concurrently across worktrees.
 - All subprocess calls use stdlib only; no new dependencies.
 - If any step fails we log a warning and return without raising so the commit
   itself is never broken.
 - The amend uses --no-verify to avoid triggering hooks recursively.
-- Configurable pricing via env vars CLAUDE_MPM_PRICE_INPUT,
-  CLAUDE_MPM_PRICE_OUTPUT, CLAUDE_MPM_PRICE_CACHE_READ,
-  CLAUDE_MPM_PRICE_CACHE_WRITE (all in $/MTok).
+- Trailers emitted: X-AI-Tokens-In, X-AI-Tokens-Out, and conditionally
+  X-AI-Model / X-AI-Models.  Cost and cache trailers have been removed.
 """
 
 from __future__ import annotations
@@ -36,6 +41,11 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from claude_mpm.hooks.transcript_usage import (
+    find_latest_transcript,
+    parse_transcript_usage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +76,6 @@ def _debug(message: str) -> None:
     except Exception:
         pass  # Never raise from a debug helper
 
-
-# ---------------------------------------------------------------------------
-# Pricing constants ($/MTok = dollars per million tokens)
-# ---------------------------------------------------------------------------
-_DEFAULT_PRICE_INPUT: float = 3.00
-_DEFAULT_PRICE_OUTPUT: float = 15.00
-_DEFAULT_PRICE_CACHE_READ: float = 0.30
-_DEFAULT_PRICE_CACHE_WRITE: float = 3.75
 
 # ---------------------------------------------------------------------------
 # Canonical Co-Authored-By trailer
@@ -111,26 +113,107 @@ _SHA_RE = re.compile(r"\[.*?\s+([a-f0-9]{7,40})\]")
 # ---------------------------------------------------------------------------
 
 
+def _read_live_cumulative(cwd: str) -> tuple[dict[str, int], dict[str, dict[str, int]]]:
+    """Read live cumulative token counts, preferring the active transcript.
+
+    WHY: context-usage.json is only updated when a Stop event fires (end of
+    agent turn), but ``git commit`` runs mid-turn as a tool call BEFORE Stop.
+    At commit time the snapshot is therefore stale and any delta against the
+    baseline reads 0 (issue #601).  Parsing the live transcript directly gives
+    accurate counts regardless of whether Stop has fired yet.
+
+    WHAT: Tries to locate the most recently modified JSONL in
+    ``~/.claude/projects/{encoded_cwd}/`` and parse it with
+    ``parse_transcript_usage()``.  If that succeeds, maps the transcript totals
+    to the same keys used by context-usage.json.  Falls back to reading
+    context-usage.json when no transcript is found or parsing yields nothing.
+
+    TEST: Seed a stale context-usage.json with zeros, create a transcript JSONL
+    fixture with known token counts, call ``_read_live_cumulative(cwd)``, and
+    assert the returned counts match the transcript (not the stale file).
+
+    Args:
+        cwd: Repository working directory (absolute path string).
+
+    Returns:
+        Tuple of (cumulative_totals_dict, per_model_dict) where
+        cumulative_totals_dict has keys: input_tokens, output_tokens,
+        cache_read_tokens, cache_write_tokens (all non-negative integers).
+    """
+    # --- Attempt 1: parse the live session transcript ---
+    latest = find_latest_transcript(cwd)
+    if latest is not None:
+        _debug(f"_read_live_cumulative: trying transcript {latest.name}")
+        parsed = parse_transcript_usage(latest)
+        if parsed is not None:
+            cumulative = {
+                "input_tokens": parsed["input_tokens"],
+                "output_tokens": parsed["output_tokens"],
+                # transcript uses cache_creation_input_tokens / cache_read_input_tokens
+                "cache_read_tokens": parsed["cache_read_input_tokens"],
+                "cache_write_tokens": parsed["cache_creation_input_tokens"],
+            }
+            cumulative_models: dict[str, dict[str, int]] = (
+                parsed.get("models", {}) or {}
+            )
+            _debug(
+                f"_read_live_cumulative: from transcript — "
+                f"in={cumulative['input_tokens']} out={cumulative['output_tokens']} "
+                f"models={list(cumulative_models.keys())}"
+            )
+            return cumulative, cumulative_models
+        _debug(
+            "_read_live_cumulative: transcript parse returned None; falling back to snapshot"
+        )
+    else:
+        _debug("_read_live_cumulative: no transcript found; falling back to snapshot")
+
+    # --- Fallback: read context-usage.json snapshot ---
+    project_root = Path(cwd).resolve()
+    usage_file = project_root / ".claude-mpm" / "state" / "context-usage.json"
+    current = _read_json_safe(usage_file)
+    _debug(f"_read_live_cumulative: snapshot raw keys={list(current.keys())}")
+
+    # Guard against stale test data.
+    session_id = current.get("session_id", "")
+    if session_id == "summary-test":
+        _debug(
+            f"_read_live_cumulative: WARNING stale sentinel session_id={session_id!r} — treating as empty"
+        )
+        current = {}
+
+    cumulative_fallback = {
+        "input_tokens": int(current.get("cumulative_input_tokens", 0)),
+        "output_tokens": int(current.get("cumulative_output_tokens", 0)),
+        "cache_read_tokens": int(current.get("cache_read_tokens", 0)),
+        "cache_write_tokens": int(current.get("cache_creation_tokens", 0)),
+    }
+    fallback_models: dict[str, dict[str, int]] = current.get("models", {}) or {}
+    return cumulative_fallback, fallback_models
+
+
 def get_token_delta(cwd: str) -> dict[str, Any]:
     """Return per-commit token delta and update the running baseline.
 
-    Reads the current cumulative totals from context-usage.json, computes the
-    difference against the last-recorded baseline, then writes the new baseline
-    so subsequent commits get the correct incremental numbers.
+    Reads live cumulative totals (from the active transcript or context-usage.json
+    as a fallback), computes the difference against the last-recorded baseline,
+    then writes the new baseline so subsequent commits get correct incremental
+    numbers.
 
-    WHY: Every commit needs the incremental token cost since the previous commit
-    so that X-AI-* trailers reflect only the work done for that commit.
+    WHY: Every commit needs the incremental token usage since the previous commit
+    so that X-AI-* trailers reflect only the work done for that commit.  The
+    live transcript lookup (see _read_live_cumulative) fixes issue #601 where
+    stale context-usage.json caused all-zero deltas.
 
-    WHAT: Reads snapshot + baseline files, returns delta dict with integer token
-    fields plus a per-model ``models`` dict for the same delta window.  The
+    WHAT: Reads live cumulative + baseline files, returns delta dict with integer
+    token fields plus a per-model ``models`` dict for the same delta window.  The
     per-model delta is computed independently for each model: if a model appears
     in the snapshot but not the baseline it gets its full snapshot value; if it
     only appears in the baseline it contributes zero (clamped).
 
-    TEST: Seed snapshot with two models, seed baseline with one of those models,
-    call get_token_delta(), assert the model absent from baseline has its full
-    count, the shared model has the incremental delta, and the other model has
-    zero (clamped).
+    TEST: Seed a stale context-usage.json with zeros, provide a transcript JSONL
+    fixture with known token counts, call get_token_delta(), and assert the delta
+    matches the transcript counts (not the stale snapshot).
 
     Args:
         cwd: Working directory of the repository (used to locate .claude-mpm/).
@@ -141,42 +224,15 @@ def get_token_delta(cwd: str) -> dict[str, Any]:
         mapping model name to per-model token delta (same four keys).
     """
     project_root = Path(cwd).resolve()
-    usage_file = project_root / ".claude-mpm" / "state" / "context-usage.json"
     baseline_file = (
         project_root / ".claude-mpm" / "state" / "commit-token-baseline.json"
     )
 
     _debug(f"get_token_delta: cwd={cwd}")
-    _debug(f"  usage_file={usage_file} exists={usage_file.exists()}")
     _debug(f"  baseline_file={baseline_file} exists={baseline_file.exists()}")
 
-    # Read current cumulative totals (graceful degradation if missing).
-    current = _read_json_safe(usage_file)
-    _debug(f"  context-usage.json raw: {json.dumps(current)}")
-
-    # Guard against stale test data: if session_id looks like a test artifact
-    # (e.g. "summary-test") treat the file as empty so we get zero-delta rather
-    # than fraudulent large deltas.  We do NOT apply a numeric threshold here
-    # because heavy caching sessions can legitimately accumulate millions of
-    # cache-read tokens; only the sentinel session_id signals stale test state.
-    session_id = current.get("session_id", "")
-    if session_id == "summary-test":
-        raw_input = int(current.get("cumulative_input_tokens", 0))
-        raw_output = int(current.get("cumulative_output_tokens", 0))
-        _debug(
-            f"  WARNING: context-usage.json appears stale (session_id={session_id!r}, "
-            f"input={raw_input}, output={raw_output}) — treating as empty"
-        )
-        current = {}
-
-    cumulative = {
-        "input_tokens": int(current.get("cumulative_input_tokens", 0)),
-        "output_tokens": int(current.get("cumulative_output_tokens", 0)),
-        "cache_read_tokens": int(current.get("cache_read_tokens", 0)),
-        "cache_write_tokens": int(current.get("cache_creation_tokens", 0)),
-    }
-    # Per-model cumulative snapshot (may be empty for old state files).
-    cumulative_models: dict[str, dict[str, int]] = current.get("models", {}) or {}
+    # Read live cumulative totals (transcript preferred, snapshot as fallback).
+    cumulative, cumulative_models = _read_live_cumulative(cwd)
     _debug(f"  cumulative={cumulative}")
     _debug(f"  cumulative_models keys={list(cumulative_models.keys())}")
 
@@ -218,38 +274,6 @@ def get_token_delta(cwd: str) -> dict[str, Any]:
     _write_json_atomic(baseline_file, new_baseline)
 
     return delta
-
-
-def compute_cost(delta: dict[str, int]) -> float:
-    """Estimate USD cost from a token delta dict.
-
-    Uses configurable per-MTok prices loaded from environment variables with
-    sensible Anthropic defaults.
-
-    Args:
-        delta: Dict returned by get_token_delta().
-
-    Returns:
-        Estimated cost in USD (may be 0.0 if all counts are zero).
-    """
-    price_input = float(os.environ.get("CLAUDE_MPM_PRICE_INPUT", _DEFAULT_PRICE_INPUT))
-    price_output = float(
-        os.environ.get("CLAUDE_MPM_PRICE_OUTPUT", _DEFAULT_PRICE_OUTPUT)
-    )
-    price_cache_read = float(
-        os.environ.get("CLAUDE_MPM_PRICE_CACHE_READ", _DEFAULT_PRICE_CACHE_READ)
-    )
-    price_cache_write = float(
-        os.environ.get("CLAUDE_MPM_PRICE_CACHE_WRITE", _DEFAULT_PRICE_CACHE_WRITE)
-    )
-
-    cost = (
-        delta.get("input_tokens", 0) / 1_000_000 * price_input
-        + delta.get("output_tokens", 0) / 1_000_000 * price_output
-        + delta.get("cache_read_tokens", 0) / 1_000_000 * price_cache_read
-        + delta.get("cache_write_tokens", 0) / 1_000_000 * price_cache_write
-    )
-    return round(cost, 6)
 
 
 def _primary_model(model_delta: dict[str, dict[str, int]]) -> str | None:
@@ -316,27 +340,32 @@ def _format_models_trailer(model_delta: dict[str, dict[str, int]]) -> str | None
     return "; ".join(parts)
 
 
-def amend_commit_message(
-    commit_sha: str, delta: dict[str, Any], cost: float, cwd: str
-) -> None:
+def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> None:
     """Amend the latest commit to add token trailers and normalise Co-Authored-By.
 
     Steps:
     1. Retrieve current commit message via ``git log``.
     2. Strip any generic Co-Authored-By: Claude (not MPM) lines.
     3. Ensure exactly one canonical Co-Authored-By: Claude MPM trailer.
-    4. Append X-AI-* trailers with token counts, cost, and model info.
+    4. Append X-AI-Tokens-In, X-AI-Tokens-Out, and model trailers.
     5. Amend commit with ``git commit --amend --no-edit -m <msg> --no-verify``.
+
+    WHY: Decorates every commit with token usage so teams can audit AI cost per
+    commit without separate tooling.
+
+    WHAT: Retrieves the commit message, strips old X-AI-* and Co-Authored-By
+    trailers, then appends fresh trailers from *delta*.
+
+    TEST: Mock subprocess.run to return a known commit message, call
+    amend_commit_message(), assert the amended message contains X-AI-Tokens-In
+    and X-AI-Tokens-Out with the delta values.
 
     Args:
         commit_sha: Short or full SHA of the commit to amend.
         delta: Token delta dict from get_token_delta() — includes ``models`` key.
-        cost: Estimated cost from compute_cost().
         cwd: Working directory for git commands.
     """
-    _debug(
-        f"amend_commit_message: sha={commit_sha} delta={delta} cost={cost:.6f} cwd={cwd}"
-    )
+    _debug(f"amend_commit_message: sha={commit_sha} delta={delta} cwd={cwd}")
     try:
         # 1. Retrieve current commit message.
         result = subprocess.run(
@@ -386,16 +415,6 @@ def amend_commit_message(
         normalised_lines = body_lines
 
         # 4. Build trailers block.
-        # Compute cache ratio as integer percentage.
-        total_cache = delta.get("cache_read_tokens", 0) + delta.get(
-            "cache_write_tokens", 0
-        )
-        cache_ratio = int(
-            round(delta.get("cache_read_tokens", 0) / total_cache * 100)
-            if total_cache > 0
-            else 0
-        )
-
         # Determine primary model and multi-model summary.
         model_delta: dict[str, dict[str, int]] = delta.get("models") or {}
         primary_model = _primary_model(model_delta)
@@ -406,10 +425,6 @@ def amend_commit_message(
             _COAUTHORED_CANONICAL,
             f"X-AI-Tokens-In: {delta.get('input_tokens', 0)}",
             f"X-AI-Tokens-Out: {delta.get('output_tokens', 0)}",
-            f"X-AI-Cache-Read: {delta.get('cache_read_tokens', 0)}",
-            f"X-AI-Cache-Write: {delta.get('cache_write_tokens', 0)}",
-            f"X-AI-Cache-Ratio: {cache_ratio}%",
-            f"X-AI-Est-Cost-USD: {cost:.6f}",
         ]
         if primary_model:
             trailers.append(f"X-AI-Model: {primary_model}")
@@ -473,20 +488,27 @@ def amend_commit_message(
 def write_cost_log(
     commit_sha: str,
     delta: dict[str, int],
-    cost: float,
     cwd: str,
     output: str,
 ) -> None:
     """Append a JSONL record to ~/.claude-mpm/commit-costs.jsonl.
 
+    WHY: Provides a machine-readable per-commit token log for offline analysis
+    without needing to parse git commit messages.
+
+    WHAT: Appends one JSON line with timestamp, SHA, cwd, token counts, and
+    model info to ~/.claude-mpm/commit-costs.jsonl.
+
+    TEST: Call write_cost_log(), assert the file exists and the parsed record
+    contains the correct commit_sha, tokens_in, and tokens_out values.
+
     Args:
         commit_sha: Short SHA of the commit.
         delta: Token delta dict from get_token_delta().
-        cost: Estimated cost from compute_cost().
         cwd: Working directory of the repository.
         output: Raw stdout from the git commit command.
     """
-    _debug(f"write_cost_log: sha={commit_sha} cost={cost:.6f}")
+    _debug(f"write_cost_log: sha={commit_sha}")
     try:
         log_path = Path.home() / ".claude-mpm" / "commit-costs.jsonl"
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -497,9 +519,6 @@ def write_cost_log(
             "cwd": cwd,
             "tokens_in": delta.get("input_tokens", 0),
             "tokens_out": delta.get("output_tokens", 0),
-            "cache_read": delta.get("cache_read_tokens", 0),
-            "cache_write": delta.get("cache_write_tokens", 0),
-            "est_cost_usd": cost,
             "git_output": output.strip(),
         }
 
@@ -666,10 +685,9 @@ def run_as_git_hook() -> None:
 
         working_dir = str(project_root)
 
-        # 2. Compute token delta and cost.
+        # 2. Compute token delta.
         delta = get_token_delta(working_dir)
-        cost = compute_cost(delta)
-        _debug(f"  delta={delta} cost={cost:.6f}")
+        _debug(f"  delta={delta}")
 
         # 3. Get HEAD SHA.
         sha_result = subprocess.run(
@@ -687,7 +705,7 @@ def run_as_git_hook() -> None:
         _debug(f"  commit_sha={commit_sha!r}")
 
         # 4-6. Amend the commit message to include trailers.
-        amend_commit_message(commit_sha, delta, cost, working_dir)
+        amend_commit_message(commit_sha, delta, working_dir)
 
         # 7. Write cost log.
         # Re-read the amended SHA (amend rewrites the commit hash).
@@ -704,7 +722,7 @@ def run_as_git_hook() -> None:
             if amended_sha_result.returncode == 0
             else commit_sha
         )
-        write_cost_log(final_sha, delta, cost, working_dir, f"[hook] {final_sha}")
+        write_cost_log(final_sha, delta, working_dir, f"[hook] {final_sha}")
         _debug(f"  run_as_git_hook: complete for sha={final_sha}")
 
     except Exception as exc:
