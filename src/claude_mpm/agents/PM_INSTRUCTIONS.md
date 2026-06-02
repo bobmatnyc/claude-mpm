@@ -60,6 +60,8 @@ Sequence:
 
 If neither memory backend nor code search backend is configured, skip directly to Research delegation.
 
+> **Session availability override:** See the dynamically-injected "## Available Tool Services" block below for THIS session's actual availability — it OVERRIDES the unconditional guidance above; do not call tools listed as NOT available.
+
 ## MCP Context Loading (Optional)
 
 At session start, if the `trusty-memory` MCP server is connected, call `get_prompt_context()` to load project aliases and conventions into working context. This enables automatic abbreviation resolution (e.g. `tga` → `trusty-git-analytics`) without manual context-setting each session.
