@@ -30,7 +30,9 @@ import pytest
 
 from src.claude_mpm.services import trusty_status
 from src.claude_mpm.services.trusty_status import (
+    _CAPABILITY_SERVICES,
     _HEALTH_TIMEOUT_S,
+    get_trusty_capabilities,
     get_trusty_status,
 )
 
@@ -677,3 +679,82 @@ class TestGetStatusPalaceVerification:
         state, line = get_trusty_status("trusty-search")
         assert state == "on"
         assert "palace" not in line
+
+
+class TestGetTrustyCapabilities:
+    """get_trusty_capabilities() — the per-session source of truth fed to the
+    PM prompt. Covers all-on / mixed / all-absent state combinations and the
+    never-raises contract (a probe that raises is reported as ``absent``)."""
+
+    def test_returns_all_four_capability_services(self, monkeypatch):
+        """The map always covers exactly the four reported services."""
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_status", lambda _s: ("absent", "")
+        )
+        caps = get_trusty_capabilities()
+        assert set(caps) == set(_CAPABILITY_SERVICES)
+        assert set(caps) == {
+            "trusty-memory",
+            "trusty-search",
+            "trusty-analyze",
+            "trusty-review",
+        }
+
+    def test_all_on(self, monkeypatch):
+        """Every service healthy → every state is ``on``."""
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_status", lambda s: ("on", f"{s}: on")
+        )
+        caps = get_trusty_capabilities()
+        assert all(state == "on" for state in caps.values())
+
+    def test_all_absent(self, monkeypatch):
+        """No service opted in → every state is ``absent``."""
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_status", lambda _s: ("absent", "")
+        )
+        caps = get_trusty_capabilities()
+        assert all(state == "absent" for state in caps.values())
+
+    def test_mixed_states_preserved_per_service(self, monkeypatch):
+        """Each service's distinct state is preserved verbatim in the map."""
+        states = {
+            "trusty-memory": ("on", "x"),
+            "trusty-search": ("not_running", "x"),
+            "trusty-analyze": ("configured", "x"),
+            "trusty-review": ("absent", ""),
+        }
+        monkeypatch.setattr(trusty_status, "get_trusty_status", lambda s: states[s])
+        caps = get_trusty_capabilities()
+        assert caps == {
+            "trusty-memory": "on",
+            "trusty-search": "not_running",
+            "trusty-analyze": "configured",
+            "trusty-review": "absent",
+        }
+
+    def test_single_probe_raising_yields_absent_not_propagated(self, monkeypatch):
+        """A per-service probe that raises is reported as ``absent`` for THAT
+        service only; the others still resolve. The call never propagates."""
+
+        def _maybe_boom(service):
+            if service == "trusty-search":
+                raise RuntimeError("probe blew up")
+            return ("on", f"{service}: on")
+
+        monkeypatch.setattr(trusty_status, "get_trusty_status", _maybe_boom)
+        caps = get_trusty_capabilities()
+        assert caps["trusty-search"] == "absent"
+        assert caps["trusty-memory"] == "on"
+        assert caps["trusty-analyze"] == "on"
+        assert caps["trusty-review"] == "on"
+
+    def test_never_raises_overall(self, monkeypatch):
+        """Even if every probe raises, the call returns an all-``absent`` map."""
+
+        def _always_boom(_service):
+            raise RuntimeError("everything is on fire")
+
+        monkeypatch.setattr(trusty_status, "get_trusty_status", _always_boom)
+        caps = get_trusty_capabilities()
+        assert caps == dict.fromkeys(_CAPABILITY_SERVICES, "absent")
