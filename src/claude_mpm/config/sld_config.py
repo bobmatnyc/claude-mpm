@@ -59,13 +59,31 @@ _SLD_INSTRUCTION_BLOCK = """\
 This project has enabled the **Spec-Linked Documentation (SLD)** convention
 (`workflow.spec_linked_docs.enabled: true` in configuration.yaml).
 
-When writing or modifying Python source code in `src/claude_mpm/`:
+### WWL — WHAT / WHY / LINK (granularity rule)
 
-1. **Check `docs/specs/` first** — if a spec section governs the subsystem you
-   are working on, read it before writing code.
+Every Python file under `src/claude_mpm/` needs a **module-level WWL**:
+a module docstring containing `WHAT:` (one-line observable behaviour) and
+`WHY:` (rationale).  `LINK: SPEC-{SUBSYSTEM}-{NN}~{rev}` ties it to a
+governing spec; use `LINK: none` to flag an acknowledged backfill gap.
 
-2. **Add a `References` block to module-level docstrings** for every module
-   whose behavior is governed by a spec:
+Functions, methods, and classes need their own WWL doc-comment when they
+exceed **either** threshold:
+
+- **LOC > 50** (lines of code), **or**
+- **Cyclomatic complexity > 10** (McCabe 1976 / NIST SP 500-235)
+
+Units under both thresholds may include WWL voluntarily.
+
+**Backfill model:** Legacy gaps are captured in `docs/specs/.wwl-baseline.json`.
+The CI check (`tests/test_wwl_granularity.py`) fails only on violations NOT
+in that baseline — new code is blocked immediately; old code is tolerated until
+the team bacfills it and removes entries from the baseline.
+
+### SLD steps
+
+1. **Check `docs/specs/` first** — read any spec that governs your subsystem.
+
+2. **Add a module-level WWL docstring** (WHAT + WHY, plus References / LINK):
 
    ```python
    \"\"\"
@@ -80,8 +98,7 @@ When writing or modifying Python source code in `src/claude_mpm/`:
    \"\"\"
    ```
 
-3. **Add `:spec:` fields to function/class docstrings** that implement a specific
-   spec section distinct from the module-level spec:
+3. **Add WWL to over-threshold functions/classes** (WHAT + WHY at minimum):
 
    ```python
    def my_function():
@@ -95,15 +112,18 @@ When writing or modifying Python source code in `src/claude_mpm/`:
        \"\"\"
    ```
 
-4. **Update the "Implementing Modules" table** in the spec file whenever you add
+4. **Update the "Implementing Modules" table** in the spec file when you add
    or remove a module from a governed subsystem.
 
-5. **Run `uv run pytest tests/test_spec_traceability.py -p no:xdist -v`** to
-   verify no ORPHANED, UNCOVERED, or OUTDATED references exist before opening a PR.
+5. **Run the CI checks** before opening a PR:
 
-**Important:** The CI check verifies that links *exist*, not that they are
-*correct*. Always confirm the spec ID in your docstring points to the spec
-section that actually governs the function you wrote.
+   ```bash
+   uv run pytest tests/test_spec_traceability.py tests/test_wwl_granularity.py \\
+       -p no:xdist -v
+   ```
+
+**Important:** The CI checks verify that links *exist*, not that they are
+*correct*. Always confirm spec IDs point to the right spec section.
 
 See `docs/specs/README.md` and the `spec-linked-docs` skill for full guidance.
 """
@@ -312,5 +332,20 @@ def get_sld_default_config() -> dict:
             # Informational comment preserved in YAML templates:
             # opt-in: when true, engineers build SLD specs + traceability
             # alongside code (see docs/specs/README.md).
+            "wwl": {
+                # Require WHAT + WHY at module level for every .py file.
+                "file_level_required": True,
+                # LOC threshold — units exceeding this need a WWL doc-comment.
+                # Grounded in common linter defaults (black, pylint, ruff).
+                "function_line_threshold": 50,
+                # Cyclomatic complexity threshold (McCabe 1976 / NIST SP 500-235).
+                # CC > 10 is the widely-adopted "high-risk" boundary.
+                "complexity_threshold": 10,
+                # Enforcement mode: off | baseline | strict
+                #   off      — report only, never fail CI
+                #   baseline — fail only on violations NOT in .wwl-baseline.json
+                #   strict   — fail on any violation
+                "enforcement": "baseline",
+            },
         }
     }
