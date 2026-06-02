@@ -258,6 +258,50 @@ def test_palace_created_when_absent(project_dir: Path) -> None:
     assert "POST" in methods, "must create palace when absent"
 
 
+def test_palace_post_includes_cwd(project_dir: Path) -> None:
+    """Palace POST body must include ``cwd`` so the daemon validates against the
+    project directory, not its own process cwd (which is typically ``~`` or
+    ``/`` and fails the daemon's project-root enforcement).
+    """
+    post_bodies: list[dict] = []
+
+    class _Resp:
+        status = 200
+
+        def read(self) -> bytes:
+            return b"[]"  # GET /palaces → empty list (not present)
+
+        def __enter__(self) -> _Resp:
+            return self
+
+        def __exit__(self, *a: object) -> None:
+            return None
+
+    def fake_urlopen(req, timeout=5):  # noqa: ANN001, ARG001
+        if req.get_method() == "POST":
+            post_bodies.append(json.loads(req.data))
+        return _Resp()
+
+    with (
+        patch.object(mod.shutil, "which", side_effect=_detect_only_memory()),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
+        patch.object(mod, "_http_health_check", return_value=True),
+        patch.object(mod, "_ensure_palace", wraps=_REAL_ENSURE_PALACE),
+        patch.object(mod.urllib.request, "urlopen", side_effect=fake_urlopen),
+    ):
+        mod.run_migration(project_dir=project_dir)
+
+    assert len(post_bodies) == 1, f"expected one POST, got: {post_bodies}"
+    body = post_bodies[0]
+    assert "cwd" in body, (
+        "POST body must include 'cwd' for daemon palace-name enforcement; "
+        f"got keys: {list(body.keys())}"
+    )
+    assert body["cwd"] == str(project_dir), (
+        f"cwd must be the project_dir path, got: {body['cwd']!r}"
+    )
+
+
 def test_palace_not_created_when_present(project_dir: Path) -> None:
     """Healthy trusty-memory + matching palace exists → no POST (idempotent)."""
     palace_name = project_dir.name

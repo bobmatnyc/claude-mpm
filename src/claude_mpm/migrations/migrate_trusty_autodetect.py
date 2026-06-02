@@ -178,7 +178,9 @@ def _load_project_config(project_dir: Path) -> dict[str, Any]:
         return {}
 
 
-def _ensure_palace(base_url: str, palace_name: str) -> None:
+def _ensure_palace(
+    base_url: str, palace_name: str, project_dir: Path | None = None
+) -> None:
     """Idempotently ensure a memory palace named ``palace_name`` exists.
 
     Why: without a per-project palace, every trusty-memory MCP call silently
@@ -186,8 +188,11 @@ def _ensure_palace(base_url: str, palace_name: str) -> None:
     own. Mirrors the manual ``claude-mpm setup trusty-memory`` behavior so the
     startup path reaches the same end state.
     What: ``GET {base_url}/api/v1/palaces`` (case-insensitive existence check);
-    if absent, ``POST`` ``{"name": palace_name, "description": ...}``. All
-    failures are warning-level and swallowed — never raises.
+    if absent, ``POST`` ``{"name": palace_name, "description": ..., "cwd":
+    str(project_dir)}``. The ``cwd`` field is required by trusty-memory
+    0.14+ palace-name enforcement (the daemon validates that the name matches
+    the project slug derived from the cwd). All failures are warning-level
+    and swallowed — never raises.
     Test: ``tests/migrations/test_trusty_autodetect.py`` (created-when-absent,
     skip-when-present, non-fatal-on-failure).
     """
@@ -219,13 +224,17 @@ def _ensure_palace(base_url: str, palace_name: str) -> None:
         return
 
     # 2. Create the palace.
+    # Include ``cwd`` so trusty-memory's palace-name enforcement can derive the
+    # expected project slug from the caller's project directory rather than the
+    # daemon's own process cwd (which is typically ``~`` or ``/``).
+    payload: dict[str, str] = {
+        "name": palace_name,
+        "description": "Claude Code session memory for project",
+    }
+    if project_dir is not None:
+        payload["cwd"] = str(project_dir)
     try:
-        body = json.dumps(
-            {
-                "name": palace_name,
-                "description": "Claude Code session memory for project",
-            }
-        ).encode("utf-8")
+        body = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(  # nosec B310
             palaces_url,
             data=body,
@@ -321,7 +330,7 @@ def run_migration(project_dir: Path | None = None) -> bool:
     #    enough; the palace must exist for memory calls to persist anything.
     for svc in detected:
         if svc["name"] == "trusty-memory":
-            _ensure_palace(svc["base_url"], project_dir.name)
+            _ensure_palace(svc["base_url"], project_dir.name, project_dir)
 
     # 3. Inject the capture/index hooks for whatever was detected. Idempotent
     #    via _mpm_service dedup keys; only touches ./.claude/settings.json when
