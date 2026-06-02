@@ -1226,13 +1226,14 @@ class GitSourceSyncService:
             "deployment_dir": str(deployment_dir),
         }
 
-        # Load project config to get exclusion list
+        # Load project config to get exclusion list (and SLD flag for injection).
         config_file = project_dir / ".claude-mpm" / "configuration.yaml"
         if config_file.exists():
-            config = Config(config_file=config_file)
-            excluded_agents = config.get("excluded_agents", [])
+            project_config: Config | None = Config(config_file=config_file)
+            excluded_agents = project_config.get("excluded_agents", [])
         else:
-            # No project config, no exclusions
+            # No project config — no exclusions, no SLD injection.
+            project_config = None
             excluded_agents = []
 
         # Issue #560: load agents.local_only and warn on drift before any
@@ -1318,13 +1319,17 @@ class GitSourceSyncService:
 
                 # Phase 3 Fix (Issue #299): Use unified deploy_agent_file() function
                 # This ensures identical behavior between GitSourceSyncService
-                # and SingleTierDeploymentService
+                # and SingleTierDeploymentService.
+                # Pass project_config so deploy_agent_file can inject the SLD
+                # instruction block when workflow.spec_linked_docs.enabled is True
+                # (Bug 1 fix: cache-copy path previously bypassed SLD injection).
                 result = deploy_agent_file(
                     source_file=cache_file,
                     deployment_dir=deployment_dir,
                     cleanup_legacy=True,
                     ensure_frontmatter=True,
                     force=force,
+                    config=project_config,
                 )
 
                 # Get normalized filename for tracking
