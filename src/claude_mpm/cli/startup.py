@@ -2,10 +2,15 @@
 CLI Startup Functions
 =====================
 
-WHAT: Provides startup-time sync functions that download agent and skill files
-from remote Git sources, deploy them to the project's ``.claude/`` directories,
-and manage TTL gating and progress reporting — all without blocking CLI startup
-on failures.
+WHAT: Provides startup-time functions covering several distinct concerns:
+remote agent and skill sync from Git sources (``sync_remote_agents_on_startup``,
+``sync_remote_skills_on_startup``) with TTL gating and progress reporting;
+early environment setup (``setup_early_environment``); background-service skip
+detection (``should_skip_background_services``); bundled-skill and output-style
+deployment (``deploy_bundled_skills``, ``deploy_output_style_on_startup``);
+hook management (``cleanup_user_level_hooks``, ``sync_hooks_on_startup``); and
+Anthropic auth verification (``_check_anthropic_auth``) — all without blocking
+CLI startup on failures.
 
 WHY: Extracted from the monolithic cli/__init__.py to reduce file size and
 improve modularity. Non-blocking sync ensures claude-mpm remains functional
