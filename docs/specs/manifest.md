@@ -26,6 +26,7 @@ Design source of truth: `docs/design/manifest-config-system.md`
 | SPEC-MANIFEST-03~1 | [Schema validation contract](#schema-validation-contract-spec-manifest-031) | `claude_mpm.manifest.schema` |
 | SPEC-MANIFEST-04~1 | [Preset resolution — four-step resolution order](#preset-resolution--four-step-resolution-order-spec-manifest-041) | `claude_mpm.manifest.resolver`, `claude_mpm.manifest.presets` |
 | SPEC-MANIFEST-05~1 | [CLI surface contract — manifest init/validate/show](#cli-surface-contract--manifest-initvalidateshow-spec-manifest-051) | `claude_mpm.cli.commands.manifest_commands`, `claude_mpm.cli.parsers.manifest_parser` |
+| SPEC-MANIFEST-06~1 | [Setup integration — manifest-driven service configuration](#setup-integration--manifest-driven-service-configuration-spec-manifest-061) | `claude_mpm.cli.commands.setup.manifest_integration` |
 
 ---
 
@@ -391,3 +392,99 @@ The `claude-mpm manifest` command group exposes three subcommands:
 |--------|------|
 | `claude_mpm.cli.commands.manifest_commands` | `manage_manifest`, `_cmd_init`, `_cmd_validate`, `_cmd_show`; full implementation of all three subcommands |
 | `claude_mpm.cli.parsers.manifest_parser` | `add_manifest_subparser`; registers the `manifest` command group and its subcommands with the argparse tree |
+
+---
+
+## Setup integration — manifest-driven service configuration {#SPEC-MANIFEST-06~1}
+
+**ID:** SPEC-MANIFEST-06~1
+**Status:** active
+
+### Behavior Contract (WHAT)
+
+The `claude-mpm setup` command integrates with the manifest system when invoked
+with **no explicit service arguments** and a `.claude-mpm/manifest.json` is
+present.  The integration is governed by these rules:
+
+#### Dormant-unless-detected
+
+- When `claude-mpm setup` is invoked without explicit service names AND no
+  `.claude-mpm/manifest.json` is found: the command behaves **exactly** as it
+  did before this feature existed (shows help, returns 0).  No manifest code path
+  is entered.  This preserves full backward compatibility.
+- When services are given explicitly on the command line, the manifest auto-run
+  path is **never** triggered — the explicit list always wins.
+
+#### Manifest-driven auto-run
+
+- When `claude-mpm setup` is invoked without explicit service names AND a
+  `.claude-mpm/manifest.json` **is** found: the manifest is loaded and resolved
+  via `load_manifest(cwd)` (SPEC-MANIFEST-01~1).
+- The merged `effective["setup"]["services"]` list (after union-merge from preset
+  and repo, per SPEC-MANIFEST-02~1) is read.  Each entry is a service name string.
+- Each service in the list is dispatched through **the existing
+  `_dispatch_service(service_name, service_args)` method** — the same method used
+  for explicitly-named services.  No new dispatch logic is introduced.
+
+#### Idempotency
+
+- A service is considered **already configured** if the `SetupRegistry` holds an
+  entry for it (`SetupRegistry.get_service(name) is not None`).
+- When a service is already configured AND `--force` was not given: it is
+  **skipped** with a clear `[green]✓ <name> already configured (skipping)[/green]`
+  message.  The service's setup handler is NOT called.
+- When `--force` is given: all services are (re-)configured regardless of the
+  registry state.
+
+#### Per-service fail-soft
+
+- A service that raises an exception or returns a failed `CommandResult` does
+  **not** abort the remaining services.  Processing continues.
+- After all services have been attempted, a summary is printed:
+  - Number of services configured successfully.
+  - Number of services skipped (already configured).
+  - Number of services that failed (if any), with their names.
+- The command exits with a **non-zero code** only if **all** attempted services
+  failed (same semantics as the existing multi-service path).
+
+#### Union-merge sanity
+
+- Services from the preset (`setup.services` in the preset) and the repo manifest
+  are union-merged before dispatch; duplicates are removed preserving preset-first
+  insertion order.  The merger behavior is defined by SPEC-MANIFEST-02~1.
+
+#### Progress output
+
+All output goes through the existing Rich `console` object so tests can patch it.
+
+- Before each service: `[bold cyan]Setting up <name> (from manifest)...[/bold cyan]`
+- Skip message: `[green]✓ <name> already configured (skipping)[/green]`
+- Per-service success/failure messages mirror those produced by the existing
+  `SetupCommand.run()` path.
+- Post-loop summary: printed only when at least one service was attempted.
+
+### Rationale (WHY)
+
+- **Dormant gate**: The manifest system must never interfere with existing users
+  who have not opted in.  Checking for the manifest file before doing anything
+  manifest-related preserves this invariant for the setup path.
+
+- **Reuse `_dispatch_service`**: There is no new dispatch logic because the
+  existing dispatcher already handles all known services plus the open-world
+  fallback.  Reusing it means manifest-driven setup automatically benefits from
+  future service additions with zero code changes.
+
+- **Idempotency via SetupRegistry**: Many CI pipelines run `claude-mpm setup`
+  on every clone or pull.  Skipping already-configured services by default
+  makes repeated runs cheap and safe.  `--force` gives an escape hatch when
+  reconfiguration is needed (e.g., credentials rotated).
+
+- **Fail-soft**: A failing MCP server should not block the rest of a project
+  setup.  Users expect partial success to be usable, and the summary tells them
+  exactly what needs attention.
+
+### Implementing Modules
+
+| Module | Role |
+|--------|------|
+| `claude_mpm.cli.commands.setup.manifest_integration` | `ManifestSetupMixin`; `_run_manifest_services` entry point; `_is_service_configured`; idempotency check and per-service fail-soft loop |
