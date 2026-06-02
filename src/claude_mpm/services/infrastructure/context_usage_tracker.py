@@ -21,6 +21,7 @@ USAGE:
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.storage.state_storage import StateStorage
@@ -53,6 +54,10 @@ class ContextUsageState:
     threshold_reached: str | None = None
     auto_pause_active: bool = False
     last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    models: dict[str, Any] = field(default_factory=dict)
+    """Per-model token breakdown: model_name -> {input_tokens, output_tokens,
+    cache_creation_input_tokens, cache_read_input_tokens}.  Empty when no model
+    data is available (e.g. old state files or event-sourced fast path)."""
 
 
 class ContextUsageTracker:
@@ -199,6 +204,7 @@ class ContextUsageTracker:
         output_tokens: int,
         cache_creation: int = 0,
         cache_read: int = 0,
+        models: dict[str, Any] | None = None,
     ) -> ContextUsageState:
         """Overwrite context-usage.json with a fresh cumulative snapshot.
 
@@ -225,6 +231,12 @@ class ContextUsageTracker:
             output_tokens: Cumulative output tokens for the session (from Stop usage).
             cache_creation: Cumulative cache-creation tokens (from Stop usage).
             cache_read: Cumulative cache-read tokens (from Stop usage).
+            models: Optional per-model breakdown dict from
+                ``_parse_transcript_usage()``, mapping model name to the same
+                four token-count keys.  Stored as-is for per-model delta
+                computation at commit time.  Pass None (or omit) when unavailable;
+                the stored state will then have an empty ``models`` dict so old
+                consumers do not crash.
 
         Returns:
             The saved ContextUsageState.
@@ -247,6 +259,7 @@ class ContextUsageTracker:
             threshold_reached=None,
             auto_pause_active=False,
             last_updated=datetime.now(UTC).isoformat(),
+            models=models if models is not None else {},
         )
         state.threshold_reached = self.check_thresholds(state)
         if state.threshold_reached in {"auto_pause", "critical"}:
@@ -256,7 +269,8 @@ class ContextUsageTracker:
 
         logger.debug(
             f"Session snapshot saved: {total_tokens}/{self.CONTEXT_BUDGET} tokens "
-            f"({state.percentage_used:.1f}%), session={session_id}"
+            f"({state.percentage_used:.1f}%), session={session_id}, "
+            f"models={list(state.models.keys())}"
         )
         return state
 
@@ -291,7 +305,10 @@ class ContextUsageTracker:
                 session_id = f"session-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
                 return ContextUsageState(session_id=session_id)
 
-            # Reconstruct ContextUsageState from dict
+            # Reconstruct ContextUsageState from dict.
+            # Backward compatibility: old state files lack the ``models`` key;
+            # default it to an empty dict so no consumer crashes.
+            data.setdefault("models", {})
             return ContextUsageState(**data)
 
         except Exception as e:
