@@ -612,6 +612,17 @@ class Config:
                 "auto_inject_on_startup": True,  # Auto-inject pending todos on PM session start
                 "max_todos_per_session": 10,  # Max todos to inject per session
             },
+            # Workflow feature toggles
+            "workflow": {
+                # Spec-Linked Documentation (SLD): opt-in convention for bidirectional
+                # traceability between docs/specs/*.md and Python docstrings.
+                # See docs/specs/README.md for the full convention guide.
+                "spec_linked_docs": {
+                    "enabled": False,  # opt-in: when true, engineer + documentation
+                    # agents are guided to apply SLD (SPEC-ID docstring References
+                    # blocks) alongside code changes.  Default OFF — backward compat.
+                }
+            },
         }
 
         # Apply defaults for missing keys
