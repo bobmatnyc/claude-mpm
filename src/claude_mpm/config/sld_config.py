@@ -39,6 +39,14 @@ SLD_DEFAULT_ENABLED = False
 SLD_SKILL_NAME = "spec-linked-docs"
 
 #: Agent types that receive SLD instruction injection when the flag is on.
+#: These are **category** values stored in the ``agent_type`` frontmatter field,
+#: not agent *names* (which may be slugs like ``python-engineer``).
+#: An agent_type of ``"engineer"`` covers all engineer-variant agents because
+#: the frontmatter ``agent_type`` field is always the canonical category
+#: (e.g. both ``rust-engineer.md`` and ``python-engineer.md`` declare
+#: ``agent_type: engineer``).  See :func:`is_sld_target_agent_type` for the
+#: matching logic that also handles the unlikely case where agent_type contains
+#: a hyphenated suffix (e.g. ``"python-engineer"``).
 SLD_TARGET_AGENT_TYPES = frozenset({"engineer", "documentation"})
 
 # ---------------------------------------------------------------------------
@@ -104,6 +112,56 @@ See `docs/specs/README.md` and the `spec-linked-docs` skill for full guidance.
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+
+def is_sld_target_agent_type(agent_type: str) -> bool:
+    """Return True when *agent_type* should receive the SLD instruction block.
+
+    WHAT: Checks whether *agent_type* is in (or is a hyphenated variant of) one
+    of the target categories in :data:`SLD_TARGET_AGENT_TYPES`.  The primary
+    matching rule is an exact membership test, which covers all real cases
+    because the ``agent_type`` frontmatter field is always set to the canonical
+    category string (``"engineer"``, ``"documentation"``, etc.).  A secondary
+    suffix rule handles the defensive case where a template sets ``agent_type``
+    to a hyphenated slug like ``"python-engineer"`` or ``"api-documentation"``.
+
+    WHY: Centralising the matching logic here keeps :func:`get_sld_instruction_for_agent`
+    and the agent-assembly pipeline consistent.  Tests can import and exercise
+    this helper directly without constructing a full agent pipeline.
+
+    Parameters
+    ----------
+    agent_type : str
+        The raw ``agent_type`` value from an agent's frontmatter or template.
+
+    Returns
+    -------
+    bool
+        True if SLD instructions should be injected for this agent type.
+
+    Examples
+    --------
+    >>> is_sld_target_agent_type("engineer")
+    True
+    >>> is_sld_target_agent_type("python-engineer")
+    True
+    >>> is_sld_target_agent_type("documentation")
+    True
+    >>> is_sld_target_agent_type("qa")
+    False
+    >>> is_sld_target_agent_type("ops")
+    False
+    """
+    if not agent_type:
+        return False
+    # Exact match is the common case (frontmatter always stores the category)
+    if agent_type in SLD_TARGET_AGENT_TYPES:
+        return True
+    # Suffix match: covers hypothetical hyphenated variants (defensive)
+    for category in SLD_TARGET_AGENT_TYPES:
+        if agent_type.endswith(f"-{category}"):
+            return True
+    return False
 
 
 def is_sld_enabled(config: Config | None = None) -> bool:
@@ -221,7 +279,7 @@ def get_sld_instruction_for_agent(
     >>> get_sld_instruction_for_agent("research")
     ''
     """
-    if agent_type not in SLD_TARGET_AGENT_TYPES:
+    if not is_sld_target_agent_type(agent_type):
         return ""
     if not is_sld_enabled(config=config):
         return ""
