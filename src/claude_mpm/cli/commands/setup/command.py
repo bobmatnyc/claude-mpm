@@ -34,6 +34,7 @@ from .handlers.skillset import SkillsetMixin
 from .handlers.slack import SlackMixin
 from .handlers.trusty import TrustyMixin
 from .handlers.vector_search import VectorSearchMixin
+from .manifest_integration import ManifestSetupMixin
 from .mcp_config import McpConfigMixin
 from .parse_args import AUTONOMOUS_SETUP_SERVICES, parse_service_args
 
@@ -45,6 +46,7 @@ class SetupCommand(
     BaseCommand,
     McpConfigMixin,
     AutonomousSetupMixin,
+    ManifestSetupMixin,
     SlackMixin,
     SearchToolsMixin,
     TrustyMixin,
@@ -86,14 +88,31 @@ class SetupCommand(
         return None
 
     def run(self, args) -> CommandResult:
-        """Execute the setup command."""
+        """Execute the setup command.
+
+        WHAT: Dispatches explicit service names given on the command line; when
+        no services are given, tries manifest-driven auto-setup first; falls back
+        to help display when neither applies.
+
+        WHY: The manifest-first check preserves the dormant-unless-detected
+        contract (SPEC-MANIFEST-06~1): manifest code is entered only when a
+        manifest file exists AND no explicit services were requested.  Explicit
+        service lists always win.
+
+        :spec: SPEC-MANIFEST-06~1
+        """
         # Check if --provider was given (it can be used alone, without services)
         provider_key = str(SetupFlag.PROVIDER)
         has_provider_flag = bool(getattr(args, provider_key, None))
 
-        # If no services and no --provider flag, show help
+        # If no services and no --provider flag, try manifest auto-setup first.
         if not hasattr(args, "parsed_services") or not args.parsed_services:
             if not has_provider_flag:
+                # Attempt manifest-driven setup (dormant → None when no manifest).
+                manifest_result = self._run_manifest_services(args)
+                if manifest_result is not None:
+                    return manifest_result
+                # No manifest → fall through to help display.
                 self._show_help()
                 return CommandResult.success_result("Help displayed")
             # --provider only: skip service processing, fall through to provider section
