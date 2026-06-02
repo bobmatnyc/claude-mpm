@@ -486,3 +486,90 @@ def test_no_hooks_or_palace_when_binaries_missing(
     assert palace_calls == []
     assert hook_calls == []
     assert not (project_dir / ".mcp.json").exists()
+
+
+# --------------------------------------------------------------------------
+# trusty-review (review-on-demand): MCP entry only, no palace, no hooks.
+# --------------------------------------------------------------------------
+
+
+def _service_descriptor(name: str) -> dict[str, object]:
+    """Return the _SERVICES descriptor with the given name (asserts presence)."""
+    for svc in mod._SERVICES:
+        if svc["name"] == name:
+            return svc
+    raise AssertionError(f"{name} not found in _SERVICES")
+
+
+def test_trusty_review_registered_in_services() -> None:
+    """trusty-review is a known autodetect service with the stdio serve entry."""
+    svc = _service_descriptor("trusty-review")
+    assert svc["binary"] == "trusty-review"
+    assert svc["fallback_addr"] == "127.0.0.1:7880"
+    assert svc["mcp_entry"] == {
+        "type": "stdio",
+        "command": "trusty-review",
+        "args": ["serve", "--stdio"],
+        "env": {"TRUSTY_REVIEW_AUTH_MODE": "cli"},
+    }
+
+
+def test_trusty_review_env_holds_no_secrets() -> None:
+    """The auto-wired env must NEVER carry AWS keys / GITHUB_TOKEN — those are
+    inherited from the Claude Code process environment, not written to disk."""
+    env = _service_descriptor("trusty-review")["mcp_entry"]["env"]
+    forbidden = {
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "GITHUB_TOKEN",
+        "TRUSTY_SEARCH_INDEX",
+    }
+    assert forbidden.isdisjoint(env.keys())
+    assert env == {"TRUSTY_REVIEW_AUTH_MODE": "cli"}
+
+
+def test_trusty_review_wired_without_palace_or_hooks(
+    project_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Healthy trusty-review → .mcp.json entry written, but NO palace created
+    and NO trusty-review hooks injected (it has no _TRUSTY_HOOK_SPECS entry)."""
+    from claude_mpm.services import trusty_hooks
+
+    palace_calls: list[object] = []
+    hook_services: list[object] = []
+
+    monkeypatch.setattr(mod, "_ensure_palace", lambda *a, **k: palace_calls.append(a))
+    monkeypatch.setattr(
+        trusty_hooks,
+        "inject_trusty_hooks",
+        lambda services, **k: hook_services.append(list(services)) or False,
+    )
+
+    with (
+        patch.object(mod.shutil, "which", side_effect=_make_which({"trusty-review"})),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
+        patch.object(mod, "_http_health_check", return_value=True),
+    ):
+        changed = mod.run_migration(project_dir=project_dir)
+
+    assert changed is True
+    servers = json.loads((project_dir / ".mcp.json").read_text())["mcpServers"]
+    assert servers["trusty-review"] == {
+        "type": "stdio",
+        "command": "trusty-review",
+        "args": ["serve", "--stdio"],
+        "env": {"TRUSTY_REVIEW_AUTH_MODE": "cli"},
+    }
+    # No palace was created for trusty-review (palace is memory-only).
+    assert palace_calls == []
+    # inject_trusty_hooks is called with trusty-review, but it has no hook spec
+    # so nothing is actually injected for it.
+    assert hook_services == [["trusty-review"]]
+
+
+def test_trusty_review_has_no_hook_spec() -> None:
+    """trusty-review must not declare any capture/index hooks."""
+    from claude_mpm.services.trusty_hooks import _TRUSTY_HOOK_SPECS
+
+    assert "trusty-review" not in _TRUSTY_HOOK_SPECS
