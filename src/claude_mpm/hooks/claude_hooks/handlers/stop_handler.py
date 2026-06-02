@@ -20,6 +20,38 @@ from pathlib import Path
 
 from .base import DEBUG, BaseEventHandler, _log
 
+# ---------------------------------------------------------------------------
+# Always-on debug log helper — mirrors the pattern in commit_cost_tracker.py.
+# Writes unconditionally to ~/.claude-mpm/logs/stop-handler-debug.log so
+# failures in the Stop handler are visible without setting CLAUDE_MPM_HOOK_DEBUG.
+# ---------------------------------------------------------------------------
+_STOP_DEBUG_LOG: Path = Path.home() / ".claude-mpm" / "logs" / "stop-handler-debug.log"
+
+
+def _stop_debug(message: str) -> None:
+    """Append *message* to the stop-handler debug log, always, unconditionally.
+
+    WHY: The Stop handler uses fail-open (never raises), which means all errors
+    are silently swallowed.  Without an unconditional log the only way to see
+    failures is to set CLAUDE_MPM_HOOK_DEBUG=true, which requires knowing in
+    advance that something is wrong.  This function writes regardless of the
+    DEBUG flag so we always have a paper trail.
+
+    WHAT: Creates the log directory if needed, timestamps the message, and
+    appends one line to stop-handler-debug.log.
+
+    TEST: Call with any string and assert the log file exists and contains the
+    message.  Call when the directory does not exist and assert no exception is
+    raised (directory is created automatically).
+    """
+    try:
+        _STOP_DEBUG_LOG.parent.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
+        with _STOP_DEBUG_LOG.open("a") as fh:
+            fh.write(f"[{ts}] {message}\n")
+    except Exception:
+        pass  # Never raise from a debug helper
+
 
 def _parse_transcript_usage(
     transcript_path: Path,
@@ -53,6 +85,7 @@ def _parse_transcript_usage(
         transcript.
     """
     if not transcript_path.exists():
+        _stop_debug(f"_parse_transcript_usage: transcript not found: {transcript_path}")
         if DEBUG:
             _log(f"  - transcript not found: {transcript_path}")
         return None
@@ -75,6 +108,10 @@ def _parse_transcript_usage(
                 try:
                     rec = _json.loads(raw_line)
                 except _json.JSONDecodeError:
+                    _stop_debug(
+                        f"_parse_transcript_usage: skipping invalid JSON line: "
+                        f"{raw_line[:80]!r}"
+                    )
                     continue
 
                 if rec.get("type") != "assistant":
@@ -112,15 +149,26 @@ def _parse_transcript_usage(
                 found_any = True
 
     except Exception as exc:
+        _stop_debug(f"_parse_transcript_usage: parse error: {exc}")
         if DEBUG:
             _log(f"  - transcript parse error: {exc}")
         return None
 
     if not found_any:
+        _stop_debug(
+            f"_parse_transcript_usage: no assistant usage records in: {transcript_path}"
+        )
         if DEBUG:
             _log(f"  - no assistant usage records in transcript: {transcript_path}")
         return None
 
+    _stop_debug(
+        f"_parse_transcript_usage: totals "
+        f"in={totals['input_tokens']} out={totals['output_tokens']} "
+        f"cc={totals['cache_creation_input_tokens']} "
+        f"cr={totals['cache_read_input_tokens']} "
+        f"models={list(totals['models'].keys())}"
+    )
     return totals
 
 
@@ -166,6 +214,9 @@ class StopHandler:
         - Useful for understanding when and why Claude stops responding
         """
         session_id = event.get("session_id", "")
+        _stop_debug(
+            f"handle_stop_fast: session_id={session_id!r} cwd={event.get('cwd', '')!r}"
+        )
 
         # Extract metadata for this stop event
         metadata = self._extract_stop_metadata(event)
@@ -211,17 +262,49 @@ class StopHandler:
         # Slow path: parse transcript JSONL (the real, always-available source).
         if usage_data is None:
             cwd = event.get("cwd", "")
+            # Fallback: if the event did not carry a cwd, use the process cwd.
+            if not cwd:
+                cwd = str(Path.cwd())
+                _stop_debug(
+                    f"handle_stop_fast: cwd missing from event, fell back to process cwd: {cwd!r}"
+                )
+            else:
+                _stop_debug(f"handle_stop_fast: cwd from event: {cwd!r}")
             transcript_path = _derive_transcript_path(session_id, cwd)
+            _stop_debug(
+                f"handle_stop_fast: transcript_path={transcript_path} "
+                f"exists={transcript_path.exists() if transcript_path else False}"
+            )
             if DEBUG:
                 _log(f"  - transcript_path: {transcript_path}")
             if transcript_path is not None:
                 usage_data = _parse_transcript_usage(transcript_path)
+                if usage_data is None:
+                    _stop_debug(
+                        "handle_stop_fast: _parse_transcript_usage returned None"
+                    )
+                else:
+                    _stop_debug(
+                        f"handle_stop_fast: usage from transcript "
+                        f"in={usage_data['input_tokens']} "
+                        f"out={usage_data['output_tokens']}"
+                    )
                 if DEBUG and usage_data is not None:
                     _log(
                         f"  - usage source: transcript "
                         f"in={usage_data['input_tokens']} "
                         f"out={usage_data['output_tokens']}"
                     )
+
+        if usage_data is None:
+            _stop_debug(
+                "handle_stop_fast: skipping set_session_snapshot — usage_data is None"
+            )
+        else:
+            _stop_debug(
+                f"handle_stop_fast: writing snapshot "
+                f"in={usage_data['input_tokens']} out={usage_data['output_tokens']}"
+            )
 
         if usage_data is not None:
             metadata["usage"] = {
@@ -268,6 +351,9 @@ class StopHandler:
                         f"out={usage_data['output_tokens']}"
                     )
             except Exception as _snap_exc:
+                _stop_debug(
+                    f"handle_stop_fast: set_session_snapshot FAILED (fail-open): {_snap_exc}"
+                )
                 if DEBUG:
                     _log(
                         f"  - context-usage snapshot from Stop failed (fail-open): {_snap_exc}"
