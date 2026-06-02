@@ -2,7 +2,8 @@
 Migration: Deploy hooks/scripts/statusline.sh and settings.json from templates
 to the USER level (v6.3.1, updated v6.3.2).
 
-Deploys two assets into ``~/.claude/`` (NOT into ``<project>/.claude/``):
+WHAT: Deploys two assets into ``~/.claude/`` (NOT into ``<project>/.claude/``):
+
 - ``hooks/scripts/statusline.sh``  — created if missing; made executable (0o755).
   Existing MPM-managed copies are upgraded to the bundled template; user-
   customised copies (no MPM marker) are preserved unless ``force=True``.
@@ -13,8 +14,19 @@ Deploys two assets into ``~/.claude/`` (NOT into ``<project>/.claude/``):
 Both operations are idempotent: re-running the migration leaves a fully
 provisioned environment untouched.
 
+WHY: Ensures every user automatically receives the canonical MPM hook
+configuration and statusline script on first upgrade, without requiring a
+manual ``claude-mpm init``.  Deploying to ``~/.claude/`` (user-level) means
+the configuration applies to every project the user opens — a single
+provisioning step covers all workspaces.  The create-only policy for
+settings.json protects existing team or personal configurations.
+
 Asset content is loaded from the installed package via importlib.resources
 rather than being embedded as string literals.
+
+References
+----------
+SPEC-INTEGRATIONS-09~1 : docs/specs/integrations.md#migrations-system--registry-and-runner-spec-integrations-091
 """
 
 import json
