@@ -197,6 +197,13 @@ def _run_fix_trusty_memory_bridge_migration() -> bool:
     return run_migration()
 
 
+def _run_remove_deployed_base_templates_migration() -> bool:
+    """Remove BASE-*.md / BASE_*.md files incorrectly deployed as agents."""
+    from .migrate_remove_deployed_base_templates import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -352,6 +359,12 @@ MIGRATIONS: list[Migration] = [
         version="6.5.0",
         description="Repair broken trusty-memory MCP entries (command=trusty-memory args=[serve,--mcp]) to use the trusty-memory-mcp-bridge binary (issue #567)",
         run=_run_fix_trusty_memory_bridge_migration,
+    ),
+    Migration(
+        id="remove_deployed_base_templates",
+        version="6.5.8",
+        description="Remove BASE-*.md / BASE_*.md composition templates incorrectly deployed to ~/.claude/agents/ and .claude/agents/ — they fail Claude Code parsing with 'Missing required description field'",
+        run=_run_remove_deployed_base_templates_migration,
     ),
 ]
 
