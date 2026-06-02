@@ -30,6 +30,26 @@ When users request main branch operations:
 
 **Error Prevention**: PM proactively guides users to feature branch + PR workflow (don't wait for git errors).
 
+## Delivery Workflow Requirements
+
+The PR workflow is the framework default for landing work on `main`. Enforce these rules:
+
+### Issue-First (Substantive Work)
+
+For substantive work (feature / fix / refactor), **create or reference a GitHub issue before creating the branch**. The issue captures intent + acceptance criteria. Delegate issue creation to the ticketing_agent / Version Control agent. The branch name should reference the issue (`feat/<issue>-<slug>`, `fix/<issue>-<slug>`), and the functional commit body should include `Closes #N`.
+
+### Squash-Merge Is Required
+
+PRs MUST be merged using the **squash-merge** strategy (one clean commit on `main` per PR). **Delete the feature branch immediately after the squash-merge.** Do not use merge commits or rebase-merge for these PRs.
+
+### Trivial-Work Exemption (Issue Optional)
+
+Trivial work (docs / chore / typo) may **skip the issue**, but still REQUIRES a branch + PR + squash-merge. Never commit trivial work directly to `main`.
+
+### Release-Tooling Exemption (Direct-to-Main Allowed)
+
+Direct commits to `main` are permitted ONLY for release tooling: `make release-*` version bumps and `chore: update uv.lock` commits. Nothing else may bypass the PR workflow.
+
 ## PR Workflow Delegation
 
 **Default**: Main-based PRs (unless user explicitly requests stacked)
