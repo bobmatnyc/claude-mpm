@@ -9,58 +9,16 @@ Each `_setup_trusty_*` follows the same shape:
 
 from __future__ import annotations
 
-import json
-import os
 import shutil
 import subprocess  # nosec B404
-import tempfile
 from pathlib import Path
 from typing import Any
 
+from .....services.trusty_hooks import inject_trusty_hooks
 from ....constants import SetupService
 from ....shared import CommandResult
 from .._shared import console
 from ..mcp_config import _mcp_config_transaction
-
-# Legacy services whose hooks should be removed when injecting trusty hooks.
-# These are the predecessors of trusty-search / trusty-memory and would
-# duplicate or conflict with the new daemons.
-_LEGACY_SERVICES = {"kuzu-memory", "mcp-vector-search"}
-
-# Hook specifications keyed by trusty service name. Each entry lists the
-# (event, matcher, hook_dict) tuples to inject. The ``_mpm_service`` tag is
-# the dedup key — re-running setup will not duplicate hooks.
-_TRUSTY_HOOK_SPECS: dict[str, list[tuple[str, str, dict[str, Any]]]] = {
-    "trusty-memory": [
-        (
-            event,
-            "*",
-            {
-                "type": "command",
-                "command": "claude-hook",
-                "timeout": 15,
-                "_mpm": True,
-                "_mpm_service": "trusty-memory",
-            },
-        )
-        for event in ("SessionStart", "Stop", "SubagentStop")
-    ],
-    "trusty-search": [
-        (
-            "PostToolUse",
-            "Write|MultiEdit|Edit|NotebookEdit",
-            {
-                "type": "command",
-                "command": "python3",
-                "args": ["-m", "claude_mpm.hooks.trusty_index_hook"],
-                "timeout": 10,
-                "async": True,
-                "_mpm": True,
-                "_mpm_service": "trusty-search",
-            },
-        ),
-    ],
-}
 
 
 class TrustyMixin:
@@ -322,204 +280,49 @@ class TrustyMixin:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
-        """Write JSON atomically: write to a sibling temp file, then rename.
+    def _console_hook_report(msg: str) -> None:
+        """Re-wrap a plain hook-injection status line in rich markup.
 
-        Why atomic: settings.json is read by Claude Code on every hook
-        invocation; a partial write would crash hooks until repaired.
+        Why: the shared :mod:`claude_mpm.services.trusty_hooks` helper is
+        console-free (so the startup migration can reuse it); the interactive
+        setup command still wants colored output. This maps the leading glyph
+        of each status line back to the original rich color so the setup UX is
+        unchanged after the extraction.
+        What: dispatches on the first character (``✓``→green, ``⚠``→yellow,
+        ``✗``→red, anything else→dim) and prints via the rich console.
+        Test: ``tests/test_trusty_hooks.py`` asserts structural parity; this
+        wrapper is presentation-only.
         """
-        path.parent.mkdir(parents=True, exist_ok=True)
-        # Use a NamedTemporaryFile in the same directory so os.replace is
-        # guaranteed to be atomic (same filesystem).
-        fd, tmp_path = tempfile.mkstemp(
-            prefix=path.name + ".", suffix=".tmp", dir=str(path.parent)
-        )
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-                f.write("\n")
-            Path(tmp_path).replace(path)
-        except Exception:
-            # Best effort cleanup of temp file.
-            try:
-                Path(tmp_path).unlink()
-            except OSError:
-                pass
-            raise
-
-    @staticmethod
-    def _load_settings(path: Path) -> dict[str, Any]:
-        """Load a Claude Code settings.json, returning skeleton on absence.
-
-        Tolerates an existing file that lacks the ``hooks`` key.
-        """
-        if not path.exists():
-            return {"hooks": {}}
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"Could not parse {path}: {exc}") from exc
-        if not isinstance(data, dict):
-            raise RuntimeError(f"{path} root is not a JSON object")
-        data.setdefault("hooks", {})
-        if not isinstance(data["hooks"], dict):
-            raise RuntimeError(f"{path}: 'hooks' is not an object")
-        return data
-
-    def _inject_hooks_to_settings(
-        self, settings_path: Path, services: list[str]
-    ) -> None:
-        """Inject trusty hook entries into a Claude Code settings.json.
-
-        For each requested service:
-        - Remove any hooks tagged with ``_mpm_service`` in ``_LEGACY_SERVICES``
-          across all events (cleanup of predecessor hooks).
-        - Add the hooks declared in ``_TRUSTY_HOOK_SPECS[service]`` to the
-          matching (event, matcher) group, skipping any whose
-          ``_mpm_service`` already exists in that group (idempotent).
-
-        File handling:
-        - Creates the file with ``{"hooks": {}}`` if missing.
-        - Preserves all unrelated hooks (e.g. user personal scripts).
-        - Writes atomically (temp file + rename).
-        - Reports removals and additions via the rich console.
-        """
-        try:
-            settings = self._load_settings(settings_path)
-        except RuntimeError as exc:
-            console.print(f"[yellow]⚠ Skipping {settings_path}: {exc}[/yellow]")
-            return
-
-        hooks_root: dict[str, Any] = settings["hooks"]
-        removed_count = 0
-        added: list[str] = []
-        skipped: list[str] = []
-
-        # ----- Removal pass: drop legacy-service hooks across all events.
-        for event_name, groups in list(hooks_root.items()):
-            if not isinstance(groups, list):
-                continue
-            new_groups: list[dict[str, Any]] = []
-            for group in groups:
-                if not isinstance(group, dict):
-                    new_groups.append(group)
-                    continue
-                inner = group.get("hooks")
-                if not isinstance(inner, list):
-                    new_groups.append(group)
-                    continue
-                filtered_inner = [
-                    h
-                    for h in inner
-                    if not (
-                        isinstance(h, dict)
-                        and h.get("_mpm_service") in _LEGACY_SERVICES
-                    )
-                ]
-                dropped = len(inner) - len(filtered_inner)
-                if dropped:
-                    removed_count += dropped
-                # Drop the entire group if its hooks list is now empty AND
-                # the group only held legacy hooks (no other meaningful keys).
-                if filtered_inner:
-                    group["hooks"] = filtered_inner
-                    new_groups.append(group)
-                elif not inner:
-                    new_groups.append(group)
-                # else: group is empty after removal, drop it.
-            if new_groups:
-                hooks_root[event_name] = new_groups
-            else:
-                del hooks_root[event_name]
-
-        # ----- Injection pass: add trusty hooks idempotently.
-        for service in services:
-            for event, matcher, hook_def in _TRUSTY_HOOK_SPECS.get(service, []):
-                groups = hooks_root.setdefault(event, [])
-                if not isinstance(groups, list):
-                    console.print(
-                        f"[yellow]⚠ {settings_path}: '{event}' is not a list — "
-                        f"skipping injection.[/yellow]"
-                    )
-                    continue
-
-                # Find a group with the matching matcher, or create one.
-                target_group: dict[str, Any] | None = None
-                for group in groups:
-                    if (
-                        isinstance(group, dict)
-                        and group.get("matcher") == matcher
-                        and isinstance(group.get("hooks"), list)
-                    ):
-                        target_group = group
-                        break
-                if target_group is None:
-                    target_group = {"matcher": matcher, "hooks": []}
-                    groups.append(target_group)
-
-                inner_hooks: list[Any] = target_group["hooks"]
-                tag = hook_def.get("_mpm_service")
-                # Dedup by _mpm_service within the same (event, matcher) group.
-                already_present = any(
-                    isinstance(h, dict) and h.get("_mpm_service") == tag
-                    for h in inner_hooks
-                )
-                if already_present:
-                    skipped.append(f"{event}[{matcher}]:{tag}")
-                    continue
-                inner_hooks.append(hook_def)
-                added.append(f"{event}[{matcher}]:{tag}")
-
-        # ----- Write back atomically.
-        try:
-            self._atomic_write_json(settings_path, settings)
-        except OSError as exc:
-            console.print(f"[red]✗ Failed to write {settings_path}: {exc}[/red]")
-            return
-
-        # ----- Report.
-        rel = str(settings_path)
-        if removed_count:
-            console.print(
-                f"[yellow]• {rel}: removed {removed_count} legacy hook(s) "
-                f"({', '.join(sorted(_LEGACY_SERVICES))})[/yellow]"
-            )
-        if added:
-            console.print(
-                f"[green]✓ {rel}: added {len(added)} hook(s): "
-                f"{', '.join(added)}[/green]"
-            )
-        if skipped:
-            console.print(
-                f"[dim]• {rel}: {len(skipped)} hook(s) already present, skipped[/dim]"
-            )
-        if not (removed_count or added or skipped):
-            console.print(f"[dim]• {rel}: no hook changes needed[/dim]")
+        if msg.startswith("✓"):
+            console.print(f"[green]{msg}[/green]")
+        elif msg.startswith("⚠"):
+            console.print(f"[yellow]{msg}[/yellow]")
+        elif msg.startswith("✗"):
+            console.print(f"[red]{msg}[/red]")
+        else:
+            console.print(f"[dim]{msg}[/dim]")
 
     def _inject_trusty_hooks(self, services: list[str]) -> None:
         """Inject hooks into both project and user-level settings.
 
-        Project settings (``./.claude/settings.json``) are only touched if
-        the file already exists — we don't want to create a project-level
-        config silently. User settings (``~/.claude/settings.json``) are
-        created if missing because per-user hook injection is the documented
-        intent of this setup step.
+        Why: delegates to the shared, console-free
+        :func:`claude_mpm.services.trusty_hooks.inject_trusty_hooks` so the
+        interactive setup path and the startup autodetect migration produce
+        identical hook structures from one implementation.
+        What: prints the intro line, then calls the shared helper with a
+        console-printing reporter. Project settings
+        (``./.claude/settings.json``) are only touched if the file already
+        exists; user settings (``~/.claude/settings.json``) are created if
+        missing — the shared helper enforces this rule.
+        Test: ``tests/test_trusty_hooks.py`` covers the merge behavior; the
+        existing setup tests cover the console wiring.
         """
-        project_settings = Path.cwd() / ".claude" / "settings.json"
-        user_settings = Path.home() / ".claude" / "settings.json"
-
         console.print("[cyan]Injecting trusty hooks into Claude settings...[/cyan]")
-
-        if project_settings.exists():
-            self._inject_hooks_to_settings(project_settings, services)
-        else:
-            console.print(
-                f"[dim]• {project_settings} not found — skipping project-level "
-                f"hook injection.[/dim]"
-            )
-
-        # Always inject into user settings (create if missing).
-        self._inject_hooks_to_settings(user_settings, services)
+        inject_trusty_hooks(
+            services,
+            project_dir=Path.cwd(),
+            report=self._console_hook_report,
+        )
 
     # ------------------------------------------------------------------
     # Service-specific setup methods

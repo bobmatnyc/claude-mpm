@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import urllib.error
 import urllib.request
@@ -40,6 +41,12 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# Env-var kill-switch for the entire auto-link behavior. Mirrors the
+# ``CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS`` precedent. Any truthy value
+# disables palace creation, hook injection, AND the .mcp.json write.
+_OPT_OUT_ENV = "CLAUDE_MPM_NO_TRUSTY_AUTO_LINK"
+_TRUTHY = {"1", "true", "yes", "on"}
 
 
 # Service descriptors. Kept inline (not a dataclass) to avoid pulling in
@@ -130,19 +137,138 @@ def _save_mcp_config(mcp_path: Path, config: dict[str, Any]) -> None:
         f.write("\n")
 
 
+def _auto_link_disabled(project_dir: Path) -> bool:
+    """Return True iff auto-link is opted out (env var or project config).
+
+    Why: users must be able to fully disable trusty auto-linkage — both via a
+    quick env-var kill-switch and via a durable project config flag.
+    What: returns True if ``CLAUDE_MPM_NO_TRUSTY_AUTO_LINK`` is truthy, or if
+    ``.claude-mpm/configuration.yaml`` sets ``trusty.auto_link: false``. The
+    config is read best-effort (any error → treated as not-disabled) so a
+    malformed file never blocks startup.
+    Test: ``tests/migrations/test_trusty_autodetect.py`` covers both paths.
+    """
+    if os.environ.get(_OPT_OUT_ENV, "").strip().lower() in _TRUTHY:
+        return True
+
+    config = _load_project_config(project_dir)
+    trusty = config.get("trusty")
+    if isinstance(trusty, dict) and trusty.get("auto_link") is False:
+        return True
+    return False
+
+
+def _load_project_config(project_dir: Path) -> dict[str, Any]:
+    """Load ``.claude-mpm/configuration.yaml`` best-effort.
+
+    Why: the migration runs on the startup hot path and must not depend on the
+    full ``UnifiedConfig`` machinery (which loads env, merges sources, etc.).
+    What: parses the project's ``configuration.yaml`` and returns the resulting
+    dict, or ``{}`` on any error (missing file, parse failure, non-dict root).
+    Test: ``tests/migrations/test_trusty_autodetect.py::test_opt_out_via_config``.
+    """
+    config_path = project_dir / ".claude-mpm" / "configuration.yaml"
+    try:
+        import yaml
+
+        with open(config_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _ensure_palace(base_url: str, palace_name: str) -> None:
+    """Idempotently ensure a memory palace named ``palace_name`` exists.
+
+    Why: without a per-project palace, every trusty-memory MCP call silently
+    no-ops — registering the MCP server in ``.mcp.json`` is not enough on its
+    own. Mirrors the manual ``claude-mpm setup trusty-memory`` behavior so the
+    startup path reaches the same end state.
+    What: ``GET {base_url}/api/v1/palaces`` (case-insensitive existence check);
+    if absent, ``POST`` ``{"name": palace_name, "description": ...}``. All
+    failures are warning-level and swallowed — never raises.
+    Test: ``tests/migrations/test_trusty_autodetect.py`` (created-when-absent,
+    skip-when-present, non-fatal-on-failure).
+    """
+    palaces_url = f"{base_url}/api/v1/palaces"
+
+    # 1. Existence check (case-insensitive). On any error, fall through to the
+    #    POST attempt — a 409/duplicate from the daemon is also non-fatal.
+    palace_found = False
+    try:
+        req = urllib.request.Request(palaces_url, method="GET")  # nosec B310
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+            raw = resp.read().decode("utf-8")
+            data = json.loads(raw)
+            palace_list = data if isinstance(data, list) else data.get("palaces", [])
+            for p in palace_list:
+                if (
+                    isinstance(p, dict)
+                    and p.get("name", "").lower() == palace_name.lower()
+                ):
+                    palace_found = True
+                    break
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        logger.warning(
+            "trusty autodetect could not list palaces (%s); attempting create", exc
+        )
+
+    if palace_found:
+        logger.info("trusty-memory palace already exists: %s", palace_name)
+        return
+
+    # 2. Create the palace.
+    try:
+        body = json.dumps(
+            {
+                "name": palace_name,
+                "description": "Claude Code session memory for project",
+            }
+        ).encode("utf-8")
+        req = urllib.request.Request(  # nosec B310
+            palaces_url,
+            data=body,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+            if 200 <= int(resp.status) < 300:
+                logger.info("trusty-memory palace created: %s", palace_name)
+            else:
+                logger.warning(
+                    "trusty-memory palace creation returned HTTP %s", resp.status
+                )
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        logger.warning(
+            "trusty autodetect could not create palace '%s': %s", palace_name, exc
+        )
+
+
 def run_migration(project_dir: Path | None = None) -> bool:
-    """Detect running trusty daemons and inject MCP entries.
+    """Detect running trusty daemons and auto-link them to this project.
+
+    Beyond the original ``.mcp.json`` wiring, this also (idempotently):
+
+    * creates the per-project memory palace when ``trusty-memory`` is healthy,
+    * injects the trusty capture/index hooks into Claude Code settings.
 
     Args:
         project_dir: Directory containing ``.mcp.json`` (defaults to CWD).
 
     Returns:
-        True if any change was made, False if everything was already
-        configured or no daemons were detected. Never raises on the absence
-        path — only propagates exceptions from disk writes.
+        True if any change was made (``.mcp.json`` write or hook injection),
+        False if everything was already configured, no daemons were detected,
+        or auto-link is opted out. Never raises on the absence/opt-out path —
+        only propagates exceptions from disk writes.
     """
     project_dir = project_dir or Path.cwd()
     mcp_path = project_dir / ".mcp.json"
+
+    # Opt-out short-circuit: env-var kill-switch or project config flag.
+    if _auto_link_disabled(project_dir):
+        logger.debug("trusty auto-link disabled via env var or project config")
+        return False
 
     # Determine which services are detectable BEFORE touching .mcp.json so a
     # cold path (no daemons running) doesn't open the file at all.
@@ -153,39 +279,62 @@ def run_migration(project_dir: Path | None = None) -> bool:
         base_url = _resolve_base_url(svc["addr_file"], svc["fallback_addr"])
         if not _http_health_check(f"{base_url}/health"):
             continue
-        detected.append(svc)
+        # Stash the resolved base URL so palace creation reuses it.
+        detected.append({**svc, "base_url": base_url})
 
     if not detected:
         return False
 
-    # Defer the import to avoid a circular dependency at module-load time
-    # (mcp_config lives under cli.commands.setup, which itself may import
-    # migration code indirectly during CLI bootstrap).
+    changed = False
+
+    # 1. Wire .mcp.json entries for any not-yet-registered detected services.
+    #    Deferred import avoids a circular dependency at module-load time
+    #    (mcp_config lives under cli.commands.setup, which itself may import
+    #    migration code indirectly during CLI bootstrap).
     from ..cli.commands.setup.mcp_config import _mcp_config_transaction
 
     config = _load_mcp_config(mcp_path)
     servers = config.setdefault("mcpServers", {})
-
     to_write: list[dict[str, Any]] = [
         svc for svc in detected if svc["name"] not in servers
     ]
+    if to_write:
+        try:
+            with _mcp_config_transaction(project_dir):
+                for svc in to_write:
+                    servers[svc["name"]] = svc["mcp_entry"]
+                    logger.info(
+                        "Auto-configured %s MCP server (daemon detected via %s)",
+                        svc["name"],
+                        svc["addr_file"],
+                    )
+                _save_mcp_config(mcp_path, config)
+            changed = True
+        except Exception as exc:
+            # Transaction context will roll back; log and continue (palace +
+            # hooks are still worth attempting on subsequent detected services).
+            logger.warning("trusty autodetect failed to write .mcp.json: %s", exc)
 
-    if not to_write:
-        return False
+    # 2. Ensure the per-project palace exists for a healthy trusty-memory. This
+    #    runs every startup (idempotent GET/POST) regardless of whether the
+    #    .mcp.json entry already existed — registering the MCP server is not
+    #    enough; the palace must exist for memory calls to persist anything.
+    for svc in detected:
+        if svc["name"] == "trusty-memory":
+            _ensure_palace(svc["base_url"], project_dir.name)
 
+    # 3. Inject the capture/index hooks for whatever was detected. Idempotent
+    #    via _mpm_service dedup keys; only touches ./.claude/settings.json when
+    #    it already exists, always (creates if absent) ~/.claude/settings.json.
     try:
-        with _mcp_config_transaction(project_dir):
-            for svc in to_write:
-                servers[svc["name"]] = svc["mcp_entry"]
-                logger.info(
-                    "Auto-configured %s MCP server (daemon detected via %s)",
-                    svc["name"],
-                    svc["addr_file"],
-                )
-            _save_mcp_config(mcp_path, config)
-    except Exception as exc:
-        # Transaction context will roll back; log and report no-op upward.
-        logger.warning("trusty autodetect failed to write .mcp.json: %s", exc)
-        return False
+        from ..services.trusty_hooks import inject_trusty_hooks
 
-    return True
+        hooks_changed = inject_trusty_hooks(
+            [svc["name"] for svc in detected],
+            project_dir=project_dir,
+        )
+        changed = changed or hooks_changed
+    except Exception as exc:
+        logger.warning("trusty autodetect failed to inject hooks: %s", exc)
+
+    return changed
