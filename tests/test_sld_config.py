@@ -317,29 +317,39 @@ class TestConfigDefaults:
         finally:
             Config.reset_singleton()
 
-    def test_config_sld_default_is_false(self):
-        """Config default for workflow.spec_linked_docs.enabled is False."""
+    def test_config_sld_default_is_false(self, tmp_path):
+        """Config._apply_defaults() sets workflow.spec_linked_docs.enabled to False.
+
+        We point Config at a non-existent config file so it cannot load the
+        project's .claude-mpm/configuration.yaml (which may have ``enabled:
+        true`` for development).  This isolates the _apply_defaults() logic.
+        """
         from claude_mpm.core.config import Config
 
         Config.reset_singleton()
         try:
-            cfg = Config()
+            cfg = Config(config_file=tmp_path / "nonexistent_config.yaml")
             enabled = cfg.get("workflow.spec_linked_docs.enabled")
             # Should be False (or None if key is new and dot-notation fails on
             # nested dict — both are falsy and acceptable for backward compat)
             assert not enabled, (
-                "workflow.spec_linked_docs.enabled should default to False"
+                "workflow.spec_linked_docs.enabled should default to False "
+                "(the defaults, not any project configuration.yaml)"
             )
         finally:
             Config.reset_singleton()
 
-    def test_config_absent_key_returns_false_default(self):
-        """Absence of the SLD key does not raise — returns the provided default."""
+    def test_config_absent_key_returns_false_default(self, tmp_path):
+        """Absence of the SLD key does not raise — returns the provided default.
+
+        Uses an isolated config (see test_config_sld_default_is_false for
+        rationale) so the project's configuration.yaml does not interfere.
+        """
         from claude_mpm.core.config import Config
 
         Config.reset_singleton()
         try:
-            cfg = Config()
+            cfg = Config(config_file=tmp_path / "nonexistent_config.yaml")
             value = cfg.get("workflow.spec_linked_docs.enabled", False)
             assert value is False or value is None or not value
         finally:
