@@ -18,7 +18,8 @@
 8. [The Checker: What It Proves and What It Does Not](#8-the-checker-what-it-proves-and-what-it-does-not)
 9. [Opt-In Statement](#9-opt-in-statement)
 10. [PR Review Checklist](#10-pr-review-checklist)
-11. [Citations](#11-citations)
+11. [Enabling SLD in claude-mpm](#11-enabling-sld-in-claude-mpm)
+12. [Citations](#12-citations)
 
 ---
 
@@ -446,7 +447,58 @@ accompany implementing code in the same PR, not be added retroactively.
 
 ---
 
-## 11. Citations
+## 11. Enabling SLD in claude-mpm
+
+SLD is enabled per-project via a single toggle in the project's
+`.claude-mpm/configuration.yaml` file:
+
+```yaml
+workflow:
+  spec_linked_docs:
+    enabled: true   # opt-in: when true, engineer + documentation agents
+                    # build SLD specs + traceability alongside code.
+                    # Default: false (backward compatible)
+```
+
+**What the toggle does:**
+
+When `enabled: true`, the `get_sld_instruction_for_agent()` helper
+(`src/claude_mpm/config/sld_config.py`) returns the SLD instruction block
+for `engineer` and `documentation` agent types.  The block explains the
+References docstring format, the spec file structure, and how to run the
+CI check.  The block is empty string when the flag is off or the agent type
+is not in the target set, making it safe to concatenate unconditionally.
+
+**Absence of the key = disabled.**  Any project without this key behaves
+identically to before this feature was added.  No migration is required.
+
+**To enable on a project:**
+
+1. Open (or create) `.claude-mpm/configuration.yaml` in the project root.
+2. Add the `workflow.spec_linked_docs.enabled: true` key shown above.
+3. Restart the MPM session.
+
+**To verify the default is off (regression guard):**
+
+```bash
+uv run pytest tests/test_sld_config.py -p no:xdist -v
+```
+
+All 33 tests should pass; `TestConfigDefaults::test_config_sld_default_is_false`
+is the critical backward-compatibility assertion.
+
+**Runtime wiring note:**
+
+Full runtime injection into agent prompts at assembly time requires a call to
+`get_sld_instruction_for_agent(agent_type, config)` inside
+`AgentTemplateBuilder.build_agent_markdown()`.  This is a minimal additive
+change to the assembly pipeline and is tracked as a follow-up to
+#task-19.  Until that wiring is in place the instruction block is available
+for manual use (e.g. in PM workflow hooks or CLI decorators).
+
+---
+
+## 12. Citations
 
 **OpenFastTrace (primary lineage):**
 - Repository: https://github.com/itsallcode/openfasttrace
