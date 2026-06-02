@@ -1,6 +1,10 @@
 """
 Agent deployment handler for the configure command.
 
+WHAT: Provides all interactive agent install/remove flows for the configure
+command, including the unified checkbox UI, preset-driven installation,
+recommended-agent selection, single-agent primitives, and removal helpers.
+
 WHY: Extracted from configure.py to keep the main command file focused on
 routing. This handler covers all interactive deployment/installation flows
 for agents:
@@ -11,6 +15,10 @@ for agents:
 - Single-agent installation primitives (deploy_single_agent)
 - Removal flows and detail view
 - Path helpers used by removal (agent_file_paths, deployment_state_paths)
+
+References
+----------
+SPEC-CLI-01~1 : docs/specs/cli.md#SPEC-CLI-01~1
 """
 
 from __future__ import annotations
@@ -70,6 +78,19 @@ class AgentDeploymentHandler:
     def deploy_agents_unified(self, agents: list[AgentConfig]) -> None:
         """Unified agent selection with inline controls for recommended,
         presets, and collections.
+
+        WHAT: Accepts a list of AgentConfig objects, presents an interactive
+        checkbox UI grouped by collection and category, and installs or removes
+        agents based on the user's final selection; required agents are always
+        preserved and the filesystem is left unchanged if the user cancels.
+
+        WHY: Replaces separate install and remove flows with a single checkbox
+        that makes the current deployment state immediately visible; a re-display
+        loop works around questionary's lack of native bulk-selection controls by
+        intercepting sentinel values and re-presenting the widget with updated
+        pre-checked state.
+
+        :spec: SPEC-CLI-01~1
 
         Design:
         - Single nested checkbox list with grouped agents by source/category
