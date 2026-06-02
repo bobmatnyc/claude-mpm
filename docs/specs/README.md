@@ -553,6 +553,55 @@ For full details, see **[Backfill Workflow](../src/claude_mpm/skills/bundled/uni
 
 ---
 
+## 9b. Draft Specs / Incremental Backfill
+
+When multiple subsystem specs are authored in parallel — before their implementing code is
+backfilled — the CI UNCOVERED check would otherwise block every PR that adds a new spec
+section.  The **draft-status exemption** allows spec text to be committed and reviewed
+without failing CI.
+
+### Marker Syntax
+
+Place a `**Status:** draft` line immediately below the heading anchor in the spec section
+body (anywhere within the section, before the next heading):
+
+```markdown
+## Hook Dispatch Subsystem {#SPEC-HOOKS-01~1}
+
+**Status:** draft (pending backfill)
+
+### Behavior Contract (WHAT)
+
+...
+```
+
+The canonical form is `**Status:** draft (pending backfill)`.  Any text after `draft` is
+ignored by the checker; only the word `draft` (case-insensitive) matters.
+
+### What the Exemption Covers — and Does Not Cover
+
+| Check | Draft exempt? |
+|-------|--------------|
+| **UNCOVERED** (no code ref to this spec ID) | Yes — draft sections may have no code refs |
+| **ORPHANED** (code refs a non-existent spec ID) | No — always enforced |
+| **OUTDATED** (code refs wrong revision of spec ID) | No — always enforced |
+
+A section is draft-exempt for UNCOVERED only.  If any code already references the draft
+spec ID, the revision in that reference must still match exactly; a stale revision is
+flagged OUTDATED just as for active sections.
+
+### Lifecycle
+
+1. **Author** adds the spec section with `**Status:** draft (pending backfill)`.
+   CI stays green — no UNCOVERED failure.
+2. **Engineer** backfills `References` blocks in the implementing module docstrings.
+3. **Reviewer** confirms semantic correctness (spec matches code behavior).
+4. **Author** removes the `draft` marker (change to `**Status:** active` or delete the
+   line).  Normal UNCOVERED enforcement immediately applies — if the backfill missed any
+   reference, CI will catch it on the next run.
+
+---
+
 ## 10. PR Review Checklist
 
 Every pull request that modifies code in a module governed by an existing spec section must
