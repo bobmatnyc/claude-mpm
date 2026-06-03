@@ -6,6 +6,10 @@ Determines which AgentRuntime backend to use based on:
 
 The config-file path (``configuration.yaml``) is intentionally omitted for now
 since the unified config system can layer this on top later.
+
+References
+----------
+SPEC-SESSIONS-07~1 : docs/specs/sessions.md#SPEC-SESSIONS-07~1
 """
 
 from __future__ import annotations
@@ -28,6 +32,8 @@ def get_runtime_type() -> str:
     1. ``CLAUDE_MPM_RUNTIME`` environment variable (``"sdk"`` or ``"cli"``).
     2. Auto-detect: ``"sdk"`` if ``claude_agent_sdk`` is importable,
        otherwise ``"cli"``.
+
+    :spec: SPEC-SESSIONS-07~1
     """
     env_runtime = os.environ.get("CLAUDE_MPM_RUNTIME", "").strip().lower()
     if env_runtime in ("sdk", "cli"):
