@@ -32,6 +32,11 @@ Example Skill File:
     - Code quality and style
     - Security vulnerabilities
     ...
+
+References
+----------
+SPEC-SKILLS-03~1 : docs/specs/skills.md#SPEC-SKILLS-03~1
+SPEC-SKILLS-04~1 : docs/specs/skills.md#SPEC-SKILLS-04~1
 """
 
 import re
@@ -99,6 +104,8 @@ class SkillDiscoveryService:
         >>> skills = service.discover_skills()
         >>> for skill in skills:
         ...     print(f"{skill['name']}: {skill['description']}")
+
+    :spec: SPEC-SKILLS-03~1
     """
 
     def __init__(self, skills_dir: Path):
