@@ -6,6 +6,10 @@ Installs missing MCP services via pipx (preferred) with fallbacks to
 uvx and ``pip install --user``.
 
 Extracted from MCPConfigManager as part of god-class decomposition (#507).
+
+References
+----------
+SPEC-INTEGRATIONS-05~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-05~1
 """
 
 from __future__ import annotations
@@ -23,7 +27,10 @@ if TYPE_CHECKING:
 
 
 class MCPServiceInstaller:
-    """Install missing MCP services across supported package managers."""
+    """Install missing MCP services across supported package managers.
+
+    :spec: SPEC-INTEGRATIONS-05~1
+    """
 
     # Standard MCP services that should use pipx
     PIPX_SERVICES = {
@@ -65,6 +72,8 @@ class MCPServiceInstaller:
 
         Returns:
             Tuple of (success, message)
+
+        :spec: SPEC-INTEGRATIONS-05~1
         """
         missing = []
         for service_name in self.PIPX_SERVICES:
