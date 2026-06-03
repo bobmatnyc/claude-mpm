@@ -11,9 +11,13 @@ Design:
 - Supports version checking and updates
 - Graceful degradation (warn but continue on errors)
 
-References:
+Related docs:
 - Design: docs/design/claude-mpm-skills-integration-design.md
 - Spec: docs/design/SKILL-MD-FORMAT-SPECIFICATION.md
+
+References
+----------
+SPEC-SKILLS-02~1 : docs/specs/skills.md#SPEC-SKILLS-02~1
 """
 
 import re
@@ -47,6 +51,8 @@ class SkillsService(LoggerMixin):
         >>>
         >>> skills = service.get_skills_for_agent('engineer')
         >>> print(f"Engineer has {len(skills)} skills")
+
+    :spec: SPEC-SKILLS-02~1
     """
 
     def __init__(self) -> None:
