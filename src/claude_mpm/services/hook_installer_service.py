@@ -2,6 +2,12 @@
 
 This service manages the automatic installation and removal of Claude Code hooks
 to enable monitor event forwarding via Socket.IO.
+
+References
+----------
+SPEC-HOOKS-01~1 : docs/specs/hooks.md#SPEC-HOOKS-01~1
+SPEC-HOOKS-02~1 : docs/specs/hooks.md#SPEC-HOOKS-02~1
+SPEC-HOOKS-04~1 : docs/specs/hooks.md#SPEC-HOOKS-04~1
 """
 
 import json
@@ -35,6 +41,8 @@ class HookInstallerService:
 
         Returns:
             True if hooks are properly configured, False otherwise.
+
+        :spec: SPEC-HOOKS-04~1
         """
         try:
             if not self.settings_file.exists():
@@ -296,6 +304,8 @@ class HookInstallerService:
 
         Returns:
             True if hooks were installed successfully, False otherwise.
+
+        :spec: SPEC-HOOKS-04~1
         """
         try:
             # Check if already configured

@@ -5,6 +5,10 @@ This service handles:
 - Structured response extraction
 - Response tracking and correlation
 - Memory field processing
+
+References
+----------
+SPEC-HOOKS-09~1 : docs/specs/hooks.md#SPEC-HOOKS-09~1
 """
 
 import json
@@ -26,7 +30,10 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 
 class SubagentResponseProcessor:
-    """Processes subagent responses and extracts structured data."""
+    """Processes subagent responses and extracts structured data.
+
+    :spec: SPEC-HOOKS-09~1
+    """
 
     def __init__(self, state_manager, response_tracking_manager, connection_manager):
         """Initialize the subagent response processor.

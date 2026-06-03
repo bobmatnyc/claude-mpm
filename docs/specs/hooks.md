@@ -1,6 +1,6 @@
 # Hooks & Enforcement Subsystem — Spec-Linked Documentation
 
-**Status:** Active (sections: draft pending backfill)
+**Status:** Active
 **Version:** v1
 **Subsystem:** HOOKS
 
@@ -38,7 +38,7 @@ functions once this spec is reviewed.
 
 ## Bash relay — claude-hook-fast.sh {#SPEC-HOOKS-01~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -100,7 +100,7 @@ itself spawns sub-agents.
 
 ## Python environment resolver — claude-hook-handler.sh {#SPEC-HOOKS-02~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -150,7 +150,7 @@ redundant shell process lingering after the Python handler starts.
 
 ## Hook entry-point router — hook_handler.main {#SPEC-HOOKS-03~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -205,7 +205,7 @@ never block the Claude Code session.
 
 ## Hook installation and idempotent merge — HookInstallerService {#SPEC-HOOKS-04~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -262,7 +262,7 @@ the primary hook command changed from `claude-hook-handler.sh` to `claude-hook`.
 
 ## PreToolUse enforcement pipeline — ToolHandler {#SPEC-HOOKS-05~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -322,7 +322,7 @@ safety gate (context overflow blocks all tools unconditionally).
 
 ## PostToolUse observability pipeline — ToolHandler {#SPEC-HOOKS-06~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -372,7 +372,7 @@ sequences.
 
 ## Stop lifecycle handler {#SPEC-HOOKS-07~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -425,7 +425,7 @@ the session closes, not the first action on the next prompt.
 
 ## UserPromptSubmit handler {#SPEC-HOOKS-08~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -478,7 +478,7 @@ between the main hook handler process and the message-check process.
 
 ## SubagentStop/Start handler and processor {#SPEC-HOOKS-09~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -535,7 +535,7 @@ include explicit type information.
 
 ## Event services — duplicate detector, state manager, connection manager {#SPEC-HOOKS-10~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -601,7 +601,7 @@ hook subprocess.
 
 ## Context circuit breaker {#SPEC-HOOKS-11~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -649,7 +649,7 @@ false permits merely allow one more tool call before the overflow.
 
 ## Model tier enforcement {#SPEC-HOOKS-12~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -711,7 +711,7 @@ invocations.
 
 ## Permission gate {#SPEC-HOOKS-13~1}
 
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 

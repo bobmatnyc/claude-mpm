@@ -43,6 +43,10 @@ WHY service-oriented approach:
 
 NOTE: Requires Claude Code version 1.0.92 or higher for proper hook support.
 Earlier versions do not support matcher-based hook configuration.
+
+References
+----------
+SPEC-HOOKS-03~1 : docs/specs/hooks.md#SPEC-HOOKS-03~1
 """
 
 # Suppress RuntimeWarning from frozen runpy (prevents REPL pollution in Claude Code)
@@ -588,6 +592,8 @@ class ClaudeHookHandler:
 
         Returns:
             Modified input for PreToolUse events (v2.0.30+), None otherwise
+
+        :spec: SPEC-HOOKS-03~1
         """
         import time
 

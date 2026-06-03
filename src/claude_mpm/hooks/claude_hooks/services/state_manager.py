@@ -5,6 +5,10 @@ This service manages:
 - Git branch caching
 - Session state management
 - Cleanup of old entries
+
+References
+----------
+SPEC-HOOKS-10~1 : docs/specs/hooks.md#SPEC-HOOKS-10~1
 """
 
 import os
@@ -41,7 +45,10 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 
 class StateManagerService:
-    """Manages state for the Claude hook handler."""
+    """Manages state for the Claude hook handler.
+
+    :spec: SPEC-HOOKS-10~1
+    """
 
     def __init__(self):
         """Initialize state management service."""

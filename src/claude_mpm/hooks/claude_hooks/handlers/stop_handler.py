@@ -12,6 +12,8 @@ field on real Claude Code Stop events (confirmed by hook log inspection:
 ``Received event with keys: ['hook_event_name']``).  Token usage is obtained
 by parsing the transcript JSONL at
 ``~/.claude/projects/{cwd_encoded}/{session_id}.jsonl``.
+
+SPEC-HOOKS-07~1 : docs/specs/hooks.md#SPEC-HOOKS-07~1
 """
 
 from datetime import UTC, datetime
@@ -137,6 +139,8 @@ class StopHandler:
         - Captures stop reason and context for analysis
         - Enables tracking of session completion patterns
         - Useful for understanding when and why Claude stops responding
+
+        :spec: SPEC-HOOKS-07~1
         """
         session_id = event.get("session_id", "")
         _stop_debug(

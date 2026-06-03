@@ -3,6 +3,10 @@
 
 Extracted from ``event_handlers.EventHandlers`` as part of the #509 refactor.
 Behavior is preserved verbatim; only the surrounding structure has changed.
+
+References
+----------
+SPEC-HOOKS-09~1 : docs/specs/hooks.md#SPEC-HOOKS-09~1
 """
 
 from datetime import UTC, datetime
@@ -11,7 +15,10 @@ from .base import DEBUG, BaseEventHandler, _log
 
 
 class SubagentHandler:
-    """Handle SubagentStop and SubagentStart events."""
+    """Handle SubagentStop and SubagentStart events.
+
+    :spec: SPEC-HOOKS-09~1
+    """
 
     def __init__(self, base: BaseEventHandler):
         self.base = base
