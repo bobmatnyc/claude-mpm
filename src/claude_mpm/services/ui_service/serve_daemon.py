@@ -17,6 +17,10 @@ DESIGN DECISIONS:
   loop via asyncio.gather(uvicorn_serve, channel_hub.start()).
 - The /health endpoint (already in app.py) is augmented here to return the
   expected service identifier so DaemonManager.is_our_service() works.
+
+References
+----------
+SPEC-INTEGRATIONS-11~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-11~1
 """
 
 from __future__ import annotations
@@ -67,6 +71,8 @@ class ServeDaemon:
         daemon_mode: True → launch as detached background process.
         channels: Optional list of channel adapter names to enable.
         project_root: Default working directory for new sessions.
+
+    :spec: SPEC-INTEGRATIONS-11~1
     """
 
     def __init__(
@@ -231,6 +237,8 @@ class _ServeDaemonManager(DaemonManager):
         python -m claude_mpm.cli serve start --background --port N --host H
 
     instead of the monitor start command baked into the base class.
+
+    :spec: SPEC-INTEGRATIONS-11~1
     """
 
     def __init__(
