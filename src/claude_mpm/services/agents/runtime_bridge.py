@@ -4,6 +4,10 @@ Provides a unified entry point that routes to SDK or CLI based on config.
 This module is intentionally lightweight -- it delegates all heavy lifting
 to :mod:`~claude_mpm.services.agents.agent_runtime` and
 :mod:`~claude_mpm.services.agents.runtime_config`.
+
+References
+----------
+SPEC-SESSIONS-07~1 : docs/specs/sessions.md#SPEC-SESSIONS-07~1
 """
 
 from __future__ import annotations
@@ -28,6 +32,8 @@ async def execute_agent_prompt(
 
     Returns a dict with keys: ``text``, ``session_id``, ``cost_usd``,
     ``num_turns``, ``duration_ms``, ``is_error``, ``tool_calls``, ``runtime``.
+
+    :spec: SPEC-SESSIONS-07~1
     """
     from claude_mpm.services.agents.agent_runtime import AgentConfig
     from claude_mpm.services.agents.runtime_config import get_runtime, get_runtime_type
