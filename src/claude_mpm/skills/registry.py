@@ -1,4 +1,10 @@
-"""Skills registry - manages bundled and discovered skills."""
+"""Skills registry - manages bundled and discovered skills.
+
+References
+----------
+SPEC-SKILLS-01~1 : docs/specs/skills.md#SPEC-SKILLS-01~1
+SPEC-SKILLS-04~1 : docs/specs/skills.md#SPEC-SKILLS-04~1
+"""
 
 import re
 from dataclasses import dataclass
@@ -154,7 +160,10 @@ def validate_agentskills_spec(skill: Skill) -> tuple[bool, list[str]]:
 
 
 class SkillsRegistry:
-    """Registry for managing skills across all tiers."""
+    """Registry for managing skills across all tiers.
+
+    :spec: SPEC-SKILLS-01~1
+    """
 
     def __init__(self):
         """Initialize the skills registry."""
