@@ -118,21 +118,11 @@ Claude Code hooks capture tool usage, responses, and agent activity in real-time
 | `/mpm-config` | Manage configuration |
 | `/mpm-monitor` | Control monitoring server and dashboard |
 | `/mpm-version` | Version information |
-| `/mpm-message` | Cross-project messaging |
 | `/mpm-organize` | Intelligent file consolidation |
 | `/mpm-ticket-view` | Ticketing workflow management |
 | `/mpm-session-pause` | Save session state for later |
 | `/mpm-session-resume` | Resume from paused session |
 | `/mpm-postmortem` | Analyze session errors |
-
-## Cross-Project Messaging
-
-`/mpm-message` sends asynchronous messages between Claude MPM instances running in different projects on the same machine.
-
-- Messages stored in a shared SQLite database at `~/.claude-mpm/messaging.db`
-- Checked periodically: on session start, every 10 commands, every 30 minutes
-- Message types: `task`, `request`, `notification`, `reply`
-- Always use the `MessageService` API or `claude-mpm message` CLI -- never query the database directly
 
 ## For Agents: How to Work Within MPM
 

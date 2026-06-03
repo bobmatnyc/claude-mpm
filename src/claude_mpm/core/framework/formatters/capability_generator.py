@@ -116,6 +116,16 @@ class CapabilityGenerator:
         # Extract just the agent data and sort
         final_agents = [agent_data for agent_data, _ in all_agents.values()]
 
+        # Secondary de-dup by normalized display name.
+        # ID-based de-dup above does not catch the case where the same agent is
+        # discovered twice under different IDs but resolves to the same display
+        # name (e.g. local ``.claude/agents/research.md`` -> id ``research`` and
+        # deployed ``~/.claude-mpm/agents/research.md`` -> id ``Research``, both
+        # rendering as "Research").  Those duplicate entries waste PM-prompt
+        # tokens, so keep only the first occurrence of each display name with
+        # local agents winning over deployed ones.
+        final_agents = self._dedup_by_display_name(final_agents)
+
         if not final_agents:
             return self.get_fallback_capabilities()
 
@@ -212,6 +222,81 @@ class CapabilityGenerator:
         section += f"\n**Total Available Agents**: {len(final_agents)}\n"
 
         return section
+
+    def _dedup_by_display_name(
+        self, agents: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Drop agents that share a normalized display name, local-first.
+
+        Why: Agents can be discovered twice under different IDs (e.g. local
+        ``research`` vs deployed ``Research``) yet render the same display
+        name.  Both then appear in the PM capabilities block, wasting tokens
+        with redundant entries.  De-duplicating by display name removes that
+        waste while preserving the local-over-deployed precedence the rest of
+        this class relies on.
+
+        What: Walks *agents* in order, computing a case-insensitive,
+        whitespace-collapsed display name for each.  Keeps the first agent seen
+        for each normalized name; if a later agent has the same name but the
+        already-kept one is *not* local while the new one *is* local, the local
+        agent replaces it.  Logs a debug line for every dropped duplicate.
+
+        Args:
+            agents: Agent metadata dicts (already ID-de-duplicated), each
+                optionally carrying ``display_name``, ``id`` and ``is_local``.
+
+        Returns:
+            A new list with display-name duplicates removed, order preserved.
+
+        Test: Pass ``[{"id": "research", "is_local": True}, {"id": "Research"}]``
+        and assert the result has length 1 and keeps the local ``research``
+        entry.  Pass two distinct names and assert both survive unchanged.
+        """
+        kept: dict[str, dict[str, Any]] = {}
+        for agent in agents:
+            key = self._normalize_display_name(
+                agent.get("display_name", agent.get("id", ""))
+            )
+            existing = kept.get(key)
+            if existing is None:
+                kept[key] = agent
+                continue
+
+            # Duplicate display name: prefer the local agent.
+            if agent.get("is_local") and not existing.get("is_local"):
+                self.logger.debug(
+                    "Dropping duplicate display name %r: deployed %r superseded "
+                    "by local %r",
+                    key,
+                    existing.get("id"),
+                    agent.get("id"),
+                )
+                kept[key] = agent
+            else:
+                self.logger.debug(
+                    "Dropping duplicate display name %r: %r superseded by kept %r",
+                    key,
+                    agent.get("id"),
+                    existing.get("id"),
+                )
+        return list(kept.values())
+
+    @staticmethod
+    def _normalize_display_name(name: str) -> str:
+        """Return a case-insensitive, whitespace-collapsed display-name key.
+
+        Why: Display-name de-duplication must treat ``"QA  Agent"`` and
+        ``"qa agent"`` as the same agent; a normalized key makes the comparison
+        robust to casing and incidental whitespace differences.
+
+        What: Lower-cases *name* and collapses any run of whitespace into a
+        single space, then strips leading/trailing whitespace.
+
+        Test: Assert ``_normalize_display_name("  QA   Agent ") ==
+        "qa agent"`` and that two strings differing only in case/whitespace map
+        to the same value.
+        """
+        return re.sub(r"\s+", " ", name).strip().lower()
 
     def parse_agent_metadata(self, agent_file: Path) -> dict[str, Any] | None:
         """Parse agent metadata from a deployed ``.md`` agent file.

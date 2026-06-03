@@ -19,6 +19,24 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.12 (2026-06-03)
+
+### Feat
+
+- deploy .claude/ template assets via migration (#618)
+- manifest config system — setup integration [PR4/4] (#616)
+- manifest config system — CLI (init/validate/show) [PR3/4] (#615)
+- manifest config system — preset resolver + built-in presets [PR2/4] (#614)
+- manifest config system — core (schema, merger, loader) [PR1/4] (#613)
+
+### Fix
+
+- **trusty**: stdio MCP servers show NOT RUNNING despite being connected (#633)
+- **test**: correct expected display names in test_non_conforming_names_preserved (#623)
+- **skill**: mpm-session-resume uses uv run python as primary execution method (#620)
+- **trusty-status**: detect user-level (~/.claude/.mcp.json) MCP servers in tool-status
+- remove clone-specific hook paths and duplicate entries from settings.json (#612)
+
 ## v6.5.11 (2026-06-02)
 
 ### Feat

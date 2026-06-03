@@ -67,7 +67,6 @@ USER_LEVEL_SKILLS: frozenset[str] = frozenset(
         "mpm-git-file-tracking",
         "mpm-help",
         "mpm-init",
-        "mpm-message",
         "mpm-postmortem",
         "mpm-pr-workflow",
         "mpm-session-management",
