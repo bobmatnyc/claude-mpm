@@ -2,6 +2,10 @@
 
 Updated by _launch_sdk_mode() as it processes messages.
 Read by MessageEndpoint HTTP handlers (/session, /activity).
+
+References
+----------
+SPEC-SESSIONS-09~1 : docs/specs/sessions.md#SPEC-SESSIONS-09~1
 """
 
 from __future__ import annotations
@@ -59,6 +63,8 @@ class SessionStateTracker:
     All writes happen from the asyncio REPL thread.
     All reads happen from the HTTP server thread.
     Uses a lock for thread safety.
+
+    :spec: SPEC-SESSIONS-09~1
     """
 
     def __init__(self, max_events: int = 100) -> None:
