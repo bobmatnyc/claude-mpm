@@ -5,6 +5,11 @@ Each `_setup_trusty_*` follows the same shape:
 2. Ensure the long-running daemon is up (launchd plist).
 3. Register the project / palace / etc.
 4. Write the ``.mcp.json`` entry (with rollback on failure).
+
+References
+----------
+SPEC-INTEGRATIONS-01~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-01~1
+SPEC-INTEGRATIONS-02~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-02~1
 """
 
 from __future__ import annotations
@@ -22,7 +27,10 @@ from ..mcp_config import _mcp_config_transaction
 
 
 class TrustyMixin:
-    """Mixin: trusty-search / trusty-memory / trusty-analyzer setup."""
+    """Mixin: trusty-search / trusty-memory / trusty-analyzer setup.
+
+    :spec: SPEC-INTEGRATIONS-01~1
+    """
 
     # ------------------------------------------------------------------
     # Declare methods provided by McpConfigMixin at runtime via MRO.
@@ -338,6 +346,8 @@ class TrustyMixin:
            ``127.0.0.1:7878``); install launchd plist if down.
         3. Register/index current project.
         4. Write ``.mcp.json`` entry pointing at ``trusty-search serve``.
+
+        :spec: SPEC-INTEGRATIONS-02~1
         """
         console.print("\n[bold cyan]Trusty Search MCP Setup[/bold cyan]")
         console.print(
@@ -463,6 +473,8 @@ class TrustyMixin:
         verify (a) the palace appears via GET /api/v1/palaces, (b) .mcp.json
         contains the trusty-memory entry, and (c) settings.json contains the
         SessionStart hook entry tagged with ``_mpm_service: trusty-memory``.
+
+        :spec: SPEC-INTEGRATIONS-02~1
 
         Steps:
         1. Install via cargo (or cargo-binstall) if missing.
@@ -649,6 +661,8 @@ class TrustyMixin:
         1. Install via cargo (from git) if missing.
         2. Ensure daemon is running on http://127.0.0.1:7879 (launchd plist).
         3. Write ``.mcp.json`` entry pointing at ``trusty-analyzer mcp``.
+
+        :spec: SPEC-INTEGRATIONS-02~1
         """
         console.print("\n[bold cyan]Trusty Analyzer MCP Setup[/bold cyan]")
         console.print(
