@@ -40,7 +40,12 @@ import json
 import sys
 from typing import Any
 
-from claude_mpm.hooks import context_circuit_breaker, model_tier_hook, ztk_hook
+from claude_mpm.hooks import (
+    context_circuit_breaker,
+    destructive_op_guard,
+    model_tier_hook,
+    ztk_hook,
+)
 
 
 def _passthrough() -> dict[str, Any]:
@@ -87,6 +92,11 @@ def dispatch(event: dict[str, Any]) -> dict[str, Any]:
         if tool_name == "Agent":
             return model_tier_hook.build_model_tier_response(event)
         if tool_name == "Bash":
+            # Destructive-op guard runs before ztk rewriting: deny irreversible
+            # git/file operations (issue #420 Phase 1) rather than rewrite them.
+            guard_decision = destructive_op_guard.evaluate(event)
+            if guard_decision.get("permissionDecision") == "deny":
+                return _circuit_breaker_deny_response(guard_decision)
             return ztk_hook.build_ztk_response(event)
 
         return _passthrough()
