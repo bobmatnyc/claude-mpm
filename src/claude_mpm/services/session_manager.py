@@ -12,6 +12,10 @@ Extended with:
 - Resume log generation on session end
 - Context metrics persistence
 - Automatic resume log injection on session startup
+
+References
+----------
+SPEC-SESSIONS-01~1 : docs/specs/sessions.md#SPEC-SESSIONS-01~1
 """
 
 import os
@@ -33,6 +37,8 @@ class SessionManager:
     duplicate session IDs across different components.
 
     Uses double-checked locking pattern for thread-safe singleton initialization.
+
+    :spec: SPEC-SESSIONS-01~1
     """
 
     _instance: Optional["SessionManager"] = None
