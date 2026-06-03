@@ -4,6 +4,10 @@ This service manages:
 - Event key generation
 - Duplicate event detection within time windows
 - Recent event tracking
+
+References
+----------
+SPEC-HOOKS-10~1 : docs/specs/hooks.md#SPEC-HOOKS-10~1
 """
 
 import threading
@@ -12,7 +16,10 @@ from collections import deque
 
 
 class DuplicateEventDetector:
-    """Detects and filters duplicate events."""
+    """Detects and filters duplicate events.
+
+    :spec: SPEC-HOOKS-10~1
+    """
 
     def __init__(
         self, max_recent_events: int = 10, duplicate_window_seconds: float = 0.1
