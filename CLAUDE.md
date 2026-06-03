@@ -45,33 +45,9 @@ Closes #447"
 
 ---
 
-## 🔴 Delivery Workflow (PR-based)
-
-**No direct-to-main for substantive work.** Feature / fix / refactor work lands on `main` only via a squash-merged Pull Request: `issue → branch → build/test → commit → PR → squash-merge`. Create/reference a GitHub issue first, branch off latest `main` (`feat/<issue>-<slug>`, `fix/<issue>-<slug>`), then open a PR and squash-merge after CI passes (delete the branch).
-
-- **Trivial work** (docs / chore / typo): issue optional, but branch + PR are still required — never commit trivial work directly to `main`.
-- **Exemption (direct-to-main allowed):** release tooling only — `make release-*` version bumps and `chore: update uv.lock` commits.
-
----
-
 ## 🔴 Release Workflow
 
-Always use Makefile targets. Never manually edit version files.
-
-```bash
-# 1. Switch to correct GitHub account
-claude-mpm gh switch   # must be bobmatnyc, not bob-duetto
-
-# 2. Bump version and build
-make release-patch     # bug fixes  (6.2.x → 6.2.y)
-make release-minor     # new features  (6.2.x → 6.3.0)
-make release-major     # breaking changes  (6.x.x → 7.0.0)
-
-# 3. Publish to PyPI, Homebrew, npm, GitHub
-make release-publish
-```
-
-**DO NOT**: call `./scripts/publish_to_pypi.sh` directly or push with wrong GitHub account.
+`claude-mpm gh switch` first (must be bobmatnyc, not bob-duetto) → `make release-patch|minor|major` → `make release-publish`. Never call `./scripts/publish_to_pypi.sh` directly.
 
 ---
 
@@ -98,7 +74,7 @@ CLI (click)  →  Services  →  Agents  →  Claude Code subprocess
 
 Key packages:
 - `cli/` — Click commands and interactive wizards
-- `agents/` — Agent definitions (`.md` files with YAML frontmatter)
+- `agents/` — Bundled default agent templates (`.md` files with YAML frontmatter); **active deployed agents live in `.claude/agents/`**
 - `skills/` — Skill definitions
 - `migrations/` — Version-based config migrations (run on startup)
 - `hooks/` — PreToolUse / PostToolUse hook handlers
@@ -107,7 +83,7 @@ Key packages:
 - `scripts/` — Shell hook dispatcher (`claude-hook-fast.sh`)
 
 Notable agents:
-- **Planner** (`.claude/agents/planner.md`) — routes complex architecture/planning tasks to `claude-opus-4-7`
+- **Planner** (configured via `manifest/presets/default.json`) — routes complex architecture/planning tasks to `claude-opus-4-7`
 - **Code Contracts** — engineer agents write `icontract` preconditions/postconditions/invariants alongside implementations; QA agents (code-critic) derive a three-level test pyramid from them: contract-targeted unit tests, property-based tests via `hypothesis`/`fast-check`, and precondition violation tests. See [`docs/features/code-contracts.md`](docs/features/code-contracts.md).
 
 ---
@@ -140,12 +116,7 @@ Key hook events: `PreToolUse`, `PostToolUse`, `Stop`, `SubagentStop`, `SessionSt
 
 When adding new hooks or hook handlers, follow these patterns to prevent hangs:
 
-- **Stdin reads**: Always guard `sys.stdin.read()` and `json.load(sys.stdin)` with `select.select(timeout=1.0)` to prevent blocking on empty stdin
-- **Async operations**: Wrap blocking async calls with `asyncio.wait_for(timeout=N)` to prevent indefinite waits
-- **External process calls**: Use subprocess-relative operations (`git -C`) instead of process-global state (e.g., `os.chdir`) to avoid race conditions
-- **I/O timeouts**: Add explicit timeouts to database connections (e.g., `sqlite3.connect(timeout=1.0)`) and HTTP executor shutdown (use `wait=False`)
-- **Version checks**: Cache expensive version checks to disk (keyed by binary mtime) to prevent re-entrancy hangs
-- **Subprocess management**: Use `executor.shutdown(wait=False)` when shutting down HTTP executors in signal handlers to avoid blocking exit
+Key patterns: `select.select` stdin guards, `asyncio.wait_for` timeouts, `git -C` subprocess isolation, `sqlite3.connect(timeout=1.0)`, `executor.shutdown(wait=False)`, disk-cached version checks.
 
 ---
 
@@ -164,7 +135,7 @@ When adding new hooks or hook handlers, follow these patterns to prevent hangs:
 Migrations run automatically on startup via `run_pending_migrations()`. State tracked in `~/.claude-mpm/migrations.json`.
 
 To add a new migration:
-1. Create `src/claude_mpm/migrations/migrate_<description>.py` with a `run_migration() -> bool` function
+1. Create `src/claude_mpm/migrations/v<version>_<description>.py` (preferred) or `migrate_<description>.py` with a `run_migration() -> bool` function
 2. Register it in `src/claude_mpm/migrations/registry.py` with a unique `id` and `version`
 
 ---
@@ -183,6 +154,6 @@ To add a new migration:
 
 - **Formatter**: `ruff format` (Black-compatible, 88 chars)
 - **Linter**: `ruff check` (replaces flake8, isort, pyupgrade)
-- **Types**: `mypy --strict` (Python 3.11 target in config)
+- **Types**: `mypy` with partial strict flags (`warn_return_any`, `disallow_untyped_defs`); Python 3.13 target
 - **Imports**: sorted by `ruff --select I`
 - Run before committing: `uv run ruff format . && uv run ruff check --fix .`
