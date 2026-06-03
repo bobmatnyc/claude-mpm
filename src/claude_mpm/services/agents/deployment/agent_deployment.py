@@ -25,6 +25,11 @@ ROLLBACK PROCEDURES:
 - Use clean_deployment() to remove system agents
 - User-created agents are preserved during cleanup
 - Version tracking allows targeted rollbacks
+
+References
+----------
+SPEC-AGENTS-10~1 : docs/specs/agents.md#SPEC-AGENTS-10~1
+SPEC-AGENTS-11~1 : docs/specs/agents.md#SPEC-AGENTS-11~1
 """
 
 import time
@@ -130,6 +135,8 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
     - Python 3.8+ for pathlib and typing features
     - JSON parsing for template files
     - YAML generation capabilities
+
+    :spec: SPEC-AGENTS-10~1
     """
 
     def __init__(
@@ -350,6 +357,8 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             - errors: List of deployment errors
             - total: Total number of agents processed
             - repaired: List of agents with repaired frontmatter
+
+        :spec: SPEC-AGENTS-11~1
         """
         # METRICS: Record deployment start time for performance tracking
         deployment_start_time = time.time()
