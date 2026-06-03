@@ -3,6 +3,10 @@
 
 Extracted from ``event_handlers.EventHandlers`` as part of the #509 refactor.
 Behavior is preserved verbatim; only the surrounding structure has changed.
+
+References
+----------
+SPEC-HOOKS-08~1 : docs/specs/hooks.md#SPEC-HOOKS-08~1
 """
 
 import json
@@ -28,6 +32,8 @@ class UserPromptHandler:
         - Provides full context for debugging and monitoring
         - Captures prompt text, working directory, and session context
         - Enables better filtering and analysis in dashboard
+
+        :spec: SPEC-HOOKS-08~1
         """
         prompt = event.get("prompt", "")
 
