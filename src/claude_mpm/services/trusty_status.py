@@ -278,6 +278,40 @@ def _mcp_servers_from_file(path: Path) -> frozenset[str]:
     return frozenset(servers.keys())
 
 
+def _is_stdio_configured(service: str) -> bool:
+    """Whether ``service`` is configured as a stdio-type MCP server in any
+    ``.mcp.json``.
+
+    Why: For stdio-type MCP servers, Claude Code manages the process — the
+    HTTP health check is informational only. A stdio-configured service that
+    fails the HTTP probe is still accessible via stdio and should NOT be
+    shown as "not running".
+
+    What: Reads both the project-level and user-level ``.mcp.json`` and
+    returns ``True`` if ``service`` appears with ``"type": "stdio"`` in
+    either. Returns ``False`` on any I/O / parse error (fail-safe).
+
+    Test: ``tests/test_trusty_status_indicators.py`` — see
+    ``TestStdioConfiguredDetection``.
+    """
+    import json
+
+    for path in (
+        Path.cwd() / ".mcp.json",
+        Path.home() / ".claude" / ".mcp.json",
+    ):
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            servers = data.get("mcpServers", {})
+            entry = servers.get(service)
+            if isinstance(entry, dict) and entry.get("type") == "stdio":
+                return True
+        except (OSError, json.JSONDecodeError, ValueError, KeyError):
+            pass
+    return False
+
+
 def _is_configured_in_mcp(service: str) -> bool:
     """Whether ``service`` appears in EITHER the project or user-level MCP config.
 
@@ -385,22 +419,33 @@ def get_trusty_status(service: str) -> tuple[str, str]:
         emoji = _SERVICE_EMOJI.get(service, "")
         base_url, host_port = _base_url(service)
 
-        if _cached_health_check(service, base_url):
+        is_healthy = _cached_health_check(service, base_url)
+        is_stdio = _is_stdio_configured(service)
+
+        # stdio-configured services: HTTP health failure ≠ not running.
+        # Claude Code manages the stdio process — if configured, assume connected.
+        if is_healthy or is_stdio:
             if service == "trusty-memory":
                 palace = _palace_name()
-                # #598 option 1: /health only proves the daemon is up — verify
-                # the palace actually exists before claiming it. Fail-safe:
-                # only append "(not created)" on a definitive negative.
-                if _cached_palace_exists(service, base_url, palace):
-                    palace_display = f"palace: {palace}"
+                if is_healthy:
+                    # #598 option 1: /health only proves the daemon is up — verify
+                    # the palace actually exists before claiming it. Fail-safe:
+                    # only append "(not created)" on a definitive negative.
+                    if _cached_palace_exists(service, base_url, palace):
+                        palace_display = f"palace: {palace}"
+                    else:
+                        palace_display = f"palace: {palace} (not created)"
+                    line = f"{emoji} {service}: on   {palace_display}   {host_port}"
                 else:
-                    palace_display = f"palace: {palace} (not created)"
-                line = f"{emoji} {service}: on   {palace_display}   {host_port}"
-            else:
+                    # stdio connected but HTTP unreachable (port informational only)
+                    line = f"{emoji} {service}: on (stdio)   palace: {palace}"
+            elif is_healthy:
                 line = f"{emoji} {service}: on   {host_port}"
+            else:
+                line = f"{emoji} {service}: on (stdio)"
             return ("on", line)
 
-        # /health failed but the service is present (opted in) → not running.
+        # NOT stdio-configured AND health check failed → truly not running.
         hint = _start_hint(service)
         line = f"{emoji} {service}: not running  {hint}"
         state = "configured" if _is_configured_in_mcp(service) else "not_running"
