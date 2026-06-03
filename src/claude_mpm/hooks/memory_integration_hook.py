@@ -10,6 +10,10 @@ agent outputs because:
 - The format is clear and unambiguous
 - It's more reliable than pattern matching
 - Agents can add multiple learnings in a single response
+
+References
+----------
+SPEC-INTEGRATIONS-08~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-08~1
 """
 
 import re
@@ -68,6 +72,8 @@ class MemoryPreDelegationHook(PreDelegationHook):
 
     DESIGN DECISION: Memory is injected as a clearly formatted section in the context
     to ensure agents understand it's their accumulated knowledge, not current task info.
+
+    :spec: SPEC-INTEGRATIONS-08~1
     """
 
     def __init__(self, config: Config = None):
@@ -231,6 +237,8 @@ class MemoryPostDelegationHook(PostDelegationHook):
     Type: mistake
     Content: Never hardcode configuration values
     #
+
+    :spec: SPEC-INTEGRATIONS-08~1
     """
 
     def __init__(self, config: Config = None):
