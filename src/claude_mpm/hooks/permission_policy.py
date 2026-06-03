@@ -22,6 +22,10 @@ Design goals
 The policy intentionally returns simple ``PermissionDecision`` dataclasses
 rather than the wire format. ``model_tier_hook.py`` is responsible for
 rendering the JSON envelope expected by Claude Code.
+
+References
+----------
+SPEC-HOOKS-13~1 : docs/specs/hooks.md#SPEC-HOOKS-13~1
 """
 
 from __future__ import annotations
@@ -134,6 +138,8 @@ def evaluate(event: dict[str, Any]) -> PermissionDecision:
 
     Returns:
         :class:`PermissionDecision` describing the policy outcome.
+
+    :spec: SPEC-HOOKS-13~1
     """
     tool_name = str(event.get("tool_name") or "")
     tool_input = event.get("tool_input") or {}
