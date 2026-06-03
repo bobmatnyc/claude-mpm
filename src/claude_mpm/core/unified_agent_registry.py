@@ -22,6 +22,11 @@ Architecture:
 - AgentTier: Hierarchical precedence system
 - AgentType: Agent classification system
 - Discovery engine with tier-based precedence
+
+References
+----------
+SPEC-AGENTS-01~1 : docs/specs/agents.md#SPEC-AGENTS-01~1
+SPEC-AGENTS-10~1 : docs/specs/agents.md#SPEC-AGENTS-10~1
 """
 
 import contextlib
@@ -130,6 +135,8 @@ class UnifiedAgentRegistry:
 
     This class provides a single, authoritative interface for all agent operations
     in Claude MPM, replacing the multiple duplicate agent registry modules.
+
+    :spec: SPEC-AGENTS-10~1
     """
 
     def __init__(self, cache_enabled: bool = True, cache_ttl: int = 3600):
@@ -223,6 +230,8 @@ class UnifiedAgentRegistry:
 
         Returns:
             Dictionary mapping agent names to their metadata
+
+        :spec: SPEC-AGENTS-01~1
         """
         start_time = time.time()
 
