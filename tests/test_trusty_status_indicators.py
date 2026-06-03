@@ -21,6 +21,7 @@ import pytest
 from claude_mpm.services.trusty_status import (
     _health_check,
     _is_configured_in_mcp,
+    _is_stdio_configured,
     _palace_exists,
     _palace_name,
     get_trusty_status,
@@ -258,11 +259,12 @@ class TestGetTrustyMemoryStatus:
         assert state == "absent"
         assert line == ""
 
-    def test_configured_not_running_when_in_mcp_but_unhealthy(
+    def test_configured_not_running_when_in_mcp_but_unhealthy_non_stdio(
         self, tmp_path, monkeypatch
     ):
-        """Returns 'configured' state when in mcp.json but health check fails."""
-        _write_mcp_json(tmp_path, {"trusty-memory": {"type": "stdio"}})
+        """Returns 'configured' state when in mcp.json (non-stdio) and health fails."""
+        # Use a non-stdio type so the stdio fast-path does not apply.
+        _write_mcp_json(tmp_path, {"trusty-memory": {"type": "sse", "url": "http://x"}})
         monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
         with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
             with patch(
@@ -274,9 +276,9 @@ class TestGetTrustyMemoryStatus:
         assert "not running" in line
         assert "trusty-memory" in line
 
-    def test_not_running_suggests_start_command(self, tmp_path, monkeypatch):
-        """'not running' hint includes a start command for trusty-memory."""
-        _write_mcp_json(tmp_path, {"trusty-memory": {"type": "stdio"}})
+    def test_not_running_suggests_start_command_non_stdio(self, tmp_path, monkeypatch):
+        """'not running' hint includes a start command for non-stdio trusty-memory."""
+        _write_mcp_json(tmp_path, {"trusty-memory": {"type": "sse", "url": "http://x"}})
         monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
         with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
             with patch(
@@ -374,11 +376,12 @@ class TestGetTrustySearchStatus:
         assert state == "absent"
         assert line == ""
 
-    def test_configured_not_running_when_in_mcp_but_unhealthy(
+    def test_configured_not_running_when_in_mcp_but_unhealthy_non_stdio(
         self, tmp_path, monkeypatch
     ):
-        """Returns 'configured' state when in mcp.json but health check fails."""
-        _write_mcp_json(tmp_path, {"trusty-search": {"type": "stdio"}})
+        """Returns 'configured' state when in mcp.json (non-stdio) and health fails."""
+        # Use a non-stdio type so the stdio fast-path does not apply.
+        _write_mcp_json(tmp_path, {"trusty-search": {"type": "sse", "url": "http://x"}})
         monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
         with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
             with patch(
@@ -404,10 +407,12 @@ class TestGetTrustySearchStatus:
         assert "trusty-search: on" in line
         assert "/ui" not in line  # The new module does NOT show /ui paths
 
-    def test_not_running_suggests_serve_command(self, tmp_path, monkeypatch):
-        """'not running' hint includes 'trusty-search serve'."""
-        _write_mcp_json(tmp_path, {"trusty-search": {"type": "stdio"}})
+    def test_not_running_suggests_serve_command_non_stdio(self, tmp_path, monkeypatch):
+        """'not running' hint includes 'trusty-search serve' for non-stdio services."""
+        # Use sse type so the stdio fast-path does not apply and the hint is shown.
+        _write_mcp_json(tmp_path, {"trusty-search": {"type": "sse", "url": "http://x"}})
         monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
         with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
             with patch(
                 "claude_mpm.services.trusty_status._cached_health_check",
@@ -436,6 +441,157 @@ class TestGetTrustySearchStatus:
                 _, line = get_trusty_status("trusty-search")
         # \U0001f50d is the magnifying glass emoji
         assert "\U0001f50d" in line
+
+
+# ===========================================================================
+# _is_stdio_configured + stdio-aware get_trusty_status behaviour
+# ===========================================================================
+
+
+class TestStdioConfiguredDetection:
+    """Tests for _is_stdio_configured and its effect on get_trusty_status."""
+
+    # -----------------------------------------------------------------------
+    # _is_stdio_configured unit tests
+    # -----------------------------------------------------------------------
+
+    def test_returns_true_when_mcp_json_has_stdio_type(self, tmp_path, monkeypatch):
+        """Returns True when .mcp.json has type: stdio for the service."""
+        _write_mcp_json(tmp_path, {"trusty-memory": {"type": "stdio"}})
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        # Point home to tmp_path so the user-level .mcp.json does not interfere.
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert _is_stdio_configured("trusty-memory") is True
+
+    def test_returns_false_when_type_is_not_stdio(self, tmp_path, monkeypatch):
+        """Returns False when .mcp.json has a non-stdio type for the service."""
+        _write_mcp_json(tmp_path, {"trusty-memory": {"type": "sse", "url": "http://x"}})
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert _is_stdio_configured("trusty-memory") is False
+
+    def test_returns_false_when_service_absent_from_mcp_json(
+        self, tmp_path, monkeypatch
+    ):
+        """Returns False when the service does not appear in .mcp.json."""
+        _write_mcp_json(tmp_path, {"other-service": {"type": "stdio"}})
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert _is_stdio_configured("trusty-memory") is False
+
+    def test_returns_false_when_no_mcp_json(self, tmp_path, monkeypatch):
+        """Returns False (fail-safe) when no .mcp.json exists."""
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert _is_stdio_configured("trusty-memory") is False
+
+    def test_returns_false_on_malformed_mcp_json(self, tmp_path, monkeypatch):
+        """Returns False (fail-safe) when .mcp.json is not valid JSON."""
+        bad = tmp_path / ".mcp.json"
+        bad.write_text("{ not valid json }", encoding="utf-8")
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert _is_stdio_configured("trusty-memory") is False
+
+    # -----------------------------------------------------------------------
+    # get_trusty_status integration: stdio + health failure → still "on"
+    # -----------------------------------------------------------------------
+
+    def test_get_trusty_status_returns_on_for_stdio_when_health_fails(
+        self, tmp_path, monkeypatch
+    ):
+        """get_trusty_status returns ('on', ...) for stdio service even when HTTP
+        health check fails — this is the critical regression test for the bug where
+        stdio-type MCP servers were shown as NOT RUNNING."""
+        _write_mcp_json(tmp_path, {"trusty-search": {"type": "stdio"}})
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
+            with patch(
+                "claude_mpm.services.trusty_status._cached_health_check",
+                return_value=False,
+            ):
+                state, line = get_trusty_status("trusty-search")
+        assert state == "on"
+        assert "trusty-search" in line
+
+    def test_get_trusty_status_line_contains_stdio_marker_when_health_fails(
+        self, tmp_path, monkeypatch
+    ):
+        """When health fails but stdio is configured, the display line includes
+        '(stdio)' to indicate how the service is connected."""
+        _write_mcp_json(tmp_path, {"trusty-search": {"type": "stdio"}})
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
+            with patch(
+                "claude_mpm.services.trusty_status._cached_health_check",
+                return_value=False,
+            ):
+                state, line = get_trusty_status("trusty-search")
+        assert state == "on"
+        assert "(stdio)" in line
+
+    def test_get_trusty_status_returns_configured_when_not_stdio_and_health_fails(
+        self, tmp_path, monkeypatch
+    ):
+        """get_trusty_status still returns 'configured' for non-stdio services
+        that fail the health check — the existing behaviour is preserved."""
+        _write_mcp_json(tmp_path, {"trusty-search": {"type": "sse", "url": "http://x"}})
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
+            with patch(
+                "claude_mpm.services.trusty_status._cached_health_check",
+                return_value=False,
+            ):
+                state, line = get_trusty_status("trusty-search")
+        assert state == "configured"
+        assert "not running" in line
+
+    def test_trusty_memory_on_stdio_without_http_includes_palace_info(
+        self, tmp_path, monkeypatch
+    ):
+        """When trusty-memory is stdio-connected but HTTP is unreachable, the
+        display line still includes 'palace:' information derived from cwd."""
+        project_dir = tmp_path / "my-project"
+        project_dir.mkdir()
+        _write_mcp_json(project_dir, {"trusty-memory": {"type": "stdio"}})
+        monkeypatch.setattr(Path, "cwd", lambda: project_dir)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
+            with patch(
+                "claude_mpm.services.trusty_status._cached_health_check",
+                return_value=False,
+            ):
+                with patch(
+                    "claude_mpm.services.trusty_status._load_config", return_value={}
+                ):
+                    state, line = get_trusty_status("trusty-memory")
+        assert state == "on"
+        assert "palace:" in line
+        assert "my-project" in line
+
+    def test_trusty_memory_on_stdio_without_http_has_stdio_marker(
+        self, tmp_path, monkeypatch
+    ):
+        """When trusty-memory is stdio-connected and HTTP fails, line has '(stdio)'."""
+        project_dir = tmp_path / "demo"
+        project_dir.mkdir()
+        _write_mcp_json(project_dir, {"trusty-memory": {"type": "stdio"}})
+        monkeypatch.setattr(Path, "cwd", lambda: project_dir)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        with patch("claude_mpm.services.trusty_status._is_present", return_value=True):
+            with patch(
+                "claude_mpm.services.trusty_status._cached_health_check",
+                return_value=False,
+            ):
+                with patch(
+                    "claude_mpm.services.trusty_status._load_config", return_value={}
+                ):
+                    state, line = get_trusty_status("trusty-memory")
+        assert state == "on"
+        assert "(stdio)" in line
 
 
 # ===========================================================================
