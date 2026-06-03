@@ -39,7 +39,7 @@ implementing module docstrings once this spec is reviewed.
 ## Agent discovery and registry {#SPEC-AGENTS-01~1}
 
 **ID:** SPEC-AGENTS-01~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -94,7 +94,7 @@ without restarting the process.
 ## AgentLoader public interface {#SPEC-AGENTS-02~1}
 
 **ID:** SPEC-AGENTS-02~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -152,7 +152,7 @@ from user input, the Task tool, and the TodoWrite system. Centralising the casca
 ## Frontmatter validation and auto-correction {#SPEC-AGENTS-03~1}
 
 **ID:** SPEC-AGENTS-03~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -215,7 +215,7 @@ the schema file is missing (e.g., during testing with a partial install).
 ## Agent name normalization {#SPEC-AGENTS-04~1}
 
 **ID:** SPEC-AGENTS-04~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -268,7 +268,7 @@ to prevent user agents from accidentally overriding known-agent display names.
 ## Static capability registry {#SPEC-AGENTS-05~1}
 
 **ID:** SPEC-AGENTS-05~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -308,7 +308,7 @@ operational.
 ## Agent assembly pipeline — subagent path {#SPEC-AGENTS-06~1}
 
 **ID:** SPEC-AGENTS-06~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -376,7 +376,7 @@ debugging deployed files.
 ## PM framework assembly pipeline {#SPEC-AGENTS-07~1}
 
 **ID:** SPEC-AGENTS-07~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -439,7 +439,7 @@ deployed merged file is accidentally used as an override (causing content duplic
 ## BASE template composition {#SPEC-AGENTS-08~1}
 
 **ID:** SPEC-AGENTS-08~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -496,7 +496,7 @@ avoids requiring external repos to rename their base files.
 ## SLD instruction injection hook {#SPEC-AGENTS-09~1}
 
 **ID:** SPEC-AGENTS-09~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -553,7 +553,7 @@ instructions into them would be noise.
 ## Bundled vs. deployed agent sources {#SPEC-AGENTS-10~1}
 
 **ID:** SPEC-AGENTS-10~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -605,7 +605,7 @@ reference or restoration.
 ## AgentDeploymentService — deploy and remove {#SPEC-AGENTS-11~1}
 
 **ID:** SPEC-AGENTS-11~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -667,7 +667,7 @@ at deploy time.
 ## Startup reconciliation and orphan detection {#SPEC-AGENTS-12~1}
 
 **ID:** SPEC-AGENTS-12~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -732,7 +732,7 @@ and must not delete agents the user created independently.
 ## Frontmatter schema {#SPEC-AGENTS-13~1}
 
 **ID:** SPEC-AGENTS-13~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
