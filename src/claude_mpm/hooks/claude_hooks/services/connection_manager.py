@@ -14,6 +14,10 @@ This service manages:
 - SocketIO connection pool initialization
 - Direct event emission with HTTP fallback
 - Connection cleanup
+
+References
+----------
+SPEC-HOOKS-10~1 : docs/specs/hooks.md#SPEC-HOOKS-10~1
 """
 
 import os
@@ -84,7 +88,10 @@ except ImportError:
 
 
 class ConnectionManagerService:
-    """Manages connections for the Claude hook handler."""
+    """Manages connections for the Claude hook handler.
+
+    :spec: SPEC-HOOKS-10~1
+    """
 
     def __init__(self):
         """Initialize connection management service."""
