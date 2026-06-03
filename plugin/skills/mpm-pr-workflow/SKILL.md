@@ -82,6 +82,36 @@ Task:
     - Request reviews if needed
 ```
 
+## Code Review (If Available)
+
+After the PR is created and CI passes, the PM checks whether `trusty-review` is available before proceeding to squash-merge.
+
+### Availability Check
+
+Call `mcp__trusty-review__review_health`. Treat trusty-review as **available** if and only if:
+
+- `status == "ok"` AND
+- `reviewer_model` is set (non-empty string)
+
+If the health call throws an exception, returns a non-`ok` status, or returns an empty `reviewer_model`, skip the review step entirely — never block or warn the user about trusty-review being unavailable.
+
+> **Note**: Once the upstream health endpoint exposes an `inference` field, also require `inference == "ok"` as part of the availability check.
+
+### When Available
+
+The PM calls `mcp__trusty-review__review_pr(owner, repo, pr_number)` directly (PM has MCP tool access). Route the verdict as follows:
+
+| Verdict | Action |
+|---------|--------|
+| `APPROVE` or `APPROVE*` | Proceed to squash-merge |
+| `REQUEST_CHANGES` | Delegate findings to Engineer for remediation; re-run CI before merge |
+| `BLOCK` | Do not merge; escalate immediately to the user |
+| `UNKNOWN` or tool error | Fail open — proceed to squash-merge with a note that review was inconclusive |
+
+### When Unavailable
+
+Skip silently. Do not surface any message to the user about trusty-review being down. The PR workflow continues to squash-merge as normal.
+
 ## Common Patterns
 
 ### Single Feature PR

@@ -315,7 +315,7 @@ Final `git status` before session end.
 
 **[SKILL: mpm-pr-workflow]**
 
-No direct-to-main. Substantive work (feature/fix/refactor) is issue-first: create/reference a GitHub issue, branch off latest `main` (`feat/<issue>-<slug>`), implement + test, open PR (link issue), squash-merge after CI + QA pass, then delete the branch. Trivial docs/chore work skips the issue but still requires branch + PR + squash-merge. Direct-to-main is allowed ONLY for release tooling (`make release-*` version bumps, `chore: update uv.lock`). Delegate all branch/PR/merge operations to the Version Control agent.
+No direct-to-main. Substantive work (feature/fix/refactor) is issue-first: create/reference a GitHub issue, branch off latest `main` (`feat/<issue>-<slug>`), implement + test, open PR (link issue), squash-merge after CI + QA pass, then delete the branch. Trivial docs/chore work skips the issue but still requires branch + PR + squash-merge. Direct-to-main is allowed ONLY for release tooling (`make release-*` version bumps, `chore: update uv.lock`). Delegate all branch/PR/merge operations to the Version Control agent. If `trusty-review` MCP is available (health `status: ok` + `reviewer_model` set), call `review_pr` after CI passes and before squash-merge; APPROVE/APPROVE* proceeds, REQUEST_CHANGES remediates first, BLOCK escalates to user, errors fail open.
 
 ## Ticketing Integration
 
