@@ -50,8 +50,10 @@ When invoked, this skill:
 
 ## Implementation
 
-**Execute the following Python code.  Parse the user's invocation arguments first,
-then dispatch to the appropriate code path.**
+**Execute the following Python code via `uv run python` (primary method — never use
+bare `python3` or `.venv` activation; `claude_mpm` is installed as a `uv tool`, not
+into the project venv). Parse the user's invocation arguments first, then dispatch to
+the appropriate code path.**
 
 ```python
 import sys
