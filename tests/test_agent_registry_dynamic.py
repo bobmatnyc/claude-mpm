@@ -46,14 +46,20 @@ class TestAgentNameRegistry:
     def test_non_conforming_names_preserved(self):
         """Non-conforming upstream name: values must be exact.
 
-        NOTE: 'ticketing' is excluded because runtime discovery from
-        .claude/agents/ overrides the hardcoded value with the agent's actual
-        frontmatter name: field, which may differ from the registry baseline.
+        Asserts the value returned by ``get_agent_name_map()``, which applies
+        runtime discovery from ``.claude/agents/``. Discovery overrides the
+        hardcoded ``AGENT_NAME_MAP`` baseline with each agent's actual
+        frontmatter ``name:`` field, so the expected values below are the
+        runtime-resolved names, not the registry baseline.
+
+        NOTE: 'ticketing' and 'nestjs-engineer' are excluded because their
+        frontmatter ``name:`` field is the raw lowercase id (e.g.
+        ``nestjs-engineer``), which diverges from the registry display name
+        (``NestJS Engineer``) and is therefore not a stable assertion target.
         """
         name_map = get_agent_name_map()
         non_conforming = {
-            "nestjs-engineer": "nestjs-engineer",
-            "real-user": "real-user",
+            "real-user": "Real User",
         }
         for agent_id, expected_name in non_conforming.items():
             if agent_id in name_map:
