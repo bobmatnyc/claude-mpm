@@ -5,6 +5,10 @@ Agent Metadata Definitions
 
 Preserves AGENT_CONFIG metadata for all agents.
 This metadata is used for agent registration, capability tracking, and performance targets.
+
+References
+----------
+SPEC-AGENTS-05~1 : docs/specs/agents.md#SPEC-AGENTS-05~1
 """
 
 # Documentation Agent Metadata
