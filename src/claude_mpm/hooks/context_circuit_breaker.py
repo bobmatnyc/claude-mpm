@@ -21,6 +21,10 @@ If the state file is missing, unreadable, or malformed -- or if the recorded
 empty dict (pass-through).  False denials are far worse than missed denials:
 the worst case for fail-open is the existing behavior; the worst case for
 fail-closed is bricking the session on a stale state file from a prior run.
+
+References
+----------
+SPEC-HOOKS-11~1 : docs/specs/hooks.md#SPEC-HOOKS-11~1
 """
 
 from __future__ import annotations
@@ -75,6 +79,8 @@ def evaluate(event: dict[str, Any]) -> dict[str, Any]:
     Returns a ``hookSpecificOutput``-shaped dict when the breaker fires, and
     an empty dict otherwise.  Callers should treat any non-empty result as
     "emit this and stop processing".
+
+    :spec: SPEC-HOOKS-11~1
     """
     cwd = event.get("cwd", "") or ""
     state = _load_state(cwd)
