@@ -1,4 +1,5 @@
 #!/bin/bash
+# References: SPEC-HOOKS-02~1 docs/specs/hooks.md#SPEC-HOOKS-02~1
 #
 # Claude MPM Hook Handler Entry Point Script
 #
