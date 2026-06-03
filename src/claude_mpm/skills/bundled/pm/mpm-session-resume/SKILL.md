@@ -50,8 +50,13 @@ When invoked, this skill:
 
 ## Implementation
 
-**Execute the following Python code.  Parse the user's invocation arguments first,
-then dispatch to the appropriate code path.**
+**Before executing, detect which Python runtime has `claude_mpm` installed, then use that runtime. Check in priority order:**
+
+1. `uv run python -c "import claude_mpm"` — preferred; claude-mpm is typically installed as a `uv tool`
+2. `.venv/bin/python -c "import claude_mpm"` — if the project venv has an editable install
+3. `python3 -c "import claude_mpm"` — if claude_mpm is on the system Python
+
+Run whichever passes first, then execute the code below with that runtime. Parse the user's invocation arguments first, then dispatch to the appropriate code path.
 
 ```python
 import sys
