@@ -10,9 +10,9 @@ interactive SDK session entry point, the event and hook buses, Socket.IO relay
 implementations, and the monitor agent watchdog.
 
 Each section constitutes one governed specification with a stable ID, a behavior contract
-(WHAT), a rationale section (WHY), and an implementing-modules table. All sections carry
-`**Status:** draft (pending backfill)` — the UNCOVERED check is therefore waived until
-code `References` blocks are added in a subsequent backfill phase.
+(WHAT), a rationale section (WHY), and an implementing-modules table. All sections are
+`**Status:** Active`: the implementing modules carry `References` / `:spec:` blocks
+linking back to these sections, so the UNCOVERED check is enforced.
 
 ---
 
@@ -39,7 +39,7 @@ code `References` blocks are added in a subsequent backfill phase.
 ## Services SessionManager — singleton token tracker {#SPEC-SESSIONS-01~1}
 
 **ID:** SPEC-SESSIONS-01~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -106,7 +106,7 @@ field is hardcoded to `"claude-sonnet-4.5"`, which is stale relative to the acti
 ## Core SessionManager — subprocess-reuse registry {#SPEC-SESSIONS-02~1}
 
 **ID:** SPEC-SESSIONS-02~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -164,7 +164,7 @@ is not suitable for this purpose.
 ## SessionManagementService — session orchestration layer {#SPEC-SESSIONS-03~1}
 
 **ID:** SPEC-SESSIONS-03~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -229,7 +229,7 @@ out of scope for this extraction.
 ## SDK runtime — SDKAgentRunner in-process executor {#SPEC-SESSIONS-04~1}
 
 **ID:** SPEC-SESSIONS-04~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 > **Note:** `SDKAgentRunner` is **fully implemented** but is designated **frozen /
 > unsupported** by project decision (epic #355 closed). The implementation must not be
@@ -309,7 +309,7 @@ capabilities will be added to `SDKAgentRunner` under the project decision to lea
 ## CLI runtime — CLIAgentRunner subprocess executor {#SPEC-SESSIONS-05~1}
 
 **ID:** SPEC-SESSIONS-05~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -376,7 +376,7 @@ The docstrings are stale and should be corrected in a future cleanup.
 ## AgentRuntime ABC, config dataclasses, and factory {#SPEC-SESSIONS-06~1}
 
 **ID:** SPEC-SESSIONS-06~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -432,7 +432,7 @@ fallback is always available regardless of SDK package installation.
 ## Runtime bridge and config resolution {#SPEC-SESSIONS-07~1}
 
 **ID:** SPEC-SESSIONS-07~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -489,7 +489,7 @@ docstring says it only accepts `"exec"` or `"subprocess"`.
 ## Interactive SDK session — _launch_sdk_mode {#SPEC-SESSIONS-08~1}
 
 **ID:** SPEC-SESSIONS-08~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 > **Correctness note:** Prior research documents (`sdk-runtime-current-state-2026-05-04.md`,
 > line 82) claimed `_launch_sdk_mode()` "DOES NOT EXIST." This was incorrect. The
@@ -566,7 +566,7 @@ monitor runs.
 ## SessionStateTracker — SDK session state store {#SPEC-SESSIONS-09~1}
 
 **ID:** SPEC-SESSIONS-09~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -622,7 +622,7 @@ automatically as new ones arrive, with no manual cleanup required.
 ## HookEventBus — cross-process injection queue {#SPEC-SESSIONS-10~1}
 
 **ID:** SPEC-SESSIONS-10~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -680,7 +680,7 @@ streaming. They are not connected.
 ## EventBus — in-process pyee event emitter {#SPEC-SESSIONS-11~1}
 
 **ID:** SPEC-SESSIONS-11~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -739,7 +739,7 @@ processing across the codebase.
 ## Socket.IO relays — DirectSocketIORelay (live) and SocketIORelay (frozen) {#SPEC-SESSIONS-12~1}
 
 **ID:** SPEC-SESSIONS-12~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -796,7 +796,7 @@ direct `sio.emit()` path.
 ## MonitorAgent — session watchdog daemon {#SPEC-SESSIONS-13~1}
 
 **ID:** SPEC-SESSIONS-13~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
