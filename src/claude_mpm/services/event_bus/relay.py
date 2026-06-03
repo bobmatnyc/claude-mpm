@@ -6,6 +6,10 @@ WHY separate relay component:
 - Enables graceful degradation when Socket.IO unavailable
 - Simplifies testing by mocking just the relay
 - Supports batching and retry logic in one place
+
+References
+----------
+SPEC-SESSIONS-12~1 : docs/specs/sessions.md#SPEC-SESSIONS-12~1
 """
 
 import os
@@ -42,6 +46,8 @@ class SocketIORelay:
     - Provides single point for Socket.IO configuration
     - Enables event batching and optimization
     - Simplifies debugging with centralized logging
+
+    :spec: SPEC-SESSIONS-12~1
     """
 
     def __init__(self, port: int | None = None):
