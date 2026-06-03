@@ -627,6 +627,7 @@ creates a misleading "pending" count for genuinely clean systems.
 |--------|------|
 | `claude_mpm.migrations.runner` | `run_pending_migrations`, `get_pending_migrations`, `get_migration_status`, `mark_migration_complete` |
 | `claude_mpm.migrations.registry` | `MIGRATIONS` (catalog), `Migration` (NamedTuple) |
+| `claude_mpm.migrations.v6_3_1_deploy_claude_assets` | `run_migration` — deploys statusline.sh and settings.json to `~/.claude/` (one-shot, create-if-missing, idempotent) |
 
 ---
 
