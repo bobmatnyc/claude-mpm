@@ -212,6 +212,29 @@ class ToolHandler:
                 }
             }
 
+        # Destructive-op guard: deny irreversible git/file operations (force
+        # push, hard reset, broad working-tree discard, rm -rf of project paths,
+        # protected-branch force-delete, git clean -f).  Issue #420 Phase 1 uses
+        # ``deny`` because ``defer`` does not work in interactive sessions.  The
+        # guard module fails open internally; wrap the import too in case it is
+        # unavailable.
+        try:
+            from claude_mpm.hooks import destructive_op_guard
+
+            guard_decision = destructive_op_guard.evaluate(event)
+        except Exception:
+            guard_decision = {}
+        if guard_decision.get("permissionDecision") == "deny":
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": guard_decision.get(
+                        "permissionDecisionReason", ""
+                    ),
+                }
+            }
+
         # Model-tier injection (Agent calls) and ztk rewriting (Bash calls).
         # These were previously handled by the pretooluse_dispatcher subprocess;
         # calling them as functions here removes that extra process per tool call.
