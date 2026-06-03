@@ -2,6 +2,10 @@
 
 This module handles deployment of system instructions and framework files.
 Extracted from AgentDeploymentService to reduce complexity and improve maintainability.
+
+References
+----------
+SPEC-AGENTS-07~1 : docs/specs/agents.md#SPEC-AGENTS-07~1
 """
 
 import logging
@@ -192,6 +196,8 @@ class SystemInstructionsDeployer:
             target_dir: Target directory for deployment (not used - always uses project .claude-mpm)
             force_rebuild: Force rebuild even if exists
             results: Results dictionary to update
+
+        :spec: SPEC-AGENTS-07~1
         """
         # Initialize before try so it's always bound for deploy_templates below
         claude_mpm_dir = self.working_directory / ".claude-mpm"
