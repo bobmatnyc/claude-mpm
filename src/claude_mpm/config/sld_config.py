@@ -16,6 +16,8 @@ References
 The SLD convention is documented in docs/specs/README.md.
 The skill that engineers use is bundled at
 src/claude_mpm/skills/bundled/universal/spec-linked-docs/SKILL.md.
+
+SPEC-AGENTS-09~1 : docs/specs/agents.md#SPEC-AGENTS-09~1
 """
 
 from __future__ import annotations
@@ -310,6 +312,8 @@ def get_sld_instruction_for_agent(
     ''
     >>> get_sld_instruction_for_agent("research")
     ''
+
+    :spec: SPEC-AGENTS-09~1
     """
     if not is_sld_target_agent_type(agent_type):
         return ""
