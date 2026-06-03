@@ -5,6 +5,12 @@ including YAML and Markdown generation, template merging, and metadata extractio
 
 Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
+
+References
+----------
+SPEC-AGENTS-06~1 : docs/specs/agents.md#SPEC-AGENTS-06~1
+SPEC-AGENTS-08~1 : docs/specs/agents.md#SPEC-AGENTS-08~1
+SPEC-AGENTS-09~1 : docs/specs/agents.md#SPEC-AGENTS-09~1
 """
 
 import json
@@ -224,6 +230,8 @@ class AgentTemplateBuilder:
                 repo/engineering/BASE-AGENT.md,
                 repo/BASE-AGENT.md
             ]
+
+        :spec: SPEC-AGENTS-08~1
         """
         base_templates = []
         current_dir = agent_file.parent
@@ -470,6 +478,9 @@ class AgentTemplateBuilder:
             json.JSONDecodeError: If template JSON is invalid
             yaml.YAMLError: If template YAML is invalid
             ValueError: If template format is unsupported or malformed
+
+        :spec: SPEC-AGENTS-06~1
+        :spec: SPEC-AGENTS-09~1
         """
         if not template_path.exists():
             raise FileNotFoundError(f"Template file not found: {template_path}")
