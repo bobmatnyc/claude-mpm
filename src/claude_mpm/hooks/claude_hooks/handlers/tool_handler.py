@@ -3,6 +3,11 @@
 
 Extracted from ``event_handlers.EventHandlers`` as part of the #509 refactor.
 Behavior is preserved verbatim; only the surrounding structure has changed.
+
+References
+----------
+SPEC-HOOKS-05~1 : docs/specs/hooks.md#SPEC-HOOKS-05~1
+SPEC-HOOKS-06~1 : docs/specs/hooks.md#SPEC-HOOKS-06~1
 """
 
 import asyncio
@@ -181,6 +186,8 @@ class ToolHandler:
         - Captures tool parameters for debugging and security analysis
         - Provides context about what Claude is about to do
         - Enables pattern analysis and security monitoring
+
+        :spec: SPEC-HOOKS-05~1
         """
         # Context circuit-breaker: deny tool calls when context >= 95% (issue
         # #420).  Run BEFORE any other PreToolUse work so a critical-context
@@ -492,6 +499,8 @@ class ToolHandler:
         - Captures execution results and success/failure status
         - Provides duration and performance metrics
         - Enables pattern analysis of tool usage and success rates
+
+        :spec: SPEC-HOOKS-06~1
         """
         tool_name = event.get("tool_name", "")
         exit_code = event.get("exit_code", 0)
