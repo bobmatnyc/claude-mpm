@@ -1,4 +1,9 @@
-"""Skills manager - integrates skills with agents."""
+"""Skills manager - integrates skills with agents.
+
+References
+----------
+SPEC-SKILLS-06~1 : docs/specs/skills.md#SPEC-SKILLS-06~1
+"""
 
 import json
 from pathlib import Path
@@ -15,7 +20,10 @@ logger = get_logger(__name__)
 
 
 class SkillManager:
-    """Manages skills and their integration with agents."""
+    """Manages skills and their integration with agents.
+
+    :spec: SPEC-SKILLS-06~1
+    """
 
     def __init__(self):
         """Initialize the skill manager."""
