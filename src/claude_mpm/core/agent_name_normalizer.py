@@ -14,6 +14,10 @@ What: Provides :class:`AgentNameNormalizer` with class-level lookups
 ``from_task_format``).  All methods are ``@classmethod`` so no instance is
 required; a module-level singleton ``agent_name_normalizer`` is also
 exported for convenience.
+
+References
+----------
+SPEC-AGENTS-04~1 : docs/specs/agents.md#SPEC-AGENTS-04~1
 """
 
 from claude_mpm.core.agent_name_registry import (
@@ -159,6 +163,8 @@ class AgentNameNormalizer:
     - Task tool display
     - Agent type identification
     - Color coding
+
+    :spec: SPEC-AGENTS-04~1
     """
 
     # ---------------------------------------------------------------------------

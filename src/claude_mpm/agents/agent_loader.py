@@ -30,6 +30,10 @@ Usage Examples:
 
     # List all available agents
     agents = list_available_agents()
+
+References
+----------
+SPEC-AGENTS-02~1 : docs/specs/agents.md#SPEC-AGENTS-02~1
 """
 
 import os
@@ -165,6 +169,8 @@ class AgentLoader:
     - Easy testability
     - Minimal complexity
     - Fast, direct file access
+
+    :spec: SPEC-AGENTS-02~1
     """
 
     def __init__(self):

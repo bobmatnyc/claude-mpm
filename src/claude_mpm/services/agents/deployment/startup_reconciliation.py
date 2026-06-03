@@ -11,6 +11,10 @@ Usage:
 
     # In your startup code
     perform_startup_reconciliation()
+
+References
+----------
+SPEC-AGENTS-12~1 : docs/specs/agents.md#SPEC-AGENTS-12~1
 """
 
 from pathlib import Path
@@ -65,6 +69,8 @@ def _detect_and_remove_orphaned_agents(
 
     Returns:
         List of removed agent filenames
+
+    :spec: SPEC-AGENTS-12~1
     """
     from claude_mpm.core.unified_paths import get_path_manager
     from claude_mpm.utils.agent_provenance import is_mpm_managed_agent
@@ -268,6 +274,8 @@ def perform_startup_reconciliation(
 
     Returns:
         Tuple of (agent_result, skill_result)
+
+    :spec: SPEC-AGENTS-12~1
     """
     project_path = project_path or Path.cwd()
 

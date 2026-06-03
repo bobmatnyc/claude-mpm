@@ -13,6 +13,11 @@ Key Features:
 - Normalizes model names to standard tiers (opus, sonnet, haiku)
 - Fixes tools field when provided as string representation
 - Provides detailed logging of corrections made
+
+References
+----------
+SPEC-AGENTS-03~1 : docs/specs/agents.md#SPEC-AGENTS-03~1
+SPEC-AGENTS-13~1 : docs/specs/agents.md#SPEC-AGENTS-13~1
 """
 
 import json
@@ -51,6 +56,8 @@ class FrontmatterValidator:
     - Model name normalization
     - Tools field parsing and correction
     - Logging of all corrections made
+
+    :spec: SPEC-AGENTS-13~1
     """
 
     # NOTE: Model normalization now handled by ModelTier.normalize()
@@ -156,6 +163,8 @@ class FrontmatterValidator:
 
         Returns:
             ValidationResult with validation status and corrected frontmatter
+
+        :spec: SPEC-AGENTS-03~1
         """
         errors: list[str] = []
         warnings: list[str] = []
