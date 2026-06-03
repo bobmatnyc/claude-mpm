@@ -8,6 +8,10 @@ This module uses protocol-based dependency injection to break circular imports.
 Instead of importing ClaudeRunner directly, it uses ClaudeRunnerProtocol which
 defines the interface it needs. This allows ClaudeRunner to create instances
 of InteractiveSession without circular dependency issues.
+
+References
+----------
+SPEC-SESSIONS-08~1 : docs/specs/sessions.md#SPEC-SESSIONS-08~1
 """
 
 from __future__ import annotations
@@ -67,6 +71,8 @@ class InteractiveSession:
     DESIGN DECISION: Uses composition over inheritance - takes ClaudeRunner as
     dependency rather than inheriting from it. This maintains loose coupling
     and makes testing easier while preserving all original functionality.
+
+    :spec: SPEC-SESSIONS-08~1
     """
 
     def __init__(self, runner: ClaudeRunnerProtocol):
