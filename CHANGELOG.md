@@ -19,6 +19,16 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.13 (2026-06-03)
+
+### Fix
+
+- **test**: skip dashboard test gracefully when playwright binary missing (#639)
+
+### Perf
+
+- remove deprecated mpm-message skill and deduplicate agent capabilities by display name (#637)
+
 ## v6.5.12 (2026-06-03)
 
 ### Feat
