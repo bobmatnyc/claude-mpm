@@ -1,4 +1,5 @@
 #!/bin/bash
+# References: SPEC-HOOKS-01~1 docs/specs/hooks.md#SPEC-HOOKS-01~1
 # =============================================================================
 # Ultra-fast hook handler for Claude MPM (~15ms vs ~450ms Python)
 #
