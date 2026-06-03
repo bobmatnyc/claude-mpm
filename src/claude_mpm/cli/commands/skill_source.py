@@ -7,6 +7,10 @@ enable, disable, and show commands with user-friendly output.
 DESIGN DECISION: Uses SkillSourceConfiguration for persistent storage and
 GitSkillSourceManager for Git operations. Provides clear, emoji-enhanced feedback
 for better UX. Handles errors gracefully with actionable messages.
+
+References
+----------
+SPEC-SKILLS-03~1 : docs/specs/skills.md#SPEC-SKILLS-03~1
 """
 
 import json
