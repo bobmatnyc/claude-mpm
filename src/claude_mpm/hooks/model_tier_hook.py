@@ -13,6 +13,10 @@ events:
 
 Routing is decided from the ``hook_event_name`` field in the JSON payload so
 that one entrypoint can serve both hook types without changing settings.
+
+References
+----------
+SPEC-HOOKS-12~1 : docs/specs/hooks.md#SPEC-HOOKS-12~1
 """
 
 import json
@@ -263,6 +267,8 @@ def build_model_tier_response(event: dict) -> dict:
     such as ``claude-opus-4-7`` can cause "expected one of sonnet|opus|haiku"
     validation errors on some versions.  We map known dated IDs to their short
     alias before injecting; unknown/custom model IDs are passed through as-is.
+
+    :spec: SPEC-HOOKS-12~1
     """
     tool_name = event.get("tool_name", "")
     tool_input = event.get("tool_input", {})
