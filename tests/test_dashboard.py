@@ -6,10 +6,40 @@ Tests all tabs and captures console logs
 
 import asyncio
 import json
+import os
 
+import pytest
 from playwright.async_api import async_playwright
 
 
+def _chromium_missing() -> bool:
+    """Detect whether the Playwright Chromium browser binary is installed.
+
+    Why: Playwright is installed as a Python package, but the browser binaries
+    are downloaded separately via 'playwright install'. In environments where
+    they were never downloaded, launching Chromium raises a hard error. We
+    detect the gap up front so the test can skip gracefully instead of erroring.
+    What: Returns True when the expected Chromium executable path does not exist
+    on disk (or cannot be resolved at all).
+    Test: Uninstall browsers ('playwright uninstall') and assert this returns
+    True; run 'playwright install chromium' and assert it returns False.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            return not os.path.exists(p.chromium.executable_path)
+    except Exception:
+        # If Playwright cannot even resolve the path, treat the browser as
+        # unavailable so the test skips rather than erroring later.
+        return True
+
+
+@pytest.mark.skipif(
+    _chromium_missing(),
+    reason="Playwright Chromium not installed - run 'playwright install chromium'",
+)
+@pytest.mark.asyncio
 async def test_dashboard():
     """Test all dashboard tabs and capture console output"""
     results = {"connection": {}, "console_logs": [], "tabs": {}, "errors": []}
