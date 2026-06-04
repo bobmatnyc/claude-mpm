@@ -201,46 +201,43 @@ use_ai_trackdown_tools: false
 verbose: false
 skills:
   agent_referenced:
+  - api-design-patterns
   - brainstorming
+  - bug-fix-verification
   - code-production-process
   - code-review-standards
-  - condition-based-waiting
+  - database-migration
   - dispatching-parallel-agents
-  - docker
   - git-workflow
+  - git-worktrees
   - internal-comms
+  - java-algorithm-patterns
+  - java-async-concurrent
   - json-data-handling
-  - playwright
-  - protocol
-  - protocol-builder
+  - python-algorithm-cookbook
+  - python-async-patterns
+  - python-di-soa-patterns
   - requesting-code-review
+  - research-google-workspace
+  - research-mcp-skillset
+  - research-ticketing-protocol
   - root-cause-tracing
-  - screenshot-verification
   - security-scanning
-  - skill-creator
   - software-patterns
+  - stacked-prs
   - systematic-debugging
   - test-driven-development
-  - toolchains-nextjs-api-validated-handler
-  - toolchains-python-data-sqlalchemy
-  - toolchains-python-validation-pydantic
-  - toolchains-typescript-data-drizzle-migrations
-  - toolchains-typescript-validation-zod
-  - toolchains-universal-dead-code-elimination
-  - toolchains-universal-dependency-audit
+  - toolchains-rust-core
   - toolchains-universal-infrastructure-docker
-  - toolchains-universal-infrastructure-github-actions
   - toolchains-universal-security-api-review
   - universal-data-database-migration
   - universal-debugging-verification-before-completion
-  - universal-operations-emergency-release
   - universal-testing-test-quality-inspector
   - universal-testing-testing-anti-patterns
   - universal-verification-bug-fix
   - universal-verification-pre-merge
   - universal-verification-screenshot
   - verification-before-completion
-  - webapp-testing
   - writing-plans
   user_defined: []
 active_profile: framework-development
