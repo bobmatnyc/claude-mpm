@@ -193,15 +193,12 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
             echo ""
 
             if [[ $REPLY =~ ^[Yy]$ ]]; then
-                # Push via an explicitly-authenticated URL so the credential is the
-                # required account's token, never an ambient/cached credential.
-                local origin_url push_url
-                origin_url="$(git remote get-url origin)"
-                if ! push_url="$(gh_authenticated_url "$origin_url")"; then
-                    print_message "$RED" "  ✗ Could not build authenticated push URL"
-                    return 1
-                fi
-                if execute_cmd "git push \"$push_url\" $CURRENT_BRANCH"; then
+                # Push as the required account by injecting its token via a one-shot
+                # GIT_ASKPASS helper (gh_git_push). The bare `origin` remote is used
+                # as-is; the token is never embedded in the URL or argv, so it cannot
+                # leak into the command log below, reflog, or /proc/<pid>/cmdline.
+                print_message "$BLUE" "  Running: git push origin $CURRENT_BRANCH (authenticated)"
+                if gh_git_push origin "$CURRENT_BRANCH"; then
                     print_message "$GREEN" "  ✓ Successfully pushed to origin/$CURRENT_BRANCH"
                 else
                     print_message "$RED" "  ✗ Push failed"
