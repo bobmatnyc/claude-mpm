@@ -16,6 +16,7 @@ DESIGN DECISIONS:
 
 import asyncio
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -701,6 +702,114 @@ async def trigger_vector_search_indexing(project_root: Path | None = None) -> No
         logger.debug(f"Failed to start vector search indexing: {e}")
 
 
+def _ensure_vector_search_daemon() -> None:
+    """
+    Best-effort start of the mcp-vector-search persistent daemon.
+
+    WHAT: Idempotently starts the mcp-vector-search background daemon so the
+    search index stays warm across sessions.
+
+    WHY: The optional mcp-vector-search daemon keeps the search index warm in
+    memory, providing dramatically faster code search. It is not started
+    automatically and does not survive reboots, so users otherwise have to run
+    ``mvs daemon start`` by hand.
+
+    ``daemon start`` is idempotent (a no-op if already running), so this is
+    safe to call on every launch. Set MCP_VECTOR_SEARCH_DAEMON=0 (or
+    ``false``/``no``) to opt out. Fails silently — never blocks or breaks
+    startup.
+    """
+    logger = get_logger("cli")
+
+    if os.environ.get("MCP_VECTOR_SEARCH_DAEMON", "1").lower() in (
+        "0",
+        "false",
+        "no",
+    ):
+        logger.debug("Vector search daemon autostart disabled via env")
+        return
+
+    try:
+        from ..services.mcp_config_manager import MCPConfigManager
+
+        manager = MCPConfigManager()
+        vector_search_path = manager.detect_service_path("mcp-vector-search")
+
+        if not vector_search_path:
+            logger.debug("mcp-vector-search not found, skipping daemon start")
+            return
+
+        # Use basename to detect Python interpreter (avoids false positives from
+        # paths like /home/pythonuser/bin/mcp-vector-search)
+        basename = Path(vector_search_path).name
+        if basename.startswith("python"):
+            cmd = [
+                vector_search_path,
+                "-m",
+                "mcp_vector_search.cli",
+                "daemon",
+                "start",
+            ]
+        else:
+            cmd = [vector_search_path, "daemon", "start"]
+
+        subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,  # detach from parent; avoids zombie on POSIX
+        )
+        logger.debug("mcp-vector-search: ensured daemon is running")
+
+    except Exception as e:
+        logger.debug(f"Failed to start mcp-vector-search daemon: {e}")
+
+
+def _ensure_trusty_search_daemon() -> None:
+    """
+    Best-effort start of the trusty-search persistent daemon.
+
+    WHAT: Idempotently starts the trusty-search HTTP daemon on :7878 so
+    semantic code search is available from the first query.
+
+    WHY: trusty-search runs a persistent HTTP daemon on :7878 that serves
+    semantic code search. Starting it on every launch is idempotent (it
+    exits immediately if already running). Set TRUSTY_SEARCH_DAEMON=0 (or
+    ``false``/``no``) to opt out. Fails silently — never blocks or breaks
+    startup.
+    """
+    logger = get_logger("cli")
+
+    if os.environ.get("TRUSTY_SEARCH_DAEMON", "1").lower() in ("0", "false", "no"):
+        logger.debug("trusty-search daemon autostart disabled via env")
+        return
+
+    try:
+        from ..services.mcp_config_manager import MCPConfigManager
+
+        manager = MCPConfigManager()
+        trusty_path = manager.detect_service_path("trusty-search")
+
+        if not trusty_path:
+            logger.debug("trusty-search not found, skipping daemon start")
+            return
+
+        # ``trusty-search start`` self-spawns a detached background copy and
+        # returns immediately; it is a no-op when the daemon is already running.
+        cmd = [trusty_path, "start"]
+
+        subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,  # detach from parent; avoids zombie on POSIX
+        )
+        logger.debug("trusty-search: ensured daemon is running")
+
+    except Exception as e:
+        logger.debug(f"Failed to start trusty-search daemon: {e}")
+
+
 def start_vector_search_indexing(project_root: Path | None = None) -> None:
     """
     Synchronous wrapper to trigger vector search indexing.
@@ -708,10 +817,17 @@ def start_vector_search_indexing(project_root: Path | None = None) -> None:
     This creates a new event loop if needed to run the async indexing function.
     Falls back to subprocess.Popen if async fails.
 
+    Also ensures the mcp-vector-search and trusty-search daemons are running
+    (idempotent, opt-out via MCP_VECTOR_SEARCH_DAEMON=0 / TRUSTY_SEARCH_DAEMON=0).
+
     Args:
         project_root: Root directory for the project (defaults to cwd)
     """
     logger = get_logger("cli")
+
+    # Ensure persistent daemons are running before kicking off indexing.
+    _ensure_vector_search_daemon()
+    _ensure_trusty_search_daemon()
 
     try:
         # Try to get the current event loop
