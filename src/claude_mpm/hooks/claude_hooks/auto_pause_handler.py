@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Auto-pause handler for Claude Code hooks.
 
-WHY: Automatically pause Claude sessions when context usage reaches 90% to prevent
-context window exhaustion. Integrates with existing hook infrastructure to monitor
-token usage and trigger incremental pause capture.
+WHY: Track cumulative token usage across Claude Code hook invocations so that
+commit-cost trailers and the dashboard have accurate context-usage data.
+
+CONTEXT AUTO-PAUSE IS DISABLED: This handler historically paused/aborted a
+session (and any in-flight sub-agent) once context usage crossed 90%/95%,
+emitting "session paused to prevent data loss". That behavior killed legitimate
+active work and has been removed. Token usage is still MEASURED (via
+ContextUsageTracker), but crossing a threshold NEVER triggers a pause, never
+creates ACTIVE-PAUSE.jsonl, and never aborts a session or sub-agent. The
+public method signatures are preserved to avoid breaking imports/tests.
 
 DESIGN DECISIONS:
 - Integrates with ContextUsageTracker for token tracking across hook invocations
-- Uses IncrementalPauseManager for capturing actions during pause mode
+- IncrementalPauseManager wiring is retained only so the recording API surface
+  stays importable; no pause is ever started from threshold crossings
 - Thread-safe - handles hook calls from multiple processes via file-based state
-- Emits warnings to stderr for visibility without breaking hook flow
-- Only triggers auto-pause on NEW threshold crossings (prevents duplicate warnings)
-- Graceful error handling - auto-pause failures don't break main hook processing
+- Only reports NEW threshold crossings (informational; no pausing)
+- Graceful error handling - tracking failures don't break main hook processing
 
 USAGE:
     # Initialize handler in hook handler
@@ -62,8 +69,8 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 THRESHOLD_WARNINGS = {
     "caution": "Context usage at 70%. Consider wrapping up current work.",
     "warning": "Context usage at 85%. Session nearing capacity.",
-    "auto_pause": "Context usage at 90%. Auto-pause activated. Actions are being recorded for session continuity.",
-    "critical": "Context usage at 95%. Session nearly exhausted. Wrapping up...",
+    "auto_pause": "Context usage at 90%. Consider wrapping up or running /compact (auto-pause is disabled).",
+    "critical": "Context usage at 95%. Consider wrapping up or running /compact (auto-pause is disabled).",
 }
 
 # Maximum length for summaries to avoid storing full responses
@@ -74,16 +81,20 @@ class AutoPauseHandler:
     """Handler for automatic session pausing based on context usage thresholds.
 
     Integrates with Claude Code hooks to:
-    1. Track cumulative token usage from API responses
-    2. Trigger auto-pause when 90% context used
-    3. Capture all subsequent actions during pause mode
-    4. Emit warnings/notifications to user
+    1. Track cumulative token usage from API responses (for metering only)
+    2. Report NEW threshold crossings informationally
+
+    Auto-pause is DISABLED: thresholds never start a pause, never write
+    ACTIVE-PAUSE.jsonl, and never abort a session or sub-agent. The action
+    recording API (on_tool_call/on_assistant_response/on_user_message) remains
+    but is effectively dormant because is_pause_active() never becomes True from
+    a threshold crossing.
 
     Features:
     - File-based state persistence (works across hook process restarts)
     - Thread-safe through atomic file operations
     - Graceful error handling (failures don't break main hook flow)
-    - Only emits warnings on NEW threshold crossings
+    - Only reports NEW threshold crossings (informational; no pausing)
     - Summarizes long content to prevent memory bloat
     """
 
@@ -181,9 +192,11 @@ class AutoPauseHandler:
                             f"({state.percentage_used:.1f}%)"
                         )
 
-                    # Trigger auto-pause if threshold reached
-                    if current_threshold in ["auto_pause", "critical"]:
-                        self._trigger_auto_pause(state)
+                    # NOTE: Auto-pause triggering is DISABLED. Token usage is still
+                    # tracked (via tracker.update_usage above) so commit-cost
+                    # trailers and the dashboard keep working, but crossing the
+                    # 90%/95% threshold no longer pauses or aborts the session /
+                    # sub-agent. See _trigger_auto_pause() docstring for rationale.
 
             return new_threshold_crossed
 
@@ -407,38 +420,24 @@ class AutoPauseHandler:
         return warning
 
     def _trigger_auto_pause(self, state) -> None:
-        """Trigger auto-pause and start recording actions.
+        """DISABLED no-op — context-usage auto-pause has been removed.
+
+        Why: At high context % the auto-pause used to abort active work (including
+        in-flight sub-agent delegations) by writing ACTIVE-PAUSE.jsonl and emitting
+        "session paused to prevent data loss". This killed legitimate work. The
+        explicit decision is to NEVER auto-pause/abort based on context %, while
+        KEEPING token-usage metering (commit-cost trailers + dashboard depend on
+        it — see ContextUsageTracker.update_usage / set_session_snapshot).
+        What: Intentionally does nothing. Does not start an incremental pause and
+        never creates ACTIVE-PAUSE.jsonl. The method signature is preserved so any
+        external callers/tests importing it keep working.
+        Test: Call with any state; assert is_pause_active() stays False and no
+        ACTIVE-PAUSE.jsonl is created.
 
         Args:
-            state: Current context usage state
-
-        Raises:
-            RuntimeError: If pause cannot be started
+            state: Current context usage state (unused — pausing is disabled)
         """
-        try:
-            # Check if pause is already active
-            if self.is_pause_active():
-                if DEBUG:
-                    _log("Auto-pause already active, skipping trigger")
-                return
-
-            # Start incremental pause
-            session_id = self.pause_manager.start_incremental_pause(
-                context_percentage=state.percentage_used / 100,
-                initial_state=state.__dict__,
-            )
-
-            if DEBUG:
-                _log(
-                    f"✅ Auto-pause triggered: {session_id} "
-                    f"({state.percentage_used:.1f}% context used)"
-                )
-
-        except Exception as e:
-            logger.error(f"Failed to trigger auto-pause: {e}")
-            if DEBUG:
-                _log(f"❌ Failed to trigger auto-pause: {e}")
-            # Don't propagate - auto-pause is optional
+        return  # no-op: auto-pause permanently disabled
 
     def _summarize_dict(
         self, data: dict[str, Any], max_items: int = 10
