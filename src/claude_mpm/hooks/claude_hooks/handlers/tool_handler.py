@@ -189,23 +189,23 @@ class ToolHandler:
 
         :spec: SPEC-HOOKS-05~1
         """
-        # Context circuit-breaker: deny tool calls when context >= 95% (issue
-        # #420).  Run BEFORE any other PreToolUse work so a critical-context
-        # session aborts cleanly instead of doing extra observability work
-        # that pushes us further over the limit.  Failures here must fail
-        # open -- the breaker module already swallows errors internally, but
-        # we wrap the import too in case the module itself is unavailable.
+        # Context circuit-breaker: warn (not hard-block) when context >= 95%
+        # (issue #420, fixed in #642).  Read-only/recovery tools always pass
+        # through unconditionally.  Failures here must fail open — the breaker
+        # module already swallows errors internally, but we wrap the import too
+        # in case the module itself is unavailable.
         try:
             from claude_mpm.hooks import context_circuit_breaker
 
             cb_decision = context_circuit_breaker.evaluate(event)
         except Exception:
             cb_decision = {}
-        if cb_decision.get("permissionDecision") == "deny":
+        cb_decision_type = cb_decision.get("permissionDecision")
+        if cb_decision_type in ("deny", "warn"):
             return {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
+                    "permissionDecision": cb_decision_type,
                     "permissionDecisionReason": cb_decision.get(
                         "permissionDecisionReason", ""
                     ),
