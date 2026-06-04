@@ -1,18 +1,18 @@
-"""Integration tests for auto-pause handler with event handlers.
+"""Integration tests confirming context auto-pause is DISABLED end-to-end.
 
-WHY: Verify that auto-pause handler is properly integrated with event handlers
-to record actions during pause mode and finalize sessions on stop events.
+WHY: Auto-pause used to abort active work (including in-flight sub-agent
+delegations) once context usage crossed 90%/95%. That behavior was removed.
+Token usage is still metered, but crossing a threshold must NEVER start a pause,
+write ACTIVE-PAUSE.jsonl, or record actions through the event-handler path.
 
 Tests:
-- Tool calls are recorded when pause is active
-- Assistant responses are recorded when pause is active
-- User messages are recorded when pause is active
-- Sessions are finalized on stop events
+- Crossing the threshold reports it but never activates a pause
+- No actions are recorded through the event handlers (pause never active)
+- No ACTIVE-PAUSE.jsonl is ever created
+- Event handling still flows normally (SocketIO events emitted)
 """
 
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -20,8 +20,8 @@ from claude_mpm.hooks.claude_hooks.auto_pause_handler import AutoPauseHandler
 from claude_mpm.hooks.claude_hooks.event_handlers import EventHandlers
 
 
-class TestAutoPauseIntegration:
-    """Test auto-pause handler integration with event handlers."""
+class TestAutoPauseDisabledIntegration:
+    """Confirm threshold crossings never pause through the event-handler path."""
 
     @pytest.fixture
     def temp_project(self, tmp_path):
@@ -35,7 +35,7 @@ class TestAutoPauseIntegration:
 
     @pytest.fixture
     def mock_hook_handler(self, temp_project):
-        """Create a mock hook handler with auto-pause enabled."""
+        """Create a mock hook handler with an auto-pause handler attached."""
         handler = MagicMock()
         handler.auto_pause_handler = AutoPauseHandler(temp_project)
         handler._git_branch_cache = {}
@@ -50,120 +50,93 @@ class TestAutoPauseIntegration:
         """Create event handlers instance."""
         return EventHandlers(mock_hook_handler)
 
-    def test_tool_call_recorded_when_pause_active(
+    def test_threshold_crossing_never_activates_pause(
         self, event_handlers, mock_hook_handler, temp_project
     ):
-        """Test that tool calls are recorded when auto-pause is active."""
-        # Trigger auto-pause by crossing threshold (90% of 200k = 180k tokens)
+        """Crossing 90% reports the threshold but never activates a pause."""
         auto_pause = mock_hook_handler.auto_pause_handler
         usage = {
             "input_tokens": 160000,
-            "output_tokens": 20000,
+            "output_tokens": 20000,  # 180k = 90%
             "cache_creation_input_tokens": 0,
             "cache_read_input_tokens": 0,
         }
         threshold = auto_pause.on_usage_update(usage)
+
+        # Metering still reports the crossing...
         assert threshold == "auto_pause"
-        assert auto_pause.is_pause_active()
+        # ...but the pause is never activated.
+        assert not auto_pause.is_pause_active()
 
-        # Simulate tool call event
-        event = {
-            "tool_name": "Read",
-            "tool_input": {"file_path": "/test/file.txt"},
-            "session_id": "test-session-123",
-            "cwd": str(temp_project),
-        }
-
-        # Handle pre-tool event
-        event_handlers.handle_pre_tool_fast(event)
-
-        # Verify ACTIVE-PAUSE.jsonl exists and contains tool call
         pause_file = temp_project / ".claude-mpm" / "sessions" / "ACTIVE-PAUSE.jsonl"
-        assert pause_file.exists()
+        assert not pause_file.exists()
 
-        # Read and verify recorded action
-        with open(pause_file) as f:
-            actions = [json.loads(line) for line in f]
-
-        assert len(actions) > 0
-        # First action is the start action, second is the tool call
-        assert any(action["type"] == "tool_call" for action in actions)
-
-    def test_assistant_response_recorded_when_pause_active(
+    def test_no_recording_through_event_handlers_above_threshold(
         self, event_handlers, mock_hook_handler, temp_project
     ):
-        """Test that assistant responses are recorded when auto-pause is active."""
-        # Trigger auto-pause
+        """Even above 95%, event handlers record nothing (pause never active)."""
         auto_pause = mock_hook_handler.auto_pause_handler
         usage = {
             "input_tokens": 180000,
-            "output_tokens": 10000,
+            "output_tokens": 10000,  # 190k = 95%
             "cache_creation_input_tokens": 0,
             "cache_read_input_tokens": 0,
         }
         threshold = auto_pause.on_usage_update(usage)
-        assert threshold == "critical"  # 95% = 190k tokens
-        assert auto_pause.is_pause_active()
+        assert threshold == "critical"
+        assert not auto_pause.is_pause_active()
 
-        # Simulate assistant response event
-        event = {
-            "response": "I've completed the task successfully.",
-            "session_id": "test-session-456",
-            "cwd": str(temp_project),
-        }
+        # Drive a tool call, assistant response, and user prompt through handlers.
+        event_handlers.handle_pre_tool_fast(
+            {
+                "tool_name": "Read",
+                "tool_input": {"file_path": "/test/file.txt"},
+                "session_id": "test-session-123",
+                "cwd": str(temp_project),
+            }
+        )
+        event_handlers.handle_assistant_response(
+            {
+                "response": "I've completed the task.",
+                "session_id": "test-session-123",
+                "cwd": str(temp_project),
+            }
+        )
+        event_handlers.handle_user_prompt_fast(
+            {
+                "prompt": "Please continue.",
+                "session_id": "test-session-123",
+                "cwd": str(temp_project),
+            }
+        )
 
-        # Handle assistant response
-        event_handlers.handle_assistant_response(event)
-
-        # Verify action was recorded
+        # No ACTIVE-PAUSE.jsonl is ever created.
         pause_file = temp_project / ".claude-mpm" / "sessions" / "ACTIVE-PAUSE.jsonl"
-        assert pause_file.exists()
+        assert not pause_file.exists()
 
-        with open(pause_file) as f:
-            actions = [json.loads(line) for line in f]
-
-        assert any(action["type"] == "assistant_response" for action in actions)
-
-    def test_user_message_recorded_when_pause_active(
+    def test_no_recording_when_below_threshold(
         self, event_handlers, mock_hook_handler, temp_project
     ):
-        """Test that user messages are recorded when auto-pause is active."""
-        # Trigger auto-pause
+        """Below threshold, actions are NOT recorded (pause never active)."""
         auto_pause = mock_hook_handler.auto_pause_handler
-        usage = {
-            "input_tokens": 160000,
-            "output_tokens": 20000,
-            "cache_creation_input_tokens": 0,
-            "cache_read_input_tokens": 0,
-        }
-        threshold = auto_pause.on_usage_update(usage)
-        assert threshold == "auto_pause"
-        assert auto_pause.is_pause_active()
+        assert not auto_pause.is_pause_active()
 
-        # Simulate user prompt event
-        event = {
-            "prompt": "Please continue with the next step.",
-            "session_id": "test-session-789",
-            "cwd": str(temp_project),
-        }
+        event_handlers.handle_pre_tool_fast(
+            {
+                "tool_name": "Read",
+                "tool_input": {"file_path": "/test/file.txt"},
+                "session_id": "test-session-no-pause",
+                "cwd": str(temp_project),
+            }
+        )
 
-        # Handle user prompt
-        event_handlers.handle_user_prompt_fast(event)
-
-        # Verify action was recorded
         pause_file = temp_project / ".claude-mpm" / "sessions" / "ACTIVE-PAUSE.jsonl"
-        assert pause_file.exists()
+        assert not pause_file.exists()
 
-        with open(pause_file) as f:
-            actions = [json.loads(line) for line in f]
-
-        assert any(action["type"] == "user_message" for action in actions)
-
-    def test_session_finalized_on_stop_event(
+    def test_stop_event_creates_no_pause_session(
         self, event_handlers, mock_hook_handler, temp_project
     ):
-        """Test that pause session is finalized on stop event."""
-        # Trigger auto-pause
+        """A Stop event above threshold finalizes no pause (none was started)."""
         auto_pause = mock_hook_handler.auto_pause_handler
         usage = {
             "input_tokens": 162000,
@@ -171,127 +144,12 @@ class TestAutoPauseIntegration:
             "cache_creation_input_tokens": 0,
             "cache_read_input_tokens": 0,
         }
-        threshold = auto_pause.on_usage_update(usage)
-        assert threshold == "auto_pause"
-        assert auto_pause.is_pause_active()
-
-        # Record some actions
-        auto_pause.on_tool_call("Read", {"file_path": "/test/file.txt"})
-        auto_pause.on_assistant_response("Processing file contents...")
-
-        # Simulate stop event with usage data
-        event = {
-            "session_id": "test-session-stop",
-            "reason": "completed",
-            "stop_type": "normal",
-            "cwd": str(temp_project),
-            "usage": usage,
-        }
-
-        # Handle stop event
-        event_handlers.handle_stop_fast(event)
-
-        # Verify session files were created
-        sessions_dir = temp_project / ".claude-mpm" / "sessions"
-        session_files = list(sessions_dir.glob("session-*.md"))
-
-        # Should have at least one session file
-        assert len(session_files) > 0
-
-        # Verify ACTIVE-PAUSE.jsonl was cleaned up
-        pause_file = sessions_dir / "ACTIVE-PAUSE.jsonl"
-        # File might still exist if finalization moves it
-        # The key is that a session-*.md file was created
-
-    def test_no_recording_when_pause_not_active(
-        self, event_handlers, mock_hook_handler, temp_project
-    ):
-        """Test that actions are NOT recorded when pause is not active."""
-        # Verify pause is not active
-        auto_pause = mock_hook_handler.auto_pause_handler
+        auto_pause.on_usage_update(usage)
         assert not auto_pause.is_pause_active()
 
-        # Simulate tool call event (below threshold)
-        event = {
-            "tool_name": "Read",
-            "tool_input": {"file_path": "/test/file.txt"},
-            "session_id": "test-session-no-pause",
-            "cwd": str(temp_project),
-        }
-
-        # Handle pre-tool event
-        event_handlers.handle_pre_tool_fast(event)
-
-        # Verify ACTIVE-PAUSE.jsonl does NOT exist
-        pause_file = temp_project / ".claude-mpm" / "sessions" / "ACTIVE-PAUSE.jsonl"
-        assert not pause_file.exists()
-
-    def test_full_workflow_with_multiple_actions(
-        self, event_handlers, mock_hook_handler, temp_project
-    ):
-        """Test full workflow: threshold → pause → actions → finalize."""
-        auto_pause = mock_hook_handler.auto_pause_handler
-
-        # Step 1: Cross threshold to trigger auto-pause
-        usage = {
-            "input_tokens": 161000,
-            "output_tokens": 20000,
-            "cache_creation_input_tokens": 0,
-            "cache_read_input_tokens": 0,
-        }
-        threshold = auto_pause.on_usage_update(usage)
-        assert threshold == "auto_pause"
-        assert auto_pause.is_pause_active()
-
-        # Step 2: Record multiple actions
-        # Tool call
-        event_handlers.handle_pre_tool_fast(
-            {
-                "tool_name": "Read",
-                "tool_input": {"file_path": "/test/file.txt"},
-                "session_id": "workflow-test",
-                "cwd": str(temp_project),
-            }
-        )
-
-        # Assistant response
-        event_handlers.handle_assistant_response(
-            {
-                "response": "I've read the file.",
-                "session_id": "workflow-test",
-                "cwd": str(temp_project),
-            }
-        )
-
-        # User message
-        event_handlers.handle_user_prompt_fast(
-            {
-                "prompt": "Great! Now analyze it.",
-                "session_id": "workflow-test",
-                "cwd": str(temp_project),
-            }
-        )
-
-        # Step 3: Verify all actions recorded
-        pause_file = temp_project / ".claude-mpm" / "sessions" / "ACTIVE-PAUSE.jsonl"
-        assert pause_file.exists()
-
-        with open(pause_file) as f:
-            actions = [json.loads(line) for line in f]
-
-        # Should have start action + tool call + assistant response + user message
-        assert len(actions) >= 4
-
-        # Verify action types
-        action_types = [a["type"] for a in actions]
-        assert "tool_call" in action_types
-        assert "assistant_response" in action_types
-        assert "user_message" in action_types
-
-        # Step 4: Finalize on stop
         event_handlers.handle_stop_fast(
             {
-                "session_id": "workflow-test",
+                "session_id": "test-session-stop",
                 "reason": "completed",
                 "stop_type": "normal",
                 "cwd": str(temp_project),
@@ -299,20 +157,18 @@ class TestAutoPauseIntegration:
             }
         )
 
-        # Verify session file created
-        sessions_dir = temp_project / ".claude-mpm" / "sessions"
-        session_files = list(sessions_dir.glob("session-*.md"))
-        assert len(session_files) > 0
+        # No pause was active, so no ACTIVE-PAUSE.jsonl exists.
+        pause_file = temp_project / ".claude-mpm" / "sessions" / "ACTIVE-PAUSE.jsonl"
+        assert not pause_file.exists()
 
-    def test_graceful_error_handling(
+    def test_event_handling_still_flows(
         self, event_handlers, mock_hook_handler, temp_project
     ):
-        """Test that auto-pause errors don't break event handling."""
-        # Mock auto-pause to raise errors
+        """Disabling auto-pause must not break normal event handling."""
         auto_pause = mock_hook_handler.auto_pause_handler
+        # Even if a recording call would raise, the handler must not break.
         auto_pause.on_tool_call = Mock(side_effect=RuntimeError("Test error"))
 
-        # Trigger pause
         usage = {
             "input_tokens": 160000,
             "output_tokens": 20000,
@@ -321,16 +177,14 @@ class TestAutoPauseIntegration:
         }
         auto_pause.on_usage_update(usage)
 
-        # Event handling should NOT raise exception
-        event = {
-            "tool_name": "Read",
-            "tool_input": {"file_path": "/test/file.txt"},
-            "session_id": "error-test",
-            "cwd": str(temp_project),
-        }
+        event_handlers.handle_pre_tool_fast(
+            {
+                "tool_name": "Read",
+                "tool_input": {"file_path": "/test/file.txt"},
+                "session_id": "error-test",
+                "cwd": str(temp_project),
+            }
+        )
 
-        # Should not raise
-        event_handlers.handle_pre_tool_fast(event)
-
-        # Verify SocketIO event was still emitted
+        # SocketIO event was still emitted (event flow intact).
         assert mock_hook_handler._emit_socketio_event.called
