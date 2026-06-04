@@ -112,8 +112,13 @@ def resolve_context_window(model_id: str | None = None) -> int:
         return CONTEXT_WINDOW_MAP[lower]
 
     # 2. Prefix match — handles dated variants like "claude-opus-4-6-20260101".
+    # Require a delimiter boundary ("-") after the prefix so that a future
+    # "claude-sonnet-4-50" does not accidentally match "claude-sonnet-4-5"
+    # (1 M window).  We match only when lower == prefix (already handled above
+    # by the exact-match branch, kept here as a safety net) or when the next
+    # character after the prefix is "-".
     for prefix, window in CONTEXT_WINDOW_MAP.items():
-        if lower.startswith(prefix):
+        if lower == prefix or lower.startswith(prefix + "-"):
             return window
 
     # 3. Unknown model — return conservative default.
