@@ -3,7 +3,7 @@ name: prd-authoring
 description: "Standard for authoring product PRDs in docs/prd/: state the problem, users, requirements, and success; assign PRD-{AREA}-{NN} IDs; link down to specs."
 version: 1.0.0
 category: documentation
-agent_types: [product-owner, pm]
+agent_types: [product, product-owner, pm]
 tags: [prd, product, requirements, authoring, standards]
 effort: medium
 user-invocable: true
