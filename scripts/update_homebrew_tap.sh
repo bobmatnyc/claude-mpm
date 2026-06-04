@@ -113,83 +113,94 @@ validate_version() {
     return 0
 }
 
-wait_for_pypi_package() {
+# Extract the sdist URL + sha256 from a PyPI version-JSON payload, in a single
+# JSON parse, emitting "<url>\t<sha256>" on stdout.
+#
+# Why: PyPI's `<pkg>/<version>/json` endpoint becomes resolvable (HTTP 200) as
+# soon as the FIRST distribution file is published. During CI release the wheels
+# are uploaded before the sdist (observed ~8s gap for v6.5.16), so a naive
+# "version exists" gate races ahead of the sdist and the extraction finds only
+# `bdist_wheel` entries in urls[] — the historical "Failed to extract package
+# URL" failure. Distinguishing "no sdist yet" (exit 3, retryable) from malformed
+# JSON (exit 1) lets the caller poll instead of hard-failing.
+# What: Parses stdin JSON; prints "url<TAB>sha256" for the sole sdist entry.
+# Exit: 0 found; 3 valid JSON but no sdist present yet (retryable); 1 parse error.
+# Test: Pipe v6.5.16 JSON -> prints the .tar.gz url + 64-char sha256, exit 0;
+#       pipe wheels-only JSON -> exit 3; pipe "{}" -> exit 3; pipe "x" -> exit 1.
+extract_sdist_info() {
+    python3 -c '
+import sys, json
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)  # malformed/empty response — not a "missing sdist" condition
+for u in data.get("urls", []):
+    if u.get("packagetype") == "sdist":
+        try:
+            print("%s\t%s" % (u["url"], u["digests"]["sha256"]))
+        except (KeyError, TypeError):
+            sys.exit(1)
+        sys.exit(0)
+sys.exit(3)  # JSON parsed but the sdist is not indexed yet — retryable
+'
+}
+
+# Poll PyPI until the sdist (not just any file) for $version is available, then
+# capture its URL + sha256 into PACKAGE_URL / PACKAGE_SHA256.
+#
+# Why: Replaces the old two-step "wait for HTTP 200, then immediately extract"
+# flow that raced the wheel-before-sdist publish order (issue #652). Gating on
+# the sdist's presence — with a bounded retry — is the actual readiness signal
+# the formula update needs, and folding extraction into the same loop removes
+# the second, unguarded query that produced "Failed to extract package URL".
+# What: Retries with linear backoff; on success exports PACKAGE_URL/SHA256.
+# Test: Run against an existing version -> exports a *.tar.gz url + sha256;
+#       run against a never-published version -> fails after max_attempts with
+#       an endpoint-qualified error and a copy-pasteable manual fallback.
+fetch_pypi_info() {
     local version="$1"
-    # PyPI publishing now happens in CI (release-wheels.yml), not locally, so
-    # the sdist may take a few minutes to build + publish after the tag push.
-    # Use a longer retry window so the Homebrew update rarely falls back.
+    local pypi_url="https://pypi.org/pypi/${PYPI_PACKAGE}/${version}/json"
+    # CI builds + publishes the sdist after the wheels, so allow a generous,
+    # bounded window. Linear backoff: cumulative wait ~ 3*(1+2+...+20) ≈ 10 min.
     local max_attempts=20
     local attempt=1
     local wait_time=3
+    local pypi_json result rc
 
-    log INFO "Waiting for PyPI package to be available..."
+    log INFO "Waiting for PyPI sdist to be available for ${version}..."
+    log INFO "  Endpoint: ${pypi_url}"
 
-    while [ $attempt -le $max_attempts ]; do
-        if curl -sf "https://pypi.org/pypi/${PYPI_PACKAGE}/${version}/json" > /dev/null 2>&1; then
-            log SUCCESS "PyPI package found for version ${version}"
-            return 0
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if pypi_json=$(curl -sf "$pypi_url" 2>/dev/null); then
+            # Capture stdout and exit code without tripping `set -e`.
+            result=$(printf '%s' "$pypi_json" | extract_sdist_info) && rc=0 || rc=$?
+
+            if [ "$rc" -eq 0 ]; then
+                PACKAGE_URL="${result%%$'\t'*}"
+                PACKAGE_SHA256="${result##*$'\t'}"
+                export PACKAGE_URL PACKAGE_SHA256
+                log SUCCESS "Package URL: ${PACKAGE_URL}"
+                log SUCCESS "SHA256: ${PACKAGE_SHA256}"
+                return 0
+            elif [ "$rc" -eq 3 ]; then
+                log WARNING "sdist not yet indexed for ${version} (attempt ${attempt}/${max_attempts}); wheels may have published first"
+            else
+                log WARNING "Unexpected PyPI JSON response for ${version} (attempt ${attempt}/${max_attempts})"
+            fi
+        else
+            log WARNING "PyPI version JSON not yet available for ${version} (attempt ${attempt}/${max_attempts})"
         fi
 
-        log WARNING "PyPI package not yet available (attempt ${attempt}/${max_attempts})"
         sleep $((wait_time * attempt))
         attempt=$((attempt + 1))
     done
 
-    log ERROR "PyPI package not found after ${max_attempts} attempts"
-    log ERROR "Manual fallback: Wait for PyPI to propagate, then run:"
-    log ERROR "  cd homebrew-tools && ./scripts/update_formula.sh ${version}"
+    log ERROR "No sdist found for ${PYPI_PACKAGE} ${version} after ${max_attempts} attempts."
+    log ERROR "  Queried: ${pypi_url}"
+    log ERROR "  The sdist is likely still building/publishing in CI (release-wheels.yml)."
+    log ERROR "  Once available, re-run the tap update manually:"
+    log ERROR "    ./scripts/update_homebrew_tap.sh ${version} --auto-push"
     return 1
-}
-
-fetch_pypi_info() {
-    local version="$1"
-    local pypi_url="https://pypi.org/pypi/${PYPI_PACKAGE}/${version}/json"
-    local pypi_json
-    local package_url
-    local package_sha256
-
-    log INFO "Fetching package information from PyPI..."
-
-    if ! pypi_json=$(curl -sf "$pypi_url"); then
-        log ERROR "Failed to fetch PyPI package info"
-        return 1
-    fi
-
-    # Extract tarball URL and SHA256
-    if ! package_url=$(echo "$pypi_json" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for url_info in data.get('urls', []):
-    if url_info.get('packagetype') == 'sdist':
-        print(url_info['url'])
-        sys.exit(0)
-sys.exit(1)
-" 2>/dev/null); then
-        log ERROR "Failed to extract package URL from PyPI"
-        return 1
-    fi
-
-    if ! package_sha256=$(echo "$pypi_json" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for url_info in data.get('urls', []):
-    if url_info.get('packagetype') == 'sdist':
-        print(url_info['digests']['sha256'])
-        sys.exit(0)
-sys.exit(1)
-" 2>/dev/null); then
-        log ERROR "Failed to extract SHA256 from PyPI"
-        return 1
-    fi
-
-    log SUCCESS "Package URL: ${package_url}"
-    log SUCCESS "SHA256: ${package_sha256}"
-
-    # Export for use by other functions
-    export PACKAGE_URL="$package_url"
-    export PACKAGE_SHA256="$package_sha256"
-
-    return 0
 }
 
 clone_or_update_tap_repo() {
@@ -548,16 +559,11 @@ main() {
         return $exit_code
     fi
 
-    # Step 2: Wait for PyPI package
-    if ! wait_for_pypi_package "$VERSION"; then
-        log ERROR "PyPI package not available"
-        log ERROR "This is non-blocking. Manual fallback instructions above."
-        return 1
-    fi
-
-    # Step 3: Fetch PyPI package info
+    # Step 2: Wait for the PyPI sdist, then capture its URL + SHA256.
+    # The readiness poll and extraction are now a single sdist-aware loop
+    # (issue #652), so this no longer races the wheel-before-sdist publish order.
     if ! fetch_pypi_info "$VERSION"; then
-        log ERROR "Failed to fetch PyPI package information"
+        log ERROR "Failed to fetch PyPI sdist information"
         return 1
     fi
 
