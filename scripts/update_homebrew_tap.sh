@@ -196,9 +196,10 @@ clone_or_update_tap_repo() {
     log INFO "Setting up Homebrew tap repository..."
 
     # clone/pull/push run through gh_git, which injects the required account's
-    # token via a one-shot GIT_ASKPASS helper at runtime. The bare $TAP_REPO URL
-    # (no embedded token) is used as-is, so the token never appears in argv,
-    # `git remote -v`, reflog, or any log.
+    # token via a one-shot GIT_ASKPASS helper at runtime. Clone uses the bare
+    # $TAP_REPO URL (no embedded token), which sets `origin`; subsequent pull/push
+    # use the `origin` remote so the tracking branch updates. The token never
+    # appears in argv, `git remote -v`, reflog, or any log.
 
     if [ -d "$TAP_DIR" ]; then
         log INFO "Updating existing tap repository..."
@@ -235,7 +236,9 @@ clone_or_update_tap_repo() {
             fi
         fi
 
-        if ! gh_git pull "$TAP_REPO" main; then
+        # Pull via the `origin` remote (set by clone) so the tracking branch is
+        # updated and GIT_ASKPASS supplies credentials against origin's URL.
+        if ! gh_git pull origin main; then
             log WARNING "Failed to pull latest changes, continuing with current state"
         fi
     else
@@ -415,8 +418,9 @@ push_changes() {
     fi
 
     # Pushes go through gh_git, which authenticates as the required account by
-    # injecting its token via a one-shot GIT_ASKPASS helper. The bare $TAP_REPO
-    # URL is used as-is, so the token never lands in argv, reflog, or logs.
+    # injecting its token via a one-shot GIT_ASKPASS helper. We push to the
+    # `origin` remote (set at clone time); the token never lands in argv,
+    # reflog, or logs.
 
     # Push confirmation (unless auto-push is enabled)
     if [ "$AUTO_PUSH" = false ]; then
@@ -441,8 +445,9 @@ push_changes() {
 
     log INFO "Pushing changes to GitHub..."
 
-    # Push commits
-    if ! gh_git push "$TAP_REPO" main; then
+    # Push commits via the `origin` remote (consistent with the pull above and the
+    # manual-fallback hints), so GIT_ASKPASS authenticates against origin's URL.
+    if ! gh_git push origin main; then
         log ERROR "Failed to push to GitHub"
         log ERROR "Manual push required: cd ${TAP_DIR} && git push origin main"
         return 1
@@ -452,7 +457,7 @@ push_changes() {
     # Create and push tag
     log INFO "Creating tag v${version}..."
     if git tag -a "v${version}" -m "Release v${version}"; then
-        if gh_git push "$TAP_REPO" "v${version}"; then
+        if gh_git push origin "v${version}"; then
             log SUCCESS "Tag v${version} created and pushed"
         else
             log WARNING "Failed to push tag (non-critical)"
