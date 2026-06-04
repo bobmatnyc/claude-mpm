@@ -2,6 +2,10 @@
 
 Sidecar agents write messages to a JSON-lines file.
 The PreToolUse hook reads and consumes them on each tool call.
+
+References
+----------
+SPEC-SESSIONS-10~1 : docs/specs/sessions.md#SPEC-SESSIONS-10~1
 """
 
 from __future__ import annotations
@@ -65,6 +69,8 @@ class HookEventBus:
     messages, formats them as a systemMessage, then truncates the file.
 
     Uses file locking to handle concurrent writes from multiple sidecar agents.
+
+    :spec: SPEC-SESSIONS-10~1
     """
 
     def __init__(self, queue_path: str | Path | None = None) -> None:

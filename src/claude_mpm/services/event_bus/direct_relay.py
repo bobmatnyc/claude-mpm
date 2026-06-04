@@ -12,6 +12,10 @@ Claude sends hook events with these REQUIRED fields:
 - timestamp: ISO format timestamp
 
 DO NOT use "event" or "type" fields - use "hook_event_name" instead!
+
+References
+----------
+SPEC-SESSIONS-12~1 : docs/specs/sessions.md#SPEC-SESSIONS-12~1
 """
 
 import logging
@@ -31,6 +35,8 @@ class DirectSocketIORelay:
     WHY: The original SocketIORelay creates a client connection back to the server,
     which causes events to not reach the dashboard properly. This direct relay
     uses the server's broadcaster directly for proper event emission.
+
+    :spec: SPEC-SESSIONS-12~1
     """
 
     def __init__(self, server_instance):

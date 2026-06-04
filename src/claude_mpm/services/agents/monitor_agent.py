@@ -7,6 +7,10 @@ Responsibilities:
 - Context pressure warnings at configurable thresholds
 - Session duration warnings
 - Idle/stuck detection when in processing state
+
+References
+----------
+SPEC-SESSIONS-13~1 : docs/specs/sessions.md#SPEC-SESSIONS-13~1
 """
 
 from __future__ import annotations
@@ -59,6 +63,8 @@ class MonitorAgent:
 
     The monitor is created and owned by ``_launch_sdk_mode()`` -- it is
     not a global singleton.
+
+    :spec: SPEC-SESSIONS-13~1
     """
 
     def __init__(self, config: MonitorConfig | None = None) -> None:

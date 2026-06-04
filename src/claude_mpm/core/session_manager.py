@@ -1,4 +1,9 @@
-"""Session ID management for Claude subprocess optimization."""
+"""Session ID management for Claude subprocess optimization.
+
+References
+----------
+SPEC-SESSIONS-02~1 : docs/specs/sessions.md#SPEC-SESSIONS-02~1
+"""
 
 import gzip
 import json
@@ -14,7 +19,10 @@ logger = get_logger(__name__)
 
 
 class SessionManager:
-    """Manages session IDs for Claude subprocess reuse."""
+    """Manages session IDs for Claude subprocess reuse.
+
+    :spec: SPEC-SESSIONS-02~1
+    """
 
     def __init__(self, session_dir: Path | None = None):
         """Initialize session manager.

@@ -11,6 +11,10 @@ Usage::
 
     runtime = create_runtime("sdk", AgentConfig(system_prompt="You are helpful."))
     result = await runtime.run("Explain dependency injection.")
+
+References
+----------
+SPEC-SESSIONS-06~1 : docs/specs/sessions.md#SPEC-SESSIONS-06~1
 """
 
 from __future__ import annotations
@@ -117,6 +121,8 @@ class AgentRuntime(ABC):
     Every concrete runtime (CLI subprocess, SDK in-process, etc.) must
     implement these methods so that higher-level MPM orchestration code
     can remain backend-agnostic.
+
+    :spec: SPEC-SESSIONS-06~1
     """
 
     @abstractmethod

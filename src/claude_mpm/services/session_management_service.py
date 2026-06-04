@@ -13,6 +13,10 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 DEPENDENCY INJECTION:
 This service uses protocol-based dependency injection to avoid circular imports.
 It accepts a ClaudeRunnerProtocol instead of importing ClaudeRunner directly.
+
+References
+----------
+SPEC-SESSIONS-03~1 : docs/specs/sessions.md#SPEC-SESSIONS-03~1
 """
 
 import time
@@ -33,7 +37,10 @@ else:
 
 
 class SessionManagementService(BaseService, SessionManagementInterface):
-    """Service for managing Claude session orchestration."""
+    """Service for managing Claude session orchestration.
+
+    :spec: SPEC-SESSIONS-03~1
+    """
 
     def __init__(self, runner: Optional["ClaudeRunnerProtocol"] = None):
         """Initialize the session management service.

@@ -6,6 +6,10 @@ WHY pyee over alternatives:
 - Simple EventEmitter pattern familiar to developers
 - Thread-safe for multi-threaded environments
 - Efficient event dispatch with minimal overhead
+
+References
+----------
+SPEC-SESSIONS-11~1 : docs/specs/sessions.md#SPEC-SESSIONS-11~1
 """
 
 import asyncio
@@ -32,6 +36,8 @@ class EventBus:
     - Prevents duplicate event processing
     - Simplifies configuration and management
     - Thread-safe initialization with proper locking
+
+    :spec: SPEC-SESSIONS-11~1
     """
 
     _instance: Optional["EventBus"] = None

@@ -2,6 +2,10 @@
 
 Wraps the existing ClaudeAdapter subprocess execution to implement
 the AgentRuntime ABC, providing a drop-in alternative to SDKAgentRunner.
+
+References
+----------
+SPEC-SESSIONS-05~1 : docs/specs/sessions.md#SPEC-SESSIONS-05~1
 """
 
 from __future__ import annotations
@@ -31,6 +35,8 @@ class CLIAgentRunner(AgentRuntime):
     Wraps :class:`~claude_mpm.adapters.cli_adapters.ClaudeAdapter` to
     implement the :class:`AgentRuntime` ABC, allowing the factory and
     runtime-config layer to treat CLI and SDK backends interchangeably.
+
+    :spec: SPEC-SESSIONS-05~1
     """
 
     def __init__(

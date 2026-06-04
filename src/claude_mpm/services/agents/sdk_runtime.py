@@ -33,6 +33,10 @@ Usage:
     async with runner.interruptible() as session:
         r = await session.query("Do something long-running.")
         await session.interrupt()  # cancel if needed
+
+References
+----------
+SPEC-SESSIONS-04~1 : docs/specs/sessions.md#SPEC-SESSIONS-04~1
 """
 
 from __future__ import annotations
@@ -144,6 +148,8 @@ class SDKAgentRunner(AgentRuntime):
     * ``run_with_hooks()`` - persistent session via ``ClaudeSDKClient`` with
       optional ``can_use_tool`` callback for tool interception.
     * ``inject()`` - multi-turn conversation using ``ClaudeSDKClient``.
+
+    :spec: SPEC-SESSIONS-04~1
     """
 
     def __init__(
