@@ -6,7 +6,8 @@ every PreToolUse event:
 
 * ``model_tier_hook``       — injects a model tier into ``Agent`` tool calls.
 * ``ztk_hook``              — rewrites ``Bash`` commands through ztk compression.
-* ``context_circuit_breaker`` — denies all tool calls when context >= 95%.
+* ``context_circuit_breaker`` — warns (not hard-blocks) when context >= 95%;
+  read-only/recovery tools are always allowed through (issue #642).
 * ``claude-hook``           — the full handler (dashboard, memory, auto-pause).
 
 Spawning four Python interpreters per tool call adds significant latency.  This
@@ -20,13 +21,15 @@ Processing order
 ----------------
 1. Parse the event from stdin.  On any failure, emit pass-through (fail-open).
 2. Route ``PermissionRequest`` events to the permission policy engine.
-3. For ``PreToolUse``: run the context circuit breaker FIRST.  If it denies,
-   emit the deny response immediately and stop — no point rewriting a call
-   that is about to be blocked.
+3. For ``PreToolUse``: run the context circuit breaker.  It now emits
+   ``permissionDecision: "allow"`` with a warning reason (not a hard block).
+   A non-blocking allow-with-warning must NOT interrupt the dispatch pipeline —
+   model-tier injection / ztk rewriting must still run.  Only an actual
+   ``permissionDecision: "deny"`` short-circuits immediately.
 4. Branch on ``tool_name``:
-   * ``Agent`` -> model tier injection.
-   * ``Bash``  -> ztk rewrite.
-   * anything else -> ``{"continue": true}``.
+   * ``Agent`` -> model tier injection (warning attached if present).
+   * ``Bash``  -> ztk rewrite (warning attached if present).
+   * anything else -> pass-through (with allow+reason if breaker fired).
 
 Fail-open policy
 ----------------
@@ -49,7 +52,12 @@ def _passthrough() -> dict[str, Any]:
 
 
 def _circuit_breaker_deny_response(decision: dict[str, Any]) -> dict[str, Any]:
-    """Wrap a circuit-breaker deny decision in the PreToolUse wire format."""
+    """Wrap a circuit-breaker *deny* decision in the PreToolUse wire format.
+
+    Only called when ``permissionDecision`` is ``"deny"``.  Allow-with-warning
+    decisions (``"allow"``) do NOT short-circuit; they continue through the
+    dispatch pipeline so model-tier injection / ztk rewriting still runs.
+    """
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
@@ -57,6 +65,40 @@ def _circuit_breaker_deny_response(decision: dict[str, Any]) -> dict[str, Any]:
             "permissionDecisionReason": decision.get("permissionDecisionReason", ""),
         }
     }
+
+
+def _merge_warning_into_response(
+    response: dict[str, Any], warning_reason: str
+) -> dict[str, Any]:
+    """Attach a circuit-breaker warning reason to an existing hook response.
+
+    The warning is carried in ``permissionDecisionReason`` inside
+    ``hookSpecificOutput``.  If the response already has a
+    ``hookSpecificOutput`` dict we inject there; otherwise we build a minimal
+    allow-with-reason envelope so the harness can surface the message.
+    """
+    if not warning_reason:
+        return response
+
+    hso = response.get("hookSpecificOutput")
+    if isinstance(hso, dict):
+        # Existing hookSpecificOutput: inject reason if not already set.
+        if not hso.get("permissionDecisionReason"):
+            hso["permissionDecisionReason"] = warning_reason
+        # Ensure the decision is at least allow if none is set.
+        if not hso.get("permissionDecision"):
+            hso["permissionDecision"] = "allow"
+        return response
+
+    # No hookSpecificOutput yet: build a minimal allow-with-reason wrapper,
+    # preserving any top-level keys the caller already set (e.g. "continue").
+    merged = dict(response)
+    merged["hookSpecificOutput"] = {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "allow",
+        "permissionDecisionReason": warning_reason,
+    }
+    return merged
 
 
 def dispatch(event: dict[str, Any]) -> dict[str, Any]:
@@ -76,20 +118,33 @@ def dispatch(event: dict[str, Any]) -> dict[str, Any]:
         if hook_event == "PermissionRequest":
             return model_tier_hook.build_permission_request_response(event)
 
-        # Context circuit breaker runs first: if context is critical, deny the
-        # call outright before doing any model/ztk rewriting.
+        # Context circuit breaker runs first.  It emits either:
+        #   - "deny" → hard block (short-circuit immediately).
+        #   - "allow" + reason → allow-with-warning (do NOT short-circuit;
+        #     model-tier injection / ztk rewriting must still run so Agent
+        #     calls at high context still get tier routing).
+        #   - {} → no-op pass-through.
         breaker_decision = context_circuit_breaker.evaluate(event)
-        if breaker_decision.get("permissionDecision") == "deny":
+        decision_type = breaker_decision.get("permissionDecision")
+        warning_reason: str = ""
+        if decision_type == "deny":
+            # Hard block — only legacy path; breaker post-#642 never denies.
             return _circuit_breaker_deny_response(breaker_decision)
+        if decision_type == "allow":
+            # Allow-with-warning: stash the reason, continue the pipeline.
+            warning_reason = breaker_decision.get("permissionDecisionReason", "")
 
         # Branch on the tool being invoked.
         tool_name = event.get("tool_name", "")
         if tool_name == "Agent":
-            return model_tier_hook.build_model_tier_response(event)
+            response = model_tier_hook.build_model_tier_response(event)
+            return _merge_warning_into_response(response, warning_reason)
         if tool_name == "Bash":
-            return ztk_hook.build_ztk_response(event)
+            response = ztk_hook.build_ztk_response(event)
+            return _merge_warning_into_response(response, warning_reason)
 
-        return _passthrough()
+        base = _passthrough()
+        return _merge_warning_into_response(base, warning_reason)
     except Exception:
         # Fail-open: a hook crash must never block a tool call.
         return _passthrough()

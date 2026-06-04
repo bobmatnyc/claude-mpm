@@ -189,19 +189,28 @@ class ToolHandler:
 
         :spec: SPEC-HOOKS-05~1
         """
-        # Context circuit-breaker: deny tool calls when context >= 95% (issue
-        # #420).  Run BEFORE any other PreToolUse work so a critical-context
-        # session aborts cleanly instead of doing extra observability work
-        # that pushes us further over the limit.  Failures here must fail
-        # open -- the breaker module already swallows errors internally, but
-        # we wrap the import too in case the module itself is unavailable.
+        # Context circuit-breaker: allow-with-warning (not hard-block) when
+        # context >= 95% (issue #420, fixed in #642).  Read-only/recovery
+        # tools always pass through unconditionally.  Failures here must fail
+        # open — the breaker module already swallows errors internally, but we
+        # wrap the import too in case the module itself is unavailable.
+        #
+        # IMPORTANT: a "deny" short-circuits immediately (only a legacy/future
+        # path — post-#642 the breaker never denies).  An "allow" + reason is a
+        # non-blocking warning: we stash the reason and let the rest of the
+        # pipeline run (model-tier injection / ztk rewriting) so Agent tool
+        # calls at high context still receive tier routing.  The warning is
+        # attached to the final response before returning.
         try:
             from claude_mpm.hooks import context_circuit_breaker
 
             cb_decision = context_circuit_breaker.evaluate(event)
         except Exception:
             cb_decision = {}
-        if cb_decision.get("permissionDecision") == "deny":
+        cb_decision_type = cb_decision.get("permissionDecision")
+        _cb_warning_reason: str = ""
+        if cb_decision_type == "deny":
+            # Hard block — legacy path only; breaker post-#642 never denies.
             return {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
@@ -211,6 +220,9 @@ class ToolHandler:
                     ),
                 }
             }
+        if cb_decision_type == "allow":
+            # Allow-with-warning: stash reason, continue pipeline.
+            _cb_warning_reason = cb_decision.get("permissionDecisionReason", "")
 
         # Model-tier injection (Agent calls) and ztk rewriting (Bash calls).
         # These were previously handled by the pretooluse_dispatcher subprocess;
@@ -224,6 +236,8 @@ class ToolHandler:
         # Both functions are fail-open: they return {"continue": True} on any
         # error or non-matching input, so we only short-circuit when there is
         # actual work to do (model injection or ztk rewrite).
+        # When a circuit-breaker warning is pending we attach it to the
+        # response before returning so it is not silently dropped.
         _tool_name_early = event.get("tool_name", "")
         if _tool_name_early == "Agent":
             try:
@@ -232,9 +246,13 @@ class ToolHandler:
                 _tier_response = build_model_tier_response(event)
                 if _tier_response.get("hookSpecificOutput"):
                     # Model was injected; return immediately so the modified
-                    # tool_input reaches Claude Code.  Dashboard observability
-                    # for this call is intentionally skipped (low-value for
-                    # model-routing events; keeps the hot path fast).
+                    # tool_input reaches Claude Code.  Attach warning if any.
+                    if _cb_warning_reason:
+                        _hso = _tier_response["hookSpecificOutput"]
+                        if isinstance(_hso, dict) and not _hso.get(
+                            "permissionDecisionReason"
+                        ):
+                            _hso["permissionDecisionReason"] = _cb_warning_reason
                     return _tier_response
             except Exception as _e:
                 if DEBUG:
@@ -246,6 +264,12 @@ class ToolHandler:
                 _ztk_response = build_ztk_response(event)
                 if _ztk_response.get("hookSpecificOutput"):
                     # ztk rewrote the command; return the modified tool_input.
+                    if _cb_warning_reason:
+                        _hso = _ztk_response["hookSpecificOutput"]
+                        if isinstance(_hso, dict) and not _hso.get(
+                            "permissionDecisionReason"
+                        ):
+                            _hso["permissionDecisionReason"] = _cb_warning_reason
                     return _ztk_response
             except Exception as _e:
                 if DEBUG:
@@ -333,8 +357,18 @@ class ToolHandler:
                     f"  - Emitted todo_updated event with {len(tool_params['todos'])} todos for session {session_id[:8]}..."
                 )
 
-        # Normal path: no input modification, no deny -- caller treats this
-        # as a plain "continue" (see hook_handler._route_event return logic).
+        # Normal path: no input modification, no deny.
+        # If the circuit breaker fired an allow-with-warning and this is not
+        # an Agent/Bash call (those attach it above), surface the warning now.
+        if _cb_warning_reason:
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "allow",
+                    "permissionDecisionReason": _cb_warning_reason,
+                }
+            }
+        # Caller treats None as a plain "continue" (see hook_handler._route_event).
         return None
 
     def _handle_task_delegation(
