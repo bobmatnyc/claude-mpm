@@ -195,13 +195,10 @@ sys.exit(1)
 clone_or_update_tap_repo() {
     log INFO "Setting up Homebrew tap repository..."
 
-    # Build an explicitly-authenticated tap URL so clone/pull/push use the required
-    # account's token rather than an ambient/cached (possibly wrong) credential.
-    local tap_repo_auth
-    if ! tap_repo_auth="$(gh_authenticated_url "$TAP_REPO")"; then
-        log ERROR "Failed to build authenticated tap URL"
-        return 1
-    fi
+    # clone/pull/push run through gh_git, which injects the required account's
+    # token via a one-shot GIT_ASKPASS helper at runtime. The bare $TAP_REPO URL
+    # (no embedded token) is used as-is, so the token never appears in argv,
+    # `git remote -v`, reflog, or any log.
 
     if [ -d "$TAP_DIR" ]; then
         log INFO "Updating existing tap repository..."
@@ -216,7 +213,7 @@ clone_or_update_tap_repo() {
 
             # Clone fresh repository
             log INFO "Cloning tap repository..."
-            if ! git clone "$tap_repo_auth" "$TAP_DIR"; then
+            if ! gh_git clone "$TAP_REPO" "$TAP_DIR"; then
                 log ERROR "Failed to clone tap repository"
                 log ERROR "Check network connectivity and GitHub access"
                 return 1
@@ -238,12 +235,12 @@ clone_or_update_tap_repo() {
             fi
         fi
 
-        if ! git pull "$tap_repo_auth" main; then
+        if ! gh_git pull "$TAP_REPO" main; then
             log WARNING "Failed to pull latest changes, continuing with current state"
         fi
     else
         log INFO "Cloning tap repository..."
-        if ! git clone "$tap_repo_auth" "$TAP_DIR"; then
+        if ! gh_git clone "$TAP_REPO" "$TAP_DIR"; then
             log ERROR "Failed to clone tap repository"
             log ERROR "Check network connectivity and GitHub access"
             return 1
@@ -417,13 +414,9 @@ push_changes() {
         return 0
     fi
 
-    # Build an explicitly-authenticated push URL so the credential is the required
-    # account's token, never an ambient/cached (possibly wrong) credential.
-    local push_url
-    if ! push_url="$(gh_authenticated_url "$TAP_REPO")"; then
-        log ERROR "Failed to build authenticated push URL"
-        return 1
-    fi
+    # Pushes go through gh_git, which authenticates as the required account by
+    # injecting its token via a one-shot GIT_ASKPASS helper. The bare $TAP_REPO
+    # URL is used as-is, so the token never lands in argv, reflog, or logs.
 
     # Push confirmation (unless auto-push is enabled)
     if [ "$AUTO_PUSH" = false ]; then
@@ -449,7 +442,7 @@ push_changes() {
     log INFO "Pushing changes to GitHub..."
 
     # Push commits
-    if ! git push "$push_url" main; then
+    if ! gh_git push "$TAP_REPO" main; then
         log ERROR "Failed to push to GitHub"
         log ERROR "Manual push required: cd ${TAP_DIR} && git push origin main"
         return 1
@@ -459,7 +452,7 @@ push_changes() {
     # Create and push tag
     log INFO "Creating tag v${version}..."
     if git tag -a "v${version}" -m "Release v${version}"; then
-        if git push "$push_url" "v${version}"; then
+        if gh_git push "$TAP_REPO" "v${version}"; then
             log SUCCESS "Tag v${version} created and pushed"
         else
             log WARNING "Failed to push tag (non-critical)"
