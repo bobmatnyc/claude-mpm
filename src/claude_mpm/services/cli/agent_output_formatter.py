@@ -467,6 +467,9 @@ class AgentOutputFormatter(IAgentOutputFormatter):
                     lines.append(f"   Description: {agent['description']}")
                 if "version" in agent and agent["version"] is not None:
                     lines.append(f"   Version: {agent['version']}")
+                source = agent.get("source")
+                if source is not None:
+                    lines.append(f"   Source: {source}")
 
                 # Verbose additions
                 if verbose:
@@ -507,13 +510,14 @@ class AgentOutputFormatter(IAgentOutputFormatter):
                 [agent.get("name", agent.get("file", "Unknown"))] for agent in agents
             ]
         elif verbose:
-            headers = ["Name", "Version", "Tier", "Description", "Path"]
+            headers = ["Name", "Version", "Source", "Tier", "Description", "Path"]
             rows = []
             for agent in agents:
                 rows.append(
                     [
                         agent.get("name", agent.get("file", "Unknown")),
                         agent.get("version", "-"),
+                        agent.get("source") or "-",
                         agent.get("tier", "-"),
                         agent.get("description", "-")[
                             :50
@@ -522,13 +526,14 @@ class AgentOutputFormatter(IAgentOutputFormatter):
                     ]
                 )
         else:
-            headers = ["Name", "Version", "Description"]
+            headers = ["Name", "Version", "Source", "Description"]
             rows = []
             for agent in agents:
                 rows.append(
                     [
                         agent.get("name", agent.get("file", "Unknown")),
                         agent.get("version", "-"),
+                        agent.get("source") or "-",
                         agent.get("description", "-")[
                             :60
                         ],  # Truncate long descriptions
