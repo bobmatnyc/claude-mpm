@@ -16,6 +16,7 @@ DESIGN DECISIONS:
 
 import asyncio
 import logging
+import os
 import shutil
 import subprocess
 import sys
@@ -701,6 +702,63 @@ async def trigger_vector_search_indexing(project_root: Path | None = None) -> No
         logger.debug(f"Failed to start vector search indexing: {e}")
 
 
+def _ensure_vector_search_daemon() -> None:
+    """
+    Best-effort start of the mcp-vector-search persistent daemon.
+
+    WHY: The optional mcp-vector-search daemon keeps the search index warm in
+    memory, providing dramatically faster code search. It is not started
+    automatically and does not survive reboots, so users otherwise have to run
+    `mvs daemon start` by hand.
+
+    ``daemon start`` is idempotent (a no-op if already running), so this is safe
+    to call on every launch. Set MCP_VECTOR_SEARCH_DAEMON=0 to opt out.
+    Fails silently - never blocks or breaks startup.
+    """
+    logger = get_logger("cli")
+
+    if os.environ.get("MCP_VECTOR_SEARCH_DAEMON", "1").lower() in (
+        "0",
+        "false",
+        "no",
+    ):
+        logger.debug("Vector search daemon autostart disabled via env")
+        return
+
+    try:
+        from ..services.mcp_config_manager import MCPConfigManager
+
+        manager = MCPConfigManager()
+        vector_search_path = manager.detect_service_path("mcp-vector-search")
+
+        if not vector_search_path:
+            logger.debug("mcp-vector-search not found, skipping daemon start")
+            return
+
+        # Build the command based on the service configuration
+        if "python" in vector_search_path:
+            cmd = [
+                vector_search_path,
+                "-m",
+                "mcp_vector_search.cli",
+                "daemon",
+                "start",
+            ]
+        else:
+            cmd = [vector_search_path, "daemon", "start"]
+
+        subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        logger.debug("MCP Vector Search: ensured daemon is running")
+
+    except Exception as e:
+        # Don't let daemon startup failures prevent startup
+        logger.debug(f"Failed to start vector search daemon: {e}")
+
+
 def start_vector_search_indexing(project_root: Path | None = None) -> None:
     """
     Synchronous wrapper to trigger vector search indexing.
@@ -708,10 +766,17 @@ def start_vector_search_indexing(project_root: Path | None = None) -> None:
     This creates a new event loop if needed to run the async indexing function.
     Falls back to subprocess.Popen if async fails.
 
+    Also ensures the optional persistent mcp-vector-search daemon is running
+    (idempotent, opt-out via MCP_VECTOR_SEARCH_DAEMON=0).
+
     Args:
         project_root: Root directory for the project (defaults to cwd)
     """
     logger = get_logger("cli")
+
+    # Ensure the persistent daemon is running before kicking off indexing.
+    # This covers both the async and subprocess dispatch paths below.
+    _ensure_vector_search_daemon()
 
     try:
         # Try to get the current event loop

@@ -9,12 +9,14 @@ import logging
 import tempfile
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from claude_mpm.cli.startup_logging import (
+    _ensure_vector_search_daemon,
     cleanup_old_startup_logs,
     get_latest_startup_log,
     setup_startup_logging,
+    start_vector_search_indexing,
 )
 from claude_mpm.services.diagnostics.checks.startup_log_check import StartupLogCheck
 from claude_mpm.services.diagnostics.models import DiagnosticStatus
@@ -255,3 +257,94 @@ class TestStartupLogCheck:
 
         fix_command = check._get_fix_command(analysis)
         assert fix_command == "claude-mpm deploy"  # First claude-mpm command found
+
+
+class TestEnsureVectorSearchDaemon:
+    """Test the opt-out, idempotent vector search daemon autostart helper."""
+
+    @patch("claude_mpm.cli.startup_logging.subprocess.Popen")
+    def test_starts_daemon_when_service_found(self, mock_popen, monkeypatch):
+        """When the service path is found, Popen is called with `daemon start`."""
+        monkeypatch.delenv("MCP_VECTOR_SEARCH_DAEMON", raising=False)
+
+        manager = MagicMock()
+        manager.detect_service_path.return_value = "/usr/local/bin/mcp-vector-search"
+
+        with patch(
+            "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+            return_value=manager,
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_called_once()
+        cmd = mock_popen.call_args.args[0]
+        assert cmd[-2:] == ["daemon", "start"]
+
+    @patch("claude_mpm.cli.startup_logging.subprocess.Popen")
+    def test_starts_daemon_with_python_interpreter(self, mock_popen, monkeypatch):
+        """Python interpreter paths use the `-m mcp_vector_search.cli` form."""
+        monkeypatch.delenv("MCP_VECTOR_SEARCH_DAEMON", raising=False)
+
+        manager = MagicMock()
+        manager.detect_service_path.return_value = "/opt/venv/bin/python"
+
+        with patch(
+            "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+            return_value=manager,
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_called_once()
+        cmd = mock_popen.call_args.args[0]
+        assert cmd == [
+            "/opt/venv/bin/python",
+            "-m",
+            "mcp_vector_search.cli",
+            "daemon",
+            "start",
+        ]
+
+    @patch("claude_mpm.cli.startup_logging.subprocess.Popen")
+    def test_opt_out_via_env(self, mock_popen, monkeypatch):
+        """When MCP_VECTOR_SEARCH_DAEMON=0, Popen is never called."""
+        monkeypatch.setenv("MCP_VECTOR_SEARCH_DAEMON", "0")
+
+        manager = MagicMock()
+        manager.detect_service_path.return_value = "/usr/local/bin/mcp-vector-search"
+
+        with patch(
+            "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+            return_value=manager,
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_not_called()
+        manager.detect_service_path.assert_not_called()
+
+    @patch("claude_mpm.cli.startup_logging.subprocess.Popen")
+    def test_no_daemon_when_service_not_found(self, mock_popen, monkeypatch):
+        """When detect_service_path returns None, Popen is never called."""
+        monkeypatch.delenv("MCP_VECTOR_SEARCH_DAEMON", raising=False)
+
+        manager = MagicMock()
+        manager.detect_service_path.return_value = None
+
+        with patch(
+            "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+            return_value=manager,
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    @patch("claude_mpm.cli.startup_logging._ensure_vector_search_daemon")
+    @patch("claude_mpm.cli.startup_logging._start_vector_search_subprocess")
+    def test_start_indexing_invokes_daemon_helper(
+        self, _mock_subprocess, mock_ensure_daemon
+    ):
+        """start_vector_search_indexing always invokes the daemon helper."""
+        # No running event loop in the test, so it falls back to the subprocess
+        # dispatch path; either way the daemon helper must be called.
+        start_vector_search_indexing()
+
+        mock_ensure_daemon.assert_called_once()
