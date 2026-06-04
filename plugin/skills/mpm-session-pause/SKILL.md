@@ -7,7 +7,7 @@ category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 ---
 
-# /mpm-pause
+# /mpm-session-pause
 
 Pause the current session and save all work state for later resume.
 
@@ -23,14 +23,14 @@ When invoked, this skill:
 ## Usage
 
 ```
-/mpm-pause [optional message describing current work]
+/mpm-session-pause [optional message describing current work]
 ```
 
 **Examples:**
 ```
-/mpm-pause
-/mpm-pause Working on authentication refactor, about to test login flow
-/mpm-pause Need to context switch to urgent bug fix
+/mpm-session-pause
+/mpm-session-pause Working on authentication refactor, about to test login flow
+/mpm-session-pause Need to context switch to urgent bug fix
 ```
 
 ## Implementation
@@ -54,7 +54,7 @@ except ImportError:
     raise SystemExit(1)
 
 # Optional: Get message from user's command
-# If user provided message after /mpm-pause, extract it
+# If user provided message after /mpm-session-pause, extract it
 # Otherwise, message = None
 
 # Create session pause manager
@@ -150,22 +150,22 @@ should not be committed. No git commit is created by the pause operation.
 
 **Context switching:**
 ```
-/mpm-pause Switching to urgent production bug
+/mpm-session-pause Switching to urgent production bug
 ```
 
 **End of work session:**
 ```
-/mpm-pause Completed API refactor, ready for testing tomorrow
+/mpm-session-pause Completed API refactor, ready for testing tomorrow
 ```
 
 **Before major changes:**
 ```
-/mpm-pause Saving state before attempting risky refactor
+/mpm-session-pause Saving state before attempting risky refactor
 ```
 
 **When approaching context limit:**
 ```
-/mpm-pause Hit 150k tokens, starting fresh session
+/mpm-session-pause Hit 150k tokens, starting fresh session
 ```
 
 ## Related Commands
