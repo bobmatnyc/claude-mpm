@@ -16,6 +16,10 @@ NC='\033[0m' # No Color
 DRY_RUN=false
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Shared GitHub identity enforcement (prevents pushing under the wrong account).
+# shellcheck source=scripts/lib/gh_identity.sh
+. "$SCRIPT_DIR/lib/gh_identity.sh"
 AGENTS_REPO="$HOME/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents"
 SKILLS_REPO="$HOME/.claude-mpm/cache/skills/system"
 VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "unknown")
@@ -189,7 +193,12 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
             echo ""
 
             if [[ $REPLY =~ ^[Yy]$ ]]; then
-                if execute_cmd "git push origin $CURRENT_BRANCH"; then
+                # Push as the required account by injecting its token via a one-shot
+                # GIT_ASKPASS helper (gh_git_push). The bare `origin` remote is used
+                # as-is; the token is never embedded in the URL or argv, so it cannot
+                # leak into the command log below, reflog, or /proc/<pid>/cmdline.
+                print_message "$BLUE" "  Running: git push origin $CURRENT_BRANCH (authenticated)"
+                if gh_git_push origin "$CURRENT_BRANCH"; then
                     print_message "$GREEN" "  ✓ Successfully pushed to origin/$CURRENT_BRANCH"
                 else
                     print_message "$RED" "  ✗ Push failed"
@@ -211,6 +220,19 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 }
 
 # Main execution
+
+# Preflight: refuse to run if the active GitHub identity is not the required one.
+# Run this BEFORE printing any banner/headers so a wrong identity aborts cleanly
+# without emitting misleading "starting sync" output, and never reaches a push.
+if [ "$DRY_RUN" = false ]; then
+    print_message "$YELLOW" "Verifying GitHub identity before sync..."
+    if ! gh_assert_identity; then
+        print_message "$RED" "✗ Aborting sync: wrong GitHub identity (see error above)."
+        exit 1
+    fi
+    echo ""
+fi
+
 print_message "$BLUE" "=========================================="
 print_message "$BLUE" "  Agent & Skills Repository Sync"
 print_message "$BLUE" "  Version: $VERSION"
