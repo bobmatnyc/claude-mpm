@@ -31,6 +31,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Shared GitHub identity enforcement (prevents pushing under the wrong account).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/lib/gh_identity.sh
+. "$SCRIPT_DIR/lib/gh_identity.sh"
+
 # Configuration
 TAP_REPO="https://github.com/bobmatnyc/homebrew-claude-mpm.git"
 TAP_DIR="/tmp/homebrew-claude-mpm-update"
@@ -190,6 +195,14 @@ sys.exit(1)
 clone_or_update_tap_repo() {
     log INFO "Setting up Homebrew tap repository..."
 
+    # Build an explicitly-authenticated tap URL so clone/pull/push use the required
+    # account's token rather than an ambient/cached (possibly wrong) credential.
+    local tap_repo_auth
+    if ! tap_repo_auth="$(gh_authenticated_url "$TAP_REPO")"; then
+        log ERROR "Failed to build authenticated tap URL"
+        return 1
+    fi
+
     if [ -d "$TAP_DIR" ]; then
         log INFO "Updating existing tap repository..."
         cd "$TAP_DIR"
@@ -203,7 +216,7 @@ clone_or_update_tap_repo() {
 
             # Clone fresh repository
             log INFO "Cloning tap repository..."
-            if ! git clone "$TAP_REPO" "$TAP_DIR"; then
+            if ! git clone "$tap_repo_auth" "$TAP_DIR"; then
                 log ERROR "Failed to clone tap repository"
                 log ERROR "Check network connectivity and GitHub access"
                 return 1
@@ -225,12 +238,12 @@ clone_or_update_tap_repo() {
             fi
         fi
 
-        if ! git pull origin main; then
+        if ! git pull "$tap_repo_auth" main; then
             log WARNING "Failed to pull latest changes, continuing with current state"
         fi
     else
         log INFO "Cloning tap repository..."
-        if ! git clone "$TAP_REPO" "$TAP_DIR"; then
+        if ! git clone "$tap_repo_auth" "$TAP_DIR"; then
             log ERROR "Failed to clone tap repository"
             log ERROR "Check network connectivity and GitHub access"
             return 1
@@ -404,6 +417,14 @@ push_changes() {
         return 0
     fi
 
+    # Build an explicitly-authenticated push URL so the credential is the required
+    # account's token, never an ambient/cached (possibly wrong) credential.
+    local push_url
+    if ! push_url="$(gh_authenticated_url "$TAP_REPO")"; then
+        log ERROR "Failed to build authenticated push URL"
+        return 1
+    fi
+
     # Push confirmation (unless auto-push is enabled)
     if [ "$AUTO_PUSH" = false ]; then
         echo ""
@@ -428,7 +449,7 @@ push_changes() {
     log INFO "Pushing changes to GitHub..."
 
     # Push commits
-    if ! git push origin main; then
+    if ! git push "$push_url" main; then
         log ERROR "Failed to push to GitHub"
         log ERROR "Manual push required: cd ${TAP_DIR} && git push origin main"
         return 1
@@ -438,7 +459,7 @@ push_changes() {
     # Create and push tag
     log INFO "Creating tag v${version}..."
     if git tag -a "v${version}" -m "Release v${version}"; then
-        if git push origin "v${version}"; then
+        if git push "$push_url" "v${version}"; then
             log SUCCESS "Tag v${version} created and pushed"
         else
             log WARNING "Failed to push tag (non-critical)"
@@ -510,6 +531,16 @@ main() {
 
     if [ "$DRY_RUN" = true ]; then
         log INFO "DRY RUN MODE - No changes will be made"
+    fi
+
+    # Step 0: Verify GitHub identity before any push-capable work.
+    # Aborts loudly if the active identity is not the required account, so a
+    # release never pushes the tap under the wrong (e.g. bob-duetto) credential.
+    if [ "$DRY_RUN" = false ]; then
+        if ! gh_assert_identity; then
+            log ERROR "Aborting Homebrew tap update: wrong GitHub identity (see error above)."
+            return 2
+        fi
     fi
 
     # Step 1: Validate version format
