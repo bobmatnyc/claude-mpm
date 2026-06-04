@@ -273,7 +273,7 @@ def _index_id_candidates(cwd: Path) -> list[str]:
             candidates.append(override.strip())
 
     candidates.append(cwd.name)
-    parts = [p for p in str(cwd).split("/") if p]
+    parts = [p for p in cwd.parts if p and p != "/"]
     if parts:
         candidates.append("_".join(parts))
 
@@ -388,7 +388,8 @@ def is_index_stale(status: dict[str, Any] | None) -> bool:
     """
     if is_index_missing_or_empty(status):
         return False
-    assert status is not None  # narrowed by the guard above
+    if status is None:  # narrowed by the guard above; explicit for -O safety
+        return False
     if status.get("last_walk_error"):
         return True
     state = status.get("status")
