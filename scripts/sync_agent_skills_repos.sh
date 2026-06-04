@@ -16,6 +16,10 @@ NC='\033[0m' # No Color
 DRY_RUN=false
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Shared GitHub identity enforcement (prevents pushing under the wrong account).
+# shellcheck source=scripts/lib/gh_identity.sh
+. "$SCRIPT_DIR/lib/gh_identity.sh"
 AGENTS_REPO="$HOME/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents"
 SKILLS_REPO="$HOME/.claude-mpm/cache/skills/system"
 VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "unknown")
@@ -189,7 +193,15 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
             echo ""
 
             if [[ $REPLY =~ ^[Yy]$ ]]; then
-                if execute_cmd "git push origin $CURRENT_BRANCH"; then
+                # Push via an explicitly-authenticated URL so the credential is the
+                # required account's token, never an ambient/cached credential.
+                local origin_url push_url
+                origin_url="$(git remote get-url origin)"
+                if ! push_url="$(gh_authenticated_url "$origin_url")"; then
+                    print_message "$RED" "  ✗ Could not build authenticated push URL"
+                    return 1
+                fi
+                if execute_cmd "git push \"$push_url\" $CURRENT_BRANCH"; then
                     print_message "$GREEN" "  ✓ Successfully pushed to origin/$CURRENT_BRANCH"
                 else
                     print_message "$RED" "  ✗ Push failed"
@@ -219,6 +231,17 @@ if [ "$DRY_RUN" = true ]; then
 fi
 print_message "$BLUE" "=========================================="
 echo ""
+
+# Preflight: refuse to run if the active GitHub identity is not the required one.
+# This aborts the sync BEFORE any push instead of silently using a cached account.
+if [ "$DRY_RUN" = false ]; then
+    print_message "$YELLOW" "Verifying GitHub identity before sync..."
+    if ! gh_assert_identity; then
+        print_message "$RED" "✗ Aborting sync: wrong GitHub identity (see error above)."
+        exit 1
+    fi
+    echo ""
+fi
 
 # Track success/failure
 AGENTS_SUCCESS=false
