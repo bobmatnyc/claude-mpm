@@ -67,6 +67,7 @@ _DECL_ANCHOR_RE = re.compile(r"\{#(SPEC-[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-\d+~\d+)\}
 _SPEC_EXCLUDE_GLOBS = [
     "research/**/*.md",  # Research documents
     "README.md",  # This convention document
+    "AUTHORING.md",  # Authoring-standard guide (contains example IDs, not declarations)
 ]
 
 
@@ -196,6 +197,8 @@ def _is_excluded_spec_file(path: Path, spec_dir: Path) -> bool:
     Exclusion rule (documented in docs/specs/README.md, section 4):
     - docs/specs/research/**  — research documents
     - docs/specs/README.md    — the convention guide itself (contains example IDs)
+    - docs/specs/AUTHORING.md — the authoring-standard guide (contains example IDs
+      in templates and a filled mini-example; these are illustrative, not declarations)
     """
     try:
         rel = path.relative_to(spec_dir)

@@ -225,7 +225,9 @@ Do NOT increment the revision for:
 Only files matching the pattern `docs/specs/{subsystem}.md` (directly in `docs/specs/`,
 not in subdirectories) are scanned for declared spec IDs. The research directory
 (`docs/specs/research/`) is explicitly excluded. This file (`docs/specs/README.md`) is also
-excluded because it contains example IDs in prose that are not declarations.
+excluded because it contains example IDs in prose that are not declarations. The authoring
+guide (`docs/specs/AUTHORING.md`) is excluded for the same reason — it contains example IDs
+in its templates and filled mini-example, which are illustrative, not declarations.
 
 **Declaration rule:** A spec ID is considered *declared* only when it appears in a section
 heading in the form `## ... {#SPEC-...}` (a Markdown heading with a named anchor), or as the
