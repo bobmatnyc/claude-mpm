@@ -232,7 +232,7 @@ class SelfUpgradeService:
     def _is_running_from_source_tree(self) -> bool:
         """Return True if CWD is inside the claude-mpm source tree.
 
-        WHAT: Walks up from CWD (up to 5 levels) looking for a pyproject.toml
+        WHAT: Walks up from CWD (up to 10 levels) looking for a pyproject.toml
         that names this package alongside the src/claude_mpm/ directory.
 
         WHY: Covers the common developer workflow of running the globally-installed
@@ -242,14 +242,19 @@ class SelfUpgradeService:
         """
         try:
             current = Path.cwd()
-            for _ in range(5):
+            for _ in range(
+                10
+            ):  # walk up to 10 levels; handles deeply nested working dirs
                 pyproject = current / "pyproject.toml"
                 if pyproject.exists() and (current / "src" / "claude_mpm").exists():
                     try:
                         content = pyproject.read_text()
-                        if (
-                            'name = "claude-mpm"' in content
-                            or '"claude-mpm"' in content
+                        # Use multiline regex anchored to the `name` key to avoid
+                        # matching claude-mpm listed as a dependency in other projects
+                        if re.search(
+                            r'^\s*name\s*=\s*["\']claude-mpm["\']',
+                            content,
+                            re.MULTILINE,
                         ):
                             self.logger.debug(
                                 f"Running from claude-mpm source tree at {current}; "
