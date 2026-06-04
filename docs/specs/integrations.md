@@ -10,9 +10,9 @@ dispatcher with trusty-memory as primary and kuzu-memory as live fallback), the 
 migrations system, and the Dashboard/UI service.
 
 Each section constitutes one governed specification with a stable ID, a behavior contract
-(WHAT), a rationale section (WHY), and an implementing-modules table. All sections carry
-`**Status:** draft (pending backfill)` — the CI UNCOVERED check is therefore exempted
-until implementing modules add matching `References` docstring blocks.
+(WHAT), a rationale section (WHY), and an implementing-modules table. All sections are
+`**Status:** Active`: the implementing modules carry matching `References` docstring blocks,
+so the CI UNCOVERED check is enforced for every section.
 
 ---
 
@@ -37,7 +37,7 @@ until implementing modules add matching `References` docstring blocks.
 ## Trusty service address discovery {#SPEC-INTEGRATIONS-01~1}
 
 **ID:** SPEC-INTEGRATIONS-01~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -83,7 +83,7 @@ the default ports.
 ## Trusty MCP service setup {#SPEC-INTEGRATIONS-02~1}
 
 **ID:** SPEC-INTEGRATIONS-02~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -172,7 +172,7 @@ incorrect and were repaired by migration `fix_trusty_memory_bridge` (v6.5.0).
 ## Trusty autodetect migration {#SPEC-INTEGRATIONS-03~1}
 
 **ID:** SPEC-INTEGRATIONS-03~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -224,7 +224,7 @@ setup wizard wrote with richer configuration.
 ## MCP config builder {#SPEC-INTEGRATIONS-04~1}
 
 **ID:** SPEC-INTEGRATIONS-04~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -295,7 +295,7 @@ static config assumed.
 ## MCP service installer {#SPEC-INTEGRATIONS-05~1}
 
 **ID:** SPEC-INTEGRATIONS-05~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -364,7 +364,7 @@ assumed present. Those services are handled by the interactive `TrustyMixin` set
 ## Memory enrichment — multi-backend dispatcher {#SPEC-INTEGRATIONS-06~1}
 
 **ID:** SPEC-INTEGRATIONS-06~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -438,7 +438,7 @@ is inaccurate — the module was refactored into a multi-backend dispatcher, not
 ## Memory capture — session lifecycle events {#SPEC-INTEGRATIONS-07~1}
 
 **ID:** SPEC-INTEGRATIONS-07~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -499,7 +499,7 @@ startup or shutdown sequences.
 ## Memory enrichment — delegation layer {#SPEC-INTEGRATIONS-08~1}
 
 **ID:** SPEC-INTEGRATIONS-08~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -562,7 +562,7 @@ rather than the raw Claude Code event JSON, enabling more precise memory queries
 ## Migrations system — registry and runner {#SPEC-INTEGRATIONS-09~1}
 
 **ID:** SPEC-INTEGRATIONS-09~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -634,7 +634,7 @@ creates a misleading "pending" count for genuinely clean systems.
 ## Dashboard / UI service application {#SPEC-INTEGRATIONS-10~1}
 
 **ID:** SPEC-INTEGRATIONS-10~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -711,7 +711,7 @@ as cleanly as the inline form, and the WebSocket requires direct access to `app.
 ## Dashboard / UI service daemon lifecycle {#SPEC-INTEGRATIONS-11~1}
 
 **ID:** SPEC-INTEGRATIONS-11~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 

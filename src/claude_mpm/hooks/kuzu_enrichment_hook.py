@@ -15,6 +15,10 @@ DESIGN DECISIONS:
 - Reuses KuzuMemoryHook's retrieval methods for consistency
 - Injects memories as a dedicated section in agent context
 - Falls back gracefully if kuzu-memory is not available
+
+References
+----------
+SPEC-INTEGRATIONS-08~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-08~1
 """
 
 import logging
@@ -35,6 +39,8 @@ class KuzuEnrichmentHook(PreDelegationHook):
     2. Retrieves relevant memories from kuzu-memory
     3. Injects memories into agent context
     4. Formats memories for optimal agent understanding
+
+    :spec: SPEC-INTEGRATIONS-08~1
     """
 
     def __init__(self):

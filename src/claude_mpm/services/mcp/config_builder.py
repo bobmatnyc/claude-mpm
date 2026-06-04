@@ -6,6 +6,10 @@ Generates MCP service configurations, preferring static known-good configs
 and falling back to runtime detection (pipx run, uvx, direct binaries).
 
 Extracted from MCPConfigManager as part of god-class decomposition (#507).
+
+References
+----------
+SPEC-INTEGRATIONS-04~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-04~1
 """
 
 from __future__ import annotations
@@ -25,6 +29,8 @@ class MCPServiceConfigBuilder:
     """Build MCP service configuration dicts from static templates or detection.
 
     Depends on an :class:`MCPServiceLocator` for executable discovery.
+
+    :spec: SPEC-INTEGRATIONS-04~1
     """
 
     # Static known-good MCP service configurations.
@@ -332,6 +338,8 @@ class MCPServiceConfigBuilder:
 
         Returns:
             Service configuration dict or None if service not found
+
+        :spec: SPEC-INTEGRATIONS-04~1
         """
         static_config = self.get_static_service_config(service_name)
         if static_config:

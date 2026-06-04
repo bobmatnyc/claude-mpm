@@ -23,6 +23,11 @@ Design goals
 
 Invocation: ``python3 -m claude_mpm.hooks.memory_capture`` from
 ``.claude/settings.json`` (PostToolUse, Stop, SubagentStop, SessionStart).
+
+References
+----------
+SPEC-INTEGRATIONS-06~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-06~1
+SPEC-INTEGRATIONS-07~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-07~1
 """
 
 from __future__ import annotations
@@ -687,6 +692,8 @@ def handle_user_prompt_submit(
         immediately (recall result is the user-visible value).
       * Inject recalled context as ``additionalContext`` via
         ``hookSpecificOutput`` when there are any results.
+
+    :spec: SPEC-INTEGRATIONS-06~1
     """
     result: dict[str, Any] = {"continue": True}
 
@@ -778,7 +785,10 @@ def _read_event() -> dict[str, Any] | None:
 
 
 def main() -> None:
-    """Read one Claude Code hook event from stdin and dispatch to backend."""
+    """Read one Claude Code hook event from stdin and dispatch to backend.
+
+    :spec: SPEC-INTEGRATIONS-07~1
+    """
     event = _read_event()
     if event is None:
         _emit_continue()

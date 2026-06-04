@@ -3,6 +3,10 @@ Migration runner for version-based migrations.
 
 Tracks completed migrations and runs pending ones on startup.
 State is stored in ~/.claude-mpm/migrations.json
+
+References
+----------
+SPEC-INTEGRATIONS-09~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-09~1
 """
 
 import json
@@ -90,6 +94,8 @@ def run_pending_migrations(current_version: str | None = None) -> int:
 
     Returns:
         Number of migrations run
+
+    :spec: SPEC-INTEGRATIONS-09~1
     """
     pending = get_pending_migrations()
 

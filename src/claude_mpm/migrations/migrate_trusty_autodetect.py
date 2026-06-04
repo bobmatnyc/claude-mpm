@@ -27,6 +27,10 @@ fail whenever the daemons picked different ports. We mirror the discovery
 logic used by the ``claude-mpm setup trusty-*`` handlers: read the addr file
 when present, fall back to the legacy port only when the file is missing or
 unreadable.
+
+References
+----------
+SPEC-INTEGRATIONS-03~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-03~1
 """
 
 from __future__ import annotations
@@ -298,6 +302,8 @@ def run_migration(project_dir: Path | None = None) -> bool:
         False if everything was already configured, no daemons were detected,
         or auto-link is opted out. Never raises on the absence/opt-out path —
         only propagates exceptions from disk writes.
+
+    :spec: SPEC-INTEGRATIONS-03~1
     """
     project_dir = project_dir or Path.cwd()
     mcp_path = project_dir / ".mcp.json"

@@ -3,6 +3,10 @@
 Creates the FastAPI app, registers all routers, configures CORS and
 WebSocket endpoints, and manages the ProcessManager lifecycle via the
 lifespan context manager.
+
+References
+----------
+SPEC-INTEGRATIONS-10~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-10~1
 """
 
 import json
@@ -58,6 +62,8 @@ def create_app(service_config: UIServiceConfig | None = None) -> FastAPI:
 
     Returns:
         Fully configured FastAPI application instance.
+
+    :spec: SPEC-INTEGRATIONS-10~1
     """
     cfg = service_config or UIServiceConfig.from_env()
 

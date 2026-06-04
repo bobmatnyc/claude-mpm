@@ -3,6 +3,10 @@ Migration registry for version-based migrations.
 
 Migrations are registered by version and run automatically on first startup
 of that version. Each migration runs once and is tracked in state file.
+
+References
+----------
+SPEC-INTEGRATIONS-09~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-09~1
 """
 
 from collections.abc import Callable
