@@ -502,25 +502,20 @@ class FrameworkLoader:
         reindex fired; daemon error → "" + no reindex + no exception.
         """
         try:
-            from claude_mpm.services.trusty_status import (
-                get_trusty_search_index_status,
-                is_index_missing_or_empty,
-                is_index_stale,
-                trigger_trusty_search_reindex,
-            )
+            import claude_mpm.services.trusty_status as _ts
 
-            status = get_trusty_search_index_status()
+            status = _ts.get_trusty_search_index_status()
 
-            if is_index_missing_or_empty(status):
+            if _ts.is_index_missing_or_empty(status):
                 index_id = self._resolve_reindex_id(status)
                 if index_id:
-                    trigger_trusty_search_reindex(index_id)
+                    _ts.trigger_trusty_search_reindex(index_id)
                 return "Index not found/empty — background indexing started."
 
-            if is_index_stale(status):
+            if _ts.is_index_stale(status):
                 index_id = self._resolve_reindex_id(status)
                 if index_id:
-                    trigger_trusty_search_reindex(index_id)
+                    _ts.trigger_trusty_search_reindex(index_id)
                 return "Index may be stale — background reindex started."
 
             return ""  # fresh index → no note
@@ -545,9 +540,9 @@ class FrameworkLoader:
             if isinstance(index_id, str) and index_id:
                 return index_id
         try:
-            from claude_mpm.services.trusty_status import _index_id_candidates
+            import claude_mpm.services.trusty_status as _ts
 
-            candidates = _index_id_candidates(Path.cwd())
+            candidates = _ts._index_id_candidates(Path.cwd().resolve())
             return candidates[0] if candidates else None
         except Exception:
             return None
