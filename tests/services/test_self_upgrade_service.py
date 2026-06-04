@@ -197,12 +197,14 @@ class TestDetectInstallationMethodSourceTree:
         pyproject.write_text('name = "claude-mpm"\nversion = "6.5.17"\n')
         (tmp_path / "src" / "claude_mpm").mkdir(parents=True)
 
+        mock_context = MagicMock()
+        mock_context.name = "PIP_INSTALL"
         with (
             # Force PathContext to report a non-development context
             patch(
                 "claude_mpm.services.self_upgrade_service.PathContext"
                 ".detect_deployment_context",
-                return_value=MagicMock(name="PIP_INSTALL"),
+                return_value=mock_context,
             ),
             patch("pathlib.Path.cwd", return_value=tmp_path),
         ):
@@ -219,11 +221,13 @@ class TestDetectInstallationMethodSourceTree:
 
         # tmp_path has no pyproject.toml / src/claude_mpm, so CWD walk returns False
 
+        mock_context = MagicMock()
+        mock_context.name = "PIP_INSTALL"
         with (
             patch(
                 "claude_mpm.services.self_upgrade_service.PathContext"
                 ".detect_deployment_context",
-                return_value=MagicMock(name="PIP_INSTALL"),
+                return_value=mock_context,
             ),
             patch("pathlib.Path.cwd", return_value=tmp_path),
             # Stub out slow subprocess checks
