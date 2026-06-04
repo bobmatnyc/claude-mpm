@@ -160,7 +160,8 @@ class TestPercentageClamping:
         ):
             decision = context_circuit_breaker.evaluate(_event(project_cwd))
         # Should fire the warning (clamped 100 >= 95).
-        assert decision.get("permissionDecision") == "warn"
+        # Post-#642: decision is "allow" (documented value) not "warn" (undocumented).
+        assert decision.get("permissionDecision") == "allow"
         # The displayed percentage must be at most 100.
         reason = decision.get("permissionDecisionReason", "")
         # The reason embeds the percentage; it should not say > 100.
@@ -170,7 +171,12 @@ class TestPercentageClamping:
     def test_stored_percentage_125_clamped_to_100_in_fallback(
         self, project_cwd: Path
     ) -> None:
-        """When only percentage_used is stored (no raw tokens), clamp to 100."""
+        """When only percentage_used is stored (no raw tokens), clamp to 100.
+
+        _detect_active_model is mocked to return None so this test is fully
+        deterministic regardless of what .claude/settings.json exists in the
+        repo (e.g. claude-sonnet-4-6 = 1 M would swallow 125 % as 12.5 %).
+        """
         _write_state(
             project_cwd,
             {
@@ -179,11 +185,13 @@ class TestPercentageClamping:
                 "percentage_used": 125.0,
             },
         )
-        with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("ANTHROPIC_MODEL", None)
-            os.environ.pop("CLAUDE_MODEL", None)
+        with mock.patch(
+            "claude_mpm.hooks.model_context_window._detect_active_model",
+            return_value=None,
+        ):
             decision = context_circuit_breaker.evaluate(_event(project_cwd))
-        assert decision.get("permissionDecision") == "warn"
+        # "allow" is the documented PreToolUse value for allow-with-warning.
+        assert decision.get("permissionDecision") == "allow"
         reason = decision.get("permissionDecisionReason", "")
         assert "125" not in reason
         assert "101" not in reason
@@ -230,15 +238,25 @@ class TestAlwaysAllowedTools:
         assert required.issubset(context_circuit_breaker.ALWAYS_ALLOWED_TOOLS)
 
     def test_edit_is_not_always_allowed(self, project_cwd: Path) -> None:
-        """Edit tool is NOT in the always-allowed set and CAN be warned."""
+        """Edit is NOT in the always-allowed set: fires allow-with-warning at threshold.
+
+        Critically: a non-allowlisted tool at/above threshold must be ALLOWED
+        (permissionDecision == "allow"), never denied — the invariant of issue #642.
+        """
         _write_state(
             project_cwd,
             {"session_id": "sess-current", "percentage_used": 99.0},
         )
         event = _event(project_cwd, tool_name="Edit")
         result = context_circuit_breaker.evaluate(event)
-        # Should fire a warning for Edit at 99 %.
-        assert result.get("permissionDecision") == "warn"
+        # Must be "allow" (documented value) with a reason — never "deny" or "warn".
+        assert result.get("permissionDecision") == "allow", (
+            "Non-allowlisted tool at threshold must be ALLOWED-with-warning, not "
+            f"blocked.  Got: {result.get('permissionDecision')!r}"
+        )
+        assert result.get("permissionDecisionReason"), (
+            "Warning reason must be non-empty"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -300,7 +318,8 @@ class TestDisableSwitch:
         env["CLAUDE_MPM_DISABLE_CONTEXT_BREAKER"] = "0"
         with mock.patch.dict(os.environ, env, clear=True):
             result = context_circuit_breaker.evaluate(_event(project_cwd))
-        assert result.get("permissionDecision") == "warn"
+        # "allow" is the documented value; "warn" is not valid.
+        assert result.get("permissionDecision") == "allow"
 
     def test_config_file_disabled_key_disables_breaker(self, project_cwd: Path) -> None:
         """context_circuit_breaker.disabled: true in settings.json disables breaker."""
@@ -355,24 +374,27 @@ def test_just_below_threshold_passes_through(project_cwd: Path) -> None:
     assert context_circuit_breaker.evaluate(_event(project_cwd)) == {}
 
 
-def test_at_exactly_95_warns(project_cwd: Path) -> None:
+def test_at_exactly_95_fires_allow_with_warning(project_cwd: Path) -> None:
     _write_state(
         project_cwd,
         {"session_id": "sess-current", "percentage_used": 95.0},
     )
     decision = context_circuit_breaker.evaluate(_event(project_cwd))
-    # Post-#642: at threshold the decision is "warn", not "deny".
-    assert decision.get("permissionDecision") == "warn"
+    # Post-#642: at threshold the decision is "allow" (documented) + reason text.
+    # "warn" is not a documented PreToolUse value and was replaced.
+    assert decision.get("permissionDecision") == "allow"
     assert "95%" in decision.get("permissionDecisionReason", "")
 
 
-def test_above_95_warns_with_percentage_in_reason(project_cwd: Path) -> None:
+def test_above_95_allows_with_warning_and_percentage_in_reason(
+    project_cwd: Path,
+) -> None:
     _write_state(
         project_cwd,
         {"session_id": "sess-current", "percentage_used": 97.4},
     )
     decision = context_circuit_breaker.evaluate(_event(project_cwd))
-    assert decision.get("permissionDecision") == "warn"
+    assert decision.get("permissionDecision") == "allow"
     reason = decision.get("permissionDecisionReason", "")
     # 97.4 % rounds to 97 for display.
     assert "97%" in reason
@@ -423,11 +445,13 @@ def test_no_cwd_fails_open() -> None:
     assert context_circuit_breaker.evaluate({"tool_name": "Edit"}) == {}
 
 
-def test_state_session_id_missing_still_warns(project_cwd: Path) -> None:
-    """Missing session_id in state → no mismatch → breaker fires (warn, not deny)."""
+def test_state_session_id_missing_still_fires_allow_with_warning(
+    project_cwd: Path,
+) -> None:
+    """Missing session_id in state → no mismatch → breaker fires allow-with-warning."""
     _write_state(project_cwd, {"percentage_used": 96.0})
     decision = context_circuit_breaker.evaluate(_event(project_cwd))
-    assert decision.get("permissionDecision") == "warn"
+    assert decision.get("permissionDecision") == "allow"
 
 
 # ---------------------------------------------------------------------------
@@ -457,7 +481,7 @@ class TestDynamicWindowFromRawTokens:
         assert result == {}
 
     def test_200k_model_at_190k_tokens_fires(self, project_cwd: Path) -> None:
-        """190 K tokens on a 200 K model = 95 % → warning fires."""
+        """190 K tokens on a 200 K model = 95 % → allow-with-warning fires."""
         _write_state(
             project_cwd,
             {
@@ -471,10 +495,10 @@ class TestDynamicWindowFromRawTokens:
             os.environ, {"ANTHROPIC_MODEL": "claude-sonnet-4-0"}, clear=False
         ):
             result = context_circuit_breaker.evaluate(_event(project_cwd))
-        assert result.get("permissionDecision") == "warn"
+        assert result.get("permissionDecision") == "allow"
 
     def test_1m_model_at_960k_tokens_fires(self, project_cwd: Path) -> None:
-        """960 K tokens on a 1 M model = 96 % → warning fires."""
+        """960 K tokens on a 1 M model = 96 % → allow-with-warning fires."""
         _write_state(
             project_cwd,
             {
@@ -488,4 +512,114 @@ class TestDynamicWindowFromRawTokens:
             os.environ, {"ANTHROPIC_MODEL": "claude-opus-4-6"}, clear=False
         ):
             result = context_circuit_breaker.evaluate(_event(project_cwd))
-        assert result.get("permissionDecision") == "warn"
+        assert result.get("permissionDecision") == "allow"
+
+
+# ---------------------------------------------------------------------------
+# Protocol-safety: only documented permissionDecision values are emitted
+# ---------------------------------------------------------------------------
+
+
+class TestProtocolSafeOutput:
+    """The breaker must only emit documented permissionDecision values.
+
+    The Claude Code PreToolUse protocol accepts exactly three values:
+    "allow", "deny", "ask".  "warn" is not documented and risks being
+    treated as deny/error, reproducing the original bug #642.
+    """
+
+    _DOCUMENTED_VALUES = frozenset({"allow", "deny", "ask"})
+
+    def test_threshold_exceeded_emits_allow_not_warn(self, project_cwd: Path) -> None:
+        """At/above threshold: permissionDecision must be a documented value."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 99.0},
+        )
+        result = context_circuit_breaker.evaluate(_event(project_cwd))
+        decision = result.get("permissionDecision")
+        assert decision in self._DOCUMENTED_VALUES, (
+            f"permissionDecision {decision!r} is not a documented Claude Code "
+            f"PreToolUse value.  Valid values: {sorted(self._DOCUMENTED_VALUES)}"
+        )
+        # Specifically: must be "allow" (never "deny" — that would hard-block).
+        assert decision == "allow"
+
+    def test_threshold_exceeded_has_reason_text(self, project_cwd: Path) -> None:
+        """The warning text is carried in permissionDecisionReason."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 99.0},
+        )
+        result = context_circuit_breaker.evaluate(_event(project_cwd))
+        reason = result.get("permissionDecisionReason", "")
+        assert reason, "permissionDecisionReason must be non-empty when threshold fires"
+        assert "compact" in reason.lower() or "context" in reason.lower(), (
+            "Warning reason should mention context management options"
+        )
+
+    def test_non_allowlisted_tool_at_threshold_is_allowed_not_denied(
+        self, project_cwd: Path
+    ) -> None:
+        """Non-allowlisted tools (Bash, Edit, Write) at/above threshold must be ALLOWED.
+
+        This is the core invariant of issue #642: the breaker must NEVER
+        hard-block tool calls.  A session at threshold must remain usable.
+        """
+        for tool in ("Bash", "Edit", "Write", "MultiEdit", "Task"):
+            _write_state(
+                project_cwd,
+                {"session_id": "sess-current", "percentage_used": 99.0},
+            )
+            result = context_circuit_breaker.evaluate(
+                _event(project_cwd, tool_name=tool)
+            )
+            decision = result.get("permissionDecision")
+            assert decision != "deny", (
+                f"Tool {tool!r} at threshold was DENIED — reproduces bug #642. "
+                "The breaker must allow-with-warning, never hard-block."
+            )
+            assert decision == "allow", (
+                f"Tool {tool!r} at threshold: expected 'allow', got {decision!r}"
+            )
+
+    def test_evaluate_never_returns_warn_string(self, project_cwd: Path) -> None:
+        """evaluate() must never return permissionDecision == 'warn' (undocumented)."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 99.0},
+        )
+        result = context_circuit_breaker.evaluate(_event(project_cwd))
+        assert result.get("permissionDecision") != "warn", (
+            "'warn' is not a documented PreToolUse permissionDecision value "
+            "and was removed in the #642 fix."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Prefix-match boundary fix
+# ---------------------------------------------------------------------------
+
+
+class TestPrefixMatchBoundary:
+    """Verify that prefix matching requires a delimiter boundary."""
+
+    def test_sonnet_4_5_does_not_match_hypothetical_4_50(self) -> None:
+        """claude-sonnet-4-50 must NOT match the claude-sonnet-4-5 (1 M) prefix."""
+        window = resolve_context_window("claude-sonnet-4-50")
+        # claude-sonnet-4-50 is not in the map; fallback to DEFAULT (200 K).
+        # It must NOT inherit the 1 M window from the "claude-sonnet-4-5" entry.
+        assert window == DEFAULT_CONTEXT_WINDOW, (
+            f"claude-sonnet-4-50 matched claude-sonnet-4-5 (1 M) prefix — "
+            f"boundary check failed.  Got {window}"
+        )
+
+    def test_sonnet_4_5_with_date_still_resolves_to_1m(self) -> None:
+        """claude-sonnet-4-5-20251201 (genuine date variant) still resolves 1 M."""
+        window = resolve_context_window("claude-sonnet-4-5-20251201")
+        assert window == 1_000_000
+
+    def test_sonnet_4_6_with_date_still_resolves_to_1m(self) -> None:
+        """claude-sonnet-4-6-20260101 (genuine date variant) still resolves 1 M."""
+        window = resolve_context_window("claude-sonnet-4-6-20260101")
+        assert window == 1_000_000
