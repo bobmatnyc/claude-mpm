@@ -183,35 +183,46 @@ class TestContextUsageTracker:
         assert not state.auto_pause_active
 
     def test_threshold_auto_pause_90_percent(self, clean_tracker):
-        """Test auto-pause threshold at 90% usage."""
+        """Threshold is still reported at 90% but auto_pause_active stays False.
+
+        Auto-pause is disabled: metering (percentage_used, threshold_reached)
+        remains accurate, but auto_pause_active never flips True.
+        """
         # 90% of 200k = 180k tokens
         state = clean_tracker.update_usage(input_tokens=130000, output_tokens=50000)
 
         assert state.percentage_used == pytest.approx(90.0, abs=0.01)
         assert state.threshold_reached == "auto_pause"
-        assert state.auto_pause_active
+        assert not state.auto_pause_active
 
     def test_threshold_critical_95_percent(self, clean_tracker):
-        """Test critical threshold at 95% usage."""
+        """Critical threshold reported at 95% but auto_pause_active stays False."""
         # 95% of 200k = 190k tokens
         state = clean_tracker.update_usage(input_tokens=140000, output_tokens=50000)
 
         assert state.percentage_used == pytest.approx(95.0, abs=0.01)
         assert state.threshold_reached == "critical"
-        assert state.auto_pause_active
+        assert not state.auto_pause_active
 
-    def test_should_auto_pause_true(self, clean_tracker):
-        """Test should_auto_pause returns True at 90%+ usage."""
-        # Start below threshold
+    def test_should_auto_pause_always_false_at_high_usage(self, clean_tracker):
+        """should_auto_pause is permanently disabled — always returns False.
+
+        Even at 90%+ usage (where it historically returned True) it must return
+        False, while metering still records the true percentage.
+        """
         assert not clean_tracker.should_auto_pause()
 
-        # Cross 90% threshold
+        # Cross the former 90% threshold.
         clean_tracker.update_usage(input_tokens=130000, output_tokens=50000)
-        assert clean_tracker.should_auto_pause()
+        assert not clean_tracker.should_auto_pause()
+        # Metering is still accurate.
+        assert clean_tracker.get_current_state().percentage_used == pytest.approx(
+            90.0, abs=0.01
+        )
 
     def test_should_auto_pause_false(self, clean_tracker):
-        """Test should_auto_pause returns False below 90%."""
-        # 85% usage - below auto-pause threshold
+        """should_auto_pause returns False below 90% (and everywhere else)."""
+        # 85% usage - below the former auto-pause threshold
         clean_tracker.update_usage(input_tokens=120000, output_tokens=50000)
         assert not clean_tracker.should_auto_pause()
 

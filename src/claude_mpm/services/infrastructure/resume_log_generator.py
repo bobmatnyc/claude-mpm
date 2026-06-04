@@ -124,20 +124,16 @@ class ResumeLogGenerator:
         return should_gen
 
     def should_auto_pause(self, token_usage_pct: float | None) -> bool:
-        """Check if auto-pause threshold (90%) has been reached.
+        """DISABLED — context-usage auto-pause has been removed.
 
-        This is a convenience method to check specifically for the 90% threshold
-        which triggers automatic session pausing.
-
-        Args:
-            token_usage_pct: Current token usage percentage (0.0-1.0)
-
-        Returns:
-            True if auto-pause threshold has been reached
+        Why: Auto-pausing at high context % aborted active work (including
+        in-flight sub-agent delegations). The decision is to keep metering token
+        usage but never drive a session pause from it. Signature/argument kept
+        for backward compatibility with existing callers and tests.
+        What: Always returns False regardless of token_usage_pct.
+        Test: Call with token_usage_pct=0.99; assert it returns False.
         """
-        if token_usage_pct is None:
-            return False
-        return token_usage_pct >= self.threshold_auto_pause
+        return False
 
     def generate_from_session_state(
         self,

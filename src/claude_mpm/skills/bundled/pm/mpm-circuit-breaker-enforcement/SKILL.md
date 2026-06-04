@@ -395,6 +395,11 @@ PM: *Delegates to Research*         # ✅ CORRECT: If vector search insufficient
 
 ## Circuit Breaker #11: Read Tool Limit Enforcement
 
+> **Identifier note:** CB#11 is the **Read Tool Limit Enforcement** breaker. The
+> former "Context Overflow Recovery" breaker that also used the number 11 has
+> been removed (context-usage auto-pause was disabled), so there is no longer
+> any ambiguity — CB#11 unambiguously refers to this Read-tool limit.
+
 **Trigger**: PM uses Read tool more than once OR reads source code files
 
 **Detection Patterns**:

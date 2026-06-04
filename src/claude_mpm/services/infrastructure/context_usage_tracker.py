@@ -138,12 +138,13 @@ class ContextUsageTracker:
         total_tokens = state.cumulative_input_tokens + state.cumulative_output_tokens
         state.percentage_used = (total_tokens / self.CONTEXT_BUDGET) * 100
 
-        # Check thresholds
+        # Check thresholds (informational only — used for metering/display).
         state.threshold_reached = self.check_thresholds(state)
 
-        # Activate auto-pause if threshold reached
-        if state.threshold_reached in {"auto_pause", "critical"}:
-            state.auto_pause_active = True
+        # Auto-pause is DISABLED: never flag auto_pause_active from a threshold
+        # crossing. The field is retained for backward compatibility but must
+        # stay False so nothing downstream interprets it as an active pause.
+        state.auto_pause_active = False
 
         # Update timestamp
         state.last_updated = datetime.now(UTC).isoformat()
@@ -181,13 +182,18 @@ class ContextUsageTracker:
         return None
 
     def should_auto_pause(self) -> bool:
-        """Check if auto-pause should be triggered.
+        """DISABLED — context-usage auto-pause has been removed.
 
-        Returns:
-            True if 90%+ context budget used
+        Why: Auto-pausing at high context % aborted active work (including
+        in-flight sub-agent delegations). The explicit decision is to keep
+        measuring token usage (update_usage / set_session_snapshot still run and
+        persist context-usage.json for commit-cost trailers + the dashboard) but
+        to NEVER drive a pause from it. Signature kept for backward compatibility.
+        What: Always returns False so no caller ever initiates an auto-pause.
+        Test: Drive usage above 90% via update_usage(); assert this still returns
+        False while get_current_state().percentage_used reflects the real value.
         """
-        state = self.get_current_state()
-        return state.percentage_used >= (self.THRESHOLDS["auto_pause"] * 100)
+        return False
 
     def get_current_state(self) -> ContextUsageState:
         """Get current usage state without modifying.
