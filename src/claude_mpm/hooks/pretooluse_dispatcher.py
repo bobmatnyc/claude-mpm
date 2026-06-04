@@ -6,7 +6,8 @@ every PreToolUse event:
 
 * ``model_tier_hook``       — injects a model tier into ``Agent`` tool calls.
 * ``ztk_hook``              — rewrites ``Bash`` commands through ztk compression.
-* ``context_circuit_breaker`` — denies all tool calls when context >= 95%.
+* ``context_circuit_breaker`` — warns (not hard-blocks) when context >= 95%;
+  read-only/recovery tools are always allowed through (issue #642).
 * ``claude-hook``           — the full handler (dashboard, memory, auto-pause).
 
 Spawning four Python interpreters per tool call adds significant latency.  This
@@ -20,9 +21,9 @@ Processing order
 ----------------
 1. Parse the event from stdin.  On any failure, emit pass-through (fail-open).
 2. Route ``PermissionRequest`` events to the permission policy engine.
-3. For ``PreToolUse``: run the context circuit breaker FIRST.  If it denies,
-   emit the deny response immediately and stop — no point rewriting a call
-   that is about to be blocked.
+3. For ``PreToolUse``: run the context circuit breaker FIRST.  It now emits
+   warnings rather than hard denials; read-only/recovery tools always pass
+   through.  If it denies (legacy path), stop immediately.
 4. Branch on ``tool_name``:
    * ``Agent`` -> model tier injection.
    * ``Bash``  -> ztk rewrite.
@@ -48,15 +49,25 @@ def _passthrough() -> dict[str, Any]:
     return {"continue": True}
 
 
-def _circuit_breaker_deny_response(decision: dict[str, Any]) -> dict[str, Any]:
-    """Wrap a circuit-breaker deny decision in the PreToolUse wire format."""
+def _circuit_breaker_response(decision: dict[str, Any]) -> dict[str, Any]:
+    """Wrap a circuit-breaker decision in the PreToolUse wire format.
+
+    Supports both ``deny`` (blocks the call) and ``warn`` (shows a message
+    but allows the call through).
+    """
+    decision_type = decision.get("permissionDecision", "deny")
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
+            "permissionDecision": decision_type,
             "permissionDecisionReason": decision.get("permissionDecisionReason", ""),
         }
     }
+
+
+# Keep the old name as an alias for backward compatibility with any external
+# callers that imported it directly (unlikely but safe to preserve).
+_circuit_breaker_deny_response = _circuit_breaker_response
 
 
 def dispatch(event: dict[str, Any]) -> dict[str, Any]:
@@ -76,11 +87,14 @@ def dispatch(event: dict[str, Any]) -> dict[str, Any]:
         if hook_event == "PermissionRequest":
             return model_tier_hook.build_permission_request_response(event)
 
-        # Context circuit breaker runs first: if context is critical, deny the
-        # call outright before doing any model/ztk rewriting.
+        # Context circuit breaker runs first.  It now emits warnings (not hard
+        # denials) for critical context levels, and always passes read-only /
+        # recovery tools through unconditionally (issue #642).
         breaker_decision = context_circuit_breaker.evaluate(event)
-        if breaker_decision.get("permissionDecision") == "deny":
-            return _circuit_breaker_deny_response(breaker_decision)
+        decision_type = breaker_decision.get("permissionDecision")
+        if decision_type in ("deny", "warn"):
+            # deny → block the call; warn → show message but allow the call.
+            return _circuit_breaker_response(breaker_decision)
 
         # Branch on the tool being invoked.
         tool_name = event.get("tool_name", "")
