@@ -54,7 +54,7 @@ templates, IDs, and skills. **Neither absorbs the other.**
 | **Organized by** | Product **AREA** / feature | Engineering **SUBSYSTEM** |
 | **Primary content** | Problem, personas, goals, user stories, requirements, acceptance criteria, success metrics. | Inputs/Outputs/Pre/Postconditions/Errors, Rationale, Implementing Modules. |
 | **Skill** | `prd-authoring` | `spec-authoring` |
-| **Lifecycle** | Draft → Review → Approved → In-development → Shipped → Superseded | Draft → Review → Active → Superseded |
+| **Lifecycle** | Draft → Review → Approved → In-development → Shipped → Superseded | Draft → Draft (in review) → Active → Superseded |
 
 **The link is bidirectional:**
 
