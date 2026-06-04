@@ -148,6 +148,8 @@ class FrontmatterValidator:
             "dependencies",
             "capabilities",
             "color",
+            # Agent provenance field
+            "source",
             # NEW: Collection-based identification fields
             "collection_id",
             "source_path",
@@ -187,6 +189,8 @@ class FrontmatterValidator:
         self._validate_author_field(corrected, errors, warnings)
         self._validate_tags_field(corrected, errors, warnings)
         self._validate_numeric_fields(corrected, errors, warnings)
+        # Validate agent provenance field
+        self._validate_source_field(corrected, errors)
         # NEW: Validate collection-based identification fields
         self._validate_collection_fields(corrected, field_corrections, errors, warnings)
 
@@ -476,6 +480,38 @@ class FrontmatterValidator:
                 warnings.append(
                     f"Field '{field_name}' value {value} outside recommended range [{min_val}, {max_val}]"
                 )
+
+    # Valid source values for agent provenance
+    VALID_SOURCES = {"bundled", "external"}
+
+    def _validate_source_field(
+        self, corrected: dict[str, Any], errors: list[str]
+    ) -> None:
+        """Validate the source provenance field.
+
+        The 'source' field is optional. When present it must be one of the
+        allowed enum values: 'bundled' (ships with the claude-mpm package) or
+        'external' (owned by bobmatnyc/claude-mpm-agents and deployed separately).
+        An invalid value (e.g. 'vendor') is a hard error because it would cause
+        JSON-Schema validation to fail and silently mislead tooling.
+        """
+        if "source" not in corrected:
+            return
+
+        value = corrected["source"]
+        if not isinstance(value, str):
+            errors.append(
+                f"Field 'source' must be a string, got {type(value).__name__}"
+            )
+            return
+
+        if value not in self.VALID_SOURCES:
+            errors.append(
+                f"Invalid source '{value}': must be one of "
+                f"{sorted(self.VALID_SOURCES)} ('bundled' for definitions "
+                "shipped with the claude-mpm package, 'external' for definitions "
+                "owned by bobmatnyc/claude-mpm-agents)"
+            )
 
     def _validate_collection_fields(
         self,
