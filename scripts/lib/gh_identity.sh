@@ -151,10 +151,14 @@ gh_assert_identity() {
 #   the host-keyed credential store, while keeping the token out of every place a
 #   token-in-URL would otherwise surface (/proc/<pid>/cmdline, `git remote -v`,
 #   reflog, shell history, `set -x`, command logging).
-# What: resolves the required account's token, writes it to a 0700 one-shot
-#   GIT_ASKPASS script, and runs `git -c credential.helper= <args...>` so git asks
-#   the askpass helper (which echoes the token) instead of any ambient helper. The
-#   temp script is removed immediately afterward, even on failure.
+# What: resolves the required account's token, writes a 0700 one-shot GIT_ASKPASS
+#   script that echoes $GH_ASKPASS_TOKEN, and runs `git -c credential.helper=
+#   <args...>` with GH_ASKPASS_TOKEN exported ONLY for that child process (then
+#   unset), so git asks the askpass helper (which echoes the env token) instead of
+#   any ambient helper. The token is never written into the script body or any
+#   argv. xtrace (`set -x`) is suppressed across the entire token-handling region
+#   and restored afterward, so the secret cannot leak into CI debug traces via the
+#   assignment, guard, or env prefix. The temp script is removed even on failure.
 # Test: `_GH_IDENTITY_TEST_MODE=1 _GH_IDENTITY_TEST_OVERRIDE=x gh_git push --dry-run`
 #   — in test mode it skips token resolution and runs git directly; otherwise it
 #   resolves the bobmatnyc token and the token must not appear in `git`'s argv.
@@ -173,8 +177,19 @@ gh_git() {
         return $?
     fi
 
+    # Suppress xtrace around ALL token handling. Even with the token kept out of
+    # argv, `set -x` would otherwise echo the `token=...` assignment, the `[ -z ]`
+    # guard, and the `GH_ASKPASS_TOKEN=...` env prefix — re-leaking the secret into
+    # CI debug logs. We record whether xtrace was on, disable it for the sensitive
+    # region, and restore it (only if it was on) at every exit path. This works on
+    # macOS bash 3.2 too — no reliance on `local -`/BASH-only option scoping.
+    local _xtrace_was_on=0
+    case "$-" in *x*) _xtrace_was_on=1 ;; esac
+    set +x
+
     token="$(gh_token_for "$required")"
     if [ -z "$token" ]; then
+        [ "$_xtrace_was_on" = 1 ] && set -x
         echo "ERROR: cannot run authenticated git — no token for '$required'." >&2
         return 1
     fi
@@ -182,22 +197,36 @@ gh_git() {
     # One-shot GIT_ASKPASS: git invokes this for the username and password prompts.
     # For HTTPS token auth, username can be anything (x-access-token) and the
     # password is the token. We echo the token for both prompts; GitHub accepts it.
-    askpass="$(mktemp "${TMPDIR:-/tmp}/gh_askpass.XXXXXX")" || {
+    #
+    # Create the helper atomically under a restrictive umask so there is no
+    # world-readable window between mktemp and a follow-up chmod (TOCTOU).
+    askpass="$( umask 077 && mktemp "${TMPDIR:-/tmp}/gh_askpass.XXXXXX" )" || {
+        [ "$_xtrace_was_on" = 1 ] && set -x
         echo "ERROR: could not create askpass helper." >&2
         return 1
     }
+    # The askpass script body NEVER contains the token; it reads GH_ASKPASS_TOKEN
+    # from the environment at git-run time. This keeps the token out of the script
+    # contents AND out of any command argv, so it cannot surface in the helper file,
+    # /proc/<pid>/cmdline, `git remote -v`, reflog, or shell history.
+    # SC2016: the single quotes are intentional — we want the literal text
+    # ${GH_ASKPASS_TOKEN} written into the helper, expanded by /bin/sh at git-run
+    # time, NOT expanded here (which would re-embed the token in the script body).
+    # shellcheck disable=SC2016
+    printf '#!/bin/sh\nprintf %%s "${GH_ASKPASS_TOKEN}"\n' > "$askpass"
     chmod 0700 "$askpass"
-    # The token is written to a private temp file read only by git's askpass call,
-    # never placed on a command line.
-    printf '#!/bin/sh\nprintf %%s "%s"\n' "$token" > "$askpass"  # pragma: allowlist secret
 
     # credential.helper= (empty) disables any configured helper for this invocation
     # so the askpass token is authoritative and the ambient store is never consulted.
-    GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 \
-        git -c credential.helper= "$@"
+    # The token is exported ONLY for the git child process, then immediately unset.
+    # xtrace is still off here, so neither the export nor the value is echoed.
+    export GH_ASKPASS_TOKEN="$token"
+    GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"
     rc=$?
+    unset GH_ASKPASS_TOKEN
 
     rm -f "$askpass"
+    [ "$_xtrace_was_on" = 1 ] && set -x
     return $rc
 }
 
