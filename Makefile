@@ -1064,13 +1064,12 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@VERSION=$$(cat VERSION); \
 	BRANCH=$$(git branch --show-current); \
 	. scripts/lib/gh_identity.sh; \
-	ORIGIN_URL=$$(git remote get-url origin); \
-	PUSH_URL=$$(gh_authenticated_url "$$ORIGIN_URL") || { \
-		echo "$(RED)✗ Could not build authenticated push URL$(NC)"; exit 1; \
+	gh_assert_identity || { \
+		echo "$(RED)✗ Identity check failed at push time — aborting (no push)$(NC)"; exit 1; \
 	}; \
 	echo "Pushing $$BRANCH and tag v$$VERSION to origin (authenticated)..."; \
-	git push "$$PUSH_URL" "$$BRANCH" && \
-	git push "$$PUSH_URL" "v$$VERSION" && \
+	gh_git_push origin "$$BRANCH" && \
+	gh_git_push origin "v$$VERSION" && \
 		echo "$(GREEN)✓ Pushed — release-wheels.yml will publish to PyPI (OIDC)$(NC)" || { \
 			echo "$(RED)✗ git push failed — PyPI publish (CI) NOT triggered$(NC)"; \
 			exit 1; \
