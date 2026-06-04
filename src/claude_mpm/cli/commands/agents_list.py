@@ -130,6 +130,7 @@ class AgentListingHandler:
                     "description": agent.description,
                     "specializations": agent.specializations,
                     "version": agent.version,
+                    "source": agent.source,
                 }
                 for agent in agents
             ]
@@ -175,6 +176,7 @@ class AgentListingHandler:
                     "description": agent.description,
                     "specializations": agent.specializations,
                     "version": agent.version,
+                    "source": agent.source,
                 }
                 for agent in agents
             ]

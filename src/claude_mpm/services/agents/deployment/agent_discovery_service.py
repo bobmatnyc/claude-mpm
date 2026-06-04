@@ -49,7 +49,12 @@ class AgentDiscoveryService:
             log_discovery: Whether to log discovery results
 
         Returns:
-            List of agent dictionaries with metadata from git cache
+            List of agent dictionaries with metadata from git cache.
+            Each dict contains:
+            - ``origin``: deployment-origin identifier (``"git-cache"``)
+            - ``source``: frontmatter provenance field (``"bundled"`` /
+              ``"external"``); inferred as ``"external"`` when the frontmatter
+              field is absent.
         """
         agents = []
 
@@ -76,9 +81,15 @@ class AgentDiscoveryService:
                         try:
                             agent_info = self._extract_agent_metadata(cache_file)
                             if agent_info:
-                                # Mark as git-sourced for tracking
-                                agent_info["source"] = "git-cache"
+                                # origin: deployment-origin identifier (git cache)
+                                agent_info["origin"] = "git-cache"
                                 agent_info["cache_path"] = str(agent_path)
+                                # source: frontmatter provenance field.
+                                # Infer "external" when the frontmatter field is
+                                # absent — git-cache agents come from an external
+                                # repo by definition.
+                                if not agent_info.get("source"):
+                                    agent_info["source"] = "external"
                                 agents.append(agent_info)
                         except Exception as e:
                             if log_discovery:
@@ -119,7 +130,9 @@ class AgentDiscoveryService:
             - tools: List of tools the agent uses
             - specializations: Agent specializations
             - file_path: Path to template file
-            - source: 'local' or 'git-cache' (for tracking)
+            - origin: deployment-origin identifier (``"local"`` or ``"git-cache"``)
+            - source: frontmatter provenance field (``"bundled"`` / ``"external"``);
+              inferred when the frontmatter field is absent.
             - cache_path: Original cache path (for git-sourced agents)
         """
         agents = []
@@ -139,8 +152,13 @@ class AgentDiscoveryService:
                 try:
                     agent_info = self._extract_agent_metadata(template_file)
                     if agent_info:
-                        # Mark as local source
-                        agent_info["source"] = "local"
+                        # origin: deployment-origin identifier for internal tracking
+                        agent_info["origin"] = "local"
+                        # source: frontmatter provenance field.
+                        # Local templates are bundled with this package; infer
+                        # "bundled" when the frontmatter field is absent.
+                        if not agent_info.get("source"):
+                            agent_info["source"] = "bundled"
                         agents.append(agent_info)
 
                 except Exception as e:
@@ -148,17 +166,59 @@ class AgentDiscoveryService:
                         self.logger.debug(f"Failed to parse {template_file.name}: {e}")
                     continue
 
+        # 1b. Discover bundled agents from the sibling ``bundled/`` directory.
+        #     These are agents that ship with the claude-mpm package and are
+        #     tagged with ``source: bundled`` in their frontmatter.  The
+        #     templates_dir conventionally points to ``agents/templates/``; the
+        #     bundled directory lives at ``agents/bundled/`` (a sibling).
+        bundled_dir = self.templates_dir.parent / "bundled"
+        if bundled_dir.exists() and bundled_dir != self.templates_dir:
+            for template_file in bundled_dir.glob("*.md"):
+                if is_base_template(template_file.name):
+                    continue
+                try:
+                    agent_info = self._extract_agent_metadata_from_dir(
+                        template_file, bundled_dir
+                    )
+                    if agent_info:
+                        agent_info["origin"] = "local"
+                        # Use frontmatter source if present; fall back to "bundled"
+                        if not agent_info.get("source"):
+                            agent_info["source"] = "bundled"
+                        agents.append(agent_info)
+                except Exception as e:
+                    if log_discovery:
+                        self.logger.debug(
+                            f"Failed to parse bundled agent {template_file.name}: {e}"
+                        )
+                    continue
+
         # 2. Discover git source cached agents using shared method
         git_agents = self.discover_git_cached_agents(log_discovery=log_discovery)
         agents.extend(git_agents)
+
+        # 3. Deduplicate: when the same agent name appears from both a local
+        #    (bundled) source and the git cache, keep the local copy.  Local
+        #    agents carry authoritative frontmatter (e.g. ``source: bundled``).
+        seen_names: dict[str, dict[str, Any]] = {}
+        for agent in agents:
+            name = agent.get("name", "")
+            if name not in seen_names:
+                seen_names[name] = agent
+            else:
+                # Prefer the local entry over the git-cache entry
+                existing = seen_names[name]
+                if agent.get("origin") == "local" and existing.get("origin") != "local":
+                    seen_names[name] = agent
+        agents = list(seen_names.values())
 
         # Sort by agent name for consistent ordering
         agents.sort(key=lambda x: x.get("name", ""))
 
         # Only log if requested (to avoid duplicate logging from multi-source discovery)
         if log_discovery and len(agents) > 0:
-            local_count = sum(1 for a in agents if a.get("source") == "local")
-            git_count = sum(1 for a in agents if a.get("source") == "git-cache")
+            local_count = sum(1 for a in agents if a.get("origin") == "local")
+            git_count = sum(1 for a in agents if a.get("origin") == "git-cache")
             self.logger.info(
                 f"Discovered {len(agents)} agents: {local_count} local, {git_count} git-cached"
             )
@@ -287,6 +347,40 @@ class AgentDiscoveryService:
 
         return categories
 
+    def _extract_agent_metadata_from_dir(
+        self, template_file: Path, extra_allowed_dir: Path
+    ) -> dict[str, Any] | None:
+        """Extract metadata allowing an additional directory root.
+
+        Thin wrapper around :meth:`_extract_agent_metadata` that temporarily
+        widens the security check to include *extra_allowed_dir*.  Used for
+        the bundled-agents directory which lives outside ``templates_dir``.
+
+        Args:
+            template_file: Path to the markdown template file.
+            extra_allowed_dir: Additional directory root to permit.
+
+        Returns:
+            Parsed agent metadata dict, or ``None`` on failure.
+        """
+        # Temporarily extend allowed_roots by monkey-patching templates_dir only
+        # within this call.  The cleanest way is to resolve the path ourselves.
+        resolved_path = template_file.resolve()
+        extra_resolved = extra_allowed_dir.resolve()
+        if not resolved_path.is_relative_to(extra_resolved):
+            self.logger.warning(
+                f"Rejecting agent file outside allowed directories: {resolved_path}"
+            )
+            return None
+        # Bypass the security check in _extract_agent_metadata by calling with
+        # a temporary templates_dir override.
+        original_templates_dir = self.templates_dir
+        try:
+            self.templates_dir = extra_allowed_dir
+            return self._extract_agent_metadata(template_file)
+        finally:
+            self.templates_dir = original_templates_dir
+
     def _extract_agent_metadata(self, template_file: Path) -> dict[str, Any] | None:
         """
         Extract metadata from an agent template file with YAML frontmatter.
@@ -329,7 +423,7 @@ class AgentDiscoveryService:
 
             # Extract metadata directly from frontmatter (flat structure)
             # Markdown templates use flat YAML structure, not nested "metadata" section
-            agent_info = {
+            agent_info: dict[str, Any] = {
                 "name": frontmatter.get("name", template_file.stem),
                 "description": frontmatter.get(
                     "description", "No description available"
@@ -347,6 +441,12 @@ class AgentDiscoveryService:
                 "model": frontmatter.get("model", "sonnet"),
                 "author": frontmatter.get("author", "unknown"),
             }
+
+            # Carry the frontmatter ``source`` provenance field through so callers
+            # can use it directly.  The value is expected to be "bundled" or
+            # "external"; when absent the caller infers the appropriate default.
+            if frontmatter.get("source"):
+                agent_info["source"] = frontmatter["source"]
 
             # Validate required fields
             if not agent_info["name"]:

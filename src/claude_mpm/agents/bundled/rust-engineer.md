@@ -4,6 +4,7 @@ description: Rust 2024 edition specialist for memory-safe systems, async pattern
 version: 2.0.0
 schema_version: 1.3.0
 agent_id: rust-engineer
+source: bundled
 agent_type: engineer
 resource_tier: standard
 effort: balanced

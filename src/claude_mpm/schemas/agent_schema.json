@@ -530,6 +530,11 @@
         }
       }
     },
+    "source": {
+      "type": "string",
+      "enum": ["bundled", "external"],
+      "description": "Provenance of the agent definition. 'bundled' means the definition ships inside the claude-mpm package; 'external' means the definition is owned by bobmatnyc/claude-mpm-agents and synced/deployed separately. Optional — agents without this field have unknown provenance."
+    },
     "hooks": {
       "type": "object",
       "description": "Hook configurations for extensibility",
