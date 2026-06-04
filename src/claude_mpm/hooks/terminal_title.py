@@ -221,7 +221,9 @@ def _extract_todo_title(todo: dict) -> str:
     content: str = str(todo.get("content", "") or "").strip()
     if content:
         # Take only the first line / sentence
-        first_line = content.split("\n", maxsplit=1)[0].split(".")[0].strip()
+        first_line = (
+            content.split("\n", maxsplit=1)[0].split(".", maxsplit=1)[0].strip()
+        )
         return first_line or content
 
     return ""
