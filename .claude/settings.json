@@ -25,6 +25,23 @@
             "_mpm": true
           }
         ]
+      },
+      {
+        "matcher": "Write|MultiEdit|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-m",
+              "claude_mpm.hooks.trusty_index_hook"
+            ],
+            "timeout": 10,
+            "async": true,
+            "_mpm": true,
+            "_mpm_service": "trusty-search"
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
@@ -53,6 +70,13 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15,
+            "_mpm": true,
+            "_mpm_service": "trusty-memory"
           }
         ]
       }
@@ -66,6 +90,13 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15,
+            "_mpm": true,
+            "_mpm_service": "trusty-memory"
           }
         ]
       }
@@ -79,6 +110,13 @@
             "command": "claude-hook",
             "timeout": 15,
             "_mpm": true
+          },
+          {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15,
+            "_mpm": true,
+            "_mpm_service": "trusty-memory"
           }
         ]
       }
