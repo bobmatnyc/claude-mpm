@@ -4,6 +4,7 @@ description: Independent code reviewer using OpenRouter (non-Claude LLMs) for un
 version: 1.0.0
 schema_version: 1.2.0
 agent_id: openrouter-code-reviewer
+source: bundled
 agent_type: review
 resource_tier: standard
 model: sonnet
