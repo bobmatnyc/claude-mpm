@@ -128,6 +128,11 @@
       "minLength": 1,
       "maxLength": 500,
       "description": "Auto-submitted first turn when agent is spawned, eliminating one round-trip in delegation"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["bundled", "external"],
+      "description": "Provenance of the agent definition. 'bundled' means the definition ships inside the claude-mpm package; 'external' means the definition is owned by bobmatnyc/claude-mpm-agents and synced/deployed separately. Optional — agents without this field have unknown provenance."
     }
   },
   "additionalProperties": true,
