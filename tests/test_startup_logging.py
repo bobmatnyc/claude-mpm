@@ -6,12 +6,15 @@ creates timestamped files, and can be analyzed by the doctor command.
 """
 
 import logging
+import subprocess
 import tempfile
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
 
 from claude_mpm.cli.startup_logging import (
+    _ensure_trusty_search_daemon,
+    _ensure_vector_search_daemon,
     cleanup_old_startup_logs,
     get_latest_startup_log,
     setup_startup_logging,
@@ -255,3 +258,231 @@ class TestStartupLogCheck:
 
         fix_command = check._get_fix_command(analysis)
         assert fix_command == "claude-mpm deploy"  # First claude-mpm command found
+
+
+class TestEnsureVectorSearchDaemon:
+    """Tests for _ensure_vector_search_daemon()."""
+
+    def test_starts_daemon_with_direct_binary(self):
+        """Binary path (no python in basename) uses direct binary invocation."""
+        mock_manager = MagicMock()
+        mock_manager.detect_service_path.return_value = (
+            "/usr/local/bin/mcp-vector-search"
+        )
+
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "1"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_called_once_with(
+            ["/usr/local/bin/mcp-vector-search", "daemon", "start"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    def test_starts_daemon_with_python_basename(self):
+        """Path whose basename starts with 'python' uses -m module invocation."""
+        mock_manager = MagicMock()
+        mock_manager.detect_service_path.return_value = "/opt/venv/bin/python3"
+
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "1"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_called_once_with(
+            [
+                "/opt/venv/bin/python3",
+                "-m",
+                "mcp_vector_search.cli",
+                "daemon",
+                "start",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    def test_pythonuser_path_not_misdetected(self):
+        """Path /home/pythonuser/bin/mcp-vector-search uses binary mode, not python mode.
+
+        The basename is 'mcp-vector-search', not 'python...' — the directory
+        component containing 'python' must not influence the detection.
+        """
+        mock_manager = MagicMock()
+        mock_manager.detect_service_path.return_value = (
+            "/home/pythonuser/bin/mcp-vector-search"
+        )
+
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "1"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_called_once_with(
+            ["/home/pythonuser/bin/mcp-vector-search", "daemon", "start"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    def test_opt_out_via_env(self):
+        """MCP_VECTOR_SEARCH_DAEMON=0 suppresses daemon start."""
+        with (
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "0"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_opt_out_via_env_false(self):
+        """MCP_VECTOR_SEARCH_DAEMON=false suppresses daemon start."""
+        with (
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "false"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_opt_out_via_env_no(self):
+        """MCP_VECTOR_SEARCH_DAEMON=no suppresses daemon start."""
+        with (
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "no"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_no_daemon_when_service_not_found(self):
+        """Returns without calling Popen when detect_service_path returns None."""
+        mock_manager = MagicMock()
+        mock_manager.detect_service_path.return_value = None
+
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "1"}),
+        ):
+            _ensure_vector_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_exception_does_not_propagate(self):
+        """Any unexpected exception is swallowed — startup must not break."""
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                side_effect=RuntimeError("boom"),
+            ),
+            patch.dict("os.environ", {"MCP_VECTOR_SEARCH_DAEMON": "1"}),
+        ):
+            # Must not raise
+            _ensure_vector_search_daemon()
+
+
+class TestEnsureTrustySearchDaemon:
+    """Tests for _ensure_trusty_search_daemon()."""
+
+    def test_starts_daemon_when_service_found(self):
+        """Popen is called with `trusty-search start` when binary is found."""
+        mock_manager = MagicMock()
+        mock_manager.detect_service_path.return_value = "/usr/local/bin/trusty-search"
+
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"TRUSTY_SEARCH_DAEMON": "1"}),
+        ):
+            _ensure_trusty_search_daemon()
+
+        mock_popen.assert_called_once_with(
+            ["/usr/local/bin/trusty-search", "start"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    def test_opt_out_via_env(self):
+        """TRUSTY_SEARCH_DAEMON=0 suppresses daemon start."""
+        with (
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"TRUSTY_SEARCH_DAEMON": "0"}),
+        ):
+            _ensure_trusty_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_opt_out_via_env_false(self):
+        """TRUSTY_SEARCH_DAEMON=false suppresses daemon start."""
+        with (
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"TRUSTY_SEARCH_DAEMON": "false"}),
+        ):
+            _ensure_trusty_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_opt_out_via_env_no(self):
+        """TRUSTY_SEARCH_DAEMON=no suppresses daemon start."""
+        with (
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"TRUSTY_SEARCH_DAEMON": "no"}),
+        ):
+            _ensure_trusty_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_no_daemon_when_service_not_found(self):
+        """Returns without calling Popen when detect_service_path returns None."""
+        mock_manager = MagicMock()
+        mock_manager.detect_service_path.return_value = None
+
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.startup_logging.subprocess.Popen") as mock_popen,
+            patch.dict("os.environ", {"TRUSTY_SEARCH_DAEMON": "1"}),
+        ):
+            _ensure_trusty_search_daemon()
+
+        mock_popen.assert_not_called()
+
+    def test_exception_does_not_propagate(self):
+        """Any unexpected exception is swallowed — startup must not break."""
+        with (
+            patch(
+                "claude_mpm.services.mcp_config_manager.MCPConfigManager",
+                side_effect=RuntimeError("boom"),
+            ),
+            patch.dict("os.environ", {"TRUSTY_SEARCH_DAEMON": "1"}),
+        ):
+            # Must not raise
+            _ensure_trusty_search_daemon()
