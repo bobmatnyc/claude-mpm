@@ -607,36 +607,75 @@ hook subprocess.
 
 - **Inputs:** A `PreToolUse` hook event dict containing `session_id` and `cwd`.
 
-- **Outputs:** Non-empty dict `{"hookSpecificOutput": {"permissionDecision": "deny", ...}}`
-  when the breaker fires; empty dict `{}` when the breaker does not fire (pass-through).
+- **Outputs (post-#642 fix):**
+  - **At/above threshold, non-allowlisted tool:**
+    `{"permissionDecision": "allow", "permissionDecisionReason": "<warning text>"}`.
+    `"allow"` is the only documented non-blocking `permissionDecision` value.
+    `"warn"` is **not** a documented Claude Code value and is never emitted.
+    The warning text is always surfaced in `permissionDecisionReason`.
+    The session remains fully usable — this is an allow-with-warning, not a block.
+  - **Read-only / recovery tool (always, regardless of threshold):**
+    `{}` (unconditional pass-through, no warning).
+  - **Breaker disabled, threshold not reached, or fail-open:**
+    `{}` (pass-through).
 
-- **State source:** Reads `<cwd>/.claude-mpm/state/context-usage.json`. This file is
-  written by `ContextUsageTracker` in the `PostToolUse` handler.
+- **Dynamic context window (post-#642 fix):** The context-window ceiling is resolved
+  per model from `model_context_window.resolve_context_window()`.  1 M-context models
+  (Opus 4.x, Sonnet 4.5+) use a 1 M budget; older 200 K models use the 200 K default.
+  This prevents false-positive fires on large-context models.
 
-- **Threshold:** `CRITICAL_THRESHOLD = 95.0` (percent). Fires when
-  `state["percentage"] >= 95.0`.
+- **Percentage clamped at 100:** `percentage_used` values stored by older tracker
+  versions (which used a 200 K budget against a 1 M model) can exceed 100.  All
+  computed percentages are clamped to `[0, 100]` before evaluation.
+
+- **State source:** Reads `<cwd>/.claude-mpm/state/context-usage.json`. Written by
+  `ContextUsageTracker` on each Stop event.
+
+- **Threshold:** `CRITICAL_THRESHOLD = 95.0` (percent). Fires when the computed
+  percentage `>= 95.0`.  When raw token counts (`cumulative_input_tokens` +
+  `cumulative_output_tokens`) are present they are preferred over the stored
+  `percentage_used`; the dynamic model window is used for the recomputation.
+
+- **Always-allowed tools (`ALWAYS_ALLOWED_TOOLS`):** Read-only and recovery tools
+  (`Read`, `Grep`, `Glob`, `LS`, `NotebookRead`, `WebSearch`, `WebFetch`,
+  `mpm-resume`, `mpm-session-pause`, `mpm-compact`, `TodoRead`, `TodoWrite`,
+  `exit_plan_mode`) are **always** returned as `{}` (unconditional pass-through) even
+  when the threshold is exceeded.  This ensures a session at threshold can still
+  self-recover via `/compact` or `/mpm-resume`.
 
 - **Session-ID guard:** Only fires when `state["session_id"]` matches the current
   session ID (from event payload or `CLAUDE_SESSION_ID` env var). A stale state file
-  from a prior session does not trigger a block.
+  from a prior session does not trigger a warning.
 
-- **Fail-open cases:** Returns empty dict (no block) if the state file is missing,
-  unreadable, malformed JSON, or if the session IDs do not match. Returns empty dict
-  if the percentage is below the threshold.
+- **Disable switch:** The breaker can be fully bypassed via:
+  - Environment variable: `CLAUDE_MPM_DISABLE_CONTEXT_BREAKER=1` (or `true` / `yes` / `on`).
+  - Config key: `{"context_circuit_breaker": {"disabled": true}}` in
+    `.claude/settings.json`, `.claude/settings.local.json`, or `~/.claude/settings.json`.
+  The disable instructions are included in every warning message.
 
-- **`main()` entrypoint:** Wraps `evaluate()` in the `hookSpecificOutput` envelope
-  for standalone invocation. Not currently wired as a standalone hook in settings.json.
+- **Fail-open cases:** Returns `{}` (pass-through) if the state file is missing,
+  unreadable, malformed JSON, or if the session IDs do not match. Returns `{}` if the
+  percentage is below the threshold. Fail-open is intentional: a missed warning is far
+  less harmful than a false block that makes the session unrecoverable.
+
+- **`main()` entrypoint:** Wraps `evaluate()` in the `hookSpecificOutput` envelope for
+  standalone invocation.  Emits `{"hookSpecificOutput": {"permissionDecision": "allow",
+  "permissionDecisionReason": "..."}}` when the breaker fires; `{"continue": true}`
+  otherwise.
 
 - **Error conditions:** All file I/O failures are caught and treated as fail-open.
 
 ### Rationale (WHY)
 
-Prevents context window overflow that would cause Claude Code to silently drop earlier
-conversation context. The 95% threshold matches `ContextUsageTracker.THRESHOLDS["critical"]`
-to maintain a single source of truth for the critical threshold. Fail-open is
-intentional: false denials (blocking a session due to a stale or missing state file)
-are worse than false permits, because false denials require manual intervention while
-false permits merely allow one more tool call before the overflow.
+The pre-#642 breaker hard-blocked every tool call once tokens exceeded 95 % of a
+hardcoded 200 K ceiling.  On models with 1 M context windows (Opus 4.x, Sonnet 4.5+)
+this fired almost immediately and made sessions completely unrecoverable — even
+recovery tools like `/compact` were blocked.
+
+The fix makes the breaker warn-only (never hard-block), resolves the context-window
+dynamically per model, and always allows read-only / recovery tools through.  The
+`permissionDecision` value is `"allow"` (a documented Claude Code PreToolUse value) so
+the harness can surface the warning to the user while still proceeding.
 
 ### Implementing Modules
 
@@ -644,6 +683,7 @@ false permits merely allow one more tool call before the overflow.
 |-------------|----------|------|
 | `src/claude_mpm/hooks/context_circuit_breaker.py` | `evaluate` | Circuit breaker decision logic |
 | `src/claude_mpm/hooks/context_circuit_breaker.py` | `main` | Standalone entrypoint |
+| `src/claude_mpm/hooks/model_context_window.py` | `resolve_context_window` | Per-model context-window resolution |
 
 ---
 
