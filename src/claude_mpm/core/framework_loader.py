@@ -456,6 +456,13 @@ class FrameworkLoader:
             is_on = state == "on"
             label = status_labels.get(state, "ABSENT")
             impact = (impact_on if is_on else impact_off)[service]
+            # trusty-search ON: verify the project index exists & is fresh, and
+            # kick off a background reindex (non-blocking) if it is not. Any
+            # failure here is swallowed inside the helper so startup never breaks.
+            if is_on and service == "trusty-search":
+                note = self._trusty_search_index_note()
+                if note:
+                    impact = f"{impact} {note}"
             lines.append(f"| {service} | {label} | {impact} |")
             if not is_on:
                 negations.append(f"- {impact}")
@@ -475,6 +482,70 @@ class FrameworkLoader:
             )
 
         return "\n".join(lines) + "\n"
+
+    def _trusty_search_index_note(self) -> str:
+        """Why: When trusty-search is ON, the PM assumes code search "just works",
+        but a brand-new or stale index returns poor results. We check the
+        daemon's OWN view of this project's index (no git/mtime scanning) and, if
+        it is missing/empty/stale, fire a BACKGROUND reindex and tell the PM the
+        results may be incomplete this turn. Must never block or break startup.
+
+        What: Resolves the project's index via
+        ``get_trusty_search_index_status``; if missing/empty or daemon-stale,
+        triggers a fire-and-forget ``reindex`` and returns a short note to append
+        to the trusty-search row ("Index not found/empty — background indexing
+        started." / "Index may be stale — background reindex started."). Returns
+        ``""`` for a fresh index OR on ANY error (fail-open).
+
+        Test: ``tests/test_framework_loader_index_freshness.py`` — fresh → no
+        note + no reindex; missing/empty → note + reindex fired; stale → note +
+        reindex fired; daemon error → "" + no reindex + no exception.
+        """
+        try:
+            import claude_mpm.services.trusty_status as _ts
+
+            status = _ts.get_trusty_search_index_status()
+
+            if _ts.is_index_missing_or_empty(status):
+                index_id = self._resolve_reindex_id(status)
+                if index_id:
+                    _ts.trigger_trusty_search_reindex(index_id)
+                return "Index not found/empty — background indexing started."
+
+            if _ts.is_index_stale(status):
+                index_id = self._resolve_reindex_id(status)
+                if index_id:
+                    _ts.trigger_trusty_search_reindex(index_id)
+                return "Index may be stale — background reindex started."
+
+            return ""  # fresh index → no note
+        except Exception as e:  # pragma: no cover - defensive fail-open
+            self.logger.debug(f"Skipping trusty-search index freshness check: {e}")
+            return ""
+
+    @staticmethod
+    def _resolve_reindex_id(status: dict | None) -> str | None:
+        """Why: The reindex POST needs an index ID. A matched (but empty/stale)
+        index reports its own ``index_id``; a wholly-missing index (status None)
+        has none, so we fall back to the first candidate derived from CWD.
+
+        What: Returns ``status["index_id"]`` when present, else the first
+        candidate from ``_index_id_candidates(Path.cwd())``, else ``None``.
+
+        Test: ``tests/test_framework_loader_index_freshness.py`` — status with
+        index_id returns it; None status returns the cwd-derived candidate.
+        """
+        if isinstance(status, dict):
+            index_id = status.get("index_id")
+            if isinstance(index_id, str) and index_id:
+                return index_id
+        try:
+            import claude_mpm.services.trusty_status as _ts
+
+            candidates = _ts._index_id_candidates(Path.cwd().resolve())
+            return candidates[0] if candidates else None
+        except Exception:
+            return None
 
     def _format_minimal_framework(self) -> str:
         """Format minimal framework instructions."""

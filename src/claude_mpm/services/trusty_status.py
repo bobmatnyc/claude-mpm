@@ -252,6 +252,193 @@ def _cached_palace_exists(service: str, base_url: str, palace: str) -> bool:
     return exists
 
 
+def _index_id_candidates(cwd: Path) -> list[str]:
+    """Why: There is NO root_path→index lookup endpoint, so we must probe a small
+    set of likely index IDs and confirm the one whose ``root_path`` matches CWD.
+
+    What: Returns the ordered candidate index IDs for ``cwd``: an explicit
+    ``trusty_search.index_id`` config override first (if set), then the cwd
+    basename (e.g. ``claude-mpm``), then the path-derived ``"_".join(...)`` form
+    (e.g. ``Volumes_SSD1_Projects_claude-mpm``). De-duplicated, order preserved.
+
+    Test: ``tests/test_trusty_search_index.py::TestIndexIdCandidates`` — asserts
+    the override leads, both derived forms appear, and duplicates are dropped.
+    """
+    candidates: list[str] = []
+    config = _load_config()
+    section = config.get("trusty_search", {})
+    if isinstance(section, dict):
+        override = section.get("index_id")
+        if isinstance(override, str) and override.strip():
+            candidates.append(override.strip())
+
+    candidates.append(cwd.name)
+    parts = [p for p in cwd.parts if p and p != "/"]
+    if parts:
+        candidates.append("_".join(parts))
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for cid in candidates:
+        if cid and cid not in seen:
+            seen.add(cid)
+            ordered.append(cid)
+    return ordered
+
+
+def _fetch_index_status(base_url: str, index_id: str) -> dict[str, Any] | None:
+    """Why: The startup freshness check needs the daemon's own view of an index
+    (chunk_count, root_path, staleness signals) without scanning git/mtimes.
+
+    What: GETs ``{base_url}/indexes/{index_id}/status`` with a hard <=200ms
+    timeout and returns the parsed dict, or ``None`` on any non-2xx / network /
+    parse error (a missing index is a 404 → ``None``). urllib is imported lazily,
+    matching :func:`_health_check`. Never raises.
+
+    Test: ``tests/test_trusty_search_index.py`` — patches urlopen to return a
+    status body, a 404, and an error; asserts dict / None / None respectively.
+    """
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    url = f"{base_url}/indexes/{urllib.parse.quote(index_id, safe='')}/status"
+    try:
+        req = urllib.request.Request(url, method="GET")  # nosec B310 - localhost
+        with urllib.request.urlopen(  # nosec B310 - localhost
+            req, timeout=_HEALTH_TIMEOUT_S
+        ) as resp:
+            if not (200 <= resp.status < 300):
+                return None
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def get_trusty_search_index_status(cwd: Path | None = None) -> dict[str, Any] | None:
+    """Why: At startup we want the daemon's own status for THIS project's index so
+    we can decide whether to fire a background reindex — without git/mtime
+    scanning. Index IDs are not derivable from root_path via any endpoint, so we
+    probe candidates and confirm by matching ``root_path``.
+
+    What: Resolves ``cwd`` (defaults to ``Path.cwd()``), probes each candidate ID
+    from :func:`_index_id_candidates`, and returns the FIRST status dict whose
+    ``root_path`` resolves to the same path as ``cwd``. Reuses ``_base_url`` and
+    the <=200ms probe. Returns ``None`` on any failure or when no candidate
+    matches (fail-safe — the caller then treats the index as missing). Never
+    raises and never blocks longer than the bounded probes.
+
+    Test: ``tests/test_trusty_search_index.py`` — fresh index returns the dict;
+    a candidate whose root_path differs is skipped; all-miss / daemon-error
+    returns ``None``.
+    """
+    try:
+        resolved = (cwd or Path.cwd()).resolve()
+    except (OSError, RuntimeError):
+        return None
+
+    base_url, _host_port = _base_url("trusty-search")
+    for index_id in _index_id_candidates(resolved):
+        status = _fetch_index_status(base_url, index_id)
+        if not status:
+            continue
+        root = status.get("root_path")
+        if not isinstance(root, str):
+            continue
+        try:
+            if Path(root).resolve() == resolved:
+                return status
+        except (OSError, RuntimeError):
+            continue
+    return None
+
+
+def is_index_missing_or_empty(status: dict[str, Any] | None) -> bool:
+    """Why: "Missing or empty" is the primary trigger for a background reindex.
+
+    What: Returns ``True`` when ``status`` is ``None`` (no matching index found)
+    or when its ``chunk_count`` is absent / not a positive int (empty index).
+
+    Test: ``tests/test_trusty_search_index.py`` — None → True, chunk_count 0 →
+    True, missing key → True, chunk_count 65225 → False.
+    """
+    if not status:
+        return True
+    chunk_count = status.get("chunk_count")
+    return not (isinstance(chunk_count, int) and chunk_count > 0)
+
+
+def is_index_stale(status: dict[str, Any] | None) -> bool:
+    """Why: Beyond "missing/empty", the daemon exposes its OWN staleness signals;
+    we lean on those rather than scanning git HEAD / file mtimes ourselves.
+
+    What: Returns ``True`` when a non-empty index nonetheless shows a
+    daemon-reported problem: a non-null ``last_walk_error`` (the last index walk
+    failed) OR a ``status`` field that is not a healthy/terminal value
+    (anything other than ``"ready"``/``"idle"``/``"complete"`` — e.g. ``"error"``
+    or ``"failed"``). Returns ``False`` for a healthy populated index. Empty
+    indexes are handled by :func:`is_index_missing_or_empty`, so this returns
+    ``False`` for them to avoid double-counting.
+
+    Test: ``tests/test_trusty_search_index.py`` — last_walk_error set → True,
+    status "error" → True, status "ready" + no error → False, empty index →
+    False (deferred to missing/empty).
+    """
+    if is_index_missing_or_empty(status):
+        return False
+    if status is None:  # narrowed by the guard above; explicit for -O safety
+        return False
+    if status.get("last_walk_error"):
+        return True
+    state = status.get("status")
+    if isinstance(state, str) and state.lower() not in {"ready", "idle", "complete"}:
+        return True
+    return False
+
+
+def trigger_trusty_search_reindex(index_id: str, cwd: Path | None = None) -> bool:
+    """Why: When the project index is missing/empty/stale we must refresh it
+    WITHOUT blocking startup. The daemon already has a background reindex queue
+    (``background_reindex_queue_depth``); we just enqueue and return.
+
+    What: Fires a fire-and-forget ``POST {base}/indexes/{index_id}/reindex`` in a
+    detached daemon thread so this call returns immediately (the daemon queues
+    the work and responds ``{"queued": true}``). Returns ``True`` if the request
+    was dispatched, ``False`` on dispatch failure. NEVER raises into the startup
+    path — all errors inside the thread are swallowed.
+
+    Test: ``tests/test_trusty_search_index.py`` — asserts a thread is started
+    (non-blocking) and the POST URL/method are correct; an error inside the
+    thread does not propagate.
+    """
+    import threading
+    import urllib.parse
+    import urllib.request
+
+    base_url, _host_port = _base_url("trusty-search")
+    url = f"{base_url}/indexes/{urllib.parse.quote(index_id, safe='')}/reindex"
+
+    def _post() -> None:
+        try:
+            req = urllib.request.Request(  # nosec B310 - localhost
+                url, method="POST", data=b""
+            )
+            with urllib.request.urlopen(  # nosec B310 - localhost
+                req, timeout=_HEALTH_TIMEOUT_S
+            ):
+                pass
+        except Exception:
+            pass  # fire-and-forget: the daemon may already be reindexing
+
+    try:
+        threading.Thread(target=_post, daemon=True).start()
+        return True
+    except Exception:
+        return False
+
+
 def _mcp_servers_from_file(path: Path) -> frozenset[str]:
     """Why: Centralise the read-one-mcp-json logic so both the project and user
     paths share the same parse/guard/error-handling without duplication.
