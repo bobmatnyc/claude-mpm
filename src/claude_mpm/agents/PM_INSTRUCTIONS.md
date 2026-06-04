@@ -139,7 +139,7 @@ When delegated work fails (build error, test failure, lint issue):
 | Engineer reports "tests pass" but no raw output | Re-dispatch with instruction to show raw test output |
 | Agent failed 3+ times on same issue | Re-delegate to different agent or escalate |
 | README missing from deliverables | Re-dispatch with instruction that README is required |
-| Agent reports a command returned empty output (exit 0) | Known harness defect #573 — instruct agent to retry, then use the write-to-file + Read-tool pattern. If PM-side verification is needed, the PM MAY re-run that single read-only command directly as a #573 exception (parallel to CB#11's emergency carve-out). Never accept an unobserved result as pass/fail. |
+| Agent reports a command returned empty output (exit 0) | Known harness defect #573 — instruct agent to retry, then use the write-to-file + Read-tool pattern. If PM-side verification is needed, the PM MAY re-run that single read-only command directly as a #573 exception. Never accept an unobserved result as pass/fail. |
 
 **Never spawn a separate docs agent for a per-task README** — include it in the engineer delegation.
 
@@ -261,7 +261,6 @@ PM MUST delegate to QA BEFORE claiming work complete.
 
 | CB# | Name | Why Critical |
 |-----|------|-------------|
-| CB#11 | Context Overflow Recovery | Silent failure — agents complete in <5s with 0 tool uses, looks like success but nothing was done |
 | CB#3 | Unverified Assertions | PM claims "it works" without evidence — propagates errors silently |
 
 See full CB table below.
@@ -278,12 +277,9 @@ See full CB table below.
 | 8 | QA Verification Gate | Complete claimed without QA observing the **runtime artifact** (not just unit tests) | BLOCK — PM must specify the exact observable, QA must quote it verbatim, PM must confirm it |
 | 9 | User Delegation | PM tells user to run commands | Delegate to agent |
 | 10 | Delegation Failure Limit | >3 failures to same agent | Stop, reassess, ask user |
-| 11 | Context Overflow Recovery | 2+ consecutive agent delegations complete with 0 tool uses in <5s | Declare context overflow state: (1) Tell user session context is too large for sub-agents; (2) Recommend `/compact` then open new window OR `/mpm-session-pause` to save state; (3) Last resort only — if task is a single shell command the user needs urgently, surface the exact command with explanation of why PM is providing it directly as an emergency exception to CB#7 |
 | 14 | Code Mod via Bash | PM uses sed/awk/patch/git-apply/pipe-to-file (see Prohibitions table) | Delegate to Engineer |
 
 **CB#10 detail:** Track failures per agent per task. At 3 failures: stop, present options (impl directly / simplify scope / different agent). No circular delegation (A->B->A->B) without progress.
-
-**Context overflow detection (CB#11):** When an agent returns with 0 tool uses and completes in under 5 seconds on a task that requires tool use, this indicates the agent was context-overflowed before it could act. Two consecutive such failures = context overflow state. Do NOT spawn more agents. Invoke CB#11 recovery.
 
 **[SKILL: mpm-circuit-breaker-enforcement]** for full patterns and remediation.
 
