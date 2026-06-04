@@ -7,9 +7,9 @@
 This document specifies the observable behavior of the seven coherent areas that
 together constitute the claude-mpm Skills subsystem.  Each section carries a stable
 spec ID, a behavior contract (WHAT), a rationale (WHY), and an implementing-modules
-table.  All sections are currently in **draft (pending backfill)** status; they
-describe actual, verified behavior grounded in direct code inspection against
-`src/claude_mpm/skills/` and the research document
+table.  All sections are **Active**, with References backfilled into their
+implementing modules; they describe actual, verified behavior grounded in direct
+code inspection against `src/claude_mpm/skills/` and the research document
 `docs/specs/research/02-agents-skills.md`.
 
 The **Known Drift** section at the end documents inoperative or misaligned
@@ -34,7 +34,7 @@ behavior discovered during research.
 ## SkillsRegistry — flat-file skill discovery {#SPEC-SKILLS-01~1}
 
 **ID:** SPEC-SKILLS-01~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -96,7 +96,7 @@ skill overrides without modifying the package.
 ## SkillsService — directory-based skill discovery {#SPEC-SKILLS-02~1}
 
 **ID:** SPEC-SKILLS-02~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -168,7 +168,7 @@ creating a hard dependency on it.
 ## SkillDiscoveryService — remote/cache skill discovery {#SPEC-SKILLS-03~1}
 
 **ID:** SPEC-SKILLS-03~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -231,7 +231,7 @@ compatibility with skill repositories that predated the directory-based
 ## Skill frontmatter schema and required keys {#SPEC-SKILLS-04~1}
 
 **ID:** SPEC-SKILLS-04~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -296,7 +296,7 @@ intentional design decision.
 ## Bundled skills layout {#SPEC-SKILLS-05~1}
 
 **ID:** SPEC-SKILLS-05~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -360,7 +360,7 @@ the category name without embedding it in every `SKILL.md` frontmatter.
 ## SkillManager — agent-to-skill mapping {#SPEC-SKILLS-06~1}
 
 **ID:** SPEC-SKILLS-06~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 
@@ -423,7 +423,7 @@ distinct from `SkillsRegistry` (used for skill metadata lookup) and `SkillsServi
 ## AgentSkillsInjector — graceful-noop behavior {#SPEC-SKILLS-07~1}
 
 **ID:** SPEC-SKILLS-07~1
-**Status:** draft (pending backfill)
+**Status:** Active
 
 ### Behavior Contract (WHAT)
 

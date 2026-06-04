@@ -11,8 +11,12 @@ Design Principles:
 - Generate clean YAML frontmatter
 - Inject skills docs after frontmatter
 
-References:
+Related docs:
 - Design: docs/design/claude-mpm-skills-integration-design.md (lines 632-711)
+
+References
+----------
+SPEC-SKILLS-07~1 : docs/specs/skills.md#SPEC-SKILLS-07~1
 """
 
 import json
@@ -49,6 +53,8 @@ class AgentSkillsInjector(LoggerMixin):
         >>> # Generate frontmatter
         >>> frontmatter = injector.generate_frontmatter_with_skills(template)
         >>> print(frontmatter)  # ---\nname: engineer\nskills:\n  - ...\n---
+
+    :spec: SPEC-SKILLS-07~1
     """
 
     def __init__(self, skills_service: SkillsService) -> None:

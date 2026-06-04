@@ -14,6 +14,10 @@ Trade-offs:
 - Code Reuse: Leverage proven sync infrastructure
 - Maintainability: Single source of truth for Git operations
 - Flexibility: Easy to extend with skills-specific features
+
+References
+----------
+SPEC-SKILLS-03~1 : docs/specs/skills.md#SPEC-SKILLS-03~1
 """
 
 import os
@@ -100,6 +104,8 @@ class GitSkillSourceManager:
         >>> manager = GitSkillSourceManager(config)
         >>> results = manager.sync_all_sources()
         >>> skills = manager.get_all_skills()
+
+    :spec: SPEC-SKILLS-03~1
     """
 
     def __init__(
