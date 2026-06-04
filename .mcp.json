@@ -64,6 +64,17 @@
         "messaging"
       ],
       "env": {}
+    },
+    "trusty-review": {
+      "type": "stdio",
+      "command": "trusty-review",
+      "args": [
+        "serve",
+        "--stdio"
+      ],
+      "env": {
+        "TRUSTY_REVIEW_AUTH_MODE": "cli"
+      }
     }
   }
 }
