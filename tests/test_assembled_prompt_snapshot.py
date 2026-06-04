@@ -26,7 +26,7 @@ from claude_mpm.core.framework_loader import FrameworkLoader
 REQUIRED_SECTIONS = [
     "## Prohibitions",  # Circuit-breaker prohibition table header
     "CB#1",  # Lowest circuit-breaker number must be present
-    "CB#11",  # Highest circuit-breaker number must be present
+    "CB#14",  # Highest circuit-breaker number must be present (CB#11 was removed)
     "## Agent Routing",  # Routing section present
     "## Workflow",  # Compact workflow summary present (from PM_INSTRUCTIONS.md)
     "## QA Verification Gate",  # QA gate section
