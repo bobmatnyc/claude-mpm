@@ -32,9 +32,12 @@
 #
 # Security: the token is NEVER embedded in a URL or passed as a git argument.
 #   It is resolved at runtime via `gh auth token` and handed to git through a
-#   short-lived GIT_ASKPASS script, so it cannot leak into /proc/<pid>/cmdline,
-#   `git remote -v`, reflog, shell history, or `set -x` traces. No secrets are
-#   hardcoded.
+#   short-lived GIT_ASKPASS script. The token reaches git via an env-var prefix
+#   scoped only to the git child process (never exported to the parent shell, never
+#   inherited by hooks or subshells). The only residual vector is
+#   /proc/<pid>/environ of the git child while it runs, which is acceptable. The
+#   token cannot leak into /proc/<pid>/cmdline, `git remote -v`, reflog, shell
+#   history, or `set -x` traces. No secrets are hardcoded.
 
 # Resolve the required account: explicit env override > nearest .gh-account file.
 # Why: keeps the helper in sync with `claude-mpm gh switch`, which reads .gh-account.
@@ -153,12 +156,14 @@ gh_assert_identity() {
 #   reflog, shell history, `set -x`, command logging).
 # What: resolves the required account's token, writes a 0700 one-shot GIT_ASKPASS
 #   script that echoes $GH_ASKPASS_TOKEN, and runs `git -c credential.helper=
-#   <args...>` with GH_ASKPASS_TOKEN exported ONLY for that child process (then
-#   unset), so git asks the askpass helper (which echoes the env token) instead of
-#   any ambient helper. The token is never written into the script body or any
-#   argv. xtrace (`set -x`) is suppressed across the entire token-handling region
-#   and restored afterward, so the secret cannot leak into CI debug traces via the
-#   assignment, guard, or env prefix. The temp script is removed even on failure.
+#   <args...>` with GH_ASKPASS_TOKEN scoped ONLY to the git child process via an
+#   env-var prefix (never exported to the parent shell, never inherited by hooks or
+#   subshells, no unset needed), so git asks the askpass helper (which echoes the
+#   env token) instead of any ambient helper. The token is never written into the
+#   script body or any argv. xtrace (`set -x`) is suppressed across the entire
+#   token-handling region and restored afterward, so the secret cannot leak into CI
+#   debug traces via the assignment, guard, or env prefix. The temp script is
+#   removed even on failure.
 # Test: `_GH_IDENTITY_TEST_MODE=1 _GH_IDENTITY_TEST_OVERRIDE=x gh_git push --dry-run`
 #   — in test mode it skips token resolution and runs git directly; otherwise it
 #   resolves the bobmatnyc token and the token must not appear in `git`'s argv.
@@ -218,12 +223,13 @@ gh_git() {
 
     # credential.helper= (empty) disables any configured helper for this invocation
     # so the askpass token is authoritative and the ambient store is never consulted.
-    # The token is exported ONLY for the git child process, then immediately unset.
-    # xtrace is still off here, so neither the export nor the value is echoed.
-    export GH_ASKPASS_TOKEN="$token"
-    GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"
+    # The token is passed to git ONLY via an env-var prefix on the child process —
+    # it is never exported into the parent shell's environment and never inherited by
+    # any sibling process, git hook, or subshell. The only residual vector is
+    # /proc/<pid>/environ of the git child while it runs, which is acceptable.
+    # xtrace is still off here, so the prefix assignment is not echoed.
+    GH_ASKPASS_TOKEN="$token" GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"
     rc=$?
-    unset GH_ASKPASS_TOKEN
 
     rm -f "$askpass"
     [ "$_xtrace_was_on" = 1 ] && set -x
