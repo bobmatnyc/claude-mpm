@@ -40,6 +40,7 @@ class AgentInfo:
     deployed: bool = False
     active: bool = True
     overridden_by: list[str] | None = None
+    source: str | None = None  # Provenance: 'bundled', 'external', or None (unknown)
 
 
 @dataclass
@@ -229,6 +230,7 @@ class AgentListingService(IAgentListingService):
                         agent_data.get("specializations") if verbose else None
                     ),
                     version=agent_data.get("version") if verbose else None,
+                    source=agent_data.get("source"),
                 )
                 agents.append(agent)
 
@@ -266,6 +268,7 @@ class AgentListingService(IAgentListingService):
                     ),
                     version=agent_data.get("version"),
                     deployed=True,
+                    source=agent_data.get("source"),
                 )
                 agents.append(agent)
 
