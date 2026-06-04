@@ -17,9 +17,11 @@ almost immediately and made sessions completely unrecoverable.  The fix:
 2. **Percentage clamped at 100** — ``percentage_used`` read from the state file
    can exceed 100 when a prior version wrote it with the wrong budget; we cap
    it before evaluation so display values are always sane.
-3. **Warn instead of hard-block** — the breaker no longer returns
-   ``permissionDecision: deny`` for regular tool calls.  It emits a warning
-   annotation and passes through, preserving session usability.
+3. **Allow-with-warning instead of hard-block** — the breaker no longer
+   returns ``permissionDecision: deny`` for regular tool calls.  It emits
+   ``permissionDecision: "allow"`` (the only documented non-blocking value)
+   with the warning text in ``permissionDecisionReason``, preserving session
+   usability.  "warn" is not a documented PreToolUse value and was removed.
 4. **Always allow read-only / recovery tools** — the tools listed in
    ``ALWAYS_ALLOWED_TOOLS`` pass through unconditionally, even if the threshold
    is exceeded and warnings are suppressed for them.
@@ -233,9 +235,12 @@ def evaluate(event: dict[str, Any]) -> dict[str, Any]:
     """Evaluate the breaker against the current event.
 
     Returns a ``hookSpecificOutput``-shaped dict when the breaker fires a
-    *warning*, and an empty dict otherwise.  A warning no longer results in a
-    ``deny`` decision — it is surfaced as a ``permissionDecision: warn`` so
-    the harness can show the message while still allowing the tool call.
+    *warning*, and an empty dict otherwise.  At/above threshold the decision
+    is ``permissionDecision: "allow"`` (a documented PreToolUse value) with
+    the warning text in ``permissionDecisionReason``.  This is the only
+    non-empty decision this function can emit — "deny" and "warn" are never
+    returned (the former was the pre-#642 behavior; the latter is not a
+    documented Claude Code value and could be treated as an error).
 
     Read-only and recovery tools (``ALWAYS_ALLOWED_TOOLS``) are never warned
     against and always return an empty dict (unconditional pass-through).
@@ -278,9 +283,12 @@ def evaluate(event: dict[str, Any]) -> dict[str, Any]:
         f"To disable this warning: set {_DISABLE_ENV_VAR}=1 or add "
         f'"{_CONFIG_KEY}": {{"disabled": true}} to .claude/settings.json.'
     )
-    # Return a warning, NOT a deny — the session remains usable.
+    # Return allow-with-warning — "allow" is a documented PreToolUse value;
+    # "warn" is NOT documented and risks being treated as deny/error.
+    # The warning text is carried in permissionDecisionReason so the harness
+    # can surface it while still letting the tool call proceed.
     return {
-        "permissionDecision": "warn",
+        "permissionDecision": "allow",
         "permissionDecisionReason": reason,
     }
 
@@ -305,11 +313,13 @@ def main() -> None:
     decision = evaluate(event)
     decision_type = decision.get("permissionDecision")
 
-    if decision_type in ("deny", "warn"):
+    # evaluate() only ever returns "allow" (allow-with-warning) or nothing ({}
+    # → pass-through).  "deny" and "warn" are never emitted post-#642 fix.
+    if decision_type == "allow":
         payload = {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
-                "permissionDecision": decision_type,
+                "permissionDecision": "allow",
                 "permissionDecisionReason": decision.get(
                     "permissionDecisionReason", ""
                 ),
