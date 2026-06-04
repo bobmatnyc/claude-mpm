@@ -1,8 +1,23 @@
 # Incremental Pause Workflow
 
+> **⚠️ Context auto-pause is DISABLED.** The automatic, threshold-driven pause
+> described below (triggered when context usage crossed 90%/95%) has been
+> **removed**. It used to abort active work — including in-flight sub-agent
+> delegations — and emit "session paused to prevent data loss". Token usage is
+> still **measured** (commit-cost trailers and the dashboard depend on it), but
+> crossing a context threshold no longer starts a pause, never writes
+> `ACTIVE-PAUSE.jsonl`, and never aborts a session or sub-agent. See
+> [Removed: context auto-pause](#removed-context-auto-pause) below. The manual
+> `/mpm-session-pause` skill is unaffected and remains the supported way to
+> pause and capture session state on demand.
+
 ## Overview
 
-The **IncrementalPauseManager** captures actions incrementally after the auto-pause threshold (90% context usage) is crossed. This allows us to record the "wind-down" period as the user wraps up their work, providing a complete session history.
+The **IncrementalPauseManager** captures actions incrementally during a pause.
+Historically the pause was started automatically once context usage crossed 90%;
+that automatic trigger has been removed (see the banner above). The capture
+machinery remains in place only for the manually-invoked `/mpm-session-pause`
+workflow.
 
 ## Architecture
 
@@ -444,12 +459,52 @@ class PauseAction:
         """Parse from JSON line."""
 ```
 
+## Removed: context auto-pause
+
+**What changed:** The automatic, context-usage-driven pause/abort behavior was
+removed. Crossing the 90% (`auto_pause`) or 95% (`critical`) context threshold no
+longer:
+
+- starts an incremental pause or writes `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`,
+- emits "Context at N% — session paused to prevent data loss", or
+- aborts the active session or any in-flight sub-agent delegation.
+
+**Why:** At high context % the auto-pause killed legitimate active work — most
+painfully, it terminated running sub-agent delegations mid-task. The explicit
+decision is to **never** auto-pause/abort based on context usage.
+
+**What is preserved (metering):** Token usage is still measured and persisted.
+`ContextUsageTracker.update_usage()` / `set_session_snapshot()` continue to write
+`.claude-mpm/state/context-usage.json`, so:
+
+- **commit-cost trailers** (read by the git post-commit hook), and
+- the **monitoring dashboard** token events
+
+keep working unchanged. `percentage_used` and `threshold_reached` are still
+computed for display; they simply no longer drive a pause.
+
+**Implementation points:**
+
+- `AutoPauseHandler._trigger_auto_pause()` is now a no-op; `on_usage_update()`
+  still records usage but never starts a pause.
+- `ContextUsageTracker.should_auto_pause()` always returns `False`, and
+  `update_usage()` never sets `auto_pause_active=True`.
+- `ResumeLogGenerator.should_auto_pause()` always returns `False`.
+- The PreToolUse `context_circuit_breaker` already only *warns* (allow), so it is
+  unaffected by this change.
+
+**Still available:** The manual `/mpm-session-pause` skill continues to capture
+session state on demand using the same `IncrementalPauseManager` machinery.
+
 ## Next Steps
 
-1. **Integrate with AutoPauseHandler** - Automatic action capture via hooks
-2. **Add resume workflow** - Load previous session and continue
-3. **Implement analytics** - Track action patterns and context usage
-4. **Add compression** - Compress archived JSONL files for long-term storage
+1. **Add resume workflow** - Load previous session and continue
+2. **Implement analytics** - Track action patterns and context usage
+3. **Add compression** - Compress archived JSONL files for long-term storage
+
+> Note: a prior "Next Steps" item proposed wiring `AutoPauseHandler` to capture
+> actions automatically via hooks. That direction is intentionally **not**
+> pursued — automatic context-driven pausing has been removed (see above).
 
 ## See Also
 
