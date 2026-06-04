@@ -56,7 +56,7 @@ class TestFormatSessionList:
         helper = SessionResumeHelper(project_path=tmp_path)
         result = helper.format_session_list()
         assert "No saved sessions" in result
-        assert "/mpm-pause" in result
+        assert "/mpm-session-pause" in result
 
     def test_single_session_appears_as_index_1(self, tmp_path: Path) -> None:
         sessions_dir = tmp_path / ".claude-mpm" / "sessions"

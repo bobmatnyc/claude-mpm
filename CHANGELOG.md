@@ -2995,7 +2995,7 @@
 
 ### Feat
 
-- **skills**: add /mpm-pause skill for chat-accessible session saving
+- **skills**: add /mpm-session-pause skill for chat-accessible session saving
 
 ### Fix
 
@@ -5298,7 +5298,7 @@ Use direct MCP server integrations (mcp-ticketer, mcp-vector-search, etc.) inste
 
 ### Feat
 
-- **skills**: add /mpm-pause skill for chat-accessible session saving
+- **skills**: add /mpm-session-pause skill for chat-accessible session saving
 
 ### Fix
 

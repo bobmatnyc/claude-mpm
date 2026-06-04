@@ -645,7 +645,7 @@ class SessionResumeHelper:
         if not sessions:
             return (
                 "No saved sessions found in .claude-mpm/sessions/\n"
-                "\nTo create a session use: /mpm-pause"
+                "\nTo create a session use: /mpm-session-pause"
             )
 
         lines: list[str] = [
@@ -724,7 +724,7 @@ class SessionResumeHelper:
         if not sessions:
             return None, (
                 "No saved sessions found in .claude-mpm/sessions/\n"
-                "\nTo create a session use: /mpm-pause"
+                "\nTo create a session use: /mpm-session-pause"
             )
 
         # Try integer index when the selector looks like a small positive

@@ -155,7 +155,7 @@ else:
     if session_count == 0:
         print("No paused sessions found for this project in .claude-mpm/sessions/")
         print("")
-        print("To create a paused session, use: /mpm-pause")
+        print("To create a paused session, use: /mpm-session-pause")
     elif session_count > 1:
         # Show numbered list so the user can pick.
         print(helper.format_session_list())
@@ -174,7 +174,7 @@ else:
         if session_data is None:
             print("No paused sessions found for this project in .claude-mpm/sessions/")
             print("")
-            print("To create a paused session, use: /mpm-pause")
+            print("To create a paused session, use: /mpm-session-pause")
         else:
             session_id = session_data.get("session_id", "unknown")
             file_path = session_data.get("file_path")
@@ -234,7 +234,7 @@ This loads the session summary, accomplishments, next steps, git history, and pe
 
 ## Related Commands
 
-- `/mpm-pause` - Pause current session and save state
+- `/mpm-session-pause` - Pause current session and save state
 - `/mpm-init resume` - Alternative resume entry point
 
 See `docs/features/session-auto-resume.md` for auto-pause behavior.
