@@ -125,7 +125,11 @@ class TestUsageUpdateAndThresholds:
         assert not handler.is_pause_active()  # Still no pause
 
     def test_update_usage_crosses_auto_pause_threshold(self, handler):
-        """Crossing 90% threshold should return 'auto_pause' and trigger pause."""
+        """Crossing 90% reports the threshold but NEVER triggers a pause.
+
+        Auto-pause is disabled: usage is still tracked/reported, but no pause
+        session is started and no ACTIVE-PAUSE.jsonl is written.
+        """
         # Update to 91% context
         usage = {
             "input_tokens": 130000,
@@ -134,16 +138,18 @@ class TestUsageUpdateAndThresholds:
 
         threshold = handler.on_usage_update(usage)
 
+        # Threshold crossing is still reported (metering remains accurate)...
         assert threshold == "auto_pause"
-        assert handler.is_pause_active()
+        # ...but no pause is ever activated.
+        assert not handler.is_pause_active()
 
-        # Verify pause session was created
+        # Verify NO pause session file was created.
         sessions_dir = handler.project_path / ".claude-mpm" / "sessions"
         active_pause = sessions_dir / "ACTIVE-PAUSE.jsonl"
-        assert active_pause.exists()
+        assert not active_pause.exists()
 
     def test_update_usage_crosses_critical_threshold(self, handler):
-        """Crossing 95% threshold should return 'critical' and trigger pause."""
+        """Crossing 95% reports 'critical' but NEVER triggers a pause."""
         # Update to 96% context
         usage = {
             "input_tokens": 140000,
@@ -153,7 +159,7 @@ class TestUsageUpdateAndThresholds:
         threshold = handler.on_usage_update(usage)
 
         assert threshold == "critical"
-        assert handler.is_pause_active()
+        assert not handler.is_pause_active()
 
     def test_update_usage_multiple_times_only_new_thresholds(self, handler):
         """Should only return threshold when crossing NEW threshold."""
@@ -203,26 +209,30 @@ class TestUsageUpdateAndThresholds:
 
 
 class TestActionRecording:
-    """Test action recording during pause mode."""
+    """Auto-pause is disabled, so no action recording ever occurs.
 
-    def test_record_tool_call_when_pause_active(self, handler):
-        """Should record tool calls when pause is active."""
-        # Trigger auto-pause
+    Crossing a threshold no longer activates a pause, so the on_tool_call /
+    on_assistant_response / on_user_message recording APIs short-circuit (they
+    only record while is_pause_active() is True, which never happens).
+    """
+
+    def test_no_recording_after_threshold_crossing(self, handler):
+        """Even above 90%, tool calls/responses are NOT recorded (no pause)."""
+        # Cross the (former) auto-pause threshold.
         handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
 
-        # Record tool call
+        # Attempt to record actions.
         handler.on_tool_call(
             tool_name="Read",
             tool_args={"file_path": "/test/file.py", "limit": 100},
         )
+        handler.on_assistant_response("This is a test response.")
+        handler.on_user_message("Please fix the bug.")
 
-        # Verify action was recorded
-        actions = handler.pause_manager.get_recorded_actions()
-        tool_actions = [a for a in actions if a.type == "tool_call"]
-
-        assert len(tool_actions) == 1
-        assert tool_actions[0].data["tool"] == "Read"
-        assert "args_summary" in tool_actions[0].data
+        # No pause is active, so nothing is recorded and no pause file exists.
+        assert not handler.is_pause_active()
+        sessions_dir = handler.project_path / ".claude-mpm" / "sessions"
+        assert not (sessions_dir / "ACTIVE-PAUSE.jsonl").exists()
 
     def test_record_tool_call_when_pause_not_active(self, handler):
         """Should not record tool calls when pause is not active."""
@@ -235,84 +245,10 @@ class TestActionRecording:
         # Pause should not be active
         assert not handler.is_pause_active()
 
-    def test_record_assistant_response_when_pause_active(self, handler):
-        """Should record assistant responses when pause is active."""
-        # Trigger auto-pause
-        handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
-
-        # Record response
-        response = "This is a test response from the assistant."
-        handler.on_assistant_response(response)
-
-        # Verify action was recorded
-        actions = handler.pause_manager.get_recorded_actions()
-        response_actions = [a for a in actions if a.type == "assistant_response"]
-
-        assert len(response_actions) == 1
-        assert response_actions[0].data["summary"] == response
-
-    def test_record_assistant_response_truncates_long_text(self, handler):
-        """Should truncate long assistant responses."""
-        # Trigger auto-pause
-        handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
-
-        # Record very long response
-        long_response = "A" * 1000  # 1000 characters
-        handler.on_assistant_response(long_response)
-
-        # Verify truncation
-        actions = handler.pause_manager.get_recorded_actions()
-        response_actions = [a for a in actions if a.type == "assistant_response"]
-
-        summary = response_actions[0].data["summary"]
-        assert len(summary) <= 500  # MAX_SUMMARY_LENGTH
-        assert summary.endswith("...")
-
-    def test_record_user_message_when_pause_active(self, handler):
-        """Should record user messages when pause is active."""
-        # Trigger auto-pause
-        handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
-
-        # Record user message
-        message = "Please fix the bug in authentication."
-        handler.on_user_message(message)
-
-        # Verify action was recorded
-        actions = handler.pause_manager.get_recorded_actions()
-        message_actions = [a for a in actions if a.type == "user_message"]
-
-        assert len(message_actions) == 1
-        assert message_actions[0].data["summary"] == message
-
-    def test_record_multiple_actions(self, handler):
-        """Should record multiple actions in sequence."""
-        # Trigger auto-pause
-        handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
-
-        # Record multiple actions
-        handler.on_tool_call("Read", {"file": "test.py"})
-        handler.on_assistant_response("Reading file...")
-        handler.on_tool_call("Edit", {"file": "test.py", "old": "a", "new": "b"})
-        handler.on_assistant_response("File edited.")
-
-        # Verify all actions recorded
-        actions = handler.pause_manager.get_recorded_actions()
-
-        # First action is pause_started
-        assert actions[0].type == "pause_started"
-
-        # Subsequent actions
-        action_types = [a.type for a in actions[1:]]
-        assert action_types == [
-            "tool_call",
-            "assistant_response",
-            "tool_call",
-            "assistant_response",
-        ]
-
 
 class TestSessionFinalization:
-    """Test session end handling and finalization."""
+    """Test session end handling. Auto-pause never activates, so on_session_end
+    always returns None (there is no pause to finalize)."""
 
     def test_session_end_with_no_active_pause(self, handler):
         """Should return None if no pause is active."""
@@ -320,46 +256,24 @@ class TestSessionFinalization:
 
         assert session_file is None
 
-    def test_session_end_with_active_pause(self, handler):
-        """Should finalize pause and return session file path."""
-        # Trigger auto-pause and record actions
+    def test_session_end_after_threshold_crossing_returns_none(self, handler):
+        """Even after crossing 90%, no pause exists to finalize.
+
+        Auto-pause is disabled, so on_session_end has nothing to finalize and
+        no ACTIVE-PAUSE.jsonl is ever created.
+        """
         handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
         handler.on_tool_call("Read", {"file": "test.py"})
         handler.on_assistant_response("Processing...")
 
-        # End session
         session_file = handler.on_session_end()
 
-        assert session_file is not None
-        assert session_file.exists()
-        assert session_file.suffix == ".json"
+        assert session_file is None
 
-        # Verify ACTIVE-PAUSE.jsonl was archived
+        # No ACTIVE-PAUSE.jsonl was ever created.
         sessions_dir = handler.project_path / ".claude-mpm" / "sessions"
         active_pause = sessions_dir / "ACTIVE-PAUSE.jsonl"
-        assert not active_pause.exists()  # Should be archived/removed
-
-    def test_session_end_creates_all_formats(self, handler):
-        """Should create JSON, YAML, and MD files."""
-        # Trigger auto-pause
-        handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
-        handler.on_tool_call("Read", {"file": "test.py"})
-
-        # End session
-        session_file = handler.on_session_end()
-
-        # Extract session ID
-        session_id = session_file.stem
-
-        # Verify all formats exist
-        sessions_dir = handler.project_path / ".claude-mpm" / "sessions"
-        json_file = sessions_dir / f"{session_id}.json"
-        yaml_file = sessions_dir / f"{session_id}.yaml"
-        md_file = sessions_dir / f"{session_id}.md"
-
-        assert json_file.exists()
-        assert yaml_file.exists()
-        assert md_file.exists()
+        assert not active_pause.exists()
 
 
 class TestStatusAndWarnings:
@@ -386,17 +300,21 @@ class TestStatusAndWarnings:
         assert status["threshold_reached"] is None  # Below 70%
         assert status["total_tokens"] == 75000
 
-    def test_get_status_with_active_pause(self, handler):
-        """Should include pause details when pause is active."""
-        # Trigger pause
+    def test_status_pause_never_active_after_threshold(self, handler):
+        """Status reflects accurate usage but pause is never active."""
+        # Cross the (former) auto-pause threshold.
         handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
         handler.on_tool_call("Read", {"file": "test.py"})
 
         status = handler.get_status()
 
-        assert status["pause_active"] is True
-        assert "pause_details" in status
-        assert status["pause_details"]["action_count"] >= 1
+        # Metering is accurate (182k / 200k = 91%)...
+        assert status["context_percentage"] == 91.0
+        assert status["threshold_reached"] == "auto_pause"
+        # ...but no pause is ever active and no pause details accumulate.
+        assert status["pause_active"] is False
+        assert status["auto_pause_active"] is False
+        assert "pause_details" not in status
 
     def test_emit_threshold_warning_caution(self, handler):
         """Should emit caution warning at 70%."""
@@ -406,11 +324,11 @@ class TestStatusAndWarnings:
         assert "Consider wrapping up" in warning
 
     def test_emit_threshold_warning_auto_pause(self, handler):
-        """Should emit auto-pause warning at 90%."""
+        """At 90% the message is informational and states pause is disabled."""
         warning = handler.emit_threshold_warning("auto_pause")
 
         assert "90%" in warning
-        assert "Auto-pause activated" in warning
+        assert "auto-pause is disabled" in warning
 
     def test_emit_threshold_warning_includes_percentage(self, handler):
         """Warning should include actual context percentage."""
@@ -436,9 +354,9 @@ class TestEdgeCases:
 
         threshold = handler.on_usage_update(usage)
 
-        # Should return auto_pause (highest threshold crossed)
+        # Should return auto_pause (highest threshold crossed) but NOT pause.
         assert threshold == "auto_pause"
-        assert handler.is_pause_active()
+        assert not handler.is_pause_active()
 
     def test_usage_update_with_missing_fields(self, handler):
         """Should handle missing usage fields gracefully."""
@@ -453,23 +371,17 @@ class TestEdgeCases:
         status = handler.get_status()
         assert status["total_tokens"] == 10000
 
-    def test_pause_already_active_no_duplicate_trigger(self, handler):
-        """Should not create duplicate pause sessions."""
-        # Trigger pause
+    def test_threshold_crossings_never_create_pause(self, handler):
+        """Repeated threshold crossings never create a pause session."""
+        # Cross threshold, then update again.
         handler.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
-
-        # Try to trigger again
         handler.on_usage_update({"input_tokens": 5000, "output_tokens": 5000})
 
-        # Should only have one pause session
+        # No ACTIVE-PAUSE.jsonl is ever created and no pause is active.
         sessions_dir = handler.project_path / ".claude-mpm" / "sessions"
         active_pause = sessions_dir / "ACTIVE-PAUSE.jsonl"
-        assert active_pause.exists()
-
-        # Should have exactly one pause_started action
-        actions = handler.pause_manager.get_recorded_actions()
-        pause_starts = [a for a in actions if a.type == "pause_started"]
-        assert len(pause_starts) == 1
+        assert not active_pause.exists()
+        assert not handler.is_pause_active()
 
     def test_summarize_dict_limits_items(self, handler):
         """Should limit dictionary summaries to max items."""
@@ -516,15 +428,16 @@ class TestConcurrency:
         assert status["total_tokens"] == 75000
         assert status["context_percentage"] == 37.5
 
-    def test_pause_state_persists_across_instances(self, temp_project_dir):
-        """Pause state should persist across handler instances."""
-        # First handler triggers pause
+    def test_no_pause_persists_across_instances(self, temp_project_dir):
+        """Threshold crossings never create a pause, even across instances."""
+        # First handler crosses the threshold.
         handler1 = AutoPauseHandler(project_path=temp_project_dir)
         handler1.on_usage_update({"input_tokens": 130000, "output_tokens": 52000})
+        assert not handler1.is_pause_active()
 
-        # Second handler should see active pause
+        # Second handler also sees no active pause.
         handler2 = AutoPauseHandler(project_path=temp_project_dir)
-        assert handler2.is_pause_active()
+        assert not handler2.is_pause_active()
 
 
 if __name__ == "__main__":
