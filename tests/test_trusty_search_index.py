@@ -262,13 +262,36 @@ class TestReindexTrigger:
 
 
 def test_resolve_latency_bounded(monkeypatch):
-    """Why: Startup-path budget — resolution must stay well under a second even
-    when every candidate is probed and misses."""
-    import time
+    """Why: Startup-path budget — resolution must probe at most ONE request per
+    candidate and never loop unboundedly. A flat wall-clock assertion is fragile
+    (CI machines vary widely and the mock has zero latency). Instead we assert
+    that the number of urlopen calls is exactly bounded by the number of
+    candidates, which directly guards against accidentally-added unbounded loops
+    or O(n²) probing strategies.
 
+    What: With two candidates (basename + path-derived) the mock should be called
+    at most twice; the call count is a deterministic, fast, and stable guard.
+
+    Test: monkeypatch records every urlopen call; assert count <= len(candidates).
+    """
     monkeypatch.setattr(Path, "cwd", lambda: CWD)
     monkeypatch.setattr(trusty_status, "_load_config", dict)
-    _patch_urlopen(monkeypatch, lambda url, method: _FakeResp(404, None))
-    t0 = time.perf_counter()
-    assert get_trusty_search_index_status() is None
-    assert (time.perf_counter() - t0) < 1.0
+
+    call_count = 0
+
+    def counting_handler(url, method):
+        nonlocal call_count
+        call_count += 1
+        return _FakeResp(404, None)
+
+    _patch_urlopen(monkeypatch, counting_handler)
+
+    result = get_trusty_search_index_status()
+    assert result is None
+
+    expected_candidates = len(_index_id_candidates(CWD))
+    assert expected_candidates > 0, "test invariant: CWD must have ≥1 candidate"
+    assert call_count <= expected_candidates, (
+        f"probed {call_count} times but only {expected_candidates} candidates exist — "
+        "unbounded probing detected"
+    )
