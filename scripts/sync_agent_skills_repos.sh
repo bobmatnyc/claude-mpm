@@ -220,17 +220,10 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 }
 
 # Main execution
-print_message "$BLUE" "=========================================="
-print_message "$BLUE" "  Agent & Skills Repository Sync"
-print_message "$BLUE" "  Version: $VERSION"
-if [ "$DRY_RUN" = true ]; then
-    print_message "$YELLOW" "  Mode: DRY RUN"
-fi
-print_message "$BLUE" "=========================================="
-echo ""
 
 # Preflight: refuse to run if the active GitHub identity is not the required one.
-# This aborts the sync BEFORE any push instead of silently using a cached account.
+# Run this BEFORE printing any banner/headers so a wrong identity aborts cleanly
+# without emitting misleading "starting sync" output, and never reaches a push.
 if [ "$DRY_RUN" = false ]; then
     print_message "$YELLOW" "Verifying GitHub identity before sync..."
     if ! gh_assert_identity; then
@@ -239,6 +232,15 @@ if [ "$DRY_RUN" = false ]; then
     fi
     echo ""
 fi
+
+print_message "$BLUE" "=========================================="
+print_message "$BLUE" "  Agent & Skills Repository Sync"
+print_message "$BLUE" "  Version: $VERSION"
+if [ "$DRY_RUN" = true ]; then
+    print_message "$YELLOW" "  Mode: DRY RUN"
+fi
+print_message "$BLUE" "=========================================="
+echo ""
 
 # Track success/failure
 AGENTS_SUCCESS=false
