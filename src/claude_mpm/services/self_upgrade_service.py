@@ -96,21 +96,28 @@ class SelfUpgradeService:
         Detect how claude-mpm was installed.
 
         Detection priority:
-        1. Editable (skip auto-upgrade)
-        2. UV Tool
-        3. Homebrew
-        4. Pipx
-        5. NPM
-        6. Pip (default)
+        1. Editable (skip auto-upgrade) — via PathContext module-path detection
+        2. CWD source-tree check — handles globally-installed binary run from dev dir
+        3. UV Tool
+        4. Homebrew
+        5. Pipx
+        6. NPM
+        7. Pip (default)
 
         Returns:
             Installation method constant
         """
-        # Check for editable install
+        # Check for editable install via PathContext (handles module-path detection)
         if PathContext.detect_deployment_context().name in [
             "DEVELOPMENT",
             "EDITABLE_INSTALL",
         ]:
+            return InstallationMethod.EDITABLE
+
+        # Additional CWD check: if running FROM the claude-mpm source tree,
+        # never auto-upgrade regardless of where the module was loaded from.
+        # This handles globally-installed claude-mpm invoked from the dev directory.
+        if self._is_running_from_source_tree():
             return InstallationMethod.EDITABLE
 
         # Check for UV tool installation
@@ -220,6 +227,47 @@ class SelfUpgradeService:
         except Exception as e:
             self.logger.debug(f"Homebrew check failed: {e}")
 
+        return False
+
+    def _is_running_from_source_tree(self) -> bool:
+        """Return True if CWD is inside the claude-mpm source tree.
+
+        WHAT: Walks up from CWD (up to 10 levels) looking for a pyproject.toml
+        that names this package alongside the src/claude_mpm/ directory.
+
+        WHY: Covers the common developer workflow of running the globally-installed
+        binary from the project checkout directory, where PathContext module-path
+        detection returns PIP_INSTALL or UV_TOOLS instead of EDITABLE because the
+        module was loaded from the global installation, not the source tree.
+        """
+        try:
+            current = Path.cwd()
+            for _ in range(
+                10
+            ):  # walk up to 10 levels; handles deeply nested working dirs
+                pyproject = current / "pyproject.toml"
+                if pyproject.exists() and (current / "src" / "claude_mpm").exists():
+                    try:
+                        content = pyproject.read_text()
+                        # Use multiline regex anchored to the `name` key to avoid
+                        # matching claude-mpm listed as a dependency in other projects
+                        if re.search(
+                            r'^\s*name\s*=\s*["\']claude-mpm["\']',
+                            content,
+                            re.MULTILINE,
+                        ):
+                            self.logger.debug(
+                                f"Running from claude-mpm source tree at {current}; "
+                                "skipping upgrade check"
+                            )
+                            return True
+                    except OSError:
+                        pass
+                if current == current.parent:
+                    break
+                current = current.parent
+        except Exception as e:
+            self.logger.debug(f"Source-tree CWD check failed (non-fatal): {e}")
         return False
 
     def _get_claude_code_version(self) -> str | None:
