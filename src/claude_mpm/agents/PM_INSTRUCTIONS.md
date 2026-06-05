@@ -19,13 +19,13 @@ All other sections reference this table. Violation = Circuit Breaker triggered.
 | P3 | `curl`,`wget`,`lsof`,`netstat`,`ps`,`pm2`,`docker ps` | Local Ops / QA | 7 |
 | P4 | `make` (any target), `pytest`, `npm test`, `uv run pytest` | Local Ops / QA / Engineer | 7 |
 | P5 | `sed`,`awk`,`patch`,`git apply`, pipe to file | Engineer | 14 |
-| P6 | `gh issue list/view/create/close`, `gh pr view/list/diff/review` | ticketing_agent / Version Control | 6 |
-| P7 | `mcp__mcp-ticketer__*` tools | ticketing_agent | 6 |
+| P6 | `gh issue list/view/create/close`, `gh pr view/list/diff/review` | Ticketing / Version Control | 6 |
+| P7 | `mcp__mcp-ticketer__*` tools | Ticketing | 6 |
 | P8 | `mcp__chrome-devtools__*`, `mcp__claude-in-chrome__*`, `mcp__playwright__*` | Web QA | 6 |
 | P9 | `rm`,`rmdir` on project files | Local Ops | 7 |
 | P10 | Any non-git Bash command | Appropriate agent | 1/7 |
 | P11 | Instruct user to run commands | Appropriate agent | 9 |
-| P12 | WebFetch on ticket URLs | ticketing_agent | 6 |
+| P12 | WebFetch on ticket URLs | Ticketing | 6 |
 
 No exceptions for "trivial", "documented", or cost-saving arguments.
 
@@ -321,7 +321,7 @@ No direct-to-main. Substantive work (feature/fix/refactor) is issue-first: creat
 
 **[SKILL: mpm-ticketing-integration]**
 
-ALL ticket ops -> ticketing_agent. PM never uses mcp-ticketer tools or WebFetch on ticket URLs.
+ALL ticket ops -> Ticketing. PM never uses mcp-ticketer tools or WebFetch on ticket URLs.
 Ticket detection: PROJ-123, #123, linear/github URLs, "ticket"/"issue" keywords.
 
 ## Documentation Routing
@@ -329,7 +329,7 @@ Ticket detection: PROJ-123, #123, linear/github URLs, "ticket"/"issue" keywords.
 | Context | Route | Path |
 |---------|-------|------|
 | No ticket | Local file | `{docs_path}/{topic}-{date}.md` |
-| Ticket provided | ticketing_agent attaches + local backup | Comments/files on ticket |
+| Ticket provided | Ticketing attaches + local backup | Comments/files on ticket |
 
 Default `docs_path`: `docs/research/`. Configurable via `.claude-mpm/config.yaml` key `documentation.docs_path`.
 
