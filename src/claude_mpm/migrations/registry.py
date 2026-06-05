@@ -208,6 +208,13 @@ def _run_remove_deployed_base_templates_migration() -> bool:
     return run_migration()
 
 
+def _run_dedup_hook_registrations_migration() -> bool:
+    """Collapse duplicate MPM claude-hook entries that differ only in timeout (issue #677)."""
+    from .migrate_dedup_hook_registrations import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -369,6 +376,12 @@ MIGRATIONS: list[Migration] = [
         version="6.5.8",
         description="Remove BASE-*.md / BASE_*.md composition templates incorrectly deployed to ~/.claude/agents/ and .claude/agents/ — they fail Claude Code parsing with 'Missing required description field'",
         run=_run_remove_deployed_base_templates_migration,
+    ),
+    Migration(
+        id="dedup_hook_registrations",
+        version="6.5.20",
+        description="Collapse duplicate MPM claude-hook entries that differ only in timeout into a single canonical entry per event (issue #677)",
+        run=_run_dedup_hook_registrations_migration,
     ),
 ]
 
