@@ -475,6 +475,13 @@ def execute_command(command: str, args) -> int:
 
         return run_ztk(args)
 
+    # Handle search-index allowlist command (trusty-search opt-in, issue #668)
+    if command in ("search-index", "si"):
+        from .commands.search_index import handle_search_index
+
+        result = handle_search_index(args)
+        return result if result is not None else 0
+
     # Handle llmlingua-stats command with lazy import (experimental)
     if command == "llmlingua-stats":
         from .commands.llmlingua_stats import run_llmlingua_stats
@@ -550,6 +557,8 @@ def execute_command(command: str, args) -> int:
         "ztk-stats",
         "llmlingua-stats",
         "manifest",
+        "search-index",
+        "si",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)
