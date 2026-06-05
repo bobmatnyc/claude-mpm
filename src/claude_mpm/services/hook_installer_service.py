@@ -354,16 +354,29 @@ class HookInstallerService:
                 settings = {}
                 self.logger.debug("Creating new Claude settings")
 
-            # Configure hooks with async timeout
-            # The hook script returns {"async": true} for non-blocking execution
-            # timeout: 60 seconds max wait for initial response (async returns immediately)
+            # Canonical timeouts per event type (single source of truth — keep in
+            # sync with templates/claude/settings.json and
+            # hooks/claude_hooks/installer.py).
+            # Most events: 15 s (hook returns async immediately; short timeout OK).
+            # Long-running cleanup events: 60 s (StopFailure, SessionEnd, PostCompact).
+            _canonical_timeouts: dict[str, int] = {
+                "StopFailure": 60,
+                "SessionEnd": 60,
+                "PostCompact": 60,
+            }
+            _default_timeout = 15
+
+            def _canonical_timeout(event_type: str) -> int:
+                return _canonical_timeouts.get(event_type, _default_timeout)
+
             # The "_mpm": True marker is the authoritative signal that this
             # hook belongs to claude-mpm (used by the v6_3_19 migration to
             # identify MPM hooks; substring matching is only a legacy fallback).
-            new_hook_command = {
+            # NOTE: new_hook_command is a base template; each event type gets
+            # its own canonical timeout via _canonical_timeout(event_type).
+            new_hook_command_base = {
                 "type": "command",
                 "command": hook_command_str,
-                "timeout": 60,
                 "_mpm": True,
             }
 
@@ -412,8 +425,13 @@ class HookInstallerService:
                     ):
                         for hook in hook_config["hooks"]:
                             if is_our_hook(hook):
-                                # Update existing hook command path (in case it changed)
+                                # Reconcile the FULL entry (command + timeout + _mpm)
+                                # to the canonical desired value — not just command.
+                                # This prevents a stale timeout from persisting after
+                                # an upgrade (issue #677).
                                 hook["command"] = hook_command["command"]
+                                hook["timeout"] = hook_command["timeout"]
+                                hook["_mpm"] = True
                                 our_hook_exists = True
                                 break
                     if our_hook_exists:
@@ -444,6 +462,12 @@ class HookInstallerService:
 
                 return existing_hooks
 
+            def _make_hook_command(event_type: str) -> dict[str, Any]:
+                """Build a canonical hook command dict for the given event type."""
+                cmd = dict(new_hook_command_base)
+                cmd["timeout"] = _canonical_timeout(event_type)
+                return cmd
+
             # Add hooks for all event types - MERGE instead of overwrite
             for event_type in [
                 "UserPromptSubmit",
@@ -454,7 +478,7 @@ class HookInstallerService:
             ]:
                 existing = settings["hooks"].get(event_type, [])
                 settings["hooks"][event_type] = merge_hooks_for_event(
-                    existing, new_hook_command
+                    existing, _make_hook_command(event_type)
                 )
 
             # Write settings
