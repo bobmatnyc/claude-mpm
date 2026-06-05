@@ -391,16 +391,37 @@ class TestRunMigration:
     # ------------------------------------------------------------------
 
     def test_missing_settings_file_no_exception(self, tmp_path: Path) -> None:
-        """Migration succeeds silently when no settings files exist."""
+        """Migration succeeds silently when no settings files exist.
+
+        A .git boundary marker at tmp_path root ensures _find_project_claude_dir
+        stops inside the tmp tree and cannot walk into the real repo/filesystem.
+        """
+        # Boundary marker: _find_project_claude_dir halts at .git so the walk
+        # cannot escape tmp_path into the real project or ~/.claude.
+        (tmp_path / ".git").mkdir()
         result = self._run_migration_in(tmp_path)
         assert result is True
+        # No backup or settings files should have been created under tmp_path.
+        assert not list(tmp_path.rglob("settings.json")), (
+            "No settings.json should exist after a no-op migration"
+        )
+        assert not list(tmp_path.rglob("*.backup_*")), (
+            "No backup files should exist after a no-op migration"
+        )
 
     # ------------------------------------------------------------------
     # Parent-dir discovery (requirement 9)
     # ------------------------------------------------------------------
 
     def test_parent_dir_claude_settings_found_from_subdir(self, tmp_path: Path) -> None:
-        """Migration finds .claude/settings.json in a parent dir when cwd is in a subdir."""
+        """Migration finds .claude/settings.json in a parent dir when cwd is in a subdir.
+
+        A .git boundary marker at tmp_path root bounds the upward walk so the
+        test cannot accidentally discover the real repo's .claude directory.
+        """
+        # Boundary marker: stops the walk at tmp_path so the real repo is unreachable.
+        (tmp_path / ".git").mkdir()
+
         settings_path = tmp_path / ".claude" / "settings.json"
         settings = _settings_with_hooks(
             {
@@ -412,7 +433,9 @@ class TestRunMigration:
         )
         _write_settings(settings_path, settings)
 
-        # Run migration with cwd inside a subdirectory of tmp_path
+        # Run migration with cwd inside a subdirectory of tmp_path.
+        # Note: .claude is checked BEFORE .git at each level, so tmp_path/.claude
+        # is found before the .git marker would halt the walk.
         subdir = tmp_path / "src" / "some" / "package"
         subdir.mkdir(parents=True, exist_ok=True)
 
@@ -427,8 +450,18 @@ class TestRunMigration:
         )
 
     def test_no_claude_dir_in_parents_returns_no_op(self, tmp_path: Path) -> None:
-        """When no .claude dir exists anywhere in the parent chain, migration is a no-op."""
-        # tmp_path has no .git or pyproject.toml, but also no .claude dir
+        """When no .claude dir exists anywhere in the parent chain, migration is a no-op.
+
+        A .git boundary marker at tmp_path root ensures _find_project_claude_dir
+        stops inside the tmp tree and cannot walk into the real repo or filesystem,
+        preventing accidental writes to the real ~/.claude or repo settings.json.
+        """
+        # Boundary marker: _find_project_claude_dir halts at .git, bounding the
+        # walk to tmp_path.  Without this, the upward search could escape into the
+        # actual claude-mpm repo (which has .claude/settings.json) and run the
+        # migration against the real project settings — a test hazard.
+        (tmp_path / ".git").mkdir()
+
         subdir = tmp_path / "a" / "b"
         subdir.mkdir(parents=True, exist_ok=True)
 
@@ -436,6 +469,13 @@ class TestRunMigration:
             result = dedup_mod.run_migration()
 
         assert result is True  # fail-open no-op
+        # Confirm no stray settings or backup files were written anywhere under tmp.
+        assert not list(tmp_path.rglob("settings.json")), (
+            "No settings.json should have been created — migration must be a no-op"
+        )
+        assert not list(tmp_path.rglob("*.backup_*")), (
+            "No backup files should exist — migration must be a no-op"
+        )
 
     # ------------------------------------------------------------------
     # Backup rotation (requirement 10)
