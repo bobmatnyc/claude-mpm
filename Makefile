@@ -537,6 +537,26 @@ test-e2e: ## Run end-to-end tests only
 	@echo "$(YELLOW)🧪 Running e2e tests...$(NC)"
 	@uv run pytest tests/e2e/ -n $(TEST_WORKERS) -v
 
+mutation-test: ## Run mutation tests against trusty_search_allowlist (advisory, on-demand only)
+	@echo "$(YELLOW)🧬 Running mutation tests (scope: trusty_search_allowlist)...$(NC)"
+	@echo "$(YELLOW)   Safety: pilot file will be verified/restored regardless of mutmut exit code.$(NC)"
+	@mutmut_rc=0; uv run mutmut run || mutmut_rc=$$?; \
+	echo "$(YELLOW)   Mutation run complete (exit code: $$mutmut_rc). Results:$(NC)"; \
+	uv run mutmut results; \
+	echo "$(YELLOW)   SAFETY CHECK: verifying no mutant left in pilot file ...$(NC)"; \
+	if ! git diff --exit-code -- src/claude_mpm/services/trusty_search_allowlist.py; then \
+		echo "$(RED)MUTANT LEFT IN SOURCE — restoring...$(NC)"; \
+		git checkout HEAD -- src/claude_mpm/services/trusty_search_allowlist.py; \
+		echo "$(RED)✗ trusty_search_allowlist.py had uncommitted changes after mutmut — restored. Check mutmut output above.$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(GREEN)✓ pilot file is clean$(NC)"; \
+	if [ $$mutmut_rc -ne 0 ]; then \
+		echo "$(YELLOW)⚠ mutmut exited $$mutmut_rc (survivors exist — see results above)$(NC)"; \
+		exit $$mutmut_rc; \
+	fi; \
+	echo "$(GREEN)✓ Mutation tests complete — all mutants killed$(NC)"
+
 deprecation-check: ## Check for obsolete files according to deprecation policy
 	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
 	@if [ -f "scripts/apply_deprecation_policy.py" ]; then \

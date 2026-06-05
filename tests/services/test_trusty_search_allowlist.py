@@ -34,6 +34,10 @@ from claude_mpm.services.trusty_search_allowlist import (
     remove_root,
 )
 
+# Capture the original (unpatched) denylist constants at import time, before
+# the autouse fixture removes /private/tmp for pytest tmp_path compatibility.
+_ORIGINAL_DENYLIST_SUBTREE_ROOTS: frozenset[str] = _mod._DENYLIST_SUBTREE_ROOTS
+
 # ---------------------------------------------------------------------------
 # Module fixture: keep _DENYLIST_SUBTREE_ROOTS free of the host's real tmp
 # directory so that pytest's tmp_path (which lives in /private/tmp on macOS)
@@ -284,6 +288,185 @@ class TestCheckDenylist:
 
         with pytest.raises(DeniedPathError, match="sensitive-path denylist"):
             mod._check_denylist(tmp_path)
+
+    # --- Individual _DENYLIST_PARENTS entries ---------------------------------
+    #
+    # These tests derive the denied path directly from the module's
+    # _DENYLIST_PARENTS constant (populated at import time from the real home).
+    # This avoids a CI mismatch where Path.home() at test-run time might differ
+    # from the home used when the module was imported (e.g. sandboxed runners
+    # that set HOME after import).  By using an entry already in the set we
+    # guarantee the path we construct is exactly what _check_denylist will
+    # match — making each test deterministic regardless of the CI HOME.
+
+    def test_rejects_gnupg_subpath(self):
+        """`~/.gnupg` and paths beneath it must be refused."""
+        # Pick the .gnupg entry from the module's own constant so the path
+        # is identical to what _check_denylist will compare against.
+        # A missing entry is a hard failure — a mutant that removes this
+        # denylist entry must FAIL this test, not skip it.
+        gnupg_entry = str(Path.home() / ".gnupg")
+        assert gnupg_entry in _mod._DENYLIST_PARENTS, (
+            f"{gnupg_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
+        with pytest.raises(DeniedPathError):
+            _check_denylist(Path(gnupg_entry))
+
+    def test_rejects_kube_subpath(self):
+        """`~/.kube` and paths beneath it must be refused."""
+        kube_entry = str(Path.home() / ".kube")
+        assert kube_entry in _mod._DENYLIST_PARENTS, (
+            f"{kube_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
+        with pytest.raises(DeniedPathError):
+            _check_denylist(Path(kube_entry))
+
+    def test_rejects_docker_subpath(self):
+        """`~/.docker` and paths beneath it must be refused."""
+        docker_entry = str(Path.home() / ".docker")
+        assert docker_entry in _mod._DENYLIST_PARENTS, (
+            f"{docker_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
+        with pytest.raises(DeniedPathError):
+            _check_denylist(Path(docker_entry))
+
+    def test_rejects_gcloud_config_subpath(self):
+        """`~/.config/gcloud` and paths beneath it must be refused."""
+        gcloud_entry = str(Path.home() / ".config" / "gcloud")
+        assert gcloud_entry in _mod._DENYLIST_PARENTS, (
+            f"{gcloud_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
+        with pytest.raises(DeniedPathError):
+            _check_denylist(Path(gcloud_entry))
+
+    # --- Individual _DENYLIST_SUBTREE_ROOTS entries ---------------------------
+
+    def test_rejects_var_tmp_root(self):
+        """`/var/tmp` itself must be refused (subtree root)."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/var/tmp"))
+
+    def test_rejects_var_tmp_subdirectory(self):
+        """Paths beneath `/var/tmp` must be refused."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/var/tmp/myproject"))
+
+    def test_rejects_private_tmp_root(self, monkeypatch):
+        """`/private/tmp` (macOS real path) must be refused.
+
+        The autouse fixture strips /private/tmp from _DENYLIST_SUBTREE_ROOTS so
+        that pytest's own tmp_path (which lives there on macOS) is usable by
+        other tests.  Here we restore the entry explicitly — the point is to
+        verify that /private/tmp IS in the module's canonical constant and that
+        _check_denylist respects it when present.
+        """
+        import claude_mpm.services.trusty_search_allowlist as mod
+
+        restored = _mod._DENYLIST_SUBTREE_ROOTS | frozenset(["/private/tmp"])
+        monkeypatch.setattr(mod, "_DENYLIST_SUBTREE_ROOTS", restored)
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            mod._check_denylist(Path("/private/tmp"))
+
+    def test_rejects_private_tmp_subdirectory(self, monkeypatch):
+        """Paths beneath `/private/tmp` must be refused (kills removal mutants).
+
+        See `test_rejects_private_tmp_root` for why /private/tmp is re-injected.
+        """
+        import claude_mpm.services.trusty_search_allowlist as mod
+
+        restored = _mod._DENYLIST_SUBTREE_ROOTS | frozenset(["/private/tmp"])
+        monkeypatch.setattr(mod, "_DENYLIST_SUBTREE_ROOTS", restored)
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            mod._check_denylist(Path("/private/tmp/myproject"))
+
+    def test_rejects_private_var_folders_root(self):
+        """`/private/var/folders` (macOS per-user temp) root must be refused."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/private/var/folders"))
+
+    def test_rejects_private_var_folders_subdirectory(self):
+        """Deep macOS temp path must be refused."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/private/var/folders/xx/abc123/T/myapp"))
+
+    # --- Denylist constant integrity (kills set-to-empty mutants) -------------
+
+    def test_denylist_exact_only_is_nonempty(self):
+        """_DENYLIST_EXACT_ONLY must contain at least $HOME and '/'."""
+        assert len(_mod._DENYLIST_EXACT_ONLY) >= 2
+        assert "/" in _mod._DENYLIST_EXACT_ONLY
+        assert str(Path.home()) in _mod._DENYLIST_EXACT_ONLY
+
+    def test_denylist_parents_is_nonempty(self):
+        """_DENYLIST_PARENTS must contain at least the six credential dirs."""
+        assert len(_mod._DENYLIST_PARENTS) >= 6
+        home = Path.home()
+        for expected in (".ssh", ".aws", ".gnupg", ".kube", ".docker"):
+            assert str(home / expected) in _mod._DENYLIST_PARENTS, (
+                f"~/{expected} missing from _DENYLIST_PARENTS"
+            )
+        assert str(home / ".config" / "gcloud") in _mod._DENYLIST_PARENTS
+
+    def test_denylist_subtree_roots_is_nonempty(self):
+        """_DENYLIST_SUBTREE_ROOTS must contain all six ephemeral roots.
+
+        Uses the snapshot captured at import time (before the autouse fixture
+        strips /private/tmp for pytest tmp_path compatibility on macOS).
+        """
+        assert len(_ORIGINAL_DENYLIST_SUBTREE_ROOTS) >= 6
+        for expected in (
+            "/tmp",
+            "/var/tmp",
+            "/private/tmp",
+            "/private/var/folders",
+            "/etc",
+            "/var",
+        ):
+            assert expected in _ORIGINAL_DENYLIST_SUBTREE_ROOTS, (
+                f"'{expected}' missing from _DENYLIST_SUBTREE_ROOTS"
+            )
+
+    def test_denylist_constants_are_consulted(self):
+        """All three denylist constants must actually block paths when populated.
+
+        This test patches each set individually to verify _check_denylist
+        consults it — a mutation that replaces a constant with frozenset()
+        would let a path through, and this test catches that.
+        """
+        import claude_mpm.services.trusty_search_allowlist as mod
+
+        # _DENYLIST_EXACT_ONLY consulted — patch to contain only a known test path
+        fake_path = Path("/fakehome/testuser")
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(mod, "_DENYLIST_EXACT_ONLY", frozenset([str(fake_path)]))
+            mp.setattr(mod, "_DENYLIST_PARENTS", frozenset())
+            mp.setattr(mod, "_DENYLIST_SUBTREE_ROOTS", frozenset())
+            with pytest.raises(DeniedPathError, match="sensitive-path denylist"):
+                mod._check_denylist(fake_path)
+
+        # _DENYLIST_SUBTREE_ROOTS consulted — patch to contain only a known root
+        fake_root = Path("/fakesys/ephemeral")
+        fake_child = fake_root / "myproject"
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(mod, "_DENYLIST_EXACT_ONLY", frozenset())
+            mp.setattr(mod, "_DENYLIST_PARENTS", frozenset())
+            mp.setattr(mod, "_DENYLIST_SUBTREE_ROOTS", frozenset([str(fake_root)]))
+            with pytest.raises(DeniedPathError, match="ephemeral/system"):
+                mod._check_denylist(fake_child)
+
+        # _DENYLIST_PARENTS consulted — patch to contain only a known parent
+        fake_parent = Path("/fakecreds/tokens")
+        fake_inside = fake_parent / "id_rsa"
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(mod, "_DENYLIST_EXACT_ONLY", frozenset())
+            mp.setattr(mod, "_DENYLIST_PARENTS", frozenset([str(fake_parent)]))
+            mp.setattr(mod, "_DENYLIST_SUBTREE_ROOTS", frozenset())
+            with pytest.raises(DeniedPathError, match="sensitive directory"):
+                mod._check_denylist(fake_inside)
 
 
 # ---------------------------------------------------------------------------

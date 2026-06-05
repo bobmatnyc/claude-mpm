@@ -408,3 +408,7 @@ dashboard/static/svelte-build/
 .kuzu_memory.db.wal
 .fastembed_cache/
 .trusty-search/
+
+# Mutation testing artifacts (mutmut 2.x)
+.mutmut-cache
+mutants/
