@@ -18,28 +18,8 @@ from pathlib import Path
 from typing import Any
 
 from ..core.logging_config import get_logger
+from ..hooks.hook_identity import is_our_hook as _is_our_hook
 from ..hooks.timeout_constants import canonical_timeout as _canonical_timeout
-
-
-def _is_our_hook(cmd: dict[str, Any]) -> bool:
-    """Return True if a hook command dict belongs to claude-mpm.
-
-    Recognises the authoritative ``"_mpm": true`` marker as well as the
-    PATH-based ``claude-hook`` entry point and legacy script-name
-    substrings.  This prevents install_hooks() from adding a duplicate
-    entry when called more than once.
-    """
-    if cmd.get("type") != "command":
-        return False
-    if cmd.get("_mpm"):
-        return True
-    command = cmd.get("command", "")
-    return (
-        command == "claude-hook"  # PATH-based entry point
-        or "hook_wrapper.sh" in command
-        or "claude-hook-handler.sh" in command
-        or "claude-mpm" in command
-    )
 
 
 class HookInstallerService:
