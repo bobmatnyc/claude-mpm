@@ -249,14 +249,23 @@ gh_git() {
 
     # Signal-safe cleanup: if the git child is interrupted (SIGINT/SIGTERM), the
     # explicit `rm` lines below the git call would be skipped, leaking BOTH the
-    # askpass helper and the temp HOME dir. Install an INT/TERM trap that removes
-    # both (with ${var:-} guards so it is safe under `set -u` and a no-op if a var
-    # is unset). We deliberately do NOT use a RETURN or EXIT trap: this is a sourced
-    # library, so a RETURN trap can bleed into the caller's return semantics (we hit
-    # exactly that bug in update_homebrew_tap.sh) and an EXIT trap would fire for the
-    # whole script. The trap is reset (`trap - INT TERM`) right before the normal
-    # return, after the explicit cleanup, so nothing lingers in the caller.
-    trap 'rm -f "${askpass:-}"; rm -rf "${git_home:-}"' INT TERM
+    # askpass helper and the temp HOME dir. Install per-signal INT/TERM traps that
+    # remove both (with ${var:-} guards so it is safe under `set -u` and a no-op if a
+    # var is unset). Crucially, after cleanup each handler resets its own trap and
+    # RE-RAISES the same signal to this shell (`trap - INT TERM; kill -INT/-TERM $$`)
+    # so the function does NOT fall through to `return $rc` (which could return 0 and
+    # silently mask an interrupted operation). Re-raising makes the caller observe a
+    # correct signal-terminated exit (128+signo, e.g. 130 for INT) instead of a bogus
+    # success — so a release script calling `gh_git push` can tell a Ctrl-C apart from
+    # a real push. Separate INT and TERM handlers are used so the SAME signal that
+    # fired is the one re-raised. We deliberately do NOT use a RETURN or EXIT trap:
+    # this is a sourced library, so a RETURN trap can bleed into the caller's return
+    # semantics (we hit exactly that bug in update_homebrew_tap.sh) and an EXIT trap
+    # would fire for the whole script. The trap is also reset (`trap - INT TERM`)
+    # right before the normal return, after the explicit cleanup, so nothing lingers
+    # in the caller.
+    trap 'rm -f "${askpass:-}"; rm -rf "${git_home:-}"; trap - INT TERM; kill -INT $$' INT
+    trap 'rm -f "${askpass:-}"; rm -rf "${git_home:-}"; trap - INT TERM; kill -TERM $$' TERM
 
     # credential.helper= (empty) disables any configured helper for this invocation
     # so the askpass token is authoritative and the ambient store is never consulted.
