@@ -745,6 +745,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add search-index allowlist command (trusty-search opt-in, issue #668)
+    try:
+        from ..commands.search_index import add_search_index_parser
+
+        add_search_index_parser(subparsers)
+    except ImportError:
+        pass
+
     # Add manifest command parser (init / validate / show)
     try:
         from .manifest_parser import add_manifest_subparser
