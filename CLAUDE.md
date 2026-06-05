@@ -51,6 +51,12 @@ Closes #447"
 
 ---
 
+## 🔴 Security: credential files
+
+Credential/identity files (e.g. `scripts/lib/gh_identity.sh`) must **never** be pushed directly to `main` — always open a Pull Request so they get owner review. This is enforced by `.githooks/pre-push` (install via `scripts/setup-git-hooks.sh`), which blocks direct pushes to `main` that touch sensitive paths, and by a CI backstop (`.github/workflows/guard-sensitive-paths.yml`) that catches `--no-verify` bypasses. Release version-bump pushes (VERSION, pyproject.toml, etc.) are unaffected.
+
+---
+
 ## 🔴 Test Workflow
 
 ```bash
