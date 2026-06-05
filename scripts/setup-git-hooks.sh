@@ -58,8 +58,22 @@ EOF
 # Make the hook executable
 chmod +x "$HOOKS_DIR/prepare-commit-msg"
 
+# Install the pre-push guard that blocks direct pushes of credential/security-
+# sensitive files (e.g. scripts/lib/gh_identity.sh) to main. The canonical
+# source lives in .githooks/pre-push (checked into the repo); copy it in.
+PRE_PUSH_SRC="$PROJECT_ROOT/.githooks/pre-push"
+if [ -f "$PRE_PUSH_SRC" ]; then
+    cp "$PRE_PUSH_SRC" "$HOOKS_DIR/pre-push"
+    chmod +x "$HOOKS_DIR/pre-push"
+else
+    echo -e "${YELLOW}⚠️  .githooks/pre-push not found — skipping credential-push guard install.${NC}"
+fi
+
 echo -e "${GREEN}✅ Git hooks installed successfully!${NC}"
 echo -e "${YELLOW}The prepare-commit-msg hook will automatically convert:${NC}"
 echo "  '🤖 Generated with [Claude Code]' → '🤖👥 Generated with [Claude MPM]'"
+echo ""
+echo -e "${GREEN}The pre-push hook guards against direct pushes of credential/security-sensitive${NC}"
+echo -e "${GREEN}files (e.g. scripts/lib/gh_identity.sh) to main — those must go through a PR.${NC}"
 echo ""
 echo -e "${GREEN}Claude MPM branding will be applied to all commits automatically.${NC}"
