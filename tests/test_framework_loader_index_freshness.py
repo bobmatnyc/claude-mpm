@@ -81,7 +81,13 @@ class TestIndexNote:
 
     def test_status_none_resolves_cwd_candidate(self, monkeypatch):
         """Wholly-missing index (status None) → reindex uses the cwd candidate."""
-        monkeypatch.setattr(Path, "cwd", lambda: Path("/Volumes/SSD1/Projects/foo"))
+        # Patch only the reference used by the code under test so we do not
+        # intercept unrelated Path.cwd() calls made by pytest or other code.
+        import claude_mpm.core.framework_loader as _fl_mod
+
+        monkeypatch.setattr(
+            _fl_mod.Path, "cwd", lambda: Path("/Volumes/SSD1/Projects/foo")
+        )
         monkeypatch.setattr(trusty_status, "_load_config", dict)
         triggered = _patch_freshness(
             monkeypatch, status=None, missing=True, stale=False
@@ -119,7 +125,13 @@ class TestResolveReindexId:
         assert rid == "my-index"
 
     def test_none_status_falls_back_to_cwd_candidate(self, monkeypatch):
-        monkeypatch.setattr(Path, "cwd", lambda: Path("/Volumes/SSD1/Projects/bar"))
+        # Patch only the reference used by the code under test so we do not
+        # intercept unrelated Path.cwd() calls made by pytest or other code.
+        import claude_mpm.core.framework_loader as _fl_mod
+
+        monkeypatch.setattr(
+            _fl_mod.Path, "cwd", lambda: Path("/Volumes/SSD1/Projects/bar")
+        )
         monkeypatch.setattr(trusty_status, "_load_config", dict)
         assert FrameworkLoader._resolve_reindex_id(None) == "bar"
 

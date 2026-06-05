@@ -252,7 +252,7 @@ def _cached_palace_exists(service: str, base_url: str, palace: str) -> bool:
     return exists
 
 
-def _index_id_candidates(cwd: Path) -> list[str]:
+def index_id_candidates(cwd: Path) -> list[str]:
     """Why: There is NO root_path→index lookup endpoint, so we must probe a small
     set of likely index IDs and confirm the one whose ``root_path`` matches CWD.
 
@@ -273,7 +273,12 @@ def _index_id_candidates(cwd: Path) -> list[str]:
             candidates.append(override.strip())
 
     candidates.append(cwd.name)
-    parts = [p for p in cwd.parts if p and p != "/"]
+    # Filter out anchor/root components so the joined form is cross-platform.
+    # On POSIX the anchor is "/"; on Windows it is "C:\\" (or similar drive
+    # root).  Comparing against cwd.anchor is correct for both platforms since
+    # the anchor is always the first element of cwd.parts when present.
+    anchor = cwd.anchor  # "/" on POSIX, "C:\\" on Windows
+    parts = [p for p in cwd.parts if p and p != anchor]
     if parts:
         candidates.append("_".join(parts))
 
@@ -284,6 +289,10 @@ def _index_id_candidates(cwd: Path) -> list[str]:
             seen.add(cid)
             ordered.append(cid)
     return ordered
+
+
+# Back-compat alias: callers that patched or referenced the private name keep working.
+_index_id_candidates = index_id_candidates
 
 
 def _fetch_index_status(base_url: str, index_id: str) -> dict[str, Any] | None:
