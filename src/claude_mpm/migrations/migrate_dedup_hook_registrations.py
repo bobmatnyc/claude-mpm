@@ -12,15 +12,20 @@ WHY: Two independent installers (HookInstaller and HookInstallerService)
 
 This migration:
 1. Reads .claude/settings.json (and settings.local.json if present) for the
-   current project (cwd).
+   current project.  The search starts from ``Path.cwd()`` and walks upward
+   through parent directories until it finds a ``.claude`` directory (or
+   reaches the filesystem root), so it works correctly even when invoked
+   from a subdirectory.
 2. For each hook event, finds all MPM entries (``_mpm: true`` or a legacy
    command-string match).  When multiple MPM entries share the same
    ``command`` + ``args`` fingerprint (i.e. are duplicates differing only in
    ``timeout`` or other metadata), it collapses them into a single entry
-   using the *higher* timeout.
+   using the CANONICAL timeout for that event.
 3. Preserves non-MPM / user hook entries untouched.
 4. Is idempotent (second run is a no-op) and fail-open (wraps I/O in
    try/except — a failure logs a warning but does not crash startup).
+5. Rotates backups: keeps only the 5 most-recent MPM backup files per
+   settings file; older ones are deleted (fail-open on cleanup errors).
 
 References
 ----------
@@ -34,23 +39,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from claude_mpm.hooks.timeout_constants import (
+    CANONICAL_HOOK_TIMEOUTS as _CANONICAL_TIMEOUTS,  # noqa: F401 — re-exported for tests
+    DEFAULT_HOOK_TIMEOUT as _DEFAULT_TIMEOUT,  # noqa: F401 — re-exported for tests
+    canonical_timeout as _canonical_timeout,
+)
+
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-# Canonical timeouts per event type — single source of truth.
-# Keep in sync with:
-#   templates/claude/settings.json
-#   hooks/claude_hooks/installer.py  (_CANONICAL_TIMEOUTS)
-#   services/hook_installer_service.py  (_canonical_timeouts)
-_CANONICAL_TIMEOUTS: dict[str, int] = {
-    "StopFailure": 60,
-    "SessionEnd": 60,
-    "PostCompact": 60,
-}
-_DEFAULT_TIMEOUT = 15
 
 # Substrings used to recognise a legacy MPM hook entry (written before the
 # ``_mpm`` marker was introduced — mirrors the v6_3_19 migration list).
@@ -108,10 +103,6 @@ def _hook_fingerprint(hook_cmd: dict[str, Any]) -> tuple[str, str]:
     return (command, args_repr)
 
 
-def _canonical_timeout(event_type: str) -> int:
-    return _CANONICAL_TIMEOUTS.get(event_type, _DEFAULT_TIMEOUT)
-
-
 def _dedup_hooks_in_block(
     block_hooks: list[dict[str, Any]], event_type: str
 ) -> list[dict[str, Any]]:
@@ -120,7 +111,8 @@ def _dedup_hooks_in_block(
     Non-MPM hooks are kept as-is. For MPM hooks sharing the same fingerprint,
     a single entry is emitted with:
     - ``command`` and ``args`` from the first occurrence
-    - ``timeout`` = max(all seen timeouts, canonical_timeout(event_type))
+    - ``timeout`` = canonical_timeout(event_type) — the shared authoritative value,
+      matching what the installer writes so migration and installer converge.
     - ``_mpm = True``
 
     Args:
@@ -141,14 +133,12 @@ def _dedup_hooks_in_block(
         fp = _hook_fingerprint(hook)
         if fp not in seen_fingerprints:
             # First occurrence: store a clean copy and emit it in-place.
+            # Always use the canonical timeout so migration and installer agree.
             canonical: dict[str, Any] = {
                 "type": "command",
                 "command": fp[0],
                 "_mpm": True,
-                "timeout": max(
-                    hook.get("timeout") or 0,
-                    _canonical_timeout(event_type),
-                ),
+                "timeout": _canonical_timeout(event_type),
             }
             # Preserve args only when non-empty.
             args = hook.get("args") or []
@@ -160,12 +150,8 @@ def _dedup_hooks_in_block(
             seen_fingerprints[fp] = canonical
             result.append(canonical)
         else:
-            # Duplicate: merge timeout upward (keeps highest) and skip entry.
-            existing = seen_fingerprints[fp]
-            existing["timeout"] = max(
-                existing["timeout"],
-                hook.get("timeout") or 0,
-            )
+            # Duplicate: canonical timeout is already set; just skip entry.
+            pass
 
     return result
 
@@ -204,14 +190,74 @@ def _dedup_settings(settings: dict[str, Any]) -> int:
     return total_removed
 
 
+def _find_project_claude_dir(start: Path) -> Path | None:
+    """Walk upward from ``start`` to find the nearest ``.claude`` directory.
+
+    Stops when it finds a ``.claude`` directory or a project-root marker
+    (``.git``, ``pyproject.toml``, ``setup.py``), or when it reaches the
+    filesystem root.  Returns the path to the ``.claude`` directory if found,
+    otherwise ``None``.
+
+    This is fail-open: any unexpected error returns ``None``.
+    """
+    try:
+        current = start.resolve()
+        while True:
+            claude_dir = current / ".claude"
+            if claude_dir.is_dir():
+                return claude_dir
+            # Stop at well-known project-root markers so we don't walk too far.
+            for marker in (".git", "pyproject.toml", "setup.py"):
+                if (current / marker).exists():
+                    return None
+            parent = current.parent
+            if parent == current:
+                # Reached the filesystem root.
+                return None
+            current = parent
+    except Exception:
+        return None
+
+
 def _get_candidate_settings_paths() -> list[Path]:
-    """Return settings files that may contain duplicate hook entries."""
+    """Return settings files that may contain duplicate hook entries.
+
+    Searches upward from ``Path.cwd()`` so the migration works correctly even
+    when invoked from a subdirectory of the project root.
+    """
+    claude_dir = _find_project_claude_dir(Path.cwd())
+    if claude_dir is None:
+        return []
     candidates: list[Path] = []
     for name in ("settings.json", "settings.local.json"):
-        path = Path.cwd() / ".claude" / name
+        path = claude_dir / name
         if path.exists():
             candidates.append(path)
     return candidates
+
+
+_BACKUP_KEEP = 5  # Maximum number of MPM backups retained per settings file.
+
+
+def _rotate_backups(path: Path) -> None:
+    """Delete old MPM backups for ``path``, keeping only the ``_BACKUP_KEEP`` newest.
+
+    Backup files are named ``<stem>.json.backup_<timestamp>``.  This helper is
+    fail-open: any error is silently ignored so it never blocks startup.
+    """
+    try:
+        stem = path.stem  # e.g. "settings"
+        pattern = f"{stem}.json.backup_*"
+        backups = sorted(path.parent.glob(pattern))
+        excess = backups[: max(0, len(backups) - _BACKUP_KEEP)]
+        for old_backup in excess:
+            try:
+                old_backup.unlink()
+                logger.debug("  Deleted old backup: %s", old_backup)
+            except OSError:
+                pass
+    except Exception:
+        pass
 
 
 def _migrate_file(path: Path) -> bool:
@@ -245,7 +291,7 @@ def _migrate_file(path: Path) -> bool:
         logger.info("  No duplicate MPM hook entries found — nothing to do")
         return True
 
-    # Create a timestamped backup before writing.
+    # Create a timestamped backup before writing, then rotate old backups.
     timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     backup_path = path.with_suffix(f".json.backup_{timestamp}")
     try:
@@ -254,14 +300,15 @@ def _migrate_file(path: Path) -> bool:
     except OSError as exc:
         logger.warning("  Could not create backup (non-fatal): %s", exc)
 
+    _rotate_backups(path)
+
     try:
         with open(path, "w") as fh:
             json.dump(settings, fh, indent=2)
-        fh_path = path
         logger.info(
             "  Removed %d duplicate MPM hook entry/entries from: %s",
             removed_count,
-            fh_path,
+            path,
         )
     except OSError as exc:
         logger.warning("  Failed to write %s: %s — skipping", path, exc)
