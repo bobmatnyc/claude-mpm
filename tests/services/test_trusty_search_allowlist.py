@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 import toml
 
+import claude_mpm.services.trusty_search_allowlist as _mod
 from claude_mpm.services.trusty_search_allowlist import (
     AllowlistWriteError,
     DeniedPathError,
@@ -34,6 +35,34 @@ from claude_mpm.services.trusty_search_allowlist import (
 )
 
 # ---------------------------------------------------------------------------
+# Module fixture: keep _DENYLIST_SUBTREE_ROOTS free of the host's real tmp
+# directory so that pytest's tmp_path (which lives in /private/tmp on macOS)
+# is usable as a fake project root in non-denylist tests.
+#
+# The denylist tests that prove /tmp subtrees ARE refused pass literal paths
+# such as Path("/tmp/foo") directly — those still match the "/tmp" entry in
+# the set, so the fix is transparent to those tests.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _patch_subtree_roots_for_tmp_path(monkeypatch, tmp_path):
+    """Remove the *resolved* tmp root from _DENYLIST_SUBTREE_ROOTS so that
+    pytest's tmp_path (which macOS resolves to /private/tmp/...) can be used
+    as a safe project directory in tests that are NOT testing denylist logic.
+    """
+    resolved_tmp_root = tmp_path.resolve()
+    # Walk up to find which subtree root (if any) covers tmp_path.
+    # On macOS: /private/tmp/claude-NNN/... → /private/tmp is the match.
+    safe_set = frozenset(
+        root
+        for root in _mod._DENYLIST_SUBTREE_ROOTS
+        if not resolved_tmp_root.is_relative_to(Path(root))
+    )
+    monkeypatch.setattr(_mod, "_DENYLIST_SUBTREE_ROOTS", safe_set)
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -46,7 +75,13 @@ def _write_toml(path: Path, entries: list[dict]) -> None:
 
 def _read_toml(path: Path) -> list[dict]:
     """Read back the index entries from a TOML file."""
-    import tomllib
+    try:
+        import tomllib  # Python 3.11+ stdlib
+    except ImportError:
+        try:
+            import tomli as tomllib  # type: ignore[no-redef]
+        except ImportError:
+            import toml as tomllib  # type: ignore[no-redef, assignment]
 
     with path.open("rb") as f:
         data = tomllib.load(f)
@@ -172,6 +207,137 @@ class TestCheckDenylist:
         # .env.example should be fine — only exactly ".env" is blocked
         (tmp_path / ".env.example").write_text("", encoding="utf-8")
         _check_denylist(tmp_path)  # should not raise
+
+    # --- Subtree denylist (fix #2) -------------------------------------------
+
+    def test_rejects_tmp_subdirectory(self):
+        """A path under /tmp must be refused even though /tmp itself is the root."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/tmp/foo"))
+
+    def test_rejects_tmp_deep_subdirectory(self):
+        """Deeply nested /tmp path must also be refused."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/tmp/a/b/c/my-project"))
+
+    def test_rejects_etc_subdirectory(self):
+        """A path under /etc must be refused."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/etc/nginx"))
+
+    def test_rejects_var_subdirectory(self):
+        """A path under /var must be refused."""
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _check_denylist(Path("/var/log"))
+
+    def test_home_subdirectory_is_allowed(self, tmp_path, monkeypatch):
+        """CRITICAL: a subdirectory of $HOME must NOT be refused.
+
+        Real projects live at ~/Projects/..., ~/code/..., etc.  If we blanket-
+        block the $HOME subtree the whole feature breaks.  This test is the
+        regression guard — if it fails the denylist logic is wrong.
+        """
+        # Fake $HOME to tmp_path so we are not patching real dotfiles.
+        monkeypatch.setenv("HOME", str(tmp_path))
+        # Reconstruct the denylist constants with the patched home.
+        import importlib
+
+        import claude_mpm.services.trusty_search_allowlist as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_DENYLIST_EXACT_ONLY",
+            frozenset([str(tmp_path), "/"]),
+        )
+        monkeypatch.setattr(
+            mod,
+            "_DENYLIST_PARENTS",
+            frozenset(
+                [
+                    str(tmp_path / ".ssh"),
+                    str(tmp_path / ".aws"),
+                    str(tmp_path / ".gnupg"),
+                    str(tmp_path / ".config" / "gcloud"),
+                    str(tmp_path / ".kube"),
+                    str(tmp_path / ".docker"),
+                ]
+            ),
+        )
+
+        # Create a realistic project directory under the fake home.
+        project = tmp_path / "Projects" / "demo"
+        project.mkdir(parents=True)
+
+        # Must NOT raise — this is the allowed case.
+        mod._check_denylist(project)
+
+    def test_home_exact_is_refused(self, tmp_path, monkeypatch):
+        """$HOME itself must still be refused (exact-match)."""
+        import claude_mpm.services.trusty_search_allowlist as mod
+
+        monkeypatch.setattr(
+            mod,
+            "_DENYLIST_EXACT_ONLY",
+            frozenset([str(tmp_path), "/"]),
+        )
+        monkeypatch.setattr(mod, "_DENYLIST_PARENTS", frozenset())
+
+        with pytest.raises(DeniedPathError, match="sensitive-path denylist"):
+            mod._check_denylist(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# _save_registry — AllowlistWriteError on import/write failure (fix #1)
+# ---------------------------------------------------------------------------
+
+
+class TestSaveRegistryWriteError:
+    def test_raises_allowlist_write_error_on_write_failure(self, tmp_path, monkeypatch):
+        """_save_registry must raise AllowlistWriteError (not a bare exception)
+        when the underlying write fails.
+        """
+        from claude_mpm.services import trusty_search_allowlist as mod
+
+        # Simulate a write failure by making the directory read-only.
+        ro_dir = tmp_path / "readonly"
+        ro_dir.mkdir()
+        target = ro_dir / "indexes.toml"
+
+        # Patch toml.dumps to raise an OSError so we do not need filesystem
+        # tricks (chmod is unreliable in sandboxed CI environments).
+        import toml as toml_mod
+
+        monkeypatch.setattr(
+            toml_mod, "dumps", lambda _: (_ for _ in ()).throw(OSError("disk full"))
+        )
+
+        with pytest.raises(AllowlistWriteError, match="Could not write"):
+            mod._save_registry(
+                target, [{"id": "x", "root_path": "/x", "colocated": True}]
+            )
+
+    def test_raises_allowlist_write_error_on_import_failure(
+        self, tmp_path, monkeypatch
+    ):
+        """If the toml import fails (e.g. uninstalled), AllowlistWriteError is
+        raised rather than a bare ImportError propagating to the caller.
+        """
+        import builtins
+
+        real_import = builtins.__import__
+
+        def _block_toml(name, *args, **kwargs):
+            if name == "toml":
+                raise ImportError("toml not installed")
+            return real_import(name, *args, **kwargs)
+
+        from claude_mpm.services import trusty_search_allowlist as mod
+
+        monkeypatch.setattr(builtins, "__import__", _block_toml)
+        target = tmp_path / "indexes.toml"
+
+        with pytest.raises(AllowlistWriteError, match="Could not write"):
+            mod._save_registry(target, [])
 
 
 # ---------------------------------------------------------------------------
