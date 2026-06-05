@@ -29,9 +29,17 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # credential helper.
 # shellcheck source=scripts/lib/gh_identity.sh
 . "$SCRIPT_DIR/lib/gh_identity.sh"
+if ! command -v gh_git >/dev/null 2>&1; then
+    echo "ERROR: gh_git not available (failed to source lib/gh_identity.sh)" >&2
+    exit 1
+fi
 if [ -z "${GH_REQUIRED_ACCOUNT:-}" ] && [ -f "$PROJECT_ROOT/.gh-account" ]; then
-    GH_REQUIRED_ACCOUNT="$(tr -d '[:space:]' < "$PROJECT_ROOT/.gh-account")"
-    export GH_REQUIRED_ACCOUNT
+    _acct="$(tr -d '[:space:]' < "$PROJECT_ROOT/.gh-account")"
+    if printf '%s' "$_acct" | grep -Eq '^[A-Za-z0-9-]+$'; then
+        export GH_REQUIRED_ACCOUNT="$_acct"
+    else
+        echo "WARNING: .gh-account contents not a valid GitHub username; ignoring" >&2
+    fi
 fi
 
 # Colors for output
