@@ -206,61 +206,34 @@ fetch_pypi_info() {
 clone_or_update_tap_repo() {
     log INFO "Setting up Homebrew tap repository..."
 
-    # clone/pull/push run through gh_git, which injects the required account's
+    # clone/push run through gh_git, which injects the required account's
     # token via a one-shot GIT_ASKPASS helper at runtime. Clone uses the bare
-    # $TAP_REPO URL (no embedded token), which sets `origin`; subsequent pull/push
-    # use the `origin` remote so the tracking branch updates. The token never
+    # $TAP_REPO URL (no embedded token), which sets `origin`; subsequent push
+    # uses the `origin` remote so the tracking branch updates. The token never
     # appears in argv, `git remote -v`, reflog, or any log.
 
-    if [ -d "$TAP_DIR" ]; then
-        log INFO "Updating existing tap repository..."
-        cd "$TAP_DIR"
-
-        # Check if git repository is valid
-        if ! git rev-parse --git-dir > /dev/null 2>&1; then
-            log WARNING "Found corrupt git repository at ${TAP_DIR}"
-            log INFO "Removing corrupt directory and re-cloning..."
-            cd /
-            rm -rf "$TAP_DIR"
-
-            # Clone fresh repository
-            log INFO "Cloning tap repository..."
-            if ! gh_git clone "$TAP_REPO" "$TAP_DIR"; then
-                log ERROR "Failed to clone tap repository"
-                log ERROR "Check network connectivity and GitHub access"
-                return 1
-            fi
-            cd "$TAP_DIR"
-            log SUCCESS "Tap repository ready at: ${TAP_DIR}"
-            return 0
-        fi
-
-        # Check for uncommitted changes
-        if ! git diff --quiet; then
-            log WARNING "Tap repository has uncommitted changes"
-            git status --short
-
-            if [ "$DRY_RUN" = false ]; then
-                log ERROR "Cannot proceed with uncommitted changes"
-                log ERROR "Manual cleanup required: cd ${TAP_DIR} && git status"
-                return 1
-            fi
-        fi
-
-        # Pull via the `origin` remote (set by clone) so the tracking branch is
-        # updated and GIT_ASKPASS supplies credentials against origin's URL.
-        if ! gh_git pull origin main; then
-            log WARNING "Failed to pull latest changes, continuing with current state"
-        fi
-    else
-        log INFO "Cloning tap repository..."
-        if ! gh_git clone "$TAP_REPO" "$TAP_DIR"; then
-            log ERROR "Failed to clone tap repository"
-            log ERROR "Check network connectivity and GitHub access"
-            return 1
-        fi
-        cd "$TAP_DIR"
+    # The /tmp clone is disposable — all authoritative state lives on origin.
+    # Always start from a fresh clone so accumulated backups, dirty trees, or a
+    # stale embedded-credential remote from a previous run cannot block the update.
+    # Hard guard: never let an empty/unset TAP_DIR reach `rm -rf`.
+    if [ -z "${TAP_DIR:-}" ]; then
+        log ERROR "TAP_DIR is empty or unset — refusing to run rm -rf"
+        return 1
     fi
+
+    if [ -d "$TAP_DIR" ]; then
+        log INFO "Removing previous tap clone for a clean checkout..."
+        cd /
+        rm -rf "$TAP_DIR"
+    fi
+
+    log INFO "Cloning tap repository..."
+    if ! gh_git clone "$TAP_REPO" "$TAP_DIR"; then
+        log ERROR "Failed to clone tap repository"
+        log ERROR "Check network connectivity and GitHub access"
+        return 1
+    fi
+    cd "$TAP_DIR"
 
     log SUCCESS "Tap repository ready at: ${TAP_DIR}"
     return 0
@@ -277,10 +250,19 @@ update_formula() {
         return 2
     fi
 
-    # Backup current formula
-    local backup_file="${formula_path}.backup.$(date +%Y%m%d_%H%M%S)"
+    # Backup current formula OUTSIDE the working tree so it never dirties the
+    # clone (a leftover backup inside $TAP_DIR is what historically accumulated
+    # untracked files and blocked subsequent releases).
+    local backup_file
+    backup_file="$(mktemp "${TMPDIR:-/tmp}/claude-mpm-formula.XXXXXX.backup")"
     cp "$formula_path" "$backup_file"
     log INFO "Created backup: ${backup_file}"
+
+    # Ensure the out-of-tree backup is cleaned up on every return path.
+    # Use a default expansion so the trap stays safe under `set -u` if it fires
+    # in a scope where backup_file is no longer bound (bash RETURN traps set in a
+    # function can also run for the caller's return without `set -o functrace`).
+    trap 'rm -f "${backup_file:-}"' RETURN
 
     if [ "$DRY_RUN" = true ]; then
         log INFO "[DRY RUN] Would update formula with:"
