@@ -40,8 +40,8 @@ from pathlib import Path
 from typing import Any
 
 from claude_mpm.hooks.timeout_constants import (
-    CANONICAL_HOOK_TIMEOUTS as _CANONICAL_TIMEOUTS,  # noqa: F401 — re-exported for tests
-    DEFAULT_HOOK_TIMEOUT as _DEFAULT_TIMEOUT,  # noqa: F401 — re-exported for tests
+    CANONICAL_HOOK_TIMEOUTS as _CANONICAL_TIMEOUTS,  # noqa: F401 — imported so test_canonical_timeout_map_consistency can assert identity (same object, not a copy)
+    DEFAULT_HOOK_TIMEOUT as _DEFAULT_TIMEOUT,  # noqa: F401 — imported so test_canonical_timeout_map_consistency can assert value equality
     canonical_timeout as _canonical_timeout,
 )
 
@@ -198,6 +198,11 @@ def _find_project_claude_dir(start: Path) -> Path | None:
     filesystem root.  Returns the path to the ``.claude`` directory if found,
     otherwise ``None``.
 
+    Known limitation: a ``.claude`` directory located *above* the nearest
+    ``.git`` / ``pyproject.toml`` boundary will not be found.  This is
+    acceptable common-case behaviour — if you run from inside a nested project,
+    the parent project's ``.claude`` is intentionally out of scope.
+
     This is fail-open: any unexpected error returns ``None``.
     """
     try:
@@ -207,6 +212,8 @@ def _find_project_claude_dir(start: Path) -> Path | None:
             if claude_dir.is_dir():
                 return claude_dir
             # Stop at well-known project-root markers so we don't walk too far.
+            # Note: .claude is checked BEFORE the markers at each level, so a
+            # .claude directory co-located with .git (the common case) is found.
             for marker in (".git", "pyproject.toml", "setup.py"):
                 if (current / marker).exists():
                     return None
