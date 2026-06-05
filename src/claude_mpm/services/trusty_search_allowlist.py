@@ -41,9 +41,12 @@ LINK: none  (feature introduced in this PR, spec lives in GitHub issue #668)
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Sensitive path denylist
@@ -61,16 +64,32 @@ _DENYLIST_PARENTS: frozenset[str] = frozenset(
     ]
 )
 
-# Top-level paths that are themselves forbidden (and whose sub-paths inherit).
-_DENYLIST_ROOTS: frozenset[str] = frozenset(
+# Paths that are EXACT-MATCH-ONLY refusals: the path itself is refused but its
+# subdirectories are NOT blocked.  $HOME is the critical case — real projects
+# live at ~/Projects/..., ~/code/..., etc. and must remain allowed.
+_DENYLIST_EXACT_ONLY: frozenset[str] = frozenset(
     [
-        str(Path.home()),  # $HOME itself
-        "/tmp",  # nosec B108 — we're BLOCKING /tmp from indexing, not using it
-        "/",
+        str(Path.home()),  # $HOME itself — NOT its subdirectories
+        "/",  # filesystem root exact-match
+    ]
+)
+
+# Paths whose entire SUBTREE is refused (the root AND any descendant).
+# These are ephemeral/system directories where no real project should live.
+_DENYLIST_SUBTREE_ROOTS: frozenset[str] = frozenset(
+    [
+        "/tmp",  # nosec B108 — BLOCKING /tmp from indexing, not using it
+        "/var/tmp",  # nosec B108 — BLOCKING /var/tmp from indexing, not using it
+        "/private/tmp",  # macOS resolves /tmp → /private/tmp
+        "/private/var/folders",  # macOS per-user temp (e.g. /private/var/folders/xx/...)
         "/etc",
         "/var",
     ]
 )
+
+# Keep _DENYLIST_ROOTS as the union for any callers that still reference it
+# (the string-equality check in _check_denylist uses _DENYLIST_EXACT_ONLY now).
+_DENYLIST_ROOTS: frozenset[str] = _DENYLIST_EXACT_ONLY | _DENYLIST_SUBTREE_ROOTS
 
 
 class DeniedPathError(Exception):
@@ -148,7 +167,7 @@ def _derive_id(path: Path) -> str:
     WHY:  The daemon uses the id as both a lookup key and a filesystem path
     component; unsafe characters would break either.
     """
-    raw = path.name or path.parts[-1] if path.parts else "project"
+    raw = path.name or (path.parts[-1] if path.parts else "") or "project"
     return re.sub(r"[^A-Za-z0-9._-]", "_", raw) or "project"
 
 
@@ -156,32 +175,42 @@ def _check_denylist(resolved: Path) -> None:
     """Raise DeniedPathError if *resolved* is a forbidden path.
 
     WHAT: Checks the resolved path against:
-      1. Exact denylist roots ($HOME, /tmp, /, /etc, /var).
-      2. Parent-tree denylist (~/.ssh, ~/.aws, etc.).
-      3. Any directory containing a .env file at its top level.
+      1. Exact-match refusals: $HOME and / (subdirectories of $HOME are ALLOWED).
+      2. Subtree refusals: /tmp, /etc, /var and their subdirectories.
+      3. Parent-tree denylist (~/.ssh, ~/.aws, etc.).
+      4. Any directory containing a .env file at its top level.
     WHY:  Prevents accidental indexing of credential stores, temp dirs, and
-    directories that expose secrets via .env files to the search index.
+    directories that expose secrets via .env files to the search index.  $HOME
+    is exact-match only so that ~/Projects/... and ~/code/... remain allowed —
+    these are where real projects live.
     """
     resolved_str = str(resolved)
+    resolved_normalized = resolved_str.rstrip("/")
 
-    # 1. Exact denylist roots
-    if resolved_str in _DENYLIST_ROOTS:
-        raise DeniedPathError(
-            f"Refusing to index '{resolved_str}': this path is in the "
-            "sensitive-path denylist (home directory, /tmp, or a system root). "
-            "Choose a specific project subdirectory instead."
-        )
-
-    # Also refuse anything whose resolved string IS a denylist root's string
-    # (handles trailing-slash variants)
-    for root in _DENYLIST_ROOTS:
-        if resolved_str.rstrip("/") == root.rstrip("/"):
+    # 1. Exact-match-only refusals ($HOME and /)
+    for root in _DENYLIST_EXACT_ONLY:
+        if resolved_normalized == root.rstrip("/"):
             raise DeniedPathError(
-                f"Refusing to index '{resolved_str}': matches the denylist root "
-                f"'{root}'. Choose a specific project subdirectory instead."
+                f"Refusing to index '{resolved_str}': this path is in the "
+                "sensitive-path denylist (home directory or filesystem root). "
+                "Choose a specific project subdirectory instead."
             )
 
-    # 2. Parent-tree denylist
+    # 2. Subtree refusals: the root AND any descendant are refused
+    for subtree_root in _DENYLIST_SUBTREE_ROOTS:
+        subtree_path = Path(subtree_root)
+        try:
+            resolved.relative_to(subtree_path)
+            # If we reach here the path IS subtree_root or a descendant of it
+            raise DeniedPathError(
+                f"Refusing to index '{resolved_str}': this path is inside the "
+                f"ephemeral/system directory '{subtree_root}'. "
+                "Choose a persistent project directory instead."
+            )
+        except ValueError:
+            pass  # not inside this subtree — OK
+
+    # 3. Parent-tree denylist (~/.ssh, ~/.aws, etc.)
     for denied_parent in _DENYLIST_PARENTS:
         try:
             resolved.relative_to(denied_parent)
@@ -194,7 +223,7 @@ def _check_denylist(resolved: Path) -> None:
         except ValueError:
             pass  # not relative — OK
 
-    # 3. .env file guard
+    # 4. .env file guard
     env_file = resolved / ".env"
     try:
         if env_file.exists():
@@ -204,8 +233,14 @@ def _check_denylist(resolved: Path) -> None:
                 "secrets to trusty-search. Remove or gitignore the .env file "
                 "and retry, or use --exclude '.env' via trusty-search directly."
             )
-    except (OSError, PermissionError):
-        pass  # cannot stat — do not block on permission errors
+    except PermissionError:
+        logger.warning(
+            "Permission denied checking for .env file in '%s'; "
+            "proceeding without the .env guard for this path.",
+            resolved_str,
+        )
+    except OSError:
+        pass  # other stat errors — do not block
 
 
 # ---------------------------------------------------------------------------
@@ -255,10 +290,10 @@ def _save_registry(path: Path, entries: list[dict]) -> None:
     WHY:  The ``toml`` library produces spec-compliant output with proper
     ``[[index]]`` array-of-tables that the Rust serde deserialiser expects.
     """
-    import toml
-
     data: dict = {"index": entries}
     try:
+        import toml
+
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".toml.mpm_tmp")
         serialized = toml.dumps(data)
