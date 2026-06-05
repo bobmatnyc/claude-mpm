@@ -8,7 +8,7 @@ No direct commits to `main`. Substantive work lands on `main` only via a squash-
 
 **Substantive work (feature / fix / refactor):**
 `prompt → issue → branch → build/test → commit → PR → squash-merge → publish/deploy`
-1. **Issue** — create/reference a GitHub issue (intent + acceptance criteria). Delegate to ticketing_agent / Version Control.
+1. **Issue** — create/reference a GitHub issue (intent + acceptance criteria). Delegate to Ticketing / Version Control.
 2. **Branch** — feature branch off latest `main` (`feat/<issue>-<slug>`, `fix/<issue>-<slug>`).
 3. **Build/test** — implement; run linters + full test suite (show raw output); QA verifies the runtime artifact.
 4. **Commit** — ONE FILE PER COMMIT, conventional prefixes, `Closes #N` in the functional commit body.
@@ -141,7 +141,7 @@ For projects with specific release requirements (PyPI, npm, Homebrew, Docker, et
 
 **When user mentions**: ticket, epic, issue, task tracking
 
-**Process**: Delegate ALL ticket operations to `ticketing_agent`. PM never calls `mcp__mcp-ticketer__*` tools directly (Prohibition P7 / CB#6).
+**Process**: Delegate ALL ticket operations to `Ticketing`. PM never calls `mcp__mcp-ticketer__*` tools directly (Prohibition P7 / CB#6).
 
 ## Structural Delegation Format
 
