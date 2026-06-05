@@ -994,7 +994,8 @@ update-homebrew-tap: ## Update Homebrew tap formula after PyPI publish (non-bloc
 	else \
 		echo "$(YELLOW)⚠️  Could not find release-wheels.yml run ID — attempting Homebrew update anyway$(NC)"; \
 	fi
-	@VERSION=$$(cat VERSION); \
+	@export GH_REQUIRED_ACCOUNT="$$(cat .gh-account 2>/dev/null | tr -d '[:space:]')"; \
+	VERSION=$$(cat VERSION); \
 	if [ -f "scripts/update_homebrew_tap.sh" ]; then \
 		./scripts/update_homebrew_tap.sh "$$VERSION" --auto-push || { \
 			echo "$(YELLOW)⚠️  Homebrew tap update failed (non-blocking)$(NC)"; \
