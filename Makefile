@@ -537,6 +537,16 @@ test-e2e: ## Run end-to-end tests only
 	@echo "$(YELLOW)🧪 Running e2e tests...$(NC)"
 	@uv run pytest tests/e2e/ -n $(TEST_WORKERS) -v
 
+mutation-test: ## Run mutation tests against trusty_search_allowlist (advisory, on-demand only)
+	@echo "$(YELLOW)🧬 Running mutation tests (scope: trusty_search_allowlist)...$(NC)"
+	@echo "$(YELLOW)   Safety: run 'git diff -- src/' after this completes to verify no mutant left in source.$(NC)"
+	@uv run mutmut run
+	@echo "$(YELLOW)   Mutation run complete. Results:$(NC)"
+	@uv run mutmut results
+	@echo "$(YELLOW)   SAFETY CHECK: verifying no mutant left in src/ ...$(NC)"
+	@git diff --exit-code -- src/ || (echo "$(RED)MUTANT LEFT IN SOURCE — restoring...$(NC)" && git checkout HEAD -- src/ && exit 1)
+	@echo "$(GREEN)✓ Mutation tests complete — src/ is clean$(NC)"
+
 deprecation-check: ## Check for obsolete files according to deprecation policy
 	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
 	@if [ -f "scripts/apply_deprecation_policy.py" ]; then \
