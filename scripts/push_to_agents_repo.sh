@@ -22,6 +22,26 @@ AGENTS_REPO_URL="https://github.com/bobmatnyc/claude-mpm-agents.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Resolve and export the required GitHub account from the main repo's .gh-account
+# BEFORE we cd into the temp-dir clone of claude-mpm-agents. That clone has no
+# .gh-account marker, so gh_required_account would otherwise fail to resolve once
+# CWD is the clone, and the authenticated push would fall back to the wrong
+# credential helper.
+# shellcheck source=scripts/lib/gh_identity.sh
+. "$SCRIPT_DIR/lib/gh_identity.sh"
+if ! command -v gh_git >/dev/null 2>&1; then
+    echo "ERROR: gh_git not available (failed to source lib/gh_identity.sh)" >&2
+    exit 1
+fi
+if [ -z "${GH_REQUIRED_ACCOUNT:-}" ] && [ -f "$PROJECT_ROOT/.gh-account" ]; then
+    _acct="$(tr -d '[:space:]' < "$PROJECT_ROOT/.gh-account")"
+    if printf '%s' "$_acct" | grep -Eq '^[A-Za-z0-9-]+$'; then
+        export GH_REQUIRED_ACCOUNT="$_acct"
+    else
+        echo "WARNING: .gh-account contents not a valid GitHub username; ignoring" >&2
+    fi
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -257,8 +277,11 @@ print_info "Committing changes..."
 git commit -m "$COMMIT_MSG"
 
 # Push changes
+# Use gh_git so the push authenticates as the exported GH_REQUIRED_ACCOUNT
+# (resolved from the main repo's .gh-account) instead of the host-keyed
+# credential store, which can resolve to the wrong identity in this clone.
 print_info "Pushing to remote..."
-git push origin main
+gh_git push origin main
 
 print_success "Successfully synced files to agents repository!"
 print_info "Commit message:"
