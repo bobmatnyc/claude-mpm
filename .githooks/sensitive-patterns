@@ -1,0 +1,5 @@
+# Credential / identity handling — must go through a PR (never a direct push to main).
+# Consumed by .githooks/pre-push and .github/workflows/guard-sensitive-paths.yml.
+scripts/lib/gh_identity.sh
+scripts/lib/*credential*
+scripts/lib/*identity*
