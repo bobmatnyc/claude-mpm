@@ -540,9 +540,9 @@ class FrameworkLoader:
             if isinstance(index_id, str) and index_id:
                 return index_id
         try:
-            import claude_mpm.services.trusty_status as _ts
+            from claude_mpm.services.trusty_status import index_id_candidates
 
-            candidates = _ts._index_id_candidates(Path.cwd().resolve())
+            candidates = index_id_candidates(Path.cwd().resolve())
             return candidates[0] if candidates else None
         except Exception:
             return None
