@@ -24,16 +24,6 @@
 
 set -euo pipefail
 
-# ---------------------------------------------------------------------------
-# Sensitive paths. Clearly-defined, easily-extendable. Exact paths or globs;
-# matching is simple prefix/glob via shell `case`.
-# ---------------------------------------------------------------------------
-SENSITIVE=(
-    "scripts/lib/gh_identity.sh"
-    "scripts/lib/*credential*"
-    "scripts/lib/*identity*"
-)
-
 # Colors (match scripts/setup-git-hooks.sh style)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,6 +32,65 @@ NC='\033[0m' # No Color
 
 PROTECTED_REF="refs/heads/main"
 ZERO_SHA="0000000000000000000000000000000000000000"
+
+# Sentinel emitted by changed_files() when it cannot resolve a diff base.
+# changed_files runs in a process substitution, so it cannot abort the whole
+# push directly; the parent loop watches for this line and fails closed.
+BASE_FAILURE_SENTINEL=$'\x01__PREPUSH_BASE_RESOLUTION_FAILED__'
+
+# ---------------------------------------------------------------------------
+# Sensitive paths come from the single canonical source .githooks/sensitive-
+# patterns (newline-delimited globs; supports `#` comments and blank lines).
+# This file is shared with .github/workflows/guard-sensitive-paths.yml so the
+# policy is defined in exactly one place.
+#
+# The hook is copied into .git/hooks/pre-push at install time (see
+# scripts/setup-git-hooks.sh), so resolve the patterns file relative to the
+# repo root first, then fall back to this hook's own directory.
+# ---------------------------------------------------------------------------
+resolve_patterns_file() {
+    local root
+    if root="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -n "$root" ]; then
+        echo "$root/.githooks/sensitive-patterns"
+        return
+    fi
+    # Fall back to the hook's own location.
+    local hook_dir
+    hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    echo "$hook_dir/sensitive-patterns"
+}
+
+PATTERNS_FILE="$(resolve_patterns_file)"
+
+# Fail closed: a missing policy file must not silently disable the guard.
+if [ ! -f "$PATTERNS_FILE" ]; then
+    echo -e "${RED}✖ pre-push guard cannot find its sensitive-paths policy file:${NC}" >&2
+    echo "       $PATTERNS_FILE" >&2
+    echo -e "${YELLOW}       Refusing push (fail-closed). Reinstall hooks via scripts/setup-git-hooks.sh${NC}" >&2
+    echo -e "${YELLOW}       or restore .githooks/sensitive-patterns.${NC}" >&2
+    exit 1
+fi
+
+# Load patterns into an array, skipping blank lines and `#` comments.
+SENSITIVE=()
+while IFS= read -r line || [ -n "$line" ]; do
+    # Strip leading/trailing whitespace.
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [ -n "$line" ] || continue
+    case "$line" in
+        \#*) continue ;;
+    esac
+    SENSITIVE+=("$line")
+done < "$PATTERNS_FILE"
+
+# Fail closed: an empty (all-comment) policy file would guard nothing.
+if [ "${#SENSITIVE[@]}" -eq 0 ]; then
+    echo -e "${RED}✖ pre-push guard loaded zero patterns from:${NC}" >&2
+    echo "       $PATTERNS_FILE" >&2
+    echo -e "${YELLOW}       Refusing push (fail-closed) — the policy file defines no sensitive paths.${NC}" >&2
+    exit 1
+fi
 
 # Return 0 if the given path matches any sensitive pattern.
 is_sensitive() {
@@ -77,6 +126,21 @@ changed_files() {
     local base
     base="$(git merge-base --fork-point origin/main "$local_sha" 2>/dev/null \
         || git rev-list --max-parents=0 "$local_sha" | tail -1)"
+
+    # Fail closed: if we cannot determine a base (e.g. a shallow clone with no
+    # reachable root), an empty base makes `git diff "" "$local_sha"` inspect
+    # NOTHING and the guard would silently pass — a fail-open security gap.
+    # NOTE: changed_files runs inside a process substitution, so a bare
+    # `exit 1` here would only kill the subshell and the parent would carry on
+    # (fail-open). Instead emit a sentinel line that the parent loop detects
+    # and turns into a hard, fail-closed rejection.
+    if [ -z "$base" ]; then
+        echo "ERROR: pre-push guard cannot determine a diff base for $local_sha — refusing push (fail-closed)." >&2
+        echo "       If this is a legitimate edge case, push the change via a PR." >&2
+        echo "$BASE_FAILURE_SENTINEL"
+        return
+    fi
+
     git diff --name-only "$base" "$local_sha"
 }
 
@@ -91,6 +155,12 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
 
     while IFS= read -r file; do
         [ -n "$file" ] || continue
+        # Fail closed if the base could not be resolved (sentinel from
+        # changed_files): we cannot prove the push is safe, so reject it.
+        if [ "$file" = "$BASE_FAILURE_SENTINEL" ]; then
+            echo -e "${RED}✖ Push to main rejected: pre-push guard could not determine a diff base (fail-closed).${NC}" >&2
+            exit 1
+        fi
         if is_sensitive "$file"; then
             violations+=("$file")
         fi
