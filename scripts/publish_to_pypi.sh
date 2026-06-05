@@ -16,6 +16,19 @@ set -e  # Exit on error
 #
 # Description: Publishes the claude-mpm SDIST to PyPI using credentials from ~/.pypirc
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Resolve and export the required GitHub account from the main repo's .gh-account
+# so child scripts (homebrew tap, agents sync) that cd into cloned sub-repos
+# without their own .gh-account marker still push under the correct identity.
+# shellcheck source=scripts/lib/gh_identity.sh
+. "$SCRIPT_DIR/lib/gh_identity.sh"
+if [ -z "${GH_REQUIRED_ACCOUNT:-}" ]; then
+    if _acct="$(gh_required_account 2>/dev/null)" && [ -n "$_acct" ]; then
+        export GH_REQUIRED_ACCOUNT="$_acct"
+    fi
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
