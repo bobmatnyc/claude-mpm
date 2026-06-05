@@ -40,8 +40,8 @@ from pathlib import Path
 from typing import Any
 
 from claude_mpm.hooks.timeout_constants import (
-    CANONICAL_HOOK_TIMEOUTS as _CANONICAL_TIMEOUTS,  # noqa: F401 — imported so test_canonical_timeout_map_consistency can assert identity (same object, not a copy)
-    DEFAULT_HOOK_TIMEOUT as _DEFAULT_TIMEOUT,  # noqa: F401 — imported so test_canonical_timeout_map_consistency can assert value equality
+    CANONICAL_HOOK_TIMEOUTS as _CANONICAL_TIMEOUTS,  # noqa: F401 — re-exported under the _CANONICAL_TIMEOUTS alias so tests/migrations/test_dedup_hook_registrations.py::test_canonical_timeout_map_consistency can assert object identity with the shared module
+    DEFAULT_HOOK_TIMEOUT as _DEFAULT_TIMEOUT,  # noqa: F401 — re-exported under the _DEFAULT_TIMEOUT alias so the same consistency test can assert value equality
     canonical_timeout as _canonical_timeout,
 )
 
