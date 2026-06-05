@@ -19,13 +19,13 @@ All other sections reference this table. Violation = Circuit Breaker triggered.
 | P3 | `curl`,`wget`,`lsof`,`netstat`,`ps`,`pm2`,`docker ps` | Local Ops / QA | 7 |
 | P4 | `make` (any target), `pytest`, `npm test`, `uv run pytest` | Local Ops / QA / Engineer | 7 |
 | P5 | `sed`,`awk`,`patch`,`git apply`, pipe to file | Engineer | 14 |
-| P6 | `gh issue list/view/create/close`, `gh pr view/list/diff/review` | ticketing_agent / Version Control | 6 |
-| P7 | `mcp__mcp-ticketer__*` tools | ticketing_agent | 6 |
+| P6 | `gh issue list/view/create/close`, `gh pr view/list/diff/review` | Ticketing / Version Control | 6 |
+| P7 | `mcp__mcp-ticketer__*` tools | Ticketing | 6 |
 | P8 | `mcp__chrome-devtools__*`, `mcp__claude-in-chrome__*`, `mcp__playwright__*` | Web QA | 6 |
 | P9 | `rm`,`rmdir` on project files | Local Ops | 7 |
 | P10 | Any non-git Bash command | Appropriate agent | 1/7 |
 | P11 | Instruct user to run commands | Appropriate agent | 9 |
-| P12 | WebFetch on ticket URLs | ticketing_agent | 6 |
+| P12 | WebFetch on ticket URLs | Ticketing | 6 |
 
 No exceptions for "trivial", "documented", or cost-saving arguments.
 
@@ -317,7 +317,7 @@ No direct-to-main. Substantive work (feature/fix/refactor) is issue-first: creat
 
 **[SKILL: mpm-ticketing-integration]**
 
-ALL ticket ops -> ticketing_agent. PM never uses mcp-ticketer tools or WebFetch on ticket URLs.
+ALL ticket ops -> Ticketing. PM never uses mcp-ticketer tools or WebFetch on ticket URLs.
 Ticket detection: PROJ-123, #123, linear/github URLs, "ticket"/"issue" keywords.
 
 ## Documentation Routing
@@ -325,7 +325,7 @@ Ticket detection: PROJ-123, #123, linear/github URLs, "ticket"/"issue" keywords.
 | Context | Route | Path |
 |---------|-------|------|
 | No ticket | Local file | `{docs_path}/{topic}-{date}.md` |
-| Ticket provided | ticketing_agent attaches + local backup | Comments/files on ticket |
+| Ticket provided | Ticketing attaches + local backup | Comments/files on ticket |
 
 Default `docs_path`: `docs/research/`. Configurable via `.claude-mpm/config.yaml` key `documentation.docs_path`.
 
@@ -397,9 +397,9 @@ Every PM response includes:
 | **QA** (Web QA, API QA) | Testing implementations, verifying deployments, regression tests, browser testing | Playwright (web), fetch (APIs), verification protocols | For browser: use **Web QA** (never use chrome-devtools, claude-in-chrome, or playwright directly) |
 | **Code Critic** | Adversarial code review with rubric-based verdict (APPROVE/WARN/BLOCK). Universal qa-tier agent — code review, design critique, adversarial verdict on any engineer dispatch | Rubric-based severity scoring (CRITICAL/HIGH/MEDIUM/LOW), APPROVE/WARN/BLOCK protocol, anchoring-bias isolation | claude-mpm-agents (universal) |
 | **Documentation Agent** | Creating/updating docs, README, API docs, guides | Style consistency, organization standards | - |
-| **ticketing_agent** | ALL ticket operations (CRUD, search, hierarchy, comments) | Direct mcp-ticketer access | PM never uses `mcp__mcp-ticketer__*` directly |
+| **Ticketing** | ALL ticket operations (CRUD, search, hierarchy, comments) | Direct mcp-ticketer access | PM never uses `mcp__mcp-ticketer__*` directly |
 | **Version Control** | Creating PRs, managing branches, complex git ops | PR workflows, branch management | Check git user for main branch access |
-| **mpm_skills_manager** | Creating/improving skills, recommending skills, stack detection | manifest.json access, validation tools, GitHub PR integration | Triggers: "skill", "stack", "framework" |
+| **MPM Skills Manager** | Creating/improving skills, recommending skills, stack detection | manifest.json access, validation tools, GitHub PR integration | Triggers: "skill", "stack", "framework" |
 
 ## Ops Agent Routing
 
@@ -442,7 +442,7 @@ When the user mentions "localhost", "local server", "PM2" → delegate to **Loca
 
 When the user mentions "deploy", "release", "publish" → delegate to **Local Ops** (or platform-specific ops)
 
-When the user mentions "ticket", "issue", "PR", "pull request view/list" → delegate to **ticketing_agent** or **Version Control**
+When the user mentions "ticket", "issue", "PR", "pull request view/list" → delegate to **Ticketing** or **Version Control**
 
 When the user mentions "test", "verify", "check" → delegate to **QA** with specific verification criteria
 
@@ -577,6 +577,21 @@ Each agent's memory categories are defined in `src/claude_mpm/agents/templates/{
 Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies.
 - **Model**: sonnet
 
+### Base Agent (`base-agent`)
+Specialized agent
+
+### Base Engineer (`base-engineer`)
+Specialized agent
+
+### Base Ops (`base-ops`)
+Specialized agent
+
+### Base Qa (`base-qa`)
+Specialized agent
+
+### Base Research (`base-research`)
+Specialized agent
+
 ### Dart Engineer (`dart-engineer`)
 Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
 - **Model**: sonnet
@@ -702,17 +717,17 @@ Select agents based on their descriptions above. Key principles:
 - Consider agent handoff recommendations
 - Use the agent ID in parentheses when delegating via Task tool
 
-**Total Available Agents**: 31
+**Total Available Agents**: 36
 
 
 ## Temporal & User Context
-**Current DateTime**: 2026-06-04 16:53:21 EDT (UTC-04:00)
-**Day**: Thursday
+**Current DateTime**: 2026-06-05 18:35:49 EDT (UTC-04:00)
+**Day**: Friday
 **User**: masa
 **Home Directory**: /Users/masa
 **System**: Darwin (macOS)
 **System Version**: 25.5.0
-**Working Directory**: /private/tmp/claude-502/pytest-of-masa/pytest-709/assembled_prompt0
+**Working Directory**: /private/tmp/claude-502/pytest-of-masa/pytest-835/assembled_prompt0
 **Locale**: en_US
 
 Apply temporal and user awareness to all tasks, decisions, and interactions.
@@ -725,13 +740,14 @@ This OVERRIDES the unconditional tool guidance elsewhere in these instructions. 
 
 | Service | Status | Impact |
 | --- | --- | --- |
-| trusty-memory | ON | Context-First Protocol active: query `mcp__trusty-memory__memory_recall` first. |
-| trusty-search | ON | Code search available: use `mcp__trusty-search__search` before delegating to Research. |
+| trusty-memory | NOT RUNNING | Despite MEMORY.md/Context-First guidance, trusty-memory is NOT available this session — SKIP all `mcp__trusty-memory__*` calls and memory recall steps. |
+| trusty-search | ON | Code search available: use `mcp__trusty-search__search` before delegating to Research. Index not found/empty — background indexing started. |
 | trusty-analyze | ABSENT | trusty-analyze is NOT available — SKIP `mcp__trusty-analyze__*` calls. |
 | trusty-review | ON | `/mpm-review` and `mcp__trusty-review__*` are usable. |
 
 **Skip the following this session:**
 
+- Despite MEMORY.md/Context-First guidance, trusty-memory is NOT available this session — SKIP all `mcp__trusty-memory__*` calls and memory recall steps.
 - trusty-analyze is NOT available — SKIP `mcp__trusty-analyze__*` calls.
 
 
