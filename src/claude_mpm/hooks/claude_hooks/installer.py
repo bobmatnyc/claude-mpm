@@ -13,6 +13,9 @@ import stat
 import subprocess  # nosec B404 - Safe: only uses hardcoded 'claude' CLI command, no user input
 from pathlib import Path
 
+from claude_mpm.hooks.hook_identity import is_our_hook as _is_our_hook
+from claude_mpm.hooks.timeout_constants import canonical_timeout as _canonical_timeout
+
 
 class _PathEncoder(json.JSONEncoder):
     """JSON encoder that converts Path objects to strings."""
@@ -875,20 +878,10 @@ main "$@"
         # ``migrations/v6_3_19_hooks_to_project_level.py`` uses this marker as
         # the primary identifier, with substring matching only as a legacy
         # fallback for hooks written before this marker was introduced.
-        hook_command = {"type": "command", "command": hook_cmd, "_mpm": True}
-
-        def is_our_hook(cmd: dict) -> bool:
-            """Check if a hook command belongs to claude-mpm."""
-            if cmd.get("type") != "command":
-                return False
-            command = cmd.get("command", "")
-            # Match claude-hook entry point or any claude-mpm bash script
-            return (
-                command == "claude-hook"
-                or "claude-hook-fast.sh" in command
-                or "claude-hook-handler.sh" in command
-                or command.endswith("claude-mpm-hook.sh")
-            )
+        # NOTE: hook_command is a template; the caller passes the event-specific
+        # timeout via _canonical_timeout(event_type) before passing to
+        # merge_hooks_for_event.
+        hook_command_base = {"type": "command", "command": hook_cmd, "_mpm": True}
 
         def merge_hooks_for_event(
             existing_hooks: list, new_hook_command: dict, use_matcher: bool = True
@@ -909,9 +902,14 @@ main "$@"
             for hook_config in existing_hooks:
                 if "hooks" in hook_config and isinstance(hook_config["hooks"], list):
                     for hook in hook_config["hooks"]:
-                        if is_our_hook(hook):
-                            # Update existing hook command path (in case it changed)
+                        if _is_our_hook(hook):
+                            # Reconcile the FULL entry (command + timeout + _mpm)
+                            # to the canonical desired value — not just command.
+                            # This prevents a stale timeout from persisting after
+                            # an upgrade (issue #677).
                             hook["command"] = new_hook_command["command"]
+                            hook["timeout"] = new_hook_command["timeout"]
+                            hook["_mpm"] = True
                             our_hook_exists = True
                             break
                 if our_hook_exists:
@@ -946,12 +944,23 @@ main "$@"
 
             return existing_hooks
 
+        def _make_hook_command(event_type: str) -> dict:
+            """Build a canonical hook command dict for the given event type.
+
+            Uses hook_command_base (command + _mpm) plus the event-specific
+            canonical timeout so that every caller gets the right timeout and
+            there is a single source-of-truth inside this function.
+            """
+            cmd = dict(hook_command_base)
+            cmd["timeout"] = _canonical_timeout(event_type)
+            return cmd
+
         # Tool-related events need a matcher string
         tool_events = ["PreToolUse", "PostToolUse"]
         for event_type in tool_events:
             existing = settings["hooks"].get(event_type, [])
             settings["hooks"][event_type] = merge_hooks_for_event(
-                existing, hook_command, use_matcher=True
+                existing, _make_hook_command(event_type), use_matcher=True
             )
 
         # Simple events (no subtypes, no matcher needed).
@@ -960,7 +969,7 @@ main "$@"
         for event_type in simple_events_core:
             existing = settings["hooks"].get(event_type, [])
             settings["hooks"][event_type] = merge_hooks_for_event(
-                existing, hook_command, use_matcher=False
+                existing, _make_hook_command(event_type), use_matcher=False
             )
 
         # v2.1.47+ hook events: only install if Claude Code version supports them.
@@ -979,12 +988,12 @@ main "$@"
             for event_type in new_hook_events_simple:
                 existing = settings["hooks"].get(event_type, [])
                 settings["hooks"][event_type] = merge_hooks_for_event(
-                    existing, hook_command, use_matcher=False
+                    existing, _make_hook_command(event_type), use_matcher=False
                 )
             for event_type in new_hook_events_matcher:
                 existing = settings["hooks"].get(event_type, [])
                 settings["hooks"][event_type] = merge_hooks_for_event(
-                    existing, hook_command, use_matcher=True
+                    existing, _make_hook_command(event_type), use_matcher=True
                 )
         else:
             # Older Claude Code: remove any stale entries that would cause warnings
@@ -998,13 +1007,13 @@ main "$@"
         # SessionStart needs matcher for subtypes (startup, resume)
         existing = settings["hooks"].get("SessionStart", [])
         settings["hooks"]["SessionStart"] = merge_hooks_for_event(
-            existing, hook_command, use_matcher=True
+            existing, _make_hook_command("SessionStart"), use_matcher=True
         )
 
         # UserPromptSubmit needs matcher for potential subtypes
         existing = settings["hooks"].get("UserPromptSubmit", [])
         settings["hooks"]["UserPromptSubmit"] = merge_hooks_for_event(
-            existing, hook_command, use_matcher=True
+            existing, _make_hook_command("UserPromptSubmit"), use_matcher=True
         )
 
         # Fix statusLine command to handle both output style schemas
