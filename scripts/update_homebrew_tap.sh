@@ -215,6 +215,12 @@ clone_or_update_tap_repo() {
     # The /tmp clone is disposable — all authoritative state lives on origin.
     # Always start from a fresh clone so accumulated backups, dirty trees, or a
     # stale embedded-credential remote from a previous run cannot block the update.
+    # Hard guard: never let an empty/unset TAP_DIR reach `rm -rf`.
+    if [ -z "${TAP_DIR:-}" ]; then
+        log ERROR "TAP_DIR is empty or unset — refusing to run rm -rf"
+        return 1
+    fi
+
     if [ -d "$TAP_DIR" ]; then
         log INFO "Removing previous tap clone for a clean checkout..."
         cd /
@@ -252,6 +258,12 @@ update_formula() {
     cp "$formula_path" "$backup_file"
     log INFO "Created backup: ${backup_file}"
 
+    # Ensure the out-of-tree backup is cleaned up on every return path.
+    # Use a default expansion so the trap stays safe under `set -u` if it fires
+    # in a scope where backup_file is no longer bound (bash RETURN traps set in a
+    # function can also run for the caller's return without `set -o functrace`).
+    trap 'rm -f "${backup_file:-}"' RETURN
+
     if [ "$DRY_RUN" = true ]; then
         log INFO "[DRY RUN] Would update formula with:"
         log INFO "  Version: ${version}"
@@ -280,9 +292,6 @@ update_formula() {
     rm -f "${formula_path}.bak"
 
     log SUCCESS "Formula updated successfully"
-
-    # Edits succeeded — drop the out-of-tree restore backup so it doesn't linger.
-    rm -f "$backup_file"
 
     # Show diff
     if git diff --quiet "$formula_path"; then
