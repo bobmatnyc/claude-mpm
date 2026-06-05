@@ -2,7 +2,7 @@
 
 Coverage:
 1. Repro + migration: duplicate MPM hooks (timeout:15 + timeout:60) are
-   collapsed into a single canonical entry, with the higher timeout kept.
+   collapsed into a single canonical entry using the CANONICAL timeout.
 2. User / non-MPM hook entries are preserved untouched.
 3. Idempotent install: running either installer twice yields no duplicates
    (entry count per event == 1).
@@ -16,6 +16,10 @@ Coverage:
    all others use 15.
 8. Missing settings file: migration silently skips (no exception, returns
    True).
+9. Parent-dir discovery: migration finds .claude/settings.json in a parent
+   directory when cwd is in a subdirectory.
+10. Backup rotation: only the 5 most-recent backups are kept per file.
+11. Collapsed entry uses the canonical timeout (not the original stale value).
 """
 
 from __future__ import annotations
@@ -125,7 +129,8 @@ class TestDedupHooksInBlock:
         ]
         result = dedup_mod._dedup_hooks_in_block(hooks, "PreToolUse")
         assert len(result) == 1
-        assert result[0]["timeout"] == 60  # highest kept
+        # Canonical timeout for PreToolUse is 15 (migration converges to installer value)
+        assert result[0]["timeout"] == 15
 
     def test_user_hooks_preserved(self) -> None:
         hooks = [
@@ -140,15 +145,15 @@ class TestDedupHooksInBlock:
         assert "my-hook" in commands
         assert "claude-hook" in commands
 
-    def test_canonical_timeout_enforced_when_lower(self) -> None:
-        """If both entries have low timeouts, canonical floor is applied."""
+    def test_canonical_timeout_enforced_regardless_of_input(self) -> None:
+        """Canonical timeout is always used, regardless of what the input had."""
         hooks = [
             {"type": "command", "command": "claude-hook", "timeout": 5, "_mpm": True},
             {"type": "command", "command": "claude-hook", "timeout": 8, "_mpm": True},
         ]
         result = dedup_mod._dedup_hooks_in_block(hooks, "PreToolUse")
         assert len(result) == 1
-        # canonical floor for PreToolUse is 15
+        # canonical timeout for PreToolUse is 15
         assert result[0]["timeout"] == 15
 
     def test_stopfailure_uses_60_canonical_timeout(self) -> None:
@@ -186,7 +191,8 @@ class TestDedupHooksInBlock:
         ]
         result = dedup_mod._dedup_hooks_in_block(hooks, "PreToolUse")
         assert len(result) == 1
-        assert result[0]["timeout"] == 60
+        # Canonical timeout for PreToolUse is 15
+        assert result[0]["timeout"] == 15
 
 
 class TestDedupSettings:
@@ -203,7 +209,8 @@ class TestDedupSettings:
         assert removed == 1
         block_hooks = settings["hooks"]["PreToolUse"][0]["hooks"]
         assert len(block_hooks) == 1
-        assert block_hooks[0]["timeout"] == 60
+        # Canonical timeout for PreToolUse is 15
+        assert block_hooks[0]["timeout"] == 15
 
     def test_no_hooks_section(self) -> None:
         settings: dict[str, Any] = {}
@@ -292,7 +299,10 @@ class TestRunMigration:
             assert len(block_hooks) == 1, (
                 f"{event}: expected 1 entry after dedup, got {len(block_hooks)}"
             )
-            assert block_hooks[0]["timeout"] == 60
+            # Canonical timeout for these events is 15
+            assert block_hooks[0]["timeout"] == 15, (
+                f"{event}: expected canonical timeout 15, got {block_hooks[0]['timeout']}"
+            )
 
     def test_canonical_timeout_for_special_events(self, tmp_path: Path) -> None:
         """StopFailure, SessionEnd, PostCompact: duplicate entries collapse to
@@ -384,6 +394,124 @@ class TestRunMigration:
         """Migration succeeds silently when no settings files exist."""
         result = self._run_migration_in(tmp_path)
         assert result is True
+
+    # ------------------------------------------------------------------
+    # Parent-dir discovery (requirement 9)
+    # ------------------------------------------------------------------
+
+    def test_parent_dir_claude_settings_found_from_subdir(self, tmp_path: Path) -> None:
+        """Migration finds .claude/settings.json in a parent dir when cwd is in a subdir."""
+        settings_path = tmp_path / ".claude" / "settings.json"
+        settings = _settings_with_hooks(
+            {
+                "PreToolUse": _make_event_block(
+                    _make_mpm_hook("claude-hook", 15),
+                    _make_mpm_hook("claude-hook", 60),
+                )
+            }
+        )
+        _write_settings(settings_path, settings)
+
+        # Run migration with cwd inside a subdirectory of tmp_path
+        subdir = tmp_path / "src" / "some" / "package"
+        subdir.mkdir(parents=True, exist_ok=True)
+
+        with patch.object(Path, "cwd", return_value=subdir):
+            result = dedup_mod.run_migration()
+
+        assert result is True
+        after = _read_settings(settings_path)
+        block_hooks = after["hooks"]["PreToolUse"][0]["hooks"]
+        assert len(block_hooks) == 1, (
+            "Expected migration to de-dup hooks found in parent .claude dir"
+        )
+
+    def test_no_claude_dir_in_parents_returns_no_op(self, tmp_path: Path) -> None:
+        """When no .claude dir exists anywhere in the parent chain, migration is a no-op."""
+        # tmp_path has no .git or pyproject.toml, but also no .claude dir
+        subdir = tmp_path / "a" / "b"
+        subdir.mkdir(parents=True, exist_ok=True)
+
+        with patch.object(Path, "cwd", return_value=subdir):
+            result = dedup_mod.run_migration()
+
+        assert result is True  # fail-open no-op
+
+    # ------------------------------------------------------------------
+    # Backup rotation (requirement 10)
+    # ------------------------------------------------------------------
+
+    def test_backup_rotation_keeps_only_5_most_recent(self, tmp_path: Path) -> None:
+        """Old backups beyond _BACKUP_KEEP are deleted after a migration run."""
+        import time
+
+        settings_path = tmp_path / ".claude" / "settings.json"
+        settings_path.parent.mkdir(parents=True)
+
+        # Pre-create 6 fake backup files with distinct timestamps
+        for i in range(6):
+            fake_ts = f"20250101_0000{i:02d}"
+            backup = settings_path.parent / f"settings.json.backup_{fake_ts}"
+            backup.write_text("{}", encoding="utf-8")
+            # Ensure mtime ordering is distinct (avoid same-second collisions)
+            time.sleep(0.01)
+
+        # Write a settings.json with duplicates so the migration actually fires
+        # (rotation only runs when a backup is created)
+        settings = _settings_with_hooks(
+            {
+                "PreToolUse": _make_event_block(
+                    _make_mpm_hook("claude-hook", 15),
+                    _make_mpm_hook("claude-hook", 60),
+                )
+            }
+        )
+        _write_settings(settings_path, settings)
+
+        self._run_migration_in(tmp_path)
+
+        # 6 pre-existing + 1 newly created = 7 total; rotation keeps 5
+        remaining = sorted((tmp_path / ".claude").glob("settings.json.backup_*"))
+        assert len(remaining) <= dedup_mod._BACKUP_KEEP, (
+            f"Expected at most {dedup_mod._BACKUP_KEEP} backups, "
+            f"got {len(remaining)}: {[p.name for p in remaining]}"
+        )
+
+    # ------------------------------------------------------------------
+    # Canonical timeout in dedup (requirement 11)
+    # ------------------------------------------------------------------
+
+    def test_collapsed_entry_uses_canonical_timeout(self, tmp_path: Path) -> None:
+        """After migration, each event's single entry has the canonical timeout."""
+        settings_path = tmp_path / ".claude" / "settings.json"
+        settings = _settings_with_hooks(
+            {
+                "PreToolUse": _make_event_block(
+                    _make_mpm_hook("claude-hook", 999),  # stale/wrong value
+                    _make_mpm_hook("claude-hook", 999),
+                ),
+                "StopFailure": _make_event_block(
+                    _make_mpm_hook("claude-hook", 15),  # wrong for this event
+                    _make_mpm_hook("claude-hook", 60),
+                ),
+            }
+        )
+        _write_settings(settings_path, settings)
+        self._run_migration_in(tmp_path)
+
+        after = _read_settings(settings_path)
+
+        pre_hooks = after["hooks"]["PreToolUse"][0]["hooks"]
+        assert len(pre_hooks) == 1
+        assert pre_hooks[0]["timeout"] == 15, (
+            f"PreToolUse canonical timeout is 15, got {pre_hooks[0]['timeout']}"
+        )
+
+        stop_hooks = after["hooks"]["StopFailure"][0]["hooks"]
+        assert len(stop_hooks) == 1
+        assert stop_hooks[0]["timeout"] == 60, (
+            f"StopFailure canonical timeout is 60, got {stop_hooks[0]['timeout']}"
+        )
 
     # ------------------------------------------------------------------
     # Malformed JSON
@@ -579,15 +707,71 @@ class TestHookInstallerIdempotency:
 
 
 def test_canonical_timeout_map_consistency() -> None:
-    """Both installer modules and the migration agree on the canonical timeouts."""
-    from claude_mpm.migrations.migrate_dedup_hook_registrations import (
-        _CANONICAL_TIMEOUTS,
-        _DEFAULT_TIMEOUT,
+    """The shared timeout_constants module is the single source of truth.
+
+    All consumers (migration, installers) must import from it — there must be
+    no second definition of CANONICAL_HOOK_TIMEOUTS anywhere else.
+    """
+    from claude_mpm.hooks.timeout_constants import (
+        CANONICAL_HOOK_TIMEOUTS,
+        DEFAULT_HOOK_TIMEOUT,
+        canonical_timeout,
     )
 
-    assert _DEFAULT_TIMEOUT == 15
-    assert _CANONICAL_TIMEOUTS["StopFailure"] == 60
-    assert _CANONICAL_TIMEOUTS["SessionEnd"] == 60
-    assert _CANONICAL_TIMEOUTS["PostCompact"] == 60
-    assert _CANONICAL_TIMEOUTS.get("PreToolUse", 15) == 15
-    assert _CANONICAL_TIMEOUTS.get("Stop", 15) == 15
+    # Verify the shared values are correct.
+    assert DEFAULT_HOOK_TIMEOUT == 15
+    assert CANONICAL_HOOK_TIMEOUTS["StopFailure"] == 60
+    assert CANONICAL_HOOK_TIMEOUTS["SessionEnd"] == 60
+    assert CANONICAL_HOOK_TIMEOUTS["PostCompact"] == 60
+    assert CANONICAL_HOOK_TIMEOUTS.get("PreToolUse", DEFAULT_HOOK_TIMEOUT) == 15
+    assert CANONICAL_HOOK_TIMEOUTS.get("Stop", DEFAULT_HOOK_TIMEOUT) == 15
+
+    # The helper function must route through the shared map.
+    assert canonical_timeout("StopFailure") == 60
+    assert canonical_timeout("SessionEnd") == 60
+    assert canonical_timeout("PostCompact") == 60
+    assert canonical_timeout("PreToolUse") == 15
+    assert canonical_timeout("Stop") == 15
+    assert canonical_timeout("UnknownEvent") == 15
+
+    # The migration re-exports the shared constants (aliased with underscore prefix
+    # for backward compatibility) — verify they are the SAME objects, not copies.
+    from claude_mpm.migrations.migrate_dedup_hook_registrations import (
+        _CANONICAL_TIMEOUTS as MIGRATION_TIMEOUTS,
+        _DEFAULT_TIMEOUT as MIGRATION_DEFAULT,
+    )
+
+    assert MIGRATION_TIMEOUTS is CANONICAL_HOOK_TIMEOUTS, (
+        "Migration _CANONICAL_TIMEOUTS must be the same object as the shared "
+        "CANONICAL_HOOK_TIMEOUTS — no local copy allowed"
+    )
+    assert MIGRATION_DEFAULT == DEFAULT_HOOK_TIMEOUT
+
+
+def test_no_local_timeout_definition_in_installer() -> None:
+    """installer.py must not define its own _CANONICAL_TIMEOUTS or _DEFAULT_TIMEOUT."""
+    import ast
+    import inspect
+
+    import claude_mpm.hooks.claude_hooks.installer as installer_mod
+    import claude_mpm.services.hook_installer_service as service_mod
+
+    for mod, name in [
+        (installer_mod, "installer.py"),
+        (service_mod, "hook_installer_service.py"),
+    ]:
+        src = inspect.getsource(mod)
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in (
+                        "_CANONICAL_TIMEOUTS",
+                        "_canonical_timeouts",
+                        "_DEFAULT_TIMEOUT",
+                        "_default_timeout",
+                    ):
+                        raise AssertionError(
+                            f"{name} defines its own timeout constant '{target.id}'. "
+                            "Move it to hooks/timeout_constants.py and import from there."
+                        )
