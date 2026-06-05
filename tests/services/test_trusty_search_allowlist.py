@@ -303,41 +303,45 @@ class TestCheckDenylist:
         """`~/.gnupg` and paths beneath it must be refused."""
         # Pick the .gnupg entry from the module's own constant so the path
         # is identical to what _check_denylist will compare against.
-        gnupg_entries = [p for p in _mod._DENYLIST_PARENTS if p.endswith("/.gnupg")]
-        if not gnupg_entries:
-            pytest.skip("~/.gnupg not in _DENYLIST_PARENTS (unexpected)")
-        gnupg = Path(gnupg_entries[0])
+        # A missing entry is a hard failure — a mutant that removes this
+        # denylist entry must FAIL this test, not skip it.
+        gnupg_entry = str(Path.home() / ".gnupg")
+        assert gnupg_entry in _mod._DENYLIST_PARENTS, (
+            f"{gnupg_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
         with pytest.raises(DeniedPathError):
-            _check_denylist(gnupg)
+            _check_denylist(Path(gnupg_entry))
 
     def test_rejects_kube_subpath(self):
         """`~/.kube` and paths beneath it must be refused."""
-        kube_entries = [p for p in _mod._DENYLIST_PARENTS if p.endswith("/.kube")]
-        if not kube_entries:
-            pytest.skip("~/.kube not in _DENYLIST_PARENTS (unexpected)")
-        kube = Path(kube_entries[0])
+        kube_entry = str(Path.home() / ".kube")
+        assert kube_entry in _mod._DENYLIST_PARENTS, (
+            f"{kube_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
         with pytest.raises(DeniedPathError):
-            _check_denylist(kube)
+            _check_denylist(Path(kube_entry))
 
     def test_rejects_docker_subpath(self):
         """`~/.docker` and paths beneath it must be refused."""
-        docker_entries = [p for p in _mod._DENYLIST_PARENTS if p.endswith("/.docker")]
-        if not docker_entries:
-            pytest.skip("~/.docker not in _DENYLIST_PARENTS (unexpected)")
-        docker = Path(docker_entries[0])
+        docker_entry = str(Path.home() / ".docker")
+        assert docker_entry in _mod._DENYLIST_PARENTS, (
+            f"{docker_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
         with pytest.raises(DeniedPathError):
-            _check_denylist(docker)
+            _check_denylist(Path(docker_entry))
 
     def test_rejects_gcloud_config_subpath(self):
         """`~/.config/gcloud` and paths beneath it must be refused."""
-        gcloud_entries = [
-            p for p in _mod._DENYLIST_PARENTS if p.endswith("/.config/gcloud")
-        ]
-        if not gcloud_entries:
-            pytest.skip("~/.config/gcloud not in _DENYLIST_PARENTS (unexpected)")
-        gcloud = Path(gcloud_entries[0])
+        gcloud_entry = str(Path.home() / ".config" / "gcloud")
+        assert gcloud_entry in _mod._DENYLIST_PARENTS, (
+            f"{gcloud_entry!r} is missing from _DENYLIST_PARENTS — "
+            "this credential directory is mandatory"
+        )
         with pytest.raises(DeniedPathError):
-            _check_denylist(gcloud)
+            _check_denylist(Path(gcloud_entry))
 
     # --- Individual _DENYLIST_SUBTREE_ROOTS entries ---------------------------
 
