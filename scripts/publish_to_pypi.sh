@@ -26,6 +26,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -z "${GH_REQUIRED_ACCOUNT:-}" ]; then
     if _acct="$(gh_required_account 2>/dev/null)" && [ -n "$_acct" ]; then
         export GH_REQUIRED_ACCOUNT="$_acct"
+    else
+        echo "WARNING: could not resolve required GitHub account from .gh-account; " \
+             "sub-repo pushes (homebrew tap, agents) may fall back to the OS keyring " \
+             "and fail or use the wrong identity." >&2
     fi
 fi
 
