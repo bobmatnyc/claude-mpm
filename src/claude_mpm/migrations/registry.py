@@ -215,6 +215,13 @@ def _run_dedup_hook_registrations_migration() -> bool:
     return run_migration()
 
 
+def _run_clean_global_settings_metadata_migration() -> bool:
+    """Remove stale _mpm_managed/_mpm_version metadata from global ~/.claude/settings.json (issue #676)."""
+    from .migrate_clean_global_settings_metadata import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -382,6 +389,12 @@ MIGRATIONS: list[Migration] = [
         version="6.5.20",
         description="Collapse duplicate MPM claude-hook entries that differ only in timeout into a single canonical entry per event (issue #677)",
         run=_run_dedup_hook_registrations_migration,
+    ),
+    Migration(
+        id="clean_global_settings_metadata",
+        version="6.5.21",
+        description="Remove stale _mpm_managed/_mpm_version metadata and leftover MPM hook entries from global ~/.claude/settings.json (issue #676)",
+        run=_run_clean_global_settings_metadata_migration,
     ),
 ]
 
