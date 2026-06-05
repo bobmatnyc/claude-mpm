@@ -164,11 +164,21 @@ gh_assert_identity() {
 #   token-handling region and restored afterward, so the secret cannot leak into CI
 #   debug traces via the assignment, guard, or env prefix. The temp script is
 #   removed even on failure.
+# macOS keychain bypass: on macOS, git uses Apple's system libcurl
+#   (/usr/lib/libcurl.4.dylib) which integrates with NSURLCredentialStorage /
+#   ~/Library/Keychains regardless of git credential helper settings. When multiple
+#   GitHub accounts are stored in the keychain (e.g. bobmatnyc + bob-duetto), the
+#   OS-level lookup may return the wrong one even when -c credential.helper= is set.
+#   Setting HOME to a clean temporary directory for the git subprocess prevents
+#   libcurl from reaching ~/Library/Keychains, forcing it to fall back to
+#   GIT_ASKPASS. The temp HOME dir is created with restrictive permissions and
+#   removed after every invocation (success or failure). GIT_CONFIG_NOSYSTEM=1
+#   is also set to prevent the system gitconfig from re-introducing helpers.
 # Test: `_GH_IDENTITY_TEST_MODE=1 _GH_IDENTITY_TEST_OVERRIDE=x gh_git push --dry-run`
 #   — in test mode it skips token resolution and runs git directly; otherwise it
 #   resolves the bobmatnyc token and the token must not appear in `git`'s argv.
 gh_git() {
-    local required token askpass rc
+    local required token askpass git_home rc
 
     required="$(gh_required_account)" || {
         echo "ERROR: cannot run authenticated git — required account unknown." >&2
@@ -221,6 +231,22 @@ gh_git() {
     printf '#!/bin/sh\nprintf %%s "${GH_ASKPASS_TOKEN}"\n' > "$askpass"
     chmod 0700 "$askpass"
 
+    # Create a clean temporary HOME dir to prevent Apple's system libcurl from
+    # reading ~/Library/Keychains and returning a cached credential for the wrong
+    # GitHub account. The dir is scoped only to the git child process via an
+    # env-var prefix. GIT_CONFIG_NOSYSTEM=1 prevents system gitconfig from
+    # re-introducing credential helpers. GIT_CONFIG_GLOBAL=/dev/null prevents
+    # user gitconfig helpers (e.g. osxkeychain, gh auth git-credential) from
+    # running alongside our askpass, which would cause the wrong helper to win
+    # when multiple GitHub accounts exist. Together these three env vars make
+    # GIT_ASKPASS the sole credential source for the child process.
+    git_home="$( umask 077 && mktemp -d "${TMPDIR:-/tmp}/gh_git_home.XXXXXX" )" || {
+        rm -f "$askpass"
+        [ "$_xtrace_was_on" = 1 ] && set -x
+        echo "ERROR: could not create temp HOME for git subprocess." >&2
+        return 1
+    }
+
     # credential.helper= (empty) disables any configured helper for this invocation
     # so the askpass token is authoritative and the ambient store is never consulted.
     # The token is passed to git ONLY via an env-var prefix on the child process —
@@ -228,10 +254,14 @@ gh_git() {
     # any sibling process, git hook, or subshell. The only residual vector is
     # /proc/<pid>/environ of the git child while it runs, which is acceptable.
     # xtrace is still off here, so the prefix assignment is not echoed.
-    GH_ASKPASS_TOKEN="$token" GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git -c credential.helper= "$@"
+    GH_ASKPASS_TOKEN="$token" GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 \
+        GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+        HOME="$git_home" \
+        git -c credential.helper= "$@"
     rc=$?
 
     rm -f "$askpass"
+    rm -rf "$git_home"
     [ "$_xtrace_was_on" = 1 ] && set -x
     return $rc
 }
