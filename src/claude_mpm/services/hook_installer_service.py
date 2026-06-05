@@ -18,6 +18,28 @@ from pathlib import Path
 from typing import Any
 
 from ..core.logging_config import get_logger
+from ..hooks.timeout_constants import canonical_timeout as _canonical_timeout
+
+
+def _is_our_hook(cmd: dict[str, Any]) -> bool:
+    """Return True if a hook command dict belongs to claude-mpm.
+
+    Recognises the authoritative ``"_mpm": true`` marker as well as the
+    PATH-based ``claude-hook`` entry point and legacy script-name
+    substrings.  This prevents install_hooks() from adding a duplicate
+    entry when called more than once.
+    """
+    if cmd.get("type") != "command":
+        return False
+    if cmd.get("_mpm"):
+        return True
+    command = cmd.get("command", "")
+    return (
+        command == "claude-hook"  # PATH-based entry point
+        or "hook_wrapper.sh" in command
+        or "claude-hook-handler.sh" in command
+        or "claude-mpm" in command
+    )
 
 
 class HookInstallerService:
@@ -354,21 +376,6 @@ class HookInstallerService:
                 settings = {}
                 self.logger.debug("Creating new Claude settings")
 
-            # Canonical timeouts per event type (single source of truth — keep in
-            # sync with templates/claude/settings.json and
-            # hooks/claude_hooks/installer.py).
-            # Most events: 15 s (hook returns async immediately; short timeout OK).
-            # Long-running cleanup events: 60 s (StopFailure, SessionEnd, PostCompact).
-            _canonical_timeouts: dict[str, int] = {
-                "StopFailure": 60,
-                "SessionEnd": 60,
-                "PostCompact": 60,
-            }
-            _default_timeout = 15
-
-            def _canonical_timeout(event_type: str) -> int:
-                return _canonical_timeouts.get(event_type, _default_timeout)
-
             # The "_mpm": True marker is the authoritative signal that this
             # hook belongs to claude-mpm (used by the v6_3_19 migration to
             # identify MPM hooks; substring matching is only a legacy fallback).
@@ -383,26 +390,6 @@ class HookInstallerService:
             # Update settings
             if "hooks" not in settings:
                 settings["hooks"] = {}
-
-            def is_our_hook(cmd: dict[str, Any]) -> bool:
-                """Check if a hook command belongs to claude-mpm.
-
-                Recognises the authoritative "_mpm": true marker as well as
-                the PATH-based "claude-hook" entry point and legacy script-name
-                substrings.  This prevents install_hooks() from adding a
-                duplicate entry when called more than once (D5 fix).
-                """
-                if cmd.get("type") != "command":
-                    return False
-                if cmd.get("_mpm"):
-                    return True
-                command = cmd.get("command", "")
-                return (
-                    command == "claude-hook"  # PATH-based entry point
-                    or "hook_wrapper.sh" in command
-                    or "claude-hook-handler.sh" in command
-                    or "claude-mpm" in command
-                )
 
             def merge_hooks_for_event(
                 existing_hooks: list, hook_command: dict[str, Any]
@@ -424,7 +411,7 @@ class HookInstallerService:
                         hook_config["hooks"], list
                     ):
                         for hook in hook_config["hooks"]:
-                            if is_our_hook(hook):
+                            if _is_our_hook(hook):
                                 # Reconcile the FULL entry (command + timeout + _mpm)
                                 # to the canonical desired value — not just command.
                                 # This prevents a stale timeout from persisting after
