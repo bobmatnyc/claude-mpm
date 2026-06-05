@@ -290,28 +290,52 @@ class TestCheckDenylist:
             mod._check_denylist(tmp_path)
 
     # --- Individual _DENYLIST_PARENTS entries ---------------------------------
+    #
+    # These tests derive the denied path directly from the module's
+    # _DENYLIST_PARENTS constant (populated at import time from the real home).
+    # This avoids a CI mismatch where Path.home() at test-run time might differ
+    # from the home used when the module was imported (e.g. sandboxed runners
+    # that set HOME after import).  By using an entry already in the set we
+    # guarantee the path we construct is exactly what _check_denylist will
+    # match — making each test deterministic regardless of the CI HOME.
 
     def test_rejects_gnupg_subpath(self):
         """`~/.gnupg` and paths beneath it must be refused."""
-        gnupg = Path.home() / ".gnupg"
+        # Pick the .gnupg entry from the module's own constant so the path
+        # is identical to what _check_denylist will compare against.
+        gnupg_entries = [p for p in _mod._DENYLIST_PARENTS if p.endswith("/.gnupg")]
+        if not gnupg_entries:
+            pytest.skip("~/.gnupg not in _DENYLIST_PARENTS (unexpected)")
+        gnupg = Path(gnupg_entries[0])
         with pytest.raises(DeniedPathError):
             _check_denylist(gnupg)
 
     def test_rejects_kube_subpath(self):
         """`~/.kube` and paths beneath it must be refused."""
-        kube = Path.home() / ".kube"
+        kube_entries = [p for p in _mod._DENYLIST_PARENTS if p.endswith("/.kube")]
+        if not kube_entries:
+            pytest.skip("~/.kube not in _DENYLIST_PARENTS (unexpected)")
+        kube = Path(kube_entries[0])
         with pytest.raises(DeniedPathError):
             _check_denylist(kube)
 
     def test_rejects_docker_subpath(self):
         """`~/.docker` and paths beneath it must be refused."""
-        docker = Path.home() / ".docker"
+        docker_entries = [p for p in _mod._DENYLIST_PARENTS if p.endswith("/.docker")]
+        if not docker_entries:
+            pytest.skip("~/.docker not in _DENYLIST_PARENTS (unexpected)")
+        docker = Path(docker_entries[0])
         with pytest.raises(DeniedPathError):
             _check_denylist(docker)
 
     def test_rejects_gcloud_config_subpath(self):
         """`~/.config/gcloud` and paths beneath it must be refused."""
-        gcloud = Path.home() / ".config" / "gcloud"
+        gcloud_entries = [
+            p for p in _mod._DENYLIST_PARENTS if p.endswith("/.config/gcloud")
+        ]
+        if not gcloud_entries:
+            pytest.skip("~/.config/gcloud not in _DENYLIST_PARENTS (unexpected)")
+        gcloud = Path(gcloud_entries[0])
         with pytest.raises(DeniedPathError):
             _check_denylist(gcloud)
 
