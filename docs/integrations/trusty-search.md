@@ -7,7 +7,7 @@ Trusty Search is a high-performance semantic code search engine written in Rust,
 ## Features
 
 - **Semantic Code Search** - Find code by meaning, not just keywords
-- **Automatic Indexing** - Codebases indexed on demand
+- **Opt-in Indexing** - Explicit index registration via CLI (no auto-indexing)
 - **Multiple Search Modes**:
   - **Text-to-code**: Natural language queries ("authentication middleware")
   - **Code-to-code**: Find similar code patterns
@@ -38,9 +38,10 @@ This will:
 1. Check for Rust/cargo installation
 2. Install trusty-search Rust binary via cargo
 3. Start daemon process on port 7878
-4. Register project index in trusty-search
-5. Configure MCP server in `.mcp.json`
-6. Make search tools available in Claude Code
+4. Configure MCP server in `.mcp.json`
+5. Make search tools available in Claude Code
+
+**Note**: The daemon no longer auto-indexes projects. See [Index Management](#index-management) below to register your first project.
 
 ### What Gets Installed
 
@@ -153,13 +154,45 @@ Search with rich context and focus areas:
 - Exploratory code discovery
 - Understanding code relationships
 
-### CLI Commands
+### MPM Search-Index Commands
+
+MPM provides a dedicated command group for managing the trusty-search allowlist:
+
+```bash
+# Add a project to the allowlist
+claude-mpm search-index add ~/Projects/my-app
+
+# Alias: si (short form)
+claude-mpm si add ~/Projects/my-app
+
+# Add with a custom index name
+claude-mpm search-index add ~/Projects/my-app --name my-project
+
+# List all registered projects
+claude-mpm search-index list
+
+# Alias for list: ls
+claude-mpm search-index ls
+
+# Output as JSON
+claude-mpm search-index list --json
+
+# Remove a project from the allowlist
+claude-mpm search-index remove ~/Projects/my-app
+
+# Alias for remove: rm
+claude-mpm search-index rm ~/Projects/my-app
+```
+
+### trusty-search Daemon Commands
+
+After registering a project, use trusty-search CLI tools:
 
 ```bash
 # Check daemon status
 trusty-search status
 
-# Index a project
+# Index a project (after registration)
 trusty-search index /path/to/project
 
 # Search from command line
@@ -171,17 +204,68 @@ trusty-search list-projects
 
 ## Index Management
 
-### Automatic Indexing
+### Opt-in Indexing Model
 
-When you run `claude-mpm setup trusty-search`:
-1. Project root is registered with daemon
-2. Full codebase is indexed
-3. Index stored in daemon's local cache
-4. Search tools become available
+trusty-search uses an **opt-in indexing model**: a directory is indexed only when explicitly registered via MPM. No auto-indexing occurs on daemon startup or project changes.
+
+#### Adding a Project to the Index
+
+```bash
+# Register a project root for indexing
+claude-mpm search-index add ~/Projects/my-app
+
+# Register with an explicit index name (optional, default: directory basename)
+claude-mpm search-index add ~/Projects/my-app --name my-app
+```
+
+This command:
+1. Validates the path against a denylist of sensitive directories
+2. Resolves the path to its canonical absolute form
+3. Writes an entry to the trusty-search allowlist (`~/Library/Application Support/trusty-search/indexes.toml` on macOS)
+4. Prints next steps (run `trusty-search index` inside the directory to trigger indexing)
+
+After adding a project, trigger the initial index build:
+
+```bash
+cd ~/Projects/my-app
+trusty-search index
+```
+
+#### Listing Registered Projects
+
+```bash
+# View all registered project roots
+claude-mpm search-index list
+
+# Output as JSON (for scripting)
+claude-mpm search-index list --json
+```
+
+#### Removing a Project from the Index
+
+```bash
+# Unregister a project root
+claude-mpm search-index remove ~/Projects/my-app
+```
+
+### Denylist: Paths Refused
+
+MPM will refuse to add the following paths (security restriction):
+
+- **System roots**: `$HOME` itself, `/`, `/tmp`, `/etc`, `/var`
+- **Credential directories**: `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.config/gcloud`, `~/.kube`, `~/.docker`
+- **Any directory containing a `.env` file** at the top level (prevents secret exposure)
+
+If you try to register a denied path, you'll see an error:
+
+```
+Denied: Refusing to index '/Users/you': this path is in the sensitive-path denylist 
+(home directory, /tmp, or a system root). Choose a specific project subdirectory instead.
+```
 
 ### Manual Reindexing
 
-Force reindex when needed:
+After registering a project, force a full reindex when needed:
 
 ```bash
 # Reindex current project
@@ -194,6 +278,54 @@ trusty-search index src/
 trusty-search clear
 trusty-search index .
 ```
+
+### Allowlist File Location and Schema
+
+The opt-in allowlist is stored in a TOML file:
+
+**Platform-specific locations:**
+
+- **macOS**: `~/Library/Application Support/trusty-search/indexes.toml`
+- **Linux**: `~/.local/share/trusty-search/indexes.toml`
+- **Windows**: `%APPDATA%/trusty-search/indexes.toml`
+
+**Override**: Set `TRUSTY_DATA_DIR` environment variable to use a custom location.
+
+**Schema** (TOML array-of-tables format):
+
+```toml
+[[index]]
+id = "my-project"
+root_path = "/absolute/path/to/project"
+colocated = true  # store index data inside <root_path>/.trusty-search/
+
+# Additional optional fields:
+# include_docs = true        # default: true
+# respect_gitignore = true   # default: true
+# lexical_only = false       # default: false
+# skip_kg = false            # default: false
+# include_paths = []         # subtree restrictions
+# exclude_globs = []         # glob exclusions
+# extensions = []            # extension allow-list
+# domain_terms = []          # intent-classifier vocabulary
+# path_filter = []           # subdirectory glob filter
+```
+
+**Example allowlist**:
+
+```toml
+[[index]]
+id = "claude-mpm"
+root_path = "/Users/you/Projects/claude-mpm"
+colocated = true
+
+[[index]]
+id = "trusty-tools"
+root_path = "/Users/you/Projects/trusty-tools"
+colocated = true
+```
+
+You normally manage this file via `claude-mpm search-index add/list/remove` — direct TOML editing is supported but not recommended.
 
 ## Performance
 
@@ -226,6 +358,14 @@ claude-mpm setup mcp-vector-search --force  # or manual cleanup
 
 # Install trusty-search
 claude-mpm setup trusty-search
+
+# Register your projects (required — no auto-indexing)
+claude-mpm search-index add ~/Projects/my-app
+claude-mpm search-index add ~/Projects/another-app
+
+# Trigger initial indexing for each project
+cd ~/Projects/my-app && trusty-search index
+cd ~/Projects/another-app && trusty-search index
 
 # Remove old index (optional)
 rm -rf .vector-index/
@@ -302,8 +442,9 @@ claude-mpm setup trusty-search --force
 This will:
 1. Rebuild the Rust binary via cargo
 2. Restart daemon
-3. Re-register project index
-4. Update `.mcp.json`
+3. Update `.mcp.json`
+
+**Note**: The allowlist is preserved. Your registered projects will remain active. If you need to re-register projects, use `claude-mpm search-index add` again.
 
 ## Further Reading
 
