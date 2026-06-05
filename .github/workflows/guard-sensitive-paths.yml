@@ -36,12 +36,33 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Keep this list in sync with .githooks/pre-push (SENSITIVE array).
-          SENSITIVE_PATTERNS=(
-            "scripts/lib/gh_identity.sh"
-            "scripts/lib/*credential*"
-            "scripts/lib/*identity*"
-          )
+          # Sensitive patterns come from the single canonical source
+          # .githooks/sensitive-patterns (checked out in CI), shared with
+          # .githooks/pre-push so the policy lives in exactly one place.
+          # Same parse: skip blank lines and `#` comments.
+          PATTERNS_FILE=".githooks/sensitive-patterns"
+
+          # Fail closed: a missing policy file must not silently disable the guard.
+          if [ ! -f "$PATTERNS_FILE" ]; then
+            echo "::error::Sensitive-paths policy file missing: $PATTERNS_FILE"
+            exit 1
+          fi
+
+          SENSITIVE_PATTERNS=()
+          while IFS= read -r line || [ -n "$line" ]; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+            [ -n "$line" ] || continue
+            case "$line" in
+              \#*) continue ;;
+            esac
+            SENSITIVE_PATTERNS+=("$line")
+          done < "$PATTERNS_FILE"
+
+          if [ "${#SENSITIVE_PATTERNS[@]}" -eq 0 ]; then
+            echo "::error::Sensitive-paths policy file defines no patterns: $PATTERNS_FILE"
+            exit 1
+          fi
 
           ZERO_SHA="0000000000000000000000000000000000000000"
 
@@ -81,10 +102,25 @@ jobs:
 
             [ "$commit_has_sensitive" -eq 1 ] || continue
 
-            # Does this commit trace to a MERGED PR?
-            merged_pr_count="$(gh api \
-              "repos/${REPO}/commits/${sha}/pulls" \
-              --jq '[.[] | select(.merged_at != null)] | length' 2>/dev/null || echo 0)"
+            # Does this commit trace to a MERGED PR? The
+            # commits/<sha>/pulls association index is updated asynchronously,
+            # so for a just-merged commit it can transiently return empty and
+            # produce a false-positive "direct push" alert. Retry a few times,
+            # treating a non-empty merged-PR result as success as soon as it
+            # appears.
+            merged_pr_count=0
+            for attempt in 1 2 3; do
+              merged_pr_count="$(gh api \
+                "repos/${REPO}/commits/${sha}/pulls" \
+                --jq '[.[] | select(.merged_at != null)] | length' 2>/dev/null || echo 0)"
+              if [ "${merged_pr_count:-0}" -gt 0 ]; then
+                break
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                echo "No merged PR association yet for ${sha} (attempt ${attempt}/3); retrying after 5s (async index)."
+                sleep 5
+              fi
+            done
 
             if [ "${merged_pr_count:-0}" -gt 0 ]; then
               echo "✅ Commit ${sha} touches sensitive files but traces to a merged PR."
