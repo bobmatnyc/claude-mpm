@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+#
+# Pre-push guard: block direct pushes of credential/security-sensitive files to main.
+#
+# WHAT:
+#   Rejects a `git push` to `refs/heads/main` when any commit in the pushed
+#   range modifies a credential/security-sensitive file (see SENSITIVE below).
+#   Pushes that only touch non-sensitive files (e.g. the release version-bump
+#   path: VERSION, pyproject.toml, package.json, uv.lock) are allowed, as are
+#   all pushes to non-main branches.
+#
+# WHY:
+#   Incident: an agent ran `git push origin main` with a change to
+#   scripts/lib/gh_identity.sh (a credential-handling library), bypassing PR
+#   review. Credential/identity code must always pass through a Pull Request so
+#   it gets owner review (see .github/CODEOWNERS). Squash-merges of PRs are
+#   created server-side on GitHub and never pass through this local hook, so
+#   the legitimate PR path is unaffected. A CI backstop
+#   (.github/workflows/guard-sensitive-paths.yml) catches `--no-verify`
+#   bypasses or uninstalled hooks.
+#
+# Git invokes this as:  pre-push <remote-name> <remote-url>
+# and feeds lines on stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Sensitive paths. Clearly-defined, easily-extendable. Exact paths or globs;
+# matching is simple prefix/glob via shell `case`.
+# ---------------------------------------------------------------------------
+SENSITIVE=(
+    "scripts/lib/gh_identity.sh"
+    "scripts/lib/*credential*"
+    "scripts/lib/*identity*"
+)
+
+# Colors (match scripts/setup-git-hooks.sh style)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+PROTECTED_REF="refs/heads/main"
+ZERO_SHA="0000000000000000000000000000000000000000"
+
+# Return 0 if the given path matches any sensitive pattern.
+is_sensitive() {
+    local file="$1"
+    local pattern
+    for pattern in "${SENSITIVE[@]}"; do
+        # shellcheck disable=SC2254  # intentional glob match against patterns
+        case "$file" in
+            $pattern) return 0 ;;
+        esac
+    done
+    return 1
+}
+
+# Compute the changed-file set for the pushed range.
+changed_files() {
+    local local_sha="$1"
+    local remote_sha="$2"
+
+    if [ "$remote_sha" != "$ZERO_SHA" ]; then
+        # Normal case: remote main exists; diff what is new.
+        git diff --name-only "$remote_sha" "$local_sha"
+        return
+    fi
+
+    # Remote main absent. Prefer origin/main if we have it locally.
+    if git rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+        git diff --name-only origin/main "$local_sha"
+        return
+    fi
+
+    # Last-resort fallback: diff from the fork point (or the root commit).
+    local base
+    base="$(git merge-base --fork-point origin/main "$local_sha" 2>/dev/null \
+        || git rev-list --max-parents=0 "$local_sha" | tail -1)"
+    git diff --name-only "$base" "$local_sha"
+}
+
+violations=()
+
+while read -r _local_ref local_sha remote_ref remote_sha; do
+    # Only guard pushes to main.
+    [ "$remote_ref" = "$PROTECTED_REF" ] || continue
+
+    # Skip branch deletions (local sha all zeros).
+    [ "$local_sha" = "$ZERO_SHA" ] && continue
+
+    while IFS= read -r file; do
+        [ -n "$file" ] || continue
+        if is_sensitive "$file"; then
+            violations+=("$file")
+        fi
+    done < <(changed_files "$local_sha" "$remote_sha")
+done
+
+if [ "${#violations[@]}" -gt 0 ]; then
+    # De-duplicate the offending file list (portable; avoids bash 4 `mapfile`).
+    deduped=()
+    while IFS= read -r f; do
+        [ -n "$f" ] && deduped+=("$f")
+    done < <(printf '%s\n' "${violations[@]}" | sort -u)
+    violations=("${deduped[@]}")
+
+    echo -e "${RED}✖ Push to main rejected: credential/security-sensitive file(s) detected.${NC}" >&2
+    echo "" >&2
+    echo -e "${YELLOW}These files must NOT be pushed directly to main — they require a Pull Request${NC}" >&2
+    echo -e "${YELLOW}so an owner can review them (see .github/CODEOWNERS):${NC}" >&2
+    echo "" >&2
+    for f in "${violations[@]}"; do
+        echo -e "  ${RED}•${NC} $f" >&2
+    done
+    echo "" >&2
+    echo -e "${GREEN}How to proceed — open a Pull Request:${NC}" >&2
+    echo "  git switch -c fix/your-change            # create a feature branch" >&2
+    echo "  git push -u origin fix/your-change       # push the branch" >&2
+    echo "  gh pr create --fill                      # open a PR for owner review" >&2
+    echo "" >&2
+    echo -e "${YELLOW}An escape hatch (git push --no-verify) exists for genuine emergencies,${NC}" >&2
+    echo -e "${YELLOW}but it is logged and audited by CI (guard-sensitive-paths.yml) and${NC}" >&2
+    echo -e "${YELLOW}will open an alert issue. Do not use it to bypass review.${NC}" >&2
+    exit 1
+fi
+
+# No sensitive files touched — allow (this is the release version-bump path).
+exit 0
