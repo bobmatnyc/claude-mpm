@@ -247,6 +247,17 @@ gh_git() {
         return 1
     }
 
+    # Signal-safe cleanup: if the git child is interrupted (SIGINT/SIGTERM), the
+    # explicit `rm` lines below the git call would be skipped, leaking BOTH the
+    # askpass helper and the temp HOME dir. Install an INT/TERM trap that removes
+    # both (with ${var:-} guards so it is safe under `set -u` and a no-op if a var
+    # is unset). We deliberately do NOT use a RETURN or EXIT trap: this is a sourced
+    # library, so a RETURN trap can bleed into the caller's return semantics (we hit
+    # exactly that bug in update_homebrew_tap.sh) and an EXIT trap would fire for the
+    # whole script. The trap is reset (`trap - INT TERM`) right before the normal
+    # return, after the explicit cleanup, so nothing lingers in the caller.
+    trap 'rm -f "${askpass:-}"; rm -rf "${git_home:-}"' INT TERM
+
     # credential.helper= (empty) disables any configured helper for this invocation
     # so the askpass token is authoritative and the ambient store is never consulted.
     # The token is passed to git ONLY via an env-var prefix on the child process —
@@ -254,6 +265,9 @@ gh_git() {
     # any sibling process, git hook, or subshell. The only residual vector is
     # /proc/<pid>/environ of the git child while it runs, which is acceptable.
     # xtrace is still off here, so the prefix assignment is not echoed.
+    # NOTE: gh_git is only ever used for clone/push/fetch (never `commit`), so the
+    # GIT_CONFIG_GLOBAL=/dev/null below does NOT affect git author/committer identity
+    # for any current caller — it only suppresses ambient credential helpers.
     GH_ASKPASS_TOKEN="$token" GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 \
         GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
         HOME="$git_home" \
@@ -262,6 +276,9 @@ gh_git() {
 
     rm -f "$askpass"
     rm -rf "$git_home"
+    # Reset the signal trap now that cleanup is done and we are returning normally,
+    # so it never lingers in the caller's trap table for INT/TERM.
+    trap - INT TERM
     [ "$_xtrace_was_on" = 1 ] && set -x
     return $rc
 }
