@@ -13,6 +13,7 @@ import stat
 import subprocess  # nosec B404 - Safe: only uses hardcoded 'claude' CLI command, no user input
 from pathlib import Path
 
+from claude_mpm.hooks.hook_identity import is_our_hook as _is_our_hook
 from claude_mpm.hooks.timeout_constants import canonical_timeout as _canonical_timeout
 
 
@@ -23,32 +24,6 @@ class _PathEncoder(json.JSONEncoder):
         if isinstance(obj, Path):
             return str(obj)
         return super().default(obj)
-
-
-def _is_our_hook(cmd: dict) -> bool:
-    """Return True if a hook command dict belongs to claude-mpm.
-
-    Recognises the authoritative ``_mpm: true`` marker as well as the
-    PATH-based ``claude-hook`` entry point and legacy script-name
-    substrings.  Matching ``_mpm`` first keeps this consistent with
-    ``hook_installer_service.py`` and the v6_3_19 migration so both
-    installers agree on what counts as an MPM hook.
-    """
-    if cmd.get("type") != "command":
-        return False
-    # Primary: explicit marker is the certain signal (written by both
-    # installers for all new entries since the _mpm marker was added).
-    if cmd.get("_mpm"):
-        return True
-    command = cmd.get("command", "")
-    # Legacy fallback: substring-match for hooks written before the
-    # _mpm marker was introduced.
-    return (
-        command == "claude-hook"
-        or "claude-hook-fast.sh" in command
-        or "claude-hook-handler.sh" in command
-        or command.endswith("claude-mpm-hook.sh")
-    )
 
 
 class HookInstaller:
