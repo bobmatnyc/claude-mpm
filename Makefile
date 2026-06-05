@@ -539,13 +539,23 @@ test-e2e: ## Run end-to-end tests only
 
 mutation-test: ## Run mutation tests against trusty_search_allowlist (advisory, on-demand only)
 	@echo "$(YELLOW)🧬 Running mutation tests (scope: trusty_search_allowlist)...$(NC)"
-	@echo "$(YELLOW)   Safety: run 'git diff -- src/' after this completes to verify no mutant left in source.$(NC)"
-	@uv run mutmut run
-	@echo "$(YELLOW)   Mutation run complete. Results:$(NC)"
-	@uv run mutmut results
-	@echo "$(YELLOW)   SAFETY CHECK: verifying no mutant left in src/ ...$(NC)"
-	@git diff --exit-code -- src/ || (echo "$(RED)MUTANT LEFT IN SOURCE — restoring...$(NC)" && git checkout HEAD -- src/ && exit 1)
-	@echo "$(GREEN)✓ Mutation tests complete — src/ is clean$(NC)"
+	@echo "$(YELLOW)   Safety: src/ will be verified/restored regardless of mutmut exit code.$(NC)"
+	@mutmut_rc=0; uv run mutmut run || mutmut_rc=$$?; \
+	echo "$(YELLOW)   Mutation run complete (exit code: $$mutmut_rc). Results:$(NC)"; \
+	uv run mutmut results; \
+	echo "$(YELLOW)   SAFETY CHECK: verifying no mutant left in src/ ...$(NC)"; \
+	if ! git diff --exit-code -- src/; then \
+		echo "$(RED)MUTANT LEFT IN SOURCE — restoring...$(NC)"; \
+		git checkout HEAD -- src/; \
+		echo "$(RED)✗ src/ had uncommitted changes after mutmut — restored. Check mutmut output above.$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(GREEN)✓ src/ is clean$(NC)"; \
+	if [ $$mutmut_rc -ne 0 ]; then \
+		echo "$(YELLOW)⚠ mutmut exited $$mutmut_rc (survivors exist — see results above)$(NC)"; \
+		exit $$mutmut_rc; \
+	fi; \
+	echo "$(GREEN)✓ Mutation tests complete — all mutants killed$(NC)"
 
 deprecation-check: ## Check for obsolete files according to deprecation policy
 	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
