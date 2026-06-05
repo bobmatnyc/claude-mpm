@@ -17,7 +17,7 @@ auditable.
 | Title      | `fix(release): bypass macOS keychain credential hijack in gh_git` |
 | File       | `scripts/lib/gh_identity.sh` |
 | Pushed by  | bobmatnyc |
-| Date       | 2024 (during v6.5.19 release) |
+| Date       | 2026-06-05 |
 | Issue      | #664 |
 
 **What changed.** `gh_git()` in `scripts/lib/gh_identity.sh` was modified to isolate the
@@ -31,7 +31,7 @@ body), `GIT_TERMINAL_PROMPT=0`, and the `credential.helper=` override — all wo
 together so `GIT_ASKPASS` is the sole credential source for the child process.
 
 **Why it was pushed directly.** The change was authored inline during a release run:
-commit `83e01fae0` (#663) had just fixed a Homebrew-tap dirty-clone failure when the
+commit `83e01fae8` (#663) had just fixed a Homebrew-tap dirty-clone failure when the
 underlying macOS keychain hijack surfaced as a 403 on the tap push. The fix was minimal,
 self-contained, and immediately needed to unblock the release.
 
