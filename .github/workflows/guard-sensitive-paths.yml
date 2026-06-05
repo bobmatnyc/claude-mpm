@@ -1,0 +1,150 @@
+name: Guard sensitive paths
+
+# WHAT: CI backstop for the local .githooks/pre-push guard. For every push to
+#   main, it checks whether any credential/security-sensitive file changed and,
+#   if so, whether the change arrived via a MERGED pull request. A sensitive
+#   change with no associated merged PR was pushed directly (hook bypassed via
+#   --no-verify, or the hook was never installed) and fails the job loudly.
+# WHY: The local pre-push hook can be skipped (--no-verify) or simply not
+#   installed. This server-side check ensures credential/identity files always
+#   trace back to a reviewed PR.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  guard-sensitive-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify sensitive changes trace to a merged PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+
+          # Sensitive patterns come from the single canonical source
+          # .githooks/sensitive-patterns (checked out in CI), shared with
+          # .githooks/pre-push so the policy lives in exactly one place.
+          # Same parse: skip blank lines and `#` comments.
+          PATTERNS_FILE=".githooks/sensitive-patterns"
+
+          # Fail closed: a missing policy file must not silently disable the guard.
+          if [ ! -f "$PATTERNS_FILE" ]; then
+            echo "::error::Sensitive-paths policy file missing: $PATTERNS_FILE"
+            exit 1
+          fi
+
+          SENSITIVE_PATTERNS=()
+          while IFS= read -r line || [ -n "$line" ]; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+            [ -n "$line" ] || continue
+            case "$line" in
+              \#*) continue ;;
+            esac
+            SENSITIVE_PATTERNS+=("$line")
+          done < "$PATTERNS_FILE"
+
+          if [ "${#SENSITIVE_PATTERNS[@]}" -eq 0 ]; then
+            echo "::error::Sensitive-paths policy file defines no patterns: $PATTERNS_FILE"
+            exit 1
+          fi
+
+          ZERO_SHA="0000000000000000000000000000000000000000"
+
+          # First push of a branch (no prior commit to diff against) — skip.
+          if [ -z "${BEFORE:-}" ] || [ "$BEFORE" = "$ZERO_SHA" ]; then
+            echo "No prior commit (first push); nothing to check."
+            exit 0
+          fi
+
+          is_sensitive() {
+            local file="$1" pattern
+            for pattern in "${SENSITIVE_PATTERNS[@]}"; do
+              # shellcheck disable=SC2254
+              case "$file" in
+                $pattern) return 0 ;;
+              esac
+            done
+            return 1
+          }
+
+          violation=0
+
+          # Iterate every commit in the pushed range.
+          for sha in $(git rev-list "${BEFORE}..${AFTER}"); do
+            # Files changed by this specific commit.
+            changed="$(git diff-tree --no-commit-id --name-only -r "$sha")"
+
+            commit_has_sensitive=0
+            offending_files=""
+            while IFS= read -r file; do
+              [ -n "$file" ] || continue
+              if is_sensitive "$file"; then
+                commit_has_sensitive=1
+                offending_files="${offending_files}${file}\n"
+              fi
+            done <<< "$changed"
+
+            [ "$commit_has_sensitive" -eq 1 ] || continue
+
+            # Does this commit trace to a MERGED PR? The
+            # commits/<sha>/pulls association index is updated asynchronously,
+            # so for a just-merged commit it can transiently return empty and
+            # produce a false-positive "direct push" alert. Retry a few times,
+            # treating a non-empty merged-PR result as success as soon as it
+            # appears.
+            merged_pr_count=0
+            for attempt in 1 2 3; do
+              merged_pr_count="$(gh api \
+                "repos/${REPO}/commits/${sha}/pulls" \
+                --jq '[.[] | select(.merged_at != null)] | length' 2>/dev/null || echo 0)"
+              if [ "${merged_pr_count:-0}" -gt 0 ]; then
+                break
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                echo "No merged PR association yet for ${sha} (attempt ${attempt}/3); retrying after 5s (async index)."
+                sleep 5
+              fi
+            done
+
+            if [ "${merged_pr_count:-0}" -gt 0 ]; then
+              echo "✅ Commit ${sha} touches sensitive files but traces to a merged PR."
+              continue
+            fi
+
+            violation=1
+            echo "::error::Direct push of credential/security-sensitive file(s) to main detected in commit ${sha}:"
+            echo -e "$offending_files" | sed '/^$/d' | while IFS= read -r f; do
+              echo "::error::  - $f"
+            done
+
+            # Best-effort alert issue.
+            short_sha="${sha:0:12}"
+            gh issue create \
+              --repo "${REPO}" \
+              --title "⚠️ Direct push of credential file to main detected: ${short_sha}" \
+              --body "$(printf 'Commit %s pushed credential/security-sensitive file(s) directly to main without a merged PR.\n\nOffending file(s):\n%b\n\nCredential/identity files must go through a Pull Request (see .github/CODEOWNERS and .githooks/pre-push). If --no-verify was used to bypass the local hook, please open a retroactive PR and document the reason.' "$sha" "$offending_files")" \
+              2>/dev/null || echo "::warning::Could not open alert issue (continuing)."
+          done
+
+          if [ "$violation" -eq 1 ]; then
+            echo "::error::One or more credential/security-sensitive files were pushed directly to main."
+            exit 1
+          fi
+
+          echo "All sensitive changes (if any) trace to merged PRs. OK."

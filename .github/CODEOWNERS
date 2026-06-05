@@ -1,2 +1,10 @@
 # All files require owner approval
 * @bobmatnyc
+
+# Security-sensitive: credential/identity handling. Changes require owner review
+# and MUST go through a PR (never a direct push to main — enforced by .githooks/pre-push).
+# Globs mirror the patterns guarded by .githooks/sensitive-patterns so any future
+# credential/identity file also requires owner review.
+/scripts/lib/gh_identity.sh @bobmatnyc
+/scripts/lib/*credential* @bobmatnyc
+/scripts/lib/*identity*   @bobmatnyc
