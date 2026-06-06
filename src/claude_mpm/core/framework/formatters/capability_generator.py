@@ -66,22 +66,33 @@ class CapabilityGenerator:
     ) -> str:
         """Generate the ``## Available Agent Capabilities`` Markdown section.
 
-        Why: The PM prompt must enumerate all reachable agents so the model
-        can select the right one without guessing.  Local (project-tier) agents
-        override deployed ones of the same ID so project customisations take
-        precedence.
+        WHAT: Produces a terse one-liner-per-agent bullet list for the PM
+        system prompt, keeping every agent name, subagent_type/routing
+        identifier, and a 1-line description.  Verbose per-agent sub-fields
+        (Memory Routing, Authority, Routing keywords, etc.) are omitted; that
+        detail is not needed for PM routing decisions and was the largest single
+        source of token bloat (~860 tokens / session for 27 Memory-Routing
+        entries alone).
 
-        What: Merges *local_agents* (highest priority) with *deployed_agents*,
-        de-duplicates by agent ID, sorts alphabetically, then renders each
-        agent as a Markdown sub-section with its description, routing hints,
-        authority, primary function, handoff targets, tools, model, and memory
-        routing metadata.  Falls back to :meth:`get_fallback_capabilities` if
-        no agents are found.
+        WHY: Issue #678 — reduce the assembled PM system prompt from ~12 K
+        tokens.  Conservative trim: routing must not break, so ALL agent
+        names and IDs stay INLINE.  Only per-agent verbose blurbs are dropped.
+
+        Format per agent::
+
+            - **Display Name** (`subagent_type`) — one-line description [model]
+
+        Local-tier agents get a ``[LOCAL]`` suffix instead of the model hint.
+
+        Local (project-tier) agents override deployed ones of the same ID so
+        project customisations take precedence.
+
+        Falls back to :meth:`get_fallback_capabilities` if no agents are found.
 
         Args:
             deployed_agents: List of deployed agent metadata dicts (each must
                 contain at least ``"id"`` and optionally ``"description"``,
-                ``"routing"``, ``"authority"``, etc.)
+                ``"model"``, etc.)
             local_agents: Mapping of ``agent_id -> metadata`` for project-local
                 agents; these take precedence over identically-named deployed
                 agents.
@@ -92,7 +103,7 @@ class CapabilityGenerator:
             a total-agent count line.
 
         Test: Pass one deployed agent ``{"id": "research", "description": "…"}``
-        and verify the returned string contains ``"### Research"`` and the
+        and verify the returned string contains ``"(`research`)"`` and the
         agent description.  Pass an empty list/dict and verify the fallback
         string is returned instead.
         """
@@ -100,7 +111,7 @@ class CapabilityGenerator:
         section = "\n\n## Available Agent Capabilities\n\n"
 
         # Combine deployed and local agents
-        all_agents = {}  # key: agent_id, value: (agent_data, priority)
+        all_agents: dict[str, tuple[dict[str, Any], int]] = {}
 
         # Add local agents first (highest priority)
         for agent_id, agent_data in local_agents.items():
@@ -132,7 +143,13 @@ class CapabilityGenerator:
         # Sort agents alphabetically by ID
         final_agents.sort(key=lambda x: x["id"])
 
-        # Display all agents with their rich descriptions
+        # Emit a terse one-liner per agent.
+        # Format: - **Display Name** (`id`) — description [model]
+        # Rationale: The verbose ### heading + multi-line bullet format used
+        # ~257 bytes per agent on average; the one-liner uses ~130 bytes.
+        # Memory Routing, Authority, Routing-keywords, and other per-agent
+        # sub-fields are intentionally dropped here — they are not needed for
+        # PM routing decisions and cost ~860 tokens for 27 agents (issue #678).
         for agent in final_agents:
             # Strip <example>...</example> blocks from description before rendering.
             # These blocks help Claude Code route tasks during agent-file parsing, but
@@ -156,59 +173,17 @@ class CapabilityGenerator:
             if display_name.lower() == "qa agent":
                 display_name = "QA Agent"
 
-            # Add local indicator if this is a local agent
+            # Inline model hint or LOCAL marker — keeps routing context without
+            # a separate bullet line per agent.
             if agent.get("is_local"):
-                tier_label = f" [LOCAL-{agent.get('tier', 'PROJECT').upper()}]"
-                section += f"\n### {display_name} (`{agent['id']}`) {tier_label}\n"
+                tier = agent.get("tier", "PROJECT").upper()
+                suffix = f" [LOCAL-{tier}]"
+            elif agent.get("model") and agent["model"] != "opus":
+                suffix = f" [{agent['model']}]"
             else:
-                section += f"\n### {display_name} (`{agent['id']}`)\n"
+                suffix = ""
 
-            section += f"{desc}\n"
-
-            # Add routing information if available
-            if agent.get("routing"):
-                routing = agent["routing"]
-                routing_hints = []
-
-                if routing.get("keywords"):
-                    # Show first 5 keywords for brevity
-                    keywords = routing["keywords"][:5]
-                    routing_hints.append(f"Keywords: {', '.join(keywords)}")
-
-                if routing.get("paths"):
-                    # Show first 3 paths for brevity
-                    paths = routing["paths"][:3]
-                    routing_hints.append(f"Paths: {', '.join(paths)}")
-
-                if routing.get("priority"):
-                    routing_hints.append(f"Priority: {routing['priority']}")
-
-                if routing_hints:
-                    section += f"- **Routing**: {' | '.join(routing_hints)}\n"
-
-                # Add when_to_use if present
-                if routing.get("when_to_use"):
-                    section += f"- **When to use**: {routing['when_to_use']}\n"
-
-            # Add any additional metadata if present
-            if agent.get("authority"):
-                section += f"- **Authority**: {agent['authority']}\n"
-            if agent.get("primary_function"):
-                section += f"- **Primary Function**: {agent['primary_function']}\n"
-            if agent.get("handoff_to"):
-                section += f"- **Handoff To**: {agent['handoff_to']}\n"
-            if agent.get("tools") and agent["tools"] != "standard":
-                section += f"- **Tools**: {agent['tools']}\n"
-            if agent.get("model") and agent["model"] != "opus":
-                section += f"- **Model**: {agent['model']}\n"
-
-            # Add memory routing information if available
-            if agent.get("memory_routing"):
-                memory_routing = agent["memory_routing"]
-                if memory_routing.get("description"):
-                    section += (
-                        f"- **Memory Routing**: {memory_routing['description']}\n"
-                    )
+            section += f"- **{display_name}** (`{agent['id']}`) — {desc}{suffix}\n"
 
         # Add simple Context-Aware Agent Selection
         section += "\n## Context-Aware Agent Selection\n\n"
