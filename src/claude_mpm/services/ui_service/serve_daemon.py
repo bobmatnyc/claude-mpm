@@ -166,6 +166,14 @@ class ServeDaemon:
 
     def _run_foreground(self) -> bool:
         """Run uvicorn (and optional ChannelHub) in the current process."""
+        # Set the multiprocessing start method to "spawn" on macOS before
+        # uvicorn starts any internal supervisor threads/processes so that
+        # child processes get a clean exec'd interpreter and cannot trigger
+        # the CoreFoundation / EXC_BAD_ACCESS crash (issue #690).
+        from ...mcp.fork_safety import ensure_spawn_on_darwin
+
+        ensure_spawn_on_darwin()
+
         # Write PID file so stop/status work correctly.
         try:
             self.lifecycle.write_pid_file()
