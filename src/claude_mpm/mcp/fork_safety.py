@@ -24,6 +24,7 @@ LINK: none  (standalone utility; no governing spec yet)
 
 from __future__ import annotations
 
+import logging
 import multiprocessing
 import sys
 from typing import TYPE_CHECKING
@@ -66,25 +67,50 @@ def get_mp_context() -> BaseContext:
 
 
 def ensure_spawn_on_darwin() -> None:
-    """Guard: set the default multiprocessing start method to ``"spawn"`` on macOS.
+    """Guard: guarantee the default multiprocessing start method is ``"spawn"`` on macOS.
 
-    WHAT: Called once at process startup on Darwin so that any code using
-    ``multiprocessing.Process(...)`` without an explicit context also gets
-    the safe ``"spawn"`` method.
+    WHAT: Called once at process startup on Darwin.  Checks the current
+    start method and forces it to ``"spawn"`` if it is not already set to
+    that value, ensuring that any code using ``multiprocessing.Process(...)``
+    without an explicit context gets the safe ``"spawn"`` method.
 
     WHY: Some transitive dependencies (uvicorn supervisors, huey worker
     launchers) create ``multiprocessing.Process`` objects without going
     through ``get_context("spawn")``.  Setting the default here provides
     defence-in-depth for those call sites.
 
-    The call is silently skipped if the start method has already been set
-    (``RuntimeError`` from ``set_start_method``) so this function is safe
-    to call multiple times or from library code.
+    If another library has already set the start method to something other
+    than ``"spawn"`` (e.g. ``"fork"``), this function overrides it with
+    ``force=True`` and emits a warning — silently doing nothing would allow
+    the SIGSEGV / EXC_BAD_ACCESS to recur.  ``force=True`` is safe here
+    because this runs once at process startup before any child is spawned.
+
+    If the forced call itself raises ``RuntimeError`` (belt-and-suspenders
+    fallback for unexpected edge cases), the error is logged as a warning
+    and the function returns without propagating into the serve entrypoint.
     """
     if sys.platform != "darwin":
         return
+
+    _log = logging.getLogger(__name__)
+    current = multiprocessing.get_start_method(allow_none=True)
+
+    if current == "spawn":
+        # Already correct — nothing to do.
+        return
+
+    if current is not None:
+        _log.warning(
+            "ensure_spawn_on_darwin: overriding existing start method %r to "
+            "'spawn' for macOS fork-safety (issue #690)",
+            current,
+        )
+
     try:
-        multiprocessing.set_start_method("spawn", force=False)
-    except RuntimeError:
-        # Context already set — nothing to do.
-        pass
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError as exc:
+        # Belt-and-suspenders: log but never raise into the serve entrypoint.
+        _log.warning(
+            "ensure_spawn_on_darwin: forced set_start_method('spawn') failed: %s",
+            exc,
+        )
