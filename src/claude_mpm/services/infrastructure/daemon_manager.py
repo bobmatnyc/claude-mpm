@@ -1,5 +1,3 @@
-from pathlib import Path
-
 #!/usr/bin/env python3
 """
 Daemon Management Service for Socket.IO Server
@@ -14,6 +12,13 @@ This service handles:
 - Signal handling for graceful shutdown
 - Conflict detection with other server instances
 - Status monitoring and health checks
+
+WHAT: Exec-based daemon spawn for the Socket.IO server, replacing raw
+      os.fork() daemonization that causes EXC_BAD_ACCESS / SIGSEGV on macOS
+      multithreaded parents (CoreFoundation touched after fork, before exec).
+WHY:  See docs/developer/daemon-fork-safety.md — subprocess.Popen with
+      start_new_session=True gives the same session-detachment semantics as
+      the double-fork, without inheriting poisoned CF state.
 """
 
 import os
@@ -21,6 +26,7 @@ import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 try:
@@ -35,6 +41,9 @@ from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.socketio.server.main import SocketIOServer
 
 logger = get_logger(__name__)
+
+# Environment variable that signals "I am the exec'd daemon child — run foreground"
+_SOCKETIO_DAEMON_ENV_KEY = "CLAUDE_MPM_SOCKETIO_DAEMON"
 
 
 class SocketIODaemonManager:
@@ -115,6 +124,10 @@ class SocketIODaemonManager:
         """
         Start the Socket.IO server as a daemon.
 
+        Uses exec-based spawning via subprocess.Popen(start_new_session=True)
+        instead of raw os.fork(), which is unsafe in multithreaded Python
+        parents on macOS (EXC_BAD_ACCESS from CoreFoundation after fork).
+
         Returns:
             True if started successfully, False otherwise
         """
@@ -130,37 +143,101 @@ class SocketIODaemonManager:
             )
             return False
 
-        try:
-            # Fork to create daemon process
-            pid = os.fork()
-            if pid > 0:
-                # Parent process - save PID and exit
-                with self.pid_file.open("w") as f:
-                    f.write(str(pid))
-                logger.info(f"Socket.IO server started as daemon (PID: {pid})")
-                return True
-
-            # Child process - become daemon
-            self._daemonize()
+        # If we are already the exec'd daemon child, run foreground directly.
+        if os.environ.get(_SOCKETIO_DAEMON_ENV_KEY) == "1":
             self._run_server()
+            return True
 
+        try:
+            return self._start_subprocess_daemon()
         except Exception as e:
             logger.error(f"Failed to start daemon: {e}")
             return False
 
-    def _daemonize(self) -> None:
-        """Convert the current process into a daemon."""
-        # Create new session
-        os.setsid()
-        os.umask(0)
+    def _start_subprocess_daemon(self) -> bool:
+        """Spawn the daemon as a detached subprocess (exec-based, no fork).
 
-        # Redirect stdout/stderr to log file
-        with self.log_file.open("a") as log:
-            os.dup2(log.fileno(), sys.stdout.fileno())
-            os.dup2(log.fileno(), sys.stderr.fileno())
+        The child detects _SOCKETIO_DAEMON_ENV_KEY=1 and calls _run_server()
+        directly in foreground mode.  start_new_session=True provides the
+        session-detachment that the old double-fork used to provide.  The PID
+        file is written by the child after startup (preserving original
+        semantics: PID file contains the actual running process's PID).
+
+        Returns:
+            True if daemon started and PID file appeared within timeout.
+        """
+        cmd = [
+            sys.executable,
+            "-c",
+            (
+                "from claude_mpm.services.infrastructure.daemon_manager import "
+                "SocketIODaemonManager; "
+                f"m = SocketIODaemonManager(host={self.host!r}, port={self.port}); "
+                "m.start()"
+            ),
+        ]
+
+        env = os.environ.copy()
+        env[_SOCKETIO_DAEMON_ENV_KEY] = "1"
+
+        log_file_handle = self.log_file.open("a")
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.DEVNULL,
+                stdout=log_file_handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+                close_fds=False,
+                env=env,
+            )
+        finally:
+            log_file_handle.close()
+
+        pid = process.pid
+        logger.info(f"Socket.IO server subprocess started with PID {pid}")
+
+        # Wait for child to write PID file (max 15s)
+        deadline = time.time() + 15.0
+        while time.time() < deadline:
+            if process.poll() is not None:
+                logger.error(
+                    f"Socket.IO daemon subprocess exited prematurely "
+                    f"(code {process.returncode})"
+                )
+                return False
+            if self.pid_file.exists():
+                try:
+                    written_pid = int(self.pid_file.read_text().strip())
+                    if written_pid == pid:
+                        logger.info(f"Socket.IO server started as daemon (PID: {pid})")
+                        return True
+                except Exception:
+                    pass
+            time.sleep(0.2)
+
+        logger.error("Timeout waiting for Socket.IO daemon to write PID file")
+        if process.poll() is None:
+            process.terminate()
+        return False
 
     def _run_server(self) -> None:
-        """Run the Socket.IO server in daemon mode."""
+        """Run the Socket.IO server in the foreground (daemon child entry-point).
+
+        This is called either directly (foreground mode) or inside the exec'd
+        subprocess when _SOCKETIO_DAEMON_ENV_KEY=1.  It writes the PID file,
+        redirects stdio to the log file, installs signal handlers, and enters
+        the server loop — exactly as the old fork-based _daemonize() did.
+        """
+        # Write PID file with our actual PID
+        try:
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+            self.pid_file.write_text(str(os.getpid()))
+        except Exception as e:
+            print(
+                f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] WARNING: could not write PID file: {e}"
+            )
+
         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Starting Socket.IO server...")
 
         # Create and configure server
