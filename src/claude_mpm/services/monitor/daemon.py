@@ -209,38 +209,15 @@ class UnifiedMonitorDaemon:
                 )
                 raise
         else:
-            # Legacy fork approach (kept for compatibility but not used by default)
-            # Wait for any pre-warming threads to complete before forking
-            self._wait_for_prewarm_completion()
-
-            # Use daemon manager's daemonize which includes cleanup
-            # DO NOT reset startup_status_file - it's needed for parent-child communication!
-            # self.daemon_manager.startup_status_file = None  # BUG: This breaks communication
-            success = self.daemon_manager.daemonize()
-            if not success:
-                return False
-
-            # We're now in the daemon process
-            # Update our PID references and status file
-            self.lifecycle.pid_file = self.daemon_manager.pid_file
-            self.lifecycle.startup_status_file = self.daemon_manager.startup_status_file
-
-            # Start the server in daemon mode
-            try:
-                result = self._run_server()
-                if not result:
-                    # Report failure before exiting
-                    self.daemon_manager._report_startup_error("Failed to start server")
-                else:
-                    # Report success
-                    self.daemon_manager._report_startup_success()
-                return result
-            except Exception as e:
-                # Report any exceptions during startup
-                self.daemon_manager._report_startup_error(
-                    f"Server startup exception: {e}"
-                )
-                raise
+            # This branch is unreachable: use_subprocess_daemon() always returns True
+            # (it only returns False when CLAUDE_MPM_SUBPROCESS_DAEMON=1, in which case
+            # the block above already handled the subprocess path and returned).
+            raise AssertionError(
+                "unreachable: subprocess daemon path is mandatory — "
+                "use_subprocess_daemon() must have returned False AND "
+                "CLAUDE_MPM_SUBPROCESS_DAEMON must be unset simultaneously, "
+                "which cannot happen by construction."
+            )
 
     def _start_foreground(self, force_restart: bool = False) -> bool:
         """Start in foreground mode.
