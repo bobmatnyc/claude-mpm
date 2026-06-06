@@ -60,7 +60,7 @@ class DaemonLifecycle:
         start_new_session=True) so a fresh interpreter is exec'd and never
         inherits the multithreaded parent's CoreFoundation / kqueue state.
 
-        The subprocess child detects CLAUDE_MPM_LIFECYCLE_DAEMON=1 and calls
+        The subprocess child detects CLAUDE_MPM_SUBPROCESS_DAEMON=1 and calls
         the server entry-point directly in foreground mode.  The caller must
         set this env var and run the server loop itself; this method only
         handles the *spawn* side.  The startup-status-file mechanism is
@@ -73,11 +73,12 @@ class DaemonLifecycle:
             that polling is done by _parent_wait_for_startup, called here.)
         """
         try:
-            # Create a temporary file for startup status communication
+            # Create a temporary file for startup status communication.
+            # Normalize to Path immediately so all call sites are consistent.
             with tempfile.NamedTemporaryFile(
                 mode="w", delete=False, suffix=".status"
             ) as f:
-                self.startup_status_file = f.name
+                self.startup_status_file = Path(f.name)
                 f.write("starting")
 
             # Build argv — re-invoke via the CLI monitor start command so the
@@ -102,7 +103,7 @@ class DaemonLifecycle:
             # the server in foreground without forking again.
             env["CLAUDE_MPM_SUBPROCESS_DAEMON"] = "1"
             # Pass the status-file path so the child can report back.
-            env["CLAUDE_MPM_STARTUP_STATUS_FILE"] = self.startup_status_file
+            env["CLAUDE_MPM_STARTUP_STATUS_FILE"] = str(self.startup_status_file)
 
             # Open log file for stdout/stderr redirection
             log_file_handle = None
@@ -125,7 +126,6 @@ class DaemonLifecycle:
                     stdout=log_target,
                     stderr=subprocess.STDOUT,
                     start_new_session=True,
-                    close_fds=False,
                     env=env,
                 )
             finally:
@@ -417,8 +417,8 @@ class DaemonLifecycle:
         while time.time() - start_time < timeout:
             try:
                 # Check if status file exists and read it
-                if self.startup_status_file and Path(self.startup_status_file).exists():
-                    with Path(self.startup_status_file).open() as f:
+                if self.startup_status_file and self.startup_status_file.exists():
+                    with self.startup_status_file.open() as f:
                         status = f.read().strip()
 
                     if status == OperationResult.SUCCESS:
@@ -470,8 +470,7 @@ class DaemonLifecycle:
         """Report successful startup to parent process."""
         if self.startup_status_file:
             try:
-                with Path(self.startup_status_file).open("w") as f:
-                    f.write(OperationResult.SUCCESS)
+                self.startup_status_file.write_text(OperationResult.SUCCESS)
             except Exception as e:
                 self.logger.error(f"Failed to report startup success: {e}")
 
@@ -483,8 +482,7 @@ class DaemonLifecycle:
         """
         if self.startup_status_file:
             try:
-                with Path(self.startup_status_file).open("w") as f:
-                    f.write(f"error:{error_msg}")
+                self.startup_status_file.write_text(f"error:{error_msg}")
             except Exception:
                 pass  # Can't report if file write fails
 
@@ -492,7 +490,7 @@ class DaemonLifecycle:
         """Clean up the temporary status file."""
         if self.startup_status_file:
             try:
-                Path(self.startup_status_file).unlink(missing_ok=True)
+                self.startup_status_file.unlink(missing_ok=True)
             except Exception:
                 pass  # Ignore cleanup errors
             finally:
