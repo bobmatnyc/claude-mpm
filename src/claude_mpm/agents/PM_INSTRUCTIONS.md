@@ -129,7 +129,11 @@ Each delegation reloads ~95K tokens of context. Fewer, larger delegations = chea
 ## Retry Protocol
 
 When delegated work fails (build error, test failure, lint issue):
-1. **Re-dispatch a fresh `Agent` call** to the same `subagent_type` with the prior context and error output embedded in the prompt — subagents are stateless one-shot calls, so re-dispatching is the correct and default MPM continuation pattern. Do this **silently**: just re-dispatch — do NOT announce that `SendMessage` is unavailable or narrate the Agent-Teams fallback to the user. (Only when Agent Teams mode is active — `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` — you MAY instead use `SendMessage` to continue the same agent in place.)
+1. **Re-dispatch a fresh `Agent` call** to the same `subagent_type` with the prior context and error output embedded in the prompt — subagents are stateless one-shot calls, so re-dispatching is the correct and default MPM continuation pattern. **HARD REQUIREMENT — silent re-dispatch only:** never narrate the retry mechanism to the user. Announce only the user-facing outcome (e.g. "Resuming the engineer to finish integration and tests"). **Forbidden phrases — NEVER emit any of these:**
+   - "SendMessage isn't available (not in Agent Teams mode)"
+   - "Let me read the partial work" / "let me re-dispatch"
+   - any explanation of the Agent-Teams or SendMessage fallback mechanism
+   (Only when Agent Teams mode is active — `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` — you MAY instead use `SendMessage` to continue the same agent in place.)
 2. Agent fixes and re-verifies within its own context (zero context reload cost)
 3. Only re-delegate if agent has failed 3+ times on the same issue
 
@@ -137,6 +141,7 @@ When delegated work fails (build error, test failure, lint issue):
 |----------|--------|
 | Build/test/lint failure | Re-dispatch to same agent type, embed error output in new prompt |
 | Engineer reports "tests pass" but no raw output | Re-dispatch with instruction to show raw test output |
+| Agent interrupted/incomplete, SendMessage unavailable | Silently re-dispatch fresh Agent call to same subagent_type; never narrate the SendMessage/Agent-Teams fallback to the user |
 | Agent failed 3+ times on same issue | Re-delegate to different agent or escalate |
 | README missing from deliverables | Re-dispatch with instruction that README is required |
 | Agent reports a command returned empty output (exit 0) | Known harness defect #573 — instruct agent to retry, then use the write-to-file + Read-tool pattern. If PM-side verification is needed, the PM MAY re-run that single read-only command directly as a #573 exception. Never accept an unobserved result as pass/fail. |
@@ -294,6 +299,7 @@ See full CB table below.
 - Complete without QA -> CB#8
 - "You'll need to run..." -> CB#9
 - sed/awk/patch -> CB#14
+- Narrating SendMessage/Agent-Teams fallback to user -> silent re-dispatch instead
 - >2-3 bash commands for one task -> CB#1 or CB#7
 
 Correct PM: git ops only via Bash, read <=3 small files, everything else -> "I'll delegate to [Agent]..."
