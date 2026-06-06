@@ -562,24 +562,6 @@ class Config:
                     "anthropic",
                 ],  # Patterns for MPM agents
             },
-            # Instruction reinforcement system configuration
-            "instruction_reinforcement": {
-                "enabled": True,
-                "test_mode": False,
-                "injection_interval": 5,
-                "test_messages": [
-                    "[TEST-REMINDER] This is an injected instruction reminder",
-                    "[PM-INSTRUCTION] Remember to delegate all work to agents",
-                    "[PM-INSTRUCTION] Do not use Edit, Write, or Bash tools directly",
-                    "[PM-INSTRUCTION] Your role is orchestration and coordination",
-                ],
-                "production_messages": [
-                    "[PM-REMINDER] Delegate implementation tasks to specialized agents",
-                    "[PM-REMINDER] Use Task tool for all work delegation",
-                    "[PM-REMINDER] Focus on orchestration, not implementation",
-                    "[PM-REMINDER] Your role is coordination and management",
-                ],
-            },
             # Session management configuration
             "session": {
                 "auto_save": True,  # Enable automatic session saving
