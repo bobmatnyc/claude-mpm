@@ -19,6 +19,14 @@ DESIGN DECISIONS:
   session transcript directly (the most-recently-modified JSONL in
   ~/.claude/projects/{encoded_cwd}/) to obtain live cumulative token counts.
   Falls back to context-usage.json when no transcript is found.
+- WORKTREE / SUBAGENT FALLBACK (fix for #696): When a subagent commit runs in a
+  linked worktree, git's cwd is the worktree root (e.g.
+  .claude/worktrees/agent-XXXX), NOT the main working tree. The parent session
+  transcript lives under the main tree's encoded path. resolve_main_working_tree()
+  finds the main tree via ``git worktree list --porcelain`` (or the parent of
+  ``git rev-parse --git-common-dir`` as fallback), then get_token_delta() retries
+  the lookup with that canonical cwd. Baseline reads and writes also use the
+  canonical cwd so the delta is always consistent.
 - Atomic file I/O (write-to-temp, then rename) prevents corruption when hooks
   run concurrently across worktrees.
 - All subprocess calls use stdlib only; no new dependencies.
@@ -27,6 +35,9 @@ DESIGN DECISIONS:
 - The amend uses --no-verify to avoid triggering hooks recursively.
 - Trailers emitted: X-AI-Tokens-In, X-AI-Tokens-Out, and conditionally
   X-AI-Model / X-AI-Models.  Cost and cache trailers have been removed.
+- ZERO-SKIP (fix for #696): When the resolved delta is still 0/0 after all
+  fallbacks, the X-AI-Tokens-In / X-AI-Tokens-Out trailers are omitted entirely
+  rather than emitting useless zeros.
 """
 
 from __future__ import annotations
@@ -98,7 +109,7 @@ _COAUTHORED_CANONICAL_RE = re.compile(
 )
 
 # Regex to strip X-AI-* trailers that already exist so we never duplicate them.
-# Matches lines like "X-AI-Tokens-In: 123" or "X-AI-Est-Cost-USD: 0.000012".
+# Matches lines like "X-AI-Tokens-In: 123" or "X-AI-Model: claude-opus-4-8".
 # The pattern anchors at line start (MULTILINE) and matches any content on the
 # line.  Using .*  rather than [^\n]+ to ensure blank-value lines are stripped.
 _XAI_TRAILER_RE = re.compile(r"^X-AI-[A-Za-z-]+:.*$", re.MULTILINE)
@@ -111,6 +122,73 @@ _SHA_RE = re.compile(r"\[.*?\s+([a-f0-9]{7,40})\]")
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+
+def resolve_main_working_tree(cwd: str) -> str:
+    """Return the main git working tree path for *cwd*, handling linked worktrees.
+
+    WHY: When a subagent commit runs inside a linked worktree (e.g.
+    ``.claude/worktrees/agent-XXXX``), the parent session transcript lives under
+    the MAIN working tree's encoded path in ``~/.claude/projects/``.  Using the
+    worktree cwd as-is yields no transcript match (issue #696).
+
+    WHAT: Runs ``git worktree list --porcelain`` from *cwd* and returns the
+    ``worktree`` path from the FIRST entry (the main working tree).  Falls back
+    to deriving the parent of ``git rev-parse --git-common-dir`` (which points to
+    ``.git`` inside the main tree).  If both git calls fail, returns *cwd*
+    unchanged.
+
+    TEST: In a temp repo with one linked worktree, call from the worktree dir
+    and assert the returned path equals the main repo root, not the worktree.
+    Call from the main repo dir itself and assert it is returned unchanged.
+
+    Args:
+        cwd: Absolute path string for the commit's working directory.
+
+    Returns:
+        Absolute path string of the main working tree, or *cwd* on failure.
+    """
+    _debug(f"resolve_main_working_tree: cwd={cwd}")
+    try:
+        result = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.splitlines():
+                line = line.strip()
+                if line.startswith("worktree "):
+                    main_tree = line[len("worktree ") :]
+                    _debug(f"  resolve_main_working_tree: first entry = {main_tree!r}")
+                    return main_tree
+    except Exception as exc:
+        _debug(f"  resolve_main_working_tree: worktree list failed: {exc}")
+
+    # Fallback: parent of git-common-dir (works even without porcelain support).
+    try:
+        result2 = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result2.returncode == 0:
+            git_common = Path(result2.stdout.strip()).resolve()
+            # git-common-dir is the shared .git dir; its parent is the main tree.
+            main_tree = str(git_common.parent)
+            _debug(f"  resolve_main_working_tree: from git-common-dir => {main_tree}")
+            return main_tree
+    except Exception as exc2:
+        _debug(f"  resolve_main_working_tree: git-common-dir failed: {exc2}")
+
+    _debug(f"  resolve_main_working_tree: fallback to cwd={cwd}")
+    return cwd
 
 
 def _read_live_cumulative(cwd: str) -> tuple[dict[str, int], dict[str, dict[str, int]]]:
@@ -203,10 +281,16 @@ def get_token_delta(cwd: str) -> dict[str, Any]:
     WHY: Every commit needs the incremental token usage since the previous commit
     so that X-AI-* trailers reflect only the work done for that commit.  The
     live transcript lookup (see _read_live_cumulative) fixes issue #601 where
-    stale context-usage.json caused all-zero deltas.
+    stale context-usage.json caused all-zero deltas.  The main-working-tree
+    fallback (see resolve_main_working_tree) fixes issue #696 where subagent
+    commits in linked worktrees always produced zero deltas because the transcript
+    was stored under the main tree's path, not the worktree path.
 
-    WHAT: Reads live cumulative + baseline files, returns delta dict with integer
-    token fields plus a per-model ``models`` dict for the same delta window.  The
+    WHAT: Resolves the canonical project cwd ONCE via resolve_main_working_tree(),
+    then uses that canonical path consistently for transcript lookup, baseline
+    read, and baseline write — preventing any baseline/transcript cwd mismatch.
+    Reads live cumulative + baseline files, returns delta dict with integer token
+    fields plus a per-model ``models`` dict for the same delta window.  The
     per-model delta is computed independently for each model: if a model appears
     in the snapshot but not the baseline it gets its full snapshot value; if it
     only appears in the baseline it contributes zero (clamped).
@@ -223,16 +307,22 @@ def get_token_delta(cwd: str) -> dict[str, Any]:
         cache_write_tokens (all non-negative integers) plus ``models`` — a dict
         mapping model name to per-model token delta (same four keys).
     """
-    project_root = Path(cwd).resolve()
+    # Resolve the canonical project cwd ONCE.  For a linked-worktree subagent
+    # commit, this maps the worktree path back to the main working tree so the
+    # transcript lookup, baseline read, AND baseline write all use the same path.
+    canonical_cwd = resolve_main_working_tree(cwd)
+    _debug(f"get_token_delta: cwd={cwd} canonical_cwd={canonical_cwd}")
+
+    project_root = Path(canonical_cwd).resolve()
     baseline_file = (
         project_root / ".claude-mpm" / "state" / "commit-token-baseline.json"
     )
 
-    _debug(f"get_token_delta: cwd={cwd}")
     _debug(f"  baseline_file={baseline_file} exists={baseline_file.exists()}")
 
-    # Read live cumulative totals (transcript preferred, snapshot as fallback).
-    cumulative, cumulative_models = _read_live_cumulative(cwd)
+    # Read live cumulative totals using the CANONICAL cwd (transcript preferred,
+    # snapshot as fallback).
+    cumulative, cumulative_models = _read_live_cumulative(canonical_cwd)
     _debug(f"  cumulative={cumulative}")
     _debug(f"  cumulative_models keys={list(cumulative_models.keys())}")
 
@@ -420,12 +510,24 @@ def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> No
         primary_model = _primary_model(model_delta)
         models_trailer = _format_models_trailer(model_delta)
 
-        trailers = [
+        tokens_in = delta.get("input_tokens", 0)
+        tokens_out = delta.get("output_tokens", 0)
+        has_token_data = tokens_in != 0 or tokens_out != 0
+
+        trailers: list[str] = [
             "",  # blank line before trailers
             _COAUTHORED_CANONICAL,
-            f"X-AI-Tokens-In: {delta.get('input_tokens', 0)}",
-            f"X-AI-Tokens-Out: {delta.get('output_tokens', 0)}",
         ]
+
+        if has_token_data:
+            trailers.append(f"X-AI-Tokens-In: {tokens_in}")
+            trailers.append(f"X-AI-Tokens-Out: {tokens_out}")
+        else:
+            _debug(
+                "amend_commit_message: skipping X-AI-Tokens-In/Out trailers "
+                "— no token data resolved (delta is 0/0 after all fallbacks)"
+            )
+
         if primary_model:
             trailers.append(f"X-AI-Model: {primary_model}")
         if models_trailer:
