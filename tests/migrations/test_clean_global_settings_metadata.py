@@ -97,8 +97,19 @@ class TestIsMpmHookCommand:
         assert migration_mod._is_mpm_hook_command("string") is False  # type: ignore[arg-type]
         assert migration_mod._is_mpm_hook_command(None) is False  # type: ignore[arg-type]
 
-    def test_claude_mpm_in_command_string(self) -> None:
-        hook = {"type": "command", "command": "/usr/bin/claude_mpm"}
+    def test_claude_mpm_substring_in_command_not_matched(self) -> None:
+        """A command that merely *contains* 'claude_mpm' as a substring is NOT removed.
+
+        Only hooks whose basename exactly matches a known MPM script, or whose
+        path contains the '/claude_mpm/' path component, are removed.
+        A bare substring like '/usr/bin/claude_mpm_wrapper' must be preserved.
+        """
+        hook = {"type": "command", "command": "/usr/bin/claude_mpm_wrapper"}
+        assert migration_mod._is_mpm_hook_command(hook) is False
+
+    def test_claude_mpm_path_component_is_matched(self) -> None:
+        """A command whose path contains '/claude_mpm/' IS removed (package path)."""
+        hook = {"type": "command", "command": "/opt/lib/claude_mpm/hooks/handler.sh"}
         assert migration_mod._is_mpm_hook_command(hook) is True
 
 
@@ -283,7 +294,6 @@ class TestRunMigration:
         )
 
         _run(settings_file)
-        mtime_after_first = settings_file.stat().st_mtime
         content_after_first = settings_file.read_text()
 
         _run(settings_file)
@@ -340,6 +350,46 @@ class TestRunMigration:
         pre_hooks = data["hooks"]["PreToolUse"][0]["hooks"]
         assert len(pre_hooks) == 1
         assert pre_hooks[0]["command"] == "my-custom-tool"
+
+    def test_user_hook_with_claude_mpm_substring_preserved(
+        self, tmp_path: Path
+    ) -> None:
+        """A user hook whose command merely CONTAINS 'claude_mpm' is NOT removed.
+
+        This is the critical false-positive regression test: commands like
+        '/usr/local/bin/claude_mpm_wrapper' or 'pre_claude_mpm_check.sh' must
+        survive the migration unchanged.  Only hooks with ``_mpm: true`` or
+        whose basename/path-component precisely matches a known MPM script are
+        removed.
+        """
+        user_hook_with_mpm_in_name = {
+            "type": "command",
+            "command": "/usr/local/bin/claude_mpm_wrapper",
+        }
+        settings_file = tmp_path / ".claude" / "settings.json"
+        _write(
+            settings_file,
+            {
+                "_mpm_managed": True,
+                "hooks": {
+                    "PreToolUse": _event_block(
+                        _mpm_hook(),  # real MPM hook — should be removed
+                        user_hook_with_mpm_in_name,  # user hook — must survive
+                    ),
+                },
+            },
+        )
+
+        result = _run(settings_file)
+
+        assert result is True
+        data = _read(settings_file)
+        assert "_mpm_managed" not in data
+        pre_hooks = data["hooks"]["PreToolUse"][0]["hooks"]
+        assert len(pre_hooks) == 1, (
+            "Expected user hook to survive; MPM hook should have been removed"
+        )
+        assert pre_hooks[0]["command"] == "/usr/local/bin/claude_mpm_wrapper"
 
     def test_mpm_spinner_version_not_removed(self, tmp_path: Path) -> None:
         """``_mpm_spinner_version`` must not be treated as a stale metadata key."""
