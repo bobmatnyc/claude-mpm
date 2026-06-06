@@ -92,16 +92,17 @@ class TestNoForkInvariant:
 class TestSocketIODaemonManagerExecSpawn:
     """Exec-based spawn semantics for SocketIODaemonManager."""
 
-    def _make_manager(self, tmp_path: Path) -> Any:
+    def _make_manager(self, tmp_path: Path, port: int = 19765) -> Any:
         """Return a SocketIODaemonManager with paths redirected to tmp_path."""
         from claude_mpm.services.infrastructure.daemon_manager import (
             SocketIODaemonManager,
         )
 
-        m = SocketIODaemonManager(host="localhost", port=19765)
+        m = SocketIODaemonManager(host="localhost", port=port)
         m.config_dir = tmp_path
-        m.pid_file = tmp_path / "socketio-server.pid"
-        m.log_file = tmp_path / "socketio-server.log"
+        # Use port-keyed names matching the production logic
+        m.pid_file = tmp_path / f"socketio-server-{port}.pid"
+        m.log_file = tmp_path / f"socketio-server-{port}.log"
         return m
 
     def test_start_calls_popen_with_start_new_session(self, tmp_path: Path) -> None:
@@ -284,6 +285,105 @@ class TestSocketIODaemonManagerExecSpawn:
                 f"start_new_session must be True on {platform_str}"
             )
 
+    def test_popen_never_uses_pipe_for_stdout_stderr(self, tmp_path: Path) -> None:
+        """Popen must NOT route stdout or stderr to subprocess.PIPE (would buffer without consumer)."""
+        m = self._make_manager(tmp_path)
+        fake_proc = MagicMock()
+        fake_proc.pid = 66
+        fake_proc.poll.return_value = None
+
+        def _write_pid(*a, **kw) -> MagicMock:
+            m.pid_file.write_text("66")
+            return fake_proc
+
+        with (
+            patch("os.fork", side_effect=AssertionError("no fork")),
+            patch(
+                "claude_mpm.services.infrastructure.daemon_manager.subprocess.Popen",
+                side_effect=_write_pid,
+            ) as mock_popen,
+        ):
+            m.start()
+
+        assert mock_popen.call_args.kwargs.get("stdout") != subprocess.PIPE, (
+            "stdout must not be subprocess.PIPE — daemon output would buffer without a consumer"
+        )
+        assert mock_popen.call_args.kwargs.get("stderr") != subprocess.PIPE, (
+            "stderr must not be subprocess.PIPE — daemon output would buffer without a consumer"
+        )
+
+    def test_popen_close_fds_not_false(self, tmp_path: Path) -> None:
+        """Popen must not pass close_fds=False — that leaks all parent fds into the daemon."""
+        m = self._make_manager(tmp_path)
+        fake_proc = MagicMock()
+        fake_proc.pid = 67
+        fake_proc.poll.return_value = None
+
+        def _write_pid(*a, **kw) -> MagicMock:
+            m.pid_file.write_text("67")
+            return fake_proc
+
+        with (
+            patch("os.fork", side_effect=AssertionError("no fork")),
+            patch(
+                "claude_mpm.services.infrastructure.daemon_manager.subprocess.Popen",
+                side_effect=_write_pid,
+            ) as mock_popen,
+        ):
+            m.start()
+
+        # close_fds should not be explicitly False; absent or True are both acceptable.
+        assert mock_popen.call_args.kwargs.get("close_fds") is not False, (
+            "close_fds must not be False — that leaks parent fds into the daemon child"
+        )
+
+    def test_two_instances_have_distinct_pid_files(self, tmp_path: Path) -> None:
+        """Two SocketIODaemonManagers on different ports must use different PID file paths."""
+        m_a = self._make_manager(tmp_path, port=19765)
+        m_b = self._make_manager(tmp_path, port=19766)
+
+        assert m_a.pid_file != m_b.pid_file, (
+            "Managers on different ports must use different PID files to avoid clobbering"
+        )
+        assert str(m_a.port) in str(m_a.pid_file), (
+            "PID file path must contain the port number"
+        )
+        assert str(m_b.port) in str(m_b.pid_file), (
+            "PID file path must contain the port number"
+        )
+        # Log files too
+        assert m_a.log_file != m_b.log_file
+        assert str(m_a.port) in str(m_a.log_file)
+        assert str(m_b.port) in str(m_b.log_file)
+
+    def test_pid_file_validated_by_positive_integer_not_exact_match(
+        self, tmp_path: Path
+    ) -> None:
+        """Parent accepts any valid positive PID written by the child, not only process.pid."""
+        m = self._make_manager(tmp_path)
+        fake_proc = MagicMock()
+        # process.pid is 100, but child writes its own os.getpid() = 101
+        fake_proc.pid = 100
+        fake_proc.poll.return_value = None
+
+        def _write_pid_with_different_pid(*a, **kw) -> MagicMock:
+            m.pid_file.write_text("101")  # child's actual PID differs from process.pid
+            return fake_proc
+
+        with (
+            patch("os.fork", side_effect=AssertionError("no fork")),
+            patch(
+                "claude_mpm.services.infrastructure.daemon_manager.subprocess.Popen",
+                side_effect=_write_pid_with_different_pid,
+            ),
+        ):
+            result = m.start()
+
+        assert result is True, (
+            "Parent must accept any valid positive PID written by the child, "
+            "not require it to exactly match process.pid"
+        )
+
 
 # ---------------------------------------------------------------------------
 # communication/message_consumer.py — --daemon mode
@@ -365,6 +465,39 @@ class TestMessageConsumerExecSpawn:
             message_consumer.main()
 
         assert "4" in captured.get("cmd", [])
+
+    def test_recursion_guard_prevents_respawn_when_already_child(self) -> None:
+        """When CLAUDE_MPM_MSG_CONSUMER_DAEMON=1 is set, --daemon must NOT spawn again."""
+        from claude_mpm.services.communication import message_consumer
+
+        consumer_instance = MagicMock()
+        with (
+            patch("os.fork", side_effect=AssertionError("no fork")),
+            patch(
+                "claude_mpm.services.communication.message_consumer.subprocess.Popen",
+                side_effect=AssertionError("must not spawn a second subprocess"),
+            ),
+            patch.dict(os.environ, {"CLAUDE_MPM_MSG_CONSUMER_DAEMON": "1"}),
+            patch("sys.argv", ["message_consumer", "--daemon"]),
+            patch(
+                "claude_mpm.services.communication.message_consumer.MessageConsumer",
+                return_value=consumer_instance,
+            ),
+        ):
+            message_consumer.main()
+
+        # Must have run the consumer directly (foreground), not spawned again
+        consumer_instance.run.assert_called_once()
+
+    def test_popen_never_uses_pipe_for_stdout_stderr(self) -> None:
+        """Popen must NOT route stdout or stderr to subprocess.PIPE."""
+        _, captured = self._run_main_daemon()
+        assert captured["kwargs"].get("stdout") != subprocess.PIPE, (
+            "stdout must not be PIPE — daemon output would buffer without a consumer"
+        )
+        assert captured["kwargs"].get("stderr") != subprocess.PIPE, (
+            "stderr must not be PIPE — daemon output would buffer without a consumer"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -539,27 +672,76 @@ class TestDaemonLifecycleExecSpawn:
 
     def test_report_startup_success_writes_status_file(self, tmp_path: Path) -> None:
         """_report_startup_success() writes 'success' to the status file."""
+        from pathlib import Path as _Path
+
         from claude_mpm.core.enums import OperationResult
 
         lc = self._make_lifecycle(tmp_path)
         status_file = tmp_path / "startup.status"
         status_file.write_text("starting")
-        lc.startup_status_file = str(status_file)
+        lc.startup_status_file = _Path(status_file)
 
         lc._report_startup_success()
         assert status_file.read_text().strip() == OperationResult.SUCCESS
 
     def test_report_startup_error_writes_status_file(self, tmp_path: Path) -> None:
         """_report_startup_error() writes 'error:<msg>' to the status file."""
+        from pathlib import Path as _Path
+
         lc = self._make_lifecycle(tmp_path)
         status_file = tmp_path / "startup.status"
         status_file.write_text("starting")
-        lc.startup_status_file = str(status_file)
+        lc.startup_status_file = _Path(status_file)
 
         lc._report_startup_error("port in use")
         content = status_file.read_text().strip()
         assert content.startswith("error:")
         assert "port in use" in content
+
+    def test_daemonize_popen_close_fds_not_false(self, tmp_path: Path) -> None:
+        """daemonize() Popen must not pass close_fds=False — that leaks all parent fds."""
+        lc = self._make_lifecycle(tmp_path)
+        fake_proc = MagicMock()
+        fake_proc.pid = 206
+
+        with (
+            patch("os.fork", side_effect=AssertionError("no fork")),
+            patch(
+                "claude_mpm.services.monitor.management.lifecycle.subprocess.Popen",
+                return_value=fake_proc,
+            ) as mock_popen,
+            patch.object(lc, "_parent_wait_for_startup", return_value=True),
+        ):
+            lc.daemonize()
+
+        assert mock_popen.call_args.kwargs.get("close_fds") is not False, (
+            "close_fds must not be False — that leaks parent fds into the daemon child"
+        )
+
+    def test_daemonize_popen_never_uses_pipe_for_stdout_stderr(
+        self, tmp_path: Path
+    ) -> None:
+        """daemonize() Popen must NOT route stdout or stderr to subprocess.PIPE."""
+        lc = self._make_lifecycle(tmp_path)
+        fake_proc = MagicMock()
+        fake_proc.pid = 207
+
+        with (
+            patch("os.fork", side_effect=AssertionError("no fork")),
+            patch(
+                "claude_mpm.services.monitor.management.lifecycle.subprocess.Popen",
+                return_value=fake_proc,
+            ) as mock_popen,
+            patch.object(lc, "_parent_wait_for_startup", return_value=True),
+        ):
+            lc.daemonize()
+
+        assert mock_popen.call_args.kwargs.get("stdout") != subprocess.PIPE, (
+            "stdout must not be PIPE — log output would buffer without a consumer"
+        )
+        assert mock_popen.call_args.kwargs.get("stderr") != subprocess.PIPE, (
+            "stderr must not be PIPE — log output would buffer without a consumer"
+        )
 
 
 # ---------------------------------------------------------------------------
