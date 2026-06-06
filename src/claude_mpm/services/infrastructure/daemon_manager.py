@@ -191,6 +191,8 @@ class SocketIODaemonManager:
                 env=env,
             )
         finally:
+            # Safe to close the parent's handle: Popen has already dup'd the fd into the
+            # child (exempt from close_fds), so the daemon keeps writing to the log.
             log_file_handle.close()
 
         logger.info(f"Socket.IO server subprocess started with PID {process.pid}")
