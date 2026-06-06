@@ -13,9 +13,10 @@ without actually forking processes or touching user settings.
 from __future__ import annotations
 
 import importlib
+import logging
 import multiprocessing
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest  # noqa: TC002
 
@@ -99,32 +100,87 @@ class TestEnsureSpawnOnDarwin:
             fs.ensure_spawn_on_darwin()
         mock_set.assert_not_called()
 
-    def test_sets_spawn_on_darwin(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """ensure_spawn_on_darwin() calls set_start_method('spawn', force=False)."""
-        fs = _reload_fork_safety(monkeypatch, "darwin")
-        with patch("multiprocessing.set_start_method") as mock_set:
-            fs.ensure_spawn_on_darwin()
-        mock_set.assert_called_once_with("spawn", force=False)
-
-    def test_swallows_runtime_error_when_already_set(
+    def test_sets_spawn_on_darwin_when_unset(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """ensure_spawn_on_darwin() silently swallows RuntimeError (already set)."""
+        """ensure_spawn_on_darwin() forces spawn when start method is not yet set."""
         fs = _reload_fork_safety(monkeypatch, "darwin")
-        with patch(
-            "multiprocessing.set_start_method",
-            side_effect=RuntimeError("context already set"),
+        with (
+            patch("multiprocessing.get_start_method", return_value=None),
+            patch("multiprocessing.set_start_method") as mock_set,
         ):
+            fs.ensure_spawn_on_darwin()
+        mock_set.assert_called_once_with("spawn", force=True)
+
+    def test_forces_spawn_when_fork_already_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ensure_spawn_on_darwin() overrides 'fork' → 'spawn' with force=True and warns."""
+        fs = _reload_fork_safety(monkeypatch, "darwin")
+        with (
+            patch("multiprocessing.get_start_method", return_value="fork"),
+            patch("multiprocessing.set_start_method") as mock_set,
+            patch("logging.getLogger") as mock_get_logger,
+        ):
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            fs.ensure_spawn_on_darwin()
+
+        mock_set.assert_called_once_with("spawn", force=True)
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "overriding" in warning_msg
+
+    def test_no_op_when_already_spawn(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """ensure_spawn_on_darwin() does nothing (and logs no warning) when already 'spawn'."""
+        fs = _reload_fork_safety(monkeypatch, "darwin")
+        with (
+            patch("multiprocessing.get_start_method", return_value="spawn"),
+            patch("multiprocessing.set_start_method") as mock_set,
+            patch("logging.getLogger") as mock_get_logger,
+        ):
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            fs.ensure_spawn_on_darwin()
+
+        mock_set.assert_not_called()
+        mock_logger.warning.assert_not_called()
+
+    def test_swallows_runtime_error_on_forced_call(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ensure_spawn_on_darwin() logs a warning and does not raise when force fails."""
+        fs = _reload_fork_safety(monkeypatch, "darwin")
+        with (
+            patch("multiprocessing.get_start_method", return_value=None),
+            patch(
+                "multiprocessing.set_start_method",
+                side_effect=RuntimeError("context locked"),
+            ),
+            patch("logging.getLogger") as mock_get_logger,
+        ):
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
             # Must not propagate the RuntimeError.
             fs.ensure_spawn_on_darwin()
+
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "failed" in warning_msg
 
     def test_safe_to_call_multiple_times(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """ensure_spawn_on_darwin() can be called multiple times without error."""
         fs = _reload_fork_safety(monkeypatch, "darwin")
-        with patch("multiprocessing.set_start_method") as mock_set:
+        # Second call sees 'spawn' already set — should be a no-op.
+        responses = [None, "spawn"]
+        with (
+            patch("multiprocessing.get_start_method", side_effect=responses),
+            patch("multiprocessing.set_start_method") as mock_set,
+        ):
             fs.ensure_spawn_on_darwin()
             fs.ensure_spawn_on_darwin()
-        assert mock_set.call_count == 2
+        # Only the first call (get returned None) triggers set_start_method.
+        assert mock_set.call_count == 1
 
 
 # ---------------------------------------------------------------------------
