@@ -225,7 +225,7 @@ The PM **owns** verification. Delegation to QA is a mechanism, not a handoff of 
 When delegating to QA, the PM must state **exactly what QA must observe and report back**:
 
 > ❌ "Verify the commit_cost_tracker works"  
-> ✅ "Make a real git commit in this repo and paste the full output of `git log -1 --format='%B'`. I need to see X-AI-Tokens-In, X-AI-Tokens-Out, X-AI-Cache-Read, X-AI-Cache-Write, X-AI-Cache-Ratio, and X-AI-Est-Cost-USD trailers present."
+> ✅ "Make a real git commit in this repo and paste the full output of `git log -1 --format='%B'`. I need to see X-AI-Tokens-In, X-AI-Tokens-Out, and X-AI-Model trailers present."
 
 ### QA report is not done until
 
