@@ -130,6 +130,8 @@ class DaemonLifecycle:
                 )
             finally:
                 if log_file_handle and not log_file_handle.closed:
+                    # Safe to close the parent's handle: Popen has already dup'd the fd into the
+                    # child (exempt from close_fds), so the daemon keeps writing to the log.
                     log_file_handle.close()
 
             self.logger.info(
