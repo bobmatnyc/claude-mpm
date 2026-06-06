@@ -912,7 +912,17 @@ class TestResolveMainWorkingTree:
             f"worktree {worktree_path}\nHEAD def456\nbranch refs/heads/worktree-agent-abc\n"
         )
 
-        with patch("subprocess.run", return_value=self._make_run(porcelain_output)):
+        # Fast-path calls: --git-dir != --git-common-dir so we do NOT short-circuit.
+        # The worktree's .git is a file (or .git/worktrees/agent-abc), while the
+        # shared git-common-dir is the main repo's .git.  Provide distinct outputs.
+        fast_dir = self._make_run(".git/worktrees/agent-abc")  # worktree-specific
+        fast_common = self._make_run("../../.git")  # shared main .git
+        porcelain_result = self._make_run(porcelain_output)
+
+        with patch(
+            "subprocess.run",
+            side_effect=[fast_dir, fast_common, porcelain_result],
+        ):
             result = resolve_main_working_tree(worktree_path)
 
         assert result == main_tree, (
@@ -921,13 +931,17 @@ class TestResolveMainWorkingTree:
         )
 
     def test_main_repo_returns_itself(self, tmp_path: Path) -> None:
-        """When called from the main repo root, the main tree is returned unchanged."""
-        main_tree = str(tmp_path / "main-repo")
-        porcelain_output = (
-            f"worktree {main_tree}\nHEAD abc123\nbranch refs/heads/main\n"
-        )
+        """When called from the main repo root, the main tree is returned unchanged.
 
-        with patch("subprocess.run", return_value=self._make_run(porcelain_output)):
+        The fast-path short-circuits when git-dir == git-common-dir (both return
+        ``.git``), so git worktree list is never spawned.
+        """
+        main_tree = str(tmp_path / "main-repo")
+
+        # Fast-path: git-dir == git-common-dir → both return ".git".
+        fast_same = self._make_run(".git")
+
+        with patch("subprocess.run", side_effect=[fast_same, fast_same]):
             result = resolve_main_working_tree(main_tree)
 
         assert result == main_tree
@@ -942,11 +956,26 @@ class TestResolveMainWorkingTree:
         git_dir.mkdir()
         worktree_path = str(tmp_path / "worktree")
 
-        fail_result = self._make_run("", returncode=128)
-        # git rev-parse --git-common-dir returns the shared .git path
-        git_common_result = self._make_run(str(git_dir))
+        # Fast-path: --git-dir (worktree-specific) != --git-common-dir (shared)
+        # so the fast path does NOT short-circuit.
+        fast_dir_result = self._make_run(".git/worktrees/wt1")  # worktree-specific
+        fast_common_result = self._make_run(str(git_dir))  # shared .git (absolute)
 
-        with patch("subprocess.run", side_effect=[fail_result, git_common_result]):
+        # git worktree list --porcelain fails
+        worktree_list_fail = self._make_run("", returncode=128)
+
+        # Fallback git rev-parse --git-common-dir returns the shared .git path
+        fallback_common_result = self._make_run(str(git_dir))
+
+        with patch(
+            "subprocess.run",
+            side_effect=[
+                fast_dir_result,
+                fast_common_result,
+                worktree_list_fail,
+                fallback_common_result,
+            ],
+        ):
             result = resolve_main_working_tree(worktree_path)
 
         assert result == str(main_tree), (
@@ -954,11 +983,19 @@ class TestResolveMainWorkingTree:
         )
 
     def test_both_git_calls_fail_returns_original_cwd(self, tmp_path: Path) -> None:
-        """When both git calls fail, the original cwd is returned unchanged."""
+        """When all git calls fail, the original cwd is returned unchanged.
+
+        The fast-path makes two calls (--git-dir, --git-common-dir), then
+        git worktree list is attempted, then the --git-common-dir fallback.
+        All four must fail to reach the final ``return cwd`` safety net.
+        """
         worktree_path = str(tmp_path / "worktree")
         fail_result = self._make_run("", returncode=128)
 
-        with patch("subprocess.run", side_effect=[fail_result, fail_result]):
+        with patch(
+            "subprocess.run",
+            side_effect=[fail_result, fail_result, fail_result, fail_result],
+        ):
             result = resolve_main_working_tree(worktree_path)
 
         assert result == worktree_path, (
@@ -973,6 +1010,70 @@ class TestResolveMainWorkingTree:
             result = resolve_main_working_tree(worktree_path)
 
         assert result == worktree_path
+
+    def test_relative_git_common_dir_resolved_against_cwd_not_process_cwd(
+        self, tmp_path: Path
+    ) -> None:
+        """Regression: a relative --git-common-dir output is resolved relative to the
+        worktree cwd, not the process cwd.
+
+        WHY: git rev-parse --git-common-dir can return a relative path such as
+        ``../.git`` when run from a linked worktree.  Before the fix, the code
+        called Path(output).resolve() with no base, anchoring to the process cwd
+        instead of the worktree directory.  This test asserts that ``../.git``
+        returned while cwd=``<tmp>/worktree/sub`` resolves to
+        ``<tmp>/worktree/.git`` (relative to the worktree, not the process cwd).
+
+        HOW: Build a real on-disk layout — main_repo/.git + worktree/sub — then
+        mock the two subprocess calls so they behave as a real linked worktree
+        would (git-dir != git-common-dir for the fast-path, then worktree list
+        fails, then git-common-dir returns a relative path pointing to main_repo/.git).
+        Assert the resolved parent equals main_repo.
+        """
+        # Create the real directory tree so Path.resolve() works correctly.
+        main_repo = tmp_path / "main_repo"
+        main_git = main_repo / ".git"
+        main_git.mkdir(parents=True)
+
+        # Simulate a linked worktree at main_repo/.clone_worktrees/sub.
+        worktree_dir = main_repo / ".clone_worktrees" / "sub"
+        worktree_dir.mkdir(parents=True)
+        worktree_cwd = str(worktree_dir)
+
+        # git rev-parse --git-common-dir returns "../../.git" (relative to worktree_dir).
+        relative_git_common = "../../.git"
+
+        # Fast-path calls: make --git-dir != --git-common-dir so the fast path
+        # does NOT short-circuit (we need to reach the fallback).
+        fast_dir_result = self._make_run(
+            ".git/worktrees/sub"
+        )  # git-dir (worktree-specific)
+        fast_common_result = self._make_run(
+            relative_git_common
+        )  # git-common-dir (shared)
+
+        # worktree list call fails so we fall through to the --git-common-dir fallback.
+        worktree_list_fail = self._make_run("", returncode=128)
+
+        # Fallback --git-common-dir call returns the same relative path.
+        fallback_common_result = self._make_run(relative_git_common)
+
+        side_effects = [
+            fast_dir_result,  # git rev-parse --git-dir  (fast-path)
+            fast_common_result,  # git rev-parse --git-common-dir  (fast-path)
+            worktree_list_fail,  # git worktree list --porcelain  (fails → fallback)
+            fallback_common_result,  # git rev-parse --git-common-dir  (fallback)
+        ]
+
+        with patch("subprocess.run", side_effect=side_effects):
+            result = resolve_main_working_tree(worktree_cwd)
+
+        expected = str(main_repo)
+        assert result == expected, (
+            f"Expected main_repo={expected!r}, got {result!r}.\n"
+            "Relative git-common-dir must be resolved relative to the worktree cwd, "
+            "not the process cwd (regression guard for trusty-review item #1 on #696)."
+        )
 
 
 class TestGetTokenDeltaWorktreeFallback:
