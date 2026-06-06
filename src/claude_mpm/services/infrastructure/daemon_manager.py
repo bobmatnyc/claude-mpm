@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Daemon Management Service for Socket.IO Server
 ==============================================
@@ -66,10 +65,11 @@ class SocketIODaemonManager:
         self.host = host
         self.port = port
 
-        # Configuration paths
+        # Configuration paths — keyed by port so two instances on different ports
+        # never clobber each other's PID file or log file.
         self.config_dir = Path.home() / ".claude-mpm"
-        self.pid_file = self.config_dir / "socketio-server.pid"
-        self.log_file = self.config_dir / "socketio-server.log"
+        self.pid_file = self.config_dir / f"socketio-server-{self.port}.pid"
+        self.log_file = self.config_dir / f"socketio-server-{self.port}.log"
 
         # Ensure directories exist
         self._ensure_directories()
@@ -188,16 +188,18 @@ class SocketIODaemonManager:
                 stdout=log_file_handle,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
-                close_fds=False,
                 env=env,
             )
         finally:
             log_file_handle.close()
 
-        pid = process.pid
-        logger.info(f"Socket.IO server subprocess started with PID {pid}")
+        logger.info(f"Socket.IO server subprocess started with PID {process.pid}")
 
-        # Wait for child to write PID file (max 15s)
+        # Wait for child to write PID file (max 15s).
+        # The child is the authority on its own PID — it writes os.getpid() which
+        # may differ from process.pid (e.g. if the child is a thin launcher).
+        # Accept any valid positive integer as success; the process.poll() guard
+        # below already catches a dead child before we check the file.
         deadline = time.time() + 15.0
         while time.time() < deadline:
             if process.poll() is not None:
@@ -209,8 +211,10 @@ class SocketIODaemonManager:
             if self.pid_file.exists():
                 try:
                     written_pid = int(self.pid_file.read_text().strip())
-                    if written_pid == pid:
-                        logger.info(f"Socket.IO server started as daemon (PID: {pid})")
+                    if written_pid > 0:
+                        logger.info(
+                            f"Socket.IO server started as daemon (PID: {written_pid})"
+                        )
                         return True
                 except Exception:
                     pass
