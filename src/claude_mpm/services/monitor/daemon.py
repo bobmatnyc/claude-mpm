@@ -212,12 +212,12 @@ class UnifiedMonitorDaemon:
             # This branch is unreachable: use_subprocess_daemon() always returns True
             # (it only returns False when CLAUDE_MPM_SUBPROCESS_DAEMON=1, in which case
             # the block above already handled the subprocess path and returned).
-            raise AssertionError(
-                "unreachable: subprocess daemon path is mandatory — "
-                "use_subprocess_daemon() must have returned False AND "
-                "CLAUDE_MPM_SUBPROCESS_DAEMON must be unset simultaneously, "
-                "which cannot happen by construction."
+            self.logger.error(
+                "Unreachable daemon path hit: subprocess daemon path is mandatory "
+                "(use_subprocess_daemon() returned False without the subprocess sentinel set). "
+                "Refusing to fall back to unsafe os.fork() daemonization."
             )
+            return False
 
     def _start_foreground(self, force_restart: bool = False) -> bool:
         """Start in foreground mode.
