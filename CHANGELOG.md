@@ -19,6 +19,31 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.20 (2026-06-06)
+
+### Feat
+
+- **hooks**: configurable context_circuit_breaker threshold (#681) (#686)
+- **trusty-search**: opt-in index allowlist management (search-index command) (#673)
+- **security**: guard credential/identity files against direct pushes to main (#666)
+
+### Fix
+
+- **hooks**: robust worktree token attribution + doc drift in commit cost tracker (#696) (#697)
+- **daemon**: exec-based subprocess daemonization — real macOS SIGSEGV fix (#693) (#694)
+- MCP worker SIGSEGV on macOS — force spawn start method (#690) (#691)
+- **migrations**: remove stale _mpm_managed/_mpm_version metadata from global settings (#685)
+- deduplicate MPM hook registrations and reconcile timeouts (#677) (#682)
+- PM delegation subagent_type matches deployed agent name: fields (#667) (#672)
+- three robustness nits from #650 (issue #651) (#669)
+- **release**: signal-safe cleanup of gh_git temp artifacts (#665)
+- **release**: bypass macOS keychain credential hijack in gh_git
+- **release**: re-clone homebrew tap fresh to avoid stale dirty-state failures (#663)
+
+### Perf
+
+- trim PM capabilities section to terse one-liner-per-agent format (#678) (#689)
+
 ## v6.5.19 (2026-06-05)
 
 ### Fix
