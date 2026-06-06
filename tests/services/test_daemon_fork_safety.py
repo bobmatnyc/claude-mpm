@@ -130,9 +130,6 @@ class TestSocketIODaemonManagerExecSpawn:
         assert result is True
         mock_popen.assert_called_once()
         _call = mock_popen.call_args
-        assert _call.kwargs.get("start_new_session") is True or (
-            len(_call.args) >= 1 and _call.args[0] and True
-        ), "start_new_session=True must be passed to Popen"
         assert _call.kwargs.get("start_new_session") is True
 
     def test_start_passes_daemon_env_key(self, tmp_path: Path) -> None:
