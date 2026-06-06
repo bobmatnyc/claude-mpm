@@ -1,4 +1,4 @@
-"""Unit tests for commit_cost_tracker module (issue #600 / #601).
+"""Unit tests for commit_cost_tracker module (issue #600 / #601 / #696).
 
 Covers:
 - get_token_delta(): reading context-usage.json, first-call zero baseline,
@@ -13,6 +13,13 @@ Covers:
     context-usage.json so the git post-commit hook sees non-zero deltas.
   - CHANGE 1: commit hook parses live transcript JSONL directly and produces
     non-zero delta even when context-usage.json is stale / zero.
+- Worktree / subagent attribution (issue #696):
+  - resolve_main_working_tree() returns the main repo root when called from a
+    linked worktree.
+  - get_token_delta() uses the main-tree transcript when the worktree transcript
+    is missing.
+  - amend_commit_message() skips X-AI-Tokens-In/Out when delta is 0/0.
+  - Normal (non-worktree) commit path regression.
 """
 
 from __future__ import annotations
@@ -38,6 +45,7 @@ from claude_mpm.hooks.commit_cost_tracker import (
     amend_commit_message,
     extract_commit_sha,
     get_token_delta,
+    resolve_main_working_tree,
     write_cost_log,
 )
 from claude_mpm.services.infrastructure.context_usage_tracker import (
@@ -872,3 +880,316 @@ class TestMultipleStopEventsDoNotAccumulate:
             "(double-counting bug — each Stop event should replace, not add)"
         )
         assert raw["cumulative_output_tokens"] == 3_500
+
+
+# ---------------------------------------------------------------------------
+# Issue #696: Worktree / subagent attribution fixes
+# ---------------------------------------------------------------------------
+
+
+class TestResolveMainWorkingTree:
+    """Tests for resolve_main_working_tree() helper (fix for #696).
+
+    All git subprocess calls are monkeypatched so tests never touch real git.
+    """
+
+    def _make_run(self, stdout: str, returncode: int = 0):
+        """Return a mock subprocess.run result."""
+        m = MagicMock()
+        m.returncode = returncode
+        m.stdout = stdout
+        m.stderr = ""
+        return m
+
+    def test_linked_worktree_returns_main_tree(self, tmp_path: Path) -> None:
+        """When called from a linked worktree, returns the first worktree entry."""
+        main_tree = str(tmp_path / "main-repo")
+        worktree_path = str(
+            tmp_path / "main-repo" / ".claude" / "worktrees" / "agent-abc"
+        )
+        porcelain_output = (
+            f"worktree {main_tree}\nHEAD abc123\nbranch refs/heads/main\n\n"
+            f"worktree {worktree_path}\nHEAD def456\nbranch refs/heads/worktree-agent-abc\n"
+        )
+
+        with patch("subprocess.run", return_value=self._make_run(porcelain_output)):
+            result = resolve_main_working_tree(worktree_path)
+
+        assert result == main_tree, (
+            f"Expected main tree {main_tree!r}, got {result!r} — "
+            "worktree resolution broken"
+        )
+
+    def test_main_repo_returns_itself(self, tmp_path: Path) -> None:
+        """When called from the main repo root, the main tree is returned unchanged."""
+        main_tree = str(tmp_path / "main-repo")
+        porcelain_output = (
+            f"worktree {main_tree}\nHEAD abc123\nbranch refs/heads/main\n"
+        )
+
+        with patch("subprocess.run", return_value=self._make_run(porcelain_output)):
+            result = resolve_main_working_tree(main_tree)
+
+        assert result == main_tree
+
+    def test_fallback_to_git_common_dir_when_porcelain_fails(
+        self, tmp_path: Path
+    ) -> None:
+        """Falls back to git-common-dir parent when worktree list fails."""
+        main_tree = tmp_path / "main-repo"
+        main_tree.mkdir()
+        git_dir = main_tree / ".git"
+        git_dir.mkdir()
+        worktree_path = str(tmp_path / "worktree")
+
+        fail_result = self._make_run("", returncode=128)
+        # git rev-parse --git-common-dir returns the shared .git path
+        git_common_result = self._make_run(str(git_dir))
+
+        with patch("subprocess.run", side_effect=[fail_result, git_common_result]):
+            result = resolve_main_working_tree(worktree_path)
+
+        assert result == str(main_tree), (
+            f"Expected {main_tree!r}, got {result!r} — git-common-dir fallback broken"
+        )
+
+    def test_both_git_calls_fail_returns_original_cwd(self, tmp_path: Path) -> None:
+        """When both git calls fail, the original cwd is returned unchanged."""
+        worktree_path = str(tmp_path / "worktree")
+        fail_result = self._make_run("", returncode=128)
+
+        with patch("subprocess.run", side_effect=[fail_result, fail_result]):
+            result = resolve_main_working_tree(worktree_path)
+
+        assert result == worktree_path, (
+            "Should return cwd unchanged when git resolution fails"
+        )
+
+    def test_exception_during_subprocess_returns_cwd(self, tmp_path: Path) -> None:
+        """If subprocess.run raises, falls back gracefully to original cwd."""
+        worktree_path = str(tmp_path / "worktree")
+
+        with patch("subprocess.run", side_effect=OSError("no git")):
+            result = resolve_main_working_tree(worktree_path)
+
+        assert result == worktree_path
+
+
+class TestGetTokenDeltaWorktreeFallback:
+    """Test that get_token_delta() uses the main-tree transcript when the
+    worktree's own transcript directory is missing (issue #696).
+    """
+
+    def _patch_home(self, fake_home: Path):
+        """Patch Path.home() inside transcript_usage to use fake_home."""
+        return patch(
+            "claude_mpm.hooks.transcript_usage.Path.home",
+            return_value=fake_home,
+        )
+
+    def _patch_resolve_main(self, canonical_cwd: str):
+        """Patch resolve_main_working_tree to return canonical_cwd."""
+        return patch(
+            "claude_mpm.hooks.commit_cost_tracker.resolve_main_working_tree",
+            return_value=canonical_cwd,
+        )
+
+    def test_worktree_cwd_misses_but_main_tree_transcript_exists(
+        self, tmp_path: Path
+    ) -> None:
+        """When transcript is absent for worktree cwd but present for main tree,
+        get_token_delta() returns the real non-zero delta from main tree.
+        """
+        main_tree = str(tmp_path / "main-repo")
+        Path(main_tree).mkdir(parents=True)
+        state_dir = Path(main_tree) / ".claude-mpm" / "state"
+        state_dir.mkdir(parents=True)
+
+        worktree_cwd = str(tmp_path / "main-repo" / ".claude" / "worktrees" / "agent-x")
+
+        # Transcript exists ONLY for main_tree, not for worktree_cwd.
+        fake_home = tmp_path / "fake_home"
+        _create_fake_transcript_for_cwd(
+            fake_home,
+            main_tree,
+            input_tokens=20_000,
+            output_tokens=4_500,
+            model="claude-sonnet-4-6",
+        )
+        # No transcript for worktree_cwd (nothing created there).
+
+        with self._patch_home(fake_home), self._patch_resolve_main(main_tree):
+            delta = get_token_delta(worktree_cwd)
+
+        assert delta["input_tokens"] == 20_000, (
+            f"Expected 20000 from main-tree transcript, got {delta['input_tokens']} — "
+            "worktree fallback not working (issue #696)"
+        )
+        assert delta["output_tokens"] == 4_500
+
+    def test_baseline_written_to_canonical_cwd(self, tmp_path: Path) -> None:
+        """Baseline is written under the canonical (main-tree) cwd, not the worktree."""
+        main_tree = str(tmp_path / "main-repo")
+        Path(main_tree).mkdir(parents=True)
+        (Path(main_tree) / ".claude-mpm" / "state").mkdir(parents=True)
+
+        worktree_cwd = str(tmp_path / "main-repo" / ".claude" / "worktrees" / "agent-y")
+
+        fake_home = tmp_path / "fake_home"
+        _create_fake_transcript_for_cwd(
+            fake_home,
+            main_tree,
+            input_tokens=8_000,
+            output_tokens=1_200,
+        )
+
+        with self._patch_home(fake_home), self._patch_resolve_main(main_tree):
+            get_token_delta(worktree_cwd)
+
+        # Baseline must be at the main-tree path, NOT the worktree path.
+        baseline_path = (
+            Path(main_tree) / ".claude-mpm" / "state" / "commit-token-baseline.json"
+        )
+        assert baseline_path.exists(), (
+            f"Baseline file missing at {baseline_path} — "
+            "was written to worktree path instead of main-tree path"
+        )
+        baseline = json.loads(baseline_path.read_text())
+        assert baseline["input_tokens"] == 8_000
+        assert baseline["output_tokens"] == 1_200
+
+    def test_normal_non_worktree_commit_still_works(self, tmp_path: Path) -> None:
+        """Regression: a normal main-repo commit (no worktree) still gets the correct delta."""
+        main_tree = str(tmp_path / "main-repo")
+        Path(main_tree).mkdir(parents=True)
+        (Path(main_tree) / ".claude-mpm" / "state").mkdir(parents=True)
+
+        fake_home = tmp_path / "fake_home"
+        _create_fake_transcript_for_cwd(
+            fake_home,
+            main_tree,
+            input_tokens=12_000,
+            output_tokens=2_500,
+            model="claude-opus-4-8",
+        )
+
+        # resolve_main_working_tree returns cwd unchanged for a normal repo.
+        with self._patch_home(fake_home), self._patch_resolve_main(main_tree):
+            delta = get_token_delta(main_tree)
+
+        assert delta["input_tokens"] == 12_000, (
+            "Normal (non-worktree) commit regression: wrong token count"
+        )
+        assert delta["output_tokens"] == 2_500
+        assert "claude-opus-4-8" in delta.get("models", {})
+
+
+class TestAmendCommitMessageZeroSkip:
+    """Test that amend_commit_message() omits X-AI-Tokens-In/Out when delta is 0/0
+    (fix for #696 zero-skip requirement).
+    """
+
+    def _make_log_result(self, message: str) -> MagicMock:
+        r = MagicMock()
+        r.returncode = 0
+        r.stdout = message
+        r.stderr = ""
+        return r
+
+    def _make_amend_result(self) -> MagicMock:
+        r = MagicMock()
+        r.returncode = 0
+        r.stdout = ""
+        r.stderr = ""
+        return r
+
+    def test_zero_delta_skips_token_trailers(self) -> None:
+        """When both input_tokens and output_tokens are 0, token trailers are omitted."""
+        zero_delta: dict = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "models": {},
+        }
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result("feat: some change\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", zero_delta, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
+
+        assert "X-AI-Tokens-In:" not in new_msg, (
+            "X-AI-Tokens-In must be omitted when delta is 0"
+        )
+        assert "X-AI-Tokens-Out:" not in new_msg, (
+            "X-AI-Tokens-Out must be omitted when delta is 0"
+        )
+
+    def test_zero_delta_still_emits_coauthoredby(self) -> None:
+        """Co-Authored-By is always emitted even when token delta is 0."""
+        zero_delta: dict = {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "models": {},
+        }
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result("fix: something\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", zero_delta, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
+
+        assert _COAUTHORED_CANONICAL in new_msg, (
+            "Co-Authored-By must be preserved even when token delta is 0"
+        )
+
+    def test_nonzero_out_only_still_emits_trailers(self) -> None:
+        """If output_tokens is nonzero (input=0), token trailers are still emitted."""
+        delta: dict = {
+            "input_tokens": 0,
+            "output_tokens": 50,
+            "models": {},
+        }
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result("chore: update\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", delta, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
+
+        assert "X-AI-Tokens-In: 0" in new_msg
+        assert "X-AI-Tokens-Out: 50" in new_msg
+
+    def test_nonzero_tokens_still_emits_trailers(self) -> None:
+        """Regression: normal non-zero delta still produces token trailers."""
+        delta: dict = {
+            "input_tokens": 1000,
+            "output_tokens": 200,
+            "models": {},
+        }
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                self._make_log_result("feat: new feature\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", delta, "/tmp")
+
+        amend_call = mock_run.call_args_list[1]
+        new_msg = amend_call[0][0][amend_call[0][0].index("-m") + 1]
+
+        assert "X-AI-Tokens-In: 1000" in new_msg
+        assert "X-AI-Tokens-Out: 200" in new_msg
