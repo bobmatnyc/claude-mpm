@@ -623,3 +623,355 @@ class TestPrefixMatchBoundary:
         """claude-sonnet-4-6-20260101 (genuine date variant) still resolves 1 M."""
         window = resolve_context_window("claude-sonnet-4-6-20260101")
         assert window == 1_000_000
+
+
+# ---------------------------------------------------------------------------
+# (e) Configurable threshold — issue #681
+# ---------------------------------------------------------------------------
+
+
+class TestConfigurableThreshold:
+    """Verify that the warning threshold can be overridden via env var or settings.
+
+    Coverage requirements (issue #681):
+    (e1) Default threshold is 95.0 when neither env var nor settings key is set.
+    (e2) settings.json threshold_pct overrides the default.
+    (e3) Env var overrides settings (env > settings > default precedence).
+    (e4) Invalid threshold values are handled fail-open (default used, no crash).
+    (e5) disabled knob still works alongside configurable threshold.
+    """
+
+    # --- (e1) Default threshold ---
+
+    def test_default_threshold_is_95(self, project_cwd: Path) -> None:
+        """When neither env var nor settings is set, threshold defaults to 95.0."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 94.9},
+        )
+        # Remove the threshold env var to get a clean default.
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 94.9 < 95.0 default -> pass-through
+        assert result == {}
+
+    def test_default_threshold_fires_at_95(self, project_cwd: Path) -> None:
+        """Default threshold: warning fires at exactly 95.0."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 95.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        assert result.get("permissionDecision") == "allow"
+
+    # --- (e2) settings.json threshold_pct ---
+
+    def test_settings_threshold_pct_overrides_default(self, project_cwd: Path) -> None:
+        """settings.json threshold_pct: warning fires at the configured value."""
+        # Set threshold to 80 in settings — warning should fire at 80, not 95.
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": 80}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 82.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 82.0 >= 80 (settings threshold) -> allow-with-warning
+        assert result.get("permissionDecision") == "allow"
+
+    def test_settings_threshold_pct_below_percentage_passes(
+        self, project_cwd: Path
+    ) -> None:
+        """settings.json threshold_pct=90: 85% usage is below threshold, passes."""
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": 90}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 85.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 85.0 < 90 (settings threshold) -> pass-through
+        assert result == {}
+
+    def test_settings_threshold_pct_float_value(self, project_cwd: Path) -> None:
+        """settings.json threshold_pct accepts float values (e.g. 85.5)."""
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": 85.5}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 86.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 86.0 >= 85.5 -> allow-with-warning
+        assert result.get("permissionDecision") == "allow"
+
+    # --- (e3) Env var overrides settings ---
+
+    def test_env_var_overrides_settings_threshold(self, project_cwd: Path) -> None:
+        """CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD env var overrides settings value."""
+        # settings says 90 but env says 70 -> env wins
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": 90}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 75.0},
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD": "70"},
+            clear=False,
+        ):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 75.0 >= 70 (env threshold) -> allow-with-warning
+        assert result.get("permissionDecision") == "allow"
+
+    def test_env_var_threshold_passes_below(self, project_cwd: Path) -> None:
+        """Env var threshold=85: usage at 80% is below it, passes through."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 80.0},
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD": "85"},
+            clear=False,
+        ):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        assert result == {}
+
+    def test_env_var_threshold_overrides_default_when_no_settings(
+        self, project_cwd: Path
+    ) -> None:
+        """Env var threshold overrides default even when no settings file exists."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 70.0},
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD": "65"},
+            clear=False,
+        ):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 70.0 >= 65 (env threshold) -> allow-with-warning
+        assert result.get("permissionDecision") == "allow"
+
+    # --- (e4) Invalid threshold values handled fail-open ---
+
+    def test_invalid_env_var_string_uses_default(self, project_cwd: Path) -> None:
+        """Non-numeric env var is ignored; default 95.0 is used (fail-open)."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 90.0},
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD": "not-a-number"},
+            clear=False,
+        ):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 90.0 < 95.0 (default fallback) -> pass-through
+        assert result == {}
+
+    def test_out_of_range_env_var_below_min_uses_default(
+        self, project_cwd: Path
+    ) -> None:
+        """Env var value 0 (below min 1) is ignored; default 95.0 is used."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 90.0},
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD": "0"},
+            clear=False,
+        ):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 90.0 < 95.0 (default) -> pass-through
+        assert result == {}
+
+    def test_out_of_range_env_var_above_max_uses_default(
+        self, project_cwd: Path
+    ) -> None:
+        """Env var value 101 (above max 100) is ignored; default 95.0 is used."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 96.0},
+        )
+        with mock.patch.dict(
+            os.environ,
+            {"CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD": "101"},
+            clear=False,
+        ):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 96.0 >= 95.0 (default) -> allow-with-warning
+        assert result.get("permissionDecision") == "allow"
+
+    def test_invalid_settings_threshold_uses_default(self, project_cwd: Path) -> None:
+        """Non-numeric settings threshold is ignored; default 95.0 is used."""
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": "bad-value"}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 90.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # Invalid settings -> falls back to default 95.0; 90.0 < 95.0 -> pass-through
+        assert result == {}
+
+    def test_out_of_range_settings_threshold_below_min_uses_default(
+        self, project_cwd: Path
+    ) -> None:
+        """settings threshold_pct=0 (out of range) is ignored; default used."""
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": 0}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 90.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # Out-of-range settings -> default 95.0; 90.0 < 95.0 -> pass-through
+        assert result == {}
+
+    def test_invalid_threshold_never_crashes(self, project_cwd: Path) -> None:
+        """Completely malformed threshold config does not raise; returns valid result."""
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        # threshold_pct is a list -- completely wrong type
+        (settings_dir / "settings.json").write_text(
+            json.dumps({"context_circuit_breaker": {"threshold_pct": [1, 2, 3]}}),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 99.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            # Must not raise
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # 99.0 >= 95.0 (default) -> allow-with-warning
+        assert result.get("permissionDecision") == "allow"
+
+    # --- (e5) disabled knob still works ---
+
+    def test_disabled_still_bypasses_even_with_threshold_set(
+        self, project_cwd: Path
+    ) -> None:
+        """disabled: true overrides threshold setting; breaker is fully bypassed."""
+        settings_dir = project_cwd / ".claude"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.json").write_text(
+            json.dumps(
+                {
+                    "context_circuit_breaker": {
+                        "disabled": True,
+                        "threshold_pct": 50,
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 99.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k
+            not in (
+                "CLAUDE_MPM_DISABLE_CONTEXT_BREAKER",
+                "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD",
+            )
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        # disabled: true -> pass-through regardless of threshold
+        assert result == {}
+
+    def test_threshold_in_warning_message(self, project_cwd: Path) -> None:
+        """Warning message mentions the threshold env var and settings key."""
+        _write_state(
+            project_cwd,
+            {"session_id": "sess-current", "percentage_used": 99.0},
+        )
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k != "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = context_circuit_breaker.evaluate(_event(project_cwd))
+        reason = result.get("permissionDecisionReason", "")
+        assert "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD" in reason
+        assert "threshold_pct" in reason

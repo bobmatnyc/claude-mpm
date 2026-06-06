@@ -1,4 +1,4 @@
-"""PreToolUse context circuit breaker — warn (not hard-block) when context nears full.
+"""PreToolUse context circuit breaker -- warn (not hard-block) when context nears full.
 
 WHAT: Reads cumulative context-usage state from the per-session state file and
 emits a *warning* annotation when the session's context exceeds a critical
@@ -11,23 +11,29 @@ once the token count exceeded 95 % of a *hardcoded* 200 K ceiling.  On models
 with 1 M context windows (Opus 4.x, large-context Sonnet 4.5+) this fired
 almost immediately and made sessions completely unrecoverable.  The fix:
 
-1. **Dynamic context window** — the ceiling is resolved from the active model id
+1. **Dynamic context window** -- the ceiling is resolved from the active model id
    (via :mod:`claude_mpm.hooks.model_context_window`) so 1 M-context models are
    never compared against a 200 K budget.
-2. **Percentage clamped at 100** — ``percentage_used`` read from the state file
+2. **Percentage clamped at 100** -- ``percentage_used`` read from the state file
    can exceed 100 when a prior version wrote it with the wrong budget; we cap
    it before evaluation so display values are always sane.
-3. **Allow-with-warning instead of hard-block** — the breaker no longer
+3. **Allow-with-warning instead of hard-block** -- the breaker no longer
    returns ``permissionDecision: deny`` for regular tool calls.  It emits
    ``permissionDecision: "allow"`` (the only documented non-blocking value)
    with the warning text in ``permissionDecisionReason``, preserving session
    usability.  "warn" is not a documented PreToolUse value and was removed.
-4. **Always allow read-only / recovery tools** — the tools listed in
+4. **Always allow read-only / recovery tools** -- the tools listed in
    ``ALWAYS_ALLOWED_TOOLS`` pass through unconditionally, even if the threshold
    is exceeded and warnings are suppressed for them.
-5. **Disable switch** — set the ``CLAUDE_MPM_DISABLE_CONTEXT_BREAKER=1`` env
+5. **Disable switch** -- set the ``CLAUDE_MPM_DISABLE_CONTEXT_BREAKER=1`` env
    var or the ``context_circuit_breaker.disabled`` config key to fully bypass
    this module.  The disable instructions are included in the warning message.
+6. **Configurable threshold** -- the warning threshold defaults to 95 % but can
+   be overridden via ``CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD`` env var or the
+   ``context_circuit_breaker.threshold_pct`` settings key (issue #681).
+   Precedence: env var > settings file > default (95.0).  Invalid values
+   (non-numeric or outside 1-100) are silently ignored and the default is used
+   (fail-open).
 
 State source
 ------------
@@ -47,10 +53,19 @@ Set ``CLAUDE_MPM_DISABLE_CONTEXT_BREAKER=1`` (or ``true`` / ``yes``) in the
 environment **or** add ``"context_circuit_breaker": {"disabled": true}`` to
 ``.claude/settings.json`` to fully disable this module.
 
+Threshold override
+------------------
+Set ``CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD=<number>`` in the environment
+**or** add ``"context_circuit_breaker": {"threshold_pct": <number>}`` to
+``.claude/settings.json`` to change the warning threshold from the default
+95 %.  Values must be numeric and in the range 1-100; values outside this
+range or non-numeric strings are ignored and the default 95.0 is used.
+
 References
 ----------
 SPEC-HOOKS-11~1 : docs/specs/hooks.md#SPEC-HOOKS-11~1
 GitHub issue #642
+GitHub issue #681
 """
 
 from __future__ import annotations
@@ -69,10 +84,10 @@ from claude_mpm.hooks.model_context_window import (
 # ---------------------------------------------------------------------------
 
 # Threshold (percentage) above which the warning fires.
-# Mirrors ``ContextUsageTracker.THRESHOLDS["critical"]`` (0.95 → 95 %).
+# Mirrors ``ContextUsageTracker.THRESHOLDS["critical"]`` (0.95 -> 95 %).
 CRITICAL_THRESHOLD: float = 95.0
 
-# Tools that are always allowed through — even above the critical threshold.
+# Tools that are always allowed through -- even above the critical threshold.
 # These are read-only / recovery / navigation tools that a user needs to be
 # able to run in order to self-recover from a full context window.
 ALWAYS_ALLOWED_TOOLS: frozenset[str] = frozenset(
@@ -102,10 +117,18 @@ _STATE_FILE_RELATIVE = Path(".claude-mpm") / "state" / "context-usage.json"
 # Environment variable name for the disable switch.
 _DISABLE_ENV_VAR = "CLAUDE_MPM_DISABLE_CONTEXT_BREAKER"
 
-# Config key path inside .claude/settings.json for the disable switch.
-# JSON path: {"context_circuit_breaker": {"disabled": true}}
+# Environment variable name for the threshold override.
+_THRESHOLD_ENV_VAR = "CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD"
+
+# Config key path inside .claude/settings.json for both knobs.
+# JSON path: {"context_circuit_breaker": {"disabled": true, "threshold_pct": 85}}
 _CONFIG_KEY = "context_circuit_breaker"
 _CONFIG_DISABLED_FIELD = "disabled"
+_CONFIG_THRESHOLD_FIELD = "threshold_pct"
+
+# Allowed range for threshold values (inclusive on both ends).
+_THRESHOLD_MIN: float = 1.0
+_THRESHOLD_MAX: float = 100.0
 
 
 # ---------------------------------------------------------------------------
@@ -113,30 +136,34 @@ _CONFIG_DISABLED_FIELD = "disabled"
 # ---------------------------------------------------------------------------
 
 
-def _is_disabled(cwd: str) -> bool:
-    """Return True if the circuit breaker has been explicitly disabled.
-
-    Checks, in order:
-    1. ``CLAUDE_MPM_DISABLE_CONTEXT_BREAKER`` env var (any truthy value).
-    2. ``context_circuit_breaker.disabled`` in .claude/settings.json.
-    3. ``context_circuit_breaker.disabled`` in ~/.claude/settings.json.
-    """
-    env_val = os.environ.get(_DISABLE_ENV_VAR, "").strip().lower()
-    if env_val in ("1", "true", "yes", "on"):
-        return True
-
-    # Check project and global settings files.
-    settings_candidates: list[Path] = []
+def _settings_candidates(cwd: str) -> list[Path]:
+    """Return ordered list of settings files to check (highest-priority first)."""
+    candidates: list[Path] = []
     if cwd:
-        settings_candidates.extend(
+        candidates.extend(
             [
                 Path(cwd) / ".claude" / "settings.local.json",
                 Path(cwd) / ".claude" / "settings.json",
             ]
         )
-    settings_candidates.append(Path.home() / ".claude" / "settings.json")
+    candidates.append(Path.home() / ".claude" / "settings.json")
+    return candidates
 
-    for settings_path in settings_candidates:
+
+def _is_disabled(cwd: str) -> bool:
+    """Return True if the circuit breaker has been explicitly disabled.
+
+    Checks, in order:
+    1. ``CLAUDE_MPM_DISABLE_CONTEXT_BREAKER`` env var (any truthy value).
+    2. ``context_circuit_breaker.disabled`` in .claude/settings.local.json.
+    3. ``context_circuit_breaker.disabled`` in .claude/settings.json.
+    4. ``context_circuit_breaker.disabled`` in ~/.claude/settings.json.
+    """
+    env_val = os.environ.get(_DISABLE_ENV_VAR, "").strip().lower()
+    if env_val in ("1", "true", "yes", "on"):
+        return True
+
+    for settings_path in _settings_candidates(cwd):
         try:
             if not settings_path.is_file():
                 continue
@@ -158,10 +185,58 @@ def _is_disabled(cwd: str) -> bool:
     return False
 
 
+def _resolve_threshold(cwd: str) -> float:
+    """Return the warning threshold percentage to use.
+
+    Precedence (highest first):
+    1. ``CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD`` env var.
+    2. ``context_circuit_breaker.threshold_pct`` in .claude/settings.local.json.
+    3. ``context_circuit_breaker.threshold_pct`` in .claude/settings.json.
+    4. ``context_circuit_breaker.threshold_pct`` in ~/.claude/settings.json.
+    5. ``CRITICAL_THRESHOLD`` constant (95.0 -- the module-level default).
+
+    Invalid values (non-numeric or outside [_THRESHOLD_MIN, _THRESHOLD_MAX]) are
+    silently skipped so that bad config never causes the breaker to crash or
+    hard-block sessions (fail-open policy).
+    """
+    # 1. Environment variable takes highest precedence.
+    env_raw = os.environ.get(_THRESHOLD_ENV_VAR, "").strip()
+    if env_raw:
+        try:
+            val = float(env_raw)
+            if _THRESHOLD_MIN <= val <= _THRESHOLD_MAX:
+                return val
+        except (TypeError, ValueError):
+            pass  # fall through to settings
+
+    # 2-4. Settings files in priority order.
+    for settings_path in _settings_candidates(cwd):
+        try:
+            if not settings_path.is_file():
+                continue
+            with settings_path.open(encoding="utf-8") as fh:
+                data = json.load(fh)
+            cb_config = data.get(_CONFIG_KEY)
+            if isinstance(cb_config, dict):
+                raw = cb_config.get(_CONFIG_THRESHOLD_FIELD)
+                if raw is not None:
+                    try:
+                        val = float(raw)
+                        if _THRESHOLD_MIN <= val <= _THRESHOLD_MAX:
+                            return val
+                    except (TypeError, ValueError):
+                        pass  # skip invalid value, try next settings file
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+
+    # 5. Module-level default.
+    return CRITICAL_THRESHOLD
+
+
 def _load_state(cwd: str) -> dict[str, Any] | None:
     """Read context-usage state from disk.
 
-    Returns ``None`` when the file is missing, unreadable, or malformed —
+    Returns ``None`` when the file is missing, unreadable, or malformed --
     the breaker treats all of those cases as fail-open.
     """
     if not cwd:
@@ -238,7 +313,7 @@ def evaluate(event: dict[str, Any]) -> dict[str, Any]:
     *warning*, and an empty dict otherwise.  At/above threshold the decision
     is ``permissionDecision: "allow"`` (a documented PreToolUse value) with
     the warning text in ``permissionDecisionReason``.  This is the only
-    non-empty decision this function can emit — "deny" and "warn" are never
+    non-empty decision this function can emit -- "deny" and "warn" are never
     returned (the former was the pre-#642 behavior; the latter is not a
     documented Claude Code value and could be treated as an error).
 
@@ -273,17 +348,20 @@ def evaluate(event: dict[str, Any]) -> dict[str, Any]:
     if percentage is None:
         return {}
 
-    if percentage < CRITICAL_THRESHOLD:
+    threshold = _resolve_threshold(cwd)
+    if percentage < threshold:
         return {}
 
     pct_display = round(percentage)
     reason = (
-        f"Context at {pct_display}% — approaching session limit. "
+        f"Context at {pct_display}% -- approaching session limit. "
         "Consider running /compact or starting a new session via /mpm-resume. "
         f"To disable this warning: set {_DISABLE_ENV_VAR}=1 or add "
-        f'"{_CONFIG_KEY}": {{"disabled": true}} to .claude/settings.json.'
+        f'"{_CONFIG_KEY}": {{"disabled": true}} to .claude/settings.json. '
+        f"To adjust the threshold: set {_THRESHOLD_ENV_VAR}=<1-100> or add "
+        f'"{_CONFIG_KEY}": {{"threshold_pct": <value>}} to .claude/settings.json.'
     )
-    # Return allow-with-warning — "allow" is a documented PreToolUse value;
+    # Return allow-with-warning -- "allow" is a documented PreToolUse value;
     # "warn" is NOT documented and risks being treated as deny/error.
     # The warning text is carried in permissionDecisionReason so the harness
     # can surface it while still letting the tool call proceed.
@@ -314,7 +392,7 @@ def main() -> None:
     decision_type = decision.get("permissionDecision")
 
     # evaluate() only ever returns "allow" (allow-with-warning) or nothing ({}
-    # → pass-through).  "deny" and "warn" are never emitted post-#642 fix.
+    # -> pass-through).  "deny" and "warn" are never emitted post-#642 fix.
     if decision_type == "allow":
         payload = {
             "hookSpecificOutput": {
