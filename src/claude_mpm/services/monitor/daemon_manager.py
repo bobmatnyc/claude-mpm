@@ -25,7 +25,6 @@ import signal
 import socket
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -762,80 +761,27 @@ class DaemonManager:
             return False
 
     def daemonize(self) -> bool:
-        """Daemonize the current process.
+        """Legacy daemonize — now an error guard; use start_daemon_subprocess().
+
+        The raw os.fork() double-fork that used to live here was unsafe in
+        multithreaded Python parents on macOS (EXC_BAD_ACCESS / SIGSEGV from
+        CoreFoundation after fork, before exec).  It has been removed as part
+        of the fix for issue #693.
+
+        This method is only reachable when CLAUDE_MPM_SUBPROCESS_DAEMON=1,
+        i.e. when we are already the exec'd daemon child — forking again from
+        inside the child would be doubly wrong.  The correct path is for the
+        child to call _run_server() / _start_foreground() directly.
 
         Returns:
-            True if successful (in parent), doesn't return in child
+            False always — callers should not reach this path.
         """
-        # Guard against re-entrant execution after fork
-        if hasattr(self, "_forking_in_progress"):
-            self.logger.error(
-                "CRITICAL: Detected re-entrant daemonize call after fork!"
-            )
-            return False
-
-        self._forking_in_progress = True
-
-        try:
-            # Clean up asyncio event loops before forking
-            self._cleanup_event_loops()
-
-            # Create status file for communication
-            with tempfile.NamedTemporaryFile(
-                mode="w", delete=False, suffix=".status"
-            ) as f:
-                self.startup_status_file = f.name
-                f.write("starting")
-
-            # First fork
-            pid = os.fork()
-            if pid > 0:
-                # Parent process - wait for child to confirm startup
-                del self._forking_in_progress  # Clean up in parent
-                return self._parent_wait_for_startup(pid)
-
-        except OSError as e:
-            self.logger.error(f"First fork failed: {e}")
-            return False
-
-        # Child process continues...
-
-        # Decouple from parent
-        os.chdir("/")
-        os.setsid()
-        os.umask(0)
-
-        try:
-            # Second fork
-            pid = os.fork()
-            if pid > 0:
-                # First child exits
-                sys.exit(0)
-        except OSError as e:
-            self.logger.error(f"Second fork failed: {e}")
-            self._report_startup_error(f"Second fork failed: {e}")
-            sys.exit(1)
-
-        # Grandchild process - the actual daemon
-
-        # Write PID file
-        self.write_pid_file()
-
-        # Redirect streams
-        self._redirect_streams()
-
-        # Setup signal handlers
-        self._setup_signal_handlers()
-
-        self.logger.info(f"Daemon process started with PID {os.getpid()}")
-
-        # DO NOT report success here - let the caller report after starting the service
-        # This prevents race conditions where we report success before the server starts
-        # self._report_startup_success()  # REMOVED - caller must report
-
-        # Note: Daemon process continues running
-        # Caller is responsible for running the actual service AND reporting status
-        return True
+        self.logger.error(
+            "daemonize() called — this path was removed in fix/#693 because "
+            "raw os.fork() from a multithreaded parent causes EXC_BAD_ACCESS on macOS. "
+            "Use start_daemon_subprocess() instead."
+        )
+        return False
 
     def stop_daemon(self, timeout: int = 10) -> bool:
         """Stop the daemon process.

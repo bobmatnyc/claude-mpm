@@ -23,10 +23,11 @@ from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.monitor.daemon import UnifiedMonitorDaemon
 from claude_mpm.services.port_manager import PortManager
 
-# Default paths
-DEFAULT_PID_FILE = Path.home() / ".claude-mpm" / "socketio-server.pid"
-DEFAULT_LOG_FILE = Path.home() / ".claude-mpm" / "logs" / "socketio" / "daemon.log"
+# Default paths — PID file is port-keyed to match SocketIODaemonManager convention
+# so that two instances on different ports never clobber each other.
 DEFAULT_PORT = 8765
+DEFAULT_PID_FILE = Path.home() / ".claude-mpm" / f"socketio-server-{DEFAULT_PORT}.pid"
+DEFAULT_LOG_FILE = Path.home() / ".claude-mpm" / "logs" / "socketio" / "daemon.log"
 
 logger = get_logger(__name__)
 
@@ -52,7 +53,8 @@ def is_running(pid_file: Path) -> bool:
 
 def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
     """Start the Socket.IO server."""
-    pid_file = DEFAULT_PID_FILE
+    # PID file is port-keyed so multiple instances on different ports don't collide.
+    pid_file = Path.home() / ".claude-mpm" / f"socketio-server-{port}.pid"
     log_file = DEFAULT_LOG_FILE
 
     # Ensure directories exist
@@ -69,6 +71,8 @@ def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
 
     if actual_port != port:
         logger.info(f"Port {port} is in use, using port {actual_port} instead")
+        # Recompute PID file for the actual port in use
+        pid_file = Path.home() / ".claude-mpm" / f"socketio-server-{actual_port}.pid"
 
     # Create and start daemon
     monitor_daemon = UnifiedMonitorDaemon(

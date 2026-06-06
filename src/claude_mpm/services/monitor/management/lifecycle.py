@@ -7,16 +7,21 @@ daemonization, PID file management, and graceful shutdown for the unified
 monitor daemon.
 
 DESIGN DECISIONS:
-- Standard Unix daemon patterns
+- Exec-based daemon spawn via subprocess.Popen(start_new_session=True) instead
+  of raw os.fork() double-fork, which causes EXC_BAD_ACCESS / SIGSEGV on macOS
+  when CoreFoundation is touched after fork in a multithreaded parent.
 - PID file management for process tracking
 - Proper signal handling for graceful shutdown
 - Log file redirection for daemon mode
+
+See docs/developer/daemon-fork-safety.md for the full rationale.
 """
 
 import json
 import os
 import signal
 import socket
+import subprocess
 import sys
 import tempfile
 import time
@@ -49,69 +54,95 @@ class DaemonLifecycle:
         self.startup_status_file = None
 
     def daemonize(self) -> bool:
-        """Daemonize the current process.
+        """Start the daemon as a detached subprocess (exec-based, no fork).
+
+        Replaces the old raw os.fork() double-fork with subprocess.Popen(
+        start_new_session=True) so a fresh interpreter is exec'd and never
+        inherits the multithreaded parent's CoreFoundation / kqueue state.
+
+        The subprocess child detects CLAUDE_MPM_SUBPROCESS_DAEMON=1 and calls
+        the server entry-point directly in foreground mode.  The caller must
+        set this env var and run the server loop itself; this method only
+        handles the *spawn* side.  The startup-status-file mechanism is
+        preserved: the parent writes "starting", then polls until the child
+        writes "success" or "error:<msg>".
 
         Returns:
-            True if daemonization successful, False otherwise
+            True if spawn succeeded and subprocess is running.
+            False on error.  (Does NOT block waiting for full server startup —
+            that polling is done by _parent_wait_for_startup, called here.)
         """
         try:
-            # Clean up any existing asyncio event loops before forking
-            self._cleanup_event_loops()
-
-            # Create a temporary file for startup status communication
+            # Create a temporary file for startup status communication.
+            # Normalize to Path immediately so all call sites are consistent.
             with tempfile.NamedTemporaryFile(
                 mode="w", delete=False, suffix=".status"
             ) as f:
-                self.startup_status_file = f.name
+                self.startup_status_file = Path(f.name)
                 f.write("starting")
 
-            # First fork
-            pid = os.fork()
-            if pid > 0:
-                # Parent process - wait for child to confirm startup
-                return self._parent_wait_for_startup(pid)
-        except OSError as e:
-            self.logger.error(f"First fork failed: {e}")
-            self._report_startup_error(f"First fork failed: {e}")
-            return False
+            # Build argv — re-invoke via the CLI monitor start command so the
+            # child enters the same code path it would have post-fork.
+            cmd = [
+                sys.executable,
+                "-m",
+                "claude_mpm.cli",
+                "monitor",
+                "start",
+                "--background",
+                "--port",
+                str(self.port),
+            ]
+            if self.pid_file:
+                cmd += ["--pid-file", str(self.pid_file)]
+            if self.log_file:
+                cmd += ["--log-file", str(self.log_file)]
 
-        # Decouple from parent environment
-        os.chdir("/")
-        os.setsid()
-        os.umask(0)
+            env = os.environ.copy()
+            # Signal to the child that it is the daemon subprocess and must run
+            # the server in foreground without forking again.
+            env["CLAUDE_MPM_SUBPROCESS_DAEMON"] = "1"
+            # Pass the status-file path so the child can report back.
+            env["CLAUDE_MPM_STARTUP_STATUS_FILE"] = str(self.startup_status_file)
 
-        try:
-            # Second fork
-            pid = os.fork()
-            if pid > 0:
-                # First child process exits
-                sys.exit(0)
-        except OSError as e:
-            self.logger.error(f"Second fork failed: {e}")
-            self._report_startup_error(f"Second fork failed: {e}")
-            return False
+            # Open log file for stdout/stderr redirection
+            log_file_handle = None
+            if self.log_file:
+                Path(self.log_file).parent.mkdir(parents=True, exist_ok=True)
+                log_file_handle = Path(self.log_file).open("a")
+                log_target = log_file_handle
+            else:
+                default_log = (
+                    Path.home() / ".claude-mpm" / "logs" / "monitor-daemon.log"
+                )
+                default_log.parent.mkdir(parents=True, exist_ok=True)
+                log_file_handle = default_log.open("a")
+                log_target = log_file_handle
 
-        # Set up error logging before redirecting streams
-        self._setup_early_error_logging()
+            try:
+                process = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.DEVNULL,
+                    stdout=log_target,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                    env=env,
+                )
+            finally:
+                if log_file_handle and not log_file_handle.closed:
+                    # Safe to close the parent's handle: Popen has already dup'd the fd into the
+                    # child (exempt from close_fds), so the daemon keeps writing to the log.
+                    log_file_handle.close()
 
-        # Write PID file first (before stream redirection)
-        try:
-            self.write_pid_file()
+            self.logger.info(
+                f"Monitor daemon subprocess started with PID {process.pid}"
+            )
+            return self._parent_wait_for_startup(process.pid)
+
         except Exception as e:
-            self._report_startup_error(f"Failed to write PID file: {e}")
+            self.logger.error(f"Failed to start daemon subprocess: {e}")
+            self._report_startup_error(str(e))
             return False
-
-        # Redirect standard file descriptors
-        self._redirect_streams()
-
-        # Setup signal handlers
-        self._setup_signal_handlers()
-
-        self.logger.info(f"Daemon process started with PID {os.getpid()}")
-
-        # Report successful startup (after basic setup but before server start)
-        self._report_startup_success()
-        return True
 
     def _redirect_streams(self):
         """Redirect standard streams for daemon mode."""
@@ -388,7 +419,7 @@ class DaemonLifecycle:
         while time.time() - start_time < timeout:
             try:
                 # Check if status file exists and read it
-                if self.startup_status_file and Path(self.startup_status_file).exists():
+                if self.startup_status_file and self.startup_status_file.exists():
                     with self.startup_status_file.open() as f:
                         status = f.read().strip()
 
@@ -441,8 +472,7 @@ class DaemonLifecycle:
         """Report successful startup to parent process."""
         if self.startup_status_file:
             try:
-                with self.startup_status_file.open("w") as f:
-                    f.write(OperationResult.SUCCESS)
+                self.startup_status_file.write_text(OperationResult.SUCCESS)
             except Exception as e:
                 self.logger.error(f"Failed to report startup success: {e}")
 
@@ -454,8 +484,7 @@ class DaemonLifecycle:
         """
         if self.startup_status_file:
             try:
-                with self.startup_status_file.open("w") as f:
-                    f.write(f"error:{error_msg}")
+                self.startup_status_file.write_text(f"error:{error_msg}")
             except Exception:
                 pass  # Can't report if file write fails
 
@@ -463,7 +492,7 @@ class DaemonLifecycle:
         """Clean up the temporary status file."""
         if self.startup_status_file:
             try:
-                Path(self.startup_status_file).unlink(missing_ok=True)
+                self.startup_status_file.unlink(missing_ok=True)
             except Exception:
                 pass  # Ignore cleanup errors
             finally:
