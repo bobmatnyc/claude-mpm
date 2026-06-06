@@ -13,6 +13,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from claude_mpm.constants import BANNER_DEPLOYED
 from claude_mpm.core.framework.loaders.workflow_constants import (
     WORKFLOW_SYSTEM_REFERENCE,
 )
@@ -254,7 +255,12 @@ class SystemInstructionsDeployer:
             target_file = claude_mpm_dir / "PM_INSTRUCTIONS_DEPLOYED.md"
             file_existed = target_file.exists()
 
-            target_file.write_text("\n\n".join(merged_content))
+            # Prepend a stable, deterministic auto-generated banner so users
+            # immediately know this file must not be hand-edited.  The banner
+            # does not carry a timestamp so it never causes spurious diffs on
+            # repeated rebuilds.  Uses the shared constant from constants.py to
+            # ensure a single definition across all writers.
+            target_file.write_text(BANNER_DEPLOYED + "\n\n".join(merged_content))
 
             source_desc = ", ".join(str(p) for p in watched_paths if p.exists())
             deployment_info = {

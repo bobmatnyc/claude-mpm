@@ -76,8 +76,19 @@ class TestInstructionCacheService:
         assert cache_service.cache_file.exists()
         assert cache_service.meta_file.exists()
 
-        # Verify cache content matches provided content
-        assert cache_service.cache_file.read_text() == test_instruction_content
+        # Verify cache file contains exactly the supplied content — no banner
+        # is prepended because PM_INSTRUCTIONS.md is passed verbatim to Claude
+        # via --system-prompt-file.  The "do not edit" notice lives in the
+        # .meta sidecar (see _write_metadata / BANNER_CACHE_NOTICE).
+        cached_text = cache_service.cache_file.read_text()
+        assert cached_text == test_instruction_content
+
+        # Idempotency: assembling identical content a second time must produce
+        # the exact same file bytes.
+        cache_service.update_cache(
+            instruction_content=test_instruction_content, force=True
+        )
+        assert cache_service.cache_file.read_text() == cached_text
 
         # Verify metadata structure
         metadata = json.loads(cache_service.meta_file.read_text())
@@ -122,8 +133,9 @@ class TestInstructionCacheService:
         assert result2["reason"] == "content_changed"
         assert result2["content_hash"] != initial_hash
 
-        # Verify cache has new content
-        assert cache_service.cache_file.read_text() == new_content
+        # Verify cache file contains exactly the new content (no banner prefix).
+        cached_text = cache_service.cache_file.read_text()
+        assert cached_text == new_content
 
     def test_update_cache_force_updates_regardless(
         self, cache_service, test_instruction_content
@@ -370,8 +382,9 @@ class TestInstructionCacheService:
         result = cache_service.update_cache(instruction_content=new_content)
         assert result["updated"] is True
 
-        # After update, cache should have complete new content
-        assert cache_service.cache_file.read_text() == new_content
+        # After update, cache file must contain exactly the new content (no banner).
+        cached_text = cache_service.cache_file.read_text()
+        assert cached_text == new_content
 
     def test_cache_service_with_large_content(self, cache_service):
         """Test that cache service handles large content efficiently."""
@@ -382,8 +395,9 @@ class TestInstructionCacheService:
         result = cache_service.update_cache(instruction_content=large_content)
         assert result["updated"] is True
 
-        # Verify content matches
-        assert cache_service.cache_file.read_text() == large_content
+        # Verify cache file contains exactly the large content (no banner prefix).
+        cached_text = cache_service.cache_file.read_text()
+        assert cached_text == large_content
 
         # Verify cache is valid
         assert cache_service.is_cache_valid(instruction_content=large_content) is True

@@ -49,7 +49,10 @@ def test_cache_assembled_instruction_workflow():
         # This path would be passed to Claude Code via --system-prompt-file
         # Example: claude --system-prompt-file {cache_file} ...
 
-        # Step 5: Verify cache content matches
+        # Step 5: Verify cache content is exactly the assembled instruction.
+        # No banner is prepended — PM_INSTRUCTIONS.md is passed verbatim to
+        # Claude via --system-prompt-file, so the file must be clean.
+        # The "do not edit" notice lives in the .meta sidecar instead.
         cached_content = cache_file.read_text()
         assert cached_content == assembled_instruction
 
@@ -68,7 +71,7 @@ def test_cache_assembled_instruction_workflow():
         assert result3["updated"] is True
         assert result3["reason"] == "content_changed"
 
-        # Cache now has updated content
+        # Cache now has updated content (exactly the new instruction, no banner).
         cached_content_new = cache_file.read_text()
         assert cached_content_new == updated_instruction
         assert cached_content_new != cached_content
