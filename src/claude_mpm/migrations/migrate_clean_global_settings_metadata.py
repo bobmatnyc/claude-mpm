@@ -37,7 +37,9 @@ LINK: none
 
 import json
 import logging
+import os
 import shutil
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -57,18 +59,63 @@ _SPINNER_KEYS: frozenset[str] = frozenset(
 # Top-level metadata keys that are stale in global settings.
 _STALE_METADATA_KEYS: tuple[str, ...] = ("_mpm_managed", "_mpm_version")
 
-# Substrings used to recognise an MPM hook command entry (mirrors the
-# v6_3_19 / dedup_hook_registrations migration lists).
-_MPM_HOOK_MARKERS: tuple[str, ...] = (
-    "claude-hook-fast",
-    "claude-hook-handler",
-    "claude-hook",
-    "message_check_hook",
-    "tool_failure_hook",
-    "claude_mpm",
+# Exact basename stems used to recognise an MPM hook command entry
+# (mirrors the v6_3_19 / dedup_hook_registrations migration lists).
+# These are matched as basename (final path component) so that a user's
+# command such as ``pre_claude_mpm_check.sh`` is NOT accidentally removed.
+# CONSERVATIVE by design: when unsure, we do NOT delete.
+_MPM_HOOK_SCRIPTS: frozenset[str] = frozenset(
+    {
+        "claude-hook",
+        "claude-hook-fast.sh",
+        "claude-hook-handler.sh",
+    }
+)
+
+# Known internal Python helper names registered by MPM (exact basename match).
+_MPM_HOOK_PYTHON_HELPERS: frozenset[str] = frozenset(
+    {
+        "message_check_hook",
+        "tool_failure_hook",
+    }
 )
 
 _BACKUP_KEEP = 5  # Maximum number of MPM backups retained per settings file.
+
+
+def _command_is_mpm_owned(command_str: str) -> bool:
+    """Return True when a command string can be *precisely* attributed to MPM.
+
+    The check is CONSERVATIVE: we only remove entries we are highly confident
+    were written by claude-mpm.  A user command that merely *contains* the
+    substring ``claude_mpm`` (e.g. ``/usr/local/bin/claude_mpm_wrapper``) is
+    NOT matched here — that would be a false-positive that silently deletes
+    user data.
+
+    Matching rules (in order):
+    1. The basename of the command equals one of the known MPM hook script
+       names exactly (e.g. ``claude-hook``, ``claude-hook-fast.sh``).
+    2. The command basename equals one of the known MPM Python helper names.
+    3. The command path contains the path component ``/claude_mpm/`` — i.e.
+       it is a file *inside* the MPM package tree, identified by a full path
+       segment boundary (not a bare substring).
+
+    Args:
+        command_str: The raw ``command`` value from a hook entry.
+
+    Returns:
+        True when the command is recognised as MPM-owned; False otherwise.
+    """
+    basename = Path(command_str).name
+    if basename in _MPM_HOOK_SCRIPTS:
+        return True
+    if basename in _MPM_HOOK_PYTHON_HELPERS:
+        return True
+    # Path-component match: file lives inside the MPM package directory.
+    # Use separator-bounded comparison to avoid matching e.g. "my_claude_mpm_wrapper".
+    if "/claude_mpm/" in command_str:
+        return True
+    return False
 
 
 def _is_mpm_hook_command(hook_cmd: Any) -> bool:
@@ -82,20 +129,18 @@ def _is_mpm_hook_command(hook_cmd: Any) -> bool:
     """
     if not isinstance(hook_cmd, dict):
         return False
-    # Primary: explicit MPM ownership marker.
+    # Primary: explicit MPM ownership marker — most reliable signal.
     if hook_cmd.get("_mpm") is True:
         return True
-    # Secondary: command string contains a known MPM marker substring.
+    # Secondary: command string matches a known MPM script precisely.
     command = str(hook_cmd.get("command", ""))
-    if any(marker in command for marker in _MPM_HOOK_MARKERS):
+    if _command_is_mpm_owned(command):
         return True
-    # Tertiary: any arg string contains an MPM marker.
+    # Tertiary: an arg string precisely matches a known MPM script.
     args = hook_cmd.get("args") or []
     if isinstance(args, list):
         for arg in args:
-            if isinstance(arg, str) and any(
-                marker in arg for marker in _MPM_HOOK_MARKERS
-            ):
+            if isinstance(arg, str) and _command_is_mpm_owned(arg):
                 return True
     return False
 
@@ -254,19 +299,32 @@ def run_migration() -> bool:
         try:
             shutil.copy2(global_settings, backup_path)
             logger.info("Backup created: %s", backup_path)
+            _rotate_backups(global_settings)
         except OSError as exc:
             logger.warning("Could not create backup (non-fatal): %s", exc)
 
-        _rotate_backups(global_settings)
-
+        # Atomic write: dump to a sibling temp file then Path.replace() so that
+        # a crash mid-write never leaves settings.json in a partial state.
         try:
-            with open(global_settings, "w", encoding="utf-8") as fh:
-                json.dump(settings, fh, indent=2)
-            fh_path = global_settings  # for the log message
+            dir_ = global_settings.parent
+            fd, tmp_str = tempfile.mkstemp(dir=dir_, suffix=".tmp", prefix="settings_")
+            tmp_path = Path(tmp_str)
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    json.dump(settings, fh, indent=2)
+                    fh.write("\n")
+                tmp_path.replace(global_settings)
+            except Exception:
+                # Clean up the temp file if the replace didn't happen.
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise
             logger.info(
                 "clean_global_settings_metadata: removed %d stale item(s) from %s",
                 removed_count,
-                fh_path,
+                global_settings,
             )
         except OSError as exc:
             logger.warning(
