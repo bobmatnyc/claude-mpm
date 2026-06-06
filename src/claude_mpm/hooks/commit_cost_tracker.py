@@ -132,15 +132,21 @@ def resolve_main_working_tree(cwd: str) -> str:
     the MAIN working tree's encoded path in ``~/.claude/projects/``.  Using the
     worktree cwd as-is yields no transcript match (issue #696).
 
-    WHAT: Runs ``git worktree list --porcelain`` from *cwd* and returns the
-    ``worktree`` path from the FIRST entry (the main working tree).  Falls back
-    to deriving the parent of ``git rev-parse --git-common-dir`` (which points to
-    ``.git`` inside the main tree).  If both git calls fail, returns *cwd*
-    unchanged.
+    WHAT: Short-circuits immediately when ``git rev-parse --git-dir`` equals
+    ``--git-common-dir`` (cwd is already the main tree) to avoid spawning
+    ``git worktree list`` on every non-worktree commit.  Otherwise runs
+    ``git worktree list --porcelain`` and returns the ``worktree`` path from
+    the FIRST entry.  Falls back to deriving the parent of
+    ``git rev-parse --git-common-dir`` (which points to ``.git`` inside the
+    main tree).  Relative paths from ``--git-common-dir`` are resolved relative
+    to *cwd* (not the process cwd) so ``../.git`` resolves correctly.  If all
+    git calls fail, returns *cwd* unchanged.
 
     TEST: In a temp repo with one linked worktree, call from the worktree dir
     and assert the returned path equals the main repo root, not the worktree.
     Call from the main repo dir itself and assert it is returned unchanged.
+    Pass a mocked relative path (``../.git``) as ``--git-common-dir`` output and
+    assert it resolves relative to *cwd*, not the process cwd.
 
     Args:
         cwd: Absolute path string for the commit's working directory.
@@ -149,6 +155,39 @@ def resolve_main_working_tree(cwd: str) -> str:
         Absolute path string of the main working tree, or *cwd* on failure.
     """
     _debug(f"resolve_main_working_tree: cwd={cwd}")
+
+    # --- Fast path: if git-dir == git-common-dir, cwd is already the main tree.
+    # This avoids spawning git worktree list on every normal (non-worktree) commit.
+    try:
+        r_dir = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        r_common = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if r_dir.returncode == 0 and r_common.returncode == 0:
+            git_dir_path = (Path(cwd) / r_dir.stdout.strip()).resolve()
+            git_common_path = (Path(cwd) / r_common.stdout.strip()).resolve()
+            if git_dir_path == git_common_path:
+                # Already in the main working tree — no worktree lookup needed.
+                _debug(
+                    f"  resolve_main_working_tree: fast-path — "
+                    f"git-dir == git-common-dir ({git_common_path}), returning cwd"
+                )
+                return cwd
+    except Exception as exc_fast:
+        _debug(f"  resolve_main_working_tree: fast-path check failed: {exc_fast}")
+
     try:
         result = subprocess.run(
             ["git", "worktree", "list", "--porcelain"],
@@ -169,6 +208,8 @@ def resolve_main_working_tree(cwd: str) -> str:
         _debug(f"  resolve_main_working_tree: worktree list failed: {exc}")
 
     # Fallback: parent of git-common-dir (works even without porcelain support).
+    # Resolve relative to *cwd* (not the process cwd) so a relative output like
+    # ``../.git`` resolves correctly inside the worktree directory.
     try:
         result2 = subprocess.run(
             ["git", "rev-parse", "--git-common-dir"],
@@ -179,7 +220,7 @@ def resolve_main_working_tree(cwd: str) -> str:
             check=False,
         )
         if result2.returncode == 0:
-            git_common = Path(result2.stdout.strip()).resolve()
+            git_common = (Path(cwd) / result2.stdout.strip()).resolve()
             # git-common-dir is the shared .git dir; its parent is the main tree.
             main_tree = str(git_common.parent)
             _debug(f"  resolve_main_working_tree: from git-common-dir => {main_tree}")
@@ -512,7 +553,7 @@ def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> No
 
         tokens_in = delta.get("input_tokens", 0)
         tokens_out = delta.get("output_tokens", 0)
-        has_token_data = tokens_in != 0 or tokens_out != 0
+        has_token_data = tokens_in > 0 or tokens_out > 0
 
         trailers: list[str] = [
             "",  # blank line before trailers
