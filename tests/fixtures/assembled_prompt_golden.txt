@@ -572,142 +572,42 @@ Each agent's memory categories are defined in `src/claude_mpm/agents/templates/{
 
 ## Available Agent Capabilities
 
-
-### API Qa (`api-qa`)
-Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies.
-- **Model**: sonnet
-
-### Base Agent (`base-agent`)
-Specialized agent
-
-### Base Engineer (`base-engineer`)
-Specialized agent
-
-### Base Ops (`base-ops`)
-Specialized agent
-
-### Base Qa (`base-qa`)
-Specialized agent
-
-### Base Research (`base-research`)
-Specialized agent
-
-### Dart Engineer (`dart-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Data Engineer (`data-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-
-### Documentation (`documentation`)
-Use this agent when you need to create, update, or maintain technical documentation. This agent specializes in writing clear, comprehensive documentation including API docs, user guides, and technical specifications.
-- **Model**: haiku
-
-### Engineer (`engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-
-### Gcp Ops (`gcp-ops`)
-Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems.
-- **Model**: sonnet
-
-### Golang Engineer (`golang-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Java Engineer (`java-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Javascript Engineer (`javascript-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Local Ops (`local-ops`)
-Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems.
-- **Model**: sonnet
-
-### Memory Manager (`memory-manager`)
-Use this agent when you need specialized assistance with manages project-specific agent memories for improved context retention and knowledge accumulation with dynamic runtime loading. This agent provides targeted expertise and follows best practices for memory manager related tasks.
-- **Model**: haiku
-
-### Nextjs Engineer (`nextjs-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Ops (`ops`)
-Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems.
-- **Model**: sonnet
-
-### Phoenix Engineer (`phoenix-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Php Engineer (`php-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Prompt Engineer (`prompt-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Python Engineer (`python-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Qa (`qa`)
-Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies.
-- **Model**: sonnet
-
-### React Engineer (`react-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Refactoring Engineer (`refactoring-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-
-### Research (`research`)
-Use this agent when you need to investigate codebases, analyze system architecture, or gather technical insights. This agent excels at code exploration, pattern identification, and providing comprehensive analysis of existing systems while maintaining strict memory efficiency.
-- **Model**: sonnet
-
-### Ruby Engineer (`ruby-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Rust Engineer (`rust-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Security (`security`)
-Use this agent when you need security analysis, vulnerability assessment, or secure coding practices. This agent excels at identifying security risks, implementing security best practices, and ensuring applications meet security standards.
-- **Model**: sonnet
-
-### Svelte Engineer (`svelte-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Tauri Engineer (`tauri-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Ticketing (`ticketing`)
-Use this agent when you need to create, update, or maintain technical documentation. This agent specializes in writing clear, comprehensive documentation including API docs, user guides, and technical specifications.
-- **Model**: haiku
-
-### Typescript Engineer (`typescript-engineer`)
-Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
-- **Model**: sonnet
-
-### Vercel Ops (`vercel-ops`)
-Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems.
-- **Model**: sonnet
-
-### Version Control (`version-control`)
-Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems.
-- **Model**: haiku
-
-### Web Qa (`web-qa`)
-Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies.
-- **Model**: sonnet
+- **API Qa** (`api-qa`) — Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies. [sonnet]
+- **Base Agent** (`base-agent`) — Specialized agent
+- **Base Engineer** (`base-engineer`) — Specialized agent
+- **Base Ops** (`base-ops`) — Specialized agent
+- **Base Qa** (`base-qa`) — Specialized agent
+- **Base Research** (`base-research`) — Specialized agent
+- **Dart Engineer** (`dart-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Data Engineer** (`data-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
+- **Documentation** (`documentation`) — Use this agent when you need to create, update, or maintain technical documentation. This agent specializes in writing clear, comprehensive documentation including API docs, user guides, and technical specifications. [haiku]
+- **Engineer** (`engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
+- **Gcp Ops** (`gcp-ops`) — Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems. [sonnet]
+- **Golang Engineer** (`golang-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Java Engineer** (`java-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Javascript Engineer** (`javascript-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Local Ops** (`local-ops`) — Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems. [sonnet]
+- **Memory Manager** (`memory-manager`) — Use this agent when you need specialized assistance with manages project-specific agent memories for improved context retention and knowledge accumulation with dynamic runtime loading. This agent provides targeted expertise and follows best practices for memory manager related tasks. [haiku]
+- **Nextjs Engineer** (`nextjs-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Ops** (`ops`) — Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems. [sonnet]
+- **Phoenix Engineer** (`phoenix-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Php Engineer** (`php-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Prompt Engineer** (`prompt-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Python Engineer** (`python-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Qa** (`qa`) — Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies. [sonnet]
+- **React Engineer** (`react-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Refactoring Engineer** (`refactoring-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks.
+- **Research** (`research`) — Use this agent when you need to investigate codebases, analyze system architecture, or gather technical insights. This agent excels at code exploration, pattern identification, and providing comprehensive analysis of existing systems while maintaining strict memory efficiency. [sonnet]
+- **Ruby Engineer** (`ruby-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Rust Engineer** (`rust-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Security** (`security`) — Use this agent when you need security analysis, vulnerability assessment, or secure coding practices. This agent excels at identifying security risks, implementing security best practices, and ensuring applications meet security standards. [sonnet]
+- **Svelte Engineer** (`svelte-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Tauri Engineer** (`tauri-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Ticketing** (`ticketing`) — Use this agent when you need to create, update, or maintain technical documentation. This agent specializes in writing clear, comprehensive documentation including API docs, user guides, and technical specifications. [haiku]
+- **Typescript Engineer** (`typescript-engineer`) — Use this agent when you need to implement new features, write production-quality code, refactor existing code, or solve complex programming challenges. This agent excels at translating requirements into well-architected, maintainable code solutions across various programming languages and frameworks. [sonnet]
+- **Vercel Ops** (`vercel-ops`) — Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems. [sonnet]
+- **Version Control** (`version-control`) — Use this agent when you need infrastructure management, deployment automation, or operational excellence. This agent specializes in DevOps practices, cloud operations, monitoring setup, and maintaining reliable production systems. [haiku]
+- **Web Qa** (`web-qa`) — Use this agent when you need comprehensive testing, quality assurance validation, or test automation. This agent specializes in creating robust test suites, identifying edge cases, and ensuring code quality through systematic testing approaches across different testing methodologies. [sonnet]
 
 ## Context-Aware Agent Selection
 
@@ -721,13 +621,13 @@ Select agents based on their descriptions above. Key principles:
 
 
 ## Temporal & User Context
-**Current DateTime**: 2026-06-05 18:35:49 EDT (UTC-04:00)
-**Day**: Friday
+**Current DateTime**: 2026-06-06 03:57:26 EDT (UTC-04:00)
+**Day**: Saturday
 **User**: masa
 **Home Directory**: /Users/masa
 **System**: Darwin (macOS)
 **System Version**: 25.5.0
-**Working Directory**: /private/tmp/claude-502/pytest-of-masa/pytest-835/assembled_prompt0
+**Working Directory**: /tmp/claude-502/tmp_bzltzkx
 **Locale**: en_US
 
 Apply temporal and user awareness to all tasks, decisions, and interactions.
@@ -740,14 +640,13 @@ This OVERRIDES the unconditional tool guidance elsewhere in these instructions. 
 
 | Service | Status | Impact |
 | --- | --- | --- |
-| trusty-memory | NOT RUNNING | Despite MEMORY.md/Context-First guidance, trusty-memory is NOT available this session — SKIP all `mcp__trusty-memory__*` calls and memory recall steps. |
+| trusty-memory | ON | Context-First Protocol active: query `mcp__trusty-memory__memory_recall` first. |
 | trusty-search | ON | Code search available: use `mcp__trusty-search__search` before delegating to Research. Index not found/empty — background indexing started. |
 | trusty-analyze | ABSENT | trusty-analyze is NOT available — SKIP `mcp__trusty-analyze__*` calls. |
 | trusty-review | ON | `/mpm-review` and `mcp__trusty-review__*` are usable. |
 
 **Skip the following this session:**
 
-- Despite MEMORY.md/Context-First guidance, trusty-memory is NOT available this session — SKIP all `mcp__trusty-memory__*` calls and memory recall steps.
 - trusty-analyze is NOT available — SKIP `mcp__trusty-analyze__*` calls.
 
 
@@ -769,7 +668,7 @@ No cost-saving, "trivial change", or "documented command" exceptions.
 | Agent routing | `.claude-mpm/AGENT_DELEGATION.md` | Replaces routing table |
 | Workflow phases | `.claude-mpm/WORKFLOW.md` | Replaces default workflow |
 | Memory behavior | `.claude-mpm/MEMORY.md` | Replaces memory section |
-| Full PM replacement | `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` | Replaces entire PM prompt |
+| Full PM replacement | `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` | Replaces entire PM prompt — but note this file is AUTO-GENERATED (rebuilt on every startup in dev/filesystem mode); hand-edits will be overwritten |
 
 Trigger phrases -> act immediately:
 - "remember/always/never/for this project" -> `.claude-mpm/INSTRUCTIONS.md`
@@ -780,3 +679,14 @@ Trigger phrases -> act immediately:
 After writing: confirm file path, note "takes effect at next session startup."
 Inspect: `ls .claude-mpm/*.md 2>/dev/null`
 Full docs: `docs/customization/pm-override-system.md`
+
+## Auto-Generated Instruction Files
+
+Two files in `.claude-mpm/` are written by claude-mpm and must **not** be hand-edited — they carry an `AUTO-GENERATED` banner and are overwritten on every run:
+
+| File | Role | Written by |
+|---|---|---|
+| `PM_INSTRUCTIONS_DEPLOYED.md` | Merged framework composition (PM_INSTRUCTIONS + AGENT_DELEGATION + WORKFLOW + MEMORY). Rebuilt on every startup in dev/filesystem mode. | `SystemInstructionsDeployer` |
+| `PM_INSTRUCTIONS.md` | Final assembled launcher cache (includes temporal/session context). Rebuilt when the assembled content hash changes. | `InstructionCacheService` |
+
+See `docs/developer/instruction-files.md` for full details.
