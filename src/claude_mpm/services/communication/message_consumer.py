@@ -117,36 +117,43 @@ def main():
     args = parser.parse_args()
 
     if args.daemon:
-        # Re-invoke this module as a detached subprocess (exec-based, no fork).
-        # subprocess.Popen with start_new_session=True provides the same
-        # session-detachment as the old double-fork + os.setsid() without
-        # inheriting the parent's multithreaded CoreFoundation state.
-        # Note: no PID file — callers (e.g. message_queue.py CLI) already use
-        # subprocess.Popen themselves; this path handles direct --daemon usage.
-        cmd = [
-            sys.executable,
-            "-m",
-            "claude_mpm.services.communication.message_consumer",
-            "--workers",
-            str(args.workers),
-        ]
-        if args.quiet:
-            cmd.append("--quiet")
+        # Recursion guard: if we are already the exec'd daemon child, skip the
+        # re-spawn and fall through to the foreground run path below.
+        if os.environ.get("CLAUDE_MPM_MSG_CONSUMER_DAEMON") == "1":
+            args.daemon = (
+                False  # already the daemon child; run foreground, do not re-spawn
+            )
+        else:
+            # Re-invoke this module as a detached subprocess (exec-based, no fork).
+            # subprocess.Popen with start_new_session=True provides the same
+            # session-detachment as the old double-fork + os.setsid() without
+            # inheriting the parent's multithreaded CoreFoundation state.
+            # Note: no PID file — callers (e.g. message_queue.py CLI) already use
+            # subprocess.Popen themselves; this path handles direct --daemon usage.
+            cmd = [
+                sys.executable,
+                "-m",
+                "claude_mpm.services.communication.message_consumer",
+                "--workers",
+                str(args.workers),
+            ]
+            if args.quiet:
+                cmd.append("--quiet")
 
-        # Env marker prevents the child from recursing into daemon mode again
-        env = os.environ.copy()
-        env["CLAUDE_MPM_MSG_CONSUMER_DAEMON"] = "1"
+            # Env marker is read at entry to prevent the child recursing into daemon mode.
+            env = os.environ.copy()
+            env["CLAUDE_MPM_MSG_CONSUMER_DAEMON"] = "1"
 
-        subprocess.Popen(  # nosec B603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-            env=env,
-        )
-        # Parent exits immediately; child is fully detached
-        return
+            subprocess.Popen(  # nosec B603
+                cmd,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+                env=env,
+            )
+            # Parent exits immediately; child is fully detached
+            return
 
     # Run the consumer (foreground or exec'd daemon child)
     consumer = MessageConsumer(workers=args.workers, quiet=args.quiet)
