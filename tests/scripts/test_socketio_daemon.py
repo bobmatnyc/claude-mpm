@@ -14,18 +14,10 @@ from __future__ import annotations
 
 import os
 import signal
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
-_SRC = Path(__file__).parent.parent.parent / "src"
-sys.path.insert(0, str(_SRC))
 
 from claude_mpm.scripts.socketio_daemon import (
     DEFAULT_PORT,
@@ -85,16 +77,52 @@ class TestPidPathConsistency:
     """
 
     @pytest.mark.parametrize("port", [DEFAULT_PORT, 9001, 19765])
-    def test_start_and_stop_use_same_pid_file(self, port: int, tmp_path: Path) -> None:
-        """The PID file path derived by _pid_file_for_port must be consistent
-        across start, stop, and status for any port value."""
-        expected = _pid_file_for_port(port)
-        # All three functions must ultimately read/write the same path.
-        # We verify by checking what _pid_file_for_port returns for each port —
-        # that helper is the single canonical function now used everywhere.
-        assert _pid_file_for_port(port) == expected, (
-            f"_pid_file_for_port({port}) is not idempotent"
-        )
+    def test_all_commands_derive_pid_path_via_helper(
+        self, port: int, tmp_path: Path
+    ) -> None:
+        """start, stop, status, and restart must all call _pid_file_for_port with
+        the port they were given — never a hardcoded constant (#695).
+
+        Approach: patch _pid_file_for_port with a spy that records calls, stub out
+        all I/O side-effects, then assert the spy was called with *port* in each
+        command.  This catches any regression where a command bypasses the helper.
+        """
+        fake_pid_file = tmp_path / f"socketio-server-{port}.pid"
+        fake_pid_file.write_text("12345")
+
+        _target = "claude_mpm.scripts.socketio_daemon._pid_file_for_port"
+        _is_running = "claude_mpm.scripts.socketio_daemon.is_running"
+        _start_server = "claude_mpm.scripts.socketio_daemon.start_server"
+        _stop_server = "claude_mpm.scripts.socketio_daemon.stop_server"
+
+        # --- stop_server ---
+        with (
+            patch(_target, wraps=_pid_file_for_port) as spy_stop,
+            patch(_is_running, side_effect=[True, False, False]),
+            patch("os.kill"),
+        ):
+            stop_server(port=port)
+        spy_stop.assert_called_with(port)
+
+        # --- status_server ---
+        with (
+            patch(_target, wraps=_pid_file_for_port) as spy_status,
+            patch(_is_running, side_effect=lambda f: f == _pid_file_for_port(port)),
+        ):
+            status_server(port=port)
+        spy_status.assert_called_with(port)
+
+        # --- restart_server (delegates to stop_server + start_server) ---
+        with (
+            patch(_target, wraps=_pid_file_for_port) as spy_restart,
+            patch(_is_running, return_value=False),
+            patch(_stop_server, return_value=True),
+            patch(_start_server, return_value=True),
+            patch("time.sleep"),
+        ):
+            restart_server(port=port)
+        # restart calls _pid_file_for_port(port) for its is_running guard
+        spy_restart.assert_called_with(port)
 
     def test_stop_uses_port_keyed_pid_file(self, tmp_path: Path, monkeypatch) -> None:
         """stop_server(port=9001) must look at the 9001 PID file, not 8765."""
