@@ -25,6 +25,7 @@ import signal
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -36,6 +37,66 @@ from ...core.logging_config import get_logger
 EXIT_NORMAL = 0
 EXIT_SIGKILL = 137  # 128 + SIGKILL(9) - forced termination
 EXIT_SIGTERM = 143  # 128 + SIGTERM(15) - graceful shutdown
+
+
+def _find_project_root(start: Path | None = None) -> Path:
+    """Walk up from *start* (or cwd) to find the nearest project-root marker.
+
+    WHAT: Returns the closest ancestor directory that contains a project-root
+          marker, giving the monitor daemon a stable anchor for PID/log paths
+          that does not change when the caller's cwd is a subdirectory.
+    WHY:  Without this, ``get_pid_file_for_port`` and ``_get_default_log_file``
+          each call ``Path.cwd()`` independently.  A ``start`` from a project
+          subdirectory resolves a *different* ``.claude-mpm/`` than the project
+          root, so ``stop``/``status`` from a subdirectory find a different PID
+          file than ``start`` wrote (issue #701).
+
+    Markers used (priority order, most specific first):
+      1. ``.git`` entry (file or directory — git worktrees use a ``.git`` FILE)
+      2. ``pyproject.toml`` — Python project root
+
+    IMPORTANT — ``.claude-mpm/`` is deliberately NOT a marker here.
+    The framework's shared startup code (``ProjectInitializer.initialize_project_directory``
+    in ``src/claude_mpm/init.py``) creates a ``.claude-mpm/`` directory in the
+    current working directory on *every* CLI invocation — including read-only
+    commands like ``monitor status``.  Using ``.claude-mpm/`` as a marker would
+    cause the walk to anchor immediately to the cwd's stray ``.claude-mpm/``
+    instead of ascending to the real project root (issue #701 regression).
+
+    The OS temporary directory boundary is respected: the walk will not ascend
+    into or past ``tempfile.gettempdir()`` to avoid crossing into shared tmp
+    storage (matches the guard in UnifiedPathManager.project_root).
+
+    Fallback: if no marker is found (e.g. bare tmp dir, filesystem root), the
+    function returns ``start`` (or ``Path.cwd()``), preserving pre-fix behaviour
+    and preventing a crash.
+
+    :spec: none
+    """
+    anchor = (start or Path.cwd()).resolve()
+    _tmp_root = Path(tempfile.gettempdir()).resolve()
+
+    current = anchor
+    while True:
+        # Priority 1: .git entry (dir or file for git worktrees) — reliable VCS root
+        if (current / ".git").exists():
+            return current
+        # Priority 2: pyproject.toml — Python project root
+        if (current / "pyproject.toml").exists():
+            return current
+        # NOTE: .claude-mpm/ is intentionally NOT checked here — see docstring.
+
+        # Stop at OS temp root boundary; also stop when parent == current
+        # (filesystem root — further ascent would loop forever).
+        parent = current.parent
+        at_fs_root = parent == current
+        at_tmp_root = current == _tmp_root
+        if at_fs_root or at_tmp_root:
+            break
+        current = parent
+
+    # No marker found — return anchor unchanged (no regression for bare dirs)
+    return anchor
 
 
 class DaemonManager:
@@ -95,24 +156,31 @@ class DaemonManager:
               file (issue #695).  Centralising here means any future rename
               breaks both callers at once rather than silently.
 
+              This method is intentionally a PURE FUNCTION — it only computes
+              and returns a path; it never creates directories.  Read-only
+              callers (``status``, ``stop``) must not trigger mkdir side-effects
+              (issue #701).  Directory creation is the responsibility of WRITE
+              paths only (see ``write_pid_file`` and ``start_daemon_subprocess``).
+
         :spec: none
         """
-        project_root = Path.cwd()
-        claude_mpm_dir = project_root / ".claude-mpm"
-        claude_mpm_dir.mkdir(exist_ok=True)
-        return claude_mpm_dir / f"monitor-daemon-{port}.pid"
+        project_root = _find_project_root()
+        return project_root / ".claude-mpm" / f"monitor-daemon-{port}.pid"
 
     def _get_default_pid_file(self) -> Path:
         """Get default PID file path with port number to support multiple daemons."""
         return DaemonManager.get_pid_file_for_port(self.port)
 
     def _get_default_log_file(self) -> Path:
-        """Get default log file path with port number to support multiple daemons."""
-        project_root = Path.cwd()
-        logs_dir = project_root / ".claude-mpm" / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
+        """Get default log file path with port number to support multiple daemons.
+
+        Pure resolver — does NOT create directories.  The logs directory is
+        created by the write path (``start_daemon_subprocess``, ``_redirect_streams``)
+        immediately before opening the file (issue #701).
+        """
+        project_root = _find_project_root()
         # Include port in filename to support multiple daemon instances
-        return logs_dir / f"monitor-daemon-{self.port}.log"
+        return project_root / ".claude-mpm" / "logs" / f"monitor-daemon-{self.port}.log"
 
     def cleanup_port_conflicts(self, max_retries: int = 3) -> bool:
         """Clean up any processes using the daemon port.
@@ -632,9 +700,13 @@ class DaemonManager:
 
             self.logger.info(f"Starting monitor daemon via subprocess: {' '.join(cmd)}")
 
-            # Open log file for output redirection
+            # Open log file for output redirection.
+            # Create the parent directory here (write path) rather than in the
+            # path resolver, so that read-only callers (status/stop) never
+            # trigger a mkdir side-effect (issue #701).
             log_file_handle = None
             if self.log_file:
+                Path(self.log_file).parent.mkdir(parents=True, exist_ok=True)
                 log_file_handle = Path(self.log_file).open("a")
                 log_file = log_file_handle
             else:
