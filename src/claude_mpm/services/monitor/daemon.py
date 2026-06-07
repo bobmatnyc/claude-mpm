@@ -19,7 +19,6 @@ import signal
 import sys
 import threading
 import time
-from pathlib import Path
 
 from ...core.logging_config import get_logger
 from ..hook_installer_service import HookInstallerService
@@ -92,12 +91,14 @@ class UnifiedMonitorDaemon:
         self.shutdown_event = threading.Event()
 
     def _get_default_pid_file(self) -> str:
-        """Get default PID file path with port number to support multiple daemons."""
-        project_root = Path.cwd()
-        claude_mpm_dir = project_root / ".claude-mpm"
-        claude_mpm_dir.mkdir(exist_ok=True)
-        # Include port in filename to support multiple daemon instances
-        return str(claude_mpm_dir / f"monitor-daemon-{self.port}.pid")
+        """Get default PID file path with port number to support multiple daemons.
+
+        Delegates to DaemonManager.get_pid_file_for_port so that ALL three
+        resolvers (DaemonManager.get_pid_file_for_port, DaemonManager._get_default_pid_file,
+        and this method) share a single CWD-invariant implementation (issue #701).
+        Directory creation is deferred to the write path (write_pid_file).
+        """
+        return str(DaemonManager.get_pid_file_for_port(self.port))
 
     def start(self, force_restart: bool = False) -> bool:
         """Start the unified monitor daemon.
