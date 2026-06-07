@@ -383,15 +383,30 @@ class TestCheckDenylist:
         with pytest.raises(DeniedPathError, match="ephemeral/system"):
             mod._check_denylist(Path("/private/tmp/myproject"))
 
-    def test_rejects_private_var_folders_root(self):
-        """`/private/var/folders` (macOS per-user temp) root must be refused."""
-        with pytest.raises(DeniedPathError, match="ephemeral/system"):
-            _check_denylist(Path("/private/var/folders"))
+    def test_rejects_private_var_folders_root(self, monkeypatch):
+        """`/private/var/folders` (macOS per-user temp) root must be refused.
 
-    def test_rejects_private_var_folders_subdirectory(self):
-        """Deep macOS temp path must be refused."""
+        The autouse fixture strips /private/var/folders from
+        _DENYLIST_SUBTREE_ROOTS because pytest's tmp_path on macOS resolves to
+        /private/var/folders/... — exactly the same pattern as /private/tmp.
+        We restore the entry here (matching the /private/tmp test pattern) to
+        verify that _check_denylist honours it when present in the set.
+        """
+        restored = _mod._DENYLIST_SUBTREE_ROOTS | frozenset(["/private/var/folders"])
+        monkeypatch.setattr(_mod, "_DENYLIST_SUBTREE_ROOTS", restored)
         with pytest.raises(DeniedPathError, match="ephemeral/system"):
-            _check_denylist(Path("/private/var/folders/xx/abc123/T/myapp"))
+            _mod._check_denylist(Path("/private/var/folders"))
+
+    def test_rejects_private_var_folders_subdirectory(self, monkeypatch):
+        """Deep macOS temp path must be refused (kills removal mutants).
+
+        See `test_rejects_private_var_folders_root` for why /private/var/folders
+        is re-injected via monkeypatch.
+        """
+        restored = _mod._DENYLIST_SUBTREE_ROOTS | frozenset(["/private/var/folders"])
+        monkeypatch.setattr(_mod, "_DENYLIST_SUBTREE_ROOTS", restored)
+        with pytest.raises(DeniedPathError, match="ephemeral/system"):
+            _mod._check_denylist(Path("/private/var/folders/xx/abc123/T/myapp"))
 
     # --- Denylist constant integrity (kills set-to-empty mutants) -------------
 
