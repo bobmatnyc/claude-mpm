@@ -42,7 +42,10 @@ class PortManager:
         self.logger = get_logger(__name__ + ".PortManager")
         self.project_root = project_root or Path.cwd()
         self.state_dir = self.project_root / ".claude-mpm"
-        self.state_dir.mkdir(exist_ok=True)
+        # WHY: do NOT mkdir here — PortManager is constructed by read-only commands
+        # such as `doctor` and `monitor status` that must not create .claude-mpm/.
+        # The directory is created lazily in save_instances() when a write actually
+        # occurs (issue #703).
         self.instances_file = self.state_dir / "socketio-instances.json"
 
     def is_port_available(self, port: int) -> bool:
@@ -472,6 +475,10 @@ class PortManager:
 
     def load_instances(self) -> dict:
         """Load registered instances from file."""
+        # State dir may not exist yet (read-only commands no longer create it in
+        # __init__; see save_instances()). No dir → no registered instances.
+        if not self.state_dir.exists():
+            return {}
         try:
             if self.instances_file.exists():
                 with self.instances_file.open() as f:
@@ -484,6 +491,10 @@ class PortManager:
     def save_instances(self, instances: dict) -> None:
         """Save registered instances to file."""
         try:
+            # Create the state dir lazily — only when we are about to write.
+            # This avoids creating .claude-mpm/ in read-only command paths
+            # (doctor, monitor status) where the dir is never actually needed.
+            self.state_dir.mkdir(exist_ok=True)
             with self.instances_file.open("w") as f:
                 json.dump(instances, f, indent=2)
         except Exception as e:
