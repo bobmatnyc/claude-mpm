@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.monitor.daemon import UnifiedMonitorDaemon
+from claude_mpm.services.monitor.daemon_manager import DaemonManager
 from claude_mpm.services.port_manager import PortManager
 
 # Default port and log path.
@@ -37,12 +38,17 @@ logger = get_logger(__name__)
 def _pid_file_for_port(port: int) -> Path:
     """Return the canonical PID-file path for a given port.
 
-    WHAT: Single source of truth for the PID-file naming convention used by
-          both start and stop/status/restart so all commands agree on the path.
-    WHY:  Having DEFAULT_PID_FILE hardcoded to port 8765 meant stop/status
-          always read the wrong file when any other port was in use (#695).
+    WHAT: Delegates to DaemonManager.get_pid_file_for_port so the wrapper and
+          the running daemon share a single path resolver and CANNOT drift apart.
+    WHY:  The previous implementation returned ~/.claude-mpm/socketio-server-{port}.pid
+          while the actual running daemon (re-exec'd by DaemonManager) wrote
+          <project>/.claude-mpm/monitor-daemon-{port}.pid.  That mismatch caused
+          start to time out (post-start poll watched the wrong file) and
+          status/stop/restart to report "not running" for a provably live daemon
+          (issue #695).  Wiring both sides to DaemonManager.get_pid_file_for_port
+          makes a future rename break both callers at once.
     """
-    return Path.home() / ".claude-mpm" / f"socketio-server-{port}.pid"
+    return DaemonManager.get_pid_file_for_port(port)
 
 
 def is_running(pid_file: Path) -> bool:
