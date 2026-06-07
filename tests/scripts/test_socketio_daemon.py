@@ -7,14 +7,29 @@ WHAT: Verifies that the wrapper's is_running() / stop / status / restart all
 WHY:  Before the fix the module had a hardcoded ``DEFAULT_PID_FILE`` pointing
       to port 8765.  stop/status/restart used that constant regardless of the
       ``--port`` argument, so they always read the wrong file when a different
-      port was in use (#695).
+      port was in use.
+
+      A later incomplete fix (PR #699) changed the path string in _pid_file_for_port
+      but NOT the actual path the running daemon writes: the daemon's DaemonManager
+      re-execs ``claude-mpm monitor start`` without the custom pid_file= argument,
+      so the subprocess builds its OWN DaemonManager with the project-local default
+      path (<project>/.claude-mpm/monitor-daemon-{port}.pid), dropping the wrapper's
+      custom path across the re-exec boundary.  The result: start timed out (its
+      post-start poll watched the wrong file) and status/stop/restart reported "not
+      running" for a provably live daemon (issue #695).
+
+      The complete fix wires _pid_file_for_port to DaemonManager.get_pid_file_for_port
+      (a shared static resolver) so that both sides ALWAYS agree — a future rename
+      breaks both callers at once rather than silently diverging.
 """
 
 from __future__ import annotations
 
 import os
 import signal
-from pathlib import Path
+from pathlib import (
+    Path,  # noqa: TC003  # used at runtime in monkeypatch.chdir and file operations
+)
 from unittest.mock import patch
 
 import pytest
@@ -28,6 +43,7 @@ from claude_mpm.scripts.socketio_daemon import (
     status_server,
     stop_server,
 )
+from claude_mpm.services.monitor.daemon_manager import DaemonManager
 
 # ---------------------------------------------------------------------------
 # _pid_file_for_port — canonical path helper
@@ -37,10 +53,18 @@ from claude_mpm.scripts.socketio_daemon import (
 class TestPidFileForPort:
     """Unit tests for the canonical PID-file path helper."""
 
-    def test_default_port_under_home_claude_mpm(self) -> None:
-        """_pid_file_for_port(8765) must be under ~/.claude-mpm/."""
+    def test_default_port_under_project_claude_mpm(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """_pid_file_for_port(8765) must be under <project>/.claude-mpm/, not ~/.claude-mpm/.
+
+        After the fix for issue #695, the wrapper delegates to DaemonManager which
+        uses Path.cwd()/.claude-mpm/ (the project-local directory that the running
+        daemon actually writes to), NOT the user's home directory.
+        """
+        monkeypatch.chdir(tmp_path)
         p = _pid_file_for_port(DEFAULT_PORT)
-        assert p.parent == Path.home() / ".claude-mpm"
+        assert p.parent == tmp_path / ".claude-mpm"
 
     def test_filename_contains_port(self) -> None:
         """PID-file name must embed the port number."""
@@ -58,10 +82,49 @@ class TestPidFileForPort:
         """Calling _pid_file_for_port with the same port twice is idempotent."""
         assert _pid_file_for_port(8765) == _pid_file_for_port(8765)
 
-    def test_naming_convention_matches_socketio_server_prefix(self) -> None:
-        """PID-file names follow the socketio-server-{port}.pid convention."""
+    def test_naming_convention_matches_monitor_daemon_prefix(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """PID-file names follow the monitor-daemon-{port}.pid convention used by DaemonManager.
+
+        Before the fix the wrapper used socketio-server-{port}.pid (different from
+        the daemon's monitor-daemon-{port}.pid), causing the wrapper to look at the
+        wrong file.  After the fix both use monitor-daemon-{port}.pid.
+        """
+        monkeypatch.chdir(tmp_path)
         p = _pid_file_for_port(8765)
-        assert p.name == "socketio-server-8765.pid"
+        assert p.name == "monitor-daemon-8765.pid", (
+            f"Expected 'monitor-daemon-8765.pid' (DaemonManager convention), got '{p.name}'. "
+            "The wrapper must use the same naming as the running daemon (issue #695)."
+        )
+
+    # -----------------------------------------------------------------------
+    # Cross-resolver consistency: the KEY regression guard for #695
+    # -----------------------------------------------------------------------
+
+    @pytest.mark.parametrize("port", [DEFAULT_PORT, 8791, 9001, 19765])
+    def test_wrapper_resolver_agrees_with_daemon_resolver(
+        self, port: int, tmp_path: Path, monkeypatch
+    ) -> None:
+        """_pid_file_for_port(port) MUST equal DaemonManager.get_pid_file_for_port(port).
+
+        This is the definitive regression test for issue #695: if the wrapper and
+        the daemon ever compute different paths, start times out, and status/stop
+        return false-negatives.  Both sides must call the same underlying resolver.
+
+        Uses tmp_path + monkeypatch.chdir to avoid touching real ~/.claude-mpm or
+        <project>/.claude-mpm.
+        """
+        monkeypatch.chdir(tmp_path)
+        wrapper_path = _pid_file_for_port(port)
+        daemon_path = DaemonManager.get_pid_file_for_port(port)
+        assert wrapper_path == daemon_path, (
+            f"Path mismatch for port {port}:\n"
+            f"  wrapper (_pid_file_for_port):            {wrapper_path}\n"
+            f"  daemon  (DaemonManager.get_pid_file_for_port): {daemon_path}\n"
+            "These must be identical so start/status/stop/restart all operate on "
+            "the same file (issue #695)."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +150,7 @@ class TestPidPathConsistency:
         all I/O side-effects, then assert the spy was called with *port* in each
         command.  This catches any regression where a command bypasses the helper.
         """
-        fake_pid_file = tmp_path / f"socketio-server-{port}.pid"
+        fake_pid_file = tmp_path / f"monitor-daemon-{port}.pid"
         fake_pid_file.write_text("12345")
 
         _target = "claude_mpm.scripts.socketio_daemon._pid_file_for_port"
@@ -127,8 +190,8 @@ class TestPidPathConsistency:
     def test_stop_uses_port_keyed_pid_file(self, tmp_path: Path, monkeypatch) -> None:
         """stop_server(port=9001) must look at the 9001 PID file, not 8765."""
         port = 9001
-        pid_file = tmp_path / f"socketio-server-{port}.pid"
-        wrong_pid_file = tmp_path / f"socketio-server-{DEFAULT_PORT}.pid"
+        pid_file = tmp_path / f"monitor-daemon-{port}.pid"
+        wrong_pid_file = tmp_path / f"monitor-daemon-{DEFAULT_PORT}.pid"
 
         # Write PID to the correct (port-keyed) file
         pid_file.write_text("12345")
@@ -136,7 +199,7 @@ class TestPidPathConsistency:
         # Redirect both paths into tmp_path
         monkeypatch.setattr(
             "claude_mpm.scripts.socketio_daemon._pid_file_for_port",
-            lambda p: tmp_path / f"socketio-server-{p}.pid",
+            lambda p: tmp_path / f"monitor-daemon-{p}.pid",
         )
 
         with patch("os.kill") as mock_kill:
@@ -161,12 +224,12 @@ class TestPidPathConsistency:
     ) -> None:
         """status_server(port=9002) must read the 9002 PID file, not 8765."""
         port = 9002
-        pid_file = tmp_path / f"socketio-server-{port}.pid"
+        pid_file = tmp_path / f"monitor-daemon-{port}.pid"
         pid_file.write_text("99999")
 
         monkeypatch.setattr(
             "claude_mpm.scripts.socketio_daemon._pid_file_for_port",
-            lambda p: tmp_path / f"socketio-server-{p}.pid",
+            lambda p: tmp_path / f"monitor-daemon-{p}.pid",
         )
 
         with patch(
@@ -185,7 +248,7 @@ class TestPidPathConsistency:
 
         monkeypatch.setattr(
             "claude_mpm.scripts.socketio_daemon._pid_file_for_port",
-            lambda p: tmp_path / f"socketio-server-{p}.pid",
+            lambda p: tmp_path / f"monitor-daemon-{p}.pid",
         )
 
         stopped_ports: list[int] = []
