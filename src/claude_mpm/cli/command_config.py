@@ -60,23 +60,15 @@ _READ_ONLY_SUBCOMMANDS: dict[str, set[str]] = {
     "agents": {"list", "view"},
     # skills list is read-only; deploy needs workspace
     "skills": {"list"},
-    # memory status/show/view are read-only; init/add/build/clean need workspace
-    "memory": {"status", "show", "view", "optimize", "cross-ref", "route"},
+    # memory status/show/view are read-only; init/add/build/clean/optimize need workspace
+    # optimize: writes to .claude-mpm/memories/ via MemoryOptimizer — workspace required
+    # cross-ref: deprecated no-op (returns error dict, no writes) — read-only
+    # route: analyzes content only (MemoryRouter.analyze_and_route has no writes) — read-only
+    "memory": {"status", "show", "view", "cross-ref", "route"},
     # manifest validate/show are read-only; init needs workspace
     "manifest": {"validate", "show"},
     # dashboard status/open are read-only; start/stop need workspace
     "dashboard": {"status", "open"},
-}
-
-# Subcommand dest attribute names used by argparse for each parent command.
-# These are the names argparse stores the chosen subcommand in (e.g. args.monitor_command).
-_SUBCOMMAND_DEST: dict[str, str] = {
-    "monitor": "monitor_command",
-    "agents": "agents_command",
-    "skills": "skills_command",
-    "memory": "memory_command",
-    "manifest": "manifest_command",
-    "dashboard": "dashboard_command",
 }
 
 
@@ -142,8 +134,9 @@ def needs_project_workspace(args) -> bool:
 
     # Rule 3: commands that have mixed read-only / workspace subcommands
     if command in _READ_ONLY_SUBCOMMANDS:
-        dest_attr = _SUBCOMMAND_DEST.get(command)
-        subcommand = getattr(args, dest_attr, None) if dest_attr else None
+        # All parsers use "{command}_command" as the argparse dest uniformly.
+        dest_attr = f"{command}_command"
+        subcommand = getattr(args, dest_attr, None)
         if subcommand is None:
             # No subcommand given — bias toward creating (True)
             return True
