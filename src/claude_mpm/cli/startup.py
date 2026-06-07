@@ -872,17 +872,16 @@ def should_skip_background_services(args, processed_argv):
         if is_lightweight_command(command):
             return True
 
-        # Skip background services for read-only subcommands
-        # These only read from cached data in ~/.claude-mpm/cache/
-        # Format: each command has its own {command}_command attribute (e.g., agents_command, skills_command)
-        if command == "agents":
-            agents_cmd = getattr(args, "agents_command", None)
-            if agents_cmd == "list":
-                return True
-        elif command == "skills":
-            skills_cmd = getattr(args, "skills_command", None)
-            if skills_cmd == "list":
-                return True
+        # Skip background services for read-only subcommands.
+        # Delegates to needs_project_workspace() via the shared _READ_ONLY_SUBCOMMANDS
+        # registry so the two gate functions stay in sync automatically.
+        # WHY: monitor status/port only reads daemon state; agents list/skills list
+        # only read from ~/.claude-mpm/cache/ — none of them write to the project dir
+        # and all of them must not trigger sync_deployment_on_startup (issue #703).
+        from claude_mpm.cli.command_config import needs_project_workspace
+
+        if not needs_project_workspace(args):
+            return True
 
     return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands)
 
