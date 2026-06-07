@@ -109,6 +109,12 @@ class TestNeedsProjectWorkspace:
     def test_memory_clean_needs_workspace(self):
         assert needs_project_workspace(_args("memory", memory_command="clean")) is True
 
+    def test_memory_optimize_needs_workspace(self):
+        # optimize writes to .claude-mpm/memories/ via MemoryOptimizer — not read-only
+        assert (
+            needs_project_workspace(_args("memory", memory_command="optimize")) is True
+        )
+
     def test_manifest_init_needs_workspace(self):
         assert (
             needs_project_workspace(_args("manifest", manifest_command="init")) is True
@@ -207,6 +213,17 @@ class TestNeedsProjectWorkspace:
 
     def test_memory_view_no_workspace(self):
         assert needs_project_workspace(_args("memory", memory_command="view")) is False
+
+    def test_memory_cross_ref_no_workspace(self):
+        # cross-ref is deprecated and makes no writes — read-only
+        assert (
+            needs_project_workspace(_args("memory", memory_command="cross-ref"))
+            is False
+        )
+
+    def test_memory_route_no_workspace(self):
+        # route only runs MemoryRouter.analyze_and_route which has no writes — read-only
+        assert needs_project_workspace(_args("memory", memory_command="route")) is False
 
     def test_manifest_validate_no_workspace(self):
         assert (
