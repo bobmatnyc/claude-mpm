@@ -15,6 +15,7 @@ from pathlib import Path
 
 from ..constants import CLICommands
 from ..utils.progress import StartupProgressBar
+from .command_config import needs_project_workspace
 from .executor import ensure_run_attributes, execute_command
 
 # handle_missing_configuration, has_configuration_file, should_skip_config_check
@@ -103,7 +104,7 @@ def main(argv: list | None = None):
     # respect the user's logging preference (default: OFF)
     logger = setup_mcp_server_logging(args)
 
-    ensure_directories()
+    ensure_directories(project=needs_project_workspace(args))
 
     # Run migrations BEFORE banner (so we can show results in banner)
     # Migrations are quick and non-blocking, safe to run early
