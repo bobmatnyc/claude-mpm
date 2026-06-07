@@ -192,18 +192,27 @@ def setup_logging(args) -> logging.Logger:
     return logger
 
 
-def ensure_directories() -> None:
-    """
-    Ensure required directories exist on first run.
+def ensure_directories(project: bool = True) -> None:
+    """Ensure required directories exist on first run.
 
     WHY: Claude-mpm needs certain directories to function properly. Rather than
     failing when they don't exist, we create them automatically for a better
     user experience.
+
+    The user-level ``~/.claude-mpm/`` tree is ALWAYS initialized regardless of
+    ``project``, because commands such as ``doctor`` and ``agents list`` read
+    from it.  Only the project-level ``.claude-mpm/`` in the current working
+    directory is gated by ``project``.
+
+    Args:
+        project: When True (default) also initialize the project-level
+                 ``.claude-mpm/`` directory in the cwd.  Pass False for
+                 read-only / informational commands that do not need it.
     """
     try:
         from ..init import ensure_directories as init_ensure_directories
 
-        init_ensure_directories()
+        init_ensure_directories(project=project)
     except Exception:  # nosec B110
         # Continue even if initialization fails
         # The individual commands will handle missing directories as needed
