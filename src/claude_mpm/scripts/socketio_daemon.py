@@ -111,7 +111,12 @@ def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
 
 
 def stop_server(port: int = DEFAULT_PORT) -> bool:
-    """Stop the Socket.IO server."""
+    """Stop the Socket.IO server.
+
+    NOTE: Callers MUST pass the actual port the daemon is running on; if omitted
+    the default 8765 is assumed, which silently reads the wrong PID file for any
+    other port — exactly the mismatch that caused issue #695.
+    """
     pid_file = _pid_file_for_port(port)
 
     if not is_running(pid_file):
@@ -153,7 +158,11 @@ def stop_server(port: int = DEFAULT_PORT) -> bool:
 
 
 def restart_server(port: int = DEFAULT_PORT) -> bool:
-    """Restart the Socket.IO server."""
+    """Restart the Socket.IO server.
+
+    NOTE: Callers MUST pass the actual port; defaulting to 8765 will operate on
+    the wrong PID file for any other port (issue #695).
+    """
     logger.info("Restarting Socket.IO daemon...")
 
     # Stop if running (use port-keyed PID file, not the hardcoded default)
@@ -166,7 +175,11 @@ def restart_server(port: int = DEFAULT_PORT) -> bool:
 
 
 def status_server(port: int = DEFAULT_PORT) -> bool:
-    """Check status of Socket.IO server."""
+    """Check status of Socket.IO server.
+
+    NOTE: Callers MUST pass the actual port; defaulting to 8765 will check the
+    wrong PID file for any other port (issue #695).
+    """
     pid_file = _pid_file_for_port(port)
     port_file = pid_file.parent / "socketio-port"
 
