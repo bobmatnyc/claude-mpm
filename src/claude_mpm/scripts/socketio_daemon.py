@@ -23,13 +23,26 @@ from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.monitor.daemon import UnifiedMonitorDaemon
 from claude_mpm.services.port_manager import PortManager
 
-# Default paths — PID file is port-keyed to match SocketIODaemonManager convention
-# so that two instances on different ports never clobber each other.
+# Default port and log path.
+# NOTE: There is intentionally NO module-level DEFAULT_PID_FILE constant because
+# PID files are port-keyed and must be computed per-call via _pid_file_for_port().
+# A fixed module-level path caused stop/status/restart to always look at port 8765
+# even when the daemon was started on a different port (issue #695).
 DEFAULT_PORT = 8765
-DEFAULT_PID_FILE = Path.home() / ".claude-mpm" / f"socketio-server-{DEFAULT_PORT}.pid"
 DEFAULT_LOG_FILE = Path.home() / ".claude-mpm" / "logs" / "socketio" / "daemon.log"
 
 logger = get_logger(__name__)
+
+
+def _pid_file_for_port(port: int) -> Path:
+    """Return the canonical PID-file path for a given port.
+
+    WHAT: Single source of truth for the PID-file naming convention used by
+          both start and stop/status/restart so all commands agree on the path.
+    WHY:  Having DEFAULT_PID_FILE hardcoded to port 8765 meant stop/status
+          always read the wrong file when any other port was in use (#695).
+    """
+    return Path.home() / ".claude-mpm" / f"socketio-server-{port}.pid"
 
 
 def is_running(pid_file: Path) -> bool:
@@ -54,7 +67,7 @@ def is_running(pid_file: Path) -> bool:
 def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
     """Start the Socket.IO server."""
     # PID file is port-keyed so multiple instances on different ports don't collide.
-    pid_file = Path.home() / ".claude-mpm" / f"socketio-server-{port}.pid"
+    pid_file = _pid_file_for_port(port)
     log_file = DEFAULT_LOG_FILE
 
     # Ensure directories exist
@@ -72,7 +85,7 @@ def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
     if actual_port != port:
         logger.info(f"Port {port} is in use, using port {actual_port} instead")
         # Recompute PID file for the actual port in use
-        pid_file = Path.home() / ".claude-mpm" / f"socketio-server-{actual_port}.pid"
+        pid_file = _pid_file_for_port(actual_port)
 
     # Create and start daemon
     monitor_daemon = UnifiedMonitorDaemon(
@@ -97,9 +110,14 @@ def start_server(port: int = DEFAULT_PORT, daemon: bool = True) -> bool:
     return success
 
 
-def stop_server() -> bool:
-    """Stop the Socket.IO server."""
-    pid_file = DEFAULT_PID_FILE
+def stop_server(port: int = DEFAULT_PORT) -> bool:
+    """Stop the Socket.IO server.
+
+    NOTE: Callers MUST pass the actual port the daemon is running on; if omitted
+    the default 8765 is assumed, which silently reads the wrong PID file for any
+    other port — exactly the mismatch that caused issue #695.
+    """
+    pid_file = _pid_file_for_port(port)
 
     if not is_running(pid_file):
         logger.info("Socket.IO daemon is not running")
@@ -140,21 +158,29 @@ def stop_server() -> bool:
 
 
 def restart_server(port: int = DEFAULT_PORT) -> bool:
-    """Restart the Socket.IO server."""
+    """Restart the Socket.IO server.
+
+    NOTE: Callers MUST pass the actual port; defaulting to 8765 will operate on
+    the wrong PID file for any other port (issue #695).
+    """
     logger.info("Restarting Socket.IO daemon...")
 
-    # Stop if running
-    if is_running(DEFAULT_PID_FILE):
-        stop_server()
+    # Stop if running (use port-keyed PID file, not the hardcoded default)
+    if is_running(_pid_file_for_port(port)):
+        stop_server(port=port)
         time.sleep(1)  # Brief pause between stop and start
 
     # Start again
     return start_server(port=port)
 
 
-def status_server() -> bool:
-    """Check status of Socket.IO server."""
-    pid_file = DEFAULT_PID_FILE
+def status_server(port: int = DEFAULT_PORT) -> bool:
+    """Check status of Socket.IO server.
+
+    NOTE: Callers MUST pass the actual port; defaulting to 8765 will check the
+    wrong PID file for any other port (issue #695).
+    """
+    pid_file = _pid_file_for_port(port)
     port_file = pid_file.parent / "socketio-port"
 
     if is_running(pid_file):
@@ -162,12 +188,14 @@ def status_server() -> bool:
             with pid_file.open() as f:
                 pid = int(f.read().strip())
 
-            port = DEFAULT_PORT
+            # Prefer the advertised port from the port-discovery file; fall back to
+            # the port we were asked about (which is already correct for this pid_file).
+            actual_port = port
             if port_file.exists():
                 with port_file.open() as f:
-                    port = int(f.read().strip())
+                    actual_port = int(f.read().strip())
 
-            print(f"Socket.IO daemon is running (PID: {pid}, Port: {port})")
+            print(f"Socket.IO daemon is running (PID: {pid}, Port: {actual_port})")
             return True
         except Exception as e:
             print(f"Socket.IO daemon status unknown: {e}")
@@ -206,7 +234,7 @@ def main():
         sys.exit(0 if success else 1)
 
     elif args.command == "stop":
-        success = stop_server()
+        success = stop_server(port=args.port)
         sys.exit(0 if success else 1)
 
     elif args.command == "restart":
@@ -214,7 +242,7 @@ def main():
         sys.exit(0 if success else 1)
 
     elif args.command == "status":
-        success = status_server()
+        success = status_server(port=args.port)
         sys.exit(0 if success else 1)
 
 
