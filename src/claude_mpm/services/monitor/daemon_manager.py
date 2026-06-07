@@ -82,13 +82,29 @@ class DaemonManager:
         # Startup status communication
         self.startup_status_file = None
 
-    def _get_default_pid_file(self) -> Path:
-        """Get default PID file path with port number to support multiple daemons."""
+    @staticmethod
+    def get_pid_file_for_port(port: int) -> Path:
+        """Return the canonical PID-file path for a given port.
+
+        WHAT: Single, importable resolver used by both DaemonManager and the
+              socketio_daemon wrapper so they CANNOT drift apart again.
+        WHY:  The wrapper previously computed a different path
+              (~/.claude-mpm/socketio-server-{port}.pid) while the running
+              daemon wrote <project>/.claude-mpm/monitor-daemon-{port}.pid.
+              That mismatch caused status/stop/restart to look at the wrong
+              file (issue #695).  Centralising here means any future rename
+              breaks both callers at once rather than silently.
+
+        :spec: none
+        """
         project_root = Path.cwd()
         claude_mpm_dir = project_root / ".claude-mpm"
         claude_mpm_dir.mkdir(exist_ok=True)
-        # Include port in filename to support multiple daemon instances
-        return claude_mpm_dir / f"monitor-daemon-{self.port}.pid"
+        return claude_mpm_dir / f"monitor-daemon-{port}.pid"
+
+    def _get_default_pid_file(self) -> Path:
+        """Get default PID file path with port number to support multiple daemons."""
+        return DaemonManager.get_pid_file_for_port(self.port)
 
     def _get_default_log_file(self) -> Path:
         """Get default log file path with port number to support multiple daemons."""
