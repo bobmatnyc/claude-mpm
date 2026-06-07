@@ -198,8 +198,15 @@ class MonitorCommand(BaseCommand):
     def _status_monitor(self, args) -> CommandResult:
         """Get unified monitor daemon status."""
 
+        # Default port 8765 mirrors the literal used by _start_monitor/_stop_monitor;
+        # no shared constant is in play across those handlers.
+        port = getattr(args, "port", None)
+        if port is None:
+            port = 8765
+        host = getattr(args, "host", "localhost")
+
         # Create daemon instance to check status
-        daemon = UnifiedMonitorDaemon()
+        daemon = UnifiedMonitorDaemon(host=host, port=port)
         status_data = daemon.status()
 
         # Format output message

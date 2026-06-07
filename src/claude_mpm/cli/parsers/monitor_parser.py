@@ -109,6 +109,14 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
         MonitorCommands.STATUS.value, help="Check monitoring server status"
     )
     status_monitor_parser.add_argument(
+        "--port",
+        type=int,
+        help="Port of server to check (checks default port if not specified)",
+    )
+    status_monitor_parser.add_argument(
+        "--host", default="localhost", help="Host to bind to (default: localhost)"
+    )
+    status_monitor_parser.add_argument(
         "--verbose", action="store_true", help="Show detailed status information"
     )
     status_monitor_parser.add_argument(
