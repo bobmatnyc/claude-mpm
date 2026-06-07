@@ -506,3 +506,80 @@ class TestProjectDirNotCreatedForReadOnlyCommands:
 
         mock_user.assert_called_once()
         mock_project.assert_not_called()
+
+
+# ===========================================================================
+# 5. Unit tests for PortManager lazy mkdir (issue #703)
+# ===========================================================================
+
+
+class TestPortManagerLazyMkdir:
+    """Verify that PortManager.__init__ does NOT create .claude-mpm/ and that
+    save_instances() creates it lazily on first write."""
+
+    def test_constructor_does_not_create_state_dir(self, tmp_path):
+        """Constructing PortManager must NOT create the .claude-mpm/ directory."""
+        from claude_mpm.services.port_manager import PortManager
+
+        state_dir = tmp_path / ".claude-mpm"
+        assert not state_dir.exists(), "precondition: dir must not exist yet"
+
+        PortManager(project_root=tmp_path)
+
+        assert not state_dir.exists(), (
+            "PortManager.__init__ must not create .claude-mpm/ (issue #703)"
+        )
+
+    def test_save_instances_creates_state_dir(self, tmp_path):
+        """save_instances() must create the .claude-mpm/ directory lazily."""
+        from claude_mpm.services.port_manager import PortManager
+
+        state_dir = tmp_path / ".claude-mpm"
+        assert not state_dir.exists(), "precondition: dir must not exist yet"
+
+        pm = PortManager(project_root=tmp_path)
+        pm.save_instances({})
+
+        assert state_dir.exists(), (
+            "save_instances() must create .claude-mpm/ when writing (issue #703)"
+        )
+
+
+# ===========================================================================
+# 6. Unit tests for should_skip_background_services read-only delegation
+# ===========================================================================
+
+
+class TestShouldSkipBackgroundServices:
+    """Verify that should_skip_background_services() returns True for read-only
+    commands and False for workspace commands."""
+
+    def _skip(self, args) -> bool:
+        from claude_mpm.cli.startup import should_skip_background_services
+
+        # Pass a non-empty processed_argv with no skip flags so the final
+        # `any(cmd in processed_argv ...)` line cannot accidentally match
+        # pytest's own sys.argv (which contains '-v', a skip flag).
+        return should_skip_background_services(args, processed_argv=["__test__"])
+
+    # --- Read-only: must return True ----------------------------------------
+
+    def test_doctor_skips(self):
+        assert self._skip(_args("doctor")) is True
+
+    def test_monitor_status_skips(self):
+        assert self._skip(_args("monitor", monitor_command="status")) is True
+
+    def test_agents_list_skips(self):
+        assert self._skip(_args("agents", agents_command="list")) is True
+
+    def test_skills_list_skips(self):
+        assert self._skip(_args("skills", skills_command="list")) is True
+
+    # --- Workspace commands: must return False --------------------------------
+
+    def test_run_does_not_skip(self):
+        assert self._skip(_args("run")) is False
+
+    def test_monitor_start_does_not_skip(self):
+        assert self._skip(_args("monitor", monitor_command="start")) is False
