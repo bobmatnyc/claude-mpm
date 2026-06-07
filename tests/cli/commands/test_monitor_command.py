@@ -227,6 +227,26 @@ class TestMonitorCommand:
         assert result.success is True
         mock_daemon_class.assert_called_once_with(host="localhost", port=8765)
 
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_status_with_explicit_host_and_port(self, mock_daemon_class):
+        """Test that --host and --port on status both flow through to UnifiedMonitorDaemon."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.status.return_value = {
+            "running": False,
+            "host": "0.0.0.0",
+            "port": 9876,
+        }
+
+        args = Namespace(monitor_command="status", host="0.0.0.0", port=9876)
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        mock_daemon_class.assert_called_once_with(host="0.0.0.0", port=9876)
+        mock_daemon.status.assert_called_once()
+
     def test_run_unknown_command(self):
         """Test handling of unknown monitor command."""
         args = Namespace(monitor_command="unknown")
