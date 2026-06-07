@@ -19,6 +19,16 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.21 (2026-06-07)
+
+### Fix
+
+- gate project-dir init for read-only commands (partial #703) (#704)
+- make monitor daemon PID/log paths CWD-invariant (#701) (#702)
+- wire socketio wrapper to daemon's canonical PID resolver — real #695 fix (live-verified) (#700)
+- align socketio_daemon.py wrapper PID-file path with the running daemon (#695) (#699)
+- **tests**: restore /private/var/folders denylist entry stripped by tmp_path fixture (#698)
+
 ## v6.5.20 (2026-06-06)
 
 ### Feat
