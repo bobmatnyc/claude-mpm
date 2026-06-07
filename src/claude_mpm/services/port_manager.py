@@ -475,6 +475,10 @@ class PortManager:
 
     def load_instances(self) -> dict:
         """Load registered instances from file."""
+        # State dir may not exist yet (read-only commands no longer create it in
+        # __init__; see save_instances()). No dir → no registered instances.
+        if not self.state_dir.exists():
+            return {}
         try:
             if self.instances_file.exists():
                 with self.instances_file.open() as f:
