@@ -616,10 +616,16 @@ class ProjectInitializer:
 
         return dependencies
 
-    def ensure_initialized(self) -> bool:
+    def ensure_initialized(self, include_project: bool = True) -> bool:
         """Ensure both user and project directories are initialized.
 
         Shows clear information about where directories are being created.
+
+        Args:
+            include_project: When True (default) also initialize the
+                project-level ``.claude-mpm/`` directory in the cwd.  Pass
+                False for read-only / informational commands so they do not
+                create a spurious directory in arbitrary working directories.
         """
         # Determine actual working directory
         user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
@@ -635,8 +641,16 @@ class ProjectInitializer:
         framework_path = Path(__file__).parent.parent.parent
         self.logger.info(f"Framework path: {framework_path}")
 
-        # Initialize user directory (in home)
+        # Initialize user directory (in home) — always runs for every command
         user_ok = self.initialize_user_directory()
+
+        if not include_project:
+            # Skip project-level init for read-only / informational commands.
+            # User-dir init already ran above so diagnostics still work.
+            self.logger.debug(
+                "Skipping project-level .claude-mpm/ init (read-only command)"
+            )
+            return user_ok
 
         # Initialize project directory (in user's actual working directory)
         self.logger.info(f"Checking for .claude-mpm/ in {actual_wd}")
@@ -645,10 +659,16 @@ class ProjectInitializer:
         return user_ok and project_ok
 
 
-def ensure_directories():
-    """Convenience function to ensure directories are initialized."""
+def ensure_directories(project: bool = True):
+    """Convenience function to ensure directories are initialized.
+
+    Args:
+        project: When True (default) also initialize the project-level
+                 ``.claude-mpm/`` directory in the cwd.  Pass False for
+                 read-only / informational commands.
+    """
     initializer = ProjectInitializer()
-    return initializer.ensure_initialized()
+    return initializer.ensure_initialized(include_project=project)
 
 
 def validate_installation():
