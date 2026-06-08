@@ -854,6 +854,15 @@ class SkillsManagementCommand(BaseCommand):
 
         root = Path(root_arg).expanduser() if root_arg else Path.home() / "Projects"
 
+        if not root_arg and not root.exists():
+            console.print(
+                "[bold yellow]Default root ~/Projects not found — "
+                "pass --root to specify your projects directory.[/bold yellow]"
+            )
+            return CommandResult(
+                success=True, message="No root directory found.", exit_code=0
+            )
+
         mode_label = (
             "[yellow]DRY-RUN[/yellow]" if dry_run else "[bold red]APPLY[/bold red]"
         )
