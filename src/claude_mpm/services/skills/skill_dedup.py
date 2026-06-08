@@ -132,14 +132,19 @@ def dedup_project_skills(
             continue
 
         # Verify user-level copy exists before removing.
-        user_skill_marker = user_skills_base / skill_name / "SKILL.md"
-        if not user_skill_marker.exists():
+        # We accept SKILL.md (canonical) or any *.md file so that minor layout
+        # changes (e.g. a renamed entry-point) don't silently disable dedup.
+        user_skill_dir = user_skills_base / skill_name
+        user_skill_has_md = user_skill_dir.is_dir() and (
+            (user_skill_dir / "SKILL.md").exists() or any(user_skill_dir.glob("*.md"))
+        )
+        if not user_skill_has_md:
             result.kept.append(skill_name)
             logger.debug(
                 "Skipping '%s' in %s: no user-level copy at %s",
                 skill_name,
                 project_dir,
-                user_skill_marker,
+                user_skill_dir,
             )
             continue
 
