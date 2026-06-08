@@ -273,6 +273,7 @@ MIGRATIONS: list[Migration] = [
         version="6.1.0",
         description="Move CORE mpm-* skills to user level, remove project-level duplicates",
         run=_run_core_skills_to_user_level_migration,
+        run_always=True,
     ),
     Migration(
         id="6.2.0_core_agents_to_user_level",
