@@ -228,6 +228,8 @@ class SkillsCommands(StrEnum):
     COLLECTION_ENABLE = "collection-enable"
     COLLECTION_DISABLE = "collection-disable"
     COLLECTION_SET_DEFAULT = "collection-set-default"
+    # Deduplication sweep
+    DEDUP = "dedup"
 
 
 class CLIFlags(StrEnum):
