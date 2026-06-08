@@ -345,7 +345,9 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         default=None,
         help=(
             "Root directory whose top-level subdirs are treated as project roots "
-            "(default: ~/Projects)"
+            "(default: ~/Projects). "
+            "Only immediate subdirectories of ROOT are treated as project roots "
+            "(one level deep)."
         ),
     )
     dedup_parser.add_argument(
