@@ -45,8 +45,11 @@ MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with \[Claude Code\](http
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with \[Claude Code\]/Generated with [Claude MPM]/')
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with Claude Code/Generated with Claude MPM/')
 
-# Replace if someone uses wrong emoji but right text
+# Normalize the icon to the canonical 🤖👥 (multi-agent) for any MPM footer
+# variant: bare (no icon), single 🤖, or doubled 🤖🤖.
+MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/^Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
 
 # Replace URLs
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/https:\/\/claude\.ai\/code/https:\/\/github.com\/bobmatnyc\/claude-mpm/g')
