@@ -65,6 +65,10 @@ Route issues to the correct repository:
 
 ### Issue Creation Commands
 
+**Footer rule**: Always append the canonical MPM footer to issue/PR bodies —
+`🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)`.
+Never use Claude Code's default `🤖 Generated with [Claude Code]` footer.
+
 ```bash
 # Core MPM bug
 gh issue create -R bobmatnyc/claude-mpm \
@@ -84,7 +88,7 @@ gh issue create -R bobmatnyc/claude-mpm \
 - Version: [version]
 - Component: [component]
 
-🤖 Reported by Claude MPM Agent
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 EOF
 )"
 
