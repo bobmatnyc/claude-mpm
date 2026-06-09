@@ -24,6 +24,19 @@ cat > "$HOOKS_DIR/prepare-commit-msg" << 'EOF'
 # Claude MPM Custom Commit Message Hook
 # This hook modifies commit messages to use Claude MPM branding
 
+# Force a UTF-8 locale for the emoji sed substitutions below. Under a non-UTF-8
+# locale (LANG=C / POSIX) some seds mis-parse the multi-byte 🤖👥 patterns and
+# silently skip the substitution. Probe for a UTF-8 locale that actually exists
+# (C.UTF-8/C.utf8 on Linux, en_US.UTF-8 on macOS) and fall back gracefully.
+_mpm_avail="$(locale -a 2>/dev/null)"
+for _mpm_locale in C.UTF-8 C.utf8 en_US.UTF-8 en_US.utf8; do
+    if printf '%s\n' "$_mpm_avail" | grep -qix "$_mpm_locale"; then
+        export LC_ALL="$_mpm_locale"
+        break
+    fi
+done
+unset _mpm_locale _mpm_avail
+
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
 SHA1=$3
