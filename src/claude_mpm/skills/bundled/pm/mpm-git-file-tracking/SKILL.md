@@ -56,7 +56,7 @@ git commit -m "feat: add {description}
 - Includes {key_features}
 - Part of {initiative}
 
-🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
 Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
@@ -95,7 +95,7 @@ git commit -m "feat: add OAuth2 authentication
 - Added authentication routes
 - Part of user login feature
 
-🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
 Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
