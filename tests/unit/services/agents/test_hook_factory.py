@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
     from pathlib import Path
 
 from claude_mpm.services.agents.hook_event_bus import (
@@ -22,6 +23,19 @@ from claude_mpm.services.agents.hook_factory import create_pretooluse_hook
 pytestmark = pytest.mark.xdist_group("serial")
 
 
+def _run(coro: Awaitable[Any]) -> Any:
+    """Run a coroutine on a fresh event loop.
+
+    Uses ``asyncio.run`` rather than ``asyncio.get_event_loop()`` so the
+    tests do not depend on an ambient current event loop. In a broad test
+    selection an earlier test that calls ``asyncio.run`` leaves the main
+    thread's current loop set to ``None``; on Python 3.13
+    ``get_event_loop()`` no longer auto-creates one and raises
+    ``RuntimeError``, which made these tests order-dependent (see #712).
+    """
+    return asyncio.run(coro)
+
+
 @pytest.fixture()
 def bus(tmp_path: Path) -> HookEventBus:
     return HookEventBus(queue_path=tmp_path / "q.jsonl")
@@ -30,7 +44,7 @@ def bus(tmp_path: Path) -> HookEventBus:
 class TestPreToolUseHook:
     def test_returns_empty_when_no_messages(self, bus: HookEventBus) -> None:
         hook = create_pretooluse_hook(bus)
-        result = asyncio.get_event_loop().run_until_complete(hook({}, None, {}))
+        result = _run(hook({}, None, {}))
         assert result == {}
 
     def test_returns_system_message_when_messages_pending(
@@ -38,16 +52,14 @@ class TestPreToolUseHook:
     ) -> None:
         bus.send(HookMessage(text="please check tests"))
         hook = create_pretooluse_hook(bus)
-        result = asyncio.get_event_loop().run_until_complete(hook({}, None, {}))
+        result = _run(hook({}, None, {}))
         assert "systemMessage" in result
         assert "please check tests" in result["systemMessage"]
 
     def test_formats_source_prefix(self, bus: HookEventBus) -> None:
         bus.send(HookMessage(text="build failed", source="ci"))
         hook = create_pretooluse_hook(bus)
-        result = asyncio.get_event_loop().run_until_complete(
-            hook({}, "tool-123", {"signal": None})
-        )
+        result = _run(hook({}, "tool-123", {"signal": None}))
         assert "[ci]" in result["systemMessage"]
 
     def test_formats_critical_prefix(self, bus: HookEventBus) -> None:
@@ -59,7 +71,7 @@ class TestPreToolUseHook:
             )
         )
         hook = create_pretooluse_hook(bus)
-        result = asyncio.get_event_loop().run_until_complete(hook({}, None, {}))
+        result = _run(hook({}, None, {}))
         msg = result["systemMessage"]
         assert msg.startswith("CRITICAL")
         assert "[reviewer]" in msg
@@ -69,8 +81,8 @@ class TestPreToolUseHook:
         bus.send(HookMessage(text="one-shot"))
         hook = create_pretooluse_hook(bus)
 
-        first = asyncio.get_event_loop().run_until_complete(hook({}, None, {}))
+        first = _run(hook({}, None, {}))
         assert "systemMessage" in first
 
-        second = asyncio.get_event_loop().run_until_complete(hook({}, None, {}))
+        second = _run(hook({}, None, {}))
         assert second == {}
