@@ -476,7 +476,7 @@ f.flush().await?;   // REQUIRED — without this, a concurrent reader may see tr
 
 Rules:
 - After `tokio::fs::File::write_all()`, call `flush().await` before any reader runs or you return — otherwise silent read-after-write race / data loss.
-- The free fn `tokio::fs::write()` is a single open/write/close call — safe for the userspace-buffer concern. Sync `std::fs::File` is unbuffered at the Rust layer, so no userspace data is lost on drop, BUT crash/durability still requires `sync_all()` (or `sync_data()`) — drop alone does not fsync. Only buffered `tokio::File` writes opened via `OpenOptions` need the explicit `flush().await`.
+- `tokio::fs::File` defers writes to a blocking thread pool — `flush().await` ensures all queued writes have completed before a reader runs (it is NOT a userspace `BufWriter`). The free fn `tokio::fs::write()` is a single open/write/close. Sync `std::fs::File` has no Rust-layer userspace buffer, so writes reach the OS page cache on return — but crash/power-loss durability still requires `sync_all()`/`sync_data()`; drop alone does not fsync.
 
 ### HTTP client construction
 
@@ -724,7 +724,7 @@ serde = { version = "1", features = ["derive"] }
 ```toml
 # Member Cargo.toml — reference, never re-pin
 [package]
-edition = "2024"        # ONLY if this crate needs async closures or other 2024-gated features; else "2021"
+edition = "2021"        # bump to "2024" ONLY if this crate needs async closures or other 2024-gated features
 
 [dependencies]
 tokio = { workspace = true }
@@ -989,6 +989,7 @@ bind_and_serve(addr).await
 
 Rules:
 - On startup probe the recorded health address; if a healthy incumbent answers, `std::process::exit(0)` instead of binding. This stops launchd/systemd respawn storms without external intervention (a second instance exiting cleanly is success, not failure).
+- `std::process::exit` skips destructors, so flush any buffered logs/tracing (e.g. a non-blocking `tracing-appender` worker guard) before calling it — or place the guard before subscriber/buffer init — otherwise the "exiting" line may never be written.
 
 ### MCP stdio framing
 
