@@ -318,7 +318,7 @@ find . -type f -size +1000k -not -path "./.git/*" -not -path "./node_modules/*"
    - Detail 1
    - Detail 2
    
-    🤖🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+    🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
    
    Co-Authored-By: Claude <noreply@anthropic.com>"
    ```
