@@ -463,6 +463,35 @@ use rayon::prelude::*;
 let result: Vec<_> = data.par_iter().map(|x| transform(x)).collect();
 ```
 
+### Async write durability
+
+```rust
+// Buffered tokio::File opened via OpenOptions MUST be flushed before a reader runs.
+let mut f = tokio::fs::OpenOptions::new()
+    .create(true).write(true).truncate(true)
+    .open(path).await?;
+f.write_all(&bytes).await?;
+f.flush().await?;   // REQUIRED — without this, a concurrent reader may see truncated/empty data
+```
+
+Rules:
+- After `tokio::fs::File::write_all()`, call `flush().await` before any reader runs or you return — otherwise silent read-after-write race / data loss.
+- The free fn `tokio::fs::write()` and sync `std::fs::File` flush/close on drop and are safe — only buffered `tokio::File` writes opened via `OpenOptions` need the explicit flush.
+
+### HTTP client construction
+
+```rust
+// Never reqwest::Client::new() in a service — it has no timeout and hangs forever on a slow upstream.
+let client = reqwest::ClientBuilder::new()
+    .timeout(Duration::from_secs(30))
+    .connect_timeout(Duration::from_secs(5))
+    .build()?;
+```
+
+Rules:
+- Never construct `reqwest::Client::new()` in a service — a timeout-free client hangs indefinitely on a slow upstream and ties up the worker.
+- Always set both a request `timeout` and a `connect_timeout`; build once and clone (the inner pool is shared).
+
 ---
 
 ## Testing Best Practices
@@ -680,6 +709,34 @@ Rules:
 - `infrastructure` implements `domain` traits; injected at startup in `main`.
 - Compile-time enforcement of layering: wrong imports = compiler error.
 
+### Workspace discipline
+
+```toml
+# Root Cargo.toml — declare shared deps and policy ONCE
+[workspace.package]
+rust-version = "1.91"   # MSRV floor, set by the most-constrained transitive dep
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+```
+
+```toml
+# Member Cargo.toml — reference, never re-pin
+[package]
+edition = "2024"        # ONLY if this crate needs let-chains / async closures; else "2021"
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+```
+
+Rules:
+- Declare every shared external crate once in `[workspace.dependencies]`; members reference `dep = { workspace = true }`. Never pin locally if it is already in the workspace table — local pins drift and force duplicate compiles.
+- MSRV (`rust-version` in `[workspace.package]`) is the floor imposed by the most-constrained TRANSITIVE dependency (e.g. a cloud SDK forcing a newer toolchain), not just the language features your code uses. Verify with `cargo msrv` or by auditing transitive `rust-version`.
+- Per-crate edition policy: `edition = "2024"` only for crates that actually need let-chains / async closures; others stay `2021`. Check the crate's own `Cargo.toml` before assuming.
+- Cross-crate change protocol: edit lib → `cargo check` workspace-wide → `cargo test -p <lib>` → `cargo test -p <each consumer>` → commit all touched `Cargo.toml` together.
+
 ### Feature flags
 
 ```toml
@@ -704,6 +761,24 @@ impl Serialize for MyType { ... }
 #[cfg(feature = "tracing")]
 tracing::info!("processing item");
 ```
+
+```toml
+# Library-and-binary crate: gate the HTTP stack so library consumers don't pull it in.
+[features]
+default = ["http-server"]          # binary builds stay backward-compatible
+http-server = ["dep:axum", "dep:tower-http"]
+
+[dependencies]
+axum = { version = "0.7", optional = true }
+tower-http = { version = "0.6", optional = true }
+
+[[bin]]
+name = "serverd"
+required-features = ["http-server"]
+```
+
+Rules:
+- If a crate is consumed as a library (not only built as a binary), mark `axum`/`tower-http` `optional = true`, gate them behind an `http-server` (or `axum-server`) feature, set `default = ["http-server"]` for backward-compatible binary builds, and add `required-features = ["http-server"]` on `[[bin]]` stanzas. Prevents forcing the full HTTP stack onto library consumers.
 
 ### Module layout
 
@@ -762,6 +837,32 @@ async fn serve(mut shutdown: tokio::sync::broadcast::Receiver<()>) {
 }
 ```
 
+#### Production graceful shutdown
+
+```rust
+// Prefer axum's built-in drain — finishes in-flight requests before exit.
+axum::serve(listener, app)
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
+
+async fn shutdown_signal() {
+    let ctrl_c = async { signal::ctrl_c().await.expect("install SIGINT handler"); };
+    #[cfg(unix)]
+    let term = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("install SIGTERM handler").recv().await;
+    };
+    #[cfg(not(unix))]
+    let term = std::future::pending::<()>();
+    tokio::select! { _ = ctrl_c => {}, _ = term => {} }
+}
+```
+
+Rules:
+- Prefer `axum::serve(listener, app).with_graceful_shutdown(shutdown_signal())` where `shutdown_signal()` awaits BOTH SIGTERM and SIGINT (cfg-gated Unix/non-Unix). Draining in-flight requests lets storage fsync complete before exit.
+- Ops: systemd `KillSignal=SIGTERM` + `TimeoutStopSec=120` (must exceed the fsync window on networked filesystems, e.g. EBS/EFS); on macOS use `launchctl bootout` (SIGTERM + drain), NOT `launchctl kickstart -k` (SIGKILL truncates in-flight writes).
+- Clients/bridges reconnect with exponential backoff (200ms → 30s cap) so daemon restarts are transparent.
+
 ---
 
 ## Performance
@@ -774,6 +875,23 @@ async fn serve(mut shutdown: tokio::sync::broadcast::Receiver<()>) {
 - **Flamegraph profiling**: `[profile.release] debug = true` then `cargo flamegraph`.
 - **LTO for binaries**: `lto = "thin"` + `codegen-units = 1` in release profile.
 - **Measure first**: Profile before optimizing any non-obvious path.
+
+---
+
+## Why/What/Test Doc Pattern
+
+```rust
+/// Resolves the daemon's data directory, honouring an env override.
+///
+/// Why:  launchd/systemd strip $HOME, so dirs::* can return None at boot.
+/// What: env override → dirs::data_local_dir() → passwd (getpwuid) fallback.
+/// Test: tests/paths.rs::resolves_under_empty_env (covers the None branch).
+pub fn data_dir() -> anyhow::Result<PathBuf> { ... }
+```
+
+Rules:
+- Every public `fn`/`struct`/`trait`/`mod` carries three doc-comment lines — `Why:` (the problem it solves), `What:` (mechanics), `Test:` (where coverage lives, or why untestable).
+- Clippy cannot enforce intent; this is how future readers reconstruct design without git archaeology.
 
 ---
 
@@ -792,6 +910,8 @@ async fn serve(mut shutdown: tokio::sync::broadcast::Receiver<()>) {
 
 - **Excessive cloning**: Do not clone to satisfy the borrow checker — restructure, use references, or `Cow`.
 - **Blocking in async**: Never call `std::fs::read`, `std::net`, or `thread::sleep` in async; use `tokio::` equivalents.
+- **Unflushed async writes**: A buffered `tokio::File` write without `flush().await` is a read-after-write data-loss race.
+- **Timeout-free HTTP client**: `reqwest::Client::new()` in a service hangs forever on a slow upstream — always `ClientBuilder` with timeouts.
 - **Bare `unwrap()` in production**: Replace with `?`, `.unwrap_or_default()`, `.expect("invariant: reason")`.
 - **Stringly-typed errors**: No `String` or `Box<dyn Error>` in library APIs — define typed enums with `thiserror`.
 - **Half-initialized objects**: Never expose constructors that leave fields unset — use builder pattern.
@@ -799,3 +919,146 @@ async fn serve(mut shutdown: tokio::sync::broadcast::Receiver<()>) {
 - **`env::set_var` without `unsafe`**: In Rust 2024, `set_var`/`remove_var` are `unsafe`.
 - **Clippy silencing**: `cargo clippy -- -D warnings` in CI; use `#[allow]` with justification, never blanket silencing.
 - **Global state for DI**: Do not use `lazy_static`/`once_cell` for mutable services — constructor inject.
+
+---
+
+## Rust Daemon & Supervised-Process Patterns
+
+A daemon launched by `launchd`/`systemd` runs in a stripped environment with aggressive respawn policies. The patterns below assume that supervisor and cross-reference the production graceful-shutdown guidance under Architecture Best Practices.
+
+### Path resolution under supervision
+
+```rust
+/// Resolve the data directory: env override → dirs → passwd fallback.
+///
+/// Why:  under posix_spawn (launchd/systemd) NSFileManager/HOME may be
+///       uninitialised, so dirs::data_local_dir() can return None.
+/// What: validated env override wins; otherwise dirs, then getpwuid($HOME).
+/// Test: tests/paths.rs::env_empty_falls_back_to_passwd.
+pub fn data_dir() -> anyhow::Result<PathBuf> {
+    if let Ok(raw) = std::env::var("APP_DATA_DIR") {
+        let p = PathBuf::from(raw.trim());
+        anyhow::ensure!(!raw.trim().is_empty(), "APP_DATA_DIR is empty");
+        anyhow::ensure!(p.is_absolute(), "APP_DATA_DIR must be absolute: {p:?}");
+        anyhow::ensure!(p != Path::new("/"), "APP_DATA_DIR must not be root");
+        return Ok(p);
+    }
+    let dir = dirs::data_local_dir()        // may be None under a supervisor
+        .or_else(passwd_home_data_dir)      // getpwuid() fallback — mandatory
+        .ok_or_else(|| anyhow::anyhow!("cannot resolve data dir"))?;
+    tracing::info!(path = %dir.display(), "resolved data dir");  // log every boot
+    Ok(dir)
+}
+```
+
+Rules:
+- Resolve the data dir as env override → `dirs::data_local_dir()` → `$HOME`/passwd (getpwuid) fallback. The passwd fallback is mandatory: under `posix_spawn`, `dirs::*` can return `None` because HOME/NSFileManager is not initialised.
+- Validate any env override is absolute (`anyhow::ensure!(p.is_absolute())`); reject empty/whitespace/relative/root.
+- Log the resolved path at INFO on every boot — first thing you check when a supervised daemon "loses" its data.
+
+### File-descriptor limits
+
+```ini
+# systemd unit
+[Service]
+LimitNOFILE=8192
+```
+```xml
+<!-- launchd plist -->
+<key>SoftResourceLimits</key>  <dict><key>NumberOfFiles</key><integer>8192</integer></dict>
+<key>HardResourceLimits</key>  <dict><key>NumberOfFiles</key><integer>8192</integer></dict>
+```
+
+Rules:
+- Set `LimitNOFILE=8192` (systemd) / `SoftResourceLimits`+`HardResourceLimits` `NumberOfFiles: 8192` (launchd). The macOS launchd default is 256 — a daemon holding many DB files (e.g. N stores × 3 files) hits EMFILE.
+- Combined with `KeepAlive`/`Restart=always`, an EMFILE crash becomes a respawn storm. Expose `open_fds` + `fd_soft_limit` in the `/health` response for early warning.
+
+### Single-instance guard
+
+```rust
+// On startup, probe the recorded health address before binding.
+if let Ok(resp) = http_get(&recorded_health_url).await {
+    if resp.is_healthy() {
+        tracing::info!("healthy incumbent already running; exiting");
+        std::process::exit(0);   // NOT an error — stops supervisor respawn storm
+    }
+}
+bind_and_serve(addr).await
+```
+
+Rules:
+- On startup probe the recorded health address; if a healthy incumbent answers, `std::process::exit(0)` instead of binding. This stops launchd/systemd respawn storms without external intervention (a second instance exiting cleanly is success, not failure).
+
+### MCP stdio framing
+
+```rust
+// stdio JSON-RPC server: stdout is the protocol channel — keep it pristine.
+loop {
+    let line = match read_line(&mut stdin).await? {
+        Some(l) => l,
+        None => std::process::exit(0),  // EOF — exit so idle reqwest pool tasks don't pin the runtime
+    };
+    let resp = handle(&line).await;
+    write_framed(&mut stdout, &resp).await?;   // ONLY protocol frames go to stdout
+}
+```
+
+Rules:
+- In a stdio JSON-RPC server, ALL logs go to stderr — a stray `println!` corrupts the protocol framing. Route `tracing` to stderr explicitly.
+- The stdio serve loop must call `std::process::exit(0)` on stdin EOF; otherwise `reqwest` idle-pool background tasks keep the tokio runtime alive and orphaned workers accumulate across client restarts.
+
+---
+
+## Rust Embedded Storage Discipline
+
+Patterns for embedded key/value and document stores (redb / sled / SQLite) with `bincode`/`serde` payloads. The recurring failure mode is a binary upgrade that comes up "healthy but empty" — these rules make degradation impossible without an explicit, recoverable decision.
+
+### Graceful format-upgrade handling
+
+```rust
+// Classify EVERY open/create error before deciding what to do.
+fn open_or_recreate(path: &Path) -> anyhow::Result<Db> {
+    match Db::open(path) {
+        Ok(db) => Ok(db),
+        Err(e) if is_format_error(&e) => {     // UpgradeRequired / RepairAborted / Corrupted
+            run_migration_or_warn(path)?;      // prefer data-preserving migration
+            recreate(path)                     // destructive ONLY for format breaks
+        }
+        Err(e) if is_lock_error(&e) => Err(e.into()),   // DatabaseAlreadyOpen — NEVER recreate
+        Err(e) => Err(e.into()),                        // transient I/O — NEVER recreate
+    }
+}
+```
+
+Rules:
+- At EVERY open/create site classify errors: `UpgradeRequired`/`RepairAborted`/`Corrupted` = incompatible on-disk format; `DatabaseAlreadyOpen` = lock contention; everything else = transient I/O.
+- Destructive recreate ONLY on format errors — NEVER on lock or I/O errors (a lock error means another instance owns live data; an I/O error is transient).
+- Ship a data-preserving migration tool for format breaks. A binary upgrade must never silently degrade to "healthy but empty".
+
+### Atomic swap for durable rebuilds
+
+```rust
+// Reindex/compaction/migration writes to staging; swap only on validated success.
+let staging = root.join("index.staging");
+build_into(&staging)?;
+anyhow::ensure!(record_count(&staging)? > 0, "rebuild produced 0 records — Failed, not Ready");
+fs::rename(&staging, root.join("index.live"))?;   // atomic swap
+// On any failure/empty/abort: discard staging, leave previous live data intact.
+```
+
+Rules:
+- Any reindex/compaction/migration writes to a STAGING location and swaps atomically only on success; on failure/empty/abort, discard the staged copy and leave the previous live data intact.
+- Validate non-empty before marking ready — a pipeline that walked files but produced zero records is `Failed`, not `Ready` (the false-green antipattern).
+
+### Root-relative path storage
+
+```rust
+// Store paths relative to a canonical root — survives moves, remounts, cross-platform copies.
+let root = root.canonicalize()?;                  // so strip_prefix reliably yields relative
+let rel = abs_path.strip_prefix(&root)?.to_path_buf();
+store.put(key, &rel)?;                            // persist relative, never absolute
+```
+
+Rules:
+- Store file paths relative to a known root, never absolute — survives data-dir moves, remounts, and cross-platform copies. Canonicalize the root so `strip_prefix` reliably yields a relative path.
+- Provide an idempotent, schema-versioned migration that detects and rewrites legacy absolute paths on warm boot.
