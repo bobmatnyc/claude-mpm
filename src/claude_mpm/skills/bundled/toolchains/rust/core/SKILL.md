@@ -476,12 +476,12 @@ f.flush().await?;   // REQUIRED — without this, a concurrent reader may see tr
 
 Rules:
 - After `tokio::fs::File::write_all()`, call `flush().await` before any reader runs or you return — otherwise silent read-after-write race / data loss.
-- The free fn `tokio::fs::write()` and sync `std::fs::File` flush/close on drop and are safe — only buffered `tokio::File` writes opened via `OpenOptions` need the explicit flush.
+- The free fn `tokio::fs::write()` is a single open/write/close call — safe for the userspace-buffer concern. Sync `std::fs::File` is unbuffered at the Rust layer, so no userspace data is lost on drop, BUT crash/durability still requires `sync_all()` (or `sync_data()`) — drop alone does not fsync. Only buffered `tokio::File` writes opened via `OpenOptions` need the explicit `flush().await`.
 
 ### HTTP client construction
 
 ```rust
-// Never reqwest::Client::new() in a service — it has no timeout and hangs forever on a slow upstream.
+// Never reqwest::Client::new() in a service — no application-level timeout; a slow upstream can block a worker for the OS TCP timeout (minutes).
 let client = reqwest::ClientBuilder::new()
     .timeout(Duration::from_secs(30))
     .connect_timeout(Duration::from_secs(5))
@@ -489,7 +489,7 @@ let client = reqwest::ClientBuilder::new()
 ```
 
 Rules:
-- Never construct `reqwest::Client::new()` in a service — a timeout-free client hangs indefinitely on a slow upstream and ties up the worker.
+- Never construct `reqwest::Client::new()` in a service — a timeout-free client has no application-level timeout, so a slow upstream can block a worker for the OS TCP timeout duration (minutes).
 - Always set both a request `timeout` and a `connect_timeout`; build once and clone (the inner pool is shared).
 
 ---
@@ -724,7 +724,7 @@ serde = { version = "1", features = ["derive"] }
 ```toml
 # Member Cargo.toml — reference, never re-pin
 [package]
-edition = "2024"        # ONLY if this crate needs let-chains / async closures; else "2021"
+edition = "2024"        # ONLY if this crate needs async closures or other 2024-gated features; else "2021"
 
 [dependencies]
 tokio = { workspace = true }
@@ -734,7 +734,7 @@ serde = { workspace = true }
 Rules:
 - Declare every shared external crate once in `[workspace.dependencies]`; members reference `dep = { workspace = true }`. Never pin locally if it is already in the workspace table — local pins drift and force duplicate compiles.
 - MSRV (`rust-version` in `[workspace.package]`) is the floor imposed by the most-constrained TRANSITIVE dependency (e.g. a cloud SDK forcing a newer toolchain), not just the language features your code uses. Verify with `cargo msrv` or by auditing transitive `rust-version`.
-- Per-crate edition policy: `edition = "2024"` only for crates that actually need let-chains / async closures; others stay `2021`. Check the crate's own `Cargo.toml` before assuming.
+- Per-crate edition policy: `edition = "2024"` only for crates that need async closures (`async || {}`) or other 2024-gated features; others stay `2021`. Note let-chains stabilized in Rust 1.88 and work in edition 2021 too, so they are not a reason to upgrade. Check the crate's own `Cargo.toml`, and verify with `cargo check` before upgrading.
 - Cross-crate change protocol: edit lib → `cargo check` workspace-wide → `cargo test -p <lib>` → `cargo test -p <each consumer>` → commit all touched `Cargo.toml` together.
 
 ### Feature flags
@@ -937,8 +937,9 @@ A daemon launched by `launchd`/`systemd` runs in a stripped environment with agg
 /// Test: tests/paths.rs::env_empty_falls_back_to_passwd.
 pub fn data_dir() -> anyhow::Result<PathBuf> {
     if let Ok(raw) = std::env::var("APP_DATA_DIR") {
-        let p = PathBuf::from(raw.trim());
-        anyhow::ensure!(!raw.trim().is_empty(), "APP_DATA_DIR is empty");
+        let trimmed = raw.trim();
+        anyhow::ensure!(!trimmed.is_empty(), "APP_DATA_DIR is empty");
+        let p = PathBuf::from(trimmed);
         anyhow::ensure!(p.is_absolute(), "APP_DATA_DIR must be absolute: {p:?}");
         anyhow::ensure!(p != Path::new("/"), "APP_DATA_DIR must not be root");
         return Ok(p);
