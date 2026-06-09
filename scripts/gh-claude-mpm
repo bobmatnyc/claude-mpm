@@ -2,6 +2,19 @@
 # Claude MPM GitHub CLI Wrapper
 # Customizes PR messages with Claude MPM branding
 
+# Force a UTF-8 locale for the emoji sed substitutions below. Under a non-UTF-8
+# locale (LANG=C / POSIX) some seds mis-parse the multi-byte 🤖👥 patterns and
+# silently skip the substitution. Probe for a UTF-8 locale that actually exists
+# (C.UTF-8/C.utf8 on Linux, en_US.UTF-8 on macOS) and fall back gracefully.
+_mpm_avail="$(locale -a 2>/dev/null)"
+for _mpm_locale in C.UTF-8 C.utf8 en_US.UTF-8 en_US.utf8; do
+    if printf '%s\n' "$_mpm_avail" | grep -qix "$_mpm_locale"; then
+        export LC_ALL="$_mpm_locale"
+        break
+    fi
+done
+unset _mpm_locale _mpm_avail
+
 # Function to modify PR body
 modify_pr_body() {
     local body="$1"
@@ -10,6 +23,15 @@ modify_pr_body() {
     body=$(echo "$body" | sed 's/🤖 Generated with \[Claude Code\](https:\/\/claude\.ai\/code)/🤖👥 Generated with [Claude MPM](https:\/\/github.com\/bobmatnyc\/claude-mpm)/')
     body=$(echo "$body" | sed 's/Generated with \[Claude Code\]/Generated with [Claude MPM]/')
     body=$(echo "$body" | sed 's/Claude Code/Claude MPM/g')
+
+    # Normalize the MPM footer icon to the canonical 🤖👥 (multi-agent)
+    body=$(echo "$body" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    body=$(echo "$body" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    # Only prefix the canonical icon onto a *bare* footer: the line must be the
+    # full footer (text + URL) with no preceding emoji, so we don't accidentally
+    # decorate an unrelated line that merely starts with "Generated with [Claude
+    # MPM]".
+    body=$(echo "$body" | sed 's#^Generated with \[Claude MPM\](https://github.com/bobmatnyc/claude-mpm)$#🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)#')
 
     echo "$body"
 }

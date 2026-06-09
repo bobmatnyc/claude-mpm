@@ -24,6 +24,19 @@ cat > "$HOOKS_DIR/prepare-commit-msg" << 'EOF'
 # Claude MPM Custom Commit Message Hook
 # This hook modifies commit messages to use Claude MPM branding
 
+# Force a UTF-8 locale for the emoji sed substitutions below. Under a non-UTF-8
+# locale (LANG=C / POSIX) some seds mis-parse the multi-byte 🤖👥 patterns and
+# silently skip the substitution. Probe for a UTF-8 locale that actually exists
+# (C.UTF-8/C.utf8 on Linux, en_US.UTF-8 on macOS) and fall back gracefully.
+_mpm_avail="$(locale -a 2>/dev/null)"
+for _mpm_locale in C.UTF-8 C.utf8 en_US.UTF-8 en_US.utf8; do
+    if printf '%s\n' "$_mpm_avail" | grep -qix "$_mpm_locale"; then
+        export LC_ALL="$_mpm_locale"
+        break
+    fi
+done
+unset _mpm_locale _mpm_avail
+
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
 SHA1=$3
@@ -45,8 +58,14 @@ MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with \[Claude Code\](http
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with \[Claude Code\]/Generated with [Claude MPM]/')
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with Claude Code/Generated with Claude MPM/')
 
-# Replace if someone uses wrong emoji but right text
+# Normalize the icon to the canonical 🤖👥 (multi-agent) for any MPM footer
+# variant: bare (no icon), single 🤖, or doubled 🤖🤖.
+MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+# Only prefix the canonical icon onto a *bare* footer: the line must be the
+# full footer (text + URL) with no preceding emoji, so we don't accidentally
+# decorate an unrelated line that merely starts with "Generated with [Claude MPM]".
+MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's#^Generated with \[Claude MPM\](https://github.com/bobmatnyc/claude-mpm)$#🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)#')
 
 # Replace URLs
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/https:\/\/claude\.ai\/code/https:\/\/github.com\/bobmatnyc\/claude-mpm/g')

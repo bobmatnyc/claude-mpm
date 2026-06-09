@@ -392,7 +392,7 @@ class DoctorReporter:
         print("---")
         print()
         print(
-            "🤖🤖 *Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)*"
+            "🤖👥 *Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)*"
         )
         print()
         print(

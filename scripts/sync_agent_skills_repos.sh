@@ -162,7 +162,7 @@ sync_repo() {
 - Synchronized changes for release v$VERSION
 - Auto-committed by sync_agent_skills_repos.sh
 
-🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
 Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
