@@ -349,7 +349,7 @@ def sync_agent_repositories(
 - Synchronized changes for release v{version}
 - Auto-committed by automated_release.py
 
-🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
 Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"""
 
