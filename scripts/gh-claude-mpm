@@ -27,7 +27,11 @@ modify_pr_body() {
     # Normalize the MPM footer icon to the canonical 🤖👥 (multi-agent)
     body=$(echo "$body" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
     body=$(echo "$body" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
-    body=$(echo "$body" | sed 's/^Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    # Only prefix the canonical icon onto a *bare* footer: the line must be the
+    # full footer (text + URL) with no preceding emoji, so we don't accidentally
+    # decorate an unrelated line that merely starts with "Generated with [Claude
+    # MPM]".
+    body=$(echo "$body" | sed 's#^Generated with \[Claude MPM\](https://github.com/bobmatnyc/claude-mpm)$#🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)#')
 
     echo "$body"
 }
