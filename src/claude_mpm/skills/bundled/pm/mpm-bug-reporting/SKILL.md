@@ -93,7 +93,15 @@ Always include:
 
 ## Impact
 [How this affects users/workflow]
+
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 ```
+
+**Footer rule**: Always append the canonical MPM footer
+(`🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)`) to
+the issue body. Never use Claude Code's default `🤖 Generated with [Claude Code]`
+footer — MPM only overrides the commit trailer, so the "Generated with" footer
+must be set explicitly or the Claude Code default leaks into GitHub issues.
 
 ## Using gh CLI
 
