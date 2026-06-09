@@ -98,6 +98,8 @@ class SkillsManagementCommand(BaseCommand):
                 SkillsCommands.COLLECTION_ENABLE.value: self._collection_enable,
                 SkillsCommands.COLLECTION_DISABLE.value: self._collection_disable,
                 SkillsCommands.COLLECTION_SET_DEFAULT.value: self._collection_set_default,
+                # Dedup sweep
+                SkillsCommands.DEDUP.value: self._dedup_skills,
             }
 
             handler = command_map.get(args.skills_command)
@@ -823,6 +825,125 @@ class SkillsManagementCommand(BaseCommand):
         except Exception as e:
             console.print(f"[red]Error removing skills: {e}[/red]")
             return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _dedup_skills(self, args) -> CommandResult:
+        """Sweep projects and remove framework skill duplicates.
+
+        Scans top-level subdirectories of *root* for project-level copies of
+        USER_LEVEL_SKILLS and removes them when the user-level copy exists at
+        ~/.claude/skills/<name>/.
+
+        Without --apply the command runs in dry-run mode: it prints what WOULD
+        be removed without making any changes.
+
+        Args:
+            args: Parsed arguments with optional ``root`` and ``apply`` fields.
+
+        Returns:
+            CommandResult with exit_code 0 on success.
+        """
+        from pathlib import Path
+
+        from rich.table import Table
+
+        from ...services.skills.skill_dedup import sweep_projects
+
+        root_arg = getattr(args, "root", None)
+        apply_mode = getattr(args, "apply", False)
+        dry_run = not apply_mode
+
+        root = Path(root_arg).expanduser() if root_arg else Path.home() / "Projects"
+
+        if not root_arg and not root.exists():
+            console.print(
+                "[bold yellow]Default root ~/Projects not found — "
+                "pass --root to specify your projects directory.[/bold yellow]"
+            )
+            return CommandResult(
+                success=True, message="No root directory found.", exit_code=0
+            )
+
+        mode_label = (
+            "[yellow]DRY-RUN[/yellow]" if dry_run else "[bold red]APPLY[/bold red]"
+        )
+        console.print(f"\n[bold cyan]Skills Dedup Sweep[/bold cyan]  ({mode_label})\n")
+        console.print(f"[dim]Scanning root: {root}[/dim]")
+
+        if dry_run:
+            console.print(
+                "[dim]No files will be deleted. Use --apply to actually remove duplicates.[/dim]\n"
+            )
+        else:
+            console.print(
+                "[bold yellow]WARNING: --apply is set. Duplicate skill directories WILL be deleted.[/bold yellow]\n"
+            )
+
+        try:
+            summary = sweep_projects(root=root, dry_run=dry_run)
+        except Exception as exc:
+            console.print(f"[red]Sweep failed: {exc}[/red]")
+            return CommandResult(success=False, message=str(exc), exit_code=1)
+
+        if not summary.results:
+            console.print(
+                f"[green]No framework skill duplicates found "
+                f"({summary.projects_scanned} projects scanned).[/green]\n"
+            )
+            return CommandResult(success=True, exit_code=0)
+
+        # Summary table: one row per project that had any skills.
+        table = Table(show_header=True, header_style="bold cyan", show_lines=False)
+        table.add_column("Project", style="white", overflow="fold")
+        table.add_column(
+            "Removed" if not dry_run else "Would remove",
+            justify="right",
+            style="bold red" if not dry_run else "bold yellow",
+        )
+        table.add_column("Kept (no user copy)", justify="right", style="dim")
+        table.add_column("Project-unique (kept)", justify="right", style="green")
+        table.add_column("Errors", justify="right", style="red")
+
+        for r in sorted(summary.results, key=lambda x: x.project_dir.name):
+            table.add_row(
+                str(r.project_dir),
+                str(r.removed_count),
+                str(len(r.kept)),
+                str(r.project_unique_count),
+                str(len(r.errors)),
+            )
+
+        console.print(table)
+        console.print()
+
+        # Per-project detail for projects with removals.
+        for r in sorted(summary.results, key=lambda x: x.project_dir.name):
+            if not r.removed and not r.errors:
+                continue
+            console.print(f"[bold]{r.project_dir.name}[/bold] ({r.project_dir})")
+            for skill in r.removed:
+                action = "Would remove" if dry_run else "Removed"
+                console.print(f"  [yellow]  {action}: {skill}[/yellow]")
+            for err in r.errors:
+                console.print(f"  [red]  Error: {err}[/red]")
+            if r.project_unique:
+                console.print(
+                    f"  [dim]  Kept project-unique: {', '.join(sorted(r.project_unique))}[/dim]"
+                )
+            console.print()
+
+        # Final summary line.
+        action_word = "Would remove" if dry_run else "Removed"
+        console.print(
+            f"[bold]Total:[/bold] {action_word} [bold]{summary.total_removed}[/bold] "
+            f"skill director{'y' if summary.total_removed == 1 else 'ies'} "
+            f"across {summary.projects_with_dupes} project(s) "
+            f"[dim](scanned {summary.projects_scanned} projects in {root})[/dim]\n"
+        )
+
+        if dry_run and summary.total_removed > 0:
+            console.print("[dim]Run with --apply to perform the deletions.[/dim]\n")
+
+        return CommandResult(success=True, exit_code=0)
 
     def _get_skill_metadata(self, skill_name: str) -> dict | None:
         """Get skill metadata from SKILL.md file."""

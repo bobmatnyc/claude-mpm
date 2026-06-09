@@ -332,4 +332,33 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         help="Name of the collection to set as default",
     )
 
+    # Dedup sweep command
+    dedup_parser = skills_subparsers.add_parser(
+        SkillsCommands.DEDUP.value,
+        help=(
+            "Sweep projects and remove framework skill duplicates "
+            "(dry-run by default, use --apply to delete)"
+        ),
+    )
+    dedup_parser.add_argument(
+        "--root",
+        default=None,
+        help=(
+            "Root directory whose top-level subdirs are treated as project roots "
+            "(default: ~/Projects). "
+            "Only immediate subdirectories of ROOT are treated as project roots "
+            "(one level deep)."
+        ),
+    )
+    dedup_parser.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help=(
+            "Actually remove duplicate skill directories. "
+            "Without this flag the command runs in dry-run mode and prints "
+            "what WOULD be removed without deleting anything."
+        ),
+    )
+
     return skills_parser
