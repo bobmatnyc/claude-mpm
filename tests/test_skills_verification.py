@@ -16,7 +16,7 @@ from claude_mpm.skills.skill_manager import SkillManager
 
 
 def test_bundled_skills_count():
-    """Verify exactly 21 bundled skills exist"""
+    """Verify exactly 22 bundled skills exist"""
     print("\n=== TEST 1: Bundled Skills Count ===")
     bundled_dir = Path("src/claude_mpm/skills/bundled")
     skill_files = list(bundled_dir.glob("*.md"))
@@ -26,10 +26,10 @@ def test_bundled_skills_count():
     for f in sorted(skill_files):
         print(f"  - {f.stem}")
 
-    assert len(skill_files) == 21, (
-        f"Expected 21 bundled skills, found {len(skill_files)}"
+    assert len(skill_files) == 22, (
+        f"Expected 22 bundled skills, found {len(skill_files)}"
     )
-    print("✅ PASS: Exactly 21 bundled skills found")
+    print("✅ PASS: Exactly 22 bundled skills found")
     return True
 
 
