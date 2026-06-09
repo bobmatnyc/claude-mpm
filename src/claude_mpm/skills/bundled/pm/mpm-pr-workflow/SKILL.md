@@ -77,6 +77,20 @@ Always delegate to version-control agent with strategy parameters.
 
 ## PR Creation Workflow
 
+### Footer Branding (required)
+
+Always append the canonical MPM footer to PR bodies and commit messages:
+
+```
+🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+```
+
+Never use Claude Code's default `🤖 Generated with [Claude Code]` footer. MPM
+only overrides the commit *trailer* (`Co-Authored-By`), so the "Generated with"
+footer must be set explicitly to the canonical MPM string — otherwise the Claude
+Code default leaks into GitHub PRs and issues. The `Co-Authored-By: Claude MPM
+<https://github.com/bobmatnyc/claude-mpm>` trailer is separate and stays as-is.
+
 When creating PRs, delegate to version-control agent with:
 
 ```
