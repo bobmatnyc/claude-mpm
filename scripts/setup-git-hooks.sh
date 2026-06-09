@@ -62,7 +62,10 @@ MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/Generated with Claude Code/Generate
 # variant: bare (no icon), single 🤖, or doubled 🤖🤖.
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
-MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/^Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+# Only prefix the canonical icon onto a *bare* footer: the line must be the
+# full footer (text + URL) with no preceding emoji, so we don't accidentally
+# decorate an unrelated line that merely starts with "Generated with [Claude MPM]".
+MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's#^Generated with \[Claude MPM\](https://github.com/bobmatnyc/claude-mpm)$#🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)#')
 
 # Replace URLs
 MODIFIED_MSG=$(echo "$MODIFIED_MSG" | sed 's/https:\/\/claude\.ai\/code/https:\/\/github.com\/bobmatnyc\/claude-mpm/g')
