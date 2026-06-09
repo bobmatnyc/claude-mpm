@@ -1247,7 +1247,7 @@ _CLAUDE_CODE_FOOTER_OLD_ALT = (
     "Generated with [Claude Code](https://claude.com/claude-code)"
 )
 _CLAUDE_MPM_FOOTER_NEW = (
-    "🤖🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)"
+    "🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)"
 )
 
 
@@ -1282,7 +1282,7 @@ def _replace_claude_code_footers_in_agents() -> bool:
 
     Scans ~/.claude/agents/ and ~/.claude-mpm/cache/agents/ for agent markdown
     files containing the old "Generated with [Claude Code]" footer and replaces
-    them with "🤖🤖 Generated with [Claude MPM]".
+    them with "🤖👥 Generated with [Claude MPM]".
 
     Returns:
         True if migration succeeded (or no files needed updating).
@@ -1313,6 +1313,81 @@ def _replace_claude_code_footers_in_agents() -> bool:
                 logger.debug(f"Could not update {md_file}: {e}")
                 errors += 1
     logger.info(f"Footer migration: updated {updated} files, {errors} errors")
+    return errors == 0
+
+
+# =============================================================================
+# Migration: v6.5.24-unify-mpm-footer-icon
+# =============================================================================
+
+# Older deployments emitted the MPM "Generated with" footer with a single 🤖 or
+# a doubled 🤖🤖 icon. The canonical icon is 🤖👥 (multi-agent orchestration).
+_MPM_FOOTER_TAIL = (
+    "Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)"
+)
+_MPM_FOOTER_WRONG_ICONS = (
+    f"🤖🤖 {_MPM_FOOTER_TAIL}",
+    f"🤖 {_MPM_FOOTER_TAIL}",
+)
+_MPM_FOOTER_CANONICAL = f"🤖👥 {_MPM_FOOTER_TAIL}"
+
+
+def _check_mpm_footer_icon_needs_unify() -> bool:
+    """Check if any deployed agent file uses a non-canonical MPM footer icon.
+
+    Returns:
+        True if a single-🤖 or doubled-🤖🤖 MPM footer is found in any agent
+        markdown file under the deployed agent directories.
+    """
+    search_dirs = [
+        Path.home() / ".claude" / "agents",
+        Path.home() / ".claude-mpm" / "cache" / "agents",
+    ]
+    for search_dir in search_dirs:
+        if not search_dir.exists():
+            continue
+        for md_file in search_dir.glob("**/*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="ignore")
+                if any(wrong in content for wrong in _MPM_FOOTER_WRONG_ICONS):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def _unify_mpm_footer_icon_in_agents() -> bool:
+    """Upgrade deployed MPM footers to the canonical 🤖👥 icon.
+
+    Replaces single-🤖 and doubled-🤖🤖 MPM "Generated with" footers with the
+    canonical 🤖👥 variant in deployed agent markdown files. Idempotent.
+
+    Returns:
+        True if migration succeeded (or no files needed updating).
+    """
+    search_dirs = [
+        Path.home() / ".claude" / "agents",
+        Path.home() / ".claude-mpm" / "cache" / "agents",
+    ]
+    updated = 0
+    errors = 0
+    for search_dir in search_dirs:
+        if not search_dir.exists():
+            continue
+        for md_file in search_dir.glob("**/*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8", errors="ignore")
+                new_content = content
+                for wrong in _MPM_FOOTER_WRONG_ICONS:
+                    new_content = new_content.replace(wrong, _MPM_FOOTER_CANONICAL)
+                if new_content != content:
+                    md_file.write_text(new_content, encoding="utf-8")
+                    updated += 1
+                    logger.debug(f"Unified footer icon in {md_file}")
+            except OSError as e:
+                logger.debug(f"Could not update {md_file}: {e}")
+                errors += 1
+    logger.info(f"Footer icon unification: updated {updated} files, {errors} errors")
     return errors == 0
 
 
@@ -1953,6 +2028,12 @@ MIGRATIONS: list[Migration] = [
         description="Deploy MPM spinner verbs/tips into ~/.claude/settings.json so they apply outside MPM projects",
         check=_check_spinner_global_needed,
         migrate=_deploy_spinner_global,
+    ),
+    Migration(
+        id="v6.5.24-unify-mpm-footer-icon",
+        description="Upgrade deployed MPM 'Generated with' footers from 🤖/🤖🤖 to canonical 🤖👥 icon",
+        check=_check_mpm_footer_icon_needs_unify,
+        migrate=_unify_mpm_footer_icon_in_agents,
     ),
 ]
 
