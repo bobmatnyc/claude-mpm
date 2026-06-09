@@ -11,6 +11,11 @@ modify_commit_message() {
     msg=$(echo "$msg" | sed 's/Generated with \[Claude Code\]/Generated with [Claude MPM]/')
     msg=$(echo "$msg" | sed 's/Claude Code/Claude MPM/g')
 
+    # Normalize the MPM footer icon to the canonical 🤖👥 (multi-agent)
+    msg=$(echo "$msg" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    msg=$(echo "$msg" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    msg=$(echo "$msg" | sed 's/^Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+
     echo "$msg"
 }
 
