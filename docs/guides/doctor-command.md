@@ -670,7 +670,7 @@ Reports include:
 
 ---
 
-🤖 *Generated with [Claude Code](https://claude.com/claude-code)*
+🤖👥 *Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)*
 ```
 
 ### Report Organization
