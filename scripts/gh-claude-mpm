@@ -11,6 +11,11 @@ modify_pr_body() {
     body=$(echo "$body" | sed 's/Generated with \[Claude Code\]/Generated with [Claude MPM]/')
     body=$(echo "$body" | sed 's/Claude Code/Claude MPM/g')
 
+    # Normalize the MPM footer icon to the canonical 🤖👥 (multi-agent)
+    body=$(echo "$body" | sed 's/🤖🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    body=$(echo "$body" | sed 's/🤖 Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+    body=$(echo "$body" | sed 's/^Generated with \[Claude MPM\]/🤖👥 Generated with [Claude MPM]/')
+
     echo "$body"
 }
 
