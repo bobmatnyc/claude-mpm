@@ -18,6 +18,7 @@ DESIGN DECISIONS:
 from __future__ import annotations
 
 import sys
+import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -71,10 +72,26 @@ def run_session_report(args: argparse.Namespace) -> int:
         return 1
 
     # -- Parse ----------------------------------------------------------------
+    # NOTE (Fix 5 / TOCTOU): parse_session() calls locate_transcript() again
+    # internally.  To eliminate the double-locate window we would need
+    # parse_session() to accept an explicit transcript_path parameter.  That
+    # signature change is out of scope here; the window is benign in practice
+    # because transcripts are write-once JSONL files that never move or vanish
+    # mid-session.
     try:
         report = parse_session(session_id, cwd)
-    except Exception as exc:
+    except (FileNotFoundError, ValueError) as exc:
+        # Expected user-facing errors: transcript missing or malformed content.
         print(f"Failed to parse session transcript: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:
+        # Unexpected programming error -- surface the full traceback so it is
+        # debuggable rather than silently swallowed.
+        print(
+            f"Unexpected error while parsing session transcript: {exc}\n"
+            f"{traceback.format_exc()}",
+            file=sys.stderr,
+        )
         return 1
 
     # -- Render ---------------------------------------------------------------
