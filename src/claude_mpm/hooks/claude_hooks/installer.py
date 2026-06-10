@@ -13,6 +13,9 @@ import stat
 import subprocess  # nosec B404 - Safe: only uses hardcoded 'claude' CLI command, no user input
 from pathlib import Path
 
+from claude_mpm.hooks.claude_hooks.hook_merge import (
+    merge_hooks_for_event as _merge_hooks_for_event,
+)
 from claude_mpm.hooks.hook_identity import is_our_hook as _is_our_hook
 from claude_mpm.hooks.timeout_constants import canonical_timeout as _canonical_timeout
 
@@ -883,103 +886,6 @@ main "$@"
         # merge_hooks_for_event.
         hook_command_base = {"type": "command", "command": hook_cmd, "_mpm": True}
 
-        def merge_hooks_for_event(
-            existing_hooks: list, new_hook_command: dict, use_matcher: bool = True
-        ) -> list:
-            """Merge new hook command into existing hooks without duplication.
-
-            Why: Re-running the installer must converge to exactly one MPM hook
-            per event, regardless of how many times it has run before or how many
-            legacy/duplicate entries have accumulated from previous installs.
-            What: Finds the first MPM hook in any block, reconciles it to the
-            canonical command/timeout/_mpm values, then purges every additional
-            MPM hook entry across all blocks (idempotent dedup). When no MPM hook
-            exists, appends one to the matching block or creates a new block.
-            Test: Install twice into a temp settings.json; assert exactly one MPM
-            hook entry per event and that user-owned hooks are untouched.
-
-            Args:
-                existing_hooks: Current hooks configuration for an event type
-                new_hook_command: The claude-mpm hook command to add
-                use_matcher: Whether to include matcher: "*" in the config
-
-            Returns:
-                Updated hooks list with our hook merged in, duplicates removed
-            """
-            # Pass 1: find the first MPM hook and reconcile it to the canonical
-            # values.  Track which (block_idx, hook_idx) it lives at so Pass 2
-            # can skip it when removing extras.
-            canonical_location: tuple[int, int] | None = None
-
-            for block_idx, hook_config in enumerate(existing_hooks):
-                if "hooks" in hook_config and isinstance(hook_config["hooks"], list):
-                    for hook_idx, hook in enumerate(hook_config["hooks"]):
-                        if _is_our_hook(hook):
-                            # Reconcile the FULL entry (command + timeout + _mpm)
-                            # to the canonical desired value — not just command.
-                            # This prevents a stale timeout from persisting after
-                            # an upgrade (issue #677).
-                            hook["command"] = new_hook_command["command"]
-                            hook["timeout"] = new_hook_command["timeout"]
-                            hook["_mpm"] = True
-                            canonical_location = (block_idx, hook_idx)
-                            break
-                if canonical_location is not None:
-                    break
-
-            if canonical_location is not None:
-                # Pass 2: purge every OTHER MPM hook entry so that re-running the
-                # installer any number of times converges to exactly one entry.
-                # We iterate all blocks and filter out MPM entries that are not
-                # the canonical one we just reconciled above.
-                canon_block, canon_hook = canonical_location
-                for block_idx, hook_config in enumerate(existing_hooks):
-                    if "hooks" not in hook_config or not isinstance(
-                        hook_config["hooks"], list
-                    ):
-                        continue
-                    kept: list = []
-                    for hook_idx, hook in enumerate(hook_config["hooks"]):
-                        if _is_our_hook(hook) and (block_idx, hook_idx) != (
-                            canon_block,
-                            canon_hook,
-                        ):
-                            # Extra duplicate — drop it.
-                            self.logger.debug(
-                                "Removing duplicate MPM hook at block %d, hook %d",
-                                block_idx,
-                                hook_idx,
-                            )
-                        else:
-                            kept.append(hook)
-                    hook_config["hooks"] = kept
-                return existing_hooks
-
-            # Our hook doesn't exist - need to add it
-            # Strategy: Add our hook to the first "*" matcher config, or create new config
-            added = False
-
-            for hook_config in existing_hooks:
-                # Check if this config has matcher: "*" (or no matcher for simple events)
-                matcher = hook_config.get("matcher")
-                if matcher == "*" or (not use_matcher and matcher is None):
-                    # Add our hook to this config's hooks array
-                    if "hooks" not in hook_config:
-                        hook_config["hooks"] = []
-                    hook_config["hooks"].append(new_hook_command)
-                    added = True
-                    break
-
-            if not added:
-                # No suitable config found, create a new one
-                if use_matcher:
-                    new_config = {"matcher": "*", "hooks": [new_hook_command]}
-                else:
-                    new_config = {"hooks": [new_hook_command]}
-                existing_hooks.append(new_config)
-
-            return existing_hooks
-
         def _make_hook_command(event_type: str) -> dict:
             """Build a canonical hook command dict for the given event type.
 
@@ -995,8 +901,12 @@ main "$@"
         tool_events = ["PreToolUse", "PostToolUse"]
         for event_type in tool_events:
             existing = settings["hooks"].get(event_type, [])
-            settings["hooks"][event_type] = merge_hooks_for_event(
-                existing, _make_hook_command(event_type), use_matcher=True
+            settings["hooks"][event_type] = _merge_hooks_for_event(
+                existing,
+                _make_hook_command(event_type),
+                _is_our_hook,
+                self.logger,
+                use_matcher=True,
             )
 
         # Simple events (no subtypes, no matcher needed).
@@ -1004,8 +914,12 @@ main "$@"
         simple_events_core = ["Stop", "SubagentStop"]
         for event_type in simple_events_core:
             existing = settings["hooks"].get(event_type, [])
-            settings["hooks"][event_type] = merge_hooks_for_event(
-                existing, _make_hook_command(event_type), use_matcher=False
+            settings["hooks"][event_type] = _merge_hooks_for_event(
+                existing,
+                _make_hook_command(event_type),
+                _is_our_hook,
+                self.logger,
+                use_matcher=False,
             )
 
         # v2.1.47+ hook events: only install if Claude Code version supports them.
@@ -1023,13 +937,21 @@ main "$@"
             # Install newer hook types
             for event_type in new_hook_events_simple:
                 existing = settings["hooks"].get(event_type, [])
-                settings["hooks"][event_type] = merge_hooks_for_event(
-                    existing, _make_hook_command(event_type), use_matcher=False
+                settings["hooks"][event_type] = _merge_hooks_for_event(
+                    existing,
+                    _make_hook_command(event_type),
+                    _is_our_hook,
+                    self.logger,
+                    use_matcher=False,
                 )
             for event_type in new_hook_events_matcher:
                 existing = settings["hooks"].get(event_type, [])
-                settings["hooks"][event_type] = merge_hooks_for_event(
-                    existing, _make_hook_command(event_type), use_matcher=True
+                settings["hooks"][event_type] = _merge_hooks_for_event(
+                    existing,
+                    _make_hook_command(event_type),
+                    _is_our_hook,
+                    self.logger,
+                    use_matcher=True,
                 )
         else:
             # Older Claude Code: remove any stale entries that would cause warnings
@@ -1042,14 +964,22 @@ main "$@"
 
         # SessionStart needs matcher for subtypes (startup, resume)
         existing = settings["hooks"].get("SessionStart", [])
-        settings["hooks"]["SessionStart"] = merge_hooks_for_event(
-            existing, _make_hook_command("SessionStart"), use_matcher=True
+        settings["hooks"]["SessionStart"] = _merge_hooks_for_event(
+            existing,
+            _make_hook_command("SessionStart"),
+            _is_our_hook,
+            self.logger,
+            use_matcher=True,
         )
 
         # UserPromptSubmit needs matcher for potential subtypes
         existing = settings["hooks"].get("UserPromptSubmit", [])
-        settings["hooks"]["UserPromptSubmit"] = merge_hooks_for_event(
-            existing, _make_hook_command("UserPromptSubmit"), use_matcher=True
+        settings["hooks"]["UserPromptSubmit"] = _merge_hooks_for_event(
+            existing,
+            _make_hook_command("UserPromptSubmit"),
+            _is_our_hook,
+            self.logger,
+            use_matcher=True,
         )
 
         # Fix statusLine command to handle both output style schemas
