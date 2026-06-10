@@ -99,6 +99,9 @@ The `<!-- meta: ... -->` comment is machine-readable and survives most Markdown 
 
 All costs use Anthropic's public list prices at the time of implementation.
 **Source: https://www.anthropic.com/pricing (retrieved 2026-06-10)**
+Note: 2026-06-10 is the date the table was last verified, not a future date.
+Update `PRICING_RETRIEVED_DATE` in `src/claude_mpm/services/session_analysis/pricing.py`
+whenever the rate table is refreshed.
 
 | Model Family | Input | Output | Cache Write | Cache Read |
 |---|---|---|---|---|
