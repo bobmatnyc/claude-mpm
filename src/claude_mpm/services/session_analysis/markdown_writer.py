@@ -52,7 +52,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import yaml  # PyYAML — already a project dep via other modules
+try:
+    import yaml  # PyYAML — already a project dep via other modules
+except ImportError as _yaml_import_err:  # pragma: no cover
+    raise RuntimeError(
+        "PyYAML is required but not installed; run: pip install pyyaml"
+    ) from _yaml_import_err
 
 from .transcript_parser import SessionReport, TimelineEvent  # noqa: TC001
 
