@@ -60,6 +60,7 @@ directory advances on the feature branch.
 ```bash
 # Remove the worktree
 git worktree remove .worktrees/issue-N-<slug>
+git branch -d feat/N-<slug>   # delete the local tracking branch
 
 # Pull latest main in the source dir
 git pull
