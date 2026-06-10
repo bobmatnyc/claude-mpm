@@ -48,6 +48,7 @@ repo/                          ← main, always at HEAD
    git pull                        # advance source dir to HEAD
    ```
    Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .claude/worktrees/issue-N-<slug> status` first.
+   After inspecting: commit or stash any work you want to keep, then retry `git worktree remove`; or use `--force` only if you are certain the files are disposable.
 
 **Rationale:** Source dir stays clean at HEAD; multiple agents can work on separate issues without file conflicts; consistent with the `isolation: "worktree"` pattern on Agent tool calls; eliminates stash/checkout gymnastics.
 
