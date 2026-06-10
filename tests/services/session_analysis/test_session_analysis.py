@@ -27,6 +27,7 @@ from claude_mpm.services.session_analysis.markdown_writer import (
 # Import the modules under test
 # ---------------------------------------------------------------------------
 from claude_mpm.services.session_analysis.pricing import (
+    PRICING_RETRIEVED_DATE,
     Rates,
     compute_cost,
     resolve_model_rates,
@@ -36,6 +37,7 @@ from claude_mpm.services.session_analysis.transcript_parser import (
     TimelineEvent,
     _correlate_subagents,
     _encode_cwd,
+    _last_line_timestamp,
     _parse_jsonl,
     _parse_subagent_transcript,
     _SubagentSummary,
@@ -158,7 +160,53 @@ class TestComputeCost:
 
 
 # ===========================================================================
-# transcript_parser.py tests — fixture-based
+# pricing.py -- Fix B: PRICING_RETRIEVED_DATE constant + env-override path
+# ===========================================================================
+
+
+class TestPricingRetrievedDate:
+    def test_date_constant_exists(self) -> None:
+        assert PRICING_RETRIEVED_DATE == "2026-06-10"
+
+    def test_env_override_loads_custom_rates(self, tmp_path: Path, monkeypatch) -> None:
+        """CLAUDE_MPM_PRICING_FILE overrides the hardcoded _RATE_TABLE."""
+        pricing_json = [
+            {
+                "prefix": "test-model",
+                "input": 1.00,
+                "output": 2.00,
+                "cache_write": 0.50,
+                "cache_read": 0.10,
+                "model_family": "test",
+            }
+        ]
+        pricing_file = tmp_path / "custom_pricing.json"
+        pricing_file.write_text(
+            __import__("json").dumps(pricing_json), encoding="utf-8"
+        )
+
+        monkeypatch.setenv("CLAUDE_MPM_PRICING_FILE", str(pricing_file))
+
+        rates = resolve_model_rates("test-model-v1")
+        assert rates.input == 1.00
+        assert rates.output == 2.00
+        assert rates.cache_write == 0.50
+        assert rates.cache_read == 0.10
+        assert rates.model_family == "test"
+        assert not rates.is_fallback
+
+    def test_env_override_missing_file_falls_back_to_hardcoded(
+        self, monkeypatch
+    ) -> None:
+        """A non-existent CLAUDE_MPM_PRICING_FILE silently falls back to built-in table."""
+        monkeypatch.setenv("CLAUDE_MPM_PRICING_FILE", "/nonexistent/path/pricing.json")
+        rates = resolve_model_rates("claude-sonnet-4-6")
+        assert rates.model_family == "sonnet"
+        assert not rates.is_fallback
+
+
+# ===========================================================================
+# transcript_parser.py tests -- fixture-based
 # ===========================================================================
 
 
@@ -516,6 +564,109 @@ class TestModelTotalsNoDoubleCount:
         )
 
 
+class TestParallelDelegationNoCostDoubleCount:
+    """Regression: two PM Agent calls that both correlate to the SAME subagent
+    summary must not double-count the subagent's cost or tokens.
+
+    The test patches _correlate_subagents to forcibly return both tu_A and tu_B
+    mapped to the SAME _SubagentSummary object, simulating the ambiguous parallel
+    delegation case.  After parse_session runs the accumulation loop, the
+    invariants must hold:
+
+        grand_total_cost_usd == pm_cost_usd + subagent_cost_usd
+        grand_total_cost_usd == sum(mt.total_cost_usd for all models)
+    """
+
+    _PARALLEL_MAIN_JSONL = (
+        Path(__file__).parent.parent.parent
+        / "fixtures"
+        / "session_analysis"
+        / "parallel_pm_two_calls.jsonl"
+    )
+
+    def _build_session_tree(self, tmp_path: Path) -> tuple[str, str]:
+        """Copy fixtures into a fake ~/.claude tree with two Agent calls."""
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-parallel-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            self._PARALLEL_MAIN_JSONL.read_bytes()
+        )
+
+        # One subagent file — both PM calls will correlate to it
+        subagent_dir = session_dir / session_id / "subagents"
+        subagent_dir.mkdir(parents=True)
+        (subagent_dir / "agent-python-engineer.jsonl").write_bytes(
+            SUBAGENT_JSONL.read_bytes()
+        )
+
+        return session_id, fake_cwd
+
+    def test_parallel_delegation_no_double_count(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Both tu_parallel_A and tu_parallel_B mapping to ONE summary -> cost counted once."""
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree(tmp_path)
+
+        # Parse the subagent file to get a real summary with non-trivial cost
+        summary = _tp._parse_subagent_transcript(
+            tmp_path
+            / ".claude"
+            / "projects"
+            / _encode_cwd(cwd)
+            / session_id
+            / "subagents"
+            / "agent-python-engineer.jsonl"
+        )
+
+        # Force BOTH tool_use_ids to map to the SAME summary object
+        def _fake_correlate(
+            agent_calls: list[tuple],
+            subagent_summaries: list,
+        ) -> dict:
+            return {
+                "tu_parallel_A": (summary, True),
+                "tu_parallel_B": (summary, True),
+            }
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+
+        report = _tp.parse_session(session_id, cwd)
+
+        sa_cost = summary.cost_usd
+
+        # Subagent cost must appear exactly ONCE
+        assert abs(report.subagent_cost_usd - sa_cost) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != expected={sa_cost} "
+            f"(double-count would be {2 * sa_cost})"
+        )
+
+        # Invariant 1: grand_total == pm + subagent
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+        # Invariant 2: grand_total == sum of per-model totals
+        per_model_sum = sum(mt.total_cost_usd for mt in report.model_totals.values())
+        assert abs(report.grand_total_cost_usd - per_model_sum) < 1e-9, (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"sum(per-model)={per_model_sum}  model_totals={report.model_totals}"
+        )
+
+
 class TestFindMostRecentSession:
     def test_returns_none_when_no_sessions(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
@@ -543,6 +694,86 @@ class TestFindMostRecentSession:
 
         result = find_most_recent_session(cwd)
         assert result == "new-session"
+
+    def test_prefers_content_timestamp_over_mtime(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Fix C: session with a newer last-line timestamp wins even if mtime is older."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        cwd = "/test/proj2"
+        encoded = _encode_cwd(cwd)
+        proj_dir = tmp_path / ".claude" / "projects" / encoded
+        proj_dir.mkdir(parents=True)
+
+        # older_mtime.jsonl has an OLDER mtime but a NEWER last-line timestamp.
+        # newer_mtime.jsonl has a NEWER mtime but an OLDER last-line timestamp.
+        older_mtime = proj_dir / "older-mtime.jsonl"
+        newer_mtime = proj_dir / "newer-mtime.jsonl"
+
+        older_mtime.write_text(
+            '{"timestamp": "2025-06-10T12:00:00.000Z"}\n', encoding="utf-8"
+        )
+        newer_mtime.write_text(
+            '{"timestamp": "2025-06-10T10:00:00.000Z"}\n', encoding="utf-8"
+        )
+
+        import os
+        import time
+
+        now = time.time()
+        # older_mtime was touched 100 s ago; newer_mtime was touched now
+        os.utime(older_mtime, (now - 100, now - 100))
+        os.utime(newer_mtime, (now, now))
+
+        # Content timestamp should win: older_mtime has timestamp 12:00 > 10:00
+        result = find_most_recent_session(cwd)
+        assert result == "older-mtime", (
+            "Expected content timestamp to take precedence over filesystem mtime"
+        )
+
+    def test_falls_back_to_mtime_for_invalid_jsonl(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Fix C fallback: unreadable / no-timestamp files fall back to mtime."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        cwd = "/test/proj3"
+        encoded = _encode_cwd(cwd)
+        proj_dir = tmp_path / ".claude" / "projects" / encoded
+        proj_dir.mkdir(parents=True)
+
+        old_nodata = proj_dir / "old-nodata.jsonl"
+        new_nodata = proj_dir / "new-nodata.jsonl"
+        old_nodata.write_text("not json at all\n", encoding="utf-8")
+        new_nodata.write_text("also not json\n", encoding="utf-8")
+
+        import os
+        import time
+
+        now = time.time()
+        os.utime(old_nodata, (now - 200, now - 200))
+        os.utime(new_nodata, (now, now))
+
+        result = find_most_recent_session(cwd)
+        assert result == "new-nodata"
+
+    def test_last_line_timestamp_extracts_correctly(self, tmp_path: Path) -> None:
+        """_last_line_timestamp returns the last valid timestamp in the file."""
+        from datetime import UTC, datetime
+
+        f = tmp_path / "session.jsonl"
+        f.write_text(
+            '{"timestamp": "2025-06-10T10:00:00.000Z"}\n'
+            '{"timestamp": "2025-06-10T11:00:00.000Z"}\n',
+            encoding="utf-8",
+        )
+        ts = _last_line_timestamp(f)
+        assert ts == datetime(2025, 6, 10, 11, 0, 0, tzinfo=UTC)
+
+    def test_last_line_timestamp_returns_none_for_missing_file(
+        self, tmp_path: Path
+    ) -> None:
+        ts = _last_line_timestamp(tmp_path / "nonexistent.jsonl")
+        assert ts is None
 
 
 # ===========================================================================
