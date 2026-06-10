@@ -229,17 +229,36 @@ def _find_project_claude_dir(start: Path) -> Path | None:
 def _get_candidate_settings_paths() -> list[Path]:
     """Return settings files that may contain duplicate hook entries.
 
-    Searches upward from ``Path.cwd()`` so the migration works correctly even
-    when invoked from a subdirectory of the project root.
+    Why: duplicates accumulate in both project-level and user-level settings
+    because the installer runs in different contexts (interactive setup writes
+    to ~/.claude/settings.json; project startup writes to ./.claude/settings.json).
+    Only scanning the project directory misses the user-level accumulation.
+    What: returns settings files from the nearest project .claude/ directory
+    (walking up from cwd) AND from ~/.claude/.  Each file is included only if it
+    exists.  Files are deduplicated so a home-dir project is not processed twice.
+    Test: create duplicate MPM hooks in a temp ~/.claude/settings.json, run the
+    migration, and assert all but one entry per event are removed.
     """
-    claude_dir = _find_project_claude_dir(Path.cwd())
-    if claude_dir is None:
-        return []
+    seen: set[Path] = set()
     candidates: list[Path] = []
+
+    # Project-level: walk upward from cwd.
+    project_claude_dir = _find_project_claude_dir(Path.cwd())
+    if project_claude_dir is not None:
+        for name in ("settings.json", "settings.local.json"):
+            path = (project_claude_dir / name).resolve()
+            if path.exists() and path not in seen:
+                seen.add(path)
+                candidates.append(path)
+
+    # User-level: always include ~/.claude/settings.json when it exists.
+    user_claude_dir = Path.home() / ".claude"
     for name in ("settings.json", "settings.local.json"):
-        path = claude_dir / name
-        if path.exists():
+        path = (user_claude_dir / name).resolve()
+        if path.exists() and path not in seen:
+            seen.add(path)
             candidates.append(path)
+
     return candidates
 
 

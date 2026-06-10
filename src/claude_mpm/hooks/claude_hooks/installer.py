@@ -888,20 +888,32 @@ main "$@"
         ) -> list:
             """Merge new hook command into existing hooks without duplication.
 
+            Why: Re-running the installer must converge to exactly one MPM hook
+            per event, regardless of how many times it has run before or how many
+            legacy/duplicate entries have accumulated from previous installs.
+            What: Finds the first MPM hook in any block, reconciles it to the
+            canonical command/timeout/_mpm values, then purges every additional
+            MPM hook entry across all blocks (idempotent dedup). When no MPM hook
+            exists, appends one to the matching block or creates a new block.
+            Test: Install twice into a temp settings.json; assert exactly one MPM
+            hook entry per event and that user-owned hooks are untouched.
+
             Args:
                 existing_hooks: Current hooks configuration for an event type
                 new_hook_command: The claude-mpm hook command to add
                 use_matcher: Whether to include matcher: "*" in the config
 
             Returns:
-                Updated hooks list with our hook merged in
+                Updated hooks list with our hook merged in, duplicates removed
             """
-            # Check if our hook already exists in any existing hook config
-            our_hook_exists = False
+            # Pass 1: find the first MPM hook and reconcile it to the canonical
+            # values.  Track which (block_idx, hook_idx) it lives at so Pass 2
+            # can skip it when removing extras.
+            canonical_location: tuple[int, int] | None = None
 
-            for hook_config in existing_hooks:
+            for block_idx, hook_config in enumerate(existing_hooks):
                 if "hooks" in hook_config and isinstance(hook_config["hooks"], list):
-                    for hook in hook_config["hooks"]:
+                    for hook_idx, hook in enumerate(hook_config["hooks"]):
                         if _is_our_hook(hook):
                             # Reconcile the FULL entry (command + timeout + _mpm)
                             # to the canonical desired value — not just command.
@@ -910,13 +922,37 @@ main "$@"
                             hook["command"] = new_hook_command["command"]
                             hook["timeout"] = new_hook_command["timeout"]
                             hook["_mpm"] = True
-                            our_hook_exists = True
+                            canonical_location = (block_idx, hook_idx)
                             break
-                if our_hook_exists:
+                if canonical_location is not None:
                     break
 
-            if our_hook_exists:
-                # Our hook already exists, just return the updated list
+            if canonical_location is not None:
+                # Pass 2: purge every OTHER MPM hook entry so that re-running the
+                # installer any number of times converges to exactly one entry.
+                # We iterate all blocks and filter out MPM entries that are not
+                # the canonical one we just reconciled above.
+                canon_block, canon_hook = canonical_location
+                for block_idx, hook_config in enumerate(existing_hooks):
+                    if "hooks" not in hook_config or not isinstance(
+                        hook_config["hooks"], list
+                    ):
+                        continue
+                    kept: list = []
+                    for hook_idx, hook in enumerate(hook_config["hooks"]):
+                        if _is_our_hook(hook) and (block_idx, hook_idx) != (
+                            canon_block,
+                            canon_hook,
+                        ):
+                            # Extra duplicate — drop it.
+                            self.logger.debug(
+                                "Removing duplicate MPM hook at block %d, hook %d",
+                                block_idx,
+                                hook_idx,
+                            )
+                        else:
+                            kept.append(hook)
+                    hook_config["hooks"] = kept
                 return existing_hooks
 
             # Our hook doesn't exist - need to add it
