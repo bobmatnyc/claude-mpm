@@ -636,7 +636,11 @@ def get_trusty_status(service: str) -> tuple[str, str]:
                     # stdio connected but HTTP unreachable (port informational only)
                     line = f"{emoji} {service}: on (stdio)   palace: {palace}"
             elif is_healthy:
-                line = f"{emoji} {service}: on   {host_port}"
+                if is_stdio:
+                    # brackets signal HTTP sidecar is secondary/informational; stdio is the primary transport
+                    line = f"{emoji} {service}: on (stdio)   [{host_port}]"
+                else:
+                    line = f"{emoji} {service}: on   {host_port}"
             else:
                 line = f"{emoji} {service}: on (stdio)"
             return ("on", line)
