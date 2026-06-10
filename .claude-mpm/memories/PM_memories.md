@@ -109,3 +109,8 @@ For every feature/fix task, follow this exact sequence:
 9. **Smoke test** — delegate to QA for basic sanity check of the deployed version
 
 Do NOT skip steps. Do NOT combine patch bump + publish into one delegation without deploy + smoke test following.
+
+## Bundled Skills (project facts)
+
+- [2026-06-09] Bundled skill `mutation-testing` ships at `src/claude_mpm/skills/bundled/mutation-testing.md` (PR #715, squash-merged to main as `153f72559`). Auto-discovered by the skills registry via `glob("*.md")` — no registration needed. Teaches why + how to deploy mutation testing portably (tool-by-language table, 6-step deploy recipe, in-place safety caveat, survivor triage, advisory-not-CI-gate policy). Builds on the mutmut 2.5.1 pilot (issue #683 / `trusty_search_allowlist.py`). Policy: mutation testing is advisory/on-demand, NOT a blocking CI gate.
+- [2026-06-09] `tests/test_skills_verification.py::test_bundled_skills_count` hard-asserts an exact bundled-skill count — adding/removing any bundled skill requires bumping this assertion (currently 22).
