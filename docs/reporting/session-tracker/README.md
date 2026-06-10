@@ -135,13 +135,15 @@ to handle momentary system load.
 
 ## JSX Visualiser
 
-`claude-mpm-timeline.jsx` in this directory is a React component that reads a
-session report Markdown file (via the `frontmatter` + `events` structure
-produced by `read_markdown()`) and renders an interactive timeline dashboard.
+`claude-mpm-timeline.jsx` in this directory is a **static reference snapshot**
+with hardcoded example session data — it is not a dynamic reader and does not
+load any external file at runtime.  The dynamic path is `claude-mpm
+session-report` (which calls `session_timeline_to_jsx.py`) to generate a
+fresh, self-contained JSX file from a real session Markdown report.
 
-The component expects:
-- `frontmatter` dict as returned by `read_markdown(path)["frontmatter"]`
-- `events` list as returned by `read_markdown(path)["events"]`
+The generated component embeds all session data as inline JS constants and
+renders an interactive timeline dashboard without any external fetch.
 
 See `src/claude_mpm/services/session_analysis/markdown_writer.py` for the
-`read_markdown()` function that parses the report file.
+`read_markdown()` function that parses the report file, and
+`scripts/session_timeline_to_jsx.py` for the converter that produces the JSX.
