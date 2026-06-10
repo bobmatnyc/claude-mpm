@@ -478,7 +478,7 @@ class ConfigCommand(BaseCommand):
 !.claude-mpm/memories/*.md
 
 # Git worktrees (worktree-first workflow — keep out of version control)
-.worktrees/"""
+.claude/worktrees/"""
 
         # Display in a panel for clarity
         from rich.panel import Panel
