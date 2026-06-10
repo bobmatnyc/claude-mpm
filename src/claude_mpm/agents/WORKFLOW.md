@@ -28,26 +28,26 @@ When `workflow.worktree.enabled: true` (the default), all issue-linked work uses
 
 ```
 repo/                          ← main, always at HEAD
-  .worktrees/
+  .claude/worktrees/
     issue-N-<slug>/            ← git worktree, issue branch
     issue-M-<other-slug>/      ← parallel branch, independent
 ```
 
 **Steps:**
 1. Create GitHub issue → get issue number N
-2. `git worktree add .worktrees/issue-N-<slug> -b feat/N-<slug>`
-3. Engineer works inside `.worktrees/issue-N-<slug>/`
+2. `git worktree add .claude/worktrees/issue-N-<slug> -b feat/N-<slug>`
+3. Engineer works inside `.claude/worktrees/issue-N-<slug>/`
 4. Commits include `Closes #N`
 5. `gh pr create` from the worktree branch
 6. PR review (trusty-review gate)
 7. Squash-merge → main
 8. After squash-merge lands on main, run in the source dir:
    ```
-   git worktree remove .worktrees/issue-N-<slug>
+   git worktree remove .claude/worktrees/issue-N-<slug>
    git branch -d feat/N-<slug>   # delete the local tracking branch
    git pull                        # advance source dir to HEAD
    ```
-   Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .worktrees/issue-N-<slug> status` first.
+   Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .claude/worktrees/issue-N-<slug> status` first.
 
 **Rationale:** Source dir stays clean at HEAD; multiple agents can work on separate issues without file conflicts; consistent with the `isolation: "worktree"` pattern on Agent tool calls; eliminates stash/checkout gymnastics.
 
