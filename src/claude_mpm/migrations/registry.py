@@ -393,6 +393,7 @@ MIGRATIONS: list[Migration] = [
         version="6.5.20",
         description="Collapse duplicate MPM claude-hook entries that differ only in timeout into a single canonical entry per event (issue #677)",
         run=_run_dedup_hook_registrations_migration,
+        run_always=True,
     ),
     Migration(
         id="clean_global_settings_metadata",
