@@ -618,7 +618,7 @@ class Config:
                 # Opt-OUT: enabled by default; set to false to revert to plain branch checkout.
                 "worktree": {
                     "enabled": True,  # opt-out: on by default
-                    "location": ".worktrees",  # gitignored directory for worktrees
+                    "location": ".worktrees",  # TODO: consumed by mpm-pr-workflow skill; runtime enforcement in future milestone
                 },
             },
         }
