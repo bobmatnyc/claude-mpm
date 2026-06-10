@@ -129,7 +129,8 @@ STANDARD_GITIGNORE_PATTERNS: frozenset[str] = frozenset(
         ".claude-mpm/tmp/",
         ".claude/sessions/",
         "*.mpm.tmp",
-        # Git worktrees (worktree-first workflow)
+        # .worktrees/ is the canonical location (dot-prefix); worktrees/ covers
+        # projects that omit the dot — both are always local-only, never committed.
         ".worktrees/",
         "worktrees/",
         # Backup files
