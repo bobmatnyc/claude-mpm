@@ -59,11 +59,13 @@ directory advances on the feature branch.
 
 ```bash
 # Remove the worktree
-git worktree remove .worktrees/issue-N-<slug> --force
+git worktree remove .worktrees/issue-N-<slug>
 
 # Pull latest main in the source dir
 git pull
 ```
+
+Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .worktrees/issue-N-<slug> status` first.
 
 ### When disabled (opt-out)
 
