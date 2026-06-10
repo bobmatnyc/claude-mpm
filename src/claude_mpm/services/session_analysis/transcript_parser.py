@@ -193,12 +193,56 @@ def locate_subagent_transcript(session_id: str, cwd: str, agent_id: str) -> Path
     )
 
 
-def find_most_recent_session(cwd: str) -> str | None:
-    """Return the session_id of the most recently modified session for *cwd*.
+def _last_line_timestamp(path: Path) -> datetime | None:
+    """Return the ``timestamp`` field of the last non-empty JSON line in *path*.
 
-    Scans ``~/.claude/projects/{encoded_cwd}/`` for ``*.jsonl`` files and
-    returns the stem of the most recently modified one, or ``None`` if no
-    sessions exist.
+    WHAT: Reads the file from the end (up to 4 KB) to extract the last valid
+          JSON object's ``timestamp`` field without loading the whole file.
+    WHY:  ``find_most_recent_session`` prefers JSONL content timestamps over
+          filesystem mtime so sessions are ordered by actual activity time even
+          when mtime has been touched by backup/sync tools.
+
+    Parameters
+    ----------
+    path:
+        Path to a JSONL session file.
+
+    Returns
+    -------
+    datetime | None
+        Parsed UTC-aware datetime, or ``None`` if unreadable or no timestamp.
+    """
+    try:
+        with path.open("rb") as fh:
+            # Read up to 4 KB from the end -- enough for any single JSONL line.
+            fh.seek(0, 2)
+            size = fh.tell()
+            fh.seek(max(0, size - 4096))
+            tail = fh.read()
+        lines = tail.decode("utf-8", errors="replace").splitlines()
+        # Walk backward to find the last non-empty, valid JSON line.
+        for raw_line in reversed(lines):
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            try:
+                obj = json.loads(raw_line)
+                ts_str = obj.get("timestamp", "")
+                if ts_str:
+                    return _parse_iso(ts_str)
+            except (json.JSONDecodeError, AttributeError):
+                continue
+    except OSError:
+        pass
+    return None
+
+
+def find_most_recent_session(cwd: str) -> str | None:
+    """Return the session_id of the most recently active session for *cwd*.
+
+    Prefers the JSONL whose last line has the newest ``timestamp`` field,
+    falling back to ``st_mtime`` for files that are unreadable or have no
+    timestamp.  Returns ``None`` if no sessions exist.
     """
     encoded = _encode_cwd(cwd)
     project_dir = _claude_projects_root() / encoded
@@ -211,7 +255,16 @@ def find_most_recent_session(cwd: str) -> str | None:
     if not jsonl_files:
         return None
 
-    most_recent = max(jsonl_files, key=lambda p: p.stat().st_mtime)
+    def _sort_key(p: Path) -> tuple[int, float]:
+        ts = _last_line_timestamp(p)
+        if ts is not None:
+            # Timestamp available: primary sort (1), use epoch seconds
+            return (1, ts.timestamp())
+        # Fallback to mtime; primary sort (0) so these always rank below
+        # files with a parsed timestamp.
+        return (0, p.stat().st_mtime)
+
+    most_recent = max(jsonl_files, key=_sort_key)
     return most_recent.stem
 
 
@@ -747,6 +800,12 @@ def parse_session(
     corr_map = _correlate_subagents(pm_agent_calls, subagent_summaries)
 
     # Attach subagent metadata to agent_call events and add subagent turn events
+    # Guard against double-counting when two PM Agent calls both correlate to
+    # the same subagent summary (concurrent/parallel delegation within the ±2s
+    # window).  We accumulate each summary's cost/tokens EXACTLY ONCE, keyed by
+    # the Python object identity of the summary, while still attaching the
+    # correlation to every matching agent_call event for display purposes.
+    seen_summaries: set[int] = set()
     subagent_events_to_add: list[TimelineEvent] = []
     for event in events:
         if event.event_type != "agent_call":
@@ -761,26 +820,29 @@ def parse_session(
             event.subagent_file = str(summary.file_path.name)
             event.correlation_ambiguous = ambiguous
 
-            # Add subagent usage to totals
-            sa_model = summary.model or "claude-sonnet"
-            if sa_model not in report.model_totals:
-                report.model_totals[sa_model] = ModelTotals(model=sa_model)
-            mt = report.model_totals[sa_model]
-            mt.input_tokens += summary.usage.get("input_tokens", 0)
-            mt.output_tokens += summary.usage.get("output_tokens", 0)
-            mt.cache_creation_input_tokens += summary.usage.get(
-                "cache_creation_input_tokens", 0
-            )
-            mt.cache_read_input_tokens += summary.usage.get(
-                "cache_read_input_tokens", 0
-            )
-            mt.total_cost_usd += summary.cost_usd
-            mt.turn_count += len(summary.all_events)
-            report.subagent_cost_usd += summary.cost_usd
-            report.grand_total_cost_usd += summary.cost_usd
+            # Accumulate cost/tokens only on the first encounter of this summary
+            if id(summary) not in seen_summaries:
+                seen_summaries.add(id(summary))
 
-            if summary.pricing_fallback:
-                report.has_pricing_fallback = True
+                sa_model = summary.model or "claude-sonnet"
+                if sa_model not in report.model_totals:
+                    report.model_totals[sa_model] = ModelTotals(model=sa_model)
+                mt = report.model_totals[sa_model]
+                mt.input_tokens += summary.usage.get("input_tokens", 0)
+                mt.output_tokens += summary.usage.get("output_tokens", 0)
+                mt.cache_creation_input_tokens += summary.usage.get(
+                    "cache_creation_input_tokens", 0
+                )
+                mt.cache_read_input_tokens += summary.usage.get(
+                    "cache_read_input_tokens", 0
+                )
+                mt.total_cost_usd += summary.cost_usd
+                mt.turn_count += len(summary.all_events)
+                report.subagent_cost_usd += summary.cost_usd
+                report.grand_total_cost_usd += summary.cost_usd
+
+                if summary.pricing_fallback:
+                    report.has_pricing_fallback = True
 
             # Inject a synthetic "outcome" event after the agent_call.
             # Use the subagent's last event timestamp so the outcome appears at
