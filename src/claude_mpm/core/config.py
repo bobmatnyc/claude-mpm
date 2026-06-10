@@ -617,8 +617,7 @@ class Config:
                 # source directory stays pinned to HEAD while work proceeds in isolation.
                 # Opt-OUT: enabled by default; set to false to revert to plain branch checkout.
                 "worktree": {
-                    "enabled": True,  # opt-out: on by default
-                    "location": ".worktrees",  # TODO: consumed by mpm-pr-workflow skill; runtime enforcement in future milestone
+                    "enabled": True,  # opt-out: on by default; set false in .claude-mpm/config.yaml to disable
                 },
             },
         }
