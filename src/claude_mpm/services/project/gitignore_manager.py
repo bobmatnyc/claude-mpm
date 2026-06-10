@@ -129,6 +129,9 @@ STANDARD_GITIGNORE_PATTERNS: frozenset[str] = frozenset(
         ".claude-mpm/tmp/",
         ".claude/sessions/",
         "*.mpm.tmp",
+        # Git worktrees (worktree-first workflow)
+        ".worktrees/",
+        "worktrees/",
         # Backup files
         "*.bak",
         "*.backup",
