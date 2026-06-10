@@ -46,10 +46,10 @@ Replace the plain branch checkout with a git worktree:
 
 ```bash
 # Create the worktree and branch in one step
-git worktree add .worktrees/issue-N-<slug> -b feat/N-<slug>
+git worktree add .claude/worktrees/issue-N-<slug> -b feat/N-<slug>
 
 # All engineering work happens inside the worktree
-cd .worktrees/issue-N-<slug>
+cd .claude/worktrees/issue-N-<slug>
 ```
 
 The source directory (`repo/`) stays on `main` throughout; only the worktree
@@ -59,14 +59,14 @@ directory advances on the feature branch.
 
 ```bash
 # Remove the worktree
-git worktree remove .worktrees/issue-N-<slug>
+git worktree remove .claude/worktrees/issue-N-<slug>
 git branch -d feat/N-<slug>   # delete the local tracking branch
 
 # Pull latest main in the source dir
 git pull
 ```
 
-Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .worktrees/issue-N-<slug> status` first.
+Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .claude/worktrees/issue-N-<slug> status` first.
 
 ### When disabled (opt-out)
 
