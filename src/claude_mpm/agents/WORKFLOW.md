@@ -41,7 +41,8 @@ repo/                          ← main, always at HEAD
 5. `gh pr create` from the worktree branch
 6. PR review (trusty-review gate)
 7. Squash-merge → main
-8. `git worktree remove .worktrees/issue-N-<slug> --force` + `git pull` in source dir
+8. `git worktree remove .worktrees/issue-N-<slug>` + `git pull` in source dir
+   - Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .worktrees/issue-N-<slug> status` first.
 
 **Rationale:** Source dir stays clean at HEAD; multiple agents can work on separate issues without file conflicts; consistent with the `isolation: "worktree"` pattern on Agent tool calls; eliminates stash/checkout gymnastics.
 
