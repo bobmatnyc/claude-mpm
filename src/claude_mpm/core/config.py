@@ -612,7 +612,16 @@ class Config:
                         # off | baseline | strict
                         "enforcement": "baseline",
                     },
-                }
+                },
+                # Worktree-first workflow: each issue gets its own git worktree so the
+                # source directory stays pinned to HEAD while work proceeds in isolation.
+                # Opt-OUT: enabled by default; set to false to revert to plain branch checkout.
+                "worktree": {
+                    "enabled": True,  # opt-out: on by default
+                    "location": ".worktrees",  # directory for worktrees (gitignored)
+                    "auto_setup": True,  # run uv sync / npm install in new worktree
+                    "verify_baseline": False,  # skip baseline test run by default
+                },
             },
         }
 
