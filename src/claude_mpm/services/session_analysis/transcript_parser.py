@@ -782,11 +782,20 @@ def parse_session(
             if summary.pricing_fallback:
                 report.has_pricing_fallback = True
 
-            # Inject a synthetic "outcome" event after the agent_call
+            # Inject a synthetic "outcome" event after the agent_call.
+            # Use the subagent's last event timestamp so the outcome appears at
+            # the subagent's actual completion time rather than the parent
+            # agent_call dispatch time.  Fall back to the agent_call timestamp
+            # only when no subagent events were recorded.
             if summary.response_text:
+                outcome_ts = (
+                    summary.all_events[-1].timestamp
+                    if summary.all_events
+                    else event.timestamp
+                )
                 outcome_event = TimelineEvent(
                     uuid=f"{cd.tool_use_id}-outcome",
-                    timestamp=event.timestamp,
+                    timestamp=outcome_ts,
                     actor=summary.attribution_agent or summary.agent_id,
                     event_type="outcome",
                     title=_make_title(summary.response_text),
