@@ -618,9 +618,7 @@ class Config:
                 # Opt-OUT: enabled by default; set to false to revert to plain branch checkout.
                 "worktree": {
                     "enabled": True,  # opt-out: on by default
-                    "location": ".worktrees",  # directory for worktrees (gitignored)
-                    "auto_setup": True,  # run uv sync / npm install in new worktree
-                    "verify_baseline": False,  # skip baseline test run by default
+                    "location": ".worktrees",  # gitignored directory for worktrees
                 },
             },
         }
