@@ -381,6 +381,9 @@ class HookInstallerService:
                 return cmd
 
             # Add hooks for all event types - MERGE instead of overwrite
+            # Stop/SubagentStop are simple events with no tool subtype — no matcher needed.
+            # PreToolUse/PostToolUse/UserPromptSubmit use matcher="*" to catch all tools.
+            _EVENTS_WITH_MATCHER = {"UserPromptSubmit", "PreToolUse", "PostToolUse"}
             for event_type in [
                 "UserPromptSubmit",
                 "PreToolUse",
@@ -390,7 +393,11 @@ class HookInstallerService:
             ]:
                 existing = settings["hooks"].get(event_type, [])
                 settings["hooks"][event_type] = _merge_hooks_for_event(
-                    existing, _make_hook_command(event_type), _is_our_hook, self.logger
+                    existing,
+                    _make_hook_command(event_type),
+                    _is_our_hook,
+                    self.logger,
+                    use_matcher=event_type in _EVENTS_WITH_MATCHER,
                 )
 
             # Write settings
