@@ -25,7 +25,10 @@ from pathlib import Path
 from typing import Any
 
 # ---------------------------------------------------------------------------
-# YAML frontmatter parser (minimal, stdlib-only fall-back when PyYAML absent)
+# YAML frontmatter parser -- PyYAML is REQUIRED.
+# There is no stdlib-only fallback; a missing PyYAML installation raises a
+# clear RuntimeError at import time rather than silently producing wrong output.
+# Install with: pip install pyyaml
 # ---------------------------------------------------------------------------
 
 try:
@@ -37,7 +40,7 @@ try:
 except ImportError:  # pragma: no cover
 
     def _load_yaml(text: str) -> Any:  # type: ignore[misc]
-        """Tiny YAML subset: handles scalars, lists, and nested dicts."""
+        """PyYAML is required; raises RuntimeError when the package is absent."""
         raise RuntimeError(
             "PyYAML is required but not installed; run: pip install pyyaml"
         )
