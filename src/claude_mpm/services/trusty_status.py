@@ -637,6 +637,7 @@ def get_trusty_status(service: str) -> tuple[str, str]:
                     line = f"{emoji} {service}: on (stdio)   palace: {palace}"
             elif is_healthy:
                 if is_stdio:
+                    # brackets signal HTTP sidecar is secondary/informational; stdio is the primary transport
                     line = f"{emoji} {service}: on (stdio)   [{host_port}]"
                 else:
                     line = f"{emoji} {service}: on   {host_port}"
