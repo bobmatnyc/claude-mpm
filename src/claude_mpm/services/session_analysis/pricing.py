@@ -24,7 +24,7 @@ from pathlib import Path
 # Pricing retrieval date -- update whenever the hardcoded table is refreshed.
 # ---------------------------------------------------------------------------
 
-PRICING_RETRIEVED_DATE: str = "2026-06-10"
+PRICING_RETRIEVED_DATE: str = "2026-06-10"  # Rates retrieved 2026-06-10 (current date); update when Anthropic pricing changes.
 
 # ---------------------------------------------------------------------------
 # Rate table -- USD per 1 000 000 tokens
