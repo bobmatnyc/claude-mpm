@@ -28,6 +28,8 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from claude_mpm.hooks.hook_identity import is_our_hook
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -204,6 +206,7 @@ def inject_hooks_to_settings(
 
     hooks_root: dict[str, Any] = settings["hooks"]
     added: list[str] = []
+    merged: list[str] = []
     skipped: list[str] = []
 
     # ----- Removal pass: drop legacy-service hooks across all events.
@@ -219,7 +222,59 @@ def inject_hooks_to_settings(
                 )
                 continue
 
-            # Find a group with the matching matcher, or create one.
+            tag = hook_def.get("_mpm_service")
+            cmd = hook_def.get("command")
+            hook_args = hook_def.get("args") or []
+
+            # ----- Cross-matcher-group duplicate scan -----
+            # Before appending, scan ALL groups for this event — not just the
+            # target matcher group.  A hook is a duplicate if EITHER:
+            #   (a) it carries the same _mpm_service tag, OR
+            #   (b) it is one of our hooks (is_our_hook) invoking the same
+            #       command+args (i.e. a bare MPM hook written by HookInstaller
+            #       that lacks the _mpm_service tag but is functionally identical).
+            # When a bare MPM hook matching (b) is found, merge the _mpm_service
+            # tag onto it so future runs recognise it as a duplicate via path (a).
+            duplicate_found = False
+            for group in groups:
+                if not isinstance(group, dict):
+                    continue
+                inner: list[Any] = (
+                    group.get("hooks") if isinstance(group.get("hooks"), list) else []
+                )  # type: ignore[assignment]
+                for h in inner:
+                    if not isinstance(h, dict):
+                        continue
+                    # Path (a): tagged duplicate (same _mpm_service).
+                    if tag and h.get("_mpm_service") == tag:
+                        duplicate_found = True
+                        break
+                    # Path (b): bare MPM hook with same command+args fingerprint.
+                    if (
+                        is_our_hook(h)
+                        and h.get("command") == cmd
+                        # Order-sensitive list equality is correct here: MPM hook
+                        # definitions use fixed argument ordering, so two entries
+                        # with the same args in the same order are the same hook.
+                        and (h.get("args") or []) == hook_args
+                    ):
+                        # Merge tag so the next run uses path (a) directly.
+                        if tag:
+                            # Deliberate in-place mutation: `h` is a reference into
+                            # the live `settings` dict, so this write is captured by
+                            # the `changed`/`merged` write-back path below.
+                            h["_mpm_service"] = tag
+                            merged.append(f"{event}[{group.get('matcher', '*')}]:{tag}")
+                        duplicate_found = True
+                        break
+                if duplicate_found:
+                    break
+
+            if duplicate_found:
+                skipped.append(f"{event}[{matcher}]:{tag or '<untagged>'}")
+                continue
+
+            # No duplicate found anywhere — append to the target matcher group.
             target_group: dict[str, Any] | None = None
             for group in groups:
                 if (
@@ -233,20 +288,10 @@ def inject_hooks_to_settings(
                 target_group = {"matcher": matcher, "hooks": []}
                 groups.append(target_group)
 
-            inner_hooks: list[Any] = target_group["hooks"]
-            tag = hook_def.get("_mpm_service")
-            # Dedup by _mpm_service within the same (event, matcher) group.
-            already_present = any(
-                isinstance(h, dict) and h.get("_mpm_service") == tag
-                for h in inner_hooks
-            )
-            if already_present:
-                skipped.append(f"{event}[{matcher}]:{tag}")
-                continue
-            inner_hooks.append(hook_def)
+            target_group["hooks"].append(hook_def)
             added.append(f"{event}[{matcher}]:{tag}")
 
-    changed = bool(removed_count or added)
+    changed = bool(removed_count or added or merged)
 
     # ----- Write back atomically (only when something actually changed).
     if changed:
@@ -265,9 +310,13 @@ def inject_hooks_to_settings(
         )
     if added:
         _say(f"✓ {rel}: added {len(added)} hook(s): {', '.join(added)}")
+    if merged:
+        _say(
+            f"✓ {rel}: merged _mpm_service tag onto {len(merged)} bare hook(s): {', '.join(merged)}"
+        )
     if skipped:
         _say(f"• {rel}: {len(skipped)} hook(s) already present, skipped")
-    if not (removed_count or added or skipped):
+    if not (removed_count or added or merged or skipped):
         _say(f"• {rel}: no hook changes needed")
 
     return changed
