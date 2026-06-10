@@ -253,10 +253,16 @@ def inject_hooks_to_settings(
                     if (
                         is_our_hook(h)
                         and h.get("command") == cmd
+                        # Order-sensitive list equality is correct here: MPM hook
+                        # definitions use fixed argument ordering, so two entries
+                        # with the same args in the same order are the same hook.
                         and (h.get("args") or []) == hook_args
                     ):
                         # Merge tag so the next run uses path (a) directly.
                         if tag:
+                            # Deliberate in-place mutation: `h` is a reference into
+                            # the live `settings` dict, so this write is captured by
+                            # the `changed`/`merged` write-back path below.
                             h["_mpm_service"] = tag
                             merged.append(f"{event}[{group.get('matcher', '*')}]:{tag}")
                         duplicate_found = True
@@ -265,7 +271,7 @@ def inject_hooks_to_settings(
                     break
 
             if duplicate_found:
-                skipped.append(f"{event}[{matcher}]:{tag}")
+                skipped.append(f"{event}[{matcher}]:{tag or '<untagged>'}")
                 continue
 
             # No duplicate found anywhere — append to the target matcher group.
