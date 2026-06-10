@@ -196,3 +196,342 @@ def test_malformed_settings_is_skipped_not_corrupted(user_home: Path) -> None:
     assert changed is False
     # File preserved verbatim — not overwritten with a skeleton.
     assert settings_path.read_text(encoding="utf-8") == "{ this is not json"
+
+
+# ---------------------------------------------------------------------------
+# Issue #717: robust cross-matcher-group dedup and bare-hook merge tests
+# ---------------------------------------------------------------------------
+
+
+def _bare_claude_hook(event: str = "SessionStart", timeout: int = 15) -> dict:
+    """A bare MPM hook written by HookInstaller (no _mpm_service tag)."""
+    return {
+        "type": "command",
+        "command": "claude-hook",
+        "timeout": timeout,
+        "_mpm": True,
+    }
+
+
+def _settings_with_bare_hook(event: str, matcher: str | None = "*") -> dict:
+    """Settings file that HookInstaller wrote: bare claude-hook, no _mpm_service."""
+    block: dict = {"hooks": [_bare_claude_hook(event)]}
+    if matcher is not None:
+        block["matcher"] = matcher
+    return {"hooks": {event: [block]}}
+
+
+def test_no_dup_when_bare_claude_hook_already_present_memory(
+    user_home: Path,
+) -> None:
+    """inject_hooks_to_settings does not duplicate trusty-memory hooks when a bare
+    claude-hook entry (written by HookInstaller, no _mpm_service) already exists for
+    the same event.  The existing entry should get the _mpm_service tag merged onto
+    it in-place; no second hook entry should be appended.
+    """
+    settings_path = user_home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Pre-populate with a bare claude-hook for SessionStart (HookInstaller style).
+    settings_path.write_text(
+        json.dumps(_settings_with_bare_hook("SessionStart", matcher="*"), indent=2),
+        encoding="utf-8",
+    )
+
+    changed = th.inject_hooks_to_settings(settings_path, ["trusty-memory"])
+
+    assert changed is True, "Merging a tag counts as a change"
+    data = _read(settings_path)
+
+    # After the merge there must be exactly ONE hook in SessionStart.
+    session_groups = data["hooks"]["SessionStart"]
+    all_session_hooks: list[dict] = []
+    for g in session_groups:
+        all_session_hooks.extend(g.get("hooks", []))
+
+    assert len(all_session_hooks) == 1, (
+        f"Expected 1 hook in SessionStart after merge, got {len(all_session_hooks)}"
+    )
+    # The merged entry must carry the _mpm_service tag.
+    assert all_session_hooks[0].get("_mpm_service") == "trusty-memory"
+
+
+def test_no_dup_when_bare_claude_hook_already_present_search(
+    user_home: Path,
+) -> None:
+    """inject_hooks_to_settings does not duplicate trusty-search hooks when a bare
+    python3-module hook (written by HookInstaller) already exists for PostToolUse.
+    """
+    settings_path = user_home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Pre-populate with a bare trusty_index_hook entry (no _mpm_service, but _mpm:true).
+    bare_search_hook = {
+        "type": "command",
+        "command": "python3",
+        "args": ["-m", "claude_mpm.hooks.trusty_index_hook"],
+        "timeout": 10,
+        "async": True,
+        "_mpm": True,
+        # Intentionally missing _mpm_service to simulate HookInstaller bare write.
+    }
+    initial = {
+        "hooks": {
+            "PostToolUse": [
+                {
+                    "matcher": "Write|MultiEdit|Edit|NotebookEdit",
+                    "hooks": [bare_search_hook],
+                }
+            ]
+        }
+    }
+    settings_path.write_text(json.dumps(initial, indent=2), encoding="utf-8")
+
+    changed = th.inject_hooks_to_settings(settings_path, ["trusty-search"])
+
+    assert changed is True, "Merging the _mpm_service tag counts as a change"
+    data = _read(settings_path)
+
+    ptu_groups = data["hooks"]["PostToolUse"]
+    all_ptu_hooks: list[dict] = []
+    for g in ptu_groups:
+        all_ptu_hooks.extend(g.get("hooks", []))
+
+    assert len(all_ptu_hooks) == 1, (
+        f"Expected 1 hook in PostToolUse after merge, got {len(all_ptu_hooks)}"
+    )
+    assert all_ptu_hooks[0].get("_mpm_service") == "trusty-search"
+
+
+def test_second_inject_after_bare_hook_install_is_noop(user_home: Path) -> None:
+    """Running inject_hooks_to_settings twice — first time when a bare claude-hook
+    already exists (HookInstaller path), second time after merge — must be a no-op
+    on the second run.
+    """
+    settings_path = user_home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text(
+        json.dumps(_settings_with_bare_hook("SessionStart", matcher="*"), indent=2),
+        encoding="utf-8",
+    )
+
+    # First injection: bare hook found, tag merged, changed=True.
+    first = th.inject_hooks_to_settings(settings_path, ["trusty-memory"])
+    assert first is True
+
+    snapshot = settings_path.read_text(encoding="utf-8")
+
+    # Second injection: hook is now tagged, dedup fires, changed=False.
+    second = th.inject_hooks_to_settings(settings_path, ["trusty-memory"])
+    assert second is False, "Second run must be a no-op after merge"
+    assert settings_path.read_text(encoding="utf-8") == snapshot
+
+
+def test_cross_matcher_group_dedup_memory(user_home: Path) -> None:
+    """A trusty-memory hook in a DIFFERENT matcher group for the same event is
+    detected as a duplicate and NOT re-added.  This covers the cross-matcher-group
+    scenario where the existing hook lives under a different matcher string.
+    """
+    settings_path = user_home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Place a trusty-memory hook under a non-standard matcher "startup" for SessionStart.
+    existing_hook = {
+        "type": "command",
+        "command": "claude-hook",
+        "timeout": 15,
+        "_mpm": True,
+        "_mpm_service": "trusty-memory",
+    }
+    initial = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "matcher": "startup",  # Different matcher than the spec's "*"
+                    "hooks": [existing_hook],
+                }
+            ]
+        }
+    }
+    settings_path.write_text(json.dumps(initial, indent=2), encoding="utf-8")
+
+    changed = th.inject_hooks_to_settings(settings_path, ["trusty-memory"])
+
+    # The injection must not add a second hook under matcher "*".
+    data = _read(settings_path)
+    all_session_hooks: list[dict] = []
+    for g in data["hooks"]["SessionStart"]:
+        all_session_hooks.extend(g.get("hooks", []))
+
+    assert len(all_session_hooks) == 1, (
+        f"Cross-matcher-group dedup failed: expected 1 hook, got {len(all_session_hooks)}"
+    )
+    # The existing "startup" matcher group must still be there unchanged.
+    assert data["hooks"]["SessionStart"][0]["matcher"] == "startup"
+
+
+def test_inject_twice_produces_no_duplicates_for_both_services(
+    user_home: Path,
+) -> None:
+    """inject_hooks_to_settings called twice for both trusty-memory and trusty-search
+    must not produce duplicate entries — covers the always-on startup trigger scenario.
+    """
+    settings_path = user_home / ".claude" / "settings.json"
+
+    # First invocation (simulates first startup).
+    th.inject_hooks_to_settings(settings_path, ["trusty-memory", "trusty-search"])
+    after_first = _read(settings_path)
+
+    # Second invocation (simulates next startup/resume).
+    second_changed = th.inject_hooks_to_settings(
+        settings_path, ["trusty-memory", "trusty-search"]
+    )
+    after_second = _read(settings_path)
+
+    assert second_changed is False, "Second run must be a no-op"
+    assert after_first == after_second, "File must be byte-identical after two runs"
+
+    # Verify no event has more than one hook per service.
+    for event, groups in after_second["hooks"].items():
+        all_hooks = []
+        for g in groups:
+            all_hooks.extend(g.get("hooks", []))
+        services = [h.get("_mpm_service") for h in all_hooks if h.get("_mpm")]
+        # No service should appear more than once per event.
+        for svc in ("trusty-memory", "trusty-search"):
+            count = services.count(svc)
+            assert count <= 1, (
+                f"Event {event!r}: found {count} hooks for {svc!r}, expected at most 1"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Issue #717: dedup migration recurring idempotency tests
+# ---------------------------------------------------------------------------
+
+
+class TestDedupMigrationRecurring:
+    """Verify the dedup migration is safe to run repeatedly (run_always=True)."""
+
+    def _run_migration_in(self, path: Path) -> bool:
+        from unittest.mock import patch
+
+        import claude_mpm.migrations.migrate_dedup_hook_registrations as dedup_mod
+
+        with patch.object(Path, "cwd", return_value=path):
+            return dedup_mod.run_migration()
+
+    def test_migration_run_always_registered(self) -> None:
+        """dedup_hook_registrations must be registered with run_always=True in the registry."""
+        from claude_mpm.migrations.registry import MIGRATIONS
+
+        matches = [m for m in MIGRATIONS if m.id == "dedup_hook_registrations"]
+        assert matches, "dedup_hook_registrations migration not found in registry"
+        assert matches[0].run_always is True, (
+            "dedup_hook_registrations must have run_always=True so it fires on every startup"
+        )
+
+    def test_dedup_migration_repeated_run_is_noop(self, tmp_path: Path) -> None:
+        """Running dedup migration twice on clean settings (no dupes) is a no-op."""
+        # Write clean settings with a single hook per event (no duplicates).
+        settings_path = tmp_path / ".claude" / "settings.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings_path.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "SessionStart": [
+                            {
+                                "matcher": "*",
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": "claude-hook",
+                                        "timeout": 15,
+                                        "_mpm": True,
+                                        "_mpm_service": "trusty-memory",
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        snapshot_before = settings_path.read_text(encoding="utf-8")
+
+        # Run 1 — no duplicates to remove; file should not change.
+        result1 = self._run_migration_in(tmp_path)
+        assert result1 is True
+        after_run1 = settings_path.read_text(encoding="utf-8")
+
+        # Run 2 — same as run 1.
+        result2 = self._run_migration_in(tmp_path)
+        assert result2 is True
+        after_run2 = settings_path.read_text(encoding="utf-8")
+
+        # File should be unchanged from the initial clean state after both runs.
+        # Note: the migration does NOT rewrite a file with no duplicates, so the
+        # file content (including whitespace) should remain identical.
+        assert after_run1 == snapshot_before, (
+            "First migration run must not modify a file with no duplicate hooks"
+        )
+        assert after_run2 == after_run1, (
+            "Second migration run must be a no-op when the file has no duplicate hooks"
+        )
+
+    def test_dedup_migration_collapses_then_stable(self, tmp_path: Path) -> None:
+        """Migration collapses duplicates on first run, then is a no-op on second run."""
+        settings_path = tmp_path / ".claude" / "settings.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write settings with duplicates (the bug state).
+        settings_path.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "SessionStart": [
+                            {
+                                "matcher": "*",
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": "claude-hook",
+                                        "timeout": 15,
+                                        "_mpm": True,
+                                    },
+                                    {
+                                        "type": "command",
+                                        "command": "claude-hook",
+                                        "timeout": 60,
+                                        "_mpm": True,
+                                    },
+                                ],
+                            }
+                        ]
+                    }
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        # First run: deduplicates.
+        result1 = self._run_migration_in(tmp_path)
+        assert result1 is True
+        after_first = json.loads(settings_path.read_text(encoding="utf-8"))
+        hooks_after_first = after_first["hooks"]["SessionStart"][0]["hooks"]
+        assert len(hooks_after_first) == 1, "First run must collapse duplicates to 1"
+
+        snapshot_after_first = settings_path.read_text(encoding="utf-8")
+
+        # Second run: no-op.
+        result2 = self._run_migration_in(tmp_path)
+        assert result2 is True
+        after_second = settings_path.read_text(encoding="utf-8")
+        assert after_second == snapshot_after_first, (
+            "Second migration run must not modify the already-deduped file"
+        )
