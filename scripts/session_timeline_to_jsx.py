@@ -772,8 +772,14 @@ def _group_events_by_time(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if current_section is not None:
                 sections.append(current_section)
             current_time = t
+            # Use a neutral time-based label so the section header does not
+            # expose the first entry's actor (which is confusing when entries
+            # from different actors share the same HH:MM bucket).
+            first_title = entry.get("title", "")
+            title_snippet = first_title[:40] if first_title else ""
+            label = f"{t} -- {title_snippet}" if title_snippet else t
             current_section = {
-                "section": f"{t} — {entry.get('who', 'unknown')}",
+                "section": label,
                 "entries": [],
             }
         assert current_section is not None
@@ -786,8 +792,22 @@ def _group_events_by_time(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _safe_json(obj: Any) -> str:
-    """Serialize obj to compact JSON, safe for embedding in JSX."""
-    return json.dumps(obj, ensure_ascii=False, indent=2)
+    """Serialize obj to compact JSON, safe for embedding in JSX.
+
+    WHAT: Serializes *obj* to JSON and escapes sequences that would break or
+          be unsafe when the result is embedded directly in a JSX/HTML context.
+          The sequence ``</`` is escaped to prevent premature script-tag closure;
+          ``${`` is escaped to prevent template-literal injection.
+    WHY:  Session titles and detail text can contain arbitrary user content,
+          including ``</script>`` or backtick template expressions, which would
+          silently corrupt or exploit the generated JSX when embedded as a JS
+          string literal.
+    """
+    out = json.dumps(obj, ensure_ascii=False, indent=2)
+    # Escape ``</`` to prevent ``</script>`` tag injection in HTML contexts.
+    out = out.replace("</", "<\\/")
+    # Escape template-literal injection: ``${`` -> ``$\{``
+    return out.replace("${", "$\\{")
 
 
 def generate_jsx(parsed: dict[str, Any]) -> str:
