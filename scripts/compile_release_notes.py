@@ -189,15 +189,23 @@ def main() -> int:
         new_block = f"\n---\n\n{section_text}\n"
         if minor_doc.exists():
             existing = _read_file(minor_doc)
-            # Insert after the first `# ` heading line so newest patches appear at top
-            title_match = re.match(r"(# [^\n]+\n)", existing)
-            if title_match:
-                title_line = title_match.group(1)
-                rest = existing[title_match.end() :]
-                _write_file(minor_doc, title_line + new_block + rest)
+            # Skip if this version is already present (idempotent re-runs)
+            if re.search(rf"^## v{re.escape(version)}\s", existing, re.MULTILINE):
+                print(
+                    f"NOTE: v{version} already present in {minor_doc.relative_to(repo_root)}; skipping prepend.",
+                    file=sys.stderr,
+                )
+                # Still fall through to write dist/release-notes-latest.md below
             else:
-                # No title line found — prepend at top
-                _write_file(minor_doc, new_block + existing)
+                # Insert after the first `# ` heading line so newest patches appear at top
+                title_match = re.match(r"(# [^\n]+\n)", existing)
+                if title_match:
+                    title_line = title_match.group(1)
+                    rest = existing[title_match.end() :]
+                    _write_file(minor_doc, title_line + new_block + rest)
+                else:
+                    # No title line found — prepend at top
+                    _write_file(minor_doc, new_block + existing)
         else:
             # Bootstrap a file if it doesn't exist yet
             bootstrap = (
