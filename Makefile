@@ -1120,6 +1120,7 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@# Attach ONLY the sdist tarball, never the local py3-none-any wheel: that
 	@# wheel bundles only this host's ztk binary and would mislead users on other
 	@# platforms. The per-platform wheels live on PyPI (published by CI).
+	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
@@ -1221,6 +1222,7 @@ release-publish-current: ## Publish current built version
 		echo "$(YELLOW)⚠ npm not found, skipping npm publish$(NC)"; \
 	fi
 	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
+	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
