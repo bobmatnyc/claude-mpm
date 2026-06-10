@@ -66,7 +66,9 @@ git branch -d feat/N-<slug>   # delete the local tracking branch
 git pull
 ```
 
-Only run after confirming the squash-merge has landed on main. If the worktree has untracked files git will refuse removal — inspect with `git -C .claude/worktrees/issue-N-<slug> status` first.
+- Only run after confirming the squash-merge has landed on main.
+- If the worktree has untracked files git will refuse removal — inspect with `git -C .claude/worktrees/issue-N-<slug> status` first.
+- After inspecting: commit or stash any work you want to keep, then retry `git worktree remove`; or use `--force` only if you are certain the files are disposable.
 
 ### When disabled (opt-out)
 
