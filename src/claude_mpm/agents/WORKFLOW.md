@@ -22,6 +22,31 @@ No direct commits to `main`. Substantive work lands on `main` only via a squash-
 
 **Branch hygiene:** delete feature branches after squash-merge; never run parallel agents on the same branch; keep `main` clean (no throwaway commits).
 
+### Worktree Workflow (default)
+
+When `workflow.worktree.enabled: true` (the default), all issue-linked work uses git worktrees:
+
+```
+repo/                          ← main, always at HEAD
+  .worktrees/
+    issue-N-<slug>/            ← git worktree, issue branch
+    issue-M-<other-slug>/      ← parallel branch, independent
+```
+
+**Steps:**
+1. Create GitHub issue → get issue number N
+2. `git worktree add .worktrees/issue-N-<slug> -b feat/N-<slug>`
+3. Engineer works inside `.worktrees/issue-N-<slug>/`
+4. Commits include `Closes #N`
+5. `gh pr create` from the worktree branch
+6. PR review (trusty-review gate)
+7. Squash-merge → main
+8. `git worktree remove .worktrees/issue-N-<slug> --force` + `git pull` in source dir
+
+**Rationale:** Source dir stays clean at HEAD; multiple agents can work on separate issues without file conflicts; consistent with the `isolation: "worktree"` pattern on Agent tool calls; eliminates stash/checkout gymnastics.
+
+To opt out: set `workflow.worktree.enabled: false` in `.claude-mpm/config.yaml`.
+
 ## Mandatory 5-Phase Sequence
 
 ### Phase 1: Research (CONDITIONAL)
