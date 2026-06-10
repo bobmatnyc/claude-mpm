@@ -129,10 +129,8 @@ STANDARD_GITIGNORE_PATTERNS: frozenset[str] = frozenset(
         ".claude-mpm/tmp/",
         ".claude/sessions/",
         "*.mpm.tmp",
-        # .worktrees/ is the canonical location (dot-prefix); worktrees/ covers
-        # projects that omit the dot — both are always local-only, never committed.
+        # .worktrees/ is the canonical location (dot-prefix); always local-only, never committed.
         ".worktrees/",
-        "worktrees/",
         # Backup files
         "*.bak",
         "*.backup",
