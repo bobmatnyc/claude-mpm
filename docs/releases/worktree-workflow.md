@@ -75,8 +75,8 @@ The following files were changed as part of this feature:
 
 | File | Change |
 |------|--------|
-| `src/claude_mpm/services/project/gitignore_manager.py` | Added `.worktrees/` and `worktrees/` to `STANDARD_GITIGNORE_PATTERNS` |
-| `src/claude_mpm/cli/commands/config.py` | Added `.worktrees/` and `worktrees/` to the `config gitignore` recommendation output |
+| `src/claude_mpm/services/project/gitignore_manager.py` | Added `.worktrees/` to `STANDARD_GITIGNORE_PATTERNS` (bare `worktrees/` was intentionally excluded as too broad) |
+| `src/claude_mpm/cli/commands/config.py` | Added `.worktrees/` to the `config gitignore` recommendation output (bare `worktrees/` excluded) |
 | `src/claude_mpm/core/config.py` | Added `workflow.worktree` sub-key to `_apply_defaults()` with `enabled: true` |
 | `src/claude_mpm/agents/WORKFLOW.md` | Added **Worktree Workflow (default)** section documenting the 8-step model |
 | `plugin/skills/mpm-pr-workflow/SKILL.md` | Added **Worktree-First Branch Setup** section with worktree commands and post-merge cleanup |
