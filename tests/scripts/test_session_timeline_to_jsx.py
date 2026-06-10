@@ -18,7 +18,11 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
-from session_timeline_to_jsx import generate_jsx, parse_markdown  # noqa: E402
+from session_timeline_to_jsx import (  # noqa: E402
+    _safe_json,
+    generate_jsx,
+    parse_markdown,
+)
 
 # ---------------------------------------------------------------------------
 # Inline fixture
@@ -248,3 +252,68 @@ class TestGenerateJsx:
         # The JSX template contains the strip regex as a JS string literal.
         # Verify the pattern /-20\d{6}$/ (or equivalent) is present.
         assert r"-20\d" in jsx or r"20\d{6}" in jsx
+
+
+class TestSafeJson:
+    """Unit tests for _safe_json escaping (Fix D)."""
+
+    def test_script_tag_injection_escaped(self) -> None:
+        """A value containing </script> must have the </ escaped."""
+        result = _safe_json({"title": "XSS </script><script>alert(1)</script>"})
+        assert "</" not in result, "Unescaped </ found in serialized JSON"
+        assert "<\\/" in result
+
+    def test_template_literal_injection_escaped(self) -> None:
+        """A value containing ${ must be escaped to prevent template-literal injection."""
+        result = _safe_json({"detail": "cost ${amount} USD"})
+        assert "${" not in result, "Unescaped ${ found in serialized JSON"
+        assert "$\\{" in result
+
+    def test_normal_content_unchanged(self) -> None:
+        """Normal text without injection sequences round-trips correctly."""
+        import json as _json
+
+        data = {"title": "Fix the parser bug", "cost": 1.23}
+        result = _safe_json(data)
+        # The data round-trips to equivalent Python (ignoring float formatting)
+        parsed = _json.loads(result)
+        assert parsed["title"] == data["title"]
+
+    def test_generate_jsx_escapes_script_tag_in_title(self, tmp_path: Path) -> None:
+        """generate_jsx must escape </script> appearing in a session title."""
+        import textwrap
+
+        dangerous_md = textwrap.dedent(
+            """\
+            ---
+            session_id: xss-test
+            project: test-proj
+            project_path: /test
+            generated_at: '2026-06-10T00:00:00Z'
+            date: '2026-06-10'
+            title: 'Dangerous </script><script>alert(1)</script> title'
+            grand_total_cost_usd: 0.0
+            pm_cost_usd: 0.0
+            subagent_cost_usd: 0.0
+            has_pricing_fallback: false
+            ---
+
+            # Session: xss
+
+            ## Timeline
+
+            #### 10:00 . bob . Dangerous </script> title
+
+            <!-- meta: who=bob; tags=prompt; model=none; in=0; out=0; cache_read=0; cache_write=0; cost_usd=0.0; type=user_prompt; ambiguous=false; subagent_file=none -->
+
+            Dangerous </script> content.
+
+            ---
+            """
+        )
+        md_file = tmp_path / "xss_test.md"
+        md_file.write_text(dangerous_md, encoding="utf-8")
+        parsed = parse_markdown(md_file)
+        jsx = generate_jsx(parsed)
+        # The raw </script> must not appear in the generated JSX
+        assert "</script>" not in jsx, "Unescaped </script> found in generated JSX"
