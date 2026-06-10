@@ -629,6 +629,168 @@ class TestHookInstaller(unittest.TestCase):
         # In a real backup scenario, we would check for backup file
         # This is a conceptual test for backup/restore functionality
 
+    def test_update_claude_settings_idempotent_no_duplicates(self):
+        """Installing hooks twice must not create duplicate hook entries.
+
+        Why: Re-running the installer (e.g. on every ``claude-mpm run``) must
+        converge to exactly one MPM hook per event regardless of how many times
+        it has been called.
+        What: Calls ``_update_claude_settings`` twice into the same temp
+        settings.json and asserts that each event block contains exactly one
+        MPM hook entry.
+        Test: count MPM hook commands per event after two install calls and
+        assert the count equals 1.
+        """
+        script_cmd = "claude-hook"
+
+        # First install
+        self.installer._update_claude_settings(script_cmd)
+
+        # Second install (idempotency check)
+        self.installer._update_claude_settings(script_cmd)
+
+        with self.installer.settings_file.open() as f:
+            settings = json.load(f)
+
+        hooks = settings.get("hooks", {})
+        self.assertTrue(hooks, "hooks section must exist after two installs")
+
+        for event_type, blocks in hooks.items():
+            mpm_count = 0
+            for block in blocks:
+                for hook_cmd in block.get("hooks", []):
+                    # Count entries that belong to claude-mpm (command match or _mpm marker)
+                    if hook_cmd.get("_mpm") or hook_cmd.get("command") == "claude-hook":
+                        mpm_count += 1
+            self.assertEqual(
+                mpm_count,
+                1,
+                f"Event '{event_type}' has {mpm_count} MPM hook entries after two installs"
+                " — expected exactly 1 (idempotency violation).",
+            )
+
+    def test_update_claude_settings_idempotent_preserves_user_hooks(self):
+        """Re-running the installer must leave user-owned hooks untouched.
+
+        Why: User-installed hooks (e.g. statusline.sh --clear in Stop) must
+        survive multiple installs of claude-mpm hooks.
+        What: Pre-populates settings with a user-owned Stop hook, then calls
+        ``_update_claude_settings`` twice and asserts the user hook remains.
+        Test: search for the user-hook command in the final Stop block.
+        """
+        user_hook = {
+            "type": "command",
+            "command": "/custom/user-hook.sh",
+            "timeout": 5,
+        }
+        pre_existing = {
+            "hooks": {
+                "Stop": [
+                    {
+                        "matcher": "*",
+                        "hooks": [user_hook],
+                    }
+                ]
+            }
+        }
+        with self.installer.settings_file.open("w") as f:
+            json.dump(pre_existing, f)
+
+        script_cmd = "claude-hook"
+        self.installer._update_claude_settings(script_cmd)
+        self.installer._update_claude_settings(script_cmd)
+
+        with self.installer.settings_file.open() as f:
+            settings = json.load(f)
+
+        # User hook must still be present
+        stop_commands = [
+            h.get("command")
+            for block in settings["hooks"].get("Stop", [])
+            for h in block.get("hooks", [])
+        ]
+        self.assertIn(
+            "/custom/user-hook.sh",
+            stop_commands,
+            "User-owned Stop hook was removed by the installer (it must be preserved).",
+        )
+
+    def test_update_claude_settings_deduplicates_pre_existing_duplicates(self):
+        """If duplicates already exist in settings, a fresh install must remove them.
+
+        Why: Users who ran an older installer may already have duplicate MPM
+        hook entries.  The current installer must clean those up on the next
+        run, not only prevent new ones.
+        What: Pre-populates a settings.json with THREE identical claude-hook
+        entries per event (simulating the live bug), runs
+        ``_update_claude_settings`` once, and asserts each event ends up with
+        exactly one MPM entry.
+        Test: count MPM entries per event in the cleaned settings.
+        """
+        duplicate_hook = {
+            "type": "command",
+            "command": "claude-hook",
+            "timeout": 15,
+            "_mpm": True,
+        }
+        pre_existing = {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "matcher": "*",
+                        "hooks": [
+                            dict(duplicate_hook),
+                            dict(duplicate_hook),
+                            dict(duplicate_hook),
+                        ],
+                    }
+                ],
+                "Stop": [
+                    {
+                        "matcher": "*",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "/user/statusline.sh --clear",
+                            },
+                            dict(duplicate_hook),
+                            dict(duplicate_hook),
+                            dict(duplicate_hook),
+                        ],
+                    }
+                ],
+            }
+        }
+        with self.installer.settings_file.open("w") as f:
+            json.dump(pre_existing, f)
+
+        self.installer._update_claude_settings("claude-hook")
+
+        with self.installer.settings_file.open() as f:
+            settings = json.load(f)
+
+        for event_type, blocks in settings["hooks"].items():
+            mpm_count = 0
+            user_count = 0
+            for block in blocks:
+                for hook_cmd in block.get("hooks", []):
+                    if hook_cmd.get("_mpm") or hook_cmd.get("command") == "claude-hook":
+                        mpm_count += 1
+                    elif hook_cmd.get("command") == "/user/statusline.sh --clear":
+                        user_count += 1
+            self.assertEqual(
+                mpm_count,
+                1,
+                f"Event '{event_type}' still has {mpm_count} MPM entries after "
+                "dedup install — expected exactly 1.",
+            )
+            if event_type == "Stop":
+                self.assertEqual(
+                    user_count,
+                    1,
+                    "User-owned Stop hook was removed during dedup (it must be preserved).",
+                )
+
 
 class TestGetHookCommandPathBased(unittest.TestCase):
     """Tests for issue #552: get_hook_command() must prefer the PATH-based
