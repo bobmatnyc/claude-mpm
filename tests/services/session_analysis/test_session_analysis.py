@@ -388,6 +388,134 @@ class TestParseSessionFixture:
         assert report.grand_total_cost_usd == 0.0
 
 
+class TestModelTotalsNoDoubleCount:
+    """Fix 1: per-model cost must not be double-counted when PM and subagent share a model.
+
+    Invariant:
+        grand_total_cost_usd == pm_cost_usd + subagent_cost_usd
+        grand_total_cost_usd == sum(mt.total_cost_usd for mt in model_totals.values())
+
+    A shared model (claude-sonnet-4-6 in both the PM transcript and the subagent
+    transcript) must have its cost counted EXACTLY ONCE — PM turns counted from the
+    PM transcript, subagent turns counted from the subagent transcript aggregate.
+    """
+
+    # Subagent fixture that uses the SAME model as the PM (claude-sonnet-4-6)
+    _SAME_MODEL_SUBAGENT = (
+        Path(__file__).parent.parent.parent
+        / "fixtures"
+        / "session_analysis"
+        / "subagent_sonnet_same_model.jsonl"
+    )
+
+    def _build_session_tree_same_model(self, tmp_path: Path) -> tuple[str, str]:
+        """Lay out a fake ~/.claude tree using the same-model subagent fixture."""
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-session-samemodel"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(MAIN_JSONL.read_bytes())
+
+        subagent_dir = session_dir / session_id / "subagents"
+        subagent_dir.mkdir(parents=True)
+        (subagent_dir / "agent-python-engineer.jsonl").write_bytes(
+            self._SAME_MODEL_SUBAGENT.read_bytes()
+        )
+
+        return session_id, fake_cwd
+
+    def test_grand_total_equals_pm_plus_subagent(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+    def test_grand_total_equals_sum_of_per_model_totals(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        per_model_sum = sum(mt.total_cost_usd for mt in report.model_totals.values())
+        assert abs(report.grand_total_cost_usd - per_model_sum) < 1e-9, (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"sum(per-model)={per_model_sum}  model_totals={report.model_totals}"
+        )
+
+    def test_shared_model_cost_not_double_counted(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """When PM and subagent share claude-sonnet-4-6, the model total must equal
+        (PM turns cost) + (subagent aggregate cost), NOT 2x either."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        # Both PM and the subagent use claude-sonnet-4-6
+        assert "claude-sonnet-4-6" in report.model_totals
+        mt = report.model_totals["claude-sonnet-4-6"]
+
+        # The model total must equal the grand total (only one model in this session)
+        assert abs(mt.total_cost_usd - report.grand_total_cost_usd) < 1e-9, (
+            f"sonnet total={mt.total_cost_usd} != grand_total={report.grand_total_cost_usd}"
+        )
+
+        # The model total must equal pm_cost_usd + subagent_cost_usd
+        expected = report.pm_cost_usd + report.subagent_cost_usd
+        assert abs(mt.total_cost_usd - expected) < 1e-9, (
+            f"sonnet total={mt.total_cost_usd} != pm+subagent={expected}"
+        )
+
+    def test_outcome_event_uses_subagent_last_timestamp(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Fix 5: synthetic outcome event timestamp must be the subagent's last event
+        timestamp, not the parent agent_call dispatch time."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        # Find the agent_call event and the outcome event
+        agent_call_events = [e for e in report.events if e.event_type == "agent_call"]
+        outcome_events = [e for e in report.events if e.event_type == "outcome"]
+
+        assert outcome_events, "No outcome event was generated"
+        assert agent_call_events, "No agent_call event found"
+
+        outcome = outcome_events[0]
+        agent_call = agent_call_events[0]
+
+        # The outcome timestamp must be >= the agent_call timestamp
+        # (subagent completion is after dispatch).
+        assert outcome.timestamp >= agent_call.timestamp, (
+            f"outcome.timestamp {outcome.timestamp} < agent_call.timestamp {agent_call.timestamp}"
+        )
+
+        # The outcome timestamp must equal the subagent's last event timestamp —
+        # the last line in the same-model subagent fixture is at 10:00:20.
+        from datetime import UTC, datetime
+
+        expected_ts = datetime(2025, 6, 10, 10, 0, 20, tzinfo=UTC)
+        assert outcome.timestamp == expected_ts, (
+            f"outcome.timestamp={outcome.timestamp} != expected {expected_ts}"
+        )
+
+
 class TestFindMostRecentSession:
     def test_returns_none_when_no_sessions(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)

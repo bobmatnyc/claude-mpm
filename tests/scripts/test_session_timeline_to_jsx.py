@@ -10,6 +10,7 @@ WHY:  Ensures the converter handles the full canonical schema (2-model
 from __future__ import annotations
 
 import sys
+import tempfile
 import textwrap
 from pathlib import Path
 
@@ -118,61 +119,61 @@ CANONICAL_MARKDOWN = textwrap.dedent(
 class TestParseMarkdown:
     """Unit tests for parse_markdown() against the inline fixture."""
 
-    def _parse(self) -> dict:
-        tmp = Path("/tmp/_test_session_timeline_fixture.md")
+    def _parse(self, tmp_path: Path) -> dict:
+        tmp = tmp_path / "_test_session_timeline_fixture.md"
         tmp.write_text(CANONICAL_MARKDOWN, encoding="utf-8")
         return parse_markdown(tmp)
 
-    def test_frontmatter_session_id(self):
-        result = self._parse()
+    def test_frontmatter_session_id(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         assert result["frontmatter"]["session_id"] == "abc123-test-session"
 
-    def test_frontmatter_two_models(self):
-        result = self._parse()
+    def test_frontmatter_two_models(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         models = [m["model"] for m in result["frontmatter"]["model_breakdown"]]
         assert "claude-opus-4-8" in models
         assert "claude-sonnet-4-6" in models
 
-    def test_frontmatter_grand_total(self):
-        result = self._parse()
+    def test_frontmatter_grand_total(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         assert abs(result["frontmatter"]["grand_total_cost_usd"] - 72.1604) < 0.001
 
-    def test_event_count(self):
-        result = self._parse()
+    def test_event_count(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         assert len(result["events"]) == 2
 
-    def test_first_entry_is_bob(self):
-        result = self._parse()
+    def test_first_entry_is_bob(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         entry = result["events"][0]
         assert entry["who"] == "bob"
         assert "Fix the session analyzer" in entry["title"]
 
-    def test_second_entry_is_mpm(self):
-        result = self._parse()
+    def test_second_entry_is_mpm(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         entry = result["events"][1]
         assert entry["who"] == "mpm"
 
-    def test_meta_tokens_parsed(self):
-        result = self._parse()
+    def test_meta_tokens_parsed(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         meta = result["events"][1]["meta"]
         assert meta.get("in") == "12345"
         assert meta.get("out") == "6789"
 
-    def test_calls_parsed(self):
-        result = self._parse()
+    def test_calls_parsed(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         calls = result["events"][1]["calls"]
         assert len(calls) >= 2
         tools = [c["tool"] for c in calls]
         assert "Agent" in tools
         assert "Skill" in tools
 
-    def test_outcome_parsed(self):
-        result = self._parse()
+    def test_outcome_parsed(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         outcome = result["events"][1]["outcome"]
         assert "regex" in outcome.lower() or "fixed" in outcome.lower()
 
-    def test_links_parsed(self):
-        result = self._parse()
+    def test_links_parsed(self, tmp_path: Path):
+        result = self._parse(tmp_path)
         links = result["events"][1]["links"]
         assert len(links) == 2
         types = {lk["type"] for lk in links}
@@ -183,47 +184,47 @@ class TestParseMarkdown:
 class TestGenerateJsx:
     """Unit tests for generate_jsx() output content."""
 
-    def _jsx(self) -> str:
-        tmp = Path("/tmp/_test_session_timeline_fixture.md")
+    def _jsx(self, tmp_path: Path) -> str:
+        tmp = tmp_path / "_test_session_timeline_fixture.md"
         tmp.write_text(CANONICAL_MARKDOWN, encoding="utf-8")
         parsed = parse_markdown(tmp)
         return generate_jsx(parsed)
 
-    def test_has_export_default(self):
-        jsx = self._jsx()
+    def test_has_export_default(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         assert "export default" in jsx
 
-    def test_grand_total_present(self):
-        jsx = self._jsx()
+    def test_grand_total_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         # 72.1604 must appear somewhere in the JSX
         assert "72.1604" in jsx or "72.16" in jsx
 
-    def test_both_model_names_present(self):
-        jsx = self._jsx()
+    def test_both_model_names_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         assert "claude-opus-4-8" in jsx or "opus-4-8" in jsx
         assert "claude-sonnet-4-6" in jsx or "sonnet-4-6" in jsx
 
-    def test_entry_title_present(self):
-        jsx = self._jsx()
+    def test_entry_title_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         assert "Fix the session analyzer" in jsx
 
-    def test_token_figure_present(self):
-        jsx = self._jsx()
+    def test_token_figure_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         # in=12345 from the mpm entry's meta comment
         assert "12345" in jsx or "12" in jsx  # fmtTokens("12345") → "12k"
 
-    def test_session_id_present(self):
-        jsx = self._jsx()
+    def test_session_id_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         assert "abc123-test-session" in jsx
 
-    def test_cost_breakdown_structure(self):
-        jsx = self._jsx()
+    def test_cost_breakdown_structure(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         # COST_BREAKDOWN constant must be present
         assert "COST_BREAKDOWN" in jsx
 
-    def test_balanced_braces_heuristic(self):
+    def test_balanced_braces_heuristic(self, tmp_path: Path):
         """The JSX should have balanced curly braces (common JSX sanity check)."""
-        jsx = self._jsx()
+        jsx = self._jsx(tmp_path)
         # Count raw { and } — they won't be perfectly balanced in JSX templates
         # because of string literals, but the count should be within a reasonable
         # margin (< 20 difference is a good signal of correctness).
@@ -233,10 +234,17 @@ class TestGenerateJsx:
             "Brace imbalance too large: {opens} open, {closes} close"
         )
 
-    def test_events_constant_present(self):
-        jsx = self._jsx()
+    def test_events_constant_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         assert "const EVENTS" in jsx
 
-    def test_session_constant_present(self):
-        jsx = self._jsx()
+    def test_session_constant_present(self, tmp_path: Path):
+        jsx = self._jsx(tmp_path)
         assert "const SESSION" in jsx
+
+    def test_model_badge_strips_date_suffix(self, tmp_path: Path):
+        """ModelBadge regex must strip trailing -YYYYMMDD date suffix from model id."""
+        jsx = self._jsx(tmp_path)
+        # The JSX template contains the strip regex as a JS string literal.
+        # Verify the pattern /-20\d{6}$/ (or equivalent) is present.
+        assert r"-20\d" in jsx or r"20\d{6}" in jsx

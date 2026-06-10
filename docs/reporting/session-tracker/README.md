@@ -98,7 +98,7 @@ The `<!-- meta: ... -->` comment is machine-readable and survives most Markdown 
 ## Rack-Rate Pricing Table
 
 All costs use Anthropic's public list prices at the time of implementation.
-**Source: https://www.anthropic.com/pricing (retrieved 2025-06-10)**
+**Source: https://www.anthropic.com/pricing (retrieved 2026-06-10)**
 
 | Model Family | Input | Output | Cache Write | Cache Read |
 |---|---|---|---|---|
