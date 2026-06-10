@@ -48,6 +48,7 @@ Timeline entry format::
 from __future__ import annotations
 
 import re
+import warnings
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -373,7 +374,12 @@ def read_markdown(path: Path) -> dict[str, Any]:
             fm_text = text[3:end].strip()
             try:
                 fm = yaml.safe_load(fm_text) or {}
-            except yaml.YAMLError:
+            except yaml.YAMLError as exc:
+                warnings.warn(
+                    f"read_markdown: YAML frontmatter in {path} could not be parsed "
+                    f"({exc}); treating as empty frontmatter.",
+                    stacklevel=2,
+                )
                 fm = {}
             body = text[end + 4 :]
 

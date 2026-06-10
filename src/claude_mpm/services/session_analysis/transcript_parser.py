@@ -563,14 +563,17 @@ def _build_tool_result_index(lines: list[dict[str, Any]]) -> dict[str, str]:
 def _correlate_subagents(
     agent_calls: list[tuple[datetime, str]],  # (timestamp, tool_use_id)
     subagent_summaries: list[_SubagentSummary],
-) -> dict[str, tuple[_SubagentSummary, bool]]:
+) -> dict[str, list[tuple[_SubagentSummary, bool]]]:
     """Match PM Agent tool_use calls to subagent files by timestamp proximity.
 
-    Returns a mapping tool_use_id -> (SubagentSummary, ambiguous).
-    ``ambiguous=True`` means multiple agent calls fell within the tolerance
-    window of the same subagent first-message timestamp.
+    Returns a mapping tool_use_id -> list of (SubagentSummary, ambiguous).
+    A list length >1 means multiple distinct subagents all correlated to the
+    same PM tool_use_id; every entry is preserved so no subagent is dropped.
+    ``ambiguous=True`` on an entry means either:
+      - multiple PM calls fell within the tolerance window for that subagent, OR
+      - the tool_use_id was claimed by more than one subagent summary.
     """
-    result: dict[str, tuple[_SubagentSummary, bool]] = {}
+    result: dict[str, list[tuple[_SubagentSummary, bool]]] = {}
 
     # For each subagent, find the nearest PM agent_call timestamp
     for summary in subagent_summaries:
@@ -590,18 +593,16 @@ def _correlate_subagents(
             continue
 
         candidates.sort(key=lambda x: x[0])
-        # Check if multiple calls are within tolerance → ambiguous
+        # Check if multiple calls are within tolerance → ambiguous for this summary
         ambiguous = len(candidates) > 1
         best_tool_use_id = candidates[0][1]
 
-        # Also check if this tool_use_id is already claimed by another subagent
         if best_tool_use_id in result:
-            # Mark existing as ambiguous too
-            existing = result[best_tool_use_id]
-            result[best_tool_use_id] = (existing[0], True)
+            # Another subagent already mapped here — mark ALL entries ambiguous
+            result[best_tool_use_id] = [(s, True) for s, _ in result[best_tool_use_id]]
             ambiguous = True
 
-        result[best_tool_use_id] = (summary, ambiguous)
+        result.setdefault(best_tool_use_id, []).append((summary, ambiguous))
 
     return result
 
@@ -806,7 +807,7 @@ def parse_session(
     # the Python object identity of the summary, while still attaching the
     # correlation to every matching agent_call event for display purposes.
     seen_summaries: set[int] = set()
-    subagent_events_to_add: list[TimelineEvent] = []
+    subagent_events_to_add: list[tuple[TimelineEvent, TimelineEvent]] = []
     for event in events:
         if event.event_type != "agent_call":
             continue
@@ -816,60 +817,65 @@ def parse_session(
             tid = cd.tool_use_id
             if tid not in corr_map:
                 continue
-            summary, ambiguous = corr_map[tid]
-            event.subagent_file = str(summary.file_path.name)
-            event.correlation_ambiguous = ambiguous
+            # corr_map[tid] is now a list — iterate ALL summaries for this id
+            for summary, ambiguous in corr_map[tid]:
+                event.subagent_file = str(summary.file_path.name)
+                event.correlation_ambiguous = ambiguous
 
-            # Accumulate cost/tokens only on the first encounter of this summary
-            if id(summary) not in seen_summaries:
-                seen_summaries.add(id(summary))
+                # Accumulate cost/tokens only on the first encounter of this summary
+                if id(summary) not in seen_summaries:
+                    seen_summaries.add(id(summary))
 
-                sa_model = summary.model or "claude-sonnet"
-                if sa_model not in report.model_totals:
-                    report.model_totals[sa_model] = ModelTotals(model=sa_model)
-                mt = report.model_totals[sa_model]
-                mt.input_tokens += summary.usage.get("input_tokens", 0)
-                mt.output_tokens += summary.usage.get("output_tokens", 0)
-                mt.cache_creation_input_tokens += summary.usage.get(
-                    "cache_creation_input_tokens", 0
-                )
-                mt.cache_read_input_tokens += summary.usage.get(
-                    "cache_read_input_tokens", 0
-                )
-                mt.total_cost_usd += summary.cost_usd
-                mt.turn_count += len(summary.all_events)
-                report.subagent_cost_usd += summary.cost_usd
-                report.grand_total_cost_usd += summary.cost_usd
+                    sa_model = summary.model or "claude-sonnet"
+                    if sa_model not in report.model_totals:
+                        report.model_totals[sa_model] = ModelTotals(model=sa_model)
+                    mt = report.model_totals[sa_model]
+                    mt.input_tokens += summary.usage.get("input_tokens", 0)
+                    mt.output_tokens += summary.usage.get("output_tokens", 0)
+                    mt.cache_creation_input_tokens += summary.usage.get(
+                        "cache_creation_input_tokens", 0
+                    )
+                    mt.cache_read_input_tokens += summary.usage.get(
+                        "cache_read_input_tokens", 0
+                    )
+                    mt.total_cost_usd += summary.cost_usd
+                    mt.turn_count += len(summary.all_events)
+                    report.subagent_cost_usd += summary.cost_usd
+                    report.grand_total_cost_usd += summary.cost_usd
 
-                if summary.pricing_fallback:
-                    report.has_pricing_fallback = True
+                    if summary.pricing_fallback:
+                        report.has_pricing_fallback = True
 
-            # Inject a synthetic "outcome" event after the agent_call.
-            # Use the subagent's last event timestamp so the outcome appears at
-            # the subagent's actual completion time rather than the parent
-            # agent_call dispatch time.  Fall back to the agent_call timestamp
-            # only when no subagent events were recorded.
-            if summary.response_text:
-                outcome_ts = (
-                    summary.all_events[-1].timestamp
-                    if summary.all_events
-                    else event.timestamp
-                )
-                outcome_event = TimelineEvent(
-                    uuid=f"{cd.tool_use_id}-outcome",
-                    timestamp=outcome_ts,
-                    actor=summary.attribution_agent or summary.agent_id,
-                    event_type="outcome",
-                    title=_make_title(summary.response_text),
-                    detail=summary.response_text,
-                    model=summary.model,
-                    usage=summary.usage,
-                    cost_usd=summary.cost_usd,
-                    pricing_fallback=summary.pricing_fallback,
-                    github_links=_extract_github_links(summary.response_text),
-                    subagent_file=str(summary.file_path.name),
-                )
-                subagent_events_to_add.append((event, outcome_event))
+                # Inject a synthetic "outcome" event after the agent_call.
+                # Use the subagent's last event timestamp so the outcome appears at
+                # the subagent's actual completion time rather than the parent
+                # agent_call dispatch time.  Fall back to the agent_call timestamp
+                # only when no subagent events were recorded.
+                # cost_usd is set to 0.0: the outcome event is a display artifact
+                # only; the real cost has already been accumulated into report
+                # totals above.  Setting cost_usd=0.0 prevents any future re-sum
+                # of events from double-counting.
+                if summary.response_text:
+                    outcome_ts = (
+                        summary.all_events[-1].timestamp
+                        if summary.all_events
+                        else event.timestamp
+                    )
+                    outcome_event = TimelineEvent(
+                        uuid=f"{cd.tool_use_id}-{summary.agent_id}-outcome",
+                        timestamp=outcome_ts,
+                        actor=summary.attribution_agent or summary.agent_id,
+                        event_type="outcome",
+                        title=_make_title(summary.response_text),
+                        detail=summary.response_text,
+                        model=summary.model,
+                        usage=summary.usage,
+                        cost_usd=0.0,
+                        pricing_fallback=summary.pricing_fallback,
+                        github_links=_extract_github_links(summary.response_text),
+                        subagent_file=str(summary.file_path.name),
+                    )
+                    subagent_events_to_add.append((event, outcome_event))
 
     # Insert outcome events right after their parent agent_call event
     for parent, child in subagent_events_to_add:

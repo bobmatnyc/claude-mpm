@@ -300,7 +300,9 @@ class TestCorrelateSubagents:
         calls = [(ts, "tu_001")]
         result = _correlate_subagents(calls, [summary])
         assert "tu_001" in result
-        _, ambiguous = result["tu_001"]
+        entries = result["tu_001"]
+        assert len(entries) == 1
+        _, ambiguous = entries[0]
         assert not ambiguous
 
     def test_within_tolerance_correlates(self) -> None:
@@ -310,6 +312,7 @@ class TestCorrelateSubagents:
         calls = [(call_ts, "tu_001")]
         result = _correlate_subagents(calls, [summary])
         assert "tu_001" in result
+        assert len(result["tu_001"]) == 1
 
     def test_outside_tolerance_not_correlated(self) -> None:
         ts = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
@@ -329,7 +332,9 @@ class TestCorrelateSubagents:
         result = _correlate_subagents(calls, [summary])
         # Nearest match should be tu_A; ambiguous=True because tu_B is also within window
         assert "tu_A" in result
-        _, ambiguous = result["tu_A"]
+        entries = result["tu_A"]
+        assert len(entries) == 1
+        _, ambiguous = entries[0]
         assert ambiguous
 
     def test_no_subagents_returns_empty(self) -> None:
@@ -631,8 +636,8 @@ class TestParallelDelegationNoCostDoubleCount:
             subagent_summaries: list,
         ) -> dict:
             return {
-                "tu_parallel_A": (summary, True),
-                "tu_parallel_B": (summary, True),
+                "tu_parallel_A": [(summary, True)],
+                "tu_parallel_B": [(summary, True)],
             }
 
         monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
@@ -665,6 +670,135 @@ class TestParallelDelegationNoCostDoubleCount:
             f"grand_total={report.grand_total_cost_usd} != "
             f"sum(per-model)={per_model_sum}  model_totals={report.model_totals}"
         )
+
+
+class TestCorrelateNoSubagentDropped:
+    """Regression (Fix 1): two DISTINCT subagents that both correlate to the
+    SAME single PM tool_use_id must NOT cause either subagent to be dropped.
+
+    Before the fix, the second subagent would silently overwrite the first in
+    the result dict, so its cost was lost and no outcome event was emitted.
+
+    After the fix, corr_map[tid] is a list; parse_session iterates ALL entries
+    so both subagents' costs are accumulated and both outcome events are present.
+    """
+
+    def _make_summary(
+        self,
+        agent_id: str,
+        cost: float,
+        response_text: str,
+    ) -> _SubagentSummary:
+        from datetime import UTC, datetime
+        from pathlib import Path
+
+        return _SubagentSummary(
+            agent_id=agent_id,
+            file_path=Path(f"agent-{agent_id}.jsonl"),
+            attribution_agent=agent_id,
+            first_user_timestamp=datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC),
+            prompt_text="do stuff",
+            response_text=response_text,
+            model="claude-haiku-3-5",
+            usage={
+                "input_tokens": 1000,
+                "output_tokens": 200,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=cost,
+            pricing_fallback=False,
+            all_events=[],
+        )
+
+    def test_two_subagents_same_tool_use_id_neither_dropped(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Both subagents correlate to tu_shared; assert costs included, invariants hold."""
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        # Build a minimal session tree with the parallel PM fixture
+        _PARALLEL_MAIN_JSONL = (
+            Path(__file__).parent.parent.parent
+            / "fixtures"
+            / "session_analysis"
+            / "parallel_pm_two_calls.jsonl"
+        )
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-nodrop-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            _PARALLEL_MAIN_JSONL.read_bytes()
+        )
+        # No subagent files needed — we inject via monkeypatch
+
+        sa_a = self._make_summary("alpha", cost=0.010, response_text="Alpha done.")
+        sa_b = self._make_summary("beta", cost=0.020, response_text="Beta done.")
+
+        # Force BOTH distinct summaries to map to the SAME tool_use_id
+        def _fake_correlate(
+            agent_calls: list,
+            subagent_summaries: list,
+        ) -> dict:
+            return {
+                "tu_parallel_A": [
+                    (sa_a, True),
+                    (sa_b, True),
+                ],
+            }
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+
+        report = _tp.parse_session(session_id, fake_cwd)
+
+        expected_sa_cost = sa_a.cost_usd + sa_b.cost_usd  # 0.030
+
+        # 1. Neither subagent cost is dropped
+        assert abs(report.subagent_cost_usd - expected_sa_cost) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != "
+            f"expected={expected_sa_cost}  (a cost={sa_a.cost_usd}, b cost={sa_b.cost_usd})"
+        )
+
+        # 2. grand_total == pm + subagent (core invariant)
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+        # 3. grand_total == sum of per-model totals
+        per_model_sum = sum(mt.total_cost_usd for mt in report.model_totals.values())
+        assert abs(report.grand_total_cost_usd - per_model_sum) < 1e-9, (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"sum(per-model)={per_model_sum}"
+        )
+
+        # 4. Both outcome events are present (one per subagent)
+        outcome_events = [e for e in report.events if e.event_type == "outcome"]
+        assert len(outcome_events) == 2, (
+            f"Expected 2 outcome events (one per subagent), got {len(outcome_events)}: "
+            f"{[e.detail[:30] for e in outcome_events]}"
+        )
+        outcome_texts = {e.detail for e in outcome_events}
+        assert "Alpha done." in outcome_texts, "Alpha subagent outcome event is missing"
+        assert "Beta done." in outcome_texts, "Beta subagent outcome event is missing"
+
+        # 5. Outcome events carry cost_usd=0.0 (display artifact, not a new cost)
+        for oe in outcome_events:
+            assert oe.cost_usd == 0.0, (
+                f"Outcome event for '{oe.actor}' has cost_usd={oe.cost_usd} "
+                f"(must be 0.0 to prevent double-count)"
+            )
 
 
 class TestFindMostRecentSession:

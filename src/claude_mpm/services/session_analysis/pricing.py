@@ -136,13 +136,28 @@ def _load_rate_table_from_file(path: Path) -> list[tuple[str, Rates]]:
     return table
 
 
+# Module-level cache: (env_value, table).  The env var is stable within a
+# process, so we re-load only when it changes (handles monkeypatching in tests).
+_rate_table_cache: tuple[str, list[tuple[str, Rates]]] | None = None
+
+
 def _active_rate_table() -> list[tuple[str, Rates]]:
-    """Return the rate table, preferring CLAUDE_MPM_PRICING_FILE if set."""
+    """Return the rate table, preferring CLAUDE_MPM_PRICING_FILE if set.
+
+    Results are cached by env-var value so repeated per-turn calls do not
+    re-stat the filesystem on every invocation.
+    """
+    global _rate_table_cache
     pricing_file = os.environ.get("CLAUDE_MPM_PRICING_FILE", "").strip()
+    if _rate_table_cache is not None and _rate_table_cache[0] == pricing_file:
+        return _rate_table_cache[1]
     if pricing_file:
         p = Path(pricing_file)
         if p.is_file():
-            return _load_rate_table_from_file(p)
+            table = _load_rate_table_from_file(p)
+            _rate_table_cache = (pricing_file, table)
+            return table
+    _rate_table_cache = (pricing_file, _RATE_TABLE)
     return _RATE_TABLE
 
 
