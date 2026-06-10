@@ -68,14 +68,8 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 15,
             "_mpm": true,
+            "timeout": 15,
             "_mpm_service": "trusty-memory"
           }
         ]
@@ -88,14 +82,8 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 15,
             "_mpm": true,
+            "timeout": 15,
             "_mpm_service": "trusty-memory"
           }
         ]
@@ -108,14 +96,8 @@
           {
             "type": "command",
             "command": "claude-hook",
-            "timeout": 15,
-            "_mpm": true
-          },
-          {
-            "type": "command",
-            "command": "claude-hook",
-            "timeout": 15,
             "_mpm": true,
+            "timeout": 15,
             "_mpm_service": "trusty-memory"
           }
         ]
