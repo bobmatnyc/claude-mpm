@@ -226,17 +226,17 @@ class TestGenerateJsx:
         # COST_BREAKDOWN constant must be present
         assert "COST_BREAKDOWN" in jsx
 
-    def test_balanced_braces_heuristic(self, tmp_path: Path):
-        """The JSX should have balanced curly braces (common JSX sanity check)."""
+    def test_structural_markers_present(self, tmp_path: Path):
+        """The generated JSX must contain the required structural markers.
+
+        Replaces the former brace-balance heuristic, which was meaningless
+        because JSX templates use {{/}} escaping that throws off a raw count.
+        Instead, assert that the known top-level structural tokens are present.
+        """
         jsx = self._jsx(tmp_path)
-        # Count raw { and } — they won't be perfectly balanced in JSX templates
-        # because of string literals, but the count should be within a reasonable
-        # margin (< 20 difference is a good signal of correctness).
-        opens = jsx.count("{")
-        closes = jsx.count("}")
-        assert abs(opens - closes) < 50, (
-            "Brace imbalance too large: {opens} open, {closes} close"
-        )
+        assert "export default" in jsx, "Missing 'export default' in generated JSX"
+        assert "const EVENTS" in jsx, "Missing 'const EVENTS' in generated JSX"
+        assert "const SESSION" in jsx, "Missing 'const SESSION' in generated JSX"
 
     def test_events_constant_present(self, tmp_path: Path):
         jsx = self._jsx(tmp_path)
