@@ -15,7 +15,7 @@
 # ============================================================================
 .PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all deploy-commands
 .PHONY: lock-deps lock-update lock-check lock-install lock-export lock-info
-.PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test
+.PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test compile-release-notes
 .PHONY: release-build-current release-publish-current
 .PHONY: auto-patch auto-minor auto-major auto-build auto-help sync-versions
 .PHONY: update-homebrew-tap update-homebrew-tap-dry-run
@@ -833,7 +833,7 @@ build-info-json: build-metadata ## Display build metadata from JSON
 # ============================================================================
 # Release Management Targets
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify
-.PHONY: release-dry-run release-test-pypi increment-build download-ztk
+.PHONY: release-dry-run release-test-pypi increment-build download-ztk compile-release-notes
 
 # Pinned ztk version for bundled binary distribution.
 # SINGLE SOURCE OF TRUTH: src/claude_mpm/bin/ztk_version.txt (also read by
@@ -972,6 +972,7 @@ increment-build: ## Increment build number for code changes
 release-patch: release-check release-test download-ztk ## Create a patch release (bug fixes)
 	@echo "$(YELLOW)🔧 Creating patch release...$(NC)"
 	@cz bump --increment PATCH
+	@$(MAKE) compile-release-notes
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Patch release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
@@ -980,6 +981,7 @@ release-patch: release-check release-test download-ztk ## Create a patch release
 release-minor: release-check release-test download-ztk ## Create a minor release (new features)
 	@echo "$(YELLOW)✨ Creating minor release...$(NC)"
 	@cz bump --increment MINOR
+	@$(MAKE) compile-release-notes
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Minor release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
@@ -988,9 +990,15 @@ release-minor: release-check release-test download-ztk ## Create a minor release
 release-major: release-check release-test download-ztk ## Create a major release (breaking changes)
 	@echo "$(YELLOW)💥 Creating major release...$(NC)"
 	@cz bump --increment MAJOR
+	@$(MAKE) compile-release-notes
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Major release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
+
+# Compile per-minor release notes from CHANGELOG
+compile-release-notes: ## Compile per-minor release notes from CHANGELOG
+	@mkdir -p dist docs/releases
+	@uv run python scripts/compile_release_notes.py
 
 # ============================================================================
 # Publishing Workflow
@@ -1112,12 +1120,13 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@# Attach ONLY the sdist tarball, never the local py3-none-any wheel: that
 	@# wheel bundles only this host's ztk binary and would mislead users on other
 	@# platforms. The per-platform wheels live on PyPI (published by CI).
+	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
-		--notes-from-tag \
+		--notes-file dist/release-notes-latest.md \
 		$$SDIST || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
@@ -1213,12 +1222,13 @@ release-publish-current: ## Publish current built version
 		echo "$(YELLOW)⚠ npm not found, skipping npm publish$(NC)"; \
 	fi
 	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
+	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
-		--notes-from-tag \
+		--notes-file dist/release-notes-latest.md \
 		$$SDIST || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
