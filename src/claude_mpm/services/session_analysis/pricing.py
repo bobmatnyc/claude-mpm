@@ -8,18 +8,27 @@ WHY:  A single authoritative pricing table used by the session analyzer so
 
 References
 ----------
-LINK: none  (new subsystem — spec backfill pending)
+LINK: none  (new subsystem -- spec backfill pending)
 
-Source: https://www.anthropic.com/pricing  (retrieved 2025-06-10)
+Source: https://www.anthropic.com/pricing  (retrieved 2026-06-10)
 """
 
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Rate table — USD per 1 000 000 tokens
-# Source: https://www.anthropic.com/pricing  (retrieved 2025-06-10)
+# Pricing retrieval date -- update whenever the hardcoded table is refreshed.
+# ---------------------------------------------------------------------------
+
+PRICING_RETRIEVED_DATE: str = "2026-06-10"
+
+# ---------------------------------------------------------------------------
+# Rate table -- USD per 1 000 000 tokens
+# Source: https://www.anthropic.com/pricing  (retrieved 2026-06-10)
 # Update the table here (and only here) when Anthropic changes list prices.
 # ---------------------------------------------------------------------------
 
@@ -70,7 +79,7 @@ _RATE_TABLE: list[tuple[str, Rates]] = [
     ),
 ]
 
-# Default fallback when no prefix matches — use sonnet rates and flag it.
+# Default fallback when no prefix matches -- use sonnet rates and flag it.
 _FALLBACK_RATES = Rates(
     input=3.00,
     output=15.00,
@@ -79,6 +88,62 @@ _FALLBACK_RATES = Rates(
     model_family="unknown",
     is_fallback=True,
 )
+
+
+def _load_rate_table_from_file(path: Path) -> list[tuple[str, Rates]]:
+    """Load a rate table from a JSON file.
+
+    WHAT: Parses a JSON array of {prefix, input, output, cache_write,
+          cache_read, model_family} objects and returns a list of
+          (prefix, Rates) tuples in the same order.
+    WHY:  Allows operators to supply an up-to-date pricing file via the
+          CLAUDE_MPM_PRICING_FILE env var without modifying source code.
+
+    Parameters
+    ----------
+    path:
+        Absolute or relative path to the JSON pricing file.
+
+    Returns
+    -------
+    list[tuple[str, Rates]]
+        Parsed rate table, same shape as _RATE_TABLE.
+
+    Raises
+    ------
+    ValueError
+        If the file cannot be parsed or is missing required keys.
+    """
+    with path.open("r", encoding="utf-8") as fh:
+        raw = json.load(fh)
+    if not isinstance(raw, list):
+        raise ValueError(f"Pricing file must contain a JSON array, got {type(raw)}")
+    table: list[tuple[str, Rates]] = []
+    for entry in raw:
+        prefix = entry["prefix"]
+        table.append(
+            (
+                prefix,
+                Rates(
+                    input=float(entry["input"]),
+                    output=float(entry["output"]),
+                    cache_write=float(entry["cache_write"]),
+                    cache_read=float(entry["cache_read"]),
+                    model_family=str(entry.get("model_family", "")),
+                ),
+            )
+        )
+    return table
+
+
+def _active_rate_table() -> list[tuple[str, Rates]]:
+    """Return the rate table, preferring CLAUDE_MPM_PRICING_FILE if set."""
+    pricing_file = os.environ.get("CLAUDE_MPM_PRICING_FILE", "").strip()
+    if pricing_file:
+        p = Path(pricing_file)
+        if p.is_file():
+            return _load_rate_table_from_file(p)
+    return _RATE_TABLE
 
 
 def resolve_model_rates(model: str) -> Rates:
@@ -101,7 +166,7 @@ def resolve_model_rates(model: str) -> Rates:
         Matched or fallback rate object.
     """
     model_lower = model.lower().strip()
-    for prefix, rates in _RATE_TABLE:
+    for prefix, rates in _active_rate_table():
         if model_lower.startswith(prefix):
             return rates
     return _FALLBACK_RATES
