@@ -390,7 +390,10 @@ def read_markdown(path: Path) -> dict[str, Any]:
         nonlocal current, detail_lines, calls_lines, outcome_line, links_line, in_calls
         if current is None:
             return
-        current["detail"] = "\n".join(detail_lines).strip()
+        # Strip leading/trailing blank lines; collapse runs of 2+ blank lines
+        # that accumulate from blank separator lines between sub-sections.
+        raw_detail = "\n".join(detail_lines).strip()
+        current["detail"] = re.sub(r"\n{3,}", "\n\n", raw_detail)
         current["calls_text"] = "\n".join(calls_lines).strip()
         current["outcome_text"] = outcome_line
         current["links_text"] = links_line
