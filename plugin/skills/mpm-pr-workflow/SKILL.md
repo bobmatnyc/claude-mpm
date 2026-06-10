@@ -36,6 +36,49 @@ When non-privileged users request main branch operations:
 
 **Error Prevention**: PM proactively guides non-privileged users to correct workflow (don't wait for git errors).
 
+## Worktree-First Branch Setup
+
+Check `workflow.worktree.enabled` (default: `true`) before starting any issue branch.
+
+### When enabled (default)
+
+Replace the plain branch checkout with a git worktree:
+
+```bash
+# Create the worktree and branch in one step
+git worktree add .claude/worktrees/issue-N-<slug> -b feat/N-<slug>
+
+# All engineering work happens inside the worktree
+cd .claude/worktrees/issue-N-<slug>
+```
+
+The source directory (`repo/`) stays on `main` throughout; only the worktree
+directory advances on the feature branch.
+
+**Post-merge cleanup** (after squash-merge lands on main):
+
+```bash
+# Remove the worktree
+git worktree remove .claude/worktrees/issue-N-<slug>
+git branch -d feat/N-<slug>   # delete the local tracking branch
+
+# Pull latest main in the source dir
+git pull
+```
+
+- Only run after confirming the squash-merge has landed on main.
+- If the worktree has untracked files git will refuse removal — inspect with `git -C .claude/worktrees/issue-N-<slug> status` first.
+- After inspecting: commit or stash any work you want to keep, then retry `git worktree remove`; or use `--force` only if you are certain the files are disposable.
+
+### When disabled (opt-out)
+
+Set `workflow.worktree.enabled: false` in `.claude-mpm/config.yaml` to fall back
+to the standard branch checkout approach below:
+
+```bash
+git checkout -b feat/N-<slug>
+```
+
 ## PR Workflow Delegation
 
 **Default**: Main-based PRs (unless user explicitly requests stacked)

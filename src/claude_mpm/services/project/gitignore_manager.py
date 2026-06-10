@@ -129,6 +129,8 @@ STANDARD_GITIGNORE_PATTERNS: frozenset[str] = frozenset(
         ".claude-mpm/tmp/",
         ".claude/sessions/",
         "*.mpm.tmp",
+        # .claude/worktrees/ is the canonical location; always local-only, never committed.
+        ".claude/worktrees/",
         # Backup files
         "*.bak",
         "*.backup",

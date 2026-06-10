@@ -612,7 +612,13 @@ class Config:
                         # off | baseline | strict
                         "enforcement": "baseline",
                     },
-                }
+                },
+                # Worktree-first workflow: each issue gets its own git worktree under
+                # .claude/worktrees/ (aligns with Claude Code native convention).
+                # Opt-OUT: enabled by default; set to false to revert to plain branch checkout.
+                "worktree": {
+                    "enabled": True,
+                },
             },
         }
 
