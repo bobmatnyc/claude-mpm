@@ -613,11 +613,11 @@ class Config:
                         "enforcement": "baseline",
                     },
                 },
-                # Worktree-first workflow: each issue gets its own git worktree so the
-                # source directory stays pinned to HEAD while work proceeds in isolation.
+                # Worktree-first workflow: each issue gets its own git worktree under
+                # .claude/worktrees/ (aligns with Claude Code native convention).
                 # Opt-OUT: enabled by default; set to false to revert to plain branch checkout.
                 "worktree": {
-                    "enabled": True,  # opt-out: on by default; set false in .claude-mpm/config.yaml to disable
+                    "enabled": True,
                 },
             },
         }
