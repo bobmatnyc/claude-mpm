@@ -152,10 +152,9 @@ def _encode_cwd(cwd: str) -> str:
         ~/.claude/projects/{encoded_cwd}/{session_id}.jsonl
 
     where ``encoded_cwd`` is the absolute path with every ``/`` replaced by ``-``
-    and any leading ``-`` stripped.
+    (the leading ``-`` is preserved; stripping it would break lookup on macOS/Linux).
     """
-    encoded = cwd.replace("/", "-")
-    return encoded.lstrip("-")
+    return cwd.replace("/", "-")
 
 
 def _claude_projects_root() -> Path:
