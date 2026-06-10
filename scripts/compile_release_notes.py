@@ -185,24 +185,32 @@ def main() -> int:
         _write_file(minor_doc, file_content)
         print(f"Wrote {minor_doc.relative_to(repo_root)}")
     else:
-        # Append patch section to existing minor release file
-        append_block = f"\n---\n\n{section_text}\n"
+        # Prepend patch section after the title line (newest-first ordering)
+        new_block = f"\n---\n\n{section_text}\n"
         if minor_doc.exists():
             existing = _read_file(minor_doc)
-            _write_file(minor_doc, existing + append_block)
+            # Insert after the first `# ` heading line so newest patches appear at top
+            title_match = re.match(r"(# [^\n]+\n)", existing)
+            if title_match:
+                title_line = title_match.group(1)
+                rest = existing[title_match.end() :]
+                _write_file(minor_doc, title_line + new_block + rest)
+            else:
+                # No title line found — prepend at top
+                _write_file(minor_doc, new_block + existing)
         else:
             # Bootstrap a file if it doesn't exist yet
             bootstrap = (
                 f"# v{major}.{minor} Release Notes\n"
+                f"{new_block}"
                 f"\n_Patch series starting at v{major}.{minor}.{patch}._\n"
-                f"{append_block}"
             )
             _write_file(minor_doc, bootstrap)
             print(
                 f"NOTE: {minor_doc.relative_to(repo_root)} did not exist; created it.",
                 file=sys.stderr,
             )
-        print(f"Appended to {minor_doc.relative_to(repo_root)}")
+        print(f"Updated {minor_doc.relative_to(repo_root)} (newest-first)")
 
     # 6. Always write dist/release-notes-latest.md
     _write_file(dist_file, section_text + "\n")
