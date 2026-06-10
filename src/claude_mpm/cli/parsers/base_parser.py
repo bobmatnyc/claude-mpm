@@ -938,13 +938,12 @@ def create_parser(
         except ImportError:
             pass
 
-        # Add session-report command (offline transcript analysis)
-        try:
-            from ..commands.session_report import add_session_report_parser
+        # Add session-report command (offline transcript analysis).
+        # No try/except here: import or syntax errors in session_report should
+        # propagate so they are visible rather than silently swallowed.
+        from ..commands.session_report import add_session_report_parser
 
-            add_session_report_parser(subparsers)
-        except ImportError:
-            pass
+        add_session_report_parser(subparsers)
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
