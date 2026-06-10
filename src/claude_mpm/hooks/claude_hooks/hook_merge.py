@@ -129,16 +129,12 @@ def merge_hooks_for_event(
 
     for hook_config in existing_hooks:
         matcher = hook_config.get("matcher")
-        if use_matcher:
-            # Look for an existing wildcard-matcher block.
-            if matcher == "*":
-                if "hooks" not in hook_config:
-                    hook_config["hooks"] = []
-                hook_config["hooks"].append(new_hook_command)
-                added = True
-                break
-        # Simple events have no matcher key.
-        elif matcher is None:
+        # Accept a block when:
+        #  - use_matcher=True  → block has matcher == "*"
+        #  - use_matcher=False → block has matcher == "*" OR no matcher key
+        #    (simple events like Stop have no matcher, but if a wildcard block
+        #    happens to exist we can reuse it rather than creating a new one)
+        if matcher == "*" or (not use_matcher and matcher is None):
             if "hooks" not in hook_config:
                 hook_config["hooks"] = []
             hook_config["hooks"].append(new_hook_command)
