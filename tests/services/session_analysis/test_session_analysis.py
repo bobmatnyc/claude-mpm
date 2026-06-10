@@ -35,6 +35,7 @@ from claude_mpm.services.session_analysis.transcript_parser import (
     SessionReport,
     TimelineEvent,
     _correlate_subagents,
+    _encode_cwd,
     _parse_jsonl,
     _parse_subagent_transcript,
     _SubagentSummary,
@@ -50,6 +51,26 @@ from claude_mpm.services.session_analysis.transcript_parser import (
 FIXTURES = Path(__file__).parent.parent.parent / "fixtures" / "session_analysis"
 MAIN_JSONL = FIXTURES / "main_session.jsonl"
 SUBAGENT_JSONL = FIXTURES / "subagent_python_engineer.jsonl"
+
+
+# ===========================================================================
+# transcript_parser.py — _encode_cwd regression test (GitHub #729)
+# ===========================================================================
+
+
+class TestEncodeCwd:
+    """Regression tests for _encode_cwd: leading dash must be preserved."""
+
+    def test_macos_path_keeps_leading_dash(self) -> None:
+        # /Users/masa/Projects/claude-mpm → -Users-masa-Projects-claude-mpm
+        assert (
+            _encode_cwd("/Users/masa/Projects/claude-mpm")
+            == "-Users-masa-Projects-claude-mpm"
+        )
+
+    def test_linux_path_keeps_leading_dash(self) -> None:
+        # /home/user/project → -home-user-project
+        assert _encode_cwd("/home/user/project") == "-home-user-project"
 
 
 # ===========================================================================
@@ -282,9 +303,9 @@ class TestParseSessionFixture:
 
     def _build_session_tree(self, tmp_path: Path) -> tuple[str, str]:
         """Copy fixtures into a fake ~/.claude layout and return (session_id, cwd)."""
-        # Encode cwd: /fake/project -> fake-project
+        # Encode cwd using the same function as production so fixture dirs match parser.
         fake_cwd = str(tmp_path / "fake" / "project")
-        encoded = fake_cwd.replace("/", "-").lstrip("-")
+        encoded = _encode_cwd(fake_cwd)
         session_id = "test-session-01"
 
         # Create main JSONL
@@ -376,7 +397,7 @@ class TestFindMostRecentSession:
     def test_returns_most_recently_modified(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         cwd = "/test/proj"
-        encoded = cwd.replace("/", "-").lstrip("-")
+        encoded = _encode_cwd(cwd)
         proj_dir = tmp_path / ".claude" / "projects" / encoded
         proj_dir.mkdir(parents=True)
 
