@@ -45,6 +45,33 @@ Closes #447"
 
 ---
 
+## 🟡 Worktree Development Workflow
+
+Keep the primary checkout on `main`/HEAD at all times — never check out a feature branch in it.
+
+**Per-issue worktree:**
+
+```bash
+git worktree add .claude/worktrees/issue-<N>-<slug> -b feat/<N>-<slug>
+# All build, test, and commit operations happen inside the worktree
+```
+
+`.claude/worktrees/` is gitignored; each issue gets its own tree. Parallel agents or parallel issues use separate worktrees — never run concurrent branch mutations in one tree.
+
+**Cleanup after squash-merge:**
+
+```bash
+git worktree remove .claude/worktrees/issue-<N>-<slug>
+git branch -d feat/<N>-<slug>
+git pull
+```
+
+Only run after confirming the squash-merge has landed on `main`.
+
+> **Note:** The MPM PM enforces this automatically via the Agent tool's `isolation: "worktree"` parameter. Canonical rules live in `src/claude_mpm/agents/WORKFLOW.md`.
+
+---
+
 ## 🔴 Release Workflow
 
 `claude-mpm gh switch` first (must be bobmatnyc, not bob-duetto) → `make release-patch|minor|major` → `make release-publish`. Never call `./scripts/publish_to_pypi.sh` directly.
