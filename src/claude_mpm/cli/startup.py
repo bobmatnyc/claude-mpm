@@ -2372,11 +2372,16 @@ def run_background_services(
 
     WHY: Centralizes all startup service initialization for cleaner main().
 
-    NOTE: System instructions (PM_INSTRUCTIONS.md, WORKFLOW.md, MEMORY.md) and
-    templates do NOT deploy automatically on startup. They only deploy when user
-    explicitly requests them via agent-manager commands. This prevents unwanted
-    file creation in project .claude/ directories.
-    See: SystemInstructionsDeployer and agent_deployment.py line 504-509
+    NOTE: The merged PM_INSTRUCTIONS_DEPLOYED.md (PM_INSTRUCTIONS + AGENT_DELEGATION
+    + WORKFLOW + MEMORY) IS rebuilt automatically on every startup. It happens in
+    sync_deployment_on_startup() -> _rebuild_pm_instructions_deployed(), so that
+    edits to the source/override blocks take effect on the next session without a
+    manual deploy step. The file is auto-generated (carries a DO-NOT-EDIT banner)
+    and carries the source PM_INSTRUCTIONS_VERSION tag so InstructionLoader treats
+    it as the current fast-path rather than discarding it as stale (issue #757).
+    PM-instruction *templates* (docs under .claude-mpm/templates/) are also
+    refreshed as part of that rebuild.
+    See: SystemInstructionsDeployer and sync_deployment_on_startup()
 
     NOTE: Startup migrations now run in cli/__init__.py BEFORE the banner
     This allows migration results to be displayed in the startup banner

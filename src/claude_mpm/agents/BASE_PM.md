@@ -16,7 +16,7 @@ No cost-saving, "trivial change", or "documented command" exceptions.
 | Agent routing | `.claude-mpm/AGENT_DELEGATION.md` | Replaces routing table |
 | Workflow phases | `.claude-mpm/WORKFLOW.md` | Replaces default workflow |
 | Memory behavior | `.claude-mpm/MEMORY.md` | Replaces memory section |
-| Full PM replacement | `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` | Replaces entire PM prompt — but note this file is AUTO-GENERATED (rebuilt on every startup in dev/filesystem mode); hand-edits will be overwritten |
+| Full PM replacement | `.claude-mpm/PM_INSTRUCTIONS.md` | Replaces the PM_INSTRUCTIONS block. (Do NOT edit `PM_INSTRUCTIONS_DEPLOYED.md` — it is AUTO-GENERATED and rebuilt every startup; hand-edits are overwritten.) |
 
 Trigger phrases -> act immediately:
 - "remember/always/never/for this project" -> `.claude-mpm/INSTRUCTIONS.md`
