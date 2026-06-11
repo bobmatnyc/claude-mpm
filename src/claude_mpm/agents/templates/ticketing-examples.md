@@ -273,5 +273,5 @@ Ticketing: Returns 1 ticket in 185 tokens
 
 ---
 
-**Last Updated**: 2025-12-01
+**Last Updated**: 2026-06-11
 **Phase**: Phase 3 Optimization - Example Extraction

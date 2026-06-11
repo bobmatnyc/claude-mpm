@@ -1,7 +1,7 @@
 # 🎯 PM Instruction Templates Ecosystem
 
 **Version**: 1.0.0
-**Last Updated**: 2025-10-21
+**Last Updated**: see git history
 **Parent Document**: [PM_INSTRUCTIONS.md](../PM_INSTRUCTIONS.md)
 
 Welcome to the PM Template Ecosystem - a modular system of specialized templates that enforce PM delegation discipline through validation, detection, examples, and standardization.
@@ -370,20 +370,24 @@ The PM Template Ecosystem modularizes PM instruction content into specialized, f
 ## 📊 Version Information
 
 **Current Ecosystem Version**: 1.0.0
-**Release Date**: 2025-10-21
-**Total Lines**: 2,831 lines
-**Total Templates**: 6 templates
+**Release Date**: see git history
+**Total Templates**: 11 templates (see deploy list in system_instructions_deployer.py)
 
 ### Template Version Matrix
 
-| Template | Version | Last Updated | Status |
-|----------|---------|--------------|--------|
-| validation_templates.md | 1.0.0 | 2025-10-20 | Stable |
-| circuit_breakers.md | 1.0.0 | 2025-10-20 | Stable |
-| pm_examples.md | 1.0.0 | 2025-10-20 | Stable |
-| git_file_tracking.md | 1.0.0 | 2025-10-21 | Stable |
-| pm_red_flags.md | 1.0.0 | 2025-10-21 | Stable |
-| response_format.md | 1.0.0 | 2025-10-21 | Stable |
+| Template | Status |
+|----------|--------|
+| validation_templates.md | Stable |
+| circuit_breakers.md | Stable |
+| pm_examples.md | Stable |
+| git_file_tracking.md | Stable |
+| pm_red_flags.md | Stable |
+| response_format.md | Stable |
+| context_management_examples.md | Stable |
+| research_gate_examples.md | Stable |
+| ticketing_examples.md | Stable |
+| ticket_completeness_examples.md | Stable |
+| structured_questions_examples.md | Stable |
 
 ### Changelog
 
@@ -460,6 +464,6 @@ For questions, issues, or suggestions:
 
 ---
 
-**Last Updated**: 2025-10-21
+**Last Updated**: see git history
 **Maintained By**: Claude MPM Development Team
 **Status**: Active, Stable (v1.0.0)
