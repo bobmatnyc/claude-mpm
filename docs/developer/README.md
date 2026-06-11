@@ -10,6 +10,7 @@ Technical documentation for contributors and extenders.
 - **Skills Versioning**: [skills-versioning.md](skills-versioning.md)
 - **Structured Questions Integration**: [integrating-structured-questions.md](integrating-structured-questions.md)
 - **Code Formatting**: [CODE_FORMATTING.md](CODE_FORMATTING.md)
+- **Worktree Workflow**: canonical rules in [`src/claude_mpm/agents/WORKFLOW.md`](../../src/claude_mpm/agents/WORKFLOW.md); developer quick-start in the [CLAUDE.md § Worktree Development Workflow](../../CLAUDE.md) section
 
 ## Deep Dives
 
