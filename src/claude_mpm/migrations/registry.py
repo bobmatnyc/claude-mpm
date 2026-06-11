@@ -222,6 +222,13 @@ def _run_clean_global_settings_metadata_migration() -> bool:
     return run_migration()
 
 
+def _run_rename_trusty_analyzer_migration() -> bool:
+    """Rename stale trusty-analyzer MCP entry to trusty-analyze and clean up launchd plist (issue #782)."""
+    from .v6_5_34_rename_trusty_analyzer import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -400,6 +407,12 @@ MIGRATIONS: list[Migration] = [
         version="6.5.21",
         description="Remove stale _mpm_managed/_mpm_version metadata and leftover MPM hook entries from global ~/.claude/settings.json (issue #676)",
         run=_run_clean_global_settings_metadata_migration,
+    ),
+    Migration(
+        id="v6_5_34_rename_trusty_analyzer",
+        version="6.5.34",
+        description="Rename stale trusty-analyzer MCP server entry to trusty-analyze and remove old com.bobmatnyc.trusty-analyzer launchd plist (issue #782)",
+        run=_run_rename_trusty_analyzer_migration,
     ),
 ]
 
