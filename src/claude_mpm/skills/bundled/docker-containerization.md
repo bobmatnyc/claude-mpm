@@ -1,6 +1,7 @@
 ---
 skill_id: docker-containerization
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when containerizing an application, writing Dockerfiles, configuring docker-compose, or debugging container build and runtime issues
 description: Essential Docker patterns for containerizing applications.
 updated_at: 2025-10-30T17:00:00Z
 tags: [docker, containers, deployment, devops]

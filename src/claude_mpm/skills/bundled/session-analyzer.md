@@ -1,6 +1,7 @@
 ---
 skill_id: session-analyzer
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when analyzing a completed Claude session to understand cost breakdown, agent behavior, tool usage timeline, or to generate a visual session report
 description: "Debug and teach agentic coding: a deterministic-first session timeline + cost report, with optional narrative polish and a standalone JSX visualiser."
 updated_at: 2026-06-10T00:00:00Z
 tags: [session, reporting, cost, teaching, debugging]

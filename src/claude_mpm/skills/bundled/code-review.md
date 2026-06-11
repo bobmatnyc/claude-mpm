@@ -1,6 +1,7 @@
 ---
 skill_id: code-review
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when reviewing a pull request, auditing existing code for quality issues, or conducting a structured code review
 description: Systematic approach to reviewing code for quality, correctness, and maintainability.
 updated_at: 2025-10-30T17:00:00Z
 tags: [code-review, quality, collaboration, best-practices]

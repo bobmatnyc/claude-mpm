@@ -1,6 +1,7 @@
 ---
 skill_id: xlsx
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when reading, writing, generating, or transforming Excel (.xlsx) files programmatically in any language
 description: Working with Excel files programmatically.
 updated_at: 2025-10-30T17:00:00Z
 tags: [excel, xlsx, spreadsheet, data]

@@ -20,55 +20,19 @@ Claude Multi-Agent Project Manager — orchestrates Claude subagents with agent 
 
 ## 🔴 Git Commit Rules
 
-**ONE FILE PER COMMIT.** Never bundle multiple file changes into a single commit.
+**ONE FILE PER COMMIT.** Never bundle multiple file changes into a single commit. Use conventional commit prefixes: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`.
 
-```bash
-# Correct
-git add src/claude_mpm/migrations/runner.py
-git commit -m "feat: add migration runner with rich output"
-
-git add CLAUDE.md
-git commit -m "docs: update CLAUDE.md with priority rankings"
-```
-
-Use conventional commit prefixes: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`
-
-### Referencing Issues
-
-Use `Closes #N` in the commit body to auto-close a GitHub issue when the commit lands on `main`. `Fixes #N` and `Resolves #N` are equivalent.
-
-```bash
-git commit -m "fix: resolve agent discovery path bug
-
-Closes #447"
-```
+Use `Closes #N` in the commit body to auto-close a GitHub issue when the commit lands on `main`.
 
 ---
 
 ## 🟡 Worktree Development Workflow
 
-Keep the primary checkout on `main`/HEAD at all times — never check out a feature branch in it.
+Canonical worktree workflow: see `src/claude_mpm/agents/WORKFLOW.md` → "Worktree Workflow" and "Worktree-Based Branch Workflow (CRITICAL)".
 
-**Per-issue worktree:**
+Key rule: keep the primary checkout on `main`/HEAD at all times — never check out a feature branch in it. `.claude/worktrees/` is gitignored.
 
-```bash
-git worktree add .claude/worktrees/issue-<N>-<slug> -b feat/<N>-<slug>
-# All build, test, and commit operations happen inside the worktree
-```
-
-`.claude/worktrees/` is gitignored; each issue gets its own tree. Parallel agents or parallel issues use separate worktrees — never run concurrent branch mutations in one tree.
-
-**Cleanup after squash-merge:**
-
-```bash
-git worktree remove .claude/worktrees/issue-<N>-<slug>
-git branch -d feat/<N>-<slug>
-git pull
-```
-
-Only run after confirming the squash-merge has landed on `main`.
-
-> **Note:** The MPM PM enforces this automatically via the Agent tool's `isolation: "worktree"` parameter. Canonical rules live in `src/claude_mpm/agents/WORKFLOW.md`.
+> **Note:** The MPM PM enforces this automatically via the Agent tool's `isolation: "worktree"` parameter.
 
 ---
 
@@ -129,10 +93,7 @@ Agent frontmatter (`agents/*.md`) supports **both** MPM-proprietary and Claude C
 
 **Claude Code native**: `name`, `description`, `model`, `tools`, `disallowedTools`, `permissionMode`, `maxTurns`, `memory`, `skills`, `hooks`, `background`, `effort`, `isolation`, `color`
 
-Invoke subagents via the `Agent` tool (not bash):
-```
-Agent(subagent_type="agent-name", description="...", prompt="...", model="haiku")
-```
+Invoke subagents via the `Agent` tool (not bash). See `src/claude_mpm/agents/WORKFLOW.md` for delegation patterns.
 
 ---
 

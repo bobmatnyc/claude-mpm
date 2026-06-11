@@ -1,6 +1,7 @@
 ---
 skill_id: async-testing
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when writing or debugging tests for async/await code, promise chains, event emitters, or concurrent operations
 description: Patterns for testing asynchronous code across languages, eliminating redundant async testing guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [testing, async, asynchronous, concurrency]

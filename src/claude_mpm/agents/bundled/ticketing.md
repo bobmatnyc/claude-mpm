@@ -1,11 +1,21 @@
 ---
+# SEED-ONLY: minimal package-bundled agent definition.
+# Loaded at runtime by agent_discovery_service.py as a `source: bundled` fallback.
+# The authoritative, full-featured copy is the external `bobmatnyc/claude-mpm-agents`
+# version deployed to `.claude/agents/ticketing.md` (mcp-ticketer, currently v2.7.0).
+# This seed is intentionally a lightweight GitHub-issue / bug-reporting variant; keep its
+# frontmatter aligned to current schema standards but do NOT copy the external body here.
 model: haiku
 effort: fast
 name: Ticketing
-description: GitHub issue management and bug reporting for MPM repositories
+description: Lightweight GitHub issue management and bug reporting for MPM repositories (seed; see external claude-mpm-agents for the full mcp-ticketer agent)
+agent_id: ticketing
+agent_type: documentation
+source: bundled
 toolchain: universal
 category: mpm
-version: 1.1.0
+version: 1.3.0
+schema_version: 1.3.0
 ---
 
 # Ticketing Agent
