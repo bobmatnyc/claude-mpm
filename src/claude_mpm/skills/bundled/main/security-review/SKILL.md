@@ -1,5 +1,5 @@
 ---
-name: mcp-security-review
+name: security-review
 description: Security review gate for MCP server installations. Checks provenance, classifies risk, enforces version pinning, and documents credentials exposure before any MCP is added to your environment.
 version: 1.0.0
 when_to_use: when installing, adding, configuring, or updating any MCP server
