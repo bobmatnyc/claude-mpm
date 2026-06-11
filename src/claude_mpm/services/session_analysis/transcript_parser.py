@@ -352,6 +352,132 @@ _COMMAND_TAG_RE = re.compile(
 )
 
 
+# ---------------------------------------------------------------------------
+# Secret redaction patterns
+#
+# Applied to ALL ingested text before it is stored in any TimelineEvent field
+# (title, detail, call inputs/outputs, subagent prompt/response, outcome text).
+# This prevents live credentials from leaking into report .md files, .jsx data,
+# or <!-- meta --> blocks.
+#
+# Pattern order is intentional: specific prefixed patterns run FIRST so they
+# match before the generic "high-entropy assignment" rule at the bottom.
+# The function is idempotent: ``[REDACTED:...]`` placeholders never match any
+# live-credential pattern, so re-running on already-redacted text is a no-op.
+# ---------------------------------------------------------------------------
+
+# (pattern, replacement_label) — compiled once at module load
+_SECRET_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    # npm tokens:  npm_<36 alphanum>
+    (re.compile(r"npm_[A-Za-z0-9]{36}"), "npm_token"),
+    # GitHub tokens:  ghp_ / gho_ / ghu_ / ghs_ / ghr_  followed by 36+ alphanum
+    (re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}"), "github_token"),
+    # AWS access key ID:  AKIA followed by 16 uppercase+digits
+    (re.compile(r"AKIA[0-9A-Z]{16}"), "aws_key"),
+    # OpenAI / Anthropic-style API keys:  sk-  followed by 20+ alphanum/_/-
+    (re.compile(r"sk-[A-Za-z0-9_-]{20,}"), "api_key"),
+    # Slack tokens:  xoxb / xoxa / xoxp / xoxr / xoxs  followed by 10+ alphanum/-
+    (re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"), "slack_token"),
+    # PEM private-key blocks (DOTALL — may span multiple lines)
+    (
+        re.compile(
+            r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
+            re.DOTALL,
+        ),
+        "private_key",
+    ),
+    # Generic high-entropy assignment:
+    #   token/password/passwd/secret/api_key/apikey/access_key
+    #   followed by =, :, or => (with optional surrounding whitespace)
+    #   followed by an optional quote and a value of 16+ chars
+    #
+    # Only the VALUE portion is replaced; the key name is preserved so the
+    # report still shows context like ``api_key = [REDACTED:api_key]``.
+    #
+    # Negative lookahead ``(?!\[REDACTED:)`` prevents double-redaction of values
+    # that a specific pattern has already replaced (e.g. when ``npm_<token>``
+    # was first turned into ``[REDACTED:npm_token]``, the ``TOKEN=`` prefix in
+    # ``NPM_TOKEN=`` would otherwise re-fire this rule on the placeholder).
+    (
+        re.compile(
+            r"""(?ix)
+            (?:token|password|passwd|secret|api[_\-]?key|apikey|access[_\-]key)  # key name
+            \s*(?:=>|[:=])\s*                                                      # separator
+            (?P<q>["\']?)                                                           # optional quote
+            (?!\[REDACTED:)                                                         # not already redacted
+            (?P<val>[A-Za-z0-9+/=_\-!@#$%^&*()\[\]{}<>.,;:~]{16,})               # value (≥16 chars)
+            (?P=q)                                                                  # close quote
+            """,
+        ),
+        "api_key",
+    ),
+]
+
+# Pre-compiled: already-redacted placeholder — never re-redact these
+_ALREADY_REDACTED_RE = re.compile(r"\[REDACTED:[a-z_]+\]")
+
+
+def _redact_secrets(text: str) -> str:
+    """Remove live credential strings from *text*, replacing them with labelled placeholders.
+
+    WHAT: Scans *text* for known secret patterns (npm tokens, GitHub tokens,
+          AWS access keys, OpenAI/Anthropic-style ``sk-`` API keys, Slack
+          tokens, PEM private-key blocks, and generic high-entropy assignments
+          to credential-like keys) and replaces each match with a
+          ``[REDACTED:<type>]`` sentinel.
+    WHY:  ``session-report`` reproduces transcript text verbatim.  Without
+          scrubbing, real tokens that appeared in tool inputs, shell output, or
+          assistant responses would propagate into the report ``.md``, ``.jsx``
+          data files, and ``<!-- meta -->`` blocks — exactly the npm-token
+          leak described in issue #738.
+
+    Pattern order
+    -------------
+    Specific prefixed patterns (npm, GitHub, AWS, sk-, Slack, PEM) run before
+    the generic high-entropy-assignment rule so they always win on any value
+    that starts with a recognisable prefix.
+
+    Idempotency
+    -----------
+    ``[REDACTED:<type>]`` placeholders do not match any live-credential regex,
+    so calling this function on already-redacted text is always a no-op.
+
+    Scope
+    -----
+    Normal prose (sentences, code identifiers, URLs) is not affected unless
+    it accidentally matches a secret pattern — which is extremely unlikely
+    given the minimum-length constraints and required prefixes.
+
+    Parameters
+    ----------
+    text:
+        Arbitrary UTF-8 string ingested from a JSONL transcript.
+
+    Returns
+    -------
+    str
+        *text* with all matched secrets replaced by ``[REDACTED:<label>]``.
+    """
+    for pattern, label in _SECRET_PATTERNS:
+        replacement = f"[REDACTED:{label}]"
+        # For the generic assignment rule the named group ``val`` covers only
+        # the value portion; we splice the replacement into the full match so
+        # the key name is preserved.
+        if pattern.groupindex.get("val"):
+            # Build a replacement that keeps everything except the ``val`` group
+            def _replace_val(m: re.Match[str], _label: str = label) -> str:
+                start, end = m.span("val")
+                rel_start = start - m.start()
+                rel_end = end - m.start()
+                full = m.group(0)
+                return full[:rel_start] + f"[REDACTED:{_label}]" + full[rel_end:]
+
+            text = pattern.sub(_replace_val, text)
+        else:
+            text = pattern.sub(replacement, text)
+    return text
+
+
 def _strip_control_tags(text: str) -> str:
     """Remove Claude Code harness control tags from *text*.
 
@@ -671,6 +797,7 @@ def parse_session(
     cwd: str,
     *,
     include_subagents: bool = True,
+    redact: bool = True,
 ) -> SessionReport:
     """Parse a full session into a SessionReport.
 
@@ -688,12 +815,23 @@ def parse_session(
         Absolute path of the project directory that owns the session.
     include_subagents:
         If ``False``, skip subagent JSONL files (useful for tests).
+    redact:
+        If ``True`` (default), apply :func:`_redact_secrets` to every text
+        field as it is ingested so that live credentials (API tokens, private
+        keys, etc.) never reach any output stage.  Pass ``redact=False`` only
+        for trusted local-only use where the raw transcript text must be
+        preserved verbatim (e.g. ``--no-redact`` CLI flag).
 
     Returns
     -------
     SessionReport
         Fully populated report (may have empty events if transcript missing).
     """
+    # Local helper: apply redaction only when the redact flag is True.
+    # Using a local alias keeps all call-sites terse and makes the flag
+    # easy to thread through without touching every leaf expression.
+    _scrub: Any = _redact_secrets if redact else (lambda t: t)
+
     transcript_path = locate_transcript(session_id, cwd)
     report = SessionReport(
         session_id=session_id,
@@ -706,12 +844,31 @@ def parse_session(
 
     lines = _parse_jsonl(transcript_path)
     tool_result_index = _build_tool_result_index(lines)
+    # Redact tool-result texts immediately after building the index so every
+    # downstream consumer (response_text on CallDetail, outcome events) sees
+    # scrubbed output.
+    if redact:
+        tool_result_index = {
+            k: _redact_secrets(v) for k, v in tool_result_index.items()
+        }
 
     # Parse subagent files first so we can correlate
     subagent_summaries: list[_SubagentSummary] = []
     if include_subagents:
         for sa_path in _list_subagent_files(session_id, cwd):
-            subagent_summaries.append(_parse_subagent_transcript(sa_path))
+            sa = _parse_subagent_transcript(sa_path)
+            if redact:
+                # Scrub the two text fields that flow into output stages
+                sa.prompt_text = _redact_secrets(sa.prompt_text)
+                sa.response_text = _redact_secrets(sa.response_text)
+                # Scrub all per-turn events inside the subagent summary
+                for sa_ev in sa.all_events:
+                    sa_ev.title = _redact_secrets(sa_ev.title)
+                    sa_ev.detail = _redact_secrets(sa_ev.detail)
+                    for sa_cd in sa_ev.calls:
+                        sa_cd.input_summary = _redact_secrets(sa_cd.input_summary)
+                        sa_cd.response_text = _redact_secrets(sa_cd.response_text)
+            subagent_summaries.append(sa)
 
     # Collect PM-side Agent tool_use timestamps for correlation
     pm_agent_calls: list[tuple[datetime, str]] = []  # (ts, tool_use_id)
@@ -748,6 +905,10 @@ def parse_session(
             if not clean_text:
                 # After stripping, if nothing human-readable remains, skip.
                 continue
+
+            # Redact secrets AFTER stripping control tags (so we don't waste
+            # effort scanning injected harness content that gets removed anyway).
+            clean_text = _scrub(clean_text)
 
             if not first_user_text:
                 first_user_text = clean_text
@@ -786,7 +947,7 @@ def parse_session(
                     if btype == "text":
                         t = block.get("text", "")
                         if t.strip():
-                            text_parts.append(t)
+                            text_parts.append(_scrub(t))
                     elif btype == "tool_use":
                         tid = block.get("id", "")
                         name = block.get("name", "")
@@ -796,20 +957,20 @@ def parse_session(
                         cd = CallDetail(
                             tool_name=name,
                             tool_use_id=tid,
-                            input_summary=_summarise_input(inp),
-                            response_text=response_text[:500],
+                            input_summary=_scrub(_summarise_input(inp)),
+                            response_text=_scrub(response_text[:500]),
                         )
 
                         if name == "Agent":
                             has_agent = True
                             cd.subagent_type = inp.get("subagent_type", "")
                             cd.subagent_model = inp.get("model", "")
-                            cd.subagent_description = inp.get("description", "")
+                            cd.subagent_description = _scrub(inp.get("description", ""))
                             pm_agent_calls.append((ts, tid))
                         elif name == "Skill":
                             has_skill = True
                             cd.skill_name = inp.get("skill", "")
-                            cd.skill_args = str(inp.get("args", ""))
+                            cd.skill_args = _scrub(str(inp.get("args", "")))
                         elif name.startswith("mcp__"):
                             has_mcp = True
 
@@ -945,6 +1106,7 @@ def parse_session(
                         if summary.all_events
                         else event.timestamp
                     )
+                    # response_text was already scrubbed above when redact=True
                     outcome_event = TimelineEvent(
                         uuid=f"{cd.tool_use_id}-{summary.agent_id}-outcome",
                         timestamp=outcome_ts,
