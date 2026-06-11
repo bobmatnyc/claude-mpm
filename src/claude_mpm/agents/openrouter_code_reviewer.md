@@ -2,11 +2,14 @@
 name: openrouter-code-reviewer
 description: Independent code reviewer using OpenRouter (non-Claude LLMs) for unbiased second-opinion code review
 version: 1.0.0
-schema_version: 1.2.0
+schema_version: 1.3.0
 agent_id: openrouter-code-reviewer
 source: bundled
 agent_type: review
 resource_tier: standard
+# model: harness fallback only — actual review model comes from provider_config.default_model
+# (e.g. openai/gpt-4-turbo). Claude Code uses this field for the dispatcher; openrouter
+# overrides it at call time. Keep as sonnet so the harness always has a valid fallback.
 model: sonnet
 provider: openrouter
 provider_config:
