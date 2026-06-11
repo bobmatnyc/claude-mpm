@@ -110,6 +110,10 @@ For every feature/fix task, follow this exact sequence:
 
 Do NOT skip steps. Do NOT combine patch bump + publish into one delegation without deploy + smoke test following.
 
+## Worktree Isolation (Mandatory — pin main to HEAD)
+
+- [2026-06-11] NEW WORKFLOW RULE (user directive): the primary checkout MUST stay pinned to HEAD (`main`). The PM must NEVER `git checkout -b` / `git switch` a feature branch in the main working tree. All substantive file-modifying work happens in an isolated git worktree — delegate with the Agent tool's `isolation: "worktree"` parameter. PRs still come from branches, but those branches live in worktrees, not the main checkout. PM keeps only read-only git ops + branch/PR coordination on `main`. (Recorded after I incorrectly checked out `fix/session-analyzer-report-quality` in the main tree for PR #737.)
+
 ## Bundled Skills (project facts)
 
 - [2026-06-09] Bundled skill `mutation-testing` ships at `src/claude_mpm/skills/bundled/mutation-testing.md` (PR #715, squash-merged to main as `153f72559`). Auto-discovered by the skills registry via `glob("*.md")` — no registration needed. Teaches why + how to deploy mutation testing portably (tool-by-language table, 6-step deploy recipe, in-place safety caveat, survivor triage, advisory-not-CI-gate policy). Builds on the mutmut 2.5.1 pilot (issue #683 / `trusty_search_allowlist.py`). Policy: mutation testing is advisory/on-demand, NOT a blocking CI gate.
