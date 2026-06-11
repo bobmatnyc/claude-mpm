@@ -1,6 +1,7 @@
 ---
 skill_id: security-scanning
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when scanning code for security vulnerabilities (OWASP Top 10, injection, XSS, secrets exposure), running static analysis tools, or hardening an application before release
 description: Identify and fix common security vulnerabilities in code, eliminating redundant security guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [security, vulnerability, scanning, code-analysis]

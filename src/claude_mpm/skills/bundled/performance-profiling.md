@@ -1,6 +1,7 @@
 ---
 skill_id: performance-profiling
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when diagnosing slow code, measuring execution time or memory usage, or running profiling tools to find performance bottlenecks
 description: Systematic approach to identifying and optimizing performance bottlenecks, eliminating redundant profiling guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [performance, profiling, optimization, benchmarking]

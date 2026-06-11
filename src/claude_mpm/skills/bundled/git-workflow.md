@@ -1,6 +1,7 @@
 ---
 skill_id: git-workflow
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when performing git operations such as branching, merging, rebasing, resolving conflicts, or establishing a commit and PR workflow
 description: Essential Git patterns for effective version control, eliminating redundant Git guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [git, version-control, workflow, best-practices]

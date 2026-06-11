@@ -1,6 +1,7 @@
 ---
 skill_id: json-data-handling
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when parsing, serializing, validating, transforming, or querying JSON data structures in any language
 description: Working effectively with JSON data structures.
 updated_at: 2025-10-30T17:00:00Z
 tags: [json, data, parsing, serialization]

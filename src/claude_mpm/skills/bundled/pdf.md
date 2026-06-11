@@ -1,6 +1,7 @@
 ---
 skill_id: pdf
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when generating, reading, converting, merging, or extracting content from PDF files programmatically
 description: Common PDF operations and libraries across languages.
 updated_at: 2025-10-30T17:00:00Z
 tags: [pdf, document-processing, manipulation, media]

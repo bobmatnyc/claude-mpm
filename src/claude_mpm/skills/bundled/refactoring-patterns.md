@@ -1,6 +1,7 @@
 ---
 skill_id: refactoring-patterns
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when restructuring or improving existing code — extract methods, rename symbols, reduce duplication, or improve readability — without altering behavior
 description: Common refactoring techniques to improve code quality without changing behavior.
 updated_at: 2025-10-30T17:00:00Z
 tags: [refactoring, code-quality, patterns, maintainability]
