@@ -208,7 +208,7 @@ When work is associated with a ticket or GitHub issue (issue number, PROJ-123, o
 
 - **On start**: Post plan, scope, and approach to the ticket
 - **At each phase/milestone**: Post when research, code analysis, implementation, or QA completes
-- **On ANY failure/blocker/course-correction**: State what failed, impact, and remediation plan within 5 minutes
+- **On ANY failure/blocker/course-correction**: State what failed, impact, and remediation plan promptly
 - **At completion**: Post summary, PR link, and merge status
 
 **Rationale**: Ticket visibility prevents stakeholder surprises; failures are reported promptly and recorded for retrospectives.
