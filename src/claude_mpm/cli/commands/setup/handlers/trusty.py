@@ -651,22 +651,21 @@ class TrustyMixin:
         return CommandResult.success_result("trusty-memory setup complete")
 
     def _setup_trusty_analyze(self, args) -> CommandResult:
-        """Set up trusty-analyzer Rust code-analysis sidecar daemon.
+        """Set up trusty-analyze Rust code-analysis sidecar daemon.
 
-        The installed binary is ``trusty-analyzer`` (note the trailing "r");
-        only the user-facing setup verb is ``trusty-analyze`` so it matches
-        the GitHub repo name.
+        The binary is named ``trusty-analyze`` (matching the GitHub repo name).
+        The MCP stdio interface is exposed via ``trusty-analyze mcp``.
 
         Steps:
         1. Install via cargo (from git) if missing.
         2. Ensure daemon is running on http://127.0.0.1:7879 (launchd plist).
-        3. Write ``.mcp.json`` entry pointing at ``trusty-analyzer mcp``.
+        3. Write ``.mcp.json`` entry pointing at ``trusty-analyze mcp``.
 
         :spec: SPEC-INTEGRATIONS-02~1
         """
-        console.print("\n[bold cyan]Trusty Analyzer MCP Setup[/bold cyan]")
+        console.print("\n[bold cyan]Trusty Analyze MCP Setup[/bold cyan]")
         console.print(
-            "Installs trusty-analyzer (Rust code-analysis sidecar daemon) and "
+            "Installs trusty-analyze (Rust code-analysis sidecar daemon) and "
             "wires it into this project's .mcp.json. Sits next to trusty-search "
             "on port 7879.\n"
         )
@@ -676,24 +675,24 @@ class TrustyMixin:
         if install_err is not None:
             return install_err
 
-        binary_path = self._cargo_bin_path("trusty-analyzer")
+        binary_path = self._cargo_bin_path("trusty-analyze")
 
         # 2. Ensure daemon running on 7879
         health_url = "http://127.0.0.1:7879/health"
         if self._http_health_check(health_url):
-            console.print("[green]✓ trusty-analyzer daemon already running[/green]")
+            console.print("[green]✓ trusty-analyze daemon already running[/green]")
         else:
             console.print(
                 "[cyan]Daemon not running — installing persistent launchd agent...[/cyan]"
             )
             plist_path = self._write_launchd_plist(
-                label="com.bobmatnyc.trusty-analyzer",
+                label="com.bobmatnyc.trusty-analyze",
                 binary_path=binary_path,
                 args=["serve"],
-                stdout_path="/tmp/trusty-analyzer.log",  # nosec B108
-                stderr_path="/tmp/trusty-analyzer-error.log",  # nosec B108
+                stdout_path="/tmp/trusty-analyze.log",  # nosec B108
+                stderr_path="/tmp/trusty-analyze-error.log",  # nosec B108
             )
-            self._ensure_launchd_loaded("com.bobmatnyc.trusty-analyzer", plist_path)
+            self._ensure_launchd_loaded("com.bobmatnyc.trusty-analyze", plist_path)
 
             # Give the daemon a moment to come up, then re-probe.
             import time
@@ -706,7 +705,7 @@ class TrustyMixin:
                 console.print(
                     "[yellow]⚠ Could not confirm daemon health on "
                     "http://127.0.0.1:7879 — continuing anyway. "
-                    "Check /tmp/trusty-analyzer-error.log if MCP calls fail.[/yellow]"
+                    "Check /tmp/trusty-analyze-error.log if MCP calls fail.[/yellow]"
                 )
 
         # 3. Write .mcp.json entry (with rollback on failure)
@@ -714,13 +713,13 @@ class TrustyMixin:
             with _mcp_config_transaction():
                 mcp_config = self._load_mcp_config()
                 mcp_config.setdefault("mcpServers", {})
-                mcp_config["mcpServers"]["trusty-analyzer"] = {
+                mcp_config["mcpServers"]["trusty-analyze"] = {
                     "type": "stdio",
-                    "command": "trusty-analyzer",
+                    "command": "trusty-analyze",
                     "args": ["mcp"],
                 }
                 self._save_mcp_config(mcp_config)
-                console.print("[green]✓ Added trusty-analyzer to .mcp.json[/green]")
+                console.print("[green]✓ Added trusty-analyze to .mcp.json[/green]")
         except Exception as e:
             console.print(f"[red]✗ Failed to update .mcp.json: {e}[/red]")
             return CommandResult.error_result(f".mcp.json update failed: {e}")
@@ -728,7 +727,7 @@ class TrustyMixin:
         console.print(
             "\n[bold green]✓ trusty-analyze setup complete![/bold green]\n"
             "  • Daemon: http://127.0.0.1:7879\n"
-            "  • MCP server: stdio via `trusty-analyzer mcp`\n"
-            "  • Logs: /tmp/trusty-analyzer.log\n"
+            "  • MCP server: stdio via `trusty-analyze mcp`\n"
+            "  • Logs: /tmp/trusty-analyze.log\n"
         )
         return CommandResult.success_result("trusty-analyze setup complete")
