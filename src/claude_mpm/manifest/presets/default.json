@@ -28,6 +28,6 @@
     }
   },
   "setup": {
-    "services": ["kuzu-memory", "mcp-ticketer"]
+    "services": ["trusty-memory", "mcp-ticketer"]
   }
 }
