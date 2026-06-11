@@ -19,6 +19,13 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.29 (2026-06-10)
+
+### Feat
+
+- framework workflow rules — ticket updates + worktree branches (#733) (#734)
+- session-analyzer skill — deterministic session timeline + cost report (#729) (#731)
+
 ## v6.5.28 (2026-06-10)
 
 ### Fix
