@@ -316,7 +316,7 @@ class SkillsService(LoggerMixin):
                 # Deploy skills flat (no category prefix) to match Claude Code's
                 # skill scanning pattern: .claude/skills/*/SKILL.md
                 # Claude Code does NOT scan nested subdirectories like
-                # .claude/skills/pm/mpm-message/SKILL.md
+                # .claude/skills/pm/mpm-init/SKILL.md
                 target_dir = self.deployed_skills_path / skill["name"]
 
                 # SECURITY: Validate path is within deployed_skills_path
