@@ -54,6 +54,39 @@ repo/                          ← main, always at HEAD
 
 To opt out: set `workflow.worktree.enabled: false` in `.claude-mpm/config.yaml`.
 
+## Worktree-Based Branch Workflow (CRITICAL)
+
+Feature/fix work uses git worktrees; the PRIMARY checkout stays on the default branch (`main`/HEAD):
+
+### Rules
+1. **Per-issue worktree creation** — For each ticketed change, create an isolated worktree:
+   ```bash
+   git worktree add .claude/worktrees/issue-<N>-<slug> <branch>
+   # Or create the branch in one step:
+   git worktree add .claude/worktrees/issue-<N>-<slug> -b feat/<N>-<slug>
+   ```
+   Then do all build, test, commit, and push operations inside the worktree.
+
+2. **Never switch primary checkout for feature work** — Do NOT check out a feature branch in the primary working tree; this causes stash/WIP contention with concurrent agents. When creating a new branch, always create it in a worktree (using `-b` flag above).
+
+3. **No concurrent branch mutations in one tree** — Never run two branch-mutating git operations concurrently in the same working tree (primary or worktree). Serialization prevents ref conflicts.
+
+4. **Parallel agents use worktree isolation** — When delegating to multiple agents that mutate files, each must use its own worktree. File mutations must never be concurrent in the same tree.
+
+5. **Cleanup after merge** — After the feature branch is squash-merged to `main`, remove the worktree from the source dir:
+   ```bash
+   git worktree remove .claude/worktrees/issue-<N>-<slug>
+   git branch -d feat/<N>-<slug>   # delete local tracking branch
+   git pull                        # advance source dir to HEAD
+   ```
+   Only run after confirming squash-merge has landed on main. If the worktree has untracked files, inspect with `git -C .claude/worktrees/issue-<N>-<slug> status` first; commit or stash anything you want to keep, then retry removal (or use `--force` only if files are disposable).
+
+### Rationale
+- **Eliminates checkout contention**: No competing branch switches in the primary tree
+- **Enables safe parallelism**: Multiple agents work on separate issues without file-system conflicts
+- **Consistent with isolation patterns**: Aligns with the `isolation: "worktree"` pattern on Agent tool calls
+- **Keeps stable HEAD**: Primary tree always points to `main` for reliable reference pulls and deployments
+
 ## Mandatory 5-Phase Sequence
 
 ### Phase 1: Research (CONDITIONAL)
@@ -168,6 +201,19 @@ Return: Clean or list of blocked items
 **Note**: Release workflows are project-specific and should be customized per project. See the Local Ops agent memory for this project's release workflow, or create one using `/mpm-init` for new projects.
 
 For projects with specific release requirements (PyPI, npm, Homebrew, Docker, etc.), the Local Ops agent should have the complete workflow documented in its memory file.
+
+## Ticket Progress & Failure Updates (MANDATORY)
+
+When work is associated with a ticket or GitHub issue (issue number, PROJ-123, or issue/PR URL), the PM MUST post progress updates to that ticket as work progresses — not only at completion:
+
+- **On start**: Post plan, scope, and approach to the ticket
+- **At each phase/milestone**: Post when research, code analysis, implementation, or QA completes
+- **On ANY failure/blocker/course-correction**: State what failed, impact, and remediation plan within 5 minutes
+- **At completion**: Post summary, PR link, and merge status
+
+**Rationale**: Ticket visibility prevents stakeholder surprises; failures are reported promptly and recorded for retrospectives.
+
+**Delegation**: All ticket comment operations (including failure reports) are delegated to the Ticketing agent or Version Control for GitHub PR/issue comments. The PM never calls ticketing/gh MCP tools directly.
 
 ## Ticketing Integration
 
