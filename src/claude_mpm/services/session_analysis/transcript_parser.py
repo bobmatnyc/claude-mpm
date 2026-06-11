@@ -378,6 +378,27 @@ _SECRET_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"sk-[A-Za-z0-9_-]{20,}"), "api_key"),
     # Slack tokens:  xoxb / xoxa / xoxp / xoxr / xoxs  followed by 10+ alphanum/-
     (re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"), "slack_token"),
+    # Authorization / Bearer tokens appearing in headers or logs:
+    #   "Authorization: Bearer <token>", "Authorization: token <token>",
+    #   or bare "Bearer <token>" in log lines.
+    # Only the VALUE is replaced; the scheme word (Bearer / token) is kept so
+    # the line remains readable: "Authorization: Bearer [REDACTED:bearer_token]".
+    # Value charset covers JWTs (dots), base64 (+/=), URL-safe variants (-_).
+    # The ≥20-char minimum prevents false positives on ordinary prose such as
+    # "the bearer of bad news" (no long high-entropy value follows).
+    # Negative lookahead ``(?!\[REDACTED:)`` ensures idempotency.
+    (
+        re.compile(
+            r"""(?ix)
+            (?:Authorization\s*:\s*)?            # optional "Authorization:" prefix
+            (?:[Bb]earer|[Tt]oken)               # scheme keyword (case-insensitive)
+            \s+                                   # required whitespace
+            (?!\[REDACTED:)                       # not already redacted
+            (?P<val>[A-Za-z0-9._\-+/=]{20,})     # value: ≥20 chars (JWTs, base64, etc.)
+            """,
+        ),
+        "bearer_token",
+    ),
     # PEM private-key blocks (DOTALL — may span multiple lines)
     (
         re.compile(
@@ -422,9 +443,9 @@ def _redact_secrets(text: str) -> str:
 
     WHAT: Scans *text* for known secret patterns (npm tokens, GitHub tokens,
           AWS access keys, OpenAI/Anthropic-style ``sk-`` API keys, Slack
-          tokens, PEM private-key blocks, and generic high-entropy assignments
-          to credential-like keys) and replaces each match with a
-          ``[REDACTED:<type>]`` sentinel.
+          tokens, Authorization/Bearer header tokens, PEM private-key blocks,
+          and generic high-entropy assignments to credential-like keys) and
+          replaces each match with a ``[REDACTED:<type>]`` sentinel.
     WHY:  ``session-report`` reproduces transcript text verbatim.  Without
           scrubbing, real tokens that appeared in tool inputs, shell output, or
           assistant responses would propagate into the report ``.md``, ``.jsx``
