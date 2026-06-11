@@ -22,6 +22,33 @@ No direct commits to `main`. Substantive work lands on `main` only via a squash-
 
 **Branch hygiene:** delete feature branches after squash-merge; never run parallel agents on the same branch; keep `main` clean (no throwaway commits).
 
+## Ticket Progress & Failure Updates (MANDATORY)
+
+<!-- Canonical copy in src/claude_mpm/agents/WORKFLOW.md — keep in sync -->
+
+When work is associated with a ticket or GitHub issue, the PM MUST post progress updates to that ticket as work progresses:
+
+- **On start**: Post plan and scope
+- **At each milestone**: Post when phases complete
+- **On failure/blocker**: Report promptly with remediation plan
+- **At completion**: Post summary and merge status
+
+**Delegation**: All ticket operations are delegated to the Ticketing agent. PM never calls ticketing/gh MCP tools directly.
+
+## Worktree-Based Branch Workflow (CRITICAL)
+
+<!-- Canonical copy in src/claude_mpm/agents/WORKFLOW.md — keep in sync -->
+
+Feature/fix work uses git worktrees; the PRIMARY checkout stays on `main`/HEAD:
+
+1. **Create per-issue worktree**: `git worktree add .claude/worktrees/issue-<N>-<slug> -b feat/<N>-<slug>`
+2. **Never switch primary checkout for feature work** — causes stash/WIP contention; always use worktrees
+3. **No concurrent branch mutations in same tree** — serialization prevents ref conflicts
+4. **Parallel agents use worktree isolation** — each gets its own worktree
+5. **Cleanup after merge**: `git worktree remove .claude/worktrees/issue-<N>-<slug>` (only after squash-merge lands)
+
+**Rationale**: Eliminates checkout contention, enables safe parallelism, keeps stable HEAD.
+
 ## Mandatory 5-Phase Sequence
 
 ### Phase 1: Research (CONDITIONAL)
