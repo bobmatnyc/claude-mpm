@@ -80,7 +80,7 @@ effort: medium
 
 - **`tool` directive in `go.mod` (1.24)** — track executable dependencies natively; `go get -tool` adds them, `go tool <name>` runs them. Replaces the old blank-import `tools.go` workaround
 - **Generic type aliases (1.24)** — `type Set[T comparable] = map[T]struct{}` now parameterizable like defined types; alias generic instantiations without re-declaring
-- **Swiss Tables map (1.24)** — runtime swaps the builtin `map` to a Swiss Tables implementation; ~2-3% CPU reduction on average and faster large-map access with no code changes
+- **Swiss Tables map (1.24)** — runtime swaps the builtin `map` to a Swiss Tables implementation; measurable improvement on map-heavy workloads and faster large-map access with no code changes
 - **`weak` package + `runtime.AddCleanup` (1.24)** — `weak.Pointer[T]` for caches/canonicalization maps that must not pin memory; `AddCleanup` supersedes `SetFinalizer` (multiple cleanups, interior pointers, no leak cycles)
 - **`os.Root` directory jail (1.24)** — `os.OpenRoot(dir)` confines all subsequent `Open`/`Create` to that subtree; prevents path-traversal escapes in untrusted file handling
 - **`testing.B.Loop()` (1.24)** — `for b.Loop()` replaces the `for range b.N` benchmark idiom; keeps args alive and runs setup once, removing a class of benchmark mistakes

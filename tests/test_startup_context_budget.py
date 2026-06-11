@@ -120,11 +120,11 @@ def _format_row(key: str, current_bytes: int, baseline_bytes: int) -> str:
     """Format a per-file comparison row."""
     delta = current_bytes - baseline_bytes
     pct = (delta / baseline_bytes * 100) if baseline_bytes else 0.0
-    sign = "+" if delta >= 0 else ""
-    flag = "  <-- GREW" if delta > 0 else ""
+    # pct already carries sign via the :>+.1f spec; no extra prefix needed
+    flag = "  <-- GREW" if delta > 0 else ("  <-- SHRANK" if delta < 0 else "")
     return (
         f"  {key:<20}  current={current_bytes:>7}B  baseline={baseline_bytes:>7}B"
-        f"  delta={sign}{delta:>+7}B ({sign}{pct:.1f}%){flag}"
+        f"  delta={delta:>+7}B ({pct:>+.1f}%){flag}"
     )
 
 
@@ -175,12 +175,12 @@ def test_startup_context_budget() -> None:
         "=" * 60,
     ]
 
-    any_grew = False
+    any_changed = False
     for key in TRACKED_FILES:
         c_bytes = current[key]["bytes"]
         b_bytes = baseline[key]["bytes"]
         if c_bytes != b_bytes:
-            any_grew = True
+            any_changed = True
         report_lines.append(_format_row(key, c_bytes, b_bytes))
 
     # Total line
@@ -197,9 +197,9 @@ def test_startup_context_budget() -> None:
         ]
     )
 
-    if any_grew:
+    if any_changed:
         report_lines.append(
-            "\nFiles grew since baseline.  If intentional, regenerate:\n"
+            "\nFiles changed since baseline.  If intentional, regenerate:\n"
             "  UPDATE_STARTUP_BASELINE=1 uv run pytest "
             "tests/test_startup_context_budget.py -v"
         )
@@ -216,7 +216,7 @@ def test_startup_context_budget() -> None:
             f"  baseline total: {baseline_total:,} bytes (~{baseline_total // 4:,} tokens)\n"
             f"  limit (1.2x)  : {hard_fail_threshold:,} bytes\n"
             f"  excess        : {current_total - hard_fail_threshold:,} bytes\n"
-            "\nReview which files grew (see report above) and either:\n"
+            "\nReview which files changed (see report above) and either:\n"
             "  1. Trim the offending file(s), or\n"
             "  2. Update the baseline deliberately:\n"
             "     UPDATE_STARTUP_BASELINE=1 uv run pytest "
