@@ -1825,6 +1825,73 @@ class TestRedactSecrets:
         assert "[REDACTED:npm_token]" in result
         assert "[REDACTED:aws_key]" in result
 
+    # ------------------------------------------------------------------
+    # Bearer / Authorization token tests (Issue #738/#739 hardening)
+    # ------------------------------------------------------------------
+
+    def test_authorization_bearer_header_redacted(self) -> None:
+        """Authorization: Bearer <token> — value redacted, scheme word kept."""
+        token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMTIzIn0"  # pragma: allowlist secret
+        text = f"Authorization: Bearer {token}"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        # Scheme word must be preserved for readability
+        assert "Bearer" in result
+        assert "Authorization" in result
+
+    def test_authorization_token_github_style_redacted(self) -> None:
+        """Authorization: token <value> (GitHub-style) — value redacted, label bearer_token."""
+        # Use a generic ≥20-char value (not a ghp_ prefix, which the github pattern handles)
+        value = "abcdefghijklmnopqrst1234567890"  # pragma: allowlist secret  # 30 chars, no specific prefix
+        text = f"Authorization: token {value}"
+        result = _redact_secrets(text)
+        assert value not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "token" in result
+        assert "Authorization" in result
+
+    def test_bare_bearer_in_log_line_redacted(self) -> None:
+        """Bare 'Bearer <token>' in a log line (no 'Authorization:' prefix) is redacted."""
+        token = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWxpY2UifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  # pragma: allowlist secret
+        text = f"Sending request with Bearer {token} to endpoint"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "Bearer" in result
+        # Surrounding prose is preserved
+        assert "Sending request with" in result
+        assert "to endpoint" in result
+
+    def test_bearer_token_idempotent(self) -> None:
+        """Re-running on already-redacted Bearer output is a no-op."""
+        already = "Authorization: Bearer [REDACTED:bearer_token]"
+        result = _redact_secrets(already)
+        assert result == already
+
+    def test_bearer_token_double_pass_idempotent(self) -> None:
+        """Two passes on a Bearer-token-bearing string yield the same result."""
+        token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.signature_here_abc"  # pragma: allowlist secret
+        text = f"Authorization: Bearer {token}"
+        first = _redact_secrets(text)
+        second = _redact_secrets(first)
+        assert first == second
+
+    def test_bearer_of_bad_news_not_redacted(self) -> None:
+        """'bearer' in ordinary prose without a long value following is unchanged."""
+        prose = "She was the bearer of bad news."
+        assert _redact_secrets(prose) == prose
+
+    def test_token_word_alone_not_redacted(self) -> None:
+        """The word 'token' alone (no long high-entropy value) is not redacted."""
+        text = "The CSRF token was invalid."
+        assert _redact_secrets(text) == text
+
+    def test_bearer_short_value_not_redacted(self) -> None:
+        """Bearer followed by a short value (<20 chars) is NOT redacted (avoids false positives)."""
+        text = "Bearer abc123"  # only 9 chars — below the 20-char minimum
+        assert _redact_secrets(text) == text
+
 
 class TestRedactSecretsInReport:
     """Integration tests: secrets injected into JSONL transcripts must not appear
