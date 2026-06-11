@@ -1,4 +1,4 @@
-"""Trusty (Rust) daemon setup: trusty-search, trusty-memory, trusty-analyzer.
+"""Trusty (Rust) daemon setup: trusty-search, trusty-memory, trusty-analyze.
 
 Each `_setup_trusty_*` follows the same shape:
 1. cargo-install the binary if missing.
@@ -27,7 +27,7 @@ from ..mcp_config import _mcp_config_transaction
 
 
 class TrustyMixin:
-    """Mixin: trusty-search / trusty-memory / trusty-analyzer setup.
+    """Mixin: trusty-search / trusty-memory / trusty-analyze setup.
 
     :spec: SPEC-INTEGRATIONS-01~1
     """
