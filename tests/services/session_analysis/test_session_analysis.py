@@ -40,6 +40,7 @@ from claude_mpm.services.session_analysis.transcript_parser import (
     _last_line_timestamp,
     _parse_jsonl,
     _parse_subagent_transcript,
+    _redact_secrets,
     _SubagentSummary,
     find_most_recent_session,
     locate_transcript,
@@ -1630,3 +1631,376 @@ class TestJsxFilterBarSyntax:
             "Expected '})}'  as the FILTERS.map close, but found '}}' or did not find it. "
             "The JSX filter-bar .map callback is not properly closed."
         )
+
+
+# ===========================================================================
+# Issue #738 — _redact_secrets: secret scrubbing in session reports
+# ===========================================================================
+
+
+class TestRedactSecrets:
+    """Unit tests for the _redact_secrets helper (Issue #738).
+
+    Each test checks ONE specific secret pattern: the literal secret must be
+    absent from the output and the matching [REDACTED:<label>] sentinel must
+    be present.
+    """
+
+    def test_npm_token_redacted(self) -> None:
+        """npm_ followed by 36 alphanum characters is replaced."""
+        token = "npm_" + "A" * 36
+        result = _redact_secrets(f"NPM_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:npm_token]" in result
+
+    def test_github_token_ghp_redacted(self) -> None:
+        """ghp_ GitHub tokens are replaced."""
+        token = "ghp_" + "B" * 36
+        result = _redact_secrets(f"export GH_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_gho_redacted(self) -> None:
+        """gho_ GitHub tokens are replaced."""
+        token = "gho_" + "C" * 36
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_ghu_redacted(self) -> None:
+        """ghu_ GitHub tokens are replaced."""
+        token = "ghu_" + "D" * 36
+        result = _redact_secrets(f"GITHUB_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_ghs_redacted(self) -> None:
+        """ghs_ GitHub tokens are replaced."""
+        token = "ghs_" + "E" * 36
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_ghr_redacted(self) -> None:
+        """ghr_ GitHub tokens are replaced."""
+        token = "ghr_" + "F" * 36
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_aws_access_key_redacted(self) -> None:
+        """AKIA followed by 16 uppercase/digit chars is replaced."""
+        key = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret  # 20 chars total: AKIA + 16
+        result = _redact_secrets(f"AWS_ACCESS_KEY_ID={key}")
+        assert key not in result
+        assert "[REDACTED:aws_key]" in result
+
+    def test_openai_style_api_key_redacted(self) -> None:
+        """sk- followed by 20+ alphanum/_/- chars is replaced."""
+        key = "sk-" + "x" * 48  # well over the 20-char minimum
+        result = _redact_secrets(f"OPENAI_API_KEY={key}")
+        assert key not in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_anthropic_style_api_key_redacted(self) -> None:
+        """Anthropic keys also use the sk- prefix."""
+        key = "sk-ant-api03-" + "y" * 80
+        result = _redact_secrets(f"ANTHROPIC_API_KEY={key}")
+        assert key not in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_slack_token_xoxb_redacted(self) -> None:
+        """xoxb- Slack bot tokens are replaced."""
+        token = "xoxb-123456789012-123456789012-" + "z" * 24
+        result = _redact_secrets(f"SLACK_BOT_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:slack_token]" in result
+
+    def test_slack_token_xoxa_redacted(self) -> None:
+        """xoxa- Slack app tokens are replaced."""
+        token = "xoxa-2-" + "a" * 20
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:slack_token]" in result
+
+    def test_slack_token_xoxp_redacted(self) -> None:
+        """xoxp- Slack user tokens are replaced."""
+        token = "xoxp-" + "b" * 20
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:slack_token]" in result
+
+    def test_pem_private_key_block_redacted(self) -> None:
+        """PEM private key blocks spanning multiple lines are replaced."""
+        pem = (
+            "-----BEGIN RSA PRIVATE KEY-----\n"  # pragma: allowlist secret
+            "MIIEowIBAAKCAQEA" + "X" * 64 + "\n"
+            "-----END RSA PRIVATE KEY-----"
+        )
+        result = _redact_secrets(f"Key material:\n{pem}\nEnd.")
+        assert "MIIEowIBAAKCAQEA" not in result
+        assert "[REDACTED:private_key]" in result
+        # Surrounding text is preserved
+        assert "Key material:" in result
+        assert "End." in result
+
+    def test_ec_private_key_block_redacted(self) -> None:
+        """PRIVATE KEY (EC / PKCS#8) blocks are also scrubbed."""
+        pem = (
+            "-----BEGIN PRIVATE KEY-----\n"  # pragma: allowlist secret
+            + "G" * 64
+            + "\n-----END PRIVATE KEY-----"
+        )
+        result = _redact_secrets(pem)
+        assert "G" * 64 not in result
+        assert "[REDACTED:private_key]" in result
+
+    def test_generic_token_assignment_redacted(self) -> None:
+        """token=<16+ chars> is redacted; key name is preserved."""
+        text = "token=abcdefghijklmnop"  # 16-char value
+        result = _redact_secrets(text)
+        assert "abcdefghijklmnop" not in result
+        assert "token=" in result  # key name preserved
+        assert "[REDACTED:api_key]" in result
+
+    def test_generic_password_assignment_redacted(self) -> None:
+        """password=<16+ chars> value is redacted."""
+        text = "password=hunter2hunter2hunter2"
+        result = _redact_secrets(text)
+        assert "hunter2hunter2hunter2" not in result
+        assert "password=" in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_generic_secret_assignment_quoted_redacted(self) -> None:
+        """secret='<16+ chars>' — quoted value is redacted."""
+        text = "secret='my_super_secret_key_here'"  # pragma: allowlist secret
+        result = _redact_secrets(text)
+        assert "my_super_secret_key_here" not in result
+        assert "secret=" in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_generic_api_key_colon_separator_redacted(self) -> None:
+        """api_key: <16+ chars> (YAML-style) value is redacted."""
+        text = "api_key: abcdefghijklmnopqrst"  # 20-char value
+        result = _redact_secrets(text)
+        assert "abcdefghijklmnopqrst" not in result
+        assert "api_key" in result
+
+    def test_idempotent_on_already_redacted_text(self) -> None:
+        """Re-running _redact_secrets on already-redacted output is a no-op."""
+        already = "[REDACTED:npm_token] and [REDACTED:github_token]"
+        result = _redact_secrets(already)
+        assert result == already
+
+    def test_idempotent_double_pass_npm(self) -> None:
+        """Two passes on an npm-token-bearing string yield the same result."""
+        token = "npm_" + "Z" * 36
+        first = _redact_secrets(token)
+        second = _redact_secrets(first)
+        assert first == second
+
+    def test_normal_prose_unchanged(self) -> None:
+        """Ordinary sentences are not modified."""
+        prose = "The quick brown fox jumps over the lazy dog."
+        assert _redact_secrets(prose) == prose
+
+    def test_normal_code_unchanged(self) -> None:
+        """Short variable assignments and identifiers are not affected."""
+        code = "token = 'short'"  # 5-char value — below the 16-char threshold
+        assert _redact_secrets(code) == code
+
+    def test_url_with_token_query_param_is_safe(self) -> None:
+        """Ordinary URLs without long credential strings pass through."""
+        url = "https://api.example.com/v1/resource?limit=10&offset=0"
+        assert _redact_secrets(url) == url
+
+    def test_multiple_secrets_all_redacted(self) -> None:
+        """When multiple different secret types appear, all are scrubbed."""
+        npm = "npm_" + "N" * 36
+        aws = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+        text = f"NPM={npm} AWS={aws}"
+        result = _redact_secrets(text)
+        assert npm not in result
+        assert aws not in result
+        assert "[REDACTED:npm_token]" in result
+        assert "[REDACTED:aws_key]" in result
+
+
+class TestRedactSecretsInReport:
+    """Integration tests: secrets injected into JSONL transcripts must not appear
+    in the rendered Markdown or JSX output when redact=True (the default).
+
+    Each test builds a minimal synthetic session with a specific secret embedded
+    in the user prompt or assistant text, then asserts:
+      - the raw secret string is absent from the rendered Markdown, AND
+      - the matching [REDACTED:<label>] sentinel is present.
+    A parallel --no-redact / redact=False test verifies the opt-out path
+    preserves the raw text.
+    """
+
+    def _build_minimal_jsonl_with_secret(
+        self, tmp_path: Path, secret_text: str, session_id: str = "sec-test-01"
+    ) -> tuple[str, str]:
+        """Write a fake JSONL with *secret_text* in the user message and return
+        (session_id, fake_cwd).
+        """
+        fake_cwd = str(tmp_path / "fake" / "proj")
+        encoded = _encode_cwd(fake_cwd)
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        line = {
+            "uuid": "u-sec-001",
+            "timestamp": "2025-06-10T10:00:00.000Z",
+            "message": {"role": "user", "content": secret_text},
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            json.dumps(line) + "\n", encoding="utf-8"
+        )
+        return session_id, fake_cwd
+
+    def _render(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        secret_text: str,
+        redact: bool = True,
+        session_id: str = "sec-test-01",
+    ) -> tuple[str, str]:
+        """Parse + render to Markdown AND produce JSX-ready event list.
+
+        Returns (md_text, events_json_str).
+        """
+        sid, cwd = self._build_minimal_jsonl_with_secret(
+            tmp_path, secret_text, session_id
+        )
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(sid, cwd, include_subagents=False, redact=redact)
+        md = render_markdown(report)
+        # Simulate what the JSX converter does: serialize the events list
+        events_data = [
+            {
+                "title": e.title,
+                "detail": e.detail,
+                "actor": e.actor,
+            }
+            for e in report.events
+        ]
+        jsx_like = json.dumps(events_data)
+        return md, jsx_like
+
+    def test_npm_token_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """npm token in user prompt does not reach md or jsx output."""
+        token = "npm_" + "T" * 36
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"Install token: {token}", session_id="npm-test-01"
+        )
+        assert token not in md, "npm token must not appear in Markdown output"
+        assert token not in jsx, "npm token must not appear in JSX-like event data"
+        assert "[REDACTED:npm_token]" in md
+
+    def test_github_token_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """GitHub ghp_ token does not leak into any output stage."""
+        token = "ghp_" + "G" * 36
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"GH_TOKEN={token}", session_id="ghp-test-01"
+        )
+        assert token not in md
+        assert token not in jsx
+        assert "[REDACTED:github_token]" in md
+
+    def test_aws_key_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """AWS access key does not leak into any output stage."""
+        key = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"AWS_KEY={key}", session_id="aws-test-01"
+        )
+        assert key not in md
+        assert key not in jsx
+        assert "[REDACTED:aws_key]" in md
+
+    def test_openai_api_key_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """sk- API key does not leak into any output stage."""
+        key = "sk-" + "K" * 48
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"key={key}", session_id="sk-test-01"
+        )
+        assert key not in md
+        assert key not in jsx
+        assert "[REDACTED:api_key]" in md
+
+    def test_slack_token_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Slack xoxb- token does not leak into any output stage."""
+        token = "xoxb-123456789012-123456789012-" + "S" * 24
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"SLACK={token}", session_id="slack-test-01"
+        )
+        assert token not in md
+        assert token not in jsx
+        assert "[REDACTED:slack_token]" in md
+
+    def test_pem_key_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """PEM private key block does not leak into any output stage."""
+        pem = (
+            "-----BEGIN RSA PRIVATE KEY-----\n"  # pragma: allowlist secret
+            "MIIEowIBAAKCAQEA" + "P" * 64 + "\n"
+            "-----END RSA PRIVATE KEY-----"
+        )
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"Key:\n{pem}", session_id="pem-test-01"
+        )
+        assert "MIIEowIBAAKCAQEA" not in md
+        assert "MIIEowIBAAKCAQEA" not in jsx
+        assert "[REDACTED:private_key]" in md
+
+    def test_generic_secret_assignment_absent_from_md(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Generic token=<value> assignment is scrubbed in rendered output."""
+        text = "access_key=verylongsecretvaluethatexceeds16chars"
+        md, jsx = self._render(
+            tmp_path, monkeypatch, text, session_id="generic-test-01"
+        )
+        assert "verylongsecretvaluethatexceeds16chars" not in md
+        assert "verylongsecretvaluethatexceeds16chars" not in jsx
+        assert "[REDACTED:api_key]" in md
+
+    def test_no_redact_preserves_raw_text(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """redact=False (--no-redact) leaves raw text intact in the report."""
+        token = "npm_" + "R" * 36
+        md, _jsx = self._render(
+            tmp_path,
+            monkeypatch,
+            f"token={token}",
+            redact=False,
+            session_id="noredact-test-01",
+        )
+        assert token in md, "With redact=False the raw token must survive into Markdown"
+        assert "[REDACTED:npm_token]" not in md
+
+    def test_title_derivation_also_redacted(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Session title (derived from first user message) is also scrubbed."""
+        token = "npm_" + "U" * 36
+        md, _jsx = self._render(
+            tmp_path, monkeypatch, token, session_id="title-test-01"
+        )
+        # The report title appears in the YAML frontmatter
+        assert token not in md
+        assert "[REDACTED:npm_token]" in md
