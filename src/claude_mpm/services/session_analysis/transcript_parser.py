@@ -378,20 +378,45 @@ _SECRET_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"sk-[A-Za-z0-9_-]{20,}"), "api_key"),
     # Slack tokens:  xoxb / xoxa / xoxp / xoxr / xoxs  followed by 10+ alphanum/-
     (re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"), "slack_token"),
-    # Authorization / Bearer tokens appearing in headers or logs:
-    #   "Authorization: Bearer <token>", "Authorization: token <token>",
-    #   or bare "Bearer <token>" in log lines.
-    # Only the VALUE is replaced; the scheme word (Bearer / token) is kept so
-    # the line remains readable: "Authorization: Bearer [REDACTED:bearer_token]".
+    # Authorization / Bearer tokens appearing in headers or logs.
+    #
+    # Two sub-cases with different prefix requirements:
+    #
+    #   (a) bare "Bearer <token>" — unambiguous; no Authorization: prefix needed.
+    #       e.g. log line: "Sending request with Bearer eyJ..."
+    #
+    #   (b) "Authorization: token <token>" — requires the Authorization: prefix
+    #       because bare "token <word>" appears constantly in normal prose
+    #       (e.g. "The token abcde... was accepted") and would cause false positives.
+    #
+    # In both cases only the VALUE is replaced; the scheme word (bearer / token)
+    # is kept so the line stays readable:
+    #   "Authorization: Bearer [REDACTED:bearer_token]"
+    #   "token [REDACTED:bearer_token]"
     # Value charset covers JWTs (dots), base64 (+/=), URL-safe variants (-_).
-    # The ≥20-char minimum prevents false positives on ordinary prose such as
-    # "the bearer of bad news" (no long high-entropy value follows).
+    # The ≥20-char minimum prevents false positives on ordinary prose.
     # Negative lookahead ``(?!\[REDACTED:)`` ensures idempotency.
+    #
+    # Case (a): bare Bearer (no Authorization: prefix required)
     (
         re.compile(
             r"""(?ix)
             (?:Authorization\s*:\s*)?            # optional "Authorization:" prefix
-            (?:[Bb]earer|[Tt]oken)               # scheme keyword (case-insensitive)
+            bearer                               # scheme keyword (case-insensitive via (?i))
+            \s+                                   # required whitespace
+            (?!\[REDACTED:)                       # not already redacted
+            (?P<val>[A-Za-z0-9._\-+/=]{20,})     # value: ≥20 chars (JWTs, base64, etc.)
+            """,
+        ),
+        "bearer_token",
+    ),
+    # Case (b): "token" keyword — requires the Authorization: prefix to avoid
+    # redacting bare "token <word>" in ordinary prose.
+    (
+        re.compile(
+            r"""(?ix)
+            Authorization\s*:\s*                 # "Authorization:" prefix is REQUIRED
+            token                                # scheme keyword (case-insensitive via (?i))
             \s+                                   # required whitespace
             (?!\[REDACTED:)                       # not already redacted
             (?P<val>[A-Za-z0-9._\-+/=]{20,})     # value: ≥20 chars (JWTs, base64, etc.)
