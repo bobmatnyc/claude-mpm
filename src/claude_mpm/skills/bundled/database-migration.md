@@ -1,6 +1,7 @@
 ---
 skill_id: database-migration
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when creating, running, or rolling back database schema migrations, including adding columns, renaming tables, or evolving schemas in production
 description: Safe patterns for evolving database schemas in production.
 updated_at: 2025-10-30T17:00:00Z
 tags: [database, migration, schema, production]

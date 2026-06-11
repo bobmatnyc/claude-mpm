@@ -1,7 +1,8 @@
 ---
 skill_id: mutation-testing
-skill_version: 0.1.0
+skill_version: 0.2.0
 name: mutation-testing
+when_to_use: when auditing test suite effectiveness on a critical module, evaluating whether green tests actually protect behavior, or deciding whether to invest more in test coverage
 description: Audit whether a test suite actually detects regressions (not just whether it runs) by introducing small code mutations and measuring how many your tests catch. Apply when hardening a critical, logic-dense module's tests, evaluating coverage confidence after a near-miss bug, or deciding if "green tests" really mean "protected behavior". Advisory and on-demand — not a blocking CI gate.
 updated_at: 2026-06-09T00:00:00Z
 tags: [testing, quality-assurance, mutation-testing, test-effectiveness, advisory]
