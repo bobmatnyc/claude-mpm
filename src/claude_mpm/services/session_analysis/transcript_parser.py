@@ -323,13 +323,72 @@ def _extract_text_from_content(content: Any) -> str:
     return ""
 
 
+# ---------------------------------------------------------------------------
+# Harness control-tag patterns to strip from user-visible text.
+#
+# Claude Code injects several XML-like wrapper tags into user prompts:
+#   - Paired noise tags whose ENTIRE content should be removed:
+#       <system-reminder>…</system-reminder>   (injected system context)
+#       <local-command-stdout>…</local-command-stdout>  (shell output blobs)
+#       <local-command-caveat>…</local-command-caveat>  (harness disclaimers)
+#   - Standalone command-plumbing tags whose INNER TEXT we preserve
+#     (they encode the human intent, e.g. the actual slash-command name):
+#       <command-name>…</command-name>
+#       <command-message>…</command-message>
+#       <command-args>…</command-args>
+# ---------------------------------------------------------------------------
+
+# Tags whose entire element (tags + inner content) should be removed.
+_CONTROL_BLOCK_RE = re.compile(
+    r"<(system-reminder|local-command-stdout|local-command-caveat)"
+    r"(?:\s[^>]*)?>.*?</\1>",
+    re.DOTALL | re.IGNORECASE,
+)
+
+# Tags that wrap human intent — keep inner text, drop tags.
+_COMMAND_TAG_RE = re.compile(
+    r"<(command-name|command-message|command-args)(?:\s[^>]*)?>([^<]*)</\1>",
+    re.IGNORECASE,
+)
+
+
+def _strip_control_tags(text: str) -> str:
+    """Remove Claude Code harness control tags from *text*.
+
+    WHAT: Strips paired noise tags (system-reminder, local-command-stdout,
+          local-command-caveat) and their inner content entirely, then unwraps
+          command-plumbing tags (command-name, command-message, command-args)
+          keeping only their inner text.
+    WHY:  User prompts in session transcripts contain injected harness metadata
+          that pollutes titles and user-prompt timeline cards when displayed.
+          Removing them surfaces the human's actual intent.
+
+    Tags handled
+    ------------
+    Remove entirely (tag + content):
+      ``<system-reminder>``, ``<local-command-stdout>``,
+      ``<local-command-caveat>``
+
+    Unwrap (keep inner text, drop tags):
+      ``<command-name>``, ``<command-message>``, ``<command-args>``
+    """
+    # Remove full block tags and their content first (may be multi-line).
+    text = _CONTROL_BLOCK_RE.sub("", text)
+    # Unwrap command plumbing tags, keeping only the inner text.
+    text = _COMMAND_TAG_RE.sub(lambda m: m.group(2), text)
+    # Collapse runs of blank lines left by removed blocks.
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def _make_title(text: str, max_len: int = 120) -> str:
-    """Return the first non-empty line of *text*, truncated to *max_len*."""
-    for line in text.splitlines():
+    """Return the first non-empty line of *text*, stripped of control tags, truncated."""
+    clean = _strip_control_tags(text)
+    for line in clean.splitlines():
         line = line.strip()
         if line:
             return line[:max_len]
-    return text.strip()[:max_len]
+    return clean.strip()[:max_len]
 
 
 _GITHUB_LINK_RE = re.compile(
@@ -683,17 +742,24 @@ def parse_session(
             if not text.strip():
                 continue
 
-            if not first_user_text:
-                first_user_text = text
+            # Strip harness control tags so user-prompt cards and the session
+            # title show the human's actual intent, not injected metadata.
+            clean_text = _strip_control_tags(text)
+            if not clean_text:
+                # After stripping, if nothing human-readable remains, skip.
+                continue
 
-            links = _extract_github_links(text)
+            if not first_user_text:
+                first_user_text = clean_text
+
+            links = _extract_github_links(clean_text)
             event = TimelineEvent(
                 uuid=uuid,
                 timestamp=ts,
                 actor="bob",
                 event_type="user_prompt",
-                title=_make_title(text),
-                detail=text,
+                title=_make_title(clean_text),
+                detail=clean_text,
                 github_links=links,
             )
             events.append(event)
@@ -762,12 +828,30 @@ def parse_session(
             rates = resolve_model_rates(model_str)
 
             links = _extract_github_links(full_text)
+
+            # Derive a meaningful title for this PM turn.
+            # Priority: (1) PM's own text prose, (2) for Agent calls surface the
+            # subagent name so the card reads "Agent → Python Engineer" rather
+            # than the bare tool name "Agent", (3) generic tool name fallback.
+            if full_text.strip():
+                pm_title = _make_title(full_text)
+            elif has_agent:
+                agent_cd = next((c for c in calls if c.tool_name == "Agent"), None)
+                if agent_cd and agent_cd.subagent_type:
+                    pm_title = f"Agent → {agent_cd.subagent_type}"[:120]
+                else:
+                    pm_title = "Agent"
+            elif calls:
+                pm_title = _make_title(calls[0].tool_name)
+            else:
+                pm_title = ""
+
             event = TimelineEvent(
                 uuid=uuid,
                 timestamp=ts,
                 actor="mpm",
                 event_type=event_type,
-                title=_make_title(full_text or (calls[0].tool_name if calls else "")),
+                title=pm_title,
                 detail=full_text,
                 calls=calls,
                 model=model_str,
