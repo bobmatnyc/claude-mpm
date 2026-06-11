@@ -301,7 +301,60 @@ def test_launchd_subprocess_error_swallowed(tmp_path: Path, fake_plist: Path) ->
 
 def test_run_migration_triggers_launchd_cleanup(tmp_path: Path) -> None:
     """run_migration calls _cleanup_launchd_plist (integration-level check)."""
-    with patch.object(mod, "_cleanup_launchd_plist") as mock_cleanup:
+    with patch.object(
+        mod, "_cleanup_launchd_plist", return_value=False
+    ) as mock_cleanup:
         mod.run_migration(project_dir=tmp_path)
 
     mock_cleanup.assert_called_once()
+
+
+def test_run_migration_returns_true_for_plist_only_cleanup(tmp_path: Path) -> None:
+    """run_migration returns True when only the plist was cleaned (no MCP file changed).
+
+    Previously _cleanup_launchd_plist() returned None, so plist-only runs
+    silently returned False even though work was done.  Now the bool is captured
+    and OR'd into the return value.
+    """
+    with patch.object(mod, "_cleanup_launchd_plist", return_value=True):
+        result = mod.run_migration(project_dir=tmp_path)
+
+    assert result is True
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: stale fields on the old entry must NOT carry over to the renamed entry
+# ---------------------------------------------------------------------------
+
+
+def test_stale_env_field_not_carried_to_renamed_entry(tmp_path: Path) -> None:
+    """Extra/stale fields on the old trusty-analyzer entry are NOT inherited.
+
+    When only trusty-analyzer is present and it carries extra fields (e.g. an
+    ``env`` dict pointing at the old binary path), those fields must be dropped.
+    The new trusty-analyze entry must be exactly the canonical shape.
+    """
+    mcp_path = _write_mcp(
+        tmp_path,
+        {
+            "mcpServers": {
+                "trusty-analyzer": {
+                    "type": "stdio",
+                    "command": "trusty-analyzer",
+                    "args": ["mcp"],
+                    "env": {"BINARY_PATH": "/usr/local/bin/trusty-analyzer"},
+                    "stale_extra": "should-be-gone",
+                }
+            }
+        },
+    )
+
+    mod.run_migration(project_dir=tmp_path)
+
+    servers = json.loads(mcp_path.read_text())["mcpServers"]
+    assert "trusty-analyzer" not in servers
+    new_entry = servers["trusty-analyze"]
+    # Must be exactly the canonical entry — no env, no stale_extra.
+    assert new_entry == _NEW_ENTRY
+    assert "env" not in new_entry
+    assert "stale_extra" not in new_entry
