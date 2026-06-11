@@ -1,6 +1,6 @@
 ---
 skill_id: code-review
-skill_version: 0.2.0
+skill_version: 0.3.0
 when_to_use: when reviewing a pull request, auditing existing code for quality issues, or conducting a structured code review
 description: Systematic approach to reviewing code for quality, correctness, and maintainability.
 updated_at: 2025-10-30T17:00:00Z
@@ -11,6 +11,13 @@ effort: medium
 # Code Review
 
 Systematic approach to reviewing code for quality, correctness, and maintainability.
+
+> **Scope note:** This skill is the *reviewer's checklist* — the heuristics for
+> **how** to evaluate code (correctness, design, security, comment etiquette).
+> To **dispatch** a code-reviewer subagent against a diff as part of a workflow
+> (SHAs, severity triage, when-to-request gating), use the
+> `requesting-code-review` skill instead. The two are complementary: this one
+> is *what to look for*, that one is *how to run the review loop*.
 
 ## Code Review Checklist
 
