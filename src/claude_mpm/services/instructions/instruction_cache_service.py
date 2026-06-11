@@ -378,7 +378,9 @@ class InstructionCacheService:
             "components": [
                 "BASE_PM.md",
                 "PM_INSTRUCTIONS.md",
+                "AGENT_DELEGATION.md",
                 "WORKFLOW.md",
+                "MEMORY.md",
                 "agent_capabilities",
                 "temporal_context",
             ],
