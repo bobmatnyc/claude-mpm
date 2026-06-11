@@ -21,7 +21,7 @@ This document provides license information and attributions for all skills bundl
 |------------|--------|----------|-------------|--------|
 | artifacts-builder | Unknown | main | Suite of tools for creating elaborate, multi-component claud... | N/A |
 | internal-comms | Unknown | main | A set of resources to help me write all kinds of internal co... | N/A |
-| mcp-builder | Unknown | main | Guide for creating high-quality MCP (Model Context Protocol)... | N/A |
+| build-mcp-server | Unknown | main | Guide for creating high-quality MCP (Model Context Protocol)... | N/A |
 | skill-creator | Unknown | main | Guide for creating effective skills. This skill should be us... | N/A |
 | webapp-testing | Unknown | testing | Toolkit for interacting with and testing local web applicati... | N/A |
 

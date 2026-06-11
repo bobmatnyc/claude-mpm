@@ -339,13 +339,35 @@ class SkillsRegistry:
         )
 
     def _load_bundled_skills(self):
-        """Load skills bundled with MPM."""
+        """Load skills bundled with MPM.
+
+        Loads both flat .md files (bundled/*.md) and structured skill directories
+        (bundled/<category>/<skill-name>/SKILL.md). Flat files take precedence
+        on name conflicts so legacy overrides still work.
+        """
         bundled_dir = Path(__file__).parent / "bundled"
         if not bundled_dir.exists():
             logger.warning(f"Bundled skills directory not found: {bundled_dir}")
             return
 
         skill_count = 0
+
+        # First pass: load structured skills (category/skill-name/SKILL.md)
+        for skill_md in bundled_dir.rglob("SKILL.md"):
+            try:
+                skill_name = skill_md.parent.name
+                content = skill_md.read_text(encoding="utf-8")
+                frontmatter = self._parse_skill_frontmatter(content)
+                skill = self._create_skill_from_frontmatter(
+                    frontmatter, skill_md, content, "bundled"
+                )
+                if skill:
+                    self.skills[skill_name] = skill
+                    skill_count += 1
+            except Exception as e:
+                logger.error(f"Error loading structured bundled skill {skill_md}: {e}")
+
+        # Second pass: load flat .md skills (bundled/*.md) — these override structured
         for skill_file in bundled_dir.glob("*.md"):
             try:
                 skill_name = skill_file.stem

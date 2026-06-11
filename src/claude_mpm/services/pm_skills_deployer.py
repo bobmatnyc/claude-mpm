@@ -158,6 +158,8 @@ OPTIONAL_PM_SKILLS = [
     "mpm-monitor",
     "mpm-version",
     "mpm-organize",
+    "mpm-adr",
+    "mpm-workflow",
 ]
 
 
