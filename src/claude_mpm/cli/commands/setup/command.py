@@ -303,7 +303,7 @@ class SetupCommand(
   notion-mpm             Set up Notion MCP server (official @notionhq package)
   trusty-search          Set up trusty-search Rust hybrid code search daemon
   trusty-memory          Set up trusty-memory Rust AI memory daemon
-  trusty-analyze         Set up trusty-analyzer Rust code-analysis sidecar daemon
+  trusty-analyze         Set up trusty-analyze Rust code-analysis sidecar daemon
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
