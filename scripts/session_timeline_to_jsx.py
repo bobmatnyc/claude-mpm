@@ -690,7 +690,7 @@ export default function App() {{
                   transition: "all .15s",
                 }}}}>{{f.label}}</button>
               );
-            }}}}
+            }})}}
           </div>
           <div style={{{{ display: "flex", alignItems: "center", gap: 10 }}}}>
             <span style={{{{ fontSize: 13, color: C.textMuted }}}}>
