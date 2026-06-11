@@ -78,8 +78,17 @@ def run_session_report(args: argparse.Namespace) -> int:
     # signature change is out of scope here; the window is benign in practice
     # because transcripts are write-once JSONL files that never move or vanish
     # mid-session.
+    no_redact: bool = getattr(args, "no_redact", False)
+    if no_redact:
+        import sys as _sys
+
+        print(
+            "Warning: --no-redact is active. The report may contain live credentials. "
+            "Use only for trusted local-only inspection.",
+            file=_sys.stderr,
+        )
     try:
-        report = parse_session(session_id, cwd)
+        report = parse_session(session_id, cwd, redact=not no_redact)
     except (FileNotFoundError, ValueError) as exc:
         # Expected user-facing errors: transcript missing or malformed content.
         print(f"Failed to parse session transcript: {exc}", file=sys.stderr)
@@ -164,6 +173,18 @@ def add_session_report_parser(subparsers: argparse.ArgumentParser) -> None:
             "Output file path.  "
             "Use '-' for stdout.  "
             "Default: docs/reporting/session-tracker/{session_id}.md"
+        ),
+    )
+    parser.add_argument(
+        "--no-redact",
+        dest="no_redact",
+        action="store_true",
+        default=False,
+        help=(
+            "Disable secret redaction and reproduce transcript text verbatim.  "
+            "**Trusted local-only use only** — the report may contain live API "
+            "tokens, private keys, or other credentials that appeared in the "
+            "session.  Never commit or share a --no-redact report."
         ),
     )
     parser.set_defaults(command="session-report")
