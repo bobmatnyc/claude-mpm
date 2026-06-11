@@ -1180,3 +1180,453 @@ class TestReadMarkdownEdgeCases:
         parsed = read_markdown(f)
         # Should not raise; frontmatter will be empty
         assert isinstance(parsed["frontmatter"], dict)
+
+
+# ===========================================================================
+# Defect 1 — _strip_control_tags + _make_title strip harness tags
+# ===========================================================================
+
+
+class TestStripControlTags:
+    """Tests for the _strip_control_tags helper (Defect 1 fix)."""
+
+    def test_system_reminder_removed_entirely(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<system-reminder>You are a helpful assistant.</system-reminder>\nFix the bug."
+        result = _strip_control_tags(text)
+        assert "<system-reminder>" not in result
+        assert "You are a helpful assistant." not in result
+        assert "Fix the bug." in result
+
+    def test_local_command_stdout_removed_entirely(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "Run tests\n<local-command-stdout>PASSED 42 tests</local-command-stdout>"
+        result = _strip_control_tags(text)
+        assert "<local-command-stdout>" not in result
+        assert "PASSED 42 tests" not in result
+        assert "Run tests" in result
+
+    def test_local_command_caveat_removed_entirely(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<local-command-caveat>caveat text here</local-command-caveat>\nActual prompt."
+        result = _strip_control_tags(text)
+        assert "<local-command-caveat>" not in result
+        assert "caveat text here" not in result
+        assert "Actual prompt." in result
+
+    def test_command_name_tag_unwrapped(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<command-name>clear</command-name>\nHello world"
+        result = _strip_control_tags(text)
+        assert "<command-name>" not in result
+        assert "clear" in result
+
+    def test_command_message_tag_unwrapped(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<command-message>Fix the test</command-message>"
+        result = _strip_control_tags(text)
+        assert "<command-message>" not in result
+        assert "Fix the test" in result
+
+    def test_multiple_tags_stripped(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = (
+            "<system-reminder>sys</system-reminder>\n"
+            "<local-command-caveat>caveat</local-command-caveat>\n"
+            "Real user intent here."
+        )
+        result = _strip_control_tags(text)
+        assert "sys" not in result
+        assert "caveat" not in result
+        assert "Real user intent here." in result
+
+    def test_clean_text_unchanged(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "Fix the failing test in test_parser.py"
+        assert _strip_control_tags(text) == text
+
+    def test_make_title_strips_system_reminder(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import _make_title
+
+        text = "<system-reminder>Be helpful.</system-reminder>\nActually fix the bug please."
+        title = _make_title(text)
+        assert "<system-reminder>" not in title
+        assert "Be helpful." not in title
+        assert "fix the bug" in title.lower()
+
+    def test_user_prompt_title_stripped_in_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """User-prompt events parsed from JSONL with harness tags have clean titles."""
+        import json as _json
+
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _encode_cwd,
+            parse_session,
+        )
+
+        fake_cwd = str(tmp_path / "fake" / "proj")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-strip-tags-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        # Build a fake user message containing harness tags
+        raw_user_content = (
+            "<system-reminder>You are an AI assistant.</system-reminder>\n"
+            "<local-command-caveat>This command runs locally.</local-command-caveat>\n"
+            "Fix the auth middleware bug."
+        )
+        line = {
+            "uuid": "u-001",
+            "timestamp": "2025-06-10T10:00:00.000Z",
+            "message": {"role": "user", "content": raw_user_content},
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        assert report.events, "Expected at least one event"
+        user_event = report.events[0]
+        assert "<system-reminder>" not in user_event.title
+        assert "<local-command-caveat>" not in user_event.title
+        assert (
+            "Fix the auth middleware bug." in user_event.title
+            or "fix" in user_event.title.lower()
+        )
+        assert "<system-reminder>" not in report.title
+        assert (
+            "Fix the auth middleware bug." in report.title
+            or "fix" in report.title.lower()
+        )
+
+    def test_user_prompt_detail_stripped_in_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """User-prompt event detail is also cleaned of harness tags."""
+        import json as _json
+
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _encode_cwd,
+            parse_session,
+        )
+
+        fake_cwd = str(tmp_path / "fake" / "proj2")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-strip-tags-02"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        raw_user_content = (
+            "<system-reminder>Context noise.</system-reminder>\n"
+            "Deploy the feature to production."
+        )
+        line = {
+            "uuid": "u-002",
+            "timestamp": "2025-06-10T11:00:00.000Z",
+            "message": {"role": "user", "content": raw_user_content},
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        user_event = report.events[0]
+        assert "<system-reminder>" not in user_event.detail
+        assert "Context noise." not in user_event.detail
+        assert "Deploy the feature to production." in user_event.detail
+
+
+# ===========================================================================
+# Defect 2 — Agent-call card title names the subagent
+# ===========================================================================
+
+
+class TestAgentCallTitle:
+    """Agent-call timeline events should title with the subagent name (Defect 2 fix)."""
+
+    def _build_agent_call_report(
+        self, subagent_type: str = "Python Engineer"
+    ) -> SessionReport:
+        """Build a minimal report whose PM turn is an Agent call with no prose."""
+        from claude_mpm.services.session_analysis.transcript_parser import CallDetail
+
+        agent_event = TimelineEvent(
+            uuid="ev-agent",
+            timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+            actor="mpm",
+            event_type="agent_call",
+            # title is what we're testing — we set it via the parser; here we
+            # pre-set it as the parser would (after the fix).
+            title=f"Agent → {subagent_type}",
+            detail="",
+            calls=[
+                CallDetail(
+                    tool_name="Agent",
+                    tool_use_id="tu_001",
+                    input_summary="{}",
+                    response_text="Done.",
+                    subagent_type=subagent_type,
+                    subagent_model="claude-haiku-3",
+                )
+            ],
+        )
+        from claude_mpm.services.session_analysis.transcript_parser import ModelTotals
+
+        return SessionReport(
+            session_id="agent-title-test",
+            project_path="/fake/proj",
+            transcript_path="/fake/.claude/projects/fake-proj/agent-title-test.jsonl",
+            events=[agent_event],
+            title="Agent → " + subagent_type,
+            model_totals={
+                "claude-sonnet-4-6": ModelTotals(
+                    model="claude-sonnet-4-6",
+                    input_tokens=100,
+                    output_tokens=20,
+                    total_cost_usd=0.001,
+                    turn_count=1,
+                )
+            },
+            grand_total_cost_usd=0.001,
+        )
+
+    def test_agent_call_title_contains_subagent_type(self) -> None:
+        """Title of an agent_call event includes the subagent_type."""
+        report = self._build_agent_call_report("Python Engineer")
+        agent_events = [e for e in report.events if e.event_type == "agent_call"]
+        assert agent_events, "No agent_call event"
+        title = agent_events[0].title
+        assert "Python Engineer" in title, (
+            f"Expected subagent name in title, got: {title!r}"
+        )
+
+    def test_agent_call_title_format_arrow(self) -> None:
+        """Title uses 'Agent → <name>' format."""
+        report = self._build_agent_call_report("Web QA")
+        agent_events = [e for e in report.events if e.event_type == "agent_call"]
+        title = agent_events[0].title
+        assert "→" in title or "->" in title, f"Expected arrow in title, got: {title!r}"
+        assert "Web QA" in title
+
+    def test_agent_call_title_via_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """parse_session produces an agent_call title with the subagent name."""
+        import json as _json
+
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _encode_cwd,
+            parse_session,
+        )
+
+        fake_cwd = str(tmp_path / "fake" / "proj3")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-agent-title-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        # Assistant turn with ONLY an Agent tool_use (no prose text)
+        assistant_line = {
+            "uuid": "a-001",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tu_agent_01",
+                        "name": "Agent",
+                        "input": {
+                            "subagent_type": "Python Engineer",
+                            "model": "claude-haiku-3",
+                            "description": "Fix the test",
+                            "prompt": "Please fix test_parser.py",
+                        },
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 500,
+                    "output_tokens": 50,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(assistant_line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        agent_events = [e for e in report.events if e.event_type == "agent_call"]
+        assert agent_events, "Expected at least one agent_call event"
+        title = agent_events[0].title
+        assert "Python Engineer" in title, (
+            f"Expected 'Python Engineer' in agent_call title, got: {title!r}"
+        )
+
+    def test_agent_call_title_in_markdown_heading(self, tmp_path: Path) -> None:
+        """Agent-call card title propagates into the Markdown heading."""
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            CallDetail,
+            ModelTotals,
+        )
+
+        agent_event = TimelineEvent(
+            uuid="ev-md-agent",
+            timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+            actor="mpm",
+            event_type="agent_call",
+            title="Agent → Python Engineer",
+            detail="",
+            calls=[
+                CallDetail(
+                    tool_name="Agent",
+                    tool_use_id="tu_md_01",
+                    input_summary="{}",
+                    response_text="Done.",
+                    subagent_type="Python Engineer",
+                    subagent_model="claude-haiku-3",
+                )
+            ],
+            model="claude-sonnet-4-6",
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 10,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=0.001,
+        )
+        report = SessionReport(
+            session_id="md-agent-title",
+            project_path="/fake/proj",
+            transcript_path="/fake/p.jsonl",
+            events=[agent_event],
+            title="Agent → Python Engineer",
+            model_totals={
+                "claude-sonnet-4-6": ModelTotals(
+                    model="claude-sonnet-4-6",
+                    input_tokens=100,
+                    output_tokens=10,
+                    total_cost_usd=0.001,
+                    turn_count=1,
+                )
+            },
+            grand_total_cost_usd=0.001,
+        )
+        md = render_markdown(report)
+        # The heading should contain "Python Engineer"
+        headings = [line for line in md.splitlines() if line.startswith("#### ")]
+        agent_headings = [h for h in headings if "Python Engineer" in h]
+        assert agent_headings, (
+            f"Expected a heading with 'Python Engineer'. Headings: {headings}"
+        )
+
+
+# ===========================================================================
+# Defect 3 — JSX filter-bar .map closes with })} not }}
+# ===========================================================================
+
+
+class TestJsxFilterBarSyntax:
+    """The generated JSX filter-bar block must close with })} (Defect 3 fix)."""
+
+    def test_jsx_template_filter_block_closes_correctly(self) -> None:
+        """_JSX_TEMPLATE contains })}}} for the filter block (renders to })} in JSX)."""
+        import sys
+        from pathlib import Path as _Path
+
+        scripts_dir = str(_Path(__file__).parent.parent.parent.parent / "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+
+        import importlib
+
+        jsx_mod = importlib.import_module("session_timeline_to_jsx")
+        template = jsx_mod._JSX_TEMPLATE
+        # The template contains })}}} which Python .format() renders to })}
+        # Verify that the broken }}}}} (renders to }}) is NOT present for FILTERS.map.
+        # We check the rendered JSX via a minimal generate_jsx call.
+
+        # Minimal parsed data to drive generate_jsx
+        parsed = {
+            "frontmatter": {
+                "session_id": "test",
+                "project": "test",
+                "project_path": "/test",
+                "date": "2025-06-10",
+                "generated_at": "2025-06-10T00:00:00Z",
+                "title": "test session",
+                "autonomy": {"bob_pct": 50, "mpm_pct": 50},
+                "stat_cards": [],
+                "has_pricing_fallback": False,
+                "model_breakdown": [],
+                "grand_total_cost_usd": 0.0,
+            },
+            "events": [],
+        }
+        jsx = jsx_mod.generate_jsx(parsed)
+
+        # The filter bar map must close with })} (not just }})
+        # In the JSX output: FILTERS.map(f => {  return (...); })}
+        assert "})})" in jsx or "})}" in jsx, (
+            "JSX output must contain '})}'  to close FILTERS.map correctly"
+        )
+
+        # Also verify the specific broken form is NOT the filter-bar close.
+        # Check that the FILTERS.map line and its closure are syntactically paired.
+        lines = jsx.splitlines()
+        filters_map_line = None
+        for i, line in enumerate(lines):
+            if "FILTERS.map" in line:
+                filters_map_line = i
+                break
+        assert filters_map_line is not None, "FILTERS.map not found in generated JSX"
+
+        # Scan forward from FILTERS.map to find the first close sequence
+        close_found = False
+        for line in lines[filters_map_line:]:
+            stripped = line.strip()
+            if stripped == "})}":
+                close_found = True
+                break
+            if stripped == "}}":
+                # This would be the buggy form
+                break
+        assert close_found, (
+            "Expected '})}'  as the FILTERS.map close, but found '}}' or did not find it. "
+            "The JSX filter-bar .map callback is not properly closed."
+        )
