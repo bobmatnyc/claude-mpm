@@ -1892,6 +1892,63 @@ class TestRedactSecrets:
         text = "Bearer abc123"  # only 9 chars — below the 20-char minimum
         assert _redact_secrets(text) == text
 
+    # ------------------------------------------------------------------
+    # Token-keyword prose over-match regression (#742)
+    # ------------------------------------------------------------------
+
+    def test_bare_token_keyword_in_prose_not_redacted(self) -> None:
+        """Bare 'token <long-value>' in prose (no Authorization: prefix) is NOT redacted.
+
+        This is the key regression guard: bare 'token' appears constantly in
+        natural-language text and must NOT trigger redaction unless preceded by
+        'Authorization:'.
+        """
+        prose = "The token abcdefghijklmnopqrstuvwxyz12 was accepted"
+        assert _redact_secrets(prose) == prose
+
+    def test_bare_token_prose_variant_not_redacted(self) -> None:
+        """Another prose variant to confirm the over-match is fully plugged."""
+        prose = "Refresh token abcdefghijklmnopqrstuvwxyzABCDEF and retry"
+        assert _redact_secrets(prose) == prose
+
+    def test_authorization_token_with_prefix_redacted(self) -> None:
+        """Authorization: token <value> (GitHub-style) IS redacted when the prefix is present."""
+        value = "abcdefghijklmnopqrst1234567890"  # pragma: allowlist secret  # 30 chars
+        text = f"Authorization: token {value}"
+        result = _redact_secrets(text)
+        assert value not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "token" in result
+        assert "Authorization" in result
+
+    def test_bare_bearer_still_redacted_after_split(self) -> None:
+        """Bare 'Bearer <token>' (no Authorization: prefix) must still be redacted.
+
+        Ensures the split into two patterns did not break the bearer case.
+        """
+        token = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYm9iIn0.SflKxwRJSMeKKF2QT"  # pragma: allowlist secret
+        text = f"Bearer {token}"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "Bearer" in result
+
+    def test_authorization_bearer_still_redacted_after_split(self) -> None:
+        """Authorization: Bearer <token> continues to be redacted (regression guard)."""
+        token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.signatureXYZ"  # pragma: allowlist secret
+        text = f"Authorization: Bearer {token}"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "Bearer" in result
+        assert "Authorization" in result
+
+    def test_bare_token_idempotency_guard(self) -> None:
+        """[REDACTED:bearer_token] placeholder in token position is not re-redacted."""
+        already = "Authorization: token [REDACTED:bearer_token]"
+        result = _redact_secrets(already)
+        assert result == already
+
 
 class TestRedactSecretsInReport:
     """Integration tests: secrets injected into JSONL transcripts must not appear
