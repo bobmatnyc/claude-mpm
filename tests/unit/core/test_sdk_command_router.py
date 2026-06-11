@@ -374,3 +374,79 @@ class TestClearCommand:
         result = router.route("/clear")
         assert result.handled is True
         assert result.should_exit is False
+
+
+# ---------------------------------------------------------------------------
+# 12. Regression: /mcp not shadowed by bundled skill (issue #736)
+# ---------------------------------------------------------------------------
+
+
+class TestMcpNotShadowedBySkill:
+    """Regression tests for issue #736.
+
+    A bundled skill named 'mcp-security-review' caused Claude Code's prefix
+    matcher to intercept the native /mcp slash command (used for MCP server
+    re-authentication) and route it to the skill instead of the built-in
+    handler.  The fix renamed the skill to 'security-review' and added a
+    startup migration to rename already-deployed copies.
+
+    These tests verify that the SDKCommandRouter itself routes /mcp to its
+    own _handle_mcp implementation (or passes through to the LLM when no
+    client is attached), and that no bundled skill directory uses the
+    'mcp-*' naming that triggers the interference.
+    """
+
+    def test_mcp_handled_by_router_when_client_present(
+        self, router: SDKCommandRouter, mock_client: MagicMock
+    ) -> None:
+        """With a client, /mcp is routed to _handle_mcp, NOT to a skill."""
+        status_obj = MagicMock()
+        status_obj.servers = []
+        mock_client.get_mcp_status.return_value = status_obj
+
+        result = router.route("/mcp")
+
+        assert result.handled is True
+        mock_client.get_mcp_status.assert_called_once()
+
+    def test_mcp_passes_through_to_llm_when_no_client(
+        self, router_no_client: SDKCommandRouter
+    ) -> None:
+        """Without a client, /mcp is NOT intercepted — it falls through."""
+        result = router_no_client.route("/mcp")
+        # handled=False means it reaches the LLM / native REPL handler
+        assert result.handled is False
+
+    def test_mcp_is_not_in_unsupported_commands(self, router: SDKCommandRouter) -> None:
+        """/mcp must never be in UNSUPPORTED_COMMANDS."""
+        assert "/mcp" not in router.UNSUPPORTED_COMMANDS
+
+    def test_no_bundled_skill_name_starts_with_mcp(self) -> None:
+        """No bundled skill dir name starts with 'mcp'.
+
+        Such a name triggers Claude Code's prefix matching and causes /mcp to
+        be routed to the skill instead of the native built-in.
+        """
+        from pathlib import Path
+
+        bundled_main = (
+            Path(__file__).parent.parent.parent.parent
+            / "src"
+            / "claude_mpm"
+            / "skills"
+            / "bundled"
+            / "main"
+        )
+        if not bundled_main.is_dir():
+            import pytest
+
+            pytest.skip("Bundled skills directory not found")
+
+        mcp_dirs = [
+            d.name
+            for d in bundled_main.iterdir()
+            if d.is_dir() and d.name.startswith("mcp")
+        ]
+        assert mcp_dirs == [], (
+            f"Skill(s) with 'mcp' prefix would shadow /mcp command: {mcp_dirs}"
+        )
