@@ -333,6 +333,7 @@ class SystemInstructionsDeployer:
                 "research-gate-examples.md",
                 "response-format.md",
                 "structured-questions-examples.md",
+                "ticket-completeness-examples.md",
                 "ticketing-examples.md",
                 "validation-templates.md",
             ]
