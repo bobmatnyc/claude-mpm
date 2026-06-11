@@ -26,11 +26,11 @@
   },
   "CLAUDE_MD": {
     "path": "CLAUDE.md",
-    "bytes": 7478,
-    "approx_tokens": 1869
+    "bytes": 6661,
+    "approx_tokens": 1665
   },
   "_total": {
-    "bytes": 55061,
-    "approx_tokens": 13765
+    "bytes": 54244,
+    "approx_tokens": 13561
   }
 }
