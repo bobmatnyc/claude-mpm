@@ -104,14 +104,15 @@ def _fix_servers(servers: Any) -> bool:
             _NEW_KEY,
         )
     else:
-        # Only old exists: rename + canonicalise.
-        entry = servers.pop(_OLD_KEY)
-        if not isinstance(entry, dict):
-            entry = {}
-        entry["command"] = _CANONICAL_ENTRY["command"]
-        entry["args"] = list(_CANONICAL_ENTRY["args"])
-        entry.setdefault("type", _CANONICAL_ENTRY["type"])
-        servers[_NEW_KEY] = entry
+        # Only old exists: remove it and insert a fresh canonical entry.
+        # We do NOT inherit unknown fields (e.g. a stale ``env`` pointing at the
+        # old binary) from the old dict — build clean from _CANONICAL_ENTRY.
+        servers.pop(_OLD_KEY)
+        servers[_NEW_KEY] = {
+            "type": _CANONICAL_ENTRY["type"],
+            "command": _CANONICAL_ENTRY["command"],
+            "args": list(_CANONICAL_ENTRY["args"]),
+        }
         logger.info(
             "Renamed MCP server '%s' → '%s' with canonical command/args",
             _OLD_KEY,
@@ -176,13 +177,16 @@ def _candidate_paths(project_dir: Path) -> list[Path]:
 # ---------------------------------------------------------------------------
 
 
-def _cleanup_launchd_plist() -> None:
+def _cleanup_launchd_plist() -> bool:
     """Unload and remove the old ``com.bobmatnyc.trusty-analyzer`` launchd plist.
 
-    WHAT: No-op when the plist file does not exist or on non-macOS platforms.
+    WHAT: Returns True iff the plist was found and at least an unload or removal
+    was attempted (i.e. something was actually cleaned up).  Returns False when
+    the plist does not exist or on non-macOS platforms (pure no-op).
     WHY: The old plist keeps trying to start the absent ``trusty-analyzer``
     binary, generating repeated spawn-failure log noise and consuming launchd
-    resources.
+    resources.  The bool return lets ``run_migration`` honour its documented
+    contract (True iff anything was modified *or* cleaned up).
 
     Guard patterns (mirrors project hook/migration stability rules):
     * ``sys.platform`` check so the whole block is skipped on non-macOS.
@@ -191,11 +195,11 @@ def _cleanup_launchd_plist() -> None:
     * File removal is guarded by ``Path.exists()`` before ``Path.unlink()``.
     """
     if sys.platform != "darwin":
-        return
+        return False
 
     plist_path = Path.home() / "Library" / "LaunchAgents" / f"{_OLD_PLIST_LABEL}.plist"
     if not plist_path.exists():
-        return
+        return False
 
     logger.info("Found stale launchd plist: %s — removing", plist_path)
 
@@ -229,6 +233,9 @@ def _cleanup_launchd_plist() -> None:
         logger.info("Removed plist: %s", plist_path)
     except OSError as exc:
         logger.warning("Could not remove plist %s: %s", plist_path, exc)
+
+    # We found and acted on the plist (even if launchctl or unlink had errors).
+    return True
 
 
 def _get_uid() -> int:
@@ -265,6 +272,6 @@ def run_migration(project_dir: Path | None = None) -> bool:
         if _process_file(path):
             any_changed = True
 
-    _cleanup_launchd_plist()
+    plist_cleaned = _cleanup_launchd_plist()
 
-    return any_changed
+    return any_changed or plist_cleaned
