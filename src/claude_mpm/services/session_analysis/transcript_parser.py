@@ -1048,6 +1048,12 @@ def parse_session(
                     pm_title = f"Agent → {agent_cd.subagent_type}"[:120]
                 else:
                     pm_title = "Agent"
+            elif has_skill:
+                skill_cd = next((c for c in calls if c.tool_name == "Skill"), None)
+                if skill_cd and skill_cd.skill_name:
+                    pm_title = f"Skill → {skill_cd.skill_name}"[:120]
+                else:
+                    pm_title = "Skill"
             elif calls:
                 pm_title = _make_title(calls[0].tool_name)
             else:
@@ -1095,9 +1101,12 @@ def parse_session(
     # Guard against double-counting when two PM Agent calls both correlate to
     # the same subagent summary (concurrent/parallel delegation within the ±2s
     # window).  We accumulate each summary's cost/tokens EXACTLY ONCE, keyed by
-    # the Python object identity of the summary, while still attaching the
+    # the subagent file path (unique per subagent), while still attaching the
     # correlation to every matching agent_call event for display purposes.
-    seen_summaries: set[int] = set()
+    # Using file_path rather than object id() so that the uncorrelated-fallback
+    # loop below can also use the same set to skip already-counted summaries
+    # even when the two code paths hold different Python objects for the same file.
+    seen_summary_paths: set[Path] = set()
     subagent_events_to_add: list[tuple[TimelineEvent, TimelineEvent]] = []
     for event in events:
         if event.event_type != "agent_call":
@@ -1114,8 +1123,8 @@ def parse_session(
                 event.correlation_ambiguous = ambiguous
 
                 # Accumulate cost/tokens only on the first encounter of this summary
-                if id(summary) not in seen_summaries:
-                    seen_summaries.add(id(summary))
+                if summary.file_path not in seen_summary_paths:
+                    seen_summary_paths.add(summary.file_path)
 
                     sa_model = summary.model or "claude-sonnet"
                     if sa_model not in report.model_totals:
@@ -1173,6 +1182,32 @@ def parse_session(
     for parent, child in subagent_events_to_add:
         idx = events.index(parent)
         events.insert(idx + 1, child)
+
+    # Accumulate uncorrelated subagent costs.
+    # Subagents whose first_user_timestamp falls outside the ±2s tolerance
+    # window from every PM Agent call are not in corr_map, so they were never
+    # visited by the loop above.  They represent real token spend that must
+    # still be counted; skipping them would cause subagent_cost_usd to read $0
+    # (or be under-counted) even when subagents clearly consumed tokens.
+    for summary in subagent_summaries:
+        if summary.file_path in seen_summary_paths:
+            continue  # already counted via correlation
+        sa_model = summary.model or "claude-sonnet"
+        if sa_model not in report.model_totals:
+            report.model_totals[sa_model] = ModelTotals(model=sa_model)
+        mt = report.model_totals[sa_model]
+        mt.input_tokens += summary.usage.get("input_tokens", 0)
+        mt.output_tokens += summary.usage.get("output_tokens", 0)
+        mt.cache_creation_input_tokens += summary.usage.get(
+            "cache_creation_input_tokens", 0
+        )
+        mt.cache_read_input_tokens += summary.usage.get("cache_read_input_tokens", 0)
+        mt.total_cost_usd += summary.cost_usd
+        mt.turn_count += len(summary.all_events)
+        report.subagent_cost_usd += summary.cost_usd
+        report.grand_total_cost_usd += summary.cost_usd
+        if summary.pricing_fallback:
+            report.has_pricing_fallback = True
 
     # Compile final report
     report.events = events

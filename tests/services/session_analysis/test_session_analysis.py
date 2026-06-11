@@ -2128,3 +2128,393 @@ class TestRedactSecretsInReport:
         # The report title appears in the YAML frontmatter
         assert token not in md
         assert "[REDACTED:npm_token]" in md
+
+
+# ===========================================================================
+# Defect 4 — Skill-call card title names the specific skill (fix)
+# ===========================================================================
+
+
+class TestSkillCallTitle:
+    """Skill-call timeline events must show 'Skill → <skill_name>' in the title.
+
+    When a PM turn has ONLY a Skill tool_use and no prose text, the title must
+    be derived from the skill name (mirroring the Agent → <subagent_type>
+    pattern), not fall back to the bare tool name 'Skill'.
+    """
+
+    def test_skill_call_title_via_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """parse_session produces a skill_call title containing the skill name."""
+        import json as _json
+
+        fake_cwd = str(tmp_path / "fake" / "proj_skill")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-skill-title-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        # PM turn: only a Skill tool_use (no prose text) → title must be derived
+        # from the skill name.
+        assistant_line = {
+            "uuid": "sk-001",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tu_skill_01",
+                        "name": "Skill",
+                        "input": {"skill": "mpm-doctor", "args": ""},
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 10,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(assistant_line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        skill_events = [e for e in report.events if e.event_type == "skill_call"]
+        assert skill_events, "Expected at least one skill_call event"
+        title = skill_events[0].title
+        assert "mpm-doctor" in title, (
+            f"Expected skill name 'mpm-doctor' in skill_call title, got: {title!r}"
+        )
+
+    def test_skill_call_title_format_arrow(self, tmp_path: Path, monkeypatch) -> None:
+        """Title uses 'Skill → <name>' format (arrow separator, mirroring Agent)."""
+        import json as _json
+
+        fake_cwd = str(tmp_path / "fake" / "proj_skill2")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-skill-arrow-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        line = {
+            "uuid": "sk-002",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tu_skill_02",
+                        "name": "Skill",
+                        "input": {
+                            "skill": "verification-before-completion",
+                            "args": "",
+                        },
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 10,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        skill_events = [e for e in report.events if e.event_type == "skill_call"]
+        title = skill_events[0].title
+        assert "→" in title, f"Expected arrow '→' in title, got: {title!r}"
+        assert "verification-before-completion" in title
+
+    def test_skill_call_prose_title_overrides_skill_name(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """When the PM turn has prose text, the prose title takes priority over the skill name."""
+        import json as _json
+
+        fake_cwd = str(tmp_path / "fake" / "proj_skill3")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-skill-prose-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        line = {
+            "uuid": "sk-003",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {"type": "text", "text": "Let me run diagnostics on the system."},
+                    {
+                        "type": "tool_use",
+                        "id": "tu_skill_03",
+                        "name": "Skill",
+                        "input": {"skill": "mpm-doctor", "args": ""},
+                    },
+                ],
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 20,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        skill_events = [e for e in report.events if e.event_type == "skill_call"]
+        title = skill_events[0].title
+        # Prose takes priority — title must come from the text block
+        assert "diagnostics" in title.lower(), (
+            f"Expected prose-derived title when text block present, got: {title!r}"
+        )
+
+    def test_skill_call_title_in_markdown_heading(self, tmp_path: Path) -> None:
+        """Skill-call card title propagates into the Markdown heading."""
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            CallDetail,
+            ModelTotals,
+        )
+
+        skill_event = TimelineEvent(
+            uuid="ev-md-skill",
+            timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+            actor="mpm",
+            event_type="skill_call",
+            title="Skill → mpm-doctor",
+            detail="",
+            calls=[
+                CallDetail(
+                    tool_name="Skill",
+                    tool_use_id="tu_md_skill_01",
+                    input_summary='{"skill": "mpm-doctor"}',
+                    response_text="Doctor report done.",
+                    skill_name="mpm-doctor",
+                    skill_args="",
+                )
+            ],
+            model="claude-sonnet-4-6",
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 10,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=0.001,
+        )
+        report = SessionReport(
+            session_id="md-skill-title",
+            project_path="/fake/proj",
+            transcript_path="/fake/p.jsonl",
+            events=[skill_event],
+            title="Skill → mpm-doctor",
+            model_totals={
+                "claude-sonnet-4-6": ModelTotals(
+                    model="claude-sonnet-4-6",
+                    input_tokens=100,
+                    output_tokens=10,
+                    total_cost_usd=0.001,
+                    turn_count=1,
+                )
+            },
+            grand_total_cost_usd=0.001,
+        )
+        md = render_markdown(report)
+        headings = [line for line in md.splitlines() if line.startswith("#### ")]
+        skill_headings = [h for h in headings if "mpm-doctor" in h]
+        assert skill_headings, (
+            f"Expected a heading with 'mpm-doctor'. Headings: {headings}"
+        )
+
+
+# ===========================================================================
+# Defect 5 — Uncorrelated subagent costs are now included in subagent_cost_usd
+# ===========================================================================
+
+
+class TestUncorrelatedSubagentCost:
+    """Subagents outside the ±2s correlation window must still be counted.
+
+    Before the fix, subagents whose first_user_timestamp fell outside the
+    tolerance window were silently dropped from subagent_cost_usd, causing
+    the Agent Cost stat card to read $0 (or be under-counted) even when
+    subagents clearly consumed tokens.
+    """
+
+    def _make_summary(
+        self,
+        agent_id: str,
+        cost: float,
+        file_path: Path,
+        ts: datetime | None = None,
+    ) -> _SubagentSummary:
+        from datetime import UTC, datetime as _dt
+
+        return _SubagentSummary(
+            agent_id=agent_id,
+            file_path=file_path,
+            attribution_agent=agent_id,
+            first_user_timestamp=ts or _dt(2025, 6, 10, 10, 0, 0, tzinfo=UTC),
+            prompt_text="do stuff",
+            response_text="done",
+            model="claude-haiku-3-5",
+            usage={
+                "input_tokens": 1000,
+                "output_tokens": 200,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=cost,
+            pricing_fallback=False,
+            all_events=[],
+        )
+
+    def test_uncorrelated_subagent_cost_included(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """A subagent outside the ±2s window still contributes to subagent_cost_usd."""
+        from datetime import UTC, datetime as _dt
+
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        _PARALLEL_MAIN_JSONL = (
+            Path(__file__).parent.parent.parent
+            / "fixtures"
+            / "session_analysis"
+            / "parallel_pm_two_calls.jsonl"
+        )
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-uncorr-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            _PARALLEL_MAIN_JSONL.read_bytes()
+        )
+        # No subagent files needed — we inject two via monkeypatch
+
+        file_a = tmp_path / "agent-alpha.jsonl"
+        file_b = tmp_path / "agent-beta.jsonl"
+        file_a.write_text("{}\n")
+        file_b.write_text("{}\n")
+
+        sa_a = self._make_summary("alpha", cost=0.010, file_path=file_a)
+        sa_b = self._make_summary("beta", cost=0.020, file_path=file_b)
+
+        # Return only sa_a from the correlation (sa_b is "outside tolerance")
+        def _fake_correlate(
+            agent_calls: list,
+            subagent_summaries: list,
+        ) -> dict:
+            return {"tu_parallel_A": [(sa_a, False)]}
+
+        # _list_subagent_files must return BOTH so sa_b appears in subagent_summaries
+        def _fake_list_subagent_files(sid: str, cwd: str) -> list:
+            return [file_a, file_b]
+
+        # _parse_subagent_transcript maps each file to its pre-built summary
+        def _fake_parse_sa(path: Path) -> _SubagentSummary:
+            if path == file_a:
+                return sa_a
+            return sa_b
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+        monkeypatch.setattr(_tp, "_list_subagent_files", _fake_list_subagent_files)
+        monkeypatch.setattr(_tp, "_parse_subagent_transcript", _fake_parse_sa)
+
+        report = _tp.parse_session(session_id, fake_cwd)
+
+        expected_sa_cost = sa_a.cost_usd + sa_b.cost_usd  # 0.030
+        assert abs(report.subagent_cost_usd - expected_sa_cost) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != "
+            f"expected={expected_sa_cost} (uncorrelated sa_b cost not included)"
+        )
+
+        # Core invariant must still hold
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+    def test_uncorrelated_no_timestamp_subagent_cost_included(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Even a subagent with no first_user_timestamp is counted (cost included)."""
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        _PARALLEL_MAIN_JSONL = (
+            Path(__file__).parent.parent.parent
+            / "fixtures"
+            / "session_analysis"
+            / "parallel_pm_two_calls.jsonl"
+        )
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-uncorr-nots-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            _PARALLEL_MAIN_JSONL.read_bytes()
+        )
+
+        file_x = tmp_path / "agent-nots.jsonl"
+        file_x.write_text("{}\n")
+        sa_x = self._make_summary("nots", cost=0.015, file_path=file_x, ts=None)
+        sa_x.first_user_timestamp = (
+            None  # explicitly no timestamp → skipped by correlation
+        )
+
+        def _fake_correlate(agent_calls: list, subagent_summaries: list) -> dict:
+            return {}  # nothing correlates
+
+        def _fake_list_subagent_files(sid: str, cwd: str) -> list:
+            return [file_x]
+
+        def _fake_parse_sa(path: Path) -> _SubagentSummary:
+            return sa_x
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+        monkeypatch.setattr(_tp, "_list_subagent_files", _fake_list_subagent_files)
+        monkeypatch.setattr(_tp, "_parse_subagent_transcript", _fake_parse_sa)
+
+        report = _tp.parse_session(session_id, fake_cwd)
+
+        assert abs(report.subagent_cost_usd - 0.015) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != 0.015 "
+            "(no-timestamp subagent cost should still be counted)"
+        )
