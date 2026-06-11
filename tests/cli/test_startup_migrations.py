@@ -711,3 +711,115 @@ class TestCleanStaleHookPathsProjectSettings:
         cleaned = json.loads(settings_file.read_text())
         cmd = cleaned["hooks"]["Stop"][0]["hooks"][0]["command"]
         assert cmd == "claude-hook"
+
+
+class TestMcpSecurityReviewRename:
+    """Regression tests for issue #736: mcp-security-review skill shadows /mcp command.
+
+    The bundled skill 'mcp-security-review' was renamed to 'security-review' in
+    commit 1be75bed9.  This class verifies:
+    1. The rename map entry is present so already-deployed ~/.claude/skills/
+       directories are migrated on startup.
+    2. The migration renames an installed mcp-security-review directory
+       idempotently, without touching an already-renamed target.
+    3. No bundled skill retains an 'mcp-*' name that could shadow the native
+       /mcp slash command in future.
+    """
+
+    @pytest.fixture
+    def fake_skills_home(self, tmp_path):
+        """Create a temporary ~/.claude/skills/ tree and patch Path.home/cwd."""
+        home = tmp_path / "home"
+        skills_dir = home / ".claude" / "skills"
+        skills_dir.mkdir(parents=True)
+        with (
+            patch.object(Path, "home", return_value=home),
+            patch.object(Path, "cwd", return_value=home),
+        ):
+            yield skills_dir
+
+    def test_rename_map_contains_mcp_security_review(self):
+        """_MCP_SKILL_RENAME_MAP must map 'mcp-security-review' → 'security-review'."""
+        from claude_mpm.cli.startup_migrations import _MCP_SKILL_RENAME_MAP
+
+        assert "mcp-security-review" in _MCP_SKILL_RENAME_MAP
+        assert _MCP_SKILL_RENAME_MAP["mcp-security-review"] == "security-review"
+
+    def test_get_target_skill_name_for_mcp_security_review(self):
+        """_get_target_skill_name uses the explicit map for mcp-security-review."""
+        from claude_mpm.cli.startup_migrations import _get_target_skill_name
+
+        assert _get_target_skill_name("mcp-security-review") == "security-review"
+
+    def test_rename_mcp_security_review_skill_dir(self, fake_skills_home):
+        """Installed mcp-security-review directory is renamed to security-review."""
+        from claude_mpm.cli.startup_migrations import _rename_mcp_skills
+
+        skill_dir = fake_skills_home / "mcp-security-review"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text("name: mcp-security-review\n")
+
+        result = _rename_mcp_skills()
+
+        assert result is True
+        assert not (fake_skills_home / "mcp-security-review").exists()
+        renamed = fake_skills_home / "security-review"
+        assert renamed.exists()
+        assert (renamed / "SKILL.md").exists()
+
+    def test_rename_idempotent_when_target_already_exists(self, fake_skills_home):
+        """If security-review already exists, mcp-security-review is left untouched."""
+        from claude_mpm.cli.startup_migrations import _rename_mcp_skills
+
+        old = fake_skills_home / "mcp-security-review"
+        old.mkdir()
+        (old / "SKILL.md").write_text("name: mcp-security-review\n")
+
+        new = fake_skills_home / "security-review"
+        new.mkdir()
+        (new / "SKILL.md").write_text("name: security-review\n")
+
+        result = _rename_mcp_skills()
+
+        assert result is True
+        # Source left intact because target already exists
+        assert old.exists()
+        assert new.exists()
+
+    def test_check_detects_mcp_security_review_dir(self, fake_skills_home):
+        """_check_mcp_skills_need_rename returns True when mcp-security-review exists."""
+        from claude_mpm.cli.startup_migrations import _check_mcp_skills_need_rename
+
+        (fake_skills_home / "mcp-security-review").mkdir()
+
+        assert _check_mcp_skills_need_rename() is True
+
+    def test_no_bundled_skill_starts_with_mcp(self):
+        """No bundled skill directory name starts with 'mcp'.
+
+        A skill starting with 'mcp' will shadow Claude Code's native /mcp
+        slash command via prefix matching (issue #736).  This test acts as a
+        permanent guard against future regressions.
+        """
+        from pathlib import Path as _Path
+
+        bundled_main = (
+            _Path(__file__).parent.parent.parent
+            / "src"
+            / "claude_mpm"
+            / "skills"
+            / "bundled"
+            / "main"
+        )
+        if not bundled_main.is_dir():
+            pytest.skip("Bundled skills directory not found")
+
+        mcp_prefixed = [
+            entry.name
+            for entry in bundled_main.iterdir()
+            if entry.is_dir() and entry.name.startswith("mcp")
+        ]
+        assert mcp_prefixed == [], (
+            f"Bundled skill(s) with 'mcp' prefix found — these shadow the native "
+            f"/mcp command: {mcp_prefixed}. Rename them (see issue #736)."
+        )
