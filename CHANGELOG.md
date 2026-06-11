@@ -19,6 +19,18 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.31 (2026-06-11)
+
+### Feat
+
+- redact secrets from session-analyzer reports (#738) (#739)
+
+### Fix
+
+- require Authorization: prefix for token-keyword redaction (#743)
+- redact Authorization/Bearer tokens in session reports (#742)
+- session-analyzer report quality — clean titles, named agents, valid JSX (#737)
+
 ## v6.5.30 (2026-06-10)
 
 ## v6.5.29 (2026-06-10)
