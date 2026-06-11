@@ -20,11 +20,14 @@ from claude_mpm.core.framework.loaders.workflow_constants import (
 
 # Markers that uniquely identify content belonging to specific blocks.
 # Used to detect stale override files that contain previously-deployed merged content.
+# IMPORTANT: these must stay in sync with the actual headings in the source .md files
+# under src/claude_mpm/agents/. The regression test
+# tests/services/agents/deployment/test_block_markers_exist.py enforces this.
 BLOCK_MARKERS: dict[str, list[str]] = {
-    "PM_INSTRUCTIONS.md": ["## PM Core Identity"],
-    "AGENT_DELEGATION.md": ["## Available Agent Capabilities"],
+    "PM_INSTRUCTIONS.md": ["## Identity"],
+    "AGENT_DELEGATION.md": ["## When to Delegate to Each Agent"],
     "WORKFLOW.md": ["## Mandatory 5-Phase Sequence"],
-    "MEMORY.md": ["## Static Memory Management"],
+    "MEMORY.md": ["## Memory System"],
 }
 
 
