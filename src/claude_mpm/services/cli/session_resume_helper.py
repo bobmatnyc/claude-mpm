@@ -49,6 +49,49 @@ class SessionResumeHelper:
         # Legacy location for backward compatibility (also project-local)
         self.legacy_pause_dir = self.project_path / ".claude-mpm" / "sessions" / "pause"
 
+    def check_session_dir_access(self) -> tuple[bool, str | None]:
+        """Probe the session directory and distinguish *denied* from *empty*.
+
+        WHAT: Attempts to list the project session directory and reports
+        whether the read was permission-denied versus the directory being
+        genuinely empty or absent.
+        WHY: Bug #735 — guidance like ``ls .claude-mpm/sessions/ 2>/dev/null``
+        swallows stderr, so a sandbox-denied read looks identical to "no
+        sessions" and resume wrongly concludes there is nothing to resume.
+        Callers must be able to tell "I could not read" from "there is nothing".
+
+        Returns:
+            A ``(accessible, error_message)`` tuple:
+            - ``(True, None)``  — directory readable (may be empty or absent).
+            - ``(False, msg)``  — directory exists but could not be read
+              (permission denied or other OS error); ``msg`` describes it.
+        """
+        directory = self.pause_dir
+
+        # An absent directory is NOT an error — it simply means no sessions
+        # have ever been saved for this project. Distinguish this from a
+        # directory that exists but cannot be read.
+        if not directory.exists():
+            return True, None
+
+        try:
+            # Force an actual read of the directory entries. iterdir() is lazy,
+            # so we materialise it to trigger any PermissionError now.
+            list(directory.iterdir())
+            return True, None
+        except PermissionError as e:
+            msg = (
+                f"Permission denied reading session directory {directory}: {e}. "
+                "Cannot determine whether paused sessions exist — this is NOT "
+                "the same as 'no sessions'. Check sandbox/filesystem permissions."
+            )
+            logger.warning(msg)
+            return False, msg
+        except OSError as e:
+            msg = f"Failed to read session directory {directory}: {e}"
+            logger.warning(msg)
+            return False, msg
+
     def _find_md_only_sessions(self, directory: Path) -> list[Path]:
         """Find timestamped .md session files lacking a .json counterpart.
 
@@ -487,6 +530,20 @@ class SessionResumeHelper:
         Returns:
             Session data if found and user should resume, None otherwise
         """
+        # BUG #735: before concluding "no sessions", make sure we could
+        # actually read the directory. A permission-denied read must surface
+        # an explicit error rather than masquerading as an empty directory.
+        accessible, access_error = self.check_session_dir_access()
+        if not accessible:
+            print(
+                "\n⚠️  Could not read the session directory — unable to "
+                "determine whether a paused session exists.\n"
+                f"{access_error}\n"
+                "This is NOT the same as 'no sessions found'. Resolve the "
+                "permission issue and retry /mpm-session-resume.\n"
+            )
+            return None
+
         if not self.has_paused_sessions():
             logger.debug("No paused sessions found")
             return None

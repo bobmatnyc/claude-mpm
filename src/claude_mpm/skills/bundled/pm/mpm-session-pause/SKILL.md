@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.0.0"
+version: "1.1.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -36,6 +36,38 @@ When invoked, this skill:
 
 ## Implementation
 
+### Step 0 — Resolve the correct Python interpreter (REQUIRED)
+
+`claude_mpm` may be installed in an **isolated** environment (pipx, `uv tool`,
+`pip --user`) that the system `python3` **cannot** import. Running bare
+`python3 -c "from claude_mpm..."` then fails with `ModuleNotFoundError`.
+
+**Before running any Python below, resolve the interpreter that owns the
+installed `claude-mpm`.** Run this shell snippet and use the captured value
+(`$MPM_PY`) as your interpreter:
+
+```bash
+# Honor an explicit override first, then ask claude_mpm to resolve itself,
+# then fall back to the venv python beside the claude-mpm console script.
+if [ -n "$CLAUDE_MPM_PYTHON" ]; then
+    MPM_PY="$CLAUDE_MPM_PYTHON"
+else
+    MPM_PY="$(python3 -m claude_mpm.utils.interpreter_resolver 2>/dev/null)"
+    if [ -z "$MPM_PY" ]; then
+        # Derive the venv python from the installed claude-mpm executable.
+        CMPM="$(command -v claude-mpm 2>/dev/null)"
+        if [ -n "$CMPM" ]; then
+            MPM_PY="$(dirname "$(readlink -f "$CMPM" 2>/dev/null || echo "$CMPM")")/python"
+        fi
+    fi
+    [ -x "$MPM_PY" ] || MPM_PY="$(command -v python3)"
+fi
+echo "Using interpreter: $MPM_PY"
+```
+
+Then run the pause code with **`$MPM_PY`** (NOT bare `python3`):
+`"$MPM_PY" - <<'PY' ... PY`
+
 **Execute the following Python code to pause the session:**
 
 ```python
@@ -46,11 +78,12 @@ try:
 except ImportError:
     print(
         "ERROR: claude_mpm is not importable in the current Python environment.\n"
-        "If you installed via 'uv tool install claude-mpm', run:\n"
-        "  uv run python -c 'from claude_mpm.services.cli.session_pause_manager "
+        "Resolve the correct interpreter first (see Step 0 above), e.g.:\n"
+        "  MPM_PY=\"$(python3 -m claude_mpm.utils.interpreter_resolver)\"\n"
+        "  \"$MPM_PY\" -c 'from claude_mpm.services.cli.session_pause_manager "
         "import SessionPauseManager'\n"
-        "Or invoke directly: claude-mpm session-pause\n"
-        "Alternatively, activate the virtual environment where claude-mpm is installed."
+        "Or set CLAUDE_MPM_PYTHON to the interpreter where claude-mpm is installed.\n"
+        "Alternatively, invoke directly: claude-mpm session-pause"
     )
     raise SystemExit(1)
 

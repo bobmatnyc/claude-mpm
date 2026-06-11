@@ -38,6 +38,7 @@ References:
 """
 
 import hashlib
+import re
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -51,6 +52,72 @@ from claude_mpm.core.mixins import LoggerMixin
 
 # Security constants
 MAX_YAML_SIZE = 10 * 1024 * 1024  # 10MB limit to prevent YAML bombs
+
+# Default version assumed for a deployed/bundled skill whose SKILL.md does not
+# declare a ``version:`` in its YAML frontmatter. Treated as the lowest version.
+DEFAULT_SKILL_VERSION = "0.0.0"
+
+# Matches a ``version:`` line inside YAML frontmatter, with or without quotes.
+# Example matches: ``version: "1.2.0"``, ``version: 1.0.0``, ``version: '2.0'``
+_FRONTMATTER_VERSION_RE = re.compile(
+    r"^version:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", re.MULTILINE
+)
+
+
+def _parse_version_tuple(version: str) -> tuple[int, ...]:
+    """Parse a dotted version string into a comparable integer tuple.
+
+    WHAT: Converts ``"1.2.0"`` -> ``(1, 2, 0)`` so versions sort numerically
+    rather than lexically (``"10.0.0" > "9.0.0"``).
+    WHY: Bug #735 — checksum-based redeploy silently reverted user-hardened
+    skills. Version comparison must be numeric to decide whether the bundled
+    skill is strictly newer than the deployed one.
+
+    Non-numeric or malformed segments degrade gracefully to ``0`` so a junk
+    version never raises and is simply treated as the lowest possible version.
+
+    Args:
+        version: Dotted version string (e.g. ``"1.2.0"``).
+
+    Returns:
+        Tuple of integers suitable for direct comparison.
+    """
+    parts: list[int] = []
+    for segment in str(version).strip().split("."):
+        # Keep only the leading numeric run of each segment (e.g. "0rc1" -> 0).
+        match = re.match(r"\d+", segment)
+        parts.append(int(match.group()) if match else 0)
+    return tuple(parts) or (0,)
+
+
+def _read_skill_version(file_path: Path) -> str:
+    """Read the ``version:`` from a SKILL.md YAML frontmatter block.
+
+    WHAT: Extracts the declared version string from the frontmatter of a
+    SKILL.md file, returning ``DEFAULT_SKILL_VERSION`` when absent/unreadable.
+    WHY: Bug #735 — version-aware deployment needs the bundled and deployed
+    versions to decide whether an overwrite is an upgrade or a clobber.
+
+    Args:
+        file_path: Path to a SKILL.md file.
+
+    Returns:
+        The version string declared in frontmatter, or
+        ``DEFAULT_SKILL_VERSION`` if none is found or the file cannot be read.
+    """
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            # Versions live in the frontmatter at the very top; reading the
+            # first ~4KB is sufficient and avoids loading large files fully.
+            head = f.read(4096)
+    except OSError:
+        return DEFAULT_SKILL_VERSION
+
+    match = _FRONTMATTER_VERSION_RE.search(head)
+    if match:
+        return match.group(1).strip()
+    return DEFAULT_SKILL_VERSION
+
 
 # Tier 1: Required PM skills that MUST be deployed for PM agent to function properly
 # These are core framework management skills for basic PM operation
@@ -562,8 +629,9 @@ class PMSkillsDeployerService(LoggerMixin):
                 if not self._validate_safe_path(deployment_dir, target_path):
                     raise ValueError(f"Path traversal attempt detected: {target_path}")
 
-                # Compute checksum of source
+                # Compute checksum and read declared version of source
                 checksum = self._compute_checksum(source_path)
+                bundled_version = _read_skill_version(source_path)
 
                 # Check if already deployed
                 if skill_name in existing_deployments and not force:
@@ -576,16 +644,60 @@ class PMSkillsDeployerService(LoggerMixin):
                         )
                         continue
 
-                # Deploy skill (overwrites if exists - mpm-* skills WIN)
+                    # BUG #735: content differs. Do NOT blindly overwrite —
+                    # that silently reverts user-hardened skills. Only overwrite
+                    # when the bundled skill is STRICTLY NEWER than the deployed
+                    # one. The deployed version is read from the actual file on
+                    # disk (authoritative) falling back to the registry entry.
+                    if target_path.exists():
+                        deployed_version = _read_skill_version(target_path)
+                    else:
+                        deployed_version = existing.get(
+                            "version", DEFAULT_SKILL_VERSION
+                        )
+
+                    if _parse_version_tuple(bundled_version) <= _parse_version_tuple(
+                        deployed_version
+                    ):
+                        skipped.append(skill_name)
+                        # Preserve the deployed file's real version + a fresh
+                        # checksum of what is actually on disk so the registry
+                        # reflects reality (not the bundled source).
+                        new_deployed_skills.append(
+                            {
+                                "name": skill_name,
+                                "version": deployed_version,
+                                "deployed_at": existing.get("deployed_at", timestamp),
+                                "checksum": (
+                                    self._compute_checksum(target_path)
+                                    if target_path.exists()
+                                    else existing.get("checksum", checksum)
+                                ),
+                            }
+                        )
+                        self.logger.info(
+                            f"Skipped {skill_name}: deployed version "
+                            f"{deployed_version} >= bundled {bundled_version} "
+                            f"(refusing to clobber user-modified skill)"
+                        )
+                        continue
+
+                    self.logger.info(
+                        f"Upgrading {skill_name}: {deployed_version} -> "
+                        f"{bundled_version} (bundled is newer)"
+                    )
+
+                # Deploy skill. Overwrites only when: forced, brand-new, or the
+                # bundled version is strictly newer (checked above).
                 shutil.copy2(source_path, target_path)
 
                 # Add to deployed list
                 deployed.append(skill_name)
 
-                # Update registry entry
+                # Update registry entry with the real bundled version.
                 skill_entry = {
                     "name": skill_name,
-                    "version": "1.0.0",  # PM templates don't have versions yet
+                    "version": bundled_version,
                     "deployed_at": timestamp,
                     "checksum": checksum,
                 }
@@ -706,16 +818,24 @@ class PMSkillsDeployerService(LoggerMixin):
                 corrupted_skills.append(required_skill)
                 continue
 
-            # Verify checksum
+            # Verify checksum.
+            #
+            # BUG #735: a registry-vs-disk checksum mismatch on a non-empty,
+            # readable file means the deployed skill was *modified* (e.g. a
+            # user hardened it), NOT that it is corrupt. Classifying it as
+            # corrupted previously triggered auto-repair force-redeploy, which
+            # silently reverted the user's changes. We now treat such files as
+            # "user-modified" — a warning only, never auto-repaired. Genuine
+            # corruption (empty/unreadable) is still caught above.
             deployed_skill = deployed_lookup[required_skill]
             current_checksum = self._compute_checksum(skill_file)
             expected_checksum = deployed_skill.get("checksum", "")
 
             if current_checksum != expected_checksum:
                 warnings.append(
-                    f"Required PM skill checksum mismatch: {required_skill} (file may be corrupted)"
+                    f"Required PM skill modified since deployment: {required_skill} "
+                    f"(file differs from registry checksum — leaving user changes intact)"
                 )
-                corrupted_skills.append(required_skill)
 
         # Check for available updates (bundled skills newer than deployed)
         bundled_skills = {s["name"]: s for s in self._discover_bundled_pm_skills()}
@@ -741,38 +861,32 @@ class PMSkillsDeployerService(LoggerMixin):
                     warnings.append(f"PM skill update available: {skill_name}")
                     outdated_skills.append(skill_name)
 
-        # Auto-repair if enabled and issues found
-        repaired_skills = []
+        # Auto-repair if enabled and issues found.
+        #
+        # BUG #735: auto-repair previously called deploy_pm_skills(force=True),
+        # which force-overwrites EVERY skill — clobbering unrelated
+        # user-modified skills. We now repair ONLY the specific
+        # missing/corrupt skills via a targeted copy, leaving every other
+        # deployed skill (including user-modified ones) untouched.
+        repaired_skills: list[str] = []
         if auto_repair and (missing_skills or corrupted_skills):
+            broken = list(dict.fromkeys(missing_skills + corrupted_skills))
             self.logger.info(
                 f"Auto-repairing PM skills: {len(missing_skills)} missing, "
-                f"{len(corrupted_skills)} corrupted"
+                f"{len(corrupted_skills)} corrupted (targeted)"
             )
+            repaired_skills = self._repair_specific_skills(project_dir, broken)
 
-            # Deploy missing and corrupted skills
-            repair_result = self.deploy_pm_skills(project_dir, force=True)
-
-            if repair_result.success:
-                repaired_skills = repair_result.deployed
+            if repaired_skills:
                 self.logger.info(f"Auto-repaired {len(repaired_skills)} PM skills")
-
                 # Remove repaired skills from missing/corrupted lists
                 missing_skills = [s for s in missing_skills if s not in repaired_skills]
                 corrupted_skills = [
                     s for s in corrupted_skills if s not in repaired_skills
                 ]
-
-                # Update warnings
-                if repaired_skills:
-                    warnings.append(
-                        f"Auto-repaired {len(repaired_skills)} PM skills: {', '.join(repaired_skills)}"
-                    )
-            else:
                 warnings.append(
-                    f"Auto-repair failed: {len(repair_result.errors)} errors"
-                )
-                self.logger.error(
-                    f"Auto-repair failed with errors: {repair_result.errors}"
+                    f"Auto-repaired {len(repaired_skills)} PM skills: "
+                    f"{', '.join(repaired_skills)}"
                 )
 
         # Determine verification status
@@ -797,6 +911,88 @@ class PMSkillsDeployerService(LoggerMixin):
             message=message,
             skill_count=len(deployed_skills_data),
         )
+
+    def _repair_specific_skills(
+        self, project_dir: Path, skill_names: list[str]
+    ) -> list[str]:
+        """Redeploy ONLY the named skills from their bundled sources.
+
+        WHAT: Copies the bundled SKILL.md for each named skill over the
+        deployed location and updates that skill's registry entry, leaving all
+        other deployed skills untouched.
+        WHY: Bug #735 — auto-repair must fix genuinely missing/empty/corrupt
+        files without force-redeploying (and thus clobbering) unrelated
+        user-modified skills. This is the surgical alternative to
+        ``deploy_pm_skills(force=True)``.
+
+        Args:
+            project_dir: Project root directory (for registry location).
+            skill_names: Names of skills to repair.
+
+        Returns:
+            List of skill names that were successfully repaired.
+        """
+        if not skill_names:
+            return []
+
+        bundled = {s["name"]: s for s in self._discover_bundled_pm_skills()}
+        deployment_dir = self._get_deployment_dir(project_dir)
+        deployment_dir.mkdir(parents=True, exist_ok=True)
+
+        registry = self._load_registry(project_dir)
+        deployed_skills = registry.get("skills", [])
+        registry_lookup = {s["name"]: s for s in deployed_skills}
+
+        timestamp = datetime.now(tz=UTC).isoformat()
+        repaired: list[str] = []
+
+        for skill_name in skill_names:
+            bundled_skill = bundled.get(skill_name)
+            if not bundled_skill:
+                self.logger.warning(
+                    f"Cannot repair {skill_name}: no bundled source found"
+                )
+                continue
+
+            source_path = bundled_skill["path"]
+            skill_dir = deployment_dir / skill_name
+            target_path = skill_dir / "SKILL.md"
+
+            # SECURITY: keep targets inside the deployment directory.
+            if not self._validate_safe_path(deployment_dir, target_path):
+                self.logger.error(
+                    f"Refusing to repair {skill_name}: unsafe target path"
+                )
+                continue
+
+            try:
+                skill_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source_path, target_path)
+            except OSError as e:
+                self.logger.error(f"Failed to repair {skill_name}: {e}")
+                continue
+
+            checksum = self._compute_checksum(target_path)
+            version = _read_skill_version(source_path)
+            registry_lookup[skill_name] = {
+                "name": skill_name,
+                "version": version,
+                "deployed_at": timestamp,
+                "checksum": checksum,
+            }
+            repaired.append(skill_name)
+            self.logger.debug(f"Repaired PM skill: {skill_name}")
+
+        if repaired:
+            updated_registry = {
+                "version": self.REGISTRY_VERSION,
+                "deployed_at": timestamp,
+                "skills": list(registry_lookup.values()),
+            }
+            if not self._save_registry(project_dir, updated_registry):
+                self.logger.error("Failed to save registry after targeted repair")
+
+        return repaired
 
     def get_deployed_skills(self, project_dir: Path) -> list[PMSkillInfo]:
         """Get list of deployed PM skills with metadata.
