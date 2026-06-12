@@ -21,13 +21,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from claude_mpm.services.tool_service_probe import (
-    SENTINEL_TOOL,
     SERVICE_PROBE_COMMANDS,
     ProbeResult,
     _probe_single_service,
     probe_all_services,
     probe_all_services_sync,
 )
+
+# Fixed tool name for tests that verify the tools/list ON path.
+SENTINEL_TOOL_NAME = "console_metrics"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -168,7 +170,10 @@ class TestProbeOn:
 
     async def test_on_with_sentinel_tool(self) -> None:
         process = _make_process(
-            [_make_init_response(), _make_tools_response([SENTINEL_TOOL, "other_tool"])]
+            [
+                _make_init_response(),
+                _make_tools_response([SENTINEL_TOOL_NAME, "other_tool"]),
+            ]
         )
         with (
             patch(
@@ -211,7 +216,7 @@ class TestProbeOn:
 
     async def test_on_hints_empty(self) -> None:
         process = _make_process(
-            [_make_init_response(), _make_tools_response([SENTINEL_TOOL])]
+            [_make_init_response(), _make_tools_response([SENTINEL_TOOL_NAME])]
         )
         with (
             patch(
@@ -412,7 +417,7 @@ class TestProcessReaping:
 
     async def test_process_killed_on_success(self) -> None:
         process = _make_process(
-            [_make_init_response(), _make_tools_response([SENTINEL_TOOL])]
+            [_make_init_response(), _make_tools_response([SENTINEL_TOOL_NAME])]
         )
         with (
             patch(
@@ -542,9 +547,11 @@ class TestFailSafe:
             side_effect=RuntimeError("boom"),
         ):
             result = probe_all_services_sync()
-        # Should return a dict — any state is fine, but no exception.
+        # Generic RuntimeError (not an event-loop conflict) → DEGRADED.
         assert isinstance(result, dict)
         assert set(result) == set(SERVICE_PROBE_COMMANDS)
+        for svc, r in result.items():
+            assert r.state == "degraded", f"{svc}: expected degraded, got {r.state}"
 
     def test_event_loop_conflict_returns_absent(self) -> None:
         with patch(
@@ -592,6 +599,12 @@ class TestGetTrustyCapabilitiesLive:
     inside the function body, so we patch at the source module level
     (claude_mpm.services.tool_service_probe) rather than on trusty_status.
     """
+
+    def setup_method(self) -> None:
+        """Reset _PROBE_HINTS before each test to prevent cross-test hint pollution."""
+        import claude_mpm.services.trusty_status as ts
+
+        ts._PROBE_HINTS.clear()
 
     def test_states_mapped_correctly(self) -> None:
         from claude_mpm.services import trusty_status
