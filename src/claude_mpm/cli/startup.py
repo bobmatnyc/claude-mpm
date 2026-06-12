@@ -102,6 +102,88 @@ def _mark_sync_done(key: str) -> None:
     _save_sync_state(state)
 
 
+def _get_package_version() -> str | None:
+    """Return the installed claude-mpm package version string, or None on failure.
+
+    Reads from ``claude_mpm.__version__``, which is set from the VERSION file
+    on disk (the single source of truth for this project).  Returns ``None``
+    on any import failure so callers treat an unknown version as a cache miss
+    and err toward deploying rather than suppressing deployment indefinitely.
+    """
+    try:
+        from claude_mpm import __version__
+
+        return __version__
+    except Exception:
+        return None
+
+
+# Version-aware TTL key used to store bundled-skills version in sync-state.
+_BUNDLED_SKILLS_VERSION_KEY = "bundled_skills_version"
+
+
+def _is_bundled_skills_sync_fresh() -> bool:
+    """Return True only when BOTH the TTL is fresh AND the stored version matches.
+
+    If the package has been upgraded since the last successful deploy the stored
+    ``bundled_skills_version`` will differ from the current version, so this
+    function returns ``False`` and forces a redeploy — regardless of how recently
+    the TTL was set.
+
+    Backward-compat: a sync-state file that lacks ``bundled_skills_version``
+    is treated as version-unknown and causes a single redeploy (safe).
+
+    Unknown version (None): when the current version cannot be determined,
+    we treat the cache as NOT fresh so deployment always runs.  This prevents
+    a permanent stale-cache scenario where every startup sees
+    stored=None == current=None and silently skips deployment.
+    """
+    # Load state once so TTL check and version check share the same snapshot,
+    # eliminating the double-read and any read-between-reads inconsistency.
+    state = _load_sync_state()
+
+    # TTL check inlined against the already-loaded state (avoids second load).
+    ttl = _get_sync_ttl()
+    if ttl <= 0:
+        return False  # TTL=0 means always sync
+    last_sync = state.get("bundled_skills", 0)
+    if (time.time() - last_sync) >= ttl:
+        return False
+
+    # TTL is fresh — also verify the recorded version matches the installed one.
+    stored_version = state.get(_BUNDLED_SKILLS_VERSION_KEY)
+    if stored_version is None:
+        # Legacy entry: no version recorded → redeploy once to record version.
+        return False
+
+    current_version = _get_package_version()
+    # If the current version cannot be determined, err toward deploying.
+    if current_version is None:
+        return False
+
+    return stored_version == current_version
+
+
+def _mark_bundled_skills_sync_done() -> None:
+    """Record a successful bundled-skills deploy with the current package version.
+
+    When the package version cannot be determined (returns None), the timestamp
+    is still recorded but the version key is omitted so the next startup treats
+    the entry as legacy/version-unknown and redeploys rather than caching a
+    self-matching None value that would permanently suppress deployment.
+    """
+    state = _load_sync_state()
+    state["bundled_skills"] = time.time()
+    current_version = _get_package_version()
+    if current_version is not None:
+        state[_BUNDLED_SKILLS_VERSION_KEY] = current_version
+    else:
+        # Remove any previously-stored version so the next startup sees a
+        # version-unknown state and redeploys (safe fallback).
+        state.pop(_BUNDLED_SKILLS_VERSION_KEY, None)
+    _save_sync_state(state)
+
+
 def _agent_sources_changed_since_last_sync() -> bool:
     """Return True if agent_sources.yaml was modified after last successful sync.
 
@@ -956,11 +1038,16 @@ def deploy_bundled_skills(force_deploy: bool = False):
     TTL: Bundled skills only change when the package is updated, so we skip
     re-deployment if they were recently deployed (using a longer 24-hour TTL).
     """
-    # TTL check: skip if bundled skills were deployed within the sync TTL window
-    if not force_deploy and _is_sync_fresh("bundled_skills"):
+    # Version-aware TTL check: skip only when TTL is fresh AND stored version
+    # matches the currently installed package.  A version mismatch (package
+    # upgrade) always bypasses the TTL so newly-added bundled skills are
+    # deployed immediately instead of being blocked for up to 24 h.
+    if not force_deploy and _is_bundled_skills_sync_fresh():
         from ..core.logger import get_logger as _get_logger
 
-        _get_logger("cli").debug("Skipping bundled skills deploy (within 24h TTL)")
+        _get_logger("cli").debug(
+            "Skipping bundled skills deploy (within 24h TTL, version unchanged)"
+        )
         return
 
     try:
@@ -1034,8 +1121,8 @@ def deploy_bundled_skills(force_deploy: bool = False):
                 f"Skills: {len(deployment_result['errors'])} skill(s) failed to deploy"
             )
         else:
-            # Record successful deployment for TTL-based skipping
-            _mark_sync_done("bundled_skills")
+            # Record successful deployment with current version for version-aware TTL.
+            _mark_bundled_skills_sync_done()
 
     except Exception as e:
         # Import logger here to avoid circular imports
