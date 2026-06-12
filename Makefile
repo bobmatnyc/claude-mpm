@@ -1062,7 +1062,7 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	}
 	@VERSION=$$(cat VERSION); \
 	echo "Publishing version: $$VERSION"; \
-	if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "$${CI:-}" = "true" ]; then \
+	if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ -n "$${CI:-}" ]; then \
 		echo "$(GREEN)Auto-confirming (CLAUDE_MPM_ASSUME_YES/CI set)$(NC)"; \
 	elif [ ! -t 0 ]; then \
 		echo "$(RED)✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set.$(NC)"; \
@@ -1080,7 +1080,7 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@if [ -f "scripts/sync_agent_skills_repos.sh" ]; then \
 		./scripts/sync_agent_skills_repos.sh || { \
 			echo "$(RED)✗ Repository sync failed$(NC)"; \
-			if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "$${CI:-}" = "true" ]; then \
+			if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ -n "$${CI:-}" ]; then \
 				echo "$(YELLOW)Auto-continuing despite sync failure (CLAUDE_MPM_ASSUME_YES/CI set)$(NC)"; \
 			elif [ ! -t 0 ]; then \
 				echo "$(RED)✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set.$(NC)"; \
@@ -1141,7 +1141,6 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then \
 		echo "$(YELLOW)⚠ Exact-version sdist not found, building it now...$(NC)"; \
-		find dist -name "*.tar.gz" ! -name "claude_mpm-$$VERSION.tar.gz" -delete 2>/dev/null; \
 		uv build --sdist; \
 	fi; \
 	if [ ! -f "$$SDIST" ]; then \
@@ -1221,7 +1220,7 @@ release-publish-current: ## Publish current built version
 	fi
 	@VERSION=$$(cat VERSION); \
 	echo "Publishing version: $$VERSION"; \
-	if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "$${CI:-}" = "true" ]; then \
+	if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ -n "$${CI:-}" ]; then \
 		echo "$(GREEN)Auto-confirming (CLAUDE_MPM_ASSUME_YES/CI set)$(NC)"; \
 	elif [ ! -t 0 ]; then \
 		echo "$(RED)✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set.$(NC)"; \
