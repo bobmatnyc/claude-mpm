@@ -39,7 +39,7 @@
     "relpath": "agents/agent_loader.py",
     "qualname": "AgentLoader",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentLoader in agents/agent_loader.py exceeds thresholds (LOC=260, CC=1) but has no WWL doc-comment"
+    "description": "AgentLoader in agents/agent_loader.py exceeds thresholds (LOC=262, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "agents/agent_loader.py",
@@ -135,7 +135,7 @@
     "relpath": "agents/frontmatter_validator.py",
     "qualname": "FrontmatterValidator",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "FrontmatterValidator in agents/frontmatter_validator.py exceeds thresholds (LOC=709, CC=1) but has no WWL doc-comment"
+    "description": "FrontmatterValidator in agents/frontmatter_validator.py exceeds thresholds (LOC=749, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "agents/frontmatter_validator.py",
@@ -693,7 +693,7 @@
     "relpath": "cli/commands/agents_list.py",
     "qualname": "AgentListingHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentListingHandler in cli/commands/agents_list.py exceeds thresholds (LOC=388, CC=1) but has no WWL doc-comment"
+    "description": "AgentListingHandler in cli/commands/agents_list.py exceeds thresholds (LOC=390, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/agents_list.py",
@@ -711,7 +711,7 @@
     "relpath": "cli/commands/agents_list.py",
     "qualname": "AgentListingHandler.list_deployed_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentListingHandler.list_deployed_agents in cli/commands/agents_list.py exceeds thresholds (LOC=55, CC=7) but has no WWL doc-comment"
+    "description": "AgentListingHandler.list_deployed_agents in cli/commands/agents_list.py exceeds thresholds (LOC=56, CC=7) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/agents_local.py",
@@ -1047,7 +1047,7 @@
     "relpath": "cli/commands/config.py",
     "qualname": "ConfigCommand",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ConfigCommand in cli/commands/config.py exceeds thresholds (LOC=500, CC=1) but has no WWL doc-comment"
+    "description": "ConfigCommand in cli/commands/config.py exceeds thresholds (LOC=503, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/config.py",
@@ -1101,7 +1101,7 @@
     "relpath": "cli/commands/configure_agent_deployment.py",
     "qualname": "AgentDeploymentHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDeploymentHandler in cli/commands/configure_agent_deployment.py exceeds thresholds (LOC=992, CC=1) but has no WWL doc-comment"
+    "description": "AgentDeploymentHandler in cli/commands/configure_agent_deployment.py exceeds thresholds (LOC=1005, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/configure_agent_deployment.py",
@@ -1923,7 +1923,7 @@
     "relpath": "cli/commands/monitor.py",
     "qualname": "MonitorCommand",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MonitorCommand in cli/commands/monitor.py exceeds thresholds (LOC=193, CC=1) but has no WWL doc-comment"
+    "description": "MonitorCommand in cli/commands/monitor.py exceeds thresholds (LOC=200, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/monitor.py",
@@ -2169,7 +2169,7 @@
     "relpath": "cli/commands/mpm_init_handler.py",
     "qualname": "manage_mpm_init",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "manage_mpm_init in cli/commands/mpm_init_handler.py exceeds thresholds (LOC=183, CC=19) but has no WWL doc-comment"
+    "description": "manage_mpm_init in cli/commands/mpm_init_handler.py exceeds thresholds (LOC=184, CC=19) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/oauth.py",
@@ -2439,19 +2439,13 @@
     "relpath": "cli/commands/setup/command.py",
     "qualname": "SetupCommand",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SetupCommand in cli/commands/setup/command.py exceeds thresholds (LOC=290, CC=1) but has no WWL doc-comment"
+    "description": "SetupCommand in cli/commands/setup/command.py exceeds thresholds (LOC=308, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/setup/command.py",
     "qualname": "SetupCommand._show_help",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "SetupCommand._show_help in cli/commands/setup/command.py exceeds thresholds (LOC=64, CC=1) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/commands/setup/command.py",
-    "qualname": "SetupCommand.run",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "SetupCommand.run in cli/commands/setup/command.py exceeds thresholds (LOC=103, CC=20) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/setup/handlers/__init__.py",
@@ -2613,19 +2607,13 @@
     "relpath": "cli/commands/setup/handlers/trusty.py",
     "qualname": "TrustyMixin",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "TrustyMixin in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=852, CC=1) but has no WWL doc-comment"
+    "description": "TrustyMixin in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=705, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/setup/handlers/trusty.py",
     "qualname": "TrustyMixin._ensure_launchd_loaded",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "TrustyMixin._ensure_launchd_loaded in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=56, CC=4) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "cli/commands/setup/handlers/trusty.py",
-    "qualname": "TrustyMixin._inject_hooks_to_settings",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "TrustyMixin._inject_hooks_to_settings in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=129, CC=30) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/setup/handlers/trusty.py",
@@ -2637,13 +2625,13 @@
     "relpath": "cli/commands/setup/handlers/trusty.py",
     "qualname": "TrustyMixin._setup_trusty_analyze",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "TrustyMixin._setup_trusty_analyze in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=80, CC=7) but has no WWL doc-comment"
+    "description": "TrustyMixin._setup_trusty_analyze in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=81, CC=7) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/setup/handlers/trusty.py",
     "qualname": "TrustyMixin._setup_trusty_search",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "TrustyMixin._setup_trusty_search in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=120, CC=11) but has no WWL doc-comment"
+    "description": "TrustyMixin._setup_trusty_search in cli/commands/setup/handlers/trusty.py exceeds thresholds (LOC=122, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/setup/handlers/vector_search.py",
@@ -2733,7 +2721,7 @@
     "relpath": "cli/commands/skills.py",
     "qualname": "SkillsManagementCommand",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SkillsManagementCommand in cli/commands/skills.py exceeds thresholds (LOC=1649, CC=1) but has no WWL doc-comment"
+    "description": "SkillsManagementCommand in cli/commands/skills.py exceeds thresholds (LOC=1796, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/commands/skills.py",
@@ -3369,7 +3357,7 @@
     "relpath": "cli/parsers/monitor_parser.py",
     "qualname": "add_monitor_subparser",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "add_monitor_subparser in cli/parsers/monitor_parser.py exceeds thresholds (LOC=126, CC=1) but has no WWL doc-comment"
+    "description": "add_monitor_subparser in cli/parsers/monitor_parser.py exceeds thresholds (LOC=134, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/parsers/mpm_init_parser.py",
@@ -3501,7 +3489,7 @@
     "relpath": "cli/parsers/skills_parser.py",
     "qualname": "add_skills_subparser",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "add_skills_subparser in cli/parsers/skills_parser.py exceeds thresholds (LOC=319, CC=1) but has no WWL doc-comment"
+    "description": "add_skills_subparser in cli/parsers/skills_parser.py exceeds thresholds (LOC=348, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/parsers/slack_parser.py",
@@ -3675,7 +3663,7 @@
     "relpath": "cli/startup.py",
     "qualname": "deploy_bundled_skills",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "deploy_bundled_skills in cli/startup.py exceeds thresholds (LOC=101, CC=14) but has no WWL doc-comment"
+    "description": "deploy_bundled_skills in cli/startup.py exceeds thresholds (LOC=107, CC=14) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/startup.py",
@@ -3693,7 +3681,7 @@
     "relpath": "cli/startup.py",
     "qualname": "run_background_services",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "run_background_services in cli/startup.py exceeds thresholds (LOC=136, CC=19) but has no WWL doc-comment"
+    "description": "run_background_services in cli/startup.py exceeds thresholds (LOC=141, CC=19) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/startup.py",
@@ -3705,7 +3693,7 @@
     "relpath": "cli/startup.py",
     "qualname": "should_skip_background_services",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "should_skip_background_services in cli/startup.py exceeds thresholds (LOC=68, CC=14) but has no WWL doc-comment"
+    "description": "should_skip_background_services in cli/startup.py exceeds thresholds (LOC=63, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "cli/startup.py",
@@ -4317,7 +4305,7 @@
     "relpath": "core/config.py",
     "qualname": "Config",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "Config in core/config.py exceeds thresholds (LOC=1008, CC=1) but has no WWL doc-comment"
+    "description": "Config in core/config.py exceeds thresholds (LOC=996, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/config.py",
@@ -4329,7 +4317,7 @@
     "relpath": "core/config.py",
     "qualname": "Config._apply_defaults",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "Config._apply_defaults in core/config.py exceeds thresholds (LOC=319, CC=6) but has no WWL doc-comment"
+    "description": "Config._apply_defaults in core/config.py exceeds thresholds (LOC=307, CC=6) but has no WWL doc-comment"
   },
   {
     "relpath": "core/config.py",
@@ -4587,7 +4575,7 @@
     "relpath": "core/framework/formatters/capability_generator.py",
     "qualname": "CapabilityGenerator",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "CapabilityGenerator in core/framework/formatters/capability_generator.py exceeds thresholds (LOC=469, CC=1) but has no WWL doc-comment"
+    "description": "CapabilityGenerator in core/framework/formatters/capability_generator.py exceeds thresholds (LOC=529, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/formatters/content_formatter.py",
@@ -4599,13 +4587,13 @@
     "relpath": "core/framework/formatters/content_formatter.py",
     "qualname": "ContentFormatter",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ContentFormatter in core/framework/formatters/content_formatter.py exceeds thresholds (LOC=283, CC=1) but has no WWL doc-comment"
+    "description": "ContentFormatter in core/framework/formatters/content_formatter.py exceeds thresholds (LOC=295, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/formatters/content_formatter.py",
     "qualname": "ContentFormatter.format_full_framework",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ContentFormatter.format_full_framework in core/framework/formatters/content_formatter.py exceeds thresholds (LOC=107, CC=13) but has no WWL doc-comment"
+    "description": "ContentFormatter.format_full_framework in core/framework/formatters/content_formatter.py exceeds thresholds (LOC=119, CC=14) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/formatters/content_formatter.py",
@@ -4689,13 +4677,13 @@
     "relpath": "core/framework/loaders/instruction_loader.py",
     "qualname": "InstructionLoader",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionLoader in core/framework/loaders/instruction_loader.py exceeds thresholds (LOC=312, CC=1) but has no WWL doc-comment"
+    "description": "InstructionLoader in core/framework/loaders/instruction_loader.py exceeds thresholds (LOC=409, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/loaders/instruction_loader.py",
     "qualname": "InstructionLoader._load_filesystem_framework_instructions",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionLoader._load_filesystem_framework_instructions in core/framework/loaders/instruction_loader.py exceeds thresholds (LOC=94, CC=11) but has no WWL doc-comment"
+    "description": "InstructionLoader._load_filesystem_framework_instructions in core/framework/loaders/instruction_loader.py exceeds thresholds (LOC=101, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/loaders/packaged_loader.py",
@@ -4707,19 +4695,19 @@
     "relpath": "core/framework/loaders/packaged_loader.py",
     "qualname": "PackagedLoader",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PackagedLoader in core/framework/loaders/packaged_loader.py exceeds thresholds (LOC=226, CC=1) but has no WWL doc-comment"
+    "description": "PackagedLoader in core/framework/loaders/packaged_loader.py exceeds thresholds (LOC=259, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/loaders/packaged_loader.py",
     "qualname": "PackagedLoader.load_framework_content",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PackagedLoader.load_framework_content in core/framework/loaders/packaged_loader.py exceeds thresholds (LOC=78, CC=12) but has no WWL doc-comment"
+    "description": "PackagedLoader.load_framework_content in core/framework/loaders/packaged_loader.py exceeds thresholds (LOC=97, CC=12) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/loaders/packaged_loader.py",
     "qualname": "PackagedLoader.load_framework_content_fallback",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PackagedLoader.load_framework_content_fallback in core/framework/loaders/packaged_loader.py exceeds thresholds (LOC=73, CC=10) but has no WWL doc-comment"
+    "description": "PackagedLoader.load_framework_content_fallback in core/framework/loaders/packaged_loader.py exceeds thresholds (LOC=87, CC=10) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework/loaders/workflow_constants.py",
@@ -4791,7 +4779,7 @@
     "relpath": "core/framework_loader.py",
     "qualname": "FrameworkLoader",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "FrameworkLoader in core/framework_loader.py exceeds thresholds (LOC=486, CC=1) but has no WWL doc-comment"
+    "description": "FrameworkLoader in core/framework_loader.py exceeds thresholds (LOC=671, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/framework_loader.py",
@@ -4896,18 +4884,6 @@
     "description": "InjectableService._inject_dependencies in core/injectable_service.py exceeds thresholds (LOC=43, CC=12) but has no WWL doc-comment"
   },
   {
-    "relpath": "core/instruction_reinforcement_hook.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in core/instruction_reinforcement_hook.py"
-  },
-  {
-    "relpath": "core/instruction_reinforcement_hook.py",
-    "qualname": "InstructionReinforcementHook",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionReinforcementHook in core/instruction_reinforcement_hook.py exceeds thresholds (LOC=204, CC=1) but has no WWL doc-comment"
-  },
-  {
     "relpath": "core/interactive_session.py",
     "qualname": "",
     "violation_type": "MISSING_FILE_WWL",
@@ -4917,7 +4893,7 @@
     "relpath": "core/interactive_session.py",
     "qualname": "InteractiveSession",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "InteractiveSession in core/interactive_session.py exceeds thresholds (LOC=1134, CC=1) but has no WWL doc-comment"
+    "description": "InteractiveSession in core/interactive_session.py exceeds thresholds (LOC=1136, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/interactive_session.py",
@@ -5250,30 +5226,6 @@
     "description": "OutputStyleManager.deploy_output_style in core/output_style_manager.py exceeds thresholds (LOC=54, CC=6) but has no WWL doc-comment"
   },
   {
-    "relpath": "core/pm_hook_interceptor.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in core/pm_hook_interceptor.py"
-  },
-  {
-    "relpath": "core/pm_hook_interceptor.py",
-    "qualname": "PMHookInterceptor",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "PMHookInterceptor in core/pm_hook_interceptor.py exceeds thresholds (LOC=225, CC=1) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "core/pm_hook_interceptor.py",
-    "qualname": "PMHookInterceptor.intercept_todowrite",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "PMHookInterceptor.intercept_todowrite in core/pm_hook_interceptor.py exceeds thresholds (LOC=80, CC=1) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "core/pm_hook_interceptor.py",
-    "qualname": "PMHookInterceptor.intercept_todowrite.wrapper",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "PMHookInterceptor.intercept_todowrite.wrapper in core/pm_hook_interceptor.py exceeds thresholds (LOC=67, CC=8) but has no WWL doc-comment"
-  },
-  {
     "relpath": "core/protocols/__init__.py",
     "qualname": "",
     "violation_type": "MISSING_FILE_WWL",
@@ -5349,7 +5301,7 @@
     "relpath": "core/session_manager.py",
     "qualname": "SessionManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionManager in core/session_manager.py exceeds thresholds (LOC=286, CC=1) but has no WWL doc-comment"
+    "description": "SessionManager in core/session_manager.py exceeds thresholds (LOC=289, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/shared/__init__.py",
@@ -5505,7 +5457,7 @@
     "relpath": "core/unified_agent_registry.py",
     "qualname": "UnifiedAgentRegistry",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "UnifiedAgentRegistry in core/unified_agent_registry.py exceeds thresholds (LOC=745, CC=1) but has no WWL doc-comment"
+    "description": "UnifiedAgentRegistry in core/unified_agent_registry.py exceeds thresholds (LOC=762, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/unified_agent_registry.py",
@@ -5547,7 +5499,7 @@
     "relpath": "core/unified_config.py",
     "qualname": "UnifiedConfig",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "UnifiedConfig in core/unified_config.py exceeds thresholds (LOC=183, CC=1) but has no WWL doc-comment"
+    "description": "UnifiedConfig in core/unified_config.py exceeds thresholds (LOC=184, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "core/unified_config.py",
@@ -5691,13 +5643,13 @@
     "relpath": "hooks/claude_hooks/auto_pause_handler.py",
     "qualname": "AutoPauseHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AutoPauseHandler in hooks/claude_hooks/auto_pause_handler.py exceeds thresholds (LOC=413, CC=1) but has no WWL doc-comment"
+    "description": "AutoPauseHandler in hooks/claude_hooks/auto_pause_handler.py exceeds thresholds (LOC=405, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/auto_pause_handler.py",
     "qualname": "AutoPauseHandler.on_usage_update",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AutoPauseHandler.on_usage_update in hooks/claude_hooks/auto_pause_handler.py exceeds thresholds (LOC=76, CC=10) but has no WWL doc-comment"
+    "description": "AutoPauseHandler.on_usage_update in hooks/claude_hooks/auto_pause_handler.py exceeds thresholds (LOC=78, CC=9) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/connection_pool.py",
@@ -5817,7 +5769,7 @@
     "relpath": "hooks/claude_hooks/handlers/stop_handler.py",
     "qualname": "StopHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "StopHandler in hooks/claude_hooks/handlers/stop_handler.py exceeds thresholds (LOC=339, CC=1) but has no WWL doc-comment"
+    "description": "StopHandler in hooks/claude_hooks/handlers/stop_handler.py exceeds thresholds (LOC=462, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/stop_handler.py",
@@ -5829,7 +5781,7 @@
     "relpath": "hooks/claude_hooks/handlers/stop_handler.py",
     "qualname": "StopHandler.handle_stop_fast",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "StopHandler.handle_stop_fast in hooks/claude_hooks/handlers/stop_handler.py exceeds thresholds (LOC=167, CC=32) but has no WWL doc-comment"
+    "description": "StopHandler.handle_stop_fast in hooks/claude_hooks/handlers/stop_handler.py exceeds thresholds (LOC=290, CC=52) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/subagent_handler.py",
@@ -5841,7 +5793,7 @@
     "relpath": "hooks/claude_hooks/handlers/subagent_handler.py",
     "qualname": "SubagentHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SubagentHandler in hooks/claude_hooks/handlers/subagent_handler.py exceeds thresholds (LOC=197, CC=1) but has no WWL doc-comment"
+    "description": "SubagentHandler in hooks/claude_hooks/handlers/subagent_handler.py exceeds thresholds (LOC=200, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/subagent_handler.py",
@@ -5859,7 +5811,7 @@
     "relpath": "hooks/claude_hooks/handlers/tool_handler.py",
     "qualname": "ToolHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ToolHandler in hooks/claude_hooks/handlers/tool_handler.py exceeds thresholds (LOC=459, CC=1) but has no WWL doc-comment"
+    "description": "ToolHandler in hooks/claude_hooks/handlers/tool_handler.py exceeds thresholds (LOC=478, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/tool_handler.py",
@@ -5871,13 +5823,13 @@
     "relpath": "hooks/claude_hooks/handlers/tool_handler.py",
     "qualname": "ToolHandler.handle_post_tool_fast",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ToolHandler.handle_post_tool_fast in hooks/claude_hooks/handlers/tool_handler.py exceeds thresholds (LOC=141, CC=29) but has no WWL doc-comment"
+    "description": "ToolHandler.handle_post_tool_fast in hooks/claude_hooks/handlers/tool_handler.py exceeds thresholds (LOC=124, CC=20) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/tool_handler.py",
     "qualname": "ToolHandler.handle_pre_tool_fast",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ToolHandler.handle_pre_tool_fast in hooks/claude_hooks/handlers/tool_handler.py exceeds thresholds (LOC=155, CC=26) but has no WWL doc-comment"
+    "description": "ToolHandler.handle_pre_tool_fast in hooks/claude_hooks/handlers/tool_handler.py exceeds thresholds (LOC=191, CC=34) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/tool_handler.py",
@@ -5895,13 +5847,13 @@
     "relpath": "hooks/claude_hooks/handlers/user_prompt_handler.py",
     "qualname": "UserPromptHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "UserPromptHandler in hooks/claude_hooks/handlers/user_prompt_handler.py exceeds thresholds (LOC=187, CC=1) but has no WWL doc-comment"
+    "description": "UserPromptHandler in hooks/claude_hooks/handlers/user_prompt_handler.py exceeds thresholds (LOC=189, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/handlers/user_prompt_handler.py",
     "qualname": "UserPromptHandler.handle_user_prompt_fast",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "UserPromptHandler.handle_user_prompt_fast in hooks/claude_hooks/handlers/user_prompt_handler.py exceeds thresholds (LOC=103, CC=20) but has no WWL doc-comment"
+    "description": "UserPromptHandler.handle_user_prompt_fast in hooks/claude_hooks/handlers/user_prompt_handler.py exceeds thresholds (LOC=105, CC=20) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/hook_handler.py",
@@ -5913,7 +5865,7 @@
     "relpath": "hooks/claude_hooks/hook_handler.py",
     "qualname": "ClaudeHookHandler",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ClaudeHookHandler in hooks/claude_hooks/hook_handler.py exceeds thresholds (LOC=593, CC=1) but has no WWL doc-comment"
+    "description": "ClaudeHookHandler in hooks/claude_hooks/hook_handler.py exceeds thresholds (LOC=595, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/hook_handler.py",
@@ -5937,7 +5889,7 @@
     "relpath": "hooks/claude_hooks/hook_handler.py",
     "qualname": "ClaudeHookHandler._route_event",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ClaudeHookHandler._route_event in hooks/claude_hooks/hook_handler.py exceeds thresholds (LOC=140, CC=22) but has no WWL doc-comment"
+    "description": "ClaudeHookHandler._route_event in hooks/claude_hooks/hook_handler.py exceeds thresholds (LOC=142, CC=22) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/hook_handler.py",
@@ -5973,7 +5925,7 @@
     "relpath": "hooks/claude_hooks/installer.py",
     "qualname": "HookInstaller",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookInstaller in hooks/claude_hooks/installer.py exceeds thresholds (LOC=1296, CC=1) but has no WWL doc-comment"
+    "description": "HookInstaller in hooks/claude_hooks/installer.py exceeds thresholds (LOC=1265, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/installer.py",
@@ -5991,13 +5943,7 @@
     "relpath": "hooks/claude_hooks/installer.py",
     "qualname": "HookInstaller._update_claude_settings",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookInstaller._update_claude_settings in hooks/claude_hooks/installer.py exceeds thresholds (LOC=176, CC=14) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "hooks/claude_hooks/installer.py",
-    "qualname": "HookInstaller._update_claude_settings.merge_hooks_for_event",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookInstaller._update_claude_settings.merge_hooks_for_event in hooks/claude_hooks/installer.py exceeds thresholds (LOC=55, CC=15) but has no WWL doc-comment"
+    "description": "HookInstaller._update_claude_settings in hooks/claude_hooks/installer.py exceeds thresholds (LOC=145, CC=14) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/installer.py",
@@ -6105,7 +6051,7 @@
     "relpath": "hooks/claude_hooks/services/connection_manager.py",
     "qualname": "ConnectionManagerService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ConnectionManagerService in hooks/claude_hooks/services/connection_manager.py exceeds thresholds (LOC=159, CC=1) but has no WWL doc-comment"
+    "description": "ConnectionManagerService in hooks/claude_hooks/services/connection_manager.py exceeds thresholds (LOC=162, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/services/connection_manager.py",
@@ -6147,7 +6093,7 @@
     "relpath": "hooks/claude_hooks/services/duplicate_detector.py",
     "qualname": "DuplicateEventDetector",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "DuplicateEventDetector in hooks/claude_hooks/services/duplicate_detector.py exceeds thresholds (LOC=93, CC=1) but has no WWL doc-comment"
+    "description": "DuplicateEventDetector in hooks/claude_hooks/services/duplicate_detector.py exceeds thresholds (LOC=96, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/services/protocols.py",
@@ -6165,7 +6111,7 @@
     "relpath": "hooks/claude_hooks/services/state_manager.py",
     "qualname": "StateManagerService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "StateManagerService in hooks/claude_hooks/services/state_manager.py exceeds thresholds (LOC=231, CC=1) but has no WWL doc-comment"
+    "description": "StateManagerService in hooks/claude_hooks/services/state_manager.py exceeds thresholds (LOC=234, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/services/state_manager.py",
@@ -6195,7 +6141,7 @@
     "relpath": "hooks/claude_hooks/services/subagent_processor.py",
     "qualname": "SubagentResponseProcessor",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SubagentResponseProcessor in hooks/claude_hooks/services/subagent_processor.py exceeds thresholds (LOC=342, CC=1) but has no WWL doc-comment"
+    "description": "SubagentResponseProcessor in hooks/claude_hooks/services/subagent_processor.py exceeds thresholds (LOC=345, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/claude_hooks/services/subagent_processor.py",
@@ -6235,27 +6181,9 @@
   },
   {
     "relpath": "hooks/commit_cost_tracker.py",
-    "qualname": "amend_commit_message",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "amend_commit_message in hooks/commit_cost_tracker.py exceeds thresholds (LOC=143, CC=17) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "hooks/commit_cost_tracker.py",
-    "qualname": "get_token_delta",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "get_token_delta in hooks/commit_cost_tracker.py exceeds thresholds (LOC=71, CC=3) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "hooks/commit_cost_tracker.py",
     "qualname": "run_as_git_hook",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "run_as_git_hook in hooks/commit_cost_tracker.py exceeds thresholds (LOC=88, CC=6) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "hooks/context_circuit_breaker.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in hooks/context_circuit_breaker.py"
+    "description": "run_as_git_hook in hooks/commit_cost_tracker.py exceeds thresholds (LOC=92, CC=6) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/failure_learning/__init__.py",
@@ -6312,30 +6240,6 @@
     "description": "LearningExtractionHook.execute in hooks/failure_learning/learning_extraction_hook.py exceeds thresholds (LOC=69, CC=7) but has no WWL doc-comment"
   },
   {
-    "relpath": "hooks/instruction_reinforcement.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in hooks/instruction_reinforcement.py"
-  },
-  {
-    "relpath": "hooks/instruction_reinforcement.py",
-    "qualname": "InstructionReinforcementHook",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionReinforcementHook in hooks/instruction_reinforcement.py exceeds thresholds (LOC=260, CC=1) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "hooks/instruction_reinforcement.py",
-    "qualname": "InstructionReinforcementHook.__init__",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionReinforcementHook.__init__ in hooks/instruction_reinforcement.py exceeds thresholds (LOC=88, CC=1) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "hooks/instruction_reinforcement.py",
-    "qualname": "InstructionReinforcementHook.check_message",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionReinforcementHook.check_message in hooks/instruction_reinforcement.py exceeds thresholds (LOC=61, CC=2) but has no WWL doc-comment"
-  },
-  {
     "relpath": "hooks/kuzu_enrichment_hook.py",
     "qualname": "",
     "violation_type": "MISSING_FILE_WWL",
@@ -6345,7 +6249,7 @@
     "relpath": "hooks/kuzu_enrichment_hook.py",
     "qualname": "KuzuEnrichmentHook",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "KuzuEnrichmentHook in hooks/kuzu_enrichment_hook.py exceeds thresholds (LOC=223, CC=1) but has no WWL doc-comment"
+    "description": "KuzuEnrichmentHook in hooks/kuzu_enrichment_hook.py exceeds thresholds (LOC=225, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/kuzu_enrichment_hook.py",
@@ -6447,13 +6351,13 @@
     "relpath": "hooks/memory_capture.py",
     "qualname": "handle_user_prompt_submit",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "handle_user_prompt_submit in hooks/memory_capture.py exceeds thresholds (LOC=77, CC=13) but has no WWL doc-comment"
+    "description": "handle_user_prompt_submit in hooks/memory_capture.py exceeds thresholds (LOC=79, CC=13) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/memory_capture.py",
     "qualname": "main",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "main in hooks/memory_capture.py exceeds thresholds (LOC=43, CC=12) but has no WWL doc-comment"
+    "description": "main in hooks/memory_capture.py exceeds thresholds (LOC=46, CC=12) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/memory_integration_hook.py",
@@ -6465,7 +6369,7 @@
     "relpath": "hooks/memory_integration_hook.py",
     "qualname": "MemoryPostDelegationHook",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MemoryPostDelegationHook in hooks/memory_integration_hook.py exceeds thresholds (LOC=233, CC=1) but has no WWL doc-comment"
+    "description": "MemoryPostDelegationHook in hooks/memory_integration_hook.py exceeds thresholds (LOC=235, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/memory_integration_hook.py",
@@ -6483,7 +6387,7 @@
     "relpath": "hooks/memory_integration_hook.py",
     "qualname": "MemoryPreDelegationHook",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MemoryPreDelegationHook in hooks/memory_integration_hook.py exceeds thresholds (LOC=144, CC=1) but has no WWL doc-comment"
+    "description": "MemoryPreDelegationHook in hooks/memory_integration_hook.py exceeds thresholds (LOC=146, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/memory_integration_hook.py",
@@ -6525,7 +6429,7 @@
     "relpath": "hooks/model_tier_hook.py",
     "qualname": "build_model_tier_response",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "build_model_tier_response in hooks/model_tier_hook.py exceeds thresholds (LOC=80, CC=8) but has no WWL doc-comment"
+    "description": "build_model_tier_response in hooks/model_tier_hook.py exceeds thresholds (LOC=82, CC=8) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/permission_policy.py",
@@ -6537,7 +6441,7 @@
     "relpath": "hooks/permission_policy.py",
     "qualname": "evaluate",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "evaluate in hooks/permission_policy.py exceeds thresholds (LOC=64, CC=11) but has no WWL doc-comment"
+    "description": "evaluate in hooks/permission_policy.py exceeds thresholds (LOC=66, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "hooks/pretooluse_dispatcher.py",
@@ -6687,7 +6591,7 @@
     "relpath": "init.py",
     "qualname": "ProjectInitializer",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ProjectInitializer in init.py exceeds thresholds (LOC=627, CC=1) but has no WWL doc-comment"
+    "description": "ProjectInitializer in init.py exceeds thresholds (LOC=641, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "init.py",
@@ -7665,7 +7569,7 @@
     "relpath": "migrations/migrate_trusty_autodetect.py",
     "qualname": "run_migration",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "run_migration in migrations/migrate_trusty_autodetect.py exceeds thresholds (LOC=59, CC=11) but has no WWL doc-comment"
+    "description": "run_migration in migrations/migrate_trusty_autodetect.py exceeds thresholds (LOC=145, CC=23) but has no WWL doc-comment"
   },
   {
     "relpath": "migrations/registry.py",
@@ -7683,7 +7587,7 @@
     "relpath": "migrations/runner.py",
     "qualname": "run_pending_migrations",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "run_pending_migrations in migrations/runner.py exceeds thresholds (LOC=65, CC=10) but has no WWL doc-comment"
+    "description": "run_pending_migrations in migrations/runner.py exceeds thresholds (LOC=67, CC=10) but has no WWL doc-comment"
   },
   {
     "relpath": "migrations/user_choices.py",
@@ -7744,12 +7648,6 @@
     "qualname": "run_migration",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "run_migration in migrations/v6_3_19_hooks_to_project_level.py exceeds thresholds (LOC=86, CC=14) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "migrations/v6_3_1_deploy_claude_assets.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in migrations/v6_3_1_deploy_claude_assets.py"
   },
   {
     "relpath": "migrations/v6_3_1_deploy_claude_assets.py",
@@ -8115,7 +8013,7 @@
     "relpath": "services/agents/agent_runtime.py",
     "qualname": "AgentRuntime",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentRuntime in services/agents/agent_runtime.py exceeds thresholds (LOC=54, CC=1) but has no WWL doc-comment"
+    "description": "AgentRuntime in services/agents/agent_runtime.py exceeds thresholds (LOC=56, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/agent_selection_service.py",
@@ -8277,7 +8175,7 @@
     "relpath": "services/agents/cli_runtime.py",
     "qualname": "CLIAgentRunner",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "CLIAgentRunner in services/agents/cli_runtime.py exceeds thresholds (LOC=202, CC=1) but has no WWL doc-comment"
+    "description": "CLIAgentRunner in services/agents/cli_runtime.py exceeds thresholds (LOC=204, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/cli_runtime.py",
@@ -8499,7 +8397,7 @@
     "relpath": "services/agents/deployment/agent_deployment.py",
     "qualname": "AgentDeploymentService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDeploymentService in services/agents/deployment/agent_deployment.py exceeds thresholds (LOC=936, CC=1) but has no WWL doc-comment"
+    "description": "AgentDeploymentService in services/agents/deployment/agent_deployment.py exceeds thresholds (LOC=940, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_deployment.py",
@@ -8523,7 +8421,7 @@
     "relpath": "services/agents/deployment/agent_deployment.py",
     "qualname": "AgentDeploymentService.deploy_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDeploymentService.deploy_agents in services/agents/deployment/agent_deployment.py exceeds thresholds (LOC=269, CC=17) but has no WWL doc-comment"
+    "description": "AgentDeploymentService.deploy_agents in services/agents/deployment/agent_deployment.py exceeds thresholds (LOC=271, CC=17) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_deployment.py",
@@ -8541,13 +8439,13 @@
     "relpath": "services/agents/deployment/agent_discovery_service.py",
     "qualname": "AgentDiscoveryService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDiscoveryService in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=619, CC=1) but has no WWL doc-comment"
+    "description": "AgentDiscoveryService in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=735, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_discovery_service.py",
     "qualname": "AgentDiscoveryService._extract_agent_metadata",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDiscoveryService._extract_agent_metadata in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=78, CC=7) but has no WWL doc-comment"
+    "description": "AgentDiscoveryService._extract_agent_metadata in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=84, CC=8) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_discovery_service.py",
@@ -8565,19 +8463,19 @@
     "relpath": "services/agents/deployment/agent_discovery_service.py",
     "qualname": "AgentDiscoveryService.discover_git_cached_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDiscoveryService.discover_git_cached_agents in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=62, CC=13) but has no WWL doc-comment"
+    "description": "AgentDiscoveryService.discover_git_cached_agents in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=73, CC=14) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_discovery_service.py",
     "qualname": "AgentDiscoveryService.get_filtered_templates",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDiscoveryService.get_filtered_templates in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=62, CC=10) but has no WWL doc-comment"
+    "description": "AgentDiscoveryService.get_filtered_templates in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=71, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_discovery_service.py",
     "qualname": "AgentDiscoveryService.list_available_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentDiscoveryService.list_available_agents in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=58, CC=10) but has no WWL doc-comment"
+    "description": "AgentDiscoveryService.list_available_agents in services/agents/deployment/agent_discovery_service.py exceeds thresholds (LOC=114, CC=24) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_environment_manager.py",
@@ -8853,7 +8751,7 @@
     "relpath": "services/agents/deployment/agent_template_builder.py",
     "qualname": "AgentTemplateBuilder",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentTemplateBuilder in services/agents/deployment/agent_template_builder.py exceeds thresholds (LOC=1417, CC=1) but has no WWL doc-comment"
+    "description": "AgentTemplateBuilder in services/agents/deployment/agent_template_builder.py exceeds thresholds (LOC=1422, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_template_builder.py",
@@ -8865,7 +8763,7 @@
     "relpath": "services/agents/deployment/agent_template_builder.py",
     "qualname": "AgentTemplateBuilder._discover_base_agent_templates",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentTemplateBuilder._discover_base_agent_templates in services/agents/deployment/agent_template_builder.py exceeds thresholds (LOC=85, CC=10) but has no WWL doc-comment"
+    "description": "AgentTemplateBuilder._discover_base_agent_templates in services/agents/deployment/agent_template_builder.py exceeds thresholds (LOC=87, CC=10) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_template_builder.py",
@@ -8895,7 +8793,7 @@
     "relpath": "services/agents/deployment/agent_template_builder.py",
     "qualname": "AgentTemplateBuilder.build_agent_markdown",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentTemplateBuilder.build_agent_markdown in services/agents/deployment/agent_template_builder.py exceeds thresholds (LOC=402, CC=63) but has no WWL doc-comment"
+    "description": "AgentTemplateBuilder.build_agent_markdown in services/agents/deployment/agent_template_builder.py exceeds thresholds (LOC=405, CC=63) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/agent_template_builder.py",
@@ -9687,7 +9585,7 @@
     "relpath": "services/agents/deployment/remote_agent_discovery_service.py",
     "qualname": "RemoteAgentDiscoveryService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "RemoteAgentDiscoveryService in services/agents/deployment/remote_agent_discovery_service.py exceeds thresholds (LOC=844, CC=1) but has no WWL doc-comment"
+    "description": "RemoteAgentDiscoveryService in services/agents/deployment/remote_agent_discovery_service.py exceeds thresholds (LOC=853, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/remote_agent_discovery_service.py",
@@ -9711,7 +9609,7 @@
     "relpath": "services/agents/deployment/remote_agent_discovery_service.py",
     "qualname": "RemoteAgentDiscoveryService.discover_remote_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "RemoteAgentDiscoveryService.discover_remote_agents in services/agents/deployment/remote_agent_discovery_service.py exceeds thresholds (LOC=177, CC=22) but has no WWL doc-comment"
+    "description": "RemoteAgentDiscoveryService.discover_remote_agents in services/agents/deployment/remote_agent_discovery_service.py exceeds thresholds (LOC=186, CC=23) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/remote_agent_discovery_service.py",
@@ -9795,13 +9693,13 @@
     "relpath": "services/agents/deployment/startup_reconciliation.py",
     "qualname": "_detect_and_remove_orphaned_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "_detect_and_remove_orphaned_agents in services/agents/deployment/startup_reconciliation.py exceeds thresholds (LOC=204, CC=34) but has no WWL doc-comment"
+    "description": "_detect_and_remove_orphaned_agents in services/agents/deployment/startup_reconciliation.py exceeds thresholds (LOC=206, CC=34) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/startup_reconciliation.py",
     "qualname": "perform_startup_reconciliation",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "perform_startup_reconciliation in services/agents/deployment/startup_reconciliation.py exceeds thresholds (LOC=83, CC=21) but has no WWL doc-comment"
+    "description": "perform_startup_reconciliation in services/agents/deployment/startup_reconciliation.py exceeds thresholds (LOC=85, CC=21) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/strategies/__init__.py",
@@ -9879,25 +9777,25 @@
     "relpath": "services/agents/deployment/system_instructions_deployer.py",
     "qualname": "SystemInstructionsDeployer",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SystemInstructionsDeployer in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=358, CC=1) but has no WWL doc-comment"
+    "description": "SystemInstructionsDeployer in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=612, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/system_instructions_deployer.py",
     "qualname": "SystemInstructionsDeployer._resolve_workflow_block",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SystemInstructionsDeployer._resolve_workflow_block in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=69, CC=6) but has no WWL doc-comment"
+    "description": "SystemInstructionsDeployer._resolve_workflow_block in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=87, CC=10) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/system_instructions_deployer.py",
     "qualname": "SystemInstructionsDeployer.deploy_system_instructions",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SystemInstructionsDeployer.deploy_system_instructions in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=101, CC=9) but has no WWL doc-comment"
+    "description": "SystemInstructionsDeployer.deploy_system_instructions in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=122, CC=10) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/system_instructions_deployer.py",
     "qualname": "SystemInstructionsDeployer.deploy_templates",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SystemInstructionsDeployer.deploy_templates in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=108, CC=13) but has no WWL doc-comment"
+    "description": "SystemInstructionsDeployer.deploy_templates in services/agents/deployment/system_instructions_deployer.py exceeds thresholds (LOC=109, CC=13) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment/validation/__init__.py",
@@ -9993,7 +9891,7 @@
     "relpath": "services/agents/deployment_utils.py",
     "qualname": "deploy_agent_file",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "deploy_agent_file in services/agents/deployment_utils.py exceeds thresholds (LOC=175, CC=18) but has no WWL doc-comment"
+    "description": "deploy_agent_file in services/agents/deployment_utils.py exceeds thresholds (LOC=195, CC=19) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/deployment_utils.py",
@@ -10071,7 +9969,7 @@
     "relpath": "services/agents/hook_event_bus.py",
     "qualname": "HookEventBus",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookEventBus in services/agents/hook_event_bus.py exceeds thresholds (LOC=124, CC=1) but has no WWL doc-comment"
+    "description": "HookEventBus in services/agents/hook_event_bus.py exceeds thresholds (LOC=126, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/hook_factory.py",
@@ -10431,7 +10329,7 @@
     "relpath": "services/agents/monitor_agent.py",
     "qualname": "MonitorAgent",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MonitorAgent in services/agents/monitor_agent.py exceeds thresholds (LOC=663, CC=1) but has no WWL doc-comment"
+    "description": "MonitorAgent in services/agents/monitor_agent.py exceeds thresholds (LOC=665, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/monitor_agent.py",
@@ -10641,7 +10539,7 @@
     "relpath": "services/agents/sdk_runtime.py",
     "qualname": "SDKAgentRunner",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SDKAgentRunner in services/agents/sdk_runtime.py exceeds thresholds (LOC=511, CC=1) but has no WWL doc-comment"
+    "description": "SDKAgentRunner in services/agents/sdk_runtime.py exceeds thresholds (LOC=513, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/sdk_runtime.py",
@@ -10677,7 +10575,7 @@
     "relpath": "services/agents/session_state_tracker.py",
     "qualname": "SessionStateTracker",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionStateTracker in services/agents/session_state_tracker.py exceeds thresholds (LOC=154, CC=1) but has no WWL doc-comment"
+    "description": "SessionStateTracker in services/agents/session_state_tracker.py exceeds thresholds (LOC=156, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/single_tier_deployment_service.py",
@@ -10761,7 +10659,7 @@
     "relpath": "services/agents/sources/git_source_sync_service.py",
     "qualname": "GitSourceSyncService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "GitSourceSyncService in services/agents/sources/git_source_sync_service.py exceeds thresholds (LOC=1266, CC=1) but has no WWL doc-comment"
+    "description": "GitSourceSyncService in services/agents/sources/git_source_sync_service.py exceeds thresholds (LOC=1271, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/sources/git_source_sync_service.py",
@@ -10809,7 +10707,7 @@
     "relpath": "services/agents/sources/git_source_sync_service.py",
     "qualname": "GitSourceSyncService.deploy_agents_to_project",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "GitSourceSyncService.deploy_agents_to_project in services/agents/sources/git_source_sync_service.py exceeds thresholds (LOC=199, CC=23) but has no WWL doc-comment"
+    "description": "GitSourceSyncService.deploy_agents_to_project in services/agents/sources/git_source_sync_service.py exceeds thresholds (LOC=204, CC=23) but has no WWL doc-comment"
   },
   {
     "relpath": "services/agents/sources/git_source_sync_service.py",
@@ -11331,7 +11229,7 @@
     "relpath": "services/cli/agent_listing_service.py",
     "qualname": "AgentListingService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentListingService in services/cli/agent_listing_service.py exceeds thresholds (LOC=329, CC=1) but has no WWL doc-comment"
+    "description": "AgentListingService in services/cli/agent_listing_service.py exceeds thresholds (LOC=331, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/agent_listing_service.py",
@@ -11355,19 +11253,19 @@
     "relpath": "services/cli/agent_output_formatter.py",
     "qualname": "AgentOutputFormatter",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentOutputFormatter in services/cli/agent_output_formatter.py exceeds thresholds (LOC=514, CC=1) but has no WWL doc-comment"
+    "description": "AgentOutputFormatter in services/cli/agent_output_formatter.py exceeds thresholds (LOC=519, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/agent_output_formatter.py",
     "qualname": "AgentOutputFormatter._format_agents_as_table",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentOutputFormatter._format_agents_as_table in services/cli/agent_output_formatter.py exceeds thresholds (LOC=52, CC=6) but has no WWL doc-comment"
+    "description": "AgentOutputFormatter._format_agents_as_table in services/cli/agent_output_formatter.py exceeds thresholds (LOC=54, CC=8) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/agent_output_formatter.py",
     "qualname": "AgentOutputFormatter._format_agents_as_text",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentOutputFormatter._format_agents_as_text in services/cli/agent_output_formatter.py exceeds thresholds (LOC=51, CC=16) but has no WWL doc-comment"
+    "description": "AgentOutputFormatter._format_agents_as_text in services/cli/agent_output_formatter.py exceeds thresholds (LOC=54, CC=17) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/agent_output_formatter.py",
@@ -11457,7 +11355,7 @@
     "relpath": "services/cli/incremental_pause_manager.py",
     "qualname": "IncrementalPauseManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "IncrementalPauseManager in services/cli/incremental_pause_manager.py exceeds thresholds (LOC=467, CC=1) but has no WWL doc-comment"
+    "description": "IncrementalPauseManager in services/cli/incremental_pause_manager.py exceeds thresholds (LOC=464, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/incremental_pause_manager.py",
@@ -11469,7 +11367,7 @@
     "relpath": "services/cli/incremental_pause_manager.py",
     "qualname": "IncrementalPauseManager.finalize_pause",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "IncrementalPauseManager.finalize_pause in services/cli/incremental_pause_manager.py exceeds thresholds (LOC=104, CC=7) but has no WWL doc-comment"
+    "description": "IncrementalPauseManager.finalize_pause in services/cli/incremental_pause_manager.py exceeds thresholds (LOC=101, CC=7) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/incremental_pause_manager.py",
@@ -11643,7 +11541,7 @@
     "relpath": "services/cli/session_pause_manager.py",
     "qualname": "SessionPauseManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionPauseManager in services/cli/session_pause_manager.py exceeds thresholds (LOC=535, CC=1) but has no WWL doc-comment"
+    "description": "SessionPauseManager in services/cli/session_pause_manager.py exceeds thresholds (LOC=509, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/session_pause_manager.py",
@@ -11673,7 +11571,7 @@
     "relpath": "services/cli/session_pause_manager.py",
     "qualname": "SessionPauseManager.create_pause_session",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionPauseManager.create_pause_session in services/cli/session_pause_manager.py exceeds thresholds (LOC=61, CC=6) but has no WWL doc-comment"
+    "description": "SessionPauseManager.create_pause_session in services/cli/session_pause_manager.py exceeds thresholds (LOC=56, CC=6) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/session_resume_helper.py",
@@ -11685,7 +11583,7 @@
     "relpath": "services/cli/session_resume_helper.py",
     "qualname": "SessionResumeHelper",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionResumeHelper in services/cli/session_resume_helper.py exceeds thresholds (LOC=732, CC=1) but has no WWL doc-comment"
+    "description": "SessionResumeHelper in services/cli/session_resume_helper.py exceeds thresholds (LOC=789, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/cli/session_resume_helper.py",
@@ -11836,12 +11734,6 @@
     "qualname": "send_notification",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "send_notification in services/communication/message_bus.py exceeds thresholds (LOC=63, CC=6) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "services/communication/message_consumer.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in services/communication/message_consumer.py"
   },
   {
     "relpath": "services/communication/message_consumer.py",
@@ -13425,7 +13317,7 @@
     "relpath": "services/event_bus/direct_relay.py",
     "qualname": "DirectSocketIORelay",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "DirectSocketIORelay in services/event_bus/direct_relay.py exceeds thresholds (LOC=283, CC=1) but has no WWL doc-comment"
+    "description": "DirectSocketIORelay in services/event_bus/direct_relay.py exceeds thresholds (LOC=285, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/event_bus/direct_relay.py",
@@ -13443,7 +13335,7 @@
     "relpath": "services/event_bus/event_bus.py",
     "qualname": "EventBus",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "EventBus in services/event_bus/event_bus.py exceeds thresholds (LOC=370, CC=1) but has no WWL doc-comment"
+    "description": "EventBus in services/event_bus/event_bus.py exceeds thresholds (LOC=372, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/event_bus/event_bus.py",
@@ -13461,7 +13353,7 @@
     "relpath": "services/event_bus/relay.py",
     "qualname": "SocketIORelay",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SocketIORelay in services/event_bus/relay.py exceeds thresholds (LOC=235, CC=1) but has no WWL doc-comment"
+    "description": "SocketIORelay in services/event_bus/relay.py exceeds thresholds (LOC=237, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/event_bus/relay.py",
@@ -14043,7 +13935,7 @@
     "relpath": "services/hook_installer_service.py",
     "qualname": "HookInstallerService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookInstallerService in services/hook_installer_service.py exceeds thresholds (LOC=619, CC=1) but has no WWL doc-comment"
+    "description": "HookInstallerService in services/hook_installer_service.py exceeds thresholds (LOC=561, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/hook_installer_service.py",
@@ -14061,13 +13953,13 @@
     "relpath": "services/hook_installer_service.py",
     "qualname": "HookInstallerService.install_hooks",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookInstallerService.install_hooks in services/hook_installer_service.py exceeds thresholds (LOC=183, CC=15) but has no WWL doc-comment"
+    "description": "HookInstallerService.install_hooks in services/hook_installer_service.py exceeds thresholds (LOC=123, CC=15) but has no WWL doc-comment"
   },
   {
     "relpath": "services/hook_installer_service.py",
     "qualname": "HookInstallerService.is_hooks_configured",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "HookInstallerService.is_hooks_configured in services/hook_installer_service.py exceeds thresholds (LOC=73, CC=20) but has no WWL doc-comment"
+    "description": "HookInstallerService.is_hooks_configured in services/hook_installer_service.py exceeds thresholds (LOC=75, CC=20) but has no WWL doc-comment"
   },
   {
     "relpath": "services/hook_installer_service.py",
@@ -14139,25 +14031,19 @@
     "relpath": "services/infrastructure/context_usage_tracker.py",
     "qualname": "ContextUsageTracker",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ContextUsageTracker in services/infrastructure/context_usage_tracker.py exceeds thresholds (LOC=286, CC=1) but has no WWL doc-comment"
+    "description": "ContextUsageTracker in services/infrastructure/context_usage_tracker.py exceeds thresholds (LOC=372, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/infrastructure/context_usage_tracker.py",
     "qualname": "ContextUsageTracker.update_usage",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ContextUsageTracker.update_usage in services/infrastructure/context_usage_tracker.py exceeds thresholds (LOC=58, CC=3) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "services/infrastructure/daemon_manager.py",
-    "qualname": "",
-    "violation_type": "MISSING_FILE_WWL",
-    "description": "Module-level WWL (WHAT: + WHY:) missing in services/infrastructure/daemon_manager.py"
+    "description": "ContextUsageTracker.update_usage in services/infrastructure/context_usage_tracker.py exceeds thresholds (LOC=59, CC=2) but has no WWL doc-comment"
   },
   {
     "relpath": "services/infrastructure/daemon_manager.py",
     "qualname": "SocketIODaemonManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SocketIODaemonManager in services/infrastructure/daemon_manager.py exceeds thresholds (LOC=240, CC=1) but has no WWL doc-comment"
+    "description": "SocketIODaemonManager in services/infrastructure/daemon_manager.py exceeds thresholds (LOC=326, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/infrastructure/logging.py",
@@ -14313,7 +14199,7 @@
     "relpath": "services/infrastructure/resume_log_generator.py",
     "qualname": "ResumeLogGenerator",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ResumeLogGenerator in services/infrastructure/resume_log_generator.py exceeds thresholds (LOC=428, CC=1) but has no WWL doc-comment"
+    "description": "ResumeLogGenerator in services/infrastructure/resume_log_generator.py exceeds thresholds (LOC=424, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/infrastructure/resume_log_generator.py",
@@ -14349,7 +14235,7 @@
     "relpath": "services/instructions/instruction_cache_service.py",
     "qualname": "InstructionCacheService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionCacheService in services/instructions/instruction_cache_service.py exceeds thresholds (LOC=333, CC=1) but has no WWL doc-comment"
+    "description": "InstructionCacheService in services/instructions/instruction_cache_service.py exceeds thresholds (LOC=361, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/instructions/instruction_cache_service.py",
@@ -14361,7 +14247,7 @@
     "relpath": "services/instructions/instruction_cache_service.py",
     "qualname": "InstructionCacheService.update_cache",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "InstructionCacheService.update_cache in services/instructions/instruction_cache_service.py exceeds thresholds (LOC=78, CC=5) but has no WWL doc-comment"
+    "description": "InstructionCacheService.update_cache in services/instructions/instruction_cache_service.py exceeds thresholds (LOC=85, CC=5) but has no WWL doc-comment"
   },
   {
     "relpath": "services/local_ops/__init__.py",
@@ -14631,13 +14517,13 @@
     "relpath": "services/mcp/config_builder.py",
     "qualname": "MCPServiceConfigBuilder",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MCPServiceConfigBuilder in services/mcp/config_builder.py exceeds thresholds (LOC=471, CC=1) but has no WWL doc-comment"
+    "description": "MCPServiceConfigBuilder in services/mcp/config_builder.py exceeds thresholds (LOC=485, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/mcp/config_builder.py",
     "qualname": "MCPServiceConfigBuilder.generate_service_config",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MCPServiceConfigBuilder.generate_service_config in services/mcp/config_builder.py exceeds thresholds (LOC=153, CC=31) but has no WWL doc-comment"
+    "description": "MCPServiceConfigBuilder.generate_service_config in services/mcp/config_builder.py exceeds thresholds (LOC=155, CC=31) but has no WWL doc-comment"
   },
   {
     "relpath": "services/mcp/config_builder.py",
@@ -14721,7 +14607,7 @@
     "relpath": "services/mcp/service_installer.py",
     "qualname": "MCPServiceInstaller",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "MCPServiceInstaller in services/mcp/service_installer.py exceeds thresholds (LOC=270, CC=1) but has no WWL doc-comment"
+    "description": "MCPServiceInstaller in services/mcp/service_installer.py exceeds thresholds (LOC=275, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/mcp/service_installer.py",
@@ -15333,7 +15219,7 @@
     "relpath": "services/monitor/daemon.py",
     "qualname": "UnifiedMonitorDaemon",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "UnifiedMonitorDaemon in services/monitor/daemon.py exceeds thresholds (LOC=666, CC=1) but has no WWL doc-comment"
+    "description": "UnifiedMonitorDaemon in services/monitor/daemon.py exceeds thresholds (LOC=645, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/monitor/daemon.py",
@@ -15351,7 +15237,7 @@
     "relpath": "services/monitor/daemon.py",
     "qualname": "UnifiedMonitorDaemon._start_daemon",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "UnifiedMonitorDaemon._start_daemon in services/monitor/daemon.py exceeds thresholds (LOC=115, CC=17) but has no WWL doc-comment"
+    "description": "UnifiedMonitorDaemon._start_daemon in services/monitor/daemon.py exceeds thresholds (LOC=92, CC=14) but has no WWL doc-comment"
   },
   {
     "relpath": "services/monitor/daemon.py",
@@ -15387,7 +15273,7 @@
     "relpath": "services/monitor/daemon_manager.py",
     "qualname": "DaemonManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "DaemonManager in services/monitor/daemon_manager.py exceeds thresholds (LOC=1045, CC=1) but has no WWL doc-comment"
+    "description": "DaemonManager in services/monitor/daemon_manager.py exceeds thresholds (LOC=1019, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/monitor/daemon_manager.py",
@@ -15403,12 +15289,6 @@
   },
   {
     "relpath": "services/monitor/daemon_manager.py",
-    "qualname": "DaemonManager.daemonize",
-    "violation_type": "MISSING_UNIT_WWL",
-    "description": "DaemonManager.daemonize in services/monitor/daemon_manager.py exceeds thresholds (LOC=75, CC=7) but has no WWL doc-comment"
-  },
-  {
-    "relpath": "services/monitor/daemon_manager.py",
     "qualname": "DaemonManager.is_our_service",
     "violation_type": "MISSING_UNIT_WWL",
     "description": "DaemonManager.is_our_service in services/monitor/daemon_manager.py exceeds thresholds (LOC=58, CC=11) but has no WWL doc-comment"
@@ -15417,7 +15297,7 @@
     "relpath": "services/monitor/daemon_manager.py",
     "qualname": "DaemonManager.start_daemon_subprocess",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "DaemonManager.start_daemon_subprocess in services/monitor/daemon_manager.py exceeds thresholds (LOC=182, CC=26) but has no WWL doc-comment"
+    "description": "DaemonManager.start_daemon_subprocess in services/monitor/daemon_manager.py exceeds thresholds (LOC=186, CC=26) but has no WWL doc-comment"
   },
   {
     "relpath": "services/monitor/daemon_manager.py",
@@ -15591,7 +15471,7 @@
     "relpath": "services/monitor/management/lifecycle.py",
     "qualname": "DaemonLifecycle",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "DaemonLifecycle in services/monitor/management/lifecycle.py exceeds thresholds (LOC=705, CC=1) but has no WWL doc-comment"
+    "description": "DaemonLifecycle in services/monitor/management/lifecycle.py exceeds thresholds (LOC=729, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/monitor/management/lifecycle.py",
@@ -15603,7 +15483,7 @@
     "relpath": "services/monitor/management/lifecycle.py",
     "qualname": "DaemonLifecycle.daemonize",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "DaemonLifecycle.daemonize in services/monitor/management/lifecycle.py exceeds thresholds (LOC=64, CC=7) but has no WWL doc-comment"
+    "description": "DaemonLifecycle.daemonize in services/monitor/management/lifecycle.py exceeds thresholds (LOC=90, CC=8) but has no WWL doc-comment"
   },
   {
     "relpath": "services/monitor/management/lifecycle.py",
@@ -15837,7 +15717,7 @@
     "relpath": "services/package_installer.py",
     "qualname": "get_package_specs",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "get_package_specs in services/package_installer.py exceeds thresholds (LOC=74, CC=1) but has no WWL doc-comment"
+    "description": "get_package_specs in services/package_installer.py exceeds thresholds (LOC=73, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/pm_skills_deployer.py",
@@ -15849,7 +15729,7 @@
     "relpath": "services/pm_skills_deployer.py",
     "qualname": "PMSkillsDeployerService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PMSkillsDeployerService in services/pm_skills_deployer.py exceeds thresholds (LOC=717, CC=1) but has no WWL doc-comment"
+    "description": "PMSkillsDeployerService in services/pm_skills_deployer.py exceeds thresholds (LOC=846, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/pm_skills_deployer.py",
@@ -15861,13 +15741,13 @@
     "relpath": "services/pm_skills_deployer.py",
     "qualname": "PMSkillsDeployerService.deploy_pm_skills",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PMSkillsDeployerService.deploy_pm_skills in services/pm_skills_deployer.py exceeds thresholds (LOC=189, CC=13) but has no WWL doc-comment"
+    "description": "PMSkillsDeployerService.deploy_pm_skills in services/pm_skills_deployer.py exceeds thresholds (LOC=234, CC=16) but has no WWL doc-comment"
   },
   {
     "relpath": "services/pm_skills_deployer.py",
     "qualname": "PMSkillsDeployerService.verify_pm_skills",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PMSkillsDeployerService.verify_pm_skills in services/pm_skills_deployer.py exceeds thresholds (LOC=169, CC=23) but has no WWL doc-comment"
+    "description": "PMSkillsDeployerService.verify_pm_skills in services/pm_skills_deployer.py exceeds thresholds (LOC=171, CC=22) but has no WWL doc-comment"
   },
   {
     "relpath": "services/port_manager.py",
@@ -15879,7 +15759,7 @@
     "relpath": "services/port_manager.py",
     "qualname": "PortManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "PortManager in services/port_manager.py exceeds thresholds (LOC=564, CC=1) but has no WWL doc-comment"
+    "description": "PortManager in services/port_manager.py exceeds thresholds (LOC=575, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/port_manager.py",
@@ -16605,13 +16485,13 @@
     "relpath": "services/self_upgrade_service.py",
     "qualname": "SelfUpgradeService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SelfUpgradeService in services/self_upgrade_service.py exceeds thresholds (LOC=587, CC=1) but has no WWL doc-comment"
+    "description": "SelfUpgradeService in services/self_upgrade_service.py exceeds thresholds (LOC=635, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/self_upgrade_service.py",
     "qualname": "SelfUpgradeService._detect_installation_method",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SelfUpgradeService._detect_installation_method in services/self_upgrade_service.py exceeds thresholds (LOC=51, CC=8) but has no WWL doc-comment"
+    "description": "SelfUpgradeService._detect_installation_method in services/self_upgrade_service.py exceeds thresholds (LOC=58, CC=9) but has no WWL doc-comment"
   },
   {
     "relpath": "services/self_upgrade_service.py",
@@ -16635,7 +16515,7 @@
     "relpath": "services/session_management_service.py",
     "qualname": "SessionManagementService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionManagementService in services/session_management_service.py exceeds thresholds (LOC=280, CC=1) but has no WWL doc-comment"
+    "description": "SessionManagementService in services/session_management_service.py exceeds thresholds (LOC=283, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/session_management_service.py",
@@ -16653,7 +16533,7 @@
     "relpath": "services/session_manager.py",
     "qualname": "SessionManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SessionManager in services/session_manager.py exceeds thresholds (LOC=324, CC=1) but has no WWL doc-comment"
+    "description": "SessionManager in services/session_manager.py exceeds thresholds (LOC=326, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/session_manager.py",
@@ -16767,7 +16647,7 @@
     "relpath": "services/skills/git_skill_source_manager.py",
     "qualname": "GitSkillSourceManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "GitSkillSourceManager in services/skills/git_skill_source_manager.py exceeds thresholds (LOC=1418, CC=1) but has no WWL doc-comment"
+    "description": "GitSkillSourceManager in services/skills/git_skill_source_manager.py exceeds thresholds (LOC=1420, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/skills/git_skill_source_manager.py",
@@ -16875,7 +16755,7 @@
     "relpath": "services/skills/selective_skill_deployer.py",
     "qualname": "get_required_skills_from_agents",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "get_required_skills_from_agents in services/skills/selective_skill_deployer.py exceeds thresholds (LOC=122, CC=12) but has no WWL doc-comment"
+    "description": "get_required_skills_from_agents in services/skills/selective_skill_deployer.py exceeds thresholds (LOC=127, CC=12) but has no WWL doc-comment"
   },
   {
     "relpath": "services/skills/skill_discovery_service.py",
@@ -16887,7 +16767,7 @@
     "relpath": "services/skills/skill_discovery_service.py",
     "qualname": "SkillDiscoveryService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SkillDiscoveryService in services/skills/skill_discovery_service.py exceeds thresholds (LOC=556, CC=1) but has no WWL doc-comment"
+    "description": "SkillDiscoveryService in services/skills/skill_discovery_service.py exceeds thresholds (LOC=558, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/skills/skill_discovery_service.py",
@@ -17805,7 +17685,7 @@
     "relpath": "services/trusty_status.py",
     "qualname": "get_trusty_status",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "get_trusty_status in services/trusty_status.py exceeds thresholds (LOC=63, CC=7) but has no WWL doc-comment"
+    "description": "get_trusty_status in services/trusty_status.py exceeds thresholds (LOC=79, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "services/ui_service/__init__.py",
@@ -17823,7 +17703,7 @@
     "relpath": "services/ui_service/app.py",
     "qualname": "create_app",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "create_app in services/ui_service/app.py exceeds thresholds (LOC=131, CC=2) but has no WWL doc-comment"
+    "description": "create_app in services/ui_service/app.py exceeds thresholds (LOC=133, CC=2) but has no WWL doc-comment"
   },
   {
     "relpath": "services/ui_service/app.py",
@@ -18003,13 +17883,13 @@
     "relpath": "services/ui_service/serve_daemon.py",
     "qualname": "ServeDaemon",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "ServeDaemon in services/ui_service/serve_daemon.py exceeds thresholds (LOC=170, CC=1) but has no WWL doc-comment"
+    "description": "ServeDaemon in services/ui_service/serve_daemon.py exceeds thresholds (LOC=180, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/ui_service/serve_daemon.py",
     "qualname": "_ServeDaemonManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "_ServeDaemonManager in services/ui_service/serve_daemon.py exceeds thresholds (LOC=143, CC=1) but has no WWL doc-comment"
+    "description": "_ServeDaemonManager in services/ui_service/serve_daemon.py exceeds thresholds (LOC=145, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "services/ui_service/serve_daemon.py",
@@ -19017,7 +18897,7 @@
     "relpath": "skills/agent_skills_injector.py",
     "qualname": "AgentSkillsInjector",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "AgentSkillsInjector in skills/agent_skills_injector.py exceeds thresholds (LOC=332, CC=1) but has no WWL doc-comment"
+    "description": "AgentSkillsInjector in skills/agent_skills_injector.py exceeds thresholds (LOC=334, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "skills/agent_skills_injector.py",
@@ -19185,7 +19065,7 @@
     "relpath": "skills/registry.py",
     "qualname": "SkillsRegistry",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SkillsRegistry in skills/registry.py exceeds thresholds (LOC=327, CC=1) but has no WWL doc-comment"
+    "description": "SkillsRegistry in skills/registry.py exceeds thresholds (LOC=444, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "skills/registry.py",
@@ -19215,7 +19095,7 @@
     "relpath": "skills/skill_manager.py",
     "qualname": "SkillManager",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SkillManager in skills/skill_manager.py exceeds thresholds (LOC=583, CC=1) but has no WWL doc-comment"
+    "description": "SkillManager in skills/skill_manager.py exceeds thresholds (LOC=586, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "skills/skill_manager.py",
@@ -19263,7 +19143,7 @@
     "relpath": "skills/skills_service.py",
     "qualname": "SkillsService",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "SkillsService in skills/skills_service.py exceeds thresholds (LOC=737, CC=1) but has no WWL doc-comment"
+    "description": "SkillsService in skills/skills_service.py exceeds thresholds (LOC=743, CC=1) but has no WWL doc-comment"
   },
   {
     "relpath": "skills/skills_service.py",
@@ -20007,7 +19887,7 @@
     "relpath": "utils/agent_filters.py",
     "qualname": "get_deployed_agent_ids",
     "violation_type": "MISSING_UNIT_WWL",
-    "description": "get_deployed_agent_ids in utils/agent_filters.py exceeds thresholds (LOC=91, CC=10) but has no WWL doc-comment"
+    "description": "get_deployed_agent_ids in utils/agent_filters.py exceeds thresholds (LOC=94, CC=11) but has no WWL doc-comment"
   },
   {
     "relpath": "utils/agent_filters.py",
