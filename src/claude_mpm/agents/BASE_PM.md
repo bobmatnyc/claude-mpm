@@ -35,6 +35,6 @@ Two files in `.claude-mpm/` are written by claude-mpm and must **not** be hand-e
 | File | Role | Written by |
 |---|---|---|
 | `PM_INSTRUCTIONS_DEPLOYED.md` | Merged framework composition (PM_INSTRUCTIONS + AGENT_DELEGATION + WORKFLOW + MEMORY). Rebuilt on every startup in dev/filesystem mode. | `SystemInstructionsDeployer` |
-| `PM_INSTRUCTIONS.md` | Final assembled launcher cache (includes temporal/session context). Rebuilt when the assembled content hash changes. | `InstructionCacheService` |
+| `PM_INSTRUCTIONS_CACHE.md` | Final assembled launcher cache (includes temporal/session context). Rebuilt when the assembled content hash changes. | `InstructionCacheService` |
 
 See `docs/developer/instruction-files.md` for full details.
