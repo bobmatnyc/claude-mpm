@@ -4,7 +4,9 @@ WHY: This service creates session pause documents that capture complete conversa
 context, git state, todos, and working directory for seamless resume.
 
 DESIGN DECISIONS:
-- Three format output (JSON, YAML, Markdown) for different use cases
+- Two format output (JSON, Markdown) for different use cases
+- .yaml was dropped: no reader exists in the codebase; .json is authoritative,
+  .md serves as the human-readable view and legacy-resume fallback
 - Atomic file operations using StateStorage
 - Git integration for automatic commits
 - Compatible with SessionResumeHelper for resume workflow
@@ -16,8 +18,6 @@ import subprocess  # nosec B404 - required for git operations
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.storage.state_storage import StateStorage
@@ -72,11 +72,6 @@ class SessionPauseManager:
         if not self.storage.write_json(state, json_path, atomic=True):
             raise RuntimeError(f"Failed to write JSON to {json_path}")
         logger.debug(f"Saved JSON: {json_path}")
-
-        # Save YAML format
-        yaml_path = self.pause_dir / f"{session_id}.yaml"
-        self._save_yaml(state, yaml_path)
-        logger.debug(f"Saved YAML: {yaml_path}")
 
         # Save Markdown format
         md_path = self.pause_dir / f"{session_id}.md"
@@ -320,26 +315,6 @@ class SessionPauseManager:
         """
         return (self.project_path / ".git").exists()
 
-    def _save_yaml(self, state: dict[str, Any], yaml_path: Path) -> None:
-        """Save state as YAML format.
-
-        Args:
-            state: State dictionary
-            yaml_path: Target YAML file path
-        """
-        try:
-            with yaml_path.open("w") as f:
-                yaml.dump(
-                    state,
-                    f,
-                    default_flow_style=False,
-                    allow_unicode=True,
-                    sort_keys=False,
-                )
-        except Exception as e:
-            logger.error(f"Failed to write YAML to {yaml_path}: {e}")
-            raise
-
     def _generate_markdown(self, state: dict[str, Any]) -> str:
         """Generate human-readable markdown format.
 
@@ -495,8 +470,7 @@ Project: {self.project_path}
 
 Files:
 - {session_id}.json (machine-readable)
-- {session_id}.yaml (human-readable config)
-- {session_id}.md (documentation)
+- {session_id}.md (human-readable documentation)
 
 Quick Resume:
   /mpm-init resume

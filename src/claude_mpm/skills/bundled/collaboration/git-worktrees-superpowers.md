@@ -1,6 +1,6 @@
 ---
 skill_id: git-worktrees-superpowers
-skill_version: 1.0.0
+skill_version: 1.1.0
 description: Create isolated git worktrees with smart directory selection, gitignore safety verification, and baseline test confirmation before starting feature work
 tags: [git, worktrees, parallel-development, isolation, workflow, collaboration]
 related_agents: [version-control, engineer]
@@ -205,3 +205,4 @@ Ready to implement <feature-name>
 
 **Pairs with:**
 - **finishing-a-development-branch** - REQUIRED for cleanup after work complete
+- **git-worktrees** - reference for worktree *use-case patterns* (stacked PRs, parallel dev servers, isolated code review, shared `node_modules`) and troubleshooting once a worktree exists

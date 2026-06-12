@@ -491,6 +491,12 @@ def execute_command(command: str, args) -> int:
             args.days = 0
         return run_llmlingua_stats(args)
 
+    # Handle session-report command (offline transcript analysis)
+    if command == "session-report":
+        from .commands.session_report import run_session_report
+
+        return run_session_report(args)
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,

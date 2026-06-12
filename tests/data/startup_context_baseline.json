@@ -1,0 +1,36 @@
+{
+  "PM_INSTRUCTIONS": {
+    "path": "src/claude_mpm/agents/PM_INSTRUCTIONS.md",
+    "bytes": 22854,
+    "approx_tokens": 5713
+  },
+  "WORKFLOW": {
+    "path": "src/claude_mpm/agents/WORKFLOW.md",
+    "bytes": 10802,
+    "approx_tokens": 2700
+  },
+  "MEMORY": {
+    "path": "src/claude_mpm/agents/MEMORY.md",
+    "bytes": 7105,
+    "approx_tokens": 1776
+  },
+  "AGENT_DELEGATION": {
+    "path": "src/claude_mpm/agents/AGENT_DELEGATION.md",
+    "bytes": 4718,
+    "approx_tokens": 1179
+  },
+  "BASE_PM": {
+    "path": "src/claude_mpm/agents/BASE_PM.md",
+    "bytes": 2104,
+    "approx_tokens": 526
+  },
+  "CLAUDE_MD": {
+    "path": "CLAUDE.md",
+    "bytes": 6661,
+    "approx_tokens": 1665
+  },
+  "_total": {
+    "bytes": 54244,
+    "approx_tokens": 13561
+  }
+}

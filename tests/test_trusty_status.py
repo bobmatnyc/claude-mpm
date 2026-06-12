@@ -937,3 +937,270 @@ class TestGetTrustyCapabilities:
         monkeypatch.setattr(trusty_status, "get_trusty_status", _always_boom)
         caps = get_trusty_capabilities()
         assert caps == dict.fromkeys(_CAPABILITY_SERVICES, "absent")
+
+
+class TestTrustyAnalyzeDetection:
+    """trusty-analyze detection wiring: MCP config key, default port, and states.
+
+    Mirrors the trusty-review tests in ``TestUserMcpPresenceFlow`` for the
+    sibling service.  trusty-analyze is an HTTP sidecar daemon (port 7879) with
+    a stdio MCP bridge (``trusty-analyze mcp``); the renamed MCP config key
+    (``trusty-analyze``, not the old ``trusty-analyzer``) must flow correctly
+    through ``_is_configured_in_mcp`` → ``_is_present`` → ``get_trusty_status``
+    and ``get_trusty_capabilities``.
+    """
+
+    def test_absent_when_not_configured(self, monkeypatch, tmp_path):
+        """No .mcp.json entry AND no http_addr file → state ``absent``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+
+        state, line = get_trusty_status("trusty-analyze")
+        assert state == "absent"
+        assert line == ""
+
+    def test_project_mcp_configured_health_ok_renders_on(self, monkeypatch, tmp_path):
+        """trusty-analyze in project .mcp.json + healthy → state ``on``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_mcp_json(proj, "trusty-analyze")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: True)
+
+        state, line = get_trusty_status("trusty-analyze")
+        assert state == "on"
+        assert "trusty-analyze: on" in line
+
+    def test_project_mcp_configured_health_fail_state_configured(
+        self, monkeypatch, tmp_path
+    ):
+        """trusty-analyze in project .mcp.json + not running → state ``configured``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_mcp_json(proj, "trusty-analyze")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: False)
+
+        state, line = get_trusty_status("trusty-analyze")
+        assert state == "configured"
+        assert "not running" in line
+        assert "trusty-analyze serve" in line  # _start_hint
+
+    def test_addr_file_only_health_ok_renders_on(self, monkeypatch, tmp_path):
+        """http_addr file only (no .mcp.json) + healthy → state ``on``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_addr_file(home, "trusty-analyze", "127.0.0.1:7879")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: True)
+
+        state, _line = get_trusty_status("trusty-analyze")
+        assert state == "on"
+
+    def test_addr_file_only_health_fail_state_not_running(self, monkeypatch, tmp_path):
+        """http_addr file only (no .mcp.json) + not running → state ``not_running``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_addr_file(home, "trusty-analyze", "127.0.0.1:7879")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: False)
+
+        state, line = get_trusty_status("trusty-analyze")
+        assert state == "not_running"
+        assert "not running" in line
+
+    def test_default_port_is_7879(self):
+        """_DEFAULT_PORTS maps trusty-analyze to 7879 (confirmed binary default)."""
+        assert trusty_status._DEFAULT_PORTS.get("trusty-analyze") == 7879
+
+    def test_default_port_used_when_addr_file_absent(self, monkeypatch, tmp_path):
+        """When no http_addr file exists the probe target is 127.0.0.1:7879."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_mcp_json(proj, "trusty-analyze")  # present, so we reach the probe
+
+        seen: dict[str, str] = {}
+
+        def _capture(base_url: str) -> bool:
+            seen["base_url"] = base_url
+            return True
+
+        monkeypatch.setattr(trusty_status, "_health_check", _capture)
+        get_trusty_status("trusty-analyze")
+        assert seen["base_url"] == "http://127.0.0.1:7879"
+
+    def test_is_configured_in_mcp_uses_renamed_key(self, monkeypatch, tmp_path):
+        """_is_configured_in_mcp detects ``trusty-analyze`` (not ``trusty-analyzer``)."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        _write_mcp_json(proj, "trusty-analyze")
+
+        assert trusty_status._is_configured_in_mcp("trusty-analyze") is True
+        assert trusty_status._is_configured_in_mcp("trusty-analyzer") is False
+
+    def test_capability_includes_trusty_analyze(self, monkeypatch):
+        """get_trusty_capabilities always reports trusty-analyze's state."""
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_status", lambda _s: ("absent", "")
+        )
+        caps = trusty_status.get_trusty_capabilities()
+        assert "trusty-analyze" in caps
+        assert caps["trusty-analyze"] == "absent"
+
+    def test_user_mcp_configured_health_ok_renders_on(self, monkeypatch, tmp_path):
+        """trusty-analyze in user .mcp.json only + healthy → state ``on``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)  # no project .mcp.json
+        _write_user_mcp_json(home, "trusty-analyze")
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: True)
+
+        state, line = get_trusty_status("trusty-analyze")
+        assert state == "on"
+        assert "trusty-analyze: on" in line
+
+
+class TestTrustyMemoryStdioDetection:
+    """trusty-memory stdio detection path (6.5.36+).
+
+    trusty-memory now uses ``command: trusty-memory, args: [serve, --stdio]``
+    (direct stdio, no bridge, no HTTP daemon).  When it is registered in
+    .mcp.json as a stdio entry and the HTTP health probe fails (no daemon),
+    ``_is_stdio_configured`` returns True and ``get_trusty_status`` must report
+    ``on (stdio)`` — NOT ``not running``.
+    """
+
+    def _write_stdio_mcp_json(self, proj: Path) -> None:
+        """Write a .mcp.json with the canonical 6.5.36+ stdio entry."""
+        import json
+
+        entry = {
+            "type": "stdio",
+            "command": "trusty-memory",
+            "args": ["serve", "--stdio"],
+        }
+        (proj / ".mcp.json").write_text(
+            json.dumps({"mcpServers": {"trusty-memory": entry}}, indent=2),
+            encoding="utf-8",
+        )
+
+    def test_stdio_configured_no_daemon_reports_on_stdio(self, monkeypatch, tmp_path):
+        """stdio-configured trusty-memory + no HTTP daemon → state ``on``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        self._write_stdio_mcp_json(proj)
+        # HTTP health check fails (no daemon).
+        monkeypatch.setattr(trusty_status, "_health_check", lambda _url: False)
+        monkeypatch.setattr(trusty_status, "_palace_name", lambda: "myproject")
+
+        state, line = get_trusty_status("trusty-memory")
+
+        assert state == "on", (
+            f"Expected 'on' for stdio-configured trusty-memory (no daemon), got {state!r}"
+        )
+        assert "on (stdio)" in line
+        assert "palace: myproject" in line
+
+    def test_stdio_configured_is_present(self, monkeypatch, tmp_path):
+        """stdio-configured trusty-memory is detected by _is_present."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        self._write_stdio_mcp_json(proj)
+
+        assert trusty_status._is_present("trusty-memory") is True
+
+    def test_stdio_configured_is_stdio_configured(self, monkeypatch, tmp_path):
+        """_is_stdio_configured returns True for the canonical 6.5.36+ entry."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        self._write_stdio_mcp_json(proj)
+
+        assert trusty_status._is_stdio_configured("trusty-memory") is True
+
+    def test_bridge_configured_still_works(self, monkeypatch, tmp_path):
+        """Old bridge form (pre-6.5.36) in .mcp.json → still detected as present."""
+        import json
+
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+        # Old bridge form — command does NOT match "trusty-memory".
+        old_entry = {
+            "type": "stdio",
+            "command": "trusty-memory-mcp-bridge",
+            "args": [],
+        }
+        (proj / ".mcp.json").write_text(
+            json.dumps({"mcpServers": {"trusty-memory": old_entry}}, indent=2),
+            encoding="utf-8",
+        )
+        # The service key "trusty-memory" is present → _is_present returns True.
+        assert trusty_status._is_present("trusty-memory") is True
+        # The bridge entry uses stdio TRANSPORT (type: "stdio"), so
+        # _is_stdio_configured correctly returns True here.  _is_stdio_configured
+        # checks the "type" field, NOT the command name — a future tightening of
+        # this check should be deliberate, not accidental.
+        assert trusty_status._is_stdio_configured("trusty-memory") is True
+
+    def test_absent_when_not_configured(self, monkeypatch, tmp_path):
+        """No .mcp.json entry AND no http_addr file → state ``absent``."""
+        home = tmp_path / "home"
+        proj = tmp_path / "proj"
+        home.mkdir()
+        proj.mkdir()
+        _point_home(monkeypatch, home)
+        _point_cwd(monkeypatch, proj)
+
+        state, line = get_trusty_status("trusty-memory")
+        assert state == "absent"
+        assert line == ""
+
+    def test_capability_includes_trusty_memory(self, monkeypatch):
+        """get_trusty_capabilities always reports trusty-memory's state."""
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_status", lambda _s: ("absent", "")
+        )
+        caps = trusty_status.get_trusty_capabilities()
+        assert "trusty-memory" in caps

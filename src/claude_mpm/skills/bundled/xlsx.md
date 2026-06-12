@@ -1,6 +1,7 @@
 ---
 skill_id: xlsx
-skill_version: 0.1.0
+skill_version: 0.3.0
+when_to_use: when reading, writing, generating, or transforming Excel (.xlsx) files programmatically in any language
 description: Working with Excel files programmatically.
 updated_at: 2025-10-30T17:00:00Z
 tags: [excel, xlsx, spreadsheet, data]
@@ -150,6 +151,17 @@ for file in ['file1.xlsx', 'file2.xlsx', 'file3.xlsx']:
 combined = pd.concat(dfs, ignore_index=True)
 combined.to_excel('merged.xlsx', index=False)
 ```
+
+## Non-Obvious Patterns (the gotchas)
+
+These are the traps the library quick-starts above will NOT warn you about:
+
+- **`ws['C2'] = '=A2+B2'` stores the formula string, NOT a value** — openpyxl never evaluates formulas. Reading that cell back with `data_only=False` returns `'=A2+B2'`; reading with `load_workbook(..., data_only=True)` returns the cached result **only if Excel saved one** (a file openpyxl wrote has `None` there). To get computed values you must open in Excel/LibreOffice once, or evaluate with a separate engine.
+- **`read_only=True` / `write_only=True` modes for large files** — the default mode loads the whole sheet into memory. For 100k+ rows use `load_workbook(path, read_only=True)` (streams rows) and `Workbook(write_only=True)` with `ws.append(...)`; random `ws['A1']` access is unavailable in these modes by design.
+- **pandas `to_excel` silently drops formatting and timezone-aware datetimes** — tz-aware columns raise a `ValueError` (pandas ≥2.0); localize/strip tz first. For styled output, write with pandas then re-open the same file with openpyxl to apply styles (or use the `ExcelWriter(engine='openpyxl')` `.book`/`.sheets` handles).
+- **Excel's 1900 leap-year bug + the 1,048,576-row / 16,384-column hard limits** — dates before 1900-03-01 and overflow rows fail differently per library; chunk or switch to a real database past the row cap.
+- **JS `XLSX.utils.sheet_to_json` skips fully-empty rows and infers types loosely** — pass `{ raw: false, defval: null }` to preserve blanks and stop numeric-string coercion (zip codes, IDs losing leading zeros).
+- **Number stored as text vs. number** — `ws['B2'].number_format` only changes *display*; if the underlying value is a `str` Excel shows the green-triangle warning and `SUM` ignores it. Cast to `int`/`float` before writing.
 
 ## Remember
 - Close workbooks after use

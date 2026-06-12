@@ -9,6 +9,7 @@ SPEC-AGENTS-07~1 : docs/specs/agents.md#SPEC-AGENTS-07~1
 """
 
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -20,11 +21,14 @@ from claude_mpm.core.framework.loaders.workflow_constants import (
 
 # Markers that uniquely identify content belonging to specific blocks.
 # Used to detect stale override files that contain previously-deployed merged content.
+# IMPORTANT: these must stay in sync with the actual headings in the source .md files
+# under src/claude_mpm/agents/. The regression test
+# tests/services/agents/deployment/test_block_markers_exist.py enforces this.
 BLOCK_MARKERS: dict[str, list[str]] = {
-    "PM_INSTRUCTIONS.md": ["## PM Core Identity"],
-    "AGENT_DELEGATION.md": ["## Available Agent Capabilities"],
+    "PM_INSTRUCTIONS.md": ["## Identity"],
+    "AGENT_DELEGATION.md": ["## When to Delegate to Each Agent"],
     "WORKFLOW.md": ["## Mandatory 5-Phase Sequence"],
-    "MEMORY.md": ["## Static Memory Management"],
+    "MEMORY.md": ["## Memory System"],
 }
 
 
@@ -176,6 +180,41 @@ class SystemInstructionsDeployer:
             parts.append(system_path.read_text(encoding="utf-8"))
         return "\n\n".join(parts)
 
+    def _source_pm_version_tag(self, agents_path: Path) -> str:
+        """Return the ``PM_INSTRUCTIONS_VERSION`` comment from the source file.
+
+        The deployed ``PM_INSTRUCTIONS_DEPLOYED.md`` is the runtime fast-path
+        (PRIORITY 1 in ``InstructionLoader``). The loader decides whether to use
+        it by comparing the version tag in the deployed file against the version
+        tag in the *source* ``PM_INSTRUCTIONS.md``. If the deployed file lacks
+        the tag, ``_extract_version`` returns 0 and the loader discards it as
+        "stale" on every startup — even though it was freshly rebuilt.
+
+        A user/project override of ``PM_INSTRUCTIONS.md`` typically will NOT
+        carry the tag (users don't know to add it), so we cannot rely on the
+        merged block content to supply it. Instead we always propagate the tag
+        from the system source file, which correctly expresses "this file was
+        compiled from framework version NNNN".
+
+        Args:
+            agents_path: Path to the system agents directory.
+
+        Returns:
+            The full ``<!-- PM_INSTRUCTIONS_VERSION: NNNN -->`` comment line
+            (without trailing newline), or an empty string if the source file
+            has no version tag.
+        """
+        source_path = agents_path / "PM_INSTRUCTIONS.md"
+        if not source_path.exists():
+            return ""
+        match = re.search(
+            r"PM_INSTRUCTIONS_VERSION:\s*(\d+)",
+            source_path.read_text(encoding="utf-8"),
+        )
+        if not match:
+            return ""
+        return f"<!-- PM_INSTRUCTIONS_VERSION: {match.group(1)} -->"
+
     def deploy_system_instructions(
         self,
         target_dir: Path,
@@ -260,7 +299,19 @@ class SystemInstructionsDeployer:
             # does not carry a timestamp so it never causes spurious diffs on
             # repeated rebuilds.  Uses the shared constant from constants.py to
             # ensure a single definition across all writers.
-            target_file.write_text(BANNER_DEPLOYED + "\n\n".join(merged_content))
+            #
+            # Always propagate the source PM_INSTRUCTIONS_VERSION tag into the
+            # written file, right after the banner. InstructionLoader uses this
+            # tag (via _extract_version) to decide whether the deployed file is
+            # current relative to source. A user/project override of
+            # PM_INSTRUCTIONS.md usually omits the tag, which would make the
+            # deployed file read as v0 and be discarded as "stale" on every
+            # startup. Injecting the source tag keeps the fast-path usable.
+            version_tag = self._source_pm_version_tag(agents_path)
+            header = BANNER_DEPLOYED
+            if version_tag:
+                header = f"{header}{version_tag}\n\n"
+            target_file.write_text(header + "\n\n".join(merged_content))
 
             source_desc = ", ".join(str(p) for p in watched_paths if p.exists())
             deployment_info = {
@@ -330,6 +381,7 @@ class SystemInstructionsDeployer:
                 "research-gate-examples.md",
                 "response-format.md",
                 "structured-questions-examples.md",
+                "ticket-completeness-examples.md",
                 "ticketing-examples.md",
                 "validation-templates.md",
             ]

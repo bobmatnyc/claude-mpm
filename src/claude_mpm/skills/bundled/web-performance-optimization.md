@@ -1,6 +1,7 @@
 ---
 skill_id: web-performance-optimization
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when improving Lighthouse scores, Core Web Vitals (LCP, CLS, FID/INP), page load times, bundle sizes, or implementing web performance best practices
 description: Comprehensive guide to optimizing web performance using Lighthouse metrics and Core Web Vitals, covering modern optimization techniques and measurement strategies.
 updated_at: 2025-10-30T17:00:00Z
 tags: [performance, optimization, lighthouse, core-web-vitals, frontend]

@@ -1,6 +1,7 @@
 ---
 skill_id: pdf
-skill_version: 0.1.0
+skill_version: 0.3.0
+when_to_use: when generating, reading, converting, merging, or extracting content from PDF files programmatically
 description: Common PDF operations and libraries across languages.
 updated_at: 2025-10-30T17:00:00Z
 tags: [pdf, document-processing, manipulation, media]
@@ -134,6 +135,17 @@ from pikepdf import Pdf
 with Pdf.open("input.pdf") as pdf:
     pdf.save("compressed.pdf", compress_streams=True)
 ```
+
+## Non-Obvious Patterns (the gotchas)
+
+These are the things the library quick-starts above will NOT warn you about:
+
+- **`extract_text()` returns garbage or empty for scanned/image PDFs** — there is no text layer. Detect this (empty/whitespace result) and fall back to OCR (`pytesseract` on rasterized pages via PyMuPDF), don't silently emit empty strings.
+- **`PdfWriter` does NOT inherit form fields, annotations, or bookmarks** by default when you copy pages — interactive PDFs lose their AcroForm. Use `writer.append()` / `clone_document_from_reader()` (pypdf ≥3) to preserve structure, or pikepdf which keeps the object graph intact.
+- **`merge_page()` watermarks render UNDER existing content for opaque pages** — a filled background hides the page. Watermark PDFs must have a transparent background, and overlay direction matters (`merge_page` vs `merge_transformed_page`).
+- **`pikepdf` ≫ `PyPDF2`/`pypdf` for linearization, encryption, and repair** — pikepdf wraps QPDF (C++), so it round-trips malformed/encrypted PDFs that pure-Python writers corrupt. Prefer it whenever you "save" a PDF you didn't generate.
+- **`pdf-lib` (JS) cannot extract text** — it is a creation/modification library only. For text extraction in Node use `pdfjs-dist` or `pdf-parse`.
+- **`compress_streams=True` is lossless** (stream re-compression only). To actually shrink image-heavy PDFs you must downsample the embedded images — that is a separate, lossy step pikepdf does not do for you.
 
 ## Remember
 - Check PDF file size before processing

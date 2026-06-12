@@ -1,6 +1,6 @@
 ---
 skill_id: git-worktrees
-skill_version: 1.0.0
+skill_version: 1.1.0
 description: Use git worktrees for parallel development on multiple branches simultaneously
 tags: [git, worktrees, parallel-development, productivity]
 related_agents: [version-control, engineer]
@@ -8,6 +8,15 @@ effort: low
 ---
 
 # Git Worktrees
+
+> **Setting up a fresh worktree? Use `git-worktrees-superpowers` instead.**
+> That skill is the canonical *setup* procedure — systematic directory
+> selection, `.gitignore` safety verification, project-setup auto-detection,
+> and clean-baseline test confirmation. This skill is the *reference* for
+> worktree **use-case patterns** (stacked PRs, parallel dev servers, isolated
+> code review, shared `node_modules`) and troubleshooting once a worktree
+> exists. Reach for `git-worktrees-superpowers` first; come back here for the
+> richer workflow recipes below.
 
 ## Overview
 

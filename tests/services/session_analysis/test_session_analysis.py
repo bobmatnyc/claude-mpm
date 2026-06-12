@@ -1,0 +1,2520 @@
+"""
+Unit tests for the session_analysis service package.
+
+Tests cover:
+- pricing.py: rack-rate cost computation and unknown-model fallback
+- transcript_parser.py: agent/skill/mcp extraction, subagent timestamp
+  correlation (including the ambiguous parallel case), cost aggregation
+- markdown_writer.py: render → read round-trip preserves event count + key fields
+"""
+
+from __future__ import annotations
+
+import json
+import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+
+from claude_mpm.services.session_analysis.markdown_writer import (
+    read_markdown,
+    render_markdown,
+    write_report,
+)
+
+# ---------------------------------------------------------------------------
+# Import the modules under test
+# ---------------------------------------------------------------------------
+from claude_mpm.services.session_analysis.pricing import (
+    PRICING_RETRIEVED_DATE,
+    Rates,
+    compute_cost,
+    resolve_model_rates,
+)
+from claude_mpm.services.session_analysis.transcript_parser import (
+    SessionReport,
+    TimelineEvent,
+    _correlate_subagents,
+    _encode_cwd,
+    _last_line_timestamp,
+    _parse_jsonl,
+    _parse_subagent_transcript,
+    _redact_secrets,
+    _SubagentSummary,
+    find_most_recent_session,
+    locate_transcript,
+    parse_session,
+)
+
+# ---------------------------------------------------------------------------
+# Fixture paths
+# ---------------------------------------------------------------------------
+
+FIXTURES = Path(__file__).parent.parent.parent / "fixtures" / "session_analysis"
+MAIN_JSONL = FIXTURES / "main_session.jsonl"
+SUBAGENT_JSONL = FIXTURES / "subagent_python_engineer.jsonl"
+
+
+# ===========================================================================
+# transcript_parser.py — _encode_cwd regression test (GitHub #729)
+# ===========================================================================
+
+
+class TestEncodeCwd:
+    """Regression tests for _encode_cwd: leading dash must be preserved."""
+
+    def test_macos_path_keeps_leading_dash(self) -> None:
+        # /Users/masa/Projects/claude-mpm → -Users-masa-Projects-claude-mpm
+        assert (
+            _encode_cwd("/Users/masa/Projects/claude-mpm")
+            == "-Users-masa-Projects-claude-mpm"
+        )
+
+    def test_linux_path_keeps_leading_dash(self) -> None:
+        # /home/user/project → -home-user-project
+        assert _encode_cwd("/home/user/project") == "-home-user-project"
+
+
+# ===========================================================================
+# pricing.py tests
+# ===========================================================================
+
+
+class TestResolveModelRates:
+    def test_opus_prefix_matched(self) -> None:
+        rates = resolve_model_rates("claude-opus-4-7")
+        assert rates.model_family == "opus"
+        assert not rates.is_fallback
+
+    def test_sonnet_prefix_matched(self) -> None:
+        rates = resolve_model_rates("claude-sonnet-4-6")
+        assert rates.model_family == "sonnet"
+        assert not rates.is_fallback
+        assert rates.input == 3.00
+        assert rates.output == 15.00
+
+    def test_haiku_prefix_matched(self) -> None:
+        rates = resolve_model_rates("claude-haiku-3-5")
+        assert rates.model_family == "haiku"
+        assert not rates.is_fallback
+
+    def test_case_insensitive_match(self) -> None:
+        rates = resolve_model_rates("CLAUDE-SONNET-4")
+        assert rates.model_family == "sonnet"
+        assert not rates.is_fallback
+
+    def test_unknown_model_returns_fallback(self) -> None:
+        rates = resolve_model_rates("gpt-4o")
+        assert rates.is_fallback
+        assert rates.model_family == "unknown"
+
+    def test_empty_string_returns_fallback(self) -> None:
+        rates = resolve_model_rates("")
+        assert rates.is_fallback
+
+    def test_partial_match_no_false_positive(self) -> None:
+        # "claude-o" should NOT match "claude-opus"
+        rates = resolve_model_rates("claude-o-something")
+        assert rates.is_fallback
+
+
+class TestComputeCost:
+    def test_zero_usage_returns_zero(self) -> None:
+        cost = compute_cost("claude-sonnet-4-6", {})
+        assert cost == 0.0
+
+    def test_sonnet_input_output_only(self) -> None:
+        # 1M input tokens at $3.00 + 1M output at $15.00 = $18.00
+        cost = compute_cost(
+            "claude-sonnet-4-6",
+            {"input_tokens": 1_000_000, "output_tokens": 1_000_000},
+        )
+        assert abs(cost - 18.0) < 1e-9
+
+    def test_haiku_all_token_types(self) -> None:
+        # input=1M@0.80 + output=1M@4.00 + cache_write=1M@1.00 + cache_read=1M@0.08
+        cost = compute_cost(
+            "claude-haiku-3-5",
+            {
+                "input_tokens": 1_000_000,
+                "output_tokens": 1_000_000,
+                "cache_creation_input_tokens": 1_000_000,
+                "cache_read_input_tokens": 1_000_000,
+            },
+        )
+        expected = 0.80 + 4.00 + 1.00 + 0.08
+        assert abs(cost - expected) < 1e-9
+
+    def test_unknown_model_uses_sonnet_rates(self) -> None:
+        # Should not raise; uses fallback rates (sonnet) and still computes
+        cost = compute_cost("unknown-model-xyz", {"input_tokens": 1_000_000})
+        assert cost == pytest.approx(3.00)
+
+    def test_none_values_treated_as_zero(self) -> None:
+        # Some JSONL lines have null values for token counts
+        cost = compute_cost(
+            "claude-sonnet-4-6",
+            {"input_tokens": None, "output_tokens": None},  # type: ignore[arg-type]
+        )
+        assert cost == 0.0
+
+
+# ===========================================================================
+# pricing.py -- Fix B: PRICING_RETRIEVED_DATE constant + env-override path
+# ===========================================================================
+
+
+class TestPricingRetrievedDate:
+    def test_date_constant_exists(self) -> None:
+        assert PRICING_RETRIEVED_DATE == "2026-06-10"
+
+    def test_env_override_loads_custom_rates(self, tmp_path: Path, monkeypatch) -> None:
+        """CLAUDE_MPM_PRICING_FILE overrides the hardcoded _RATE_TABLE."""
+        pricing_json = [
+            {
+                "prefix": "test-model",
+                "input": 1.00,
+                "output": 2.00,
+                "cache_write": 0.50,
+                "cache_read": 0.10,
+                "model_family": "test",
+            }
+        ]
+        pricing_file = tmp_path / "custom_pricing.json"
+        pricing_file.write_text(
+            __import__("json").dumps(pricing_json), encoding="utf-8"
+        )
+
+        monkeypatch.setenv("CLAUDE_MPM_PRICING_FILE", str(pricing_file))
+
+        rates = resolve_model_rates("test-model-v1")
+        assert rates.input == 1.00
+        assert rates.output == 2.00
+        assert rates.cache_write == 0.50
+        assert rates.cache_read == 0.10
+        assert rates.model_family == "test"
+        assert not rates.is_fallback
+
+    def test_env_override_missing_file_falls_back_to_hardcoded(
+        self, monkeypatch
+    ) -> None:
+        """A non-existent CLAUDE_MPM_PRICING_FILE silently falls back to built-in table."""
+        monkeypatch.setenv("CLAUDE_MPM_PRICING_FILE", "/nonexistent/path/pricing.json")
+        rates = resolve_model_rates("claude-sonnet-4-6")
+        assert rates.model_family == "sonnet"
+        assert not rates.is_fallback
+
+
+# ===========================================================================
+# transcript_parser.py tests -- fixture-based
+# ===========================================================================
+
+
+class TestParseJsonl:
+    def test_parses_valid_fixture(self) -> None:
+        lines = _parse_jsonl(MAIN_JSONL)
+        assert len(lines) == 6
+
+    def test_all_items_are_dicts(self) -> None:
+        lines = _parse_jsonl(MAIN_JSONL)
+        assert all(isinstance(line, dict) for line in lines)
+
+    def test_corrupt_line_skipped(self, tmp_path: Path) -> None:
+        corrupt = tmp_path / "corrupt.jsonl"
+        corrupt.write_text('{"ok": 1}\nNOT_JSON\n{"ok": 2}\n', encoding="utf-8")
+        lines = _parse_jsonl(corrupt)
+        assert len(lines) == 2
+
+
+class TestParseSubagentTranscript:
+    def test_attribution_agent_extracted(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        assert summary.attribution_agent == "Python Engineer"
+
+    def test_prompt_text_is_first_user_message(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        assert "test_parser.py" in summary.prompt_text
+
+    def test_response_text_is_last_assistant_text(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        # Last assistant message mentions the fix
+        assert "regex" in summary.response_text.lower()
+
+    def test_model_extracted(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        assert summary.model == "claude-haiku-3-5"
+
+    def test_usage_aggregated(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        # Three assistant turns, each with input_tokens
+        assert summary.usage["input_tokens"] > 0
+        assert summary.usage["output_tokens"] > 0
+
+    def test_cost_computed(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        assert summary.cost_usd > 0.0
+
+    def test_all_events_populated(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        # 3 assistant turns → 3 events
+        assert len(summary.all_events) == 3
+
+    def test_tool_calls_extracted(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        # Events with Bash and Edit calls
+        tool_names = {call.tool_name for ev in summary.all_events for call in ev.calls}
+        assert "Bash" in tool_names
+        assert "Edit" in tool_names
+
+    def test_first_user_timestamp_set(self) -> None:
+        summary = _parse_subagent_transcript(SUBAGENT_JSONL)
+        assert summary.first_user_timestamp is not None
+        assert summary.first_user_timestamp.year == 2025
+
+
+class TestCorrelateSubagents:
+    def _make_summary(self, ts: datetime, agent_id: str = "sa1") -> _SubagentSummary:
+        """Build a minimal _SubagentSummary for correlation testing."""
+        return _SubagentSummary(
+            agent_id=agent_id,
+            file_path=Path(f"agent-{agent_id}.jsonl"),
+            attribution_agent="Test Agent",
+            first_user_timestamp=ts,
+            prompt_text="do stuff",
+            response_text="done",
+            model="claude-sonnet-4-6",
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=0.001,
+            pricing_fallback=False,
+            all_events=[],
+        )
+
+    def test_exact_match_correlates(self) -> None:
+        ts = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
+        summary = self._make_summary(ts)
+        calls = [(ts, "tu_001")]
+        result = _correlate_subagents(calls, [summary])
+        assert "tu_001" in result
+        entries = result["tu_001"]
+        assert len(entries) == 1
+        _, ambiguous = entries[0]
+        assert not ambiguous
+
+    def test_within_tolerance_correlates(self) -> None:
+        ts = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
+        call_ts = datetime(2025, 6, 10, 10, 0, 1, tzinfo=UTC)  # 1s off
+        summary = self._make_summary(ts)
+        calls = [(call_ts, "tu_001")]
+        result = _correlate_subagents(calls, [summary])
+        assert "tu_001" in result
+        assert len(result["tu_001"]) == 1
+
+    def test_outside_tolerance_not_correlated(self) -> None:
+        ts = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
+        call_ts = datetime(2025, 6, 10, 10, 0, 10, tzinfo=UTC)  # 10s off
+        summary = self._make_summary(ts)
+        calls = [(call_ts, "tu_001")]
+        result = _correlate_subagents(calls, [summary])
+        assert "tu_001" not in result
+
+    def test_parallel_ambiguous_case(self) -> None:
+        """Two agent calls within tolerance of the same subagent → ambiguous."""
+        ts = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
+        call_ts_a = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
+        call_ts_b = datetime(2025, 6, 10, 10, 0, 1, tzinfo=UTC)
+        summary = self._make_summary(ts, agent_id="sa1")
+        calls = [(call_ts_a, "tu_A"), (call_ts_b, "tu_B")]
+        result = _correlate_subagents(calls, [summary])
+        # Nearest match should be tu_A; ambiguous=True because tu_B is also within window
+        assert "tu_A" in result
+        entries = result["tu_A"]
+        assert len(entries) == 1
+        _, ambiguous = entries[0]
+        assert ambiguous
+
+    def test_no_subagents_returns_empty(self) -> None:
+        ts = datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC)
+        calls = [(ts, "tu_001")]
+        result = _correlate_subagents(calls, [])
+        assert result == {}
+
+    def test_subagent_no_timestamp_skipped(self) -> None:
+        summary = self._make_summary(datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC))
+        summary.first_user_timestamp = None
+        calls = [(datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC), "tu_001")]
+        result = _correlate_subagents(calls, [summary])
+        assert result == {}
+
+
+class TestParseSessionFixture:
+    """Integration test using a synthetic fixture transcript (no real ~/.claude access)."""
+
+    def _build_session_tree(self, tmp_path: Path) -> tuple[str, str]:
+        """Copy fixtures into a fake ~/.claude layout and return (session_id, cwd)."""
+        # Encode cwd using the same function as production so fixture dirs match parser.
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-session-01"
+
+        # Create main JSONL
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        main_dest = session_dir / f"{session_id}.jsonl"
+        main_dest.write_bytes(MAIN_JSONL.read_bytes())
+
+        # Create subagent JSONL
+        subagent_dir = session_dir / session_id / "subagents"
+        subagent_dir.mkdir(parents=True)
+        subagent_dest = subagent_dir / "agent-python-engineer.jsonl"
+        subagent_dest.write_bytes(SUBAGENT_JSONL.read_bytes())
+
+        return session_id, fake_cwd
+
+    def test_events_extracted(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        # Patch home directory so locate_transcript finds our fake layout
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        # 3 user prompts get skipped (tool_result only); 1 real user + assistant turns
+        assert len(report.events) > 0
+
+    def test_session_title_from_first_user_message(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        assert "test_parser.py" in report.title or report.title != session_id
+
+    def test_agent_call_counted(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        assert report.agent_call_count == 1
+
+    def test_skill_call_counted(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        assert report.skill_call_count == 1
+
+    def test_cost_aggregated(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        assert report.grand_total_cost_usd > 0.0
+        assert report.pm_cost_usd > 0.0
+
+    def test_subagent_cost_included(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        # Subagent transcript was parsed; cost should be > 0
+        assert report.subagent_cost_usd > 0.0
+
+    def test_github_link_extracted(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        links = " ".join(report.github_links)
+        assert "github.com/example/repo/issues/42" in links
+
+    def test_model_totals_populated(self, tmp_path: Path, monkeypatch) -> None:
+        session_id, cwd = self._build_session_tree(tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session(session_id, cwd)
+        assert len(report.model_totals) > 0
+        # PM model present
+        assert "claude-sonnet-4-6" in report.model_totals
+
+    def test_missing_transcript_returns_empty_report(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        report = parse_session("nonexistent-session", "/nonexistent/cwd")
+        assert report.events == []
+        assert report.grand_total_cost_usd == 0.0
+
+
+class TestModelTotalsNoDoubleCount:
+    """Fix 1: per-model cost must not be double-counted when PM and subagent share a model.
+
+    Invariant:
+        grand_total_cost_usd == pm_cost_usd + subagent_cost_usd
+        grand_total_cost_usd == sum(mt.total_cost_usd for mt in model_totals.values())
+
+    A shared model (claude-sonnet-4-6 in both the PM transcript and the subagent
+    transcript) must have its cost counted EXACTLY ONCE — PM turns counted from the
+    PM transcript, subagent turns counted from the subagent transcript aggregate.
+    """
+
+    # Subagent fixture that uses the SAME model as the PM (claude-sonnet-4-6)
+    _SAME_MODEL_SUBAGENT = (
+        Path(__file__).parent.parent.parent
+        / "fixtures"
+        / "session_analysis"
+        / "subagent_sonnet_same_model.jsonl"
+    )
+
+    def _build_session_tree_same_model(self, tmp_path: Path) -> tuple[str, str]:
+        """Lay out a fake ~/.claude tree using the same-model subagent fixture."""
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-session-samemodel"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(MAIN_JSONL.read_bytes())
+
+        subagent_dir = session_dir / session_id / "subagents"
+        subagent_dir.mkdir(parents=True)
+        (subagent_dir / "agent-python-engineer.jsonl").write_bytes(
+            self._SAME_MODEL_SUBAGENT.read_bytes()
+        )
+
+        return session_id, fake_cwd
+
+    def test_grand_total_equals_pm_plus_subagent(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+    def test_grand_total_equals_sum_of_per_model_totals(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        per_model_sum = sum(mt.total_cost_usd for mt in report.model_totals.values())
+        assert abs(report.grand_total_cost_usd - per_model_sum) < 1e-9, (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"sum(per-model)={per_model_sum}  model_totals={report.model_totals}"
+        )
+
+    def test_shared_model_cost_not_double_counted(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """When PM and subagent share claude-sonnet-4-6, the model total must equal
+        (PM turns cost) + (subagent aggregate cost), NOT 2x either."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        # Both PM and the subagent use claude-sonnet-4-6
+        assert "claude-sonnet-4-6" in report.model_totals
+        mt = report.model_totals["claude-sonnet-4-6"]
+
+        # The model total must equal the grand total (only one model in this session)
+        assert abs(mt.total_cost_usd - report.grand_total_cost_usd) < 1e-9, (
+            f"sonnet total={mt.total_cost_usd} != grand_total={report.grand_total_cost_usd}"
+        )
+
+        # The model total must equal pm_cost_usd + subagent_cost_usd
+        expected = report.pm_cost_usd + report.subagent_cost_usd
+        assert abs(mt.total_cost_usd - expected) < 1e-9, (
+            f"sonnet total={mt.total_cost_usd} != pm+subagent={expected}"
+        )
+
+    def test_outcome_event_uses_subagent_last_timestamp(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Fix 5: synthetic outcome event timestamp must be the subagent's last event
+        timestamp, not the parent agent_call dispatch time."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree_same_model(tmp_path)
+        report = parse_session(session_id, cwd)
+
+        # Find the agent_call event and the outcome event
+        agent_call_events = [e for e in report.events if e.event_type == "agent_call"]
+        outcome_events = [e for e in report.events if e.event_type == "outcome"]
+
+        assert outcome_events, "No outcome event was generated"
+        assert agent_call_events, "No agent_call event found"
+
+        outcome = outcome_events[0]
+        agent_call = agent_call_events[0]
+
+        # The outcome timestamp must be >= the agent_call timestamp
+        # (subagent completion is after dispatch).
+        assert outcome.timestamp >= agent_call.timestamp, (
+            f"outcome.timestamp {outcome.timestamp} < agent_call.timestamp {agent_call.timestamp}"
+        )
+
+        # The outcome timestamp must equal the subagent's last event timestamp —
+        # the last line in the same-model subagent fixture is at 10:00:20.
+        from datetime import UTC, datetime
+
+        expected_ts = datetime(2025, 6, 10, 10, 0, 20, tzinfo=UTC)
+        assert outcome.timestamp == expected_ts, (
+            f"outcome.timestamp={outcome.timestamp} != expected {expected_ts}"
+        )
+
+
+class TestParallelDelegationNoCostDoubleCount:
+    """Regression: two PM Agent calls that both correlate to the SAME subagent
+    summary must not double-count the subagent's cost or tokens.
+
+    The test patches _correlate_subagents to forcibly return both tu_A and tu_B
+    mapped to the SAME _SubagentSummary object, simulating the ambiguous parallel
+    delegation case.  After parse_session runs the accumulation loop, the
+    invariants must hold:
+
+        grand_total_cost_usd == pm_cost_usd + subagent_cost_usd
+        grand_total_cost_usd == sum(mt.total_cost_usd for all models)
+    """
+
+    _PARALLEL_MAIN_JSONL = (
+        Path(__file__).parent.parent.parent
+        / "fixtures"
+        / "session_analysis"
+        / "parallel_pm_two_calls.jsonl"
+    )
+
+    def _build_session_tree(self, tmp_path: Path) -> tuple[str, str]:
+        """Copy fixtures into a fake ~/.claude tree with two Agent calls."""
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-parallel-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            self._PARALLEL_MAIN_JSONL.read_bytes()
+        )
+
+        # One subagent file — both PM calls will correlate to it
+        subagent_dir = session_dir / session_id / "subagents"
+        subagent_dir.mkdir(parents=True)
+        (subagent_dir / "agent-python-engineer.jsonl").write_bytes(
+            SUBAGENT_JSONL.read_bytes()
+        )
+
+        return session_id, fake_cwd
+
+    def test_parallel_delegation_no_double_count(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Both tu_parallel_A and tu_parallel_B mapping to ONE summary -> cost counted once."""
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        session_id, cwd = self._build_session_tree(tmp_path)
+
+        # Parse the subagent file to get a real summary with non-trivial cost
+        summary = _tp._parse_subagent_transcript(
+            tmp_path
+            / ".claude"
+            / "projects"
+            / _encode_cwd(cwd)
+            / session_id
+            / "subagents"
+            / "agent-python-engineer.jsonl"
+        )
+
+        # Force BOTH tool_use_ids to map to the SAME summary object
+        def _fake_correlate(
+            agent_calls: list[tuple],
+            subagent_summaries: list,
+        ) -> dict:
+            return {
+                "tu_parallel_A": [(summary, True)],
+                "tu_parallel_B": [(summary, True)],
+            }
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+
+        report = _tp.parse_session(session_id, cwd)
+
+        sa_cost = summary.cost_usd
+
+        # Subagent cost must appear exactly ONCE
+        assert abs(report.subagent_cost_usd - sa_cost) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != expected={sa_cost} "
+            f"(double-count would be {2 * sa_cost})"
+        )
+
+        # Invariant 1: grand_total == pm + subagent
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+        # Invariant 2: grand_total == sum of per-model totals
+        per_model_sum = sum(mt.total_cost_usd for mt in report.model_totals.values())
+        assert abs(report.grand_total_cost_usd - per_model_sum) < 1e-9, (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"sum(per-model)={per_model_sum}  model_totals={report.model_totals}"
+        )
+
+
+class TestCorrelateNoSubagentDropped:
+    """Regression (Fix 1): two DISTINCT subagents that both correlate to the
+    SAME single PM tool_use_id must NOT cause either subagent to be dropped.
+
+    Before the fix, the second subagent would silently overwrite the first in
+    the result dict, so its cost was lost and no outcome event was emitted.
+
+    After the fix, corr_map[tid] is a list; parse_session iterates ALL entries
+    so both subagents' costs are accumulated and both outcome events are present.
+    """
+
+    def _make_summary(
+        self,
+        agent_id: str,
+        cost: float,
+        response_text: str,
+    ) -> _SubagentSummary:
+        from datetime import UTC, datetime
+        from pathlib import Path
+
+        return _SubagentSummary(
+            agent_id=agent_id,
+            file_path=Path(f"agent-{agent_id}.jsonl"),
+            attribution_agent=agent_id,
+            first_user_timestamp=datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC),
+            prompt_text="do stuff",
+            response_text=response_text,
+            model="claude-haiku-3-5",
+            usage={
+                "input_tokens": 1000,
+                "output_tokens": 200,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=cost,
+            pricing_fallback=False,
+            all_events=[],
+        )
+
+    def test_two_subagents_same_tool_use_id_neither_dropped(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Both subagents correlate to tu_shared; assert costs included, invariants hold."""
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        # Build a minimal session tree with the parallel PM fixture
+        _PARALLEL_MAIN_JSONL = (
+            Path(__file__).parent.parent.parent
+            / "fixtures"
+            / "session_analysis"
+            / "parallel_pm_two_calls.jsonl"
+        )
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-nodrop-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            _PARALLEL_MAIN_JSONL.read_bytes()
+        )
+        # No subagent files needed — we inject via monkeypatch
+
+        sa_a = self._make_summary("alpha", cost=0.010, response_text="Alpha done.")
+        sa_b = self._make_summary("beta", cost=0.020, response_text="Beta done.")
+
+        # Force BOTH distinct summaries to map to the SAME tool_use_id
+        def _fake_correlate(
+            agent_calls: list,
+            subagent_summaries: list,
+        ) -> dict:
+            return {
+                "tu_parallel_A": [
+                    (sa_a, True),
+                    (sa_b, True),
+                ],
+            }
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+
+        report = _tp.parse_session(session_id, fake_cwd)
+
+        expected_sa_cost = sa_a.cost_usd + sa_b.cost_usd  # 0.030
+
+        # 1. Neither subagent cost is dropped
+        assert abs(report.subagent_cost_usd - expected_sa_cost) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != "
+            f"expected={expected_sa_cost}  (a cost={sa_a.cost_usd}, b cost={sa_b.cost_usd})"
+        )
+
+        # 2. grand_total == pm + subagent (core invariant)
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+        # 3. grand_total == sum of per-model totals
+        per_model_sum = sum(mt.total_cost_usd for mt in report.model_totals.values())
+        assert abs(report.grand_total_cost_usd - per_model_sum) < 1e-9, (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"sum(per-model)={per_model_sum}"
+        )
+
+        # 4. Both outcome events are present (one per subagent)
+        outcome_events = [e for e in report.events if e.event_type == "outcome"]
+        assert len(outcome_events) == 2, (
+            f"Expected 2 outcome events (one per subagent), got {len(outcome_events)}: "
+            f"{[e.detail[:30] for e in outcome_events]}"
+        )
+        outcome_texts = {e.detail for e in outcome_events}
+        assert "Alpha done." in outcome_texts, "Alpha subagent outcome event is missing"
+        assert "Beta done." in outcome_texts, "Beta subagent outcome event is missing"
+
+        # 5. Outcome events carry cost_usd=0.0 (display artifact, not a new cost)
+        for oe in outcome_events:
+            assert oe.cost_usd == 0.0, (
+                f"Outcome event for '{oe.actor}' has cost_usd={oe.cost_usd} "
+                f"(must be 0.0 to prevent double-count)"
+            )
+
+
+class TestFindMostRecentSession:
+    def test_returns_none_when_no_sessions(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        result = find_most_recent_session("/nonexistent/project")
+        assert result is None
+
+    def test_returns_most_recently_modified(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        cwd = "/test/proj"
+        encoded = _encode_cwd(cwd)
+        proj_dir = tmp_path / ".claude" / "projects" / encoded
+        proj_dir.mkdir(parents=True)
+
+        # Create two session files with different mtimes
+        old_session = proj_dir / "old-session.jsonl"
+        new_session = proj_dir / "new-session.jsonl"
+        old_session.write_text("{}\n")
+        new_session.write_text("{}\n")
+
+        import os
+        import time
+
+        os.utime(old_session, (time.time() - 100, time.time() - 100))
+        os.utime(new_session, (time.time(), time.time()))
+
+        result = find_most_recent_session(cwd)
+        assert result == "new-session"
+
+    def test_prefers_content_timestamp_over_mtime(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Fix C: session with a newer last-line timestamp wins even if mtime is older."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        cwd = "/test/proj2"
+        encoded = _encode_cwd(cwd)
+        proj_dir = tmp_path / ".claude" / "projects" / encoded
+        proj_dir.mkdir(parents=True)
+
+        # older_mtime.jsonl has an OLDER mtime but a NEWER last-line timestamp.
+        # newer_mtime.jsonl has a NEWER mtime but an OLDER last-line timestamp.
+        older_mtime = proj_dir / "older-mtime.jsonl"
+        newer_mtime = proj_dir / "newer-mtime.jsonl"
+
+        older_mtime.write_text(
+            '{"timestamp": "2025-06-10T12:00:00.000Z"}\n', encoding="utf-8"
+        )
+        newer_mtime.write_text(
+            '{"timestamp": "2025-06-10T10:00:00.000Z"}\n', encoding="utf-8"
+        )
+
+        import os
+        import time
+
+        now = time.time()
+        # older_mtime was touched 100 s ago; newer_mtime was touched now
+        os.utime(older_mtime, (now - 100, now - 100))
+        os.utime(newer_mtime, (now, now))
+
+        # Content timestamp should win: older_mtime has timestamp 12:00 > 10:00
+        result = find_most_recent_session(cwd)
+        assert result == "older-mtime", (
+            "Expected content timestamp to take precedence over filesystem mtime"
+        )
+
+    def test_falls_back_to_mtime_for_invalid_jsonl(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Fix C fallback: unreadable / no-timestamp files fall back to mtime."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        cwd = "/test/proj3"
+        encoded = _encode_cwd(cwd)
+        proj_dir = tmp_path / ".claude" / "projects" / encoded
+        proj_dir.mkdir(parents=True)
+
+        old_nodata = proj_dir / "old-nodata.jsonl"
+        new_nodata = proj_dir / "new-nodata.jsonl"
+        old_nodata.write_text("not json at all\n", encoding="utf-8")
+        new_nodata.write_text("also not json\n", encoding="utf-8")
+
+        import os
+        import time
+
+        now = time.time()
+        os.utime(old_nodata, (now - 200, now - 200))
+        os.utime(new_nodata, (now, now))
+
+        result = find_most_recent_session(cwd)
+        assert result == "new-nodata"
+
+    def test_last_line_timestamp_extracts_correctly(self, tmp_path: Path) -> None:
+        """_last_line_timestamp returns the last valid timestamp in the file."""
+        from datetime import UTC, datetime
+
+        f = tmp_path / "session.jsonl"
+        f.write_text(
+            '{"timestamp": "2025-06-10T10:00:00.000Z"}\n'
+            '{"timestamp": "2025-06-10T11:00:00.000Z"}\n',
+            encoding="utf-8",
+        )
+        ts = _last_line_timestamp(f)
+        assert ts == datetime(2025, 6, 10, 11, 0, 0, tzinfo=UTC)
+
+    def test_last_line_timestamp_returns_none_for_missing_file(
+        self, tmp_path: Path
+    ) -> None:
+        ts = _last_line_timestamp(tmp_path / "nonexistent.jsonl")
+        assert ts is None
+
+
+# ===========================================================================
+# markdown_writer.py tests
+# ===========================================================================
+
+
+def _build_minimal_report() -> SessionReport:
+    """Build a small but complete SessionReport for rendering tests."""
+    from claude_mpm.services.session_analysis.transcript_parser import (
+        CallDetail,
+        ModelTotals,
+    )
+
+    event1 = TimelineEvent(
+        uuid="ev-001",
+        timestamp=datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC),
+        actor="bob",
+        event_type="user_prompt",
+        title="Fix the failing test",
+        detail="Fix the failing test in test_parser.py",
+        github_links=["https://github.com/example/repo/issues/42"],
+    )
+    event2 = TimelineEvent(
+        uuid="ev-002",
+        timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+        actor="mpm",
+        event_type="agent_call",
+        title="I'll look at the failing test and fix it.",
+        detail="I'll look at the failing test and fix it.",
+        calls=[
+            CallDetail(
+                tool_name="Agent",
+                tool_use_id="tu_001",
+                input_summary='{"subagent_type": "python-engineer"}',
+                response_text="Fixed the regex pattern.",
+                subagent_type="python-engineer",
+                subagent_model="claude-haiku-3",
+            )
+        ],
+        model="claude-sonnet-4-6",
+        usage={
+            "input_tokens": 1500,
+            "output_tokens": 120,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 800,
+        },
+        cost_usd=0.006,
+    )
+    event3 = TimelineEvent(
+        uuid="ev-002-outcome",
+        timestamp=datetime(2025, 6, 10, 10, 0, 30, tzinfo=UTC),
+        actor="Python Engineer",
+        event_type="outcome",
+        title="Fixed the regex pattern on line 42.",
+        detail="Fixed the regex pattern on line 42 of src/parser.py.",
+        model="claude-haiku-3-5",
+        usage={
+            "input_tokens": 3000,
+            "output_tokens": 200,
+            "cache_creation_input_tokens": 200,
+            "cache_read_input_tokens": 1000,
+        },
+        cost_usd=0.003,
+    )
+
+    report = SessionReport(
+        session_id="test-session-01",
+        project_path="/fake/project",
+        transcript_path="/fake/.claude/projects/fake-project/test-session-01.jsonl",
+        events=[event1, event2, event3],
+        started_at=datetime(2025, 6, 10, 10, 0, 0, tzinfo=UTC),
+        ended_at=datetime(2025, 6, 10, 10, 0, 50, tzinfo=UTC),
+        title="Fix the failing test",
+        total_turns=1,
+        agent_call_count=1,
+        skill_call_count=0,
+        mcp_call_count=0,
+        pm_cost_usd=0.006,
+        subagent_cost_usd=0.003,
+        grand_total_cost_usd=0.009,
+        model_totals={
+            "claude-sonnet-4-6": ModelTotals(
+                model="claude-sonnet-4-6",
+                input_tokens=1500,
+                output_tokens=120,
+                cache_creation_input_tokens=0,
+                cache_read_input_tokens=800,
+                total_cost_usd=0.006,
+                turn_count=1,
+            ),
+            "claude-haiku-3-5": ModelTotals(
+                model="claude-haiku-3-5",
+                input_tokens=3000,
+                output_tokens=200,
+                cache_creation_input_tokens=200,
+                cache_read_input_tokens=1000,
+                total_cost_usd=0.003,
+                turn_count=3,
+            ),
+        },
+        github_links=["https://github.com/example/repo/issues/42"],
+    )
+    return report
+
+
+class TestRenderMarkdown:
+    def test_output_is_string(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert isinstance(md, str)
+
+    def test_starts_with_frontmatter(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert md.startswith("---\n")
+
+    def test_session_id_in_frontmatter(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "session_id: test-session-01" in md
+
+    def test_timeline_section_present(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "## Timeline" in md
+
+    def test_event_headings_present(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        # 3 events → 3 level-4 headings
+        assert md.count("#### ") == 3
+
+    def test_meta_comments_present(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "<!-- meta:" in md
+
+    def test_agent_call_rendered(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "python-engineer" in md
+
+    def test_github_link_rendered(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "github.com/example/repo/issues/42" in md
+
+    def test_cost_rendered(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "$0.009" in md or "0.009" in md
+
+    def test_outcome_event_rendered(self) -> None:
+        report = _build_minimal_report()
+        md = render_markdown(report)
+        assert "**Outcome:**" in md
+
+
+class TestWriteReport:
+    def test_creates_parent_dirs(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        deep_path = tmp_path / "a" / "b" / "c" / "report.md"
+        write_report(report, deep_path)
+        assert deep_path.exists()
+
+    def test_file_contains_markdown(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "report.md"
+        write_report(report, out)
+        content = out.read_text(encoding="utf-8")
+        assert "## Timeline" in content
+
+
+class TestMarkdownRoundTrip:
+    """Render a report → write to file → read_markdown → verify field preservation."""
+
+    def test_event_count_preserved(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        assert len(parsed["events"]) == len(report.events)
+
+    def test_frontmatter_session_id_preserved(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        assert parsed["frontmatter"]["session_id"] == "test-session-01"
+
+    def test_frontmatter_grand_total_preserved(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        assert abs(parsed["frontmatter"]["grand_total_cost_usd"] - 0.009) < 1e-9
+
+    def test_actor_preserved_in_events(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        actors = [ev["actor"] for ev in parsed["events"]]
+        assert "bob" in actors
+        assert "mpm" in actors
+
+    def test_meta_type_preserved(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        event_types = [ev["meta"].get("type") for ev in parsed["events"]]
+        assert "user_prompt" in event_types
+        assert "agent_call" in event_types
+        assert "outcome" in event_types
+
+    def test_meta_cost_preserved(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        # Find the agent_call event; its cost_usd should be 0.006
+        for ev in parsed["events"]:
+            if ev["meta"].get("type") == "agent_call":
+                assert abs(float(ev["meta"]["cost_usd"]) - 0.006) < 1e-5
+                break
+        else:
+            pytest.fail("No agent_call event found in parsed output")
+
+    def test_title_in_event_preserved(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        titles = [ev["title"] for ev in parsed["events"]]
+        assert any("test" in t.lower() for t in titles)
+
+    def test_github_links_in_events(self, tmp_path: Path) -> None:
+        report = _build_minimal_report()
+        out = tmp_path / "round_trip.md"
+        write_report(report, out)
+        parsed = read_markdown(out)
+        links_texts = [ev.get("links_text", "") for ev in parsed["events"]]
+        combined = " ".join(links_texts)
+        assert "github.com/example/repo/issues/42" in combined
+
+
+class TestReadMarkdownEdgeCases:
+    def test_empty_file_returns_empty_events(self, tmp_path: Path) -> None:
+        f = tmp_path / "empty.md"
+        f.write_text("")
+        parsed = read_markdown(f)
+        assert parsed["events"] == []
+        assert parsed["frontmatter"] == {}
+
+    def test_no_frontmatter_returns_empty_fm(self, tmp_path: Path) -> None:
+        f = tmp_path / "no_fm.md"
+        f.write_text(
+            "#### 10:00 · bob · Hello world\n<!-- meta: type=user_prompt -->\n\nSome text\n\n---\n"
+        )
+        parsed = read_markdown(f)
+        assert parsed["frontmatter"] == {}
+        assert len(parsed["events"]) == 1
+        assert parsed["events"][0]["actor"] == "bob"
+
+    def test_malformed_yaml_frontmatter_returns_empty_fm(self, tmp_path: Path) -> None:
+        f = tmp_path / "bad_fm.md"
+        f.write_text("---\n: : : invalid yaml :\n---\n\n")
+        parsed = read_markdown(f)
+        # Should not raise; frontmatter will be empty
+        assert isinstance(parsed["frontmatter"], dict)
+
+
+# ===========================================================================
+# Defect 1 — _strip_control_tags + _make_title strip harness tags
+# ===========================================================================
+
+
+class TestStripControlTags:
+    """Tests for the _strip_control_tags helper (Defect 1 fix)."""
+
+    def test_system_reminder_removed_entirely(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<system-reminder>You are a helpful assistant.</system-reminder>\nFix the bug."
+        result = _strip_control_tags(text)
+        assert "<system-reminder>" not in result
+        assert "You are a helpful assistant." not in result
+        assert "Fix the bug." in result
+
+    def test_local_command_stdout_removed_entirely(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "Run tests\n<local-command-stdout>PASSED 42 tests</local-command-stdout>"
+        result = _strip_control_tags(text)
+        assert "<local-command-stdout>" not in result
+        assert "PASSED 42 tests" not in result
+        assert "Run tests" in result
+
+    def test_local_command_caveat_removed_entirely(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<local-command-caveat>caveat text here</local-command-caveat>\nActual prompt."
+        result = _strip_control_tags(text)
+        assert "<local-command-caveat>" not in result
+        assert "caveat text here" not in result
+        assert "Actual prompt." in result
+
+    def test_command_name_tag_unwrapped(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<command-name>clear</command-name>\nHello world"
+        result = _strip_control_tags(text)
+        assert "<command-name>" not in result
+        assert "clear" in result
+
+    def test_command_message_tag_unwrapped(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "<command-message>Fix the test</command-message>"
+        result = _strip_control_tags(text)
+        assert "<command-message>" not in result
+        assert "Fix the test" in result
+
+    def test_multiple_tags_stripped(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = (
+            "<system-reminder>sys</system-reminder>\n"
+            "<local-command-caveat>caveat</local-command-caveat>\n"
+            "Real user intent here."
+        )
+        result = _strip_control_tags(text)
+        assert "sys" not in result
+        assert "caveat" not in result
+        assert "Real user intent here." in result
+
+    def test_clean_text_unchanged(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _strip_control_tags,
+        )
+
+        text = "Fix the failing test in test_parser.py"
+        assert _strip_control_tags(text) == text
+
+    def test_make_title_strips_system_reminder(self) -> None:
+        from claude_mpm.services.session_analysis.transcript_parser import _make_title
+
+        text = "<system-reminder>Be helpful.</system-reminder>\nActually fix the bug please."
+        title = _make_title(text)
+        assert "<system-reminder>" not in title
+        assert "Be helpful." not in title
+        assert "fix the bug" in title.lower()
+
+    def test_user_prompt_title_stripped_in_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """User-prompt events parsed from JSONL with harness tags have clean titles."""
+        import json as _json
+
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _encode_cwd,
+            parse_session,
+        )
+
+        fake_cwd = str(tmp_path / "fake" / "proj")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-strip-tags-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        # Build a fake user message containing harness tags
+        raw_user_content = (
+            "<system-reminder>You are an AI assistant.</system-reminder>\n"
+            "<local-command-caveat>This command runs locally.</local-command-caveat>\n"
+            "Fix the auth middleware bug."
+        )
+        line = {
+            "uuid": "u-001",
+            "timestamp": "2025-06-10T10:00:00.000Z",
+            "message": {"role": "user", "content": raw_user_content},
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        assert report.events, "Expected at least one event"
+        user_event = report.events[0]
+        assert "<system-reminder>" not in user_event.title
+        assert "<local-command-caveat>" not in user_event.title
+        assert (
+            "Fix the auth middleware bug." in user_event.title
+            or "fix" in user_event.title.lower()
+        )
+        assert "<system-reminder>" not in report.title
+        assert (
+            "Fix the auth middleware bug." in report.title
+            or "fix" in report.title.lower()
+        )
+
+    def test_user_prompt_detail_stripped_in_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """User-prompt event detail is also cleaned of harness tags."""
+        import json as _json
+
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _encode_cwd,
+            parse_session,
+        )
+
+        fake_cwd = str(tmp_path / "fake" / "proj2")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-strip-tags-02"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        raw_user_content = (
+            "<system-reminder>Context noise.</system-reminder>\n"
+            "Deploy the feature to production."
+        )
+        line = {
+            "uuid": "u-002",
+            "timestamp": "2025-06-10T11:00:00.000Z",
+            "message": {"role": "user", "content": raw_user_content},
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        user_event = report.events[0]
+        assert "<system-reminder>" not in user_event.detail
+        assert "Context noise." not in user_event.detail
+        assert "Deploy the feature to production." in user_event.detail
+
+
+# ===========================================================================
+# Defect 2 — Agent-call card title names the subagent
+# ===========================================================================
+
+
+class TestAgentCallTitle:
+    """Agent-call timeline events should title with the subagent name (Defect 2 fix)."""
+
+    def _build_agent_call_report(
+        self, subagent_type: str = "Python Engineer"
+    ) -> SessionReport:
+        """Build a minimal report whose PM turn is an Agent call with no prose."""
+        from claude_mpm.services.session_analysis.transcript_parser import CallDetail
+
+        agent_event = TimelineEvent(
+            uuid="ev-agent",
+            timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+            actor="mpm",
+            event_type="agent_call",
+            # title is what we're testing — we set it via the parser; here we
+            # pre-set it as the parser would (after the fix).
+            title=f"Agent → {subagent_type}",
+            detail="",
+            calls=[
+                CallDetail(
+                    tool_name="Agent",
+                    tool_use_id="tu_001",
+                    input_summary="{}",
+                    response_text="Done.",
+                    subagent_type=subagent_type,
+                    subagent_model="claude-haiku-3",
+                )
+            ],
+        )
+        from claude_mpm.services.session_analysis.transcript_parser import ModelTotals
+
+        return SessionReport(
+            session_id="agent-title-test",
+            project_path="/fake/proj",
+            transcript_path="/fake/.claude/projects/fake-proj/agent-title-test.jsonl",
+            events=[agent_event],
+            title="Agent → " + subagent_type,
+            model_totals={
+                "claude-sonnet-4-6": ModelTotals(
+                    model="claude-sonnet-4-6",
+                    input_tokens=100,
+                    output_tokens=20,
+                    total_cost_usd=0.001,
+                    turn_count=1,
+                )
+            },
+            grand_total_cost_usd=0.001,
+        )
+
+    def test_agent_call_title_contains_subagent_type(self) -> None:
+        """Title of an agent_call event includes the subagent_type."""
+        report = self._build_agent_call_report("Python Engineer")
+        agent_events = [e for e in report.events if e.event_type == "agent_call"]
+        assert agent_events, "No agent_call event"
+        title = agent_events[0].title
+        assert "Python Engineer" in title, (
+            f"Expected subagent name in title, got: {title!r}"
+        )
+
+    def test_agent_call_title_format_arrow(self) -> None:
+        """Title uses 'Agent → <name>' format."""
+        report = self._build_agent_call_report("Web QA")
+        agent_events = [e for e in report.events if e.event_type == "agent_call"]
+        title = agent_events[0].title
+        assert "→" in title or "->" in title, f"Expected arrow in title, got: {title!r}"
+        assert "Web QA" in title
+
+    def test_agent_call_title_via_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """parse_session produces an agent_call title with the subagent name."""
+        import json as _json
+
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            _encode_cwd,
+            parse_session,
+        )
+
+        fake_cwd = str(tmp_path / "fake" / "proj3")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-agent-title-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        # Assistant turn with ONLY an Agent tool_use (no prose text)
+        assistant_line = {
+            "uuid": "a-001",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tu_agent_01",
+                        "name": "Agent",
+                        "input": {
+                            "subagent_type": "Python Engineer",
+                            "model": "claude-haiku-3",
+                            "description": "Fix the test",
+                            "prompt": "Please fix test_parser.py",
+                        },
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 500,
+                    "output_tokens": 50,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(assistant_line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        agent_events = [e for e in report.events if e.event_type == "agent_call"]
+        assert agent_events, "Expected at least one agent_call event"
+        title = agent_events[0].title
+        assert "Python Engineer" in title, (
+            f"Expected 'Python Engineer' in agent_call title, got: {title!r}"
+        )
+
+    def test_agent_call_title_in_markdown_heading(self, tmp_path: Path) -> None:
+        """Agent-call card title propagates into the Markdown heading."""
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            CallDetail,
+            ModelTotals,
+        )
+
+        agent_event = TimelineEvent(
+            uuid="ev-md-agent",
+            timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+            actor="mpm",
+            event_type="agent_call",
+            title="Agent → Python Engineer",
+            detail="",
+            calls=[
+                CallDetail(
+                    tool_name="Agent",
+                    tool_use_id="tu_md_01",
+                    input_summary="{}",
+                    response_text="Done.",
+                    subagent_type="Python Engineer",
+                    subagent_model="claude-haiku-3",
+                )
+            ],
+            model="claude-sonnet-4-6",
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 10,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=0.001,
+        )
+        report = SessionReport(
+            session_id="md-agent-title",
+            project_path="/fake/proj",
+            transcript_path="/fake/p.jsonl",
+            events=[agent_event],
+            title="Agent → Python Engineer",
+            model_totals={
+                "claude-sonnet-4-6": ModelTotals(
+                    model="claude-sonnet-4-6",
+                    input_tokens=100,
+                    output_tokens=10,
+                    total_cost_usd=0.001,
+                    turn_count=1,
+                )
+            },
+            grand_total_cost_usd=0.001,
+        )
+        md = render_markdown(report)
+        # The heading should contain "Python Engineer"
+        headings = [line for line in md.splitlines() if line.startswith("#### ")]
+        agent_headings = [h for h in headings if "Python Engineer" in h]
+        assert agent_headings, (
+            f"Expected a heading with 'Python Engineer'. Headings: {headings}"
+        )
+
+
+# ===========================================================================
+# Defect 3 — JSX filter-bar .map closes with })} not }}
+# ===========================================================================
+
+
+class TestJsxFilterBarSyntax:
+    """The generated JSX filter-bar block must close with })} (Defect 3 fix)."""
+
+    def test_jsx_template_filter_block_closes_correctly(self) -> None:
+        """_JSX_TEMPLATE contains })}}} for the filter block (renders to })} in JSX)."""
+        import sys
+        from pathlib import Path as _Path
+
+        scripts_dir = str(_Path(__file__).parent.parent.parent.parent / "scripts")
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+
+        import importlib
+
+        jsx_mod = importlib.import_module("session_timeline_to_jsx")
+        template = jsx_mod._JSX_TEMPLATE
+        # The template contains })}}} which Python .format() renders to })}
+        # Verify that the broken }}}}} (renders to }}) is NOT present for FILTERS.map.
+        # We check the rendered JSX via a minimal generate_jsx call.
+
+        # Minimal parsed data to drive generate_jsx
+        parsed = {
+            "frontmatter": {
+                "session_id": "test",
+                "project": "test",
+                "project_path": "/test",
+                "date": "2025-06-10",
+                "generated_at": "2025-06-10T00:00:00Z",
+                "title": "test session",
+                "autonomy": {"bob_pct": 50, "mpm_pct": 50},
+                "stat_cards": [],
+                "has_pricing_fallback": False,
+                "model_breakdown": [],
+                "grand_total_cost_usd": 0.0,
+            },
+            "events": [],
+        }
+        jsx = jsx_mod.generate_jsx(parsed)
+
+        # The filter bar map must close with })} (not just }})
+        # In the JSX output: FILTERS.map(f => {  return (...); })}
+        assert "})})" in jsx or "})}" in jsx, (
+            "JSX output must contain '})}'  to close FILTERS.map correctly"
+        )
+
+        # Also verify the specific broken form is NOT the filter-bar close.
+        # Check that the FILTERS.map line and its closure are syntactically paired.
+        lines = jsx.splitlines()
+        filters_map_line = None
+        for i, line in enumerate(lines):
+            if "FILTERS.map" in line:
+                filters_map_line = i
+                break
+        assert filters_map_line is not None, "FILTERS.map not found in generated JSX"
+
+        # Scan forward from FILTERS.map to find the first close sequence
+        close_found = False
+        for line in lines[filters_map_line:]:
+            stripped = line.strip()
+            if stripped == "})}":
+                close_found = True
+                break
+            if stripped == "}}":
+                # This would be the buggy form
+                break
+        assert close_found, (
+            "Expected '})}'  as the FILTERS.map close, but found '}}' or did not find it. "
+            "The JSX filter-bar .map callback is not properly closed."
+        )
+
+
+# ===========================================================================
+# Issue #738 — _redact_secrets: secret scrubbing in session reports
+# ===========================================================================
+
+
+class TestRedactSecrets:
+    """Unit tests for the _redact_secrets helper (Issue #738).
+
+    Each test checks ONE specific secret pattern: the literal secret must be
+    absent from the output and the matching [REDACTED:<label>] sentinel must
+    be present.
+    """
+
+    def test_npm_token_redacted(self) -> None:
+        """npm_ followed by 36 alphanum characters is replaced."""
+        token = "npm_" + "A" * 36
+        result = _redact_secrets(f"NPM_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:npm_token]" in result
+
+    def test_github_token_ghp_redacted(self) -> None:
+        """ghp_ GitHub tokens are replaced."""
+        token = "ghp_" + "B" * 36
+        result = _redact_secrets(f"export GH_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_gho_redacted(self) -> None:
+        """gho_ GitHub tokens are replaced."""
+        token = "gho_" + "C" * 36
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_ghu_redacted(self) -> None:
+        """ghu_ GitHub tokens are replaced."""
+        token = "ghu_" + "D" * 36
+        result = _redact_secrets(f"GITHUB_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_ghs_redacted(self) -> None:
+        """ghs_ GitHub tokens are replaced."""
+        token = "ghs_" + "E" * 36
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_github_token_ghr_redacted(self) -> None:
+        """ghr_ GitHub tokens are replaced."""
+        token = "ghr_" + "F" * 36
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:github_token]" in result
+
+    def test_aws_access_key_redacted(self) -> None:
+        """AKIA followed by 16 uppercase/digit chars is replaced."""
+        key = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret  # 20 chars total: AKIA + 16
+        result = _redact_secrets(f"AWS_ACCESS_KEY_ID={key}")
+        assert key not in result
+        assert "[REDACTED:aws_key]" in result
+
+    def test_openai_style_api_key_redacted(self) -> None:
+        """sk- followed by 20+ alphanum/_/- chars is replaced."""
+        key = "sk-" + "x" * 48  # well over the 20-char minimum
+        result = _redact_secrets(f"OPENAI_API_KEY={key}")
+        assert key not in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_anthropic_style_api_key_redacted(self) -> None:
+        """Anthropic keys also use the sk- prefix."""
+        key = "sk-ant-api03-" + "y" * 80
+        result = _redact_secrets(f"ANTHROPIC_API_KEY={key}")
+        assert key not in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_slack_token_xoxb_redacted(self) -> None:
+        """xoxb- Slack bot tokens are replaced."""
+        token = "xoxb-123456789012-123456789012-" + "z" * 24
+        result = _redact_secrets(f"SLACK_BOT_TOKEN={token}")
+        assert token not in result
+        assert "[REDACTED:slack_token]" in result
+
+    def test_slack_token_xoxa_redacted(self) -> None:
+        """xoxa- Slack app tokens are replaced."""
+        token = "xoxa-2-" + "a" * 20
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:slack_token]" in result
+
+    def test_slack_token_xoxp_redacted(self) -> None:
+        """xoxp- Slack user tokens are replaced."""
+        token = "xoxp-" + "b" * 20
+        result = _redact_secrets(token)
+        assert token not in result
+        assert "[REDACTED:slack_token]" in result
+
+    def test_pem_private_key_block_redacted(self) -> None:
+        """PEM private key blocks spanning multiple lines are replaced."""
+        pem = (
+            "-----BEGIN RSA PRIVATE KEY-----\n"  # pragma: allowlist secret
+            "MIIEowIBAAKCAQEA" + "X" * 64 + "\n"
+            "-----END RSA PRIVATE KEY-----"
+        )
+        result = _redact_secrets(f"Key material:\n{pem}\nEnd.")
+        assert "MIIEowIBAAKCAQEA" not in result
+        assert "[REDACTED:private_key]" in result
+        # Surrounding text is preserved
+        assert "Key material:" in result
+        assert "End." in result
+
+    def test_ec_private_key_block_redacted(self) -> None:
+        """PRIVATE KEY (EC / PKCS#8) blocks are also scrubbed."""
+        pem = (
+            "-----BEGIN PRIVATE KEY-----\n"  # pragma: allowlist secret
+            + "G" * 64
+            + "\n-----END PRIVATE KEY-----"
+        )
+        result = _redact_secrets(pem)
+        assert "G" * 64 not in result
+        assert "[REDACTED:private_key]" in result
+
+    def test_generic_token_assignment_redacted(self) -> None:
+        """token=<16+ chars> is redacted; key name is preserved."""
+        text = "token=abcdefghijklmnop"  # 16-char value
+        result = _redact_secrets(text)
+        assert "abcdefghijklmnop" not in result
+        assert "token=" in result  # key name preserved
+        assert "[REDACTED:api_key]" in result
+
+    def test_generic_password_assignment_redacted(self) -> None:
+        """password=<16+ chars> value is redacted."""
+        text = "password=hunter2hunter2hunter2"
+        result = _redact_secrets(text)
+        assert "hunter2hunter2hunter2" not in result
+        assert "password=" in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_generic_secret_assignment_quoted_redacted(self) -> None:
+        """secret='<16+ chars>' — quoted value is redacted."""
+        text = "secret='my_super_secret_key_here'"  # pragma: allowlist secret
+        result = _redact_secrets(text)
+        assert "my_super_secret_key_here" not in result
+        assert "secret=" in result
+        assert "[REDACTED:api_key]" in result
+
+    def test_generic_api_key_colon_separator_redacted(self) -> None:
+        """api_key: <16+ chars> (YAML-style) value is redacted."""
+        text = "api_key: abcdefghijklmnopqrst"  # 20-char value
+        result = _redact_secrets(text)
+        assert "abcdefghijklmnopqrst" not in result
+        assert "api_key" in result
+
+    def test_idempotent_on_already_redacted_text(self) -> None:
+        """Re-running _redact_secrets on already-redacted output is a no-op."""
+        already = "[REDACTED:npm_token] and [REDACTED:github_token]"
+        result = _redact_secrets(already)
+        assert result == already
+
+    def test_idempotent_double_pass_npm(self) -> None:
+        """Two passes on an npm-token-bearing string yield the same result."""
+        token = "npm_" + "Z" * 36
+        first = _redact_secrets(token)
+        second = _redact_secrets(first)
+        assert first == second
+
+    def test_normal_prose_unchanged(self) -> None:
+        """Ordinary sentences are not modified."""
+        prose = "The quick brown fox jumps over the lazy dog."
+        assert _redact_secrets(prose) == prose
+
+    def test_normal_code_unchanged(self) -> None:
+        """Short variable assignments and identifiers are not affected."""
+        code = "token = 'short'"  # 5-char value — below the 16-char threshold
+        assert _redact_secrets(code) == code
+
+    def test_url_with_token_query_param_is_safe(self) -> None:
+        """Ordinary URLs without long credential strings pass through."""
+        url = "https://api.example.com/v1/resource?limit=10&offset=0"
+        assert _redact_secrets(url) == url
+
+    def test_multiple_secrets_all_redacted(self) -> None:
+        """When multiple different secret types appear, all are scrubbed."""
+        npm = "npm_" + "N" * 36
+        aws = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+        text = f"NPM={npm} AWS={aws}"
+        result = _redact_secrets(text)
+        assert npm not in result
+        assert aws not in result
+        assert "[REDACTED:npm_token]" in result
+        assert "[REDACTED:aws_key]" in result
+
+    # ------------------------------------------------------------------
+    # Bearer / Authorization token tests (Issue #738/#739 hardening)
+    # ------------------------------------------------------------------
+
+    def test_authorization_bearer_header_redacted(self) -> None:
+        """Authorization: Bearer <token> — value redacted, scheme word kept."""
+        token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMTIzIn0"  # pragma: allowlist secret
+        text = f"Authorization: Bearer {token}"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        # Scheme word must be preserved for readability
+        assert "Bearer" in result
+        assert "Authorization" in result
+
+    def test_authorization_token_github_style_redacted(self) -> None:
+        """Authorization: token <value> (GitHub-style) — value redacted, label bearer_token."""
+        # Use a generic ≥20-char value (not a ghp_ prefix, which the github pattern handles)
+        value = "abcdefghijklmnopqrst1234567890"  # pragma: allowlist secret  # 30 chars, no specific prefix
+        text = f"Authorization: token {value}"
+        result = _redact_secrets(text)
+        assert value not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "token" in result
+        assert "Authorization" in result
+
+    def test_bare_bearer_in_log_line_redacted(self) -> None:
+        """Bare 'Bearer <token>' in a log line (no 'Authorization:' prefix) is redacted."""
+        token = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYWxpY2UifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  # pragma: allowlist secret
+        text = f"Sending request with Bearer {token} to endpoint"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "Bearer" in result
+        # Surrounding prose is preserved
+        assert "Sending request with" in result
+        assert "to endpoint" in result
+
+    def test_bearer_token_idempotent(self) -> None:
+        """Re-running on already-redacted Bearer output is a no-op."""
+        already = "Authorization: Bearer [REDACTED:bearer_token]"
+        result = _redact_secrets(already)
+        assert result == already
+
+    def test_bearer_token_double_pass_idempotent(self) -> None:
+        """Two passes on a Bearer-token-bearing string yield the same result."""
+        token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.signature_here_abc"  # pragma: allowlist secret
+        text = f"Authorization: Bearer {token}"
+        first = _redact_secrets(text)
+        second = _redact_secrets(first)
+        assert first == second
+
+    def test_bearer_of_bad_news_not_redacted(self) -> None:
+        """'bearer' in ordinary prose without a long value following is unchanged."""
+        prose = "She was the bearer of bad news."
+        assert _redact_secrets(prose) == prose
+
+    def test_token_word_alone_not_redacted(self) -> None:
+        """The word 'token' alone (no long high-entropy value) is not redacted."""
+        text = "The CSRF token was invalid."
+        assert _redact_secrets(text) == text
+
+    def test_bearer_short_value_not_redacted(self) -> None:
+        """Bearer followed by a short value (<20 chars) is NOT redacted (avoids false positives)."""
+        text = "Bearer abc123"  # only 9 chars — below the 20-char minimum
+        assert _redact_secrets(text) == text
+
+    # ------------------------------------------------------------------
+    # Token-keyword prose over-match regression (#742)
+    # ------------------------------------------------------------------
+
+    def test_bare_token_keyword_in_prose_not_redacted(self) -> None:
+        """Bare 'token <long-value>' in prose (no Authorization: prefix) is NOT redacted.
+
+        This is the key regression guard: bare 'token' appears constantly in
+        natural-language text and must NOT trigger redaction unless preceded by
+        'Authorization:'.
+        """
+        prose = "The token abcdefghijklmnopqrstuvwxyz12 was accepted"
+        assert _redact_secrets(prose) == prose
+
+    def test_bare_token_prose_variant_not_redacted(self) -> None:
+        """Another prose variant to confirm the over-match is fully plugged."""
+        prose = "Refresh token abcdefghijklmnopqrstuvwxyzABCDEF and retry"
+        assert _redact_secrets(prose) == prose
+
+    def test_authorization_token_with_prefix_redacted(self) -> None:
+        """Authorization: token <value> (GitHub-style) IS redacted when the prefix is present."""
+        value = "abcdefghijklmnopqrst1234567890"  # pragma: allowlist secret  # 30 chars
+        text = f"Authorization: token {value}"
+        result = _redact_secrets(text)
+        assert value not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "token" in result
+        assert "Authorization" in result
+
+    def test_bare_bearer_still_redacted_after_split(self) -> None:
+        """Bare 'Bearer <token>' (no Authorization: prefix) must still be redacted.
+
+        Ensures the split into two patterns did not break the bearer case.
+        """
+        token = "eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiYm9iIn0.SflKxwRJSMeKKF2QT"  # pragma: allowlist secret
+        text = f"Bearer {token}"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "Bearer" in result
+
+    def test_authorization_bearer_still_redacted_after_split(self) -> None:
+        """Authorization: Bearer <token> continues to be redacted (regression guard)."""
+        token = "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.signatureXYZ"  # pragma: allowlist secret
+        text = f"Authorization: Bearer {token}"
+        result = _redact_secrets(text)
+        assert token not in result
+        assert "[REDACTED:bearer_token]" in result
+        assert "Bearer" in result
+        assert "Authorization" in result
+
+    def test_bare_token_idempotency_guard(self) -> None:
+        """[REDACTED:bearer_token] placeholder in token position is not re-redacted."""
+        already = "Authorization: token [REDACTED:bearer_token]"
+        result = _redact_secrets(already)
+        assert result == already
+
+
+class TestRedactSecretsInReport:
+    """Integration tests: secrets injected into JSONL transcripts must not appear
+    in the rendered Markdown or JSX output when redact=True (the default).
+
+    Each test builds a minimal synthetic session with a specific secret embedded
+    in the user prompt or assistant text, then asserts:
+      - the raw secret string is absent from the rendered Markdown, AND
+      - the matching [REDACTED:<label>] sentinel is present.
+    A parallel --no-redact / redact=False test verifies the opt-out path
+    preserves the raw text.
+    """
+
+    def _build_minimal_jsonl_with_secret(
+        self, tmp_path: Path, secret_text: str, session_id: str = "sec-test-01"
+    ) -> tuple[str, str]:
+        """Write a fake JSONL with *secret_text* in the user message and return
+        (session_id, fake_cwd).
+        """
+        fake_cwd = str(tmp_path / "fake" / "proj")
+        encoded = _encode_cwd(fake_cwd)
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        line = {
+            "uuid": "u-sec-001",
+            "timestamp": "2025-06-10T10:00:00.000Z",
+            "message": {"role": "user", "content": secret_text},
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            json.dumps(line) + "\n", encoding="utf-8"
+        )
+        return session_id, fake_cwd
+
+    def _render(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        secret_text: str,
+        redact: bool = True,
+        session_id: str = "sec-test-01",
+    ) -> tuple[str, str]:
+        """Parse + render to Markdown AND produce JSX-ready event list.
+
+        Returns (md_text, events_json_str).
+        """
+        sid, cwd = self._build_minimal_jsonl_with_secret(
+            tmp_path, secret_text, session_id
+        )
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(sid, cwd, include_subagents=False, redact=redact)
+        md = render_markdown(report)
+        # Simulate what the JSX converter does: serialize the events list
+        events_data = [
+            {
+                "title": e.title,
+                "detail": e.detail,
+                "actor": e.actor,
+            }
+            for e in report.events
+        ]
+        jsx_like = json.dumps(events_data)
+        return md, jsx_like
+
+    def test_npm_token_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """npm token in user prompt does not reach md or jsx output."""
+        token = "npm_" + "T" * 36
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"Install token: {token}", session_id="npm-test-01"
+        )
+        assert token not in md, "npm token must not appear in Markdown output"
+        assert token not in jsx, "npm token must not appear in JSX-like event data"
+        assert "[REDACTED:npm_token]" in md
+
+    def test_github_token_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """GitHub ghp_ token does not leak into any output stage."""
+        token = "ghp_" + "G" * 36
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"GH_TOKEN={token}", session_id="ghp-test-01"
+        )
+        assert token not in md
+        assert token not in jsx
+        assert "[REDACTED:github_token]" in md
+
+    def test_aws_key_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """AWS access key does not leak into any output stage."""
+        key = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"AWS_KEY={key}", session_id="aws-test-01"
+        )
+        assert key not in md
+        assert key not in jsx
+        assert "[REDACTED:aws_key]" in md
+
+    def test_openai_api_key_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """sk- API key does not leak into any output stage."""
+        key = "sk-" + "K" * 48
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"key={key}", session_id="sk-test-01"
+        )
+        assert key not in md
+        assert key not in jsx
+        assert "[REDACTED:api_key]" in md
+
+    def test_slack_token_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Slack xoxb- token does not leak into any output stage."""
+        token = "xoxb-123456789012-123456789012-" + "S" * 24
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"SLACK={token}", session_id="slack-test-01"
+        )
+        assert token not in md
+        assert token not in jsx
+        assert "[REDACTED:slack_token]" in md
+
+    def test_pem_key_absent_from_md_and_jsx(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """PEM private key block does not leak into any output stage."""
+        pem = (
+            "-----BEGIN RSA PRIVATE KEY-----\n"  # pragma: allowlist secret
+            "MIIEowIBAAKCAQEA" + "P" * 64 + "\n"
+            "-----END RSA PRIVATE KEY-----"
+        )
+        md, jsx = self._render(
+            tmp_path, monkeypatch, f"Key:\n{pem}", session_id="pem-test-01"
+        )
+        assert "MIIEowIBAAKCAQEA" not in md
+        assert "MIIEowIBAAKCAQEA" not in jsx
+        assert "[REDACTED:private_key]" in md
+
+    def test_generic_secret_assignment_absent_from_md(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Generic token=<value> assignment is scrubbed in rendered output."""
+        text = "access_key=verylongsecretvaluethatexceeds16chars"
+        md, jsx = self._render(
+            tmp_path, monkeypatch, text, session_id="generic-test-01"
+        )
+        assert "verylongsecretvaluethatexceeds16chars" not in md
+        assert "verylongsecretvaluethatexceeds16chars" not in jsx
+        assert "[REDACTED:api_key]" in md
+
+    def test_no_redact_preserves_raw_text(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """redact=False (--no-redact) leaves raw text intact in the report."""
+        token = "npm_" + "R" * 36
+        md, _jsx = self._render(
+            tmp_path,
+            monkeypatch,
+            f"token={token}",
+            redact=False,
+            session_id="noredact-test-01",
+        )
+        assert token in md, "With redact=False the raw token must survive into Markdown"
+        assert "[REDACTED:npm_token]" not in md
+
+    def test_title_derivation_also_redacted(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Session title (derived from first user message) is also scrubbed."""
+        token = "npm_" + "U" * 36
+        md, _jsx = self._render(
+            tmp_path, monkeypatch, token, session_id="title-test-01"
+        )
+        # The report title appears in the YAML frontmatter
+        assert token not in md
+        assert "[REDACTED:npm_token]" in md
+
+
+# ===========================================================================
+# Defect 4 — Skill-call card title names the specific skill (fix)
+# ===========================================================================
+
+
+class TestSkillCallTitle:
+    """Skill-call timeline events must show 'Skill → <skill_name>' in the title.
+
+    When a PM turn has ONLY a Skill tool_use and no prose text, the title must
+    be derived from the skill name (mirroring the Agent → <subagent_type>
+    pattern), not fall back to the bare tool name 'Skill'.
+    """
+
+    def test_skill_call_title_via_parse_session(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """parse_session produces a skill_call title containing the skill name."""
+        import json as _json
+
+        fake_cwd = str(tmp_path / "fake" / "proj_skill")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-skill-title-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        # PM turn: only a Skill tool_use (no prose text) → title must be derived
+        # from the skill name.
+        assistant_line = {
+            "uuid": "sk-001",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tu_skill_01",
+                        "name": "Skill",
+                        "input": {"skill": "mpm-doctor", "args": ""},
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 10,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(assistant_line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        skill_events = [e for e in report.events if e.event_type == "skill_call"]
+        assert skill_events, "Expected at least one skill_call event"
+        title = skill_events[0].title
+        assert "mpm-doctor" in title, (
+            f"Expected skill name 'mpm-doctor' in skill_call title, got: {title!r}"
+        )
+
+    def test_skill_call_title_format_arrow(self, tmp_path: Path, monkeypatch) -> None:
+        """Title uses 'Skill → <name>' format (arrow separator, mirroring Agent)."""
+        import json as _json
+
+        fake_cwd = str(tmp_path / "fake" / "proj_skill2")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-skill-arrow-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        line = {
+            "uuid": "sk-002",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "tu_skill_02",
+                        "name": "Skill",
+                        "input": {
+                            "skill": "verification-before-completion",
+                            "args": "",
+                        },
+                    }
+                ],
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 10,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        skill_events = [e for e in report.events if e.event_type == "skill_call"]
+        title = skill_events[0].title
+        assert "→" in title, f"Expected arrow '→' in title, got: {title!r}"
+        assert "verification-before-completion" in title
+
+    def test_skill_call_prose_title_overrides_skill_name(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """When the PM turn has prose text, the prose title takes priority over the skill name."""
+        import json as _json
+
+        fake_cwd = str(tmp_path / "fake" / "proj_skill3")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-skill-prose-01"
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+
+        line = {
+            "uuid": "sk-003",
+            "timestamp": "2025-06-10T10:00:05.000Z",
+            "message": {
+                "role": "assistant",
+                "model": "claude-sonnet-4-6",
+                "content": [
+                    {"type": "text", "text": "Let me run diagnostics on the system."},
+                    {
+                        "type": "tool_use",
+                        "id": "tu_skill_03",
+                        "name": "Skill",
+                        "input": {"skill": "mpm-doctor", "args": ""},
+                    },
+                ],
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 20,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                },
+            },
+            "sessionId": session_id,
+        }
+        (session_dir / f"{session_id}.jsonl").write_text(
+            _json.dumps(line) + "\n", encoding="utf-8"
+        )
+
+        monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        report = parse_session(session_id, fake_cwd, include_subagents=False)
+
+        skill_events = [e for e in report.events if e.event_type == "skill_call"]
+        title = skill_events[0].title
+        # Prose takes priority — title must come from the text block
+        assert "diagnostics" in title.lower(), (
+            f"Expected prose-derived title when text block present, got: {title!r}"
+        )
+
+    def test_skill_call_title_in_markdown_heading(self, tmp_path: Path) -> None:
+        """Skill-call card title propagates into the Markdown heading."""
+        from claude_mpm.services.session_analysis.transcript_parser import (
+            CallDetail,
+            ModelTotals,
+        )
+
+        skill_event = TimelineEvent(
+            uuid="ev-md-skill",
+            timestamp=datetime(2025, 6, 10, 10, 0, 5, tzinfo=UTC),
+            actor="mpm",
+            event_type="skill_call",
+            title="Skill → mpm-doctor",
+            detail="",
+            calls=[
+                CallDetail(
+                    tool_name="Skill",
+                    tool_use_id="tu_md_skill_01",
+                    input_summary='{"skill": "mpm-doctor"}',
+                    response_text="Doctor report done.",
+                    skill_name="mpm-doctor",
+                    skill_args="",
+                )
+            ],
+            model="claude-sonnet-4-6",
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 10,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=0.001,
+        )
+        report = SessionReport(
+            session_id="md-skill-title",
+            project_path="/fake/proj",
+            transcript_path="/fake/p.jsonl",
+            events=[skill_event],
+            title="Skill → mpm-doctor",
+            model_totals={
+                "claude-sonnet-4-6": ModelTotals(
+                    model="claude-sonnet-4-6",
+                    input_tokens=100,
+                    output_tokens=10,
+                    total_cost_usd=0.001,
+                    turn_count=1,
+                )
+            },
+            grand_total_cost_usd=0.001,
+        )
+        md = render_markdown(report)
+        headings = [line for line in md.splitlines() if line.startswith("#### ")]
+        skill_headings = [h for h in headings if "mpm-doctor" in h]
+        assert skill_headings, (
+            f"Expected a heading with 'mpm-doctor'. Headings: {headings}"
+        )
+
+
+# ===========================================================================
+# Defect 5 — Uncorrelated subagent costs are now included in subagent_cost_usd
+# ===========================================================================
+
+
+class TestUncorrelatedSubagentCost:
+    """Subagents outside the ±2s correlation window must still be counted.
+
+    Before the fix, subagents whose first_user_timestamp fell outside the
+    tolerance window were silently dropped from subagent_cost_usd, causing
+    the Agent Cost stat card to read $0 (or be under-counted) even when
+    subagents clearly consumed tokens.
+    """
+
+    def _make_summary(
+        self,
+        agent_id: str,
+        cost: float,
+        file_path: Path,
+        ts: datetime | None = None,
+    ) -> _SubagentSummary:
+        from datetime import UTC, datetime as _dt
+
+        return _SubagentSummary(
+            agent_id=agent_id,
+            file_path=file_path,
+            attribution_agent=agent_id,
+            first_user_timestamp=ts or _dt(2025, 6, 10, 10, 0, 0, tzinfo=UTC),
+            prompt_text="do stuff",
+            response_text="done",
+            model="claude-haiku-3-5",
+            usage={
+                "input_tokens": 1000,
+                "output_tokens": 200,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+            cost_usd=cost,
+            pricing_fallback=False,
+            all_events=[],
+        )
+
+    def test_uncorrelated_subagent_cost_included(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """A subagent outside the ±2s window still contributes to subagent_cost_usd."""
+        from datetime import UTC, datetime as _dt
+
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        _PARALLEL_MAIN_JSONL = (
+            Path(__file__).parent.parent.parent
+            / "fixtures"
+            / "session_analysis"
+            / "parallel_pm_two_calls.jsonl"
+        )
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-uncorr-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            _PARALLEL_MAIN_JSONL.read_bytes()
+        )
+        # No subagent files needed — we inject two via monkeypatch
+
+        file_a = tmp_path / "agent-alpha.jsonl"
+        file_b = tmp_path / "agent-beta.jsonl"
+        file_a.write_text("{}\n")
+        file_b.write_text("{}\n")
+
+        sa_a = self._make_summary("alpha", cost=0.010, file_path=file_a)
+        sa_b = self._make_summary("beta", cost=0.020, file_path=file_b)
+
+        # Return only sa_a from the correlation (sa_b is "outside tolerance")
+        def _fake_correlate(
+            agent_calls: list,
+            subagent_summaries: list,
+        ) -> dict:
+            return {"tu_parallel_A": [(sa_a, False)]}
+
+        # _list_subagent_files must return BOTH so sa_b appears in subagent_summaries
+        def _fake_list_subagent_files(sid: str, cwd: str) -> list:
+            return [file_a, file_b]
+
+        # _parse_subagent_transcript maps each file to its pre-built summary
+        def _fake_parse_sa(path: Path) -> _SubagentSummary:
+            if path == file_a:
+                return sa_a
+            return sa_b
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+        monkeypatch.setattr(_tp, "_list_subagent_files", _fake_list_subagent_files)
+        monkeypatch.setattr(_tp, "_parse_subagent_transcript", _fake_parse_sa)
+
+        report = _tp.parse_session(session_id, fake_cwd)
+
+        expected_sa_cost = sa_a.cost_usd + sa_b.cost_usd  # 0.030
+        assert abs(report.subagent_cost_usd - expected_sa_cost) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != "
+            f"expected={expected_sa_cost} (uncorrelated sa_b cost not included)"
+        )
+
+        # Core invariant must still hold
+        assert (
+            abs(
+                report.grand_total_cost_usd
+                - (report.pm_cost_usd + report.subagent_cost_usd)
+            )
+            < 1e-9
+        ), (
+            f"grand_total={report.grand_total_cost_usd} != "
+            f"pm={report.pm_cost_usd} + subagent={report.subagent_cost_usd}"
+        )
+
+    def test_uncorrelated_no_timestamp_subagent_cost_included(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Even a subagent with no first_user_timestamp is counted (cost included)."""
+        import claude_mpm.services.session_analysis.transcript_parser as _tp
+
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        _PARALLEL_MAIN_JSONL = (
+            Path(__file__).parent.parent.parent
+            / "fixtures"
+            / "session_analysis"
+            / "parallel_pm_two_calls.jsonl"
+        )
+        fake_cwd = str(tmp_path / "fake" / "project")
+        encoded = _encode_cwd(fake_cwd)
+        session_id = "test-uncorr-nots-01"
+
+        session_dir = tmp_path / ".claude" / "projects" / encoded
+        session_dir.mkdir(parents=True)
+        (session_dir / f"{session_id}.jsonl").write_bytes(
+            _PARALLEL_MAIN_JSONL.read_bytes()
+        )
+
+        file_x = tmp_path / "agent-nots.jsonl"
+        file_x.write_text("{}\n")
+        sa_x = self._make_summary("nots", cost=0.015, file_path=file_x, ts=None)
+        sa_x.first_user_timestamp = (
+            None  # explicitly no timestamp → skipped by correlation
+        )
+
+        def _fake_correlate(agent_calls: list, subagent_summaries: list) -> dict:
+            return {}  # nothing correlates
+
+        def _fake_list_subagent_files(sid: str, cwd: str) -> list:
+            return [file_x]
+
+        def _fake_parse_sa(path: Path) -> _SubagentSummary:
+            return sa_x
+
+        monkeypatch.setattr(_tp, "_correlate_subagents", _fake_correlate)
+        monkeypatch.setattr(_tp, "_list_subagent_files", _fake_list_subagent_files)
+        monkeypatch.setattr(_tp, "_parse_subagent_transcript", _fake_parse_sa)
+
+        report = _tp.parse_session(session_id, fake_cwd)
+
+        assert abs(report.subagent_cost_usd - 0.015) < 1e-9, (
+            f"subagent_cost={report.subagent_cost_usd} != 0.015 "
+            "(no-timestamp subagent cost should still be counted)"
+        )

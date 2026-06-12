@@ -80,13 +80,6 @@ Step 4: Then delegate implementation with validated approach
 | "Optimize /api/users query: target <100ms from current 500ms" | ❌ NO | Clear: specific query, metric, baseline, target |
 | "Implement feature X" | ✅ YES | Needs requirements, acceptance criteria |
 | "Build dashboard" | ✅ YES | Needs design, metrics, data sources |
-# Research Gate Template Additions
-
-**Instructions**: Add this content to `/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates/research-gate-examples.md`
-
-**Current template size**: 83 lines
-**After additions**: ~300 lines
-**New sections**: 5 major additions
 
 ---
 

@@ -937,9 +937,18 @@ def create_parser(
             add_llmlingua_stats_parser(subparsers)
         except ImportError:
             pass
+
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
+
+    # Add session-report command (offline transcript analysis).
+    # Intentionally OUTSIDE the outer try/except ImportError so that any real
+    # import or syntax error in session_report.py surfaces immediately instead
+    # of being silently swallowed by the broad handler above.
+    from ..commands.session_report import add_session_report_parser
+
+    add_session_report_parser(subparsers)
 
     return parser
 

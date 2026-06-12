@@ -1,6 +1,6 @@
-"""Auto-detect running trusty-search and trusty-memory daemons.
+"""Auto-detect running trusty-search, trusty-memory, and trusty-review services.
 
-When either daemon is detected (binary on PATH + HTTP health probe succeeds),
+When a service is detected (binary on PATH + detection probe succeeds),
 inject the corresponding MCP server entry into the project's ``.mcp.json`` so
 users don't have to run ``claude-mpm setup trusty-*`` manually.
 
@@ -13,20 +13,34 @@ Design constraints:
 
 * **Idempotent**: if the ``.mcp.json`` entry already exists, do nothing.
 * **Silent on absence**: missing binary or unhealthy daemon = no-op, no logs.
-* **Cheap**: ``shutil.which`` + 2s HTTP probe per daemon; skipped entirely
+* **Cheap**: ``shutil.which`` + detection probe per service; skipped entirely
   when the binary isn't installed.
 * **Safe writes**: uses :func:`_mcp_config_transaction` so a write failure
   rolls ``.mcp.json`` back to its prior state.
 
-Address discovery:
+Detection modes (``"detect"`` key per service descriptor):
 
-Both ``trusty-search`` and ``trusty-memory`` use OS-chosen dynamic ports
-written to ``~/.trusty-<svc>/http_addr`` (format: ``host:port`` on a single
-line). Hardcoded ports (7878 / 7070) would cause the autodetect to silently
-fail whenever the daemons picked different ports. We mirror the discovery
-logic used by the ``claude-mpm setup trusty-*`` handlers: read the addr file
-when present, fall back to the legacy port only when the file is missing or
-unreadable.
+* ``"http"`` (default) — existing behavior for persistent HTTP daemons:
+  resolve ``addr_file`` / ``fallback_addr`` then probe ``/health``.
+  Used by ``trusty-search``.
+* ``"jsonrpc"`` — spawn the stdio server, send a JSON-RPC ``initialize``
+  request, accept as detected if a valid response arrives within the timeout.
+  Used by ``trusty-memory`` and ``trusty-review`` (stdio on-demand servers,
+  no persistent HTTP daemon).
+
+Address discovery (http-mode only):
+
+``trusty-search`` uses OS-chosen dynamic ports written to
+``~/.trusty-search/http_addr`` (format: ``host:port`` on a single line).
+Hardcoded ports (7878) would cause the autodetect to silently fail whenever
+the daemon picked a different port. We mirror the discovery logic used by the
+``claude-mpm setup trusty-search`` handler: read the addr file when present,
+fall back to the legacy port only when the file is missing or unreadable.
+
+trusty-memory and trusty-review are stdio on-demand servers: they use
+``"jsonrpc"`` detection, have no ``addr_file``/``fallback_addr``, and require
+no HTTP palace-creation step (the stdio server derives the palace from cwd
+automatically on first use).
 
 References
 ----------
@@ -56,13 +70,19 @@ _TRUTHY = {"1", "true", "yes", "on"}
 # Service descriptors. Kept inline (not a dataclass) to avoid pulling in
 # extra modules during the startup-hot migration path.
 #
-# ``addr_file`` points at the daemon's discovery file (single-line
-# ``host:port``). ``fallback_addr`` is the legacy hardcoded address used only
-# when the discovery file is missing/unreadable.
+# ``detect`` controls the detection strategy:
+#   ``"http"``     — binary on PATH + HTTP /health probe (default; used by
+#                    persistent daemon-mode servers with an http_addr file).
+#   ``"jsonrpc"``  — binary on PATH + JSON-RPC initialize handshake via
+#                    ``probe_mcp_stdio`` (used by review-on-demand stdio
+#                    servers that have no persistent HTTP daemon).
+#
+# ``addr_file`` / ``fallback_addr`` are only used when ``detect == "http"``.
 _SERVICES: tuple[dict[str, Any], ...] = (
     {
         "name": "trusty-search",
         "binary": "trusty-search",
+        "detect": "http",
         "addr_file": Path.home() / ".trusty-search" / "http_addr",
         "fallback_addr": "127.0.0.1:7878",
         "mcp_entry": {
@@ -71,23 +91,31 @@ _SERVICES: tuple[dict[str, Any], ...] = (
             "args": ["serve"],
         },
     },
+    # trusty-memory is now a stdio on-demand server (like trusty-review): it is
+    # spawned per-session by Claude Code with the project cwd and derives the
+    # per-project palace from that cwd automatically on first use.  No persistent
+    # HTTP daemon is required, and no HTTP _ensure_palace step is needed in stdio
+    # mode — the server handles palace creation itself.  Detection therefore uses
+    # ``"jsonrpc"`` mode (probe ``trusty-memory serve --stdio`` directly) and the
+    # ``addr_file``/``fallback_addr`` fields are intentionally absent.
     {
         "name": "trusty-memory",
         "binary": "trusty-memory",
-        "addr_file": Path.home() / ".trusty-memory" / "http_addr",
-        "fallback_addr": "127.0.0.1:7070",
+        "detect": "jsonrpc",
         "mcp_entry": {
             "type": "stdio",
-            "command": "trusty-memory-mcp-bridge",
-            "args": [],
+            "command": "trusty-memory",
+            "args": ["serve", "--stdio"],
         },
     },
     # trusty-review is review-on-demand: it gets an .mcp.json entry so the
     # ``mcp__trusty-review__*`` tools and ``/mpm-review`` are wired, but it
     # has NO per-project palace and NO capture/index hooks (it is not in
     # ``_TRUSTY_HOOK_SPECS``, so ``inject_trusty_hooks`` is a no-op for it).
-    # It ships no ``http_addr`` discovery file, so detection always resolves
-    # via the hardcoded ``fallback_addr`` (127.0.0.1:7880).
+    #
+    # Detection uses ``"jsonrpc"`` mode: we spawn ``trusty-review serve --stdio``
+    # and verify it responds to a JSON-RPC initialize handshake.  There is no
+    # persistent HTTP daemon, so an HTTP /health probe would always fail.
     #
     # The ``env`` block carries ONLY non-secret config: ``TRUSTY_REVIEW_AUTH_MODE=cli``
     # lets a local GitHub PAT work in serve mode (learned from testing). AWS
@@ -99,8 +127,7 @@ _SERVICES: tuple[dict[str, Any], ...] = (
     {
         "name": "trusty-review",
         "binary": "trusty-review",
-        "addr_file": Path.home() / ".trusty-review" / "http_addr",
-        "fallback_addr": "127.0.0.1:7880",
+        "detect": "jsonrpc",
         "mcp_entry": {
             "type": "stdio",
             "command": "trusty-review",
@@ -140,6 +167,23 @@ def _http_health_check(url: str, timeout: float = 2.0) -> bool:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosec B310
             return 200 <= int(resp.status) < 300
     except (urllib.error.URLError, TimeoutError, OSError):
+        return False
+
+
+def _probe_mcp_stdio(command: list[str], *, timeout: float = 4.0) -> bool:
+    """Thin wrapper around :func:`~claude_mpm.mcp.probe.probe_mcp_stdio`.
+
+    Defers the import so the migration module stays cheap to load when the
+    probe isn't needed (i.e. when ``trusty-review`` binary is absent).
+    Any import error is swallowed and treated as a failed probe — this must
+    never crash startup.
+    """
+    try:
+        from ..mcp.probe import probe_mcp_stdio
+
+        return probe_mcp_stdio(command, timeout=timeout)
+    except Exception as exc:
+        logger.debug("_probe_mcp_stdio: import or probe error: %s", exc)
         return False
 
 
@@ -313,17 +357,56 @@ def run_migration(project_dir: Path | None = None) -> bool:
         logger.debug("trusty auto-link disabled via env var or project config")
         return False
 
+    # Load the existing .mcp.json servers set upfront so we can skip detection
+    # work (especially the expensive jsonrpc subprocess probe) for services that
+    # are already configured.  This makes normal startup — where all entries are
+    # already present — a cheap shutil.which + dict-lookup path with no
+    # subprocess spawning at all.
+    config = _load_mcp_config(mcp_path)
+    servers = config.setdefault("mcpServers", {})
+    existing_names: frozenset[str] = frozenset(servers)
+
     # Determine which services are detectable BEFORE touching .mcp.json so a
     # cold path (no daemons running) doesn't open the file at all.
     detected: list[dict[str, Any]] = []
     for svc in _SERVICES:
         if shutil.which(svc["binary"]) is None:
             continue
-        base_url = _resolve_base_url(svc["addr_file"], svc["fallback_addr"])
-        if not _http_health_check(f"{base_url}/health"):
+
+        # Skip detection probes (including the jsonrpc subprocess probe) when
+        # the service entry is already present in .mcp.json.  The migration is
+        # idempotent: if it's wired, there's nothing to do from a wiring
+        # perspective.  We still resolve the base URL for http-mode services so
+        # that the palace-creation step (step 2) can run idempotently on every
+        # startup — registering the MCP entry is not enough if the palace was
+        # never created.
+        if svc["name"] in existing_names:
+            detect_mode_pre = svc.get("detect", "http")
+            if detect_mode_pre == "http":
+                base_url_pre = _resolve_base_url(svc["addr_file"], svc["fallback_addr"])
+                detected.append({**svc, "base_url": base_url_pre})
+            else:
+                detected.append(dict(svc))
             continue
-        # Stash the resolved base URL so palace creation reuses it.
-        detected.append({**svc, "base_url": base_url})
+
+        detect_mode = svc.get("detect", "http")
+
+        if detect_mode == "jsonrpc":
+            # On-demand stdio server: probe via JSON-RPC initialize handshake.
+            # The command+args come from the service's mcp_entry so we always
+            # probe exactly the binary that will be wired into .mcp.json.
+            entry = svc["mcp_entry"]
+            probe_cmd = [entry["command"], *entry.get("args", [])]
+            if not _probe_mcp_stdio(probe_cmd):
+                continue
+            detected.append(dict(svc))
+        else:
+            # Persistent HTTP daemon: resolve address then probe /health.
+            base_url = _resolve_base_url(svc["addr_file"], svc["fallback_addr"])
+            if not _http_health_check(f"{base_url}/health"):
+                continue
+            # Stash the resolved base URL so palace creation reuses it.
+            detected.append({**svc, "base_url": base_url})
 
     if not detected:
         return False
@@ -336,8 +419,6 @@ def run_migration(project_dir: Path | None = None) -> bool:
     #    migration code indirectly during CLI bootstrap).
     from ..cli.commands.setup.mcp_config import _mcp_config_transaction
 
-    config = _load_mcp_config(mcp_path)
-    servers = config.setdefault("mcpServers", {})
     to_write: list[dict[str, Any]] = [
         svc for svc in detected if svc["name"] not in servers
     ]
@@ -346,10 +427,16 @@ def run_migration(project_dir: Path | None = None) -> bool:
             with _mcp_config_transaction(project_dir):
                 for svc in to_write:
                     servers[svc["name"]] = svc["mcp_entry"]
+                    detect_mode_log = svc.get("detect", "http")
+                    detect_via = (
+                        str(svc.get("addr_file", "<missing-addr_file>"))
+                        if detect_mode_log == "http"
+                        else "jsonrpc-handshake"
+                    )
                     logger.info(
                         "Auto-configured %s MCP server (daemon detected via %s)",
                         svc["name"],
-                        svc["addr_file"],
+                        detect_via,
                     )
                 _save_mcp_config(mcp_path, config)
             changed = True
@@ -358,13 +445,20 @@ def run_migration(project_dir: Path | None = None) -> bool:
             # hooks are still worth attempting on subsequent detected services).
             logger.warning("trusty autodetect failed to write .mcp.json: %s", exc)
 
-    # 2. Ensure the per-project palace exists for a healthy trusty-memory. This
-    #    runs every startup (idempotent GET/POST) regardless of whether the
-    #    .mcp.json entry already existed — registering the MCP server is not
-    #    enough; the palace must exist for memory calls to persist anything.
+    # 2. Ensure the per-project palace exists for a healthy trusty-memory.
+    #    In HTTP daemon mode: runs every startup (idempotent GET/POST) regardless
+    #    of whether the .mcp.json entry already existed — the palace must exist
+    #    for memory calls to persist anything.
+    #    In stdio/jsonrpc mode: ``trusty-memory serve --stdio`` is spawned by
+    #    Claude Code with the project cwd and auto-creates the palace on first
+    #    use, so no HTTP palace-creation step is required or possible (there is
+    #    no persistent daemon to call and no ``base_url``).
     for svc in detected:
         if svc["name"] == "trusty-memory":
-            _ensure_palace(svc["base_url"], project_dir.name, project_dir)
+            if svc.get("detect", "http") == "http" and "base_url" in svc:
+                _ensure_palace(svc["base_url"], project_dir.name, project_dir)
+            # else: stdio/jsonrpc mode — palace auto-created by the server on
+            # first use; no HTTP call needed or possible.
 
     # 3. Inject the capture/index hooks for whatever was detected. Idempotent
     #    via _mpm_service dedup keys; only touches ./.claude/settings.json when

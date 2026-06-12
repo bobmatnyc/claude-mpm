@@ -1,4 +1,11 @@
 ---
+# SEED-ONLY: minimal package-bundled agent definition.
+# Loaded at runtime by agent_discovery_service.py as a `source: bundled` fallback.
+# The authoritative, full-featured copy is the external `bobmatnyc/claude-mpm-agents`
+# version deployed to `.claude/agents/rust-engineer.md`. Keep frontmatter here in sync
+# with that authoritative copy (model/version/schema_version/toolchain pins); the body
+# is intentionally minimal and defers all patterns to the `toolchains-rust-core` skill.
+model: sonnet
 name: Rust Engineer
 description: Rust 2024 edition specialist for memory-safe systems, async patterns, and zero-cost abstractions
 version: 2.0.0
@@ -27,8 +34,8 @@ capabilities:
   network_access: true
 dependencies:
   system:
-  - rust>=1.75
-  - cargo>=1.75
+  - rust>=1.85
+  - cargo>=1.85
 skills:
 - toolchains-rust-core
 - universal-collaboration-git-workflow

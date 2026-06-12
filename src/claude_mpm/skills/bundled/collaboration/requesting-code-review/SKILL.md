@@ -2,7 +2,7 @@
 name: Requesting Code Review
 description: Dispatch code-reviewer subagent to review implementation against plan or requirements before proceeding
 when_to_use: when completing tasks, implementing major features, or before merging, to verify work meets requirements
-version: 1.2.0
+version: 1.3.0
 progressive_disclosure:
   level: 1
   references:
@@ -20,6 +20,11 @@ effort: medium
 Dispatch code-reviewer subagent to catch issues before they cascade.
 
 **Core principle:** Review early, review often.
+
+> **Scope note:** This skill is the *review loop* — how to dispatch the
+> code-reviewer subagent, gate on severity, and act on feedback. For the
+> *reviewer's checklist* (what correctness/design/security/readability items to
+> actually look for), see the `code-review` skill.
 
 ## When to Request Review
 

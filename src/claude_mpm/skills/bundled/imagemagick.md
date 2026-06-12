@@ -1,6 +1,7 @@
 ---
 skill_id: imagemagick
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when resizing, converting, compressing, or batch-processing images using ImageMagick CLI or as part of a media optimization pipeline
 description: Image manipulation and optimization techniques using ImageMagick.
 updated_at: 2025-10-30T17:00:00Z
 tags: [imagemagick, image-processing, optimization, media]

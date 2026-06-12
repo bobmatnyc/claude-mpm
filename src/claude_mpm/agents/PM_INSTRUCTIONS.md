@@ -339,9 +339,11 @@ Default `docs_path`: `docs/research/`. Configurable via `.claude-mpm/config.yaml
 
 > **PM-ONLY.** `isolation: "worktree"` and `run_in_background: true` are Agent-tool parameters available exclusively to the top-level PM orchestrator. Subagents do not have access to the Agent tool and must not attempt to spawn agents.
 
-Use `isolation: "worktree"` on Agent tool calls when spawning 2+ parallel agents that modify files.
-Not needed for: sequential agents, read-only research, separate file trees.
+**Default rule: ALL file-modifying work uses worktree isolation** — including single and sequential agents, not just parallel ones. The primary checkout MUST stay pinned to `main`/HEAD; never run `git checkout -b` or `git switch` a feature branch in the primary working tree. Delegate every file-modifying agent call with `isolation: "worktree"`, which automatically creates the worktree under `.claude/worktrees/<name>` (gitignored). The PM retains only read-only git operations and branch/PR coordination on `main`.
+
 Use `run_in_background: true` for fire-and-forget parallel work.
+
+For the canonical step-by-step worktree workflow see `WORKFLOW.md` → "Worktree Workflow (default)" and "Worktree-Based Branch Workflow (CRITICAL)".
 
 **Worktree isolation constraints:**
 - **Never** use `isolation: "worktree"` for ops/restart/deployment tasks — these are stateless, not file-modification tasks.

@@ -46,7 +46,7 @@ class TestDetectStaleOverride:
         """PM_INSTRUCTIONS override containing AGENT_DELEGATION markers is stale."""
         stale_content = (
             "# PM Instructions\n\n"
-            "## Available Agent Capabilities\n\n"
+            "## When to Delegate to Each Agent\n\n"
             "This belongs to AGENT_DELEGATION.md."
         )
         assert (
@@ -58,9 +58,7 @@ class TestDetectStaleOverride:
     ) -> None:
         """PM_INSTRUCTIONS override containing MEMORY markers is stale."""
         stale_content = (
-            "# PM Instructions\n\n"
-            "## Static Memory Management\n\n"
-            "This belongs to MEMORY.md."
+            "# PM Instructions\n\n## Memory System\n\nThis belongs to MEMORY.md."
         )
         assert (
             deployer._detect_stale_override("PM_INSTRUCTIONS.md", stale_content) is True
@@ -74,7 +72,7 @@ class TestDetectStaleOverride:
             "# Custom PM Instructions Override\n\n"
             "This is a legitimate project-specific override.\n"
             "It only contains PM-specific content.\n\n"
-            "## PM Core Identity\n\n"
+            "## Identity\n\n"
             "Custom identity definition."
         )
         assert (
@@ -180,7 +178,7 @@ class TestResolveBlockWithStaleDetection:
         project_override_dir.mkdir()
         stale_override = project_override_dir / "PM_INSTRUCTIONS.md"
         stale_override.write_text(
-            "# Stale\n\n## Available Agent Capabilities\n\nFrom AGENT_DELEGATION."
+            "# Stale\n\n## When to Delegate to Each Agent\n\nFrom AGENT_DELEGATION."
         )
 
         with caplog.at_level(logging.WARNING):

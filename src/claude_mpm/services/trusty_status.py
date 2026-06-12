@@ -53,6 +53,7 @@ _HEALTH_TIMEOUT_S = 0.2
 _DEFAULT_PORTS: dict[str, int] = {
     "trusty-memory": 7070,
     "trusty-search": 7878,
+    "trusty-analyze": 7879,
     "trusty-review": 7880,
 }
 
@@ -60,6 +61,7 @@ _DEFAULT_PORTS: dict[str, int] = {
 _SERVICE_EMOJI: dict[str, str] = {
     "trusty-memory": "🧠",
     "trusty-search": "🔍",
+    "trusty-analyze": "🔬",
     "trusty-review": "📝",
 }
 

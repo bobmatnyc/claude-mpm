@@ -2,8 +2,11 @@
   "mcpServers": {
     "trusty-memory": {
       "type": "stdio",
-      "command": "trusty-memory-mcp-bridge",
-      "args": []
+      "command": "trusty-memory",
+      "args": [
+        "serve",
+        "--stdio"
+      ]
     },
     "trusty-search": {
       "type": "stdio",
@@ -19,14 +22,6 @@
         "mcp",
         "--path",
         "/Users/masa/Projects/claude-mpm"
-      ],
-      "env": {}
-    },
-    "mcp-skillset": {
-      "type": "stdio",
-      "command": "mcp-skillset",
-      "args": [
-        "mcp"
       ],
       "env": {}
     },

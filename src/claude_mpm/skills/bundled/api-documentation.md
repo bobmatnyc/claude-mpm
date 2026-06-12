@@ -1,6 +1,7 @@
 ---
 skill_id: api-documentation
-skill_version: 0.1.0
+skill_version: 0.2.0
+when_to_use: when writing, reviewing, or improving API documentation, generating OpenAPI/Swagger specs, or adding code interface docs
 description: Best practices for documenting APIs and code interfaces, eliminating redundant documentation guidance per agent.
 updated_at: 2025-10-30T17:00:00Z
 tags: [api, documentation, best-practices, interfaces]

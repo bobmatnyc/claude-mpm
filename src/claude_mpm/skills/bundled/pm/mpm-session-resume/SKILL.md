@@ -2,7 +2,7 @@
 name: mpm-session-resume
 description: Load context from paused session
 user-invocable: true
-version: "1.2.0"
+version: "1.3.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -50,13 +50,42 @@ When invoked, this skill:
 
 ## Implementation
 
-**Before executing, detect which Python runtime has `claude_mpm` installed, then use that runtime. Check in priority order:**
+### Step 0 — Resolve the correct Python interpreter (REQUIRED)
 
-1. `uv run python -c "import claude_mpm"` — preferred; claude-mpm is typically installed as a `uv tool`
-2. `.venv/bin/python -c "import claude_mpm"` — if the project venv has an editable install
-3. `python3 -c "import claude_mpm"` — if claude_mpm is on the system Python
+`claude_mpm` may be installed in an **isolated** environment (pipx, `uv tool`,
+`pip --user`) that the system `python3` **cannot** import — bare
+`python3 -c "import claude_mpm"` then fails with `ModuleNotFoundError`. Resolve
+the interpreter that owns the installed `claude-mpm` executable first:
 
-Run whichever passes first, then execute the code below with that runtime. Parse the user's invocation arguments first, then dispatch to the appropriate code path.
+```bash
+# Honor an explicit override, then ask claude_mpm to resolve itself, then
+# derive the venv python from the claude-mpm console script.
+if [ -n "$CLAUDE_MPM_PYTHON" ]; then
+    MPM_PY="$CLAUDE_MPM_PYTHON"
+else
+    MPM_PY="$(python3 -m claude_mpm.utils.interpreter_resolver 2>/dev/null)"
+    if [ -z "$MPM_PY" ]; then
+        CMPM="$(command -v claude-mpm 2>/dev/null)"
+        if [ -n "$CMPM" ]; then
+            MPM_PY="$(dirname "$(readlink -f "$CMPM" 2>/dev/null || echo "$CMPM")")/python"
+        fi
+    fi
+    [ -x "$MPM_PY" ] || MPM_PY="$(command -v python3)"
+fi
+echo "Using interpreter: $MPM_PY"
+```
+
+This works for pipx, `uv tool`, `pip --user`, and editable/dev installs. Run
+the code below with **`$MPM_PY`** (NOT bare `python3`). Parse the user's
+invocation arguments first, then dispatch to the appropriate code path.
+
+> **Permission note (Bug #735):** Do **not** probe for sessions with
+> `ls .claude-mpm/sessions/ 2>/dev/null` — that swallows stderr, so a
+> permission-denied read looks identical to "no sessions" and resume wrongly
+> reports nothing to resume. The helper's `check_and_display_resume_prompt()`
+> already distinguishes *denied* from *empty* via `check_session_dir_access()`
+> and prints an explicit warning on denial. Trust the helper; never blanket-
+> suppress stderr when checking the session directory.
 
 ```python
 import sys
@@ -67,11 +96,12 @@ try:
 except ImportError:
     print(
         "ERROR: claude_mpm is not importable in the current Python environment.\n"
-        "If you installed via 'uv tool install claude-mpm', run:\n"
-        "  uv run python -c 'from claude_mpm.services.cli.session_resume_helper "
+        "Resolve the correct interpreter first (see Step 0 above), e.g.:\n"
+        "  MPM_PY=\"$(python3 -m claude_mpm.utils.interpreter_resolver)\"\n"
+        "  \"$MPM_PY\" -c 'from claude_mpm.services.cli.session_resume_helper "
         "import SessionResumeHelper'\n"
-        "Or invoke directly: claude-mpm session-resume\n"
-        "Alternatively, activate the virtual environment where claude-mpm is installed."
+        "Or set CLAUDE_MPM_PYTHON to the interpreter where claude-mpm is installed.\n"
+        "Alternatively, invoke directly: claude-mpm session-resume"
     )
     raise SystemExit(1)
 

@@ -110,6 +110,15 @@ For every feature/fix task, follow this exact sequence:
 
 Do NOT skip steps. Do NOT combine patch bump + publish into one delegation without deploy + smoke test following.
 
+## Worktree Isolation (Mandatory — pin main to HEAD)
+
+- [2026-06-11] NEW WORKFLOW RULE (user directive): the primary checkout MUST stay pinned to HEAD (`main`). The PM must NEVER `git checkout -b` / `git switch` a feature branch in the main working tree. All substantive file-modifying work happens in an isolated git worktree — delegate with the Agent tool's `isolation: "worktree"` parameter. PRs still come from branches, but those branches live in worktrees, not the main checkout. PM keeps only read-only git ops + branch/PR coordination on `main`. (Recorded after I incorrectly checked out `fix/session-analyzer-report-quality` in the main tree for PR #737.)
+
+## Security (Mandatory — never bypass secret scanning)
+
+- [2026-06-11] NEVER whitelist a pre-commit secret-scanner hit (e.g. editing `.secrets.baseline`) to force a commit through. A scanner hit is guilty-until-verified: confirm whether it's a REAL credential (`npm_`, `gh[pousr]_`, `AKIA`, `sk-`, `xox[baprs]-`, PEM blocks) before doing anything. If real, STOP — do not commit, do not push; tear down the branch/worktree and alert the user to rotate the credential. Only genuine false positives (high-entropy hashes/IDs) may be baselined.
+- [2026-06-11] Session-analyzer reports are SECRET-BEARING. `claude-mpm session-report` reproduces transcript content verbatim into `.md/.jsx/.html`, so any session that touched auth/publishing can leak live tokens into the report. Do NOT commit/preserve session reports to the repo until redaction lands (issue #738). Scan candidate sessions for `npm_/ghp_/sk-/AKIA/xox` before generating/preserving. (Real npm tokens leaked from session 692a072a; worktree destroyed unpushed, tokens flagged for rotation.)
+
 ## Bundled Skills (project facts)
 
 - [2026-06-09] Bundled skill `mutation-testing` ships at `src/claude_mpm/skills/bundled/mutation-testing.md` (PR #715, squash-merged to main as `153f72559`). Auto-discovered by the skills registry via `glob("*.md")` — no registration needed. Teaches why + how to deploy mutation testing portably (tool-by-language table, 6-step deploy recipe, in-place safety caveat, survivor triage, advisory-not-CI-gate policy). Builds on the mutmut 2.5.1 pilot (issue #683 / `trusty_search_allowlist.py`). Policy: mutation testing is advisory/on-demand, NOT a blocking CI gate.

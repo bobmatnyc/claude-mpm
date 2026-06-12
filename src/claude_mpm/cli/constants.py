@@ -84,7 +84,7 @@ class MCPBinary(StrEnum):
     MCP_SKILLSET = "mcp-skillset"
     TRUSTY_SEARCH = "trusty-search"
     TRUSTY_MEMORY = "trusty-memory"
-    TRUSTY_ANALYZER = "trusty-analyzer"
+    TRUSTY_ANALYZE = "trusty-analyze"
 
     def __str__(self) -> str:
         return self.value

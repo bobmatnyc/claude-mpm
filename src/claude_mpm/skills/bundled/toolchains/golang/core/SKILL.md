@@ -1,7 +1,7 @@
 ---
 name: toolchains-golang-core
-description: "Go 1.22+ core patterns for minimalism, efficiency, code reuse, and performance"
-version: "1.0.0"
+description: "Go 1.22-1.24 core patterns for minimalism, efficiency, code reuse, and performance"
+version: "1.1.0"
 category: toolchains-golang
 tags: [golang, go, patterns, performance, minimalism, efficiency]
 effort: medium
@@ -73,6 +73,20 @@ effort: medium
 - **`slog` for structured logging** — JSON handler in prod, text in dev; `slog.SetDefault` bridges legacy `log.Printf` calls
 - **Contextual log fields** — pass `request_id`, `user_id`, `trace_id` via `slog.With()` to correlate log lines
 - **`LogValuer` for sensitive types** — redact PII; skips expensive computation when log level is disabled
+
+---
+
+## Modern Go (1.24)
+
+- **`tool` directive in `go.mod` (1.24)** — track executable dependencies natively; `go get -tool` adds them, `go tool <name>` runs them. Replaces the old blank-import `tools.go` workaround
+- **Generic type aliases (1.24)** — `type Set[T comparable] = map[T]struct{}` now parameterizable like defined types; alias generic instantiations without re-declaring
+- **Swiss Tables map (1.24)** — runtime swaps the builtin `map` to a Swiss Tables implementation; measurable improvement on map-heavy workloads and faster large-map access with no code changes
+- **`weak` package + `runtime.AddCleanup` (1.24)** — `weak.Pointer[T]` for caches/canonicalization maps that must not pin memory; `AddCleanup` supersedes `SetFinalizer` (multiple cleanups, interior pointers, no leak cycles)
+- **`os.Root` directory jail (1.24)** — `os.OpenRoot(dir)` confines all subsequent `Open`/`Create` to that subtree; prevents path-traversal escapes in untrusted file handling
+- **`testing.B.Loop()` (1.24)** — `for b.Loop()` replaces the `for range b.N` benchmark idiom; keeps args alive and runs setup once, removing a class of benchmark mistakes
+- **`testing/synctest` (1.24, experimental)** — fake-clock virtual time + goroutine-blocking detection for deterministic concurrency tests; gate behind `GOEXPERIMENT=synctest`
+- **`T.Context` / `T.Chdir` (1.24)** — per-test context auto-cancelled at test end; per-test working directory restored on cleanup; prefer over manual `context.WithCancel` + `defer os.Chdir`
+- **`slog.DiscardHandler` (1.24)** — drop-in no-op handler; cleaner than `slog.New(slog.NewTextHandler(io.Discard, nil))` for silencing logs in tests
 
 ---
 

@@ -153,8 +153,9 @@ def manage_mpm_init(args):
             console.print()
             console.print("[blue]📝 Files Created:[/blue]")
             console.print(f"  • [dim]{session_id}.json[/dim] - Machine-readable data")
-            console.print(f"  • [dim]{session_id}.yaml[/dim] - Human-readable config")
-            console.print(f"  • [dim]{session_id}.md[/dim] - Full documentation")
+            console.print(
+                f"  • [dim]{session_id}.md[/dim] - Human-readable documentation"
+            )
             console.print("  • [dim]LATEST-SESSION.txt[/dim] - Quick reference pointer")
 
             # Git commit info

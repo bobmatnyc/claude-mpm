@@ -3,6 +3,9 @@
 import re
 from typing import Any
 
+from claude_mpm.core.framework.loaders.workflow_constants import (
+    WORKFLOW_SYSTEM_REFERENCE,
+)
 from claude_mpm.core.logging_utils import get_logger
 
 # Import resource handling for packaged installations
@@ -156,11 +159,20 @@ class PackagedLoader:
                 content["agent_delegation"] = agent_delegation_content
                 content["agent_delegation_level"] = "system"
 
-            # Load WORKFLOW.md
-            workflow_content = self.load_packaged_file("WORKFLOW.md")
-            if workflow_content:
-                content["workflow_instructions"] = workflow_content
+            # Load WORKFLOW.md — system default is lazy-loaded (reference stub only).
+            # PackagedLoader only runs for system-level (PyPI) installs; project/user
+            # overrides are handled by InstructionLoader.load_workflow_instructions()
+            # which runs after this method and overwrites the key if an override
+            # exists.  Using the stub here avoids injecting the full WORKFLOW body
+            # for every PyPI-installed user (mirrors InstructionLoader's lazy-load logic).
+            # Check is not None (presence), not truthiness — an empty file is still valid.
+            _workflow_content = self.load_packaged_file("WORKFLOW.md")
+            if _workflow_content is not None:
+                content["workflow_instructions"] = WORKFLOW_SYSTEM_REFERENCE
                 content["workflow_instructions_level"] = "system"
+                self.logger.info(
+                    "Lazy-loaded packaged WORKFLOW.md (reference stub, deferred the full WORKFLOW body)"
+                )
 
             # Load MEMORY.md
             memory_content = self.load_packaged_file("MEMORY.md")
@@ -226,13 +238,19 @@ class PackagedLoader:
                 content["agent_delegation"] = agent_delegation_content
                 content["agent_delegation_level"] = "system"
 
-            # Load WORKFLOW.md
-            workflow_content = self.load_packaged_file_fallback(
+            # Load WORKFLOW.md — system default is lazy-loaded (reference stub only).
+            # Same rationale as load_framework_content: defers the full WORKFLOW body.
+            # Check is not None (presence), not truthiness — an empty file is still valid.
+            _workflow_content_fb = self.load_packaged_file_fallback(
                 "WORKFLOW.md", resources
             )
-            if workflow_content:
-                content["workflow_instructions"] = workflow_content
+            if _workflow_content_fb is not None:
+                content["workflow_instructions"] = WORKFLOW_SYSTEM_REFERENCE
                 content["workflow_instructions_level"] = "system"
+                self.logger.info(
+                    "Lazy-loaded packaged WORKFLOW.md via fallback "
+                    "(reference stub, deferred the full WORKFLOW body)"
+                )
 
             # Load MEMORY.md
             memory_content = self.load_packaged_file_fallback("MEMORY.md", resources)

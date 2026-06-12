@@ -1,9 +1,8 @@
 ---
-name: flexlayout-react
+skill_id: flexlayout-react
+skill_version: 1.1.0
+when_to_use: when building IDE-like interfaces, dashboard builders, multi-document editors, or React applications requiring draggable docking panels, tabs, and splitters
 description: FlexLayout for React - Advanced docking layout manager with drag-and-drop, tabs, splitters, and complex window management
-version: 1.0.0
-category: development
-author: Claude MPM Team
 license: MIT
 progressive_disclosure:
   entry_point:
