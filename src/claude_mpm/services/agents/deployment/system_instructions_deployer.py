@@ -92,7 +92,19 @@ class SystemInstructionsDeployer:
             True if the override is structurally valid for *block_name*.
         """
         own_markers = BLOCK_MARKERS.get(block_name, [])
-        if own_markers and not any(marker in content for marker in own_markers):
+        if not own_markers:
+            # No marker entry for this block in BLOCK_MARKERS: the positive-marker
+            # guard is a no-op and the override is accepted unconditionally.  Log
+            # at DEBUG so that a future block added without a marker entry is
+            # immediately discoverable in debug output without changing behaviour.
+            self.logger.debug(
+                "_override_is_valid: no BLOCK_MARKERS entry for %r — "
+                "positive-marker check skipped (override accepted unconditionally). "
+                "Add an entry to BLOCK_MARKERS to enable the integrity guard for this block.",
+                block_name,
+            )
+            return True
+        if not any(marker in content for marker in own_markers):
             return False
         return True
 
