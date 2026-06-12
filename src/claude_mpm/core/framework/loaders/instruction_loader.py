@@ -55,6 +55,14 @@ class InstructionLoader:
         # Load MEMORY.md (with memory backend auto-injection if applicable)
         self.load_memory_instructions(content)
 
+        # The ``_loaded_from_deployed`` sentinel is an internal coordination
+        # signal between the loaders above (it makes the subsidiary loaders skip
+        # re-appending the system defaults that the merged DEPLOYED file already
+        # carries).  All consumers have now run, so drop it: downstream
+        # consumers (content_formatter, etc.) iterate ``content`` and must not
+        # see this private key leak into the assembled prompt.
+        content.pop("_loaded_from_deployed", None)
+
     def load_custom_instructions(self, content: dict[str, Any]) -> None:
         """Load custom INSTRUCTIONS.md from .claude-mpm directories.
 
@@ -385,6 +393,9 @@ class InstructionLoader:
                 # the dynamic kuzu prefix is injected (NOT the static MEMORY.md
                 # body, which would duplicate the merged content).
                 memory = kuzu_prefix
+                # ``level`` only labels this dynamic kuzu prefix for
+                # ``memory_instructions_level`` below — the deployed static body
+                # is unaffected by it; "system" is the correct, harmless label.
                 level = "system"
             elif memory:
                 memory = kuzu_prefix + memory
