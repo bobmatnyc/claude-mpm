@@ -612,8 +612,12 @@ def test_trusty_review_idempotent_when_already_present(project_dir: Path) -> Non
     ):
         changed = mod.run_migration(project_dir=project_dir)
 
-    # Even though we called the probe (to detect), nothing was written because
-    # the entry was already present.
+    # The entry was already present so no probe subprocess should have been
+    # spawned at all (Fix 1: skip probe when service already in .mcp.json).
+    assert probe_called == [], (
+        f"_probe_mcp_stdio must NOT be called when entry already present; "
+        f"got calls: {probe_called}"
+    )
     assert changed is False
     assert mcp_path.read_text() == original_contents
 
