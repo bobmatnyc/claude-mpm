@@ -141,7 +141,7 @@ class SystemInstructionsDeployer:
         if user_path.exists():
             try:
                 user_content = user_path.read_text(encoding="utf-8")
-            except Exception as exc:
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
                     "Could not read ~/.claude-mpm/WORKFLOW.md (%s); "
                     "falling back to system default.",
@@ -163,7 +163,7 @@ class SystemInstructionsDeployer:
         if project_path.exists():
             try:
                 project_content = project_path.read_text(encoding="utf-8")
-            except Exception as exc:
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
                     "Could not read .claude-mpm/WORKFLOW.md (%s); "
                     "falling back to system default.",
@@ -235,7 +235,7 @@ class SystemInstructionsDeployer:
         if user_path.exists():
             try:
                 user_content = user_path.read_text(encoding="utf-8")
-            except Exception as exc:
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
                     "Could not read ~/.claude-mpm/MEMORY.md (%s); "
                     "falling back to system default.",
@@ -257,7 +257,7 @@ class SystemInstructionsDeployer:
         if project_path.exists():
             try:
                 project_content = project_path.read_text(encoding="utf-8")
-            except Exception as exc:
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
                     "Could not read .claude-mpm/MEMORY.md (%s); "
                     "falling back to system default.",
