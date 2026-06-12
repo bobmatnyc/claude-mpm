@@ -20,13 +20,6 @@ from claude_mpm.core.framework.loaders.workflow_constants import (
     WORKFLOW_SYSTEM_REFERENCE,
 )
 
-# Minimum content length (chars) for a PM_INSTRUCTIONS.md override to be
-# considered sane.  A malformed launcher-cache artefact (e.g. the 19-byte
-# string "System instructions") must be rejected so the canonical system
-# default — which carries ## Identity / Prohibitions / Circuit Breakers — is
-# used instead.
-_MIN_PM_OVERRIDE_LEN = 200
-
 # Markers that uniquely identify content belonging to specific blocks.
 # Used to detect stale override files that contain previously-deployed merged content.
 # IMPORTANT: these must stay in sync with the actual headings in the source .md files
@@ -85,9 +78,11 @@ class SystemInstructionsDeployer:
         a 19-byte file contains none.  The merged DEPLOYED file then LOST the
         canonical ``## Identity`` / Prohibitions / Circuit-Breakers content.
 
-        For ``PM_INSTRUCTIONS.md`` an additional minimum-length check
-        (``_MIN_PM_OVERRIDE_LEN``) rejects tiny truncated artefacts even if they
-        happened to contain the marker.
+        The positive-marker requirement alone defeats that artefact: the 19-byte
+        cache has no ``## Identity`` heading, so it is rejected.  A length floor
+        was deliberately NOT added — it would wrongly reject genuinely short but
+        valid overrides (e.g. a 55-char custom PM that opens with ``## Identity``,
+        per issue #757).  Validity is decided purely by the block's own marker.
 
         Args:
             block_name: The block this override is for.
@@ -98,8 +93,6 @@ class SystemInstructionsDeployer:
         """
         own_markers = BLOCK_MARKERS.get(block_name, [])
         if own_markers and not any(marker in content for marker in own_markers):
-            return False
-        if block_name == "PM_INSTRUCTIONS.md" and len(content) < _MIN_PM_OVERRIDE_LEN:
             return False
         return True
 
@@ -198,6 +191,11 @@ class SystemInstructionsDeployer:
         has_override = False
         parts: list[str] = []
 
+        # NOTE: unlike _resolve_block for PM_INSTRUCTIONS.md, this intentionally
+        # does NOT call _override_is_valid().  MEMORY.md is not a launcher-cache
+        # collision target (only PM_INSTRUCTIONS.md doubles as the launcher
+        # cache), so a malformed positive-marker artefact cannot arrive here.
+        # Stale-override detection (cross-block marker bleed) still applies.
         if user_path.exists():
             user_content = user_path.read_text(encoding="utf-8")
             if self._detect_stale_override("MEMORY.md", user_content):
@@ -270,7 +268,7 @@ class SystemInstructionsDeployer:
             elif not self._override_is_valid(block_name, user_content):
                 self.logger.warning(
                     "Invalid override detected: ~/.claude-mpm/%s is missing its "
-                    "own content marker (or is too short). Ignoring override and "
+                    "own content marker. Ignoring override and "
                     "using system default. Remove ~/.claude-mpm/%s to suppress "
                     "this warning.",
                     block_name,
@@ -292,7 +290,7 @@ class SystemInstructionsDeployer:
             elif not self._override_is_valid(block_name, project_content):
                 self.logger.warning(
                     "Invalid override detected: .claude-mpm/%s is missing its "
-                    "own content marker (or is too short). Ignoring override and "
+                    "own content marker. Ignoring override and "
                     "using system default. Remove .claude-mpm/%s to suppress "
                     "this warning.",
                     block_name,
