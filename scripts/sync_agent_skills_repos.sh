@@ -95,14 +95,19 @@ sync_repo() {
     execute_cmd "git fetch --prune origin"
     print_message "$GREEN" "  ✓ Remote references updated"
 
-    # Step 1: Stash any uncommitted changes
+    # Step 1: Stash any uncommitted changes (excludes untracked and ignored files)
+    # Use git status --porcelain and filter to lines that indicate tracked changes
+    # (modified, deleted, renamed, copied, added to index — but not purely untracked
+    # '??' lines or ignored '!!' lines). This avoids false-positive stashes when only
+    # cache files like .etag_cache.json are present as untracked files.
     print_message "$YELLOW" "Step 1: Checking for uncommitted changes..."
-    if ! git diff-index --quiet HEAD --; then
-        print_message "$YELLOW" "  Found uncommitted changes, stashing..."
+    TRACKED_CHANGES=$(git status --porcelain 2>/dev/null | grep -v '^??' | grep -v '^!!' || true)
+    if [ -n "$TRACKED_CHANGES" ]; then
+        print_message "$YELLOW" "  Found uncommitted tracked changes, stashing..."
         execute_cmd "git stash push -m 'Auto-stash before sync for v$VERSION'"
         STASHED=true
     else
-        print_message "$GREEN" "  ✓ No uncommitted changes"
+        print_message "$GREEN" "  ✓ No uncommitted tracked changes"
         STASHED=false
     fi
 
@@ -187,10 +192,19 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
         if [ "$DRY_RUN" = true ]; then
             print_message "$BLUE" "[DRY RUN] Would push to origin/$CURRENT_BRANCH"
         else
-            # Confirm push
+            # Confirm push — honour non-interactive / automation mode
             print_message "$YELLOW" "  About to push to origin/$CURRENT_BRANCH"
-            read -p "  Continue? [y/N]: " -n 1 -r
-            echo ""
+            if [ "${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ -n "${CI:-}" ]; then
+                print_message "$GREEN" "  Auto-confirming push (CLAUDE_MPM_ASSUME_YES/CI set)"
+                REPLY="y"
+            elif [ ! -t 0 ]; then
+                print_message "$RED" "  ✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set."
+                print_message "$RED" "    Re-run with: CLAUDE_MPM_ASSUME_YES=1 make release-publish"
+                return 1
+            else
+                read -p "  Continue? [y/N]: " -n 1 -r
+                echo ""
+            fi
 
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 # Push as the required account by injecting its token via a one-shot
