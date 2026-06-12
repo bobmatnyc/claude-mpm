@@ -429,7 +429,7 @@ def run_migration(project_dir: Path | None = None) -> bool:
                     servers[svc["name"]] = svc["mcp_entry"]
                     detect_mode_log = svc.get("detect", "http")
                     detect_via = (
-                        str(svc.get("addr_file", "addr-file"))
+                        str(svc.get("addr_file", "<missing-addr_file>"))
                         if detect_mode_log == "http"
                         else "jsonrpc-handshake"
                     )
