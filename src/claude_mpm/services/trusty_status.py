@@ -41,6 +41,7 @@ Design (scoped per #598)
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -660,7 +661,11 @@ def get_trusty_status(service: str) -> tuple[str, str]:
 # Module-level store for probe hints populated by get_trusty_capabilities_live().
 # Keys are service names; values are the actionable hint strings for DEGRADED
 # services. get_probe_hint() reads this dict.
+# Guarded by _PROBE_HINTS_LOCK for thread-safety and test isolation — tests that
+# call get_trusty_capabilities_live() concurrently cannot corrupt each other's
+# hint state.
 _PROBE_HINTS: dict[str, str] = {}
+_PROBE_HINTS_LOCK: threading.Lock = threading.Lock()
 
 # Services whose per-session capability is reported to the PM prompt. Order is
 # stable so the injected table renders deterministically.
@@ -724,14 +729,17 @@ def get_trusty_capabilities_live(timeout: float = 1.5) -> dict[str, str]:
         from claude_mpm.services.tool_service_probe import probe_all_services_sync
 
         probe_results = probe_all_services_sync(timeout)
-        _PROBE_HINTS = {
+        new_hints = {
             svc: result.hint for svc, result in probe_results.items() if result.hint
         }
+        with _PROBE_HINTS_LOCK:
+            _PROBE_HINTS = new_hints
         return {svc: result.state for svc, result in probe_results.items()}
     except Exception:
         # Fall back to the original filesystem-based detection so startup
         # never breaks over a probe failure.
-        _PROBE_HINTS = {}
+        with _PROBE_HINTS_LOCK:
+            _PROBE_HINTS = {}
         return get_trusty_capabilities()
 
 
@@ -746,4 +754,5 @@ def get_probe_hint(service: str) -> str:
     Test: tests/services/test_tool_service_probe.py::TestGetProbeHint — verifies
     hint returned for DEGRADED, empty string for ON/ABSENT and unknown services.
     """
-    return _PROBE_HINTS.get(service, "")
+    with _PROBE_HINTS_LOCK:
+        return _PROBE_HINTS.get(service, "")

@@ -53,6 +53,8 @@ def _make_process(
     process.stdin = MagicMock()
     process.stdin.write = MagicMock()
     process.stdin.drain = AsyncMock()
+    process.stdin.close = MagicMock()
+    process.stdin.wait_closed = AsyncMock()
 
     remaining = list(stdout_lines)
 
@@ -348,6 +350,8 @@ class TestProbeTimeout:
         process.stdin = MagicMock()
         process.stdin.write = MagicMock()
         process.stdin.drain = AsyncMock()
+        process.stdin.close = MagicMock()
+        process.stdin.wait_closed = AsyncMock()
         process.stdout = MagicMock()
         process.stdout.readline = _hang
         process.kill = MagicMock()
@@ -381,6 +385,8 @@ class TestProbeTimeout:
         process.stdin = MagicMock()
         process.stdin.write = MagicMock()
         process.stdin.drain = AsyncMock()
+        process.stdin.close = MagicMock()
+        process.stdin.wait_closed = AsyncMock()
         process.stdout = MagicMock()
         process.stdout.readline = _hang
         process.kill = MagicMock()
@@ -600,6 +606,9 @@ class TestGetTrustyCapabilitiesLive:
             "trusty-review": ProbeResult(state="on"),
         }
         with patch(
+            # Patch at source module: get_trusty_capabilities_live does a
+            # local import, so patching trusty_status.probe_all_services_sync
+            # would have no effect.
             "claude_mpm.services.tool_service_probe.probe_all_services_sync",
             return_value=fake_results,
         ):
@@ -620,6 +629,9 @@ class TestGetTrustyCapabilitiesLive:
             "trusty-review": ProbeResult(state="on"),
         }
         with patch(
+            # Patch at source module: get_trusty_capabilities_live does a
+            # local import, so patching trusty_status.probe_all_services_sync
+            # would have no effect.
             "claude_mpm.services.tool_service_probe.probe_all_services_sync",
             return_value=fake_results,
         ):
@@ -677,6 +689,9 @@ class TestGetTrustyCapabilitiesLive:
             },
         )
         with patch(
+            # Patch at source module: get_trusty_capabilities_live does a
+            # local import, so patching trusty_status.probe_all_services_sync
+            # would have no effect.
             "claude_mpm.services.tool_service_probe.probe_all_services_sync",
             side_effect=RuntimeError("boom"),
         ):
@@ -691,7 +706,9 @@ class TestGetProbeHint:
     def test_returns_empty_for_unknown_service(self) -> None:
         from claude_mpm.services import trusty_status
 
-        trusty_status._PROBE_HINTS.clear()
+        # Clear hints under lock to avoid cross-test interference.
+        with trusty_status._PROBE_HINTS_LOCK:
+            trusty_status._PROBE_HINTS.clear()
         assert trusty_status.get_probe_hint("no-such-service") == ""
 
     def test_returns_hint_after_live_probe(self) -> None:
@@ -704,6 +721,9 @@ class TestGetProbeHint:
             "trusty-review": ProbeResult(state="on"),
         }
         with patch(
+            # Patch at source module: get_trusty_capabilities_live does a
+            # local import, so patching trusty_status.probe_all_services_sync
+            # would have no effect.
             "claude_mpm.services.tool_service_probe.probe_all_services_sync",
             return_value=fake_results,
         ):
@@ -711,3 +731,79 @@ class TestGetProbeHint:
 
         assert trusty_status.get_probe_hint("trusty-memory") == "check wiring"
         assert trusty_status.get_probe_hint("trusty-search") == ""
+
+
+# ---------------------------------------------------------------------------
+# stdin EOF buffering: servers that only respond after stdin is closed
+# ---------------------------------------------------------------------------
+
+
+class TestStdinEOFBuffering:
+    """Servers that flush tools/list only after stdin EOF must classify as ON."""
+
+    async def test_buffering_server_returns_on(self) -> None:
+        """Simulate a server that only writes its tools/list response after stdin
+        is closed. Without stdin.close() the probe would time out → DEGRADED.
+        With the fix, closing stdin triggers the flush → ON.
+        """
+        init_resp_bytes = _make_init_response()
+        tools_resp_bytes = _make_tools_response([SENTINEL_TOOL, "other_tool"])
+
+        process = MagicMock()
+        process.stdin = MagicMock()
+        process.stdin.write = MagicMock()
+        process.stdin.drain = AsyncMock()
+        process.stdin.close = MagicMock()
+        # wait_closed() must be awaitable; returns once stdin is closed.
+        process.stdin.wait_closed = AsyncMock()
+        process.kill = MagicMock()
+        process.wait = AsyncMock(return_value=0)
+
+        # Track whether stdin was closed; only return tools response after close.
+        stdin_closed = False
+
+        def _record_stdin_close() -> None:
+            nonlocal stdin_closed
+            stdin_closed = True
+
+        process.stdin.close = MagicMock(side_effect=_record_stdin_close)
+
+        read_call = 0
+
+        async def _readline() -> bytes:
+            nonlocal read_call
+            read_call += 1
+            if read_call == 1:
+                # initialize response — always returned immediately.
+                return init_resp_bytes
+            # tools/list response — only available after stdin closed.
+            # Spin briefly to let the stdin.close() side-effect register.
+            for _ in range(50):
+                if stdin_closed:
+                    return tools_resp_bytes
+                await asyncio.sleep(0.01)
+            # Stdin was never closed → return empty (simulating buffer-hold).
+            return b""
+
+        process.stdout = MagicMock()
+        process.stdout.readline = _readline
+
+        with (
+            patch(
+                "claude_mpm.services.tool_service_probe.shutil.which",
+                return_value="/usr/local/bin/trusty-memory",
+            ),
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.create_subprocess_exec",
+                new=AsyncMock(return_value=process),
+            ),
+        ):
+            result = await _probe_single_service(
+                "trusty-memory", ["trusty-memory", "serve", "--stdio"], timeout=2.0
+            )
+
+        assert result.state == "on", (
+            f"Expected ON but got {result.state!r}: {result.hint}"
+        )
+        # Verify stdin was closed during the probe.
+        process.stdin.close.assert_called_once()

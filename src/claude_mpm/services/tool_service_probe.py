@@ -136,6 +136,8 @@ async def _probe_single_service(
                 timeout=timeout,
             )
         except TimeoutError:
+            # asyncio.TimeoutError (aliased to builtins.TimeoutError on Python 3.11+)
+            # is what asyncio.wait_for raises; catching TimeoutError covers both.
             return ProbeResult(
                 state="degraded",
                 hint=f"{service} initialize handshake timed out after {timeout}s — check daemon / binary",
@@ -170,6 +172,17 @@ async def _probe_single_service(
         tools_line = (json.dumps(_TOOLS_LIST_REQUEST) + "\n").encode()
         process.stdin.write(tools_line)
         await process.stdin.drain()
+        # Close stdin to signal EOF — some stdio MCP servers buffer stdout until
+        # stdin is closed; without this the probe would time out against such a
+        # server and falsely report DEGRADED for a healthy service.
+        process.stdin.close()
+        # wait_closed() is available in Python 3.7+ to wait for the underlying
+        # transport to flush. On Python 3.13 (our minimum) this is always present.
+        # Ignore OSError in case the transport is already gone (e.g. child exited).
+        try:
+            await process.stdin.wait_closed()
+        except OSError:
+            pass
 
         # Read tools/list response with timeout.
         try:
@@ -178,6 +191,8 @@ async def _probe_single_service(
                 timeout=timeout,
             )
         except TimeoutError:
+            # asyncio.TimeoutError (aliased to builtins.TimeoutError on Python 3.11+)
+            # is what asyncio.wait_for raises; catching TimeoutError covers both.
             return ProbeResult(
                 state="degraded",
                 hint=f"{service} tools/list timed out — service may be reachable but not fully wired",
@@ -220,9 +235,14 @@ async def _probe_single_service(
                 ),
             )
 
-        # Sentinel present → definitively ON.
-        # Fallback: any tools returned → ON (sentinel may not be in all builds;
-        # documented in module docstring — this is intentional loose-check).
+        # Two-tier sentinel check (issue #814):
+        # Tier 1 — sentinel (console_metrics) present → definitively ON.
+        # Tier 2 — any tools returned without sentinel → ON (sentinel may not be
+        # in every deployment build; loose-check intentional, see module docstring).
+        if SENTINEL_TOOL in tool_names:
+            # Sentinel present: fully wired.
+            return ProbeResult(state="on", hint="")
+        # Fallback tier: some tools but no sentinel → still ON.
         return ProbeResult(state="on", hint="")
 
     except Exception as exc:  # pragma: no cover - unexpected catch-all

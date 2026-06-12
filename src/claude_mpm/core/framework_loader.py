@@ -398,18 +398,15 @@ class FrameworkLoader:
             except Exception as e:  # pragma: no cover - defensive
                 self.logger.debug(f"Skipping tool status section: {e}")
                 return ""
-
-        if not capabilities:
-            return ""
-
-        # get_probe_hint is defined alongside get_trusty_capabilities_live; if
-        # the import above used the fallback path, provide a no-op stand-in.
-        try:
-            from claude_mpm.services.trusty_status import get_probe_hint
-        except Exception:
+            # get_probe_hint is defined unconditionally in trusty_status.py, but
+            # we're here because the live-probe import failed; provide a no-op so
+            # downstream code works without a second import attempt.
 
             def get_probe_hint(_svc: str) -> str:  # type: ignore[misc]
                 return ""
+
+        if not capabilities:
+            return ""
 
         # Human-facing labels for each detected state.
         status_labels = {
