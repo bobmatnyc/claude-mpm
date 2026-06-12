@@ -170,13 +170,10 @@ def test_registry_load_user_skills_directory_style(tmp_path: Path) -> None:
     _make_skill_dir(user_skills, "my-dir-skill")
 
     with patch("pathlib.Path.home", return_value=fake_home):
-        import importlib
-
         from claude_mpm.skills import registry as registry_mod
 
-        importlib.reload(registry_mod)
         reg = registry_mod.SkillsRegistry()
-        # Force reload skills
+        # Isolate to user-skills loading only
         reg.skills = {}
         reg._load_user_skills()
 
@@ -467,4 +464,68 @@ def test_deploy_bundled_skills_uses_user_scope(tmp_path: Path) -> None:
 
     assert captured_kwargs.get("scope") == ConfigScope.USER, (
         f"Expected scope=ConfigScope.USER, got {captured_kwargs.get('scope')}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 12 (regression): _get_bundled_skill_names returns non-empty set
+# ---------------------------------------------------------------------------
+
+
+def test_get_bundled_skill_names_non_empty() -> None:
+    """_get_bundled_skill_names() must return a non-empty frozenset.
+
+    Why: Regression guard for Finding 1 — if __new__ or any other bypass is
+    re-introduced that causes discover_bundled_skills() to raise internally,
+    the broad except would produce an empty set and silently disable ALL cleanup.
+    This test fails immediately in that scenario.
+    """
+    from claude_mpm.migrations import (
+        v6_5_40_remove_project_level_bundled_skills as mig,
+    )
+
+    names = mig._get_bundled_skill_names()
+    assert len(names) > 0, (
+        "_get_bundled_skill_names() returned empty set; "
+        "SkillsService construction or discover_bundled_skills() may have failed silently"
+    )
+    # Spot-check a well-known bundled skill to catch path misconfigurations
+    assert "session-analyzer" in names, (
+        "'session-analyzer' not found in bundled skill names; "
+        "bundled_skills_path may be wrong"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test 13 (regression): directory-style skill takes precedence over flat skill
+# ---------------------------------------------------------------------------
+
+
+def test_registry_directory_style_takes_precedence_over_flat(tmp_path: Path) -> None:
+    """Directory-style skill must win over a same-named legacy flat file.
+
+    Why: Regression guard for Finding 3 — the flat glob loop must NOT overwrite
+    a directory-style skill of the same name already loaded in the same tier.
+    """
+    fake_home = tmp_path / "home"
+    user_skills = fake_home / ".claude" / "skills"
+
+    # Create directory-style skill
+    _make_skill_dir(user_skills, "overlap-skill")
+    # Create same-named flat skill — this should be ignored
+    _make_flat_skill(user_skills, "overlap-skill")
+
+    with patch("pathlib.Path.home", return_value=fake_home):
+        from claude_mpm.skills import registry as registry_mod
+
+        reg = registry_mod.SkillsRegistry()
+        reg.skills = {}
+        reg._load_user_skills()
+
+    assert "overlap-skill" in reg.skills
+    # The path must point to the SKILL.md inside the directory, not the flat file
+    skill_path = reg.skills["overlap-skill"].path
+    assert skill_path is not None
+    assert skill_path.name == "SKILL.md", (
+        f"Expected directory-style SKILL.md, got flat file: {skill_path}"
     )
