@@ -261,7 +261,7 @@ class IncrementalPauseManager:
 
         This method:
         1. Appends a 'pause_finalized' action
-        2. Optionally delegates to SessionPauseManager to create JSON/YAML/MD files
+        2. Optionally delegates to SessionPauseManager to create JSON/MD files
         3. Removes the ACTIVE-PAUSE.jsonl file
         4. Returns path to the finalized session file
 
@@ -333,10 +333,7 @@ class IncrementalPauseManager:
                     enriched_state, session_path, atomic=True
                 )
 
-                # Also create YAML and Markdown
-                yaml_path = self.sessions_dir / f"{session_id}.yaml"
-                pause_manager._save_yaml(enriched_state, yaml_path)
-
+                # Also create Markdown
                 md_path = self.sessions_dir / f"{session_id}.md"
                 md_content = pause_manager._generate_markdown(enriched_state)
                 md_path.write_text(md_content)
