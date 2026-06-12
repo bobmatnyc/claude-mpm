@@ -102,6 +102,58 @@ def _mark_sync_done(key: str) -> None:
     _save_sync_state(state)
 
 
+def _get_package_version() -> str:
+    """Return the installed claude-mpm package version string.
+
+    Reads from ``claude_mpm.__version__``, which is set from the VERSION file
+    on disk (the single source of truth for this project).  Returns ``"unknown"``
+    on any import failure so callers can treat a missing version as a cache miss.
+    """
+    try:
+        from claude_mpm import __version__
+
+        return __version__
+    except Exception:
+        return "unknown"
+
+
+# Version-aware TTL key used to store bundled-skills version in sync-state.
+_BUNDLED_SKILLS_VERSION_KEY = "bundled_skills_version"
+
+
+def _is_bundled_skills_sync_fresh() -> bool:
+    """Return True only when BOTH the TTL is fresh AND the stored version matches.
+
+    If the package has been upgraded since the last successful deploy the stored
+    ``bundled_skills_version`` will differ from the current version, so this
+    function returns ``False`` and forces a redeploy — regardless of how recently
+    the TTL was set.
+
+    Backward-compat: a sync-state file that lacks ``bundled_skills_version``
+    is treated as version-unknown and causes a single redeploy (safe).
+    """
+    if not _is_sync_fresh("bundled_skills"):
+        return False
+
+    # TTL is fresh — also verify the recorded version matches the installed one.
+    state = _load_sync_state()
+    stored_version = state.get(_BUNDLED_SKILLS_VERSION_KEY)
+    if stored_version is None:
+        # Legacy entry: no version recorded → redeploy once to record version.
+        return False
+
+    current_version = _get_package_version()
+    return stored_version == current_version
+
+
+def _mark_bundled_skills_sync_done() -> None:
+    """Record a successful bundled-skills deploy with the current package version."""
+    state = _load_sync_state()
+    state["bundled_skills"] = time.time()
+    state[_BUNDLED_SKILLS_VERSION_KEY] = _get_package_version()
+    _save_sync_state(state)
+
+
 def _agent_sources_changed_since_last_sync() -> bool:
     """Return True if agent_sources.yaml was modified after last successful sync.
 
@@ -956,11 +1008,16 @@ def deploy_bundled_skills(force_deploy: bool = False):
     TTL: Bundled skills only change when the package is updated, so we skip
     re-deployment if they were recently deployed (using a longer 24-hour TTL).
     """
-    # TTL check: skip if bundled skills were deployed within the sync TTL window
-    if not force_deploy and _is_sync_fresh("bundled_skills"):
+    # Version-aware TTL check: skip only when TTL is fresh AND stored version
+    # matches the currently installed package.  A version mismatch (package
+    # upgrade) always bypasses the TTL so newly-added bundled skills are
+    # deployed immediately instead of being blocked for up to 24 h.
+    if not force_deploy and _is_bundled_skills_sync_fresh():
         from ..core.logger import get_logger as _get_logger
 
-        _get_logger("cli").debug("Skipping bundled skills deploy (within 24h TTL)")
+        _get_logger("cli").debug(
+            "Skipping bundled skills deploy (within 24h TTL, version unchanged)"
+        )
         return
 
     try:
@@ -1034,8 +1091,8 @@ def deploy_bundled_skills(force_deploy: bool = False):
                 f"Skills: {len(deployment_result['errors'])} skill(s) failed to deploy"
             )
         else:
-            # Record successful deployment for TTL-based skipping
-            _mark_sync_done("bundled_skills")
+            # Record successful deployment with current version for version-aware TTL.
+            _mark_bundled_skills_sync_done()
 
     except Exception as e:
         # Import logger here to avoid circular imports
