@@ -409,9 +409,7 @@ def get_sld_default_config() -> dict:
             # alongside code (see docs/specs/README.md).
             "wwl": {
                 # Require WHAT + WHY at module level for every .py file.
-                # Exception: pure re-export __init__.py files and no-logic
-                # stubs are exempt per wwl-granularity.md §2 — they need
-                # only a one-line docstring.
+                # Exception: pure re-export `__init__.py` files — see `wwl-granularity.md §2`.
                 "file_level_required": True,
                 # LOC threshold — units exceeding this need a WWL doc-comment.
                 # Grounded in common linter defaults (black, pylint, ruff).
