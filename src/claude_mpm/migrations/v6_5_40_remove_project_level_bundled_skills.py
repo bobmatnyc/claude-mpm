@@ -9,6 +9,9 @@ SAFETY:
 - Only removes when user-level copy confirmed present (no data loss).
 - Non-fatal: logs errors and continues.
 - Idempotent: safe to run multiple times.
+
+NOTE: This migration operates on the CURRENT project only (Path.cwd()).
+Each project is cleaned the next time claude-mpm starts up in that project.
 """
 
 import logging
@@ -23,23 +26,20 @@ def _get_bundled_skill_names() -> frozenset[str]:
 
     Why: Derives the canonical bundled set dynamically so there is no
     hardcoded list that can drift out of sync with actual bundled skills.
-    What: Instantiates SkillsService without calling __init__ to avoid side
-    effects, sets bundled_skills_path manually, then calls discover_bundled_skills().
+    What: Constructs SkillsService(scope=ConfigScope.USER) normally — __init__
+    is side-effect-free (only resolves paths and loads registry YAML) — then
+    calls discover_bundled_skills().  If discovery fails the error is logged
+    at WARNING level and the caller receives a sentinel None so it can abort
+    cleanup safely instead of silently no-oping.
     Test: Mock bundled_skills_path to a tmp dir with sample SKILL.md files and
     assert the returned frozenset contains exactly those names.
     """
-    try:
-        from claude_mpm.skills.skills_service import SkillsService
+    from claude_mpm.core.config_scope import ConfigScope
+    from claude_mpm.skills.skills_service import SkillsService
 
-        service = SkillsService.__new__(SkillsService)
-        service.bundled_skills_path = (
-            Path(__file__).parent.parent / "skills" / "bundled"
-        )
-        skills = service.discover_bundled_skills()
-        return frozenset(s["name"] for s in skills)
-    except Exception as exc:
-        logger.error("Failed to discover bundled skills: %s", exc)
-        return frozenset()
+    service = SkillsService(scope=ConfigScope.USER)
+    skills = service.discover_bundled_skills()
+    return frozenset(s["name"] for s in skills)
 
 
 def run_migration() -> bool:
@@ -54,10 +54,21 @@ def run_migration() -> bool:
     run migration; assert project-level dir is gone but user-level copy remains.
     """
     try:
-        bundled_skill_names = _get_bundled_skill_names()
+        try:
+            bundled_skill_names = _get_bundled_skill_names()
+        except Exception as exc:
+            logger.warning(
+                "Cannot discover bundled skills — aborting cleanup to avoid data loss: %s",
+                exc,
+            )
+            return False
+
         if not bundled_skill_names:
-            logger.warning("No bundled skills found, skipping migration")
-            return True
+            logger.warning(
+                "Bundled skill discovery returned empty set — aborting cleanup "
+                "to avoid deleting everything. Check bundled skills directory."
+            )
+            return False
 
         user_skills_base = Path.home() / ".claude" / "skills"
         project_root = Path.cwd()
