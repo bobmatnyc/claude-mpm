@@ -342,6 +342,20 @@ class InstructionLoader:
         primary recommended backend; kuzu-memory is a deprecated legacy fallback
         retained for backward compatibility.
 
+        WHAT: Selects the correct MEMORY.md text using a three-tier precedence
+              (project verbatim > user verbatim > system stub), skips re-loading the
+              static block when the ``_loaded_from_deployed`` sentinel is set (to prevent
+              double-injection from PM_INSTRUCTIONS_DEPLOYED.md), then unconditionally
+              probes for a local kuzu-memory installation and prepends a legacy-backend
+              notice when found so that sessions on machines with kuzu-memory still see
+              memory-tool instructions even when the static block is suppressed.
+        WHY: Embedding the full ~1,776-token MEMORY.md on every session is wasteful for
+             the common case where memory tooling is not needed; the compact reference
+             stub preserves trigger-phrase awareness at negligible cost.  The split
+             static/dynamic approach is necessary because the kuzu-memory check is
+             machine-specific and therefore cannot be precompiled into the DEPLOYED
+             merged file.
+
         Args:
             content: Dictionary to update with memory instructions
         """
