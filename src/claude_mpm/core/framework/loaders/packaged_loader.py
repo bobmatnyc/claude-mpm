@@ -183,8 +183,8 @@ class PackagedLoader:
             # preserves memory-trigger awareness while deferring the full
             # ~1,776-token MEMORY.md body.
             # Check is not None (presence), not truthiness — an empty file is still valid.
-            _memory_content = self.load_packaged_file("MEMORY.md")
-            if _memory_content is not None:
+            memory_content = self.load_packaged_file("MEMORY.md")
+            if memory_content is not None:
                 content["memory_instructions"] = MEMORY_SYSTEM_REFERENCE
                 content["memory_instructions_level"] = "system"
                 self.logger.info(
@@ -266,10 +266,10 @@ class PackagedLoader:
             # Load MEMORY.md — system default is lazy-loaded (reference stub only).
             # Same rationale as load_framework_content: defers the full MEMORY body.
             # Check is not None (presence), not truthiness — an empty file is still valid.
-            _memory_content_fb = self.load_packaged_file_fallback(
+            memory_content_fallback = self.load_packaged_file_fallback(
                 "MEMORY.md", resources
             )
-            if _memory_content_fb is not None:
+            if memory_content_fallback is not None:
                 content["memory_instructions"] = MEMORY_SYSTEM_REFERENCE
                 content["memory_instructions_level"] = "system"
                 self.logger.info(

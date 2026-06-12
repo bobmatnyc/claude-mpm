@@ -458,9 +458,10 @@ def get_required_skills_from_agents(agents_dir: Path) -> set[str]:
     - Removes dependency on static YAML mapping
     - Fixes PM skills being removed as orphaned (they use inline markers)
 
-    Special handling for PM_INSTRUCTIONS.md:
-    - Also scans .claude-mpm/PM_INSTRUCTIONS.md for skill markers
-    - PM instructions are not in agents_dir but contain [SKILL: ...] references
+    Special handling for the launcher cache:
+    - Also scans .claude-mpm/PM_INSTRUCTIONS_CACHE.md for skill markers
+    - The assembled launcher cache is not in agents_dir but contains
+      [SKILL: ...] references from PM_INSTRUCTIONS.md and related sources
 
     Args:
         agents_dir: Path to deployed agents directory (e.g., .claude/agents/)
@@ -480,12 +481,16 @@ def get_required_skills_from_agents(agents_dir: Path) -> set[str]:
     # Scan all agent markdown files
     agent_files = list(agents_dir.glob("*.md"))
 
-    # Special case: Add PM_INSTRUCTIONS.md if it exists
-    # PM instructions live in .claude-mpm/ not .claude/agents/
-    pm_instructions = agents_dir.parent.parent / ".claude-mpm" / "PM_INSTRUCTIONS.md"
+    # Special case: Add the assembled launcher cache if it exists.
+    # PM_INSTRUCTIONS_CACHE.md lives in .claude-mpm/ (not .claude/agents/)
+    # and contains [SKILL: ...] markers assembled from PM_INSTRUCTIONS.md
+    # and related source files.
+    pm_instructions = (
+        agents_dir.parent.parent / ".claude-mpm" / "PM_INSTRUCTIONS_CACHE.md"
+    )
     if pm_instructions.exists():
         agent_files.append(pm_instructions)
-        logger.debug("Added PM_INSTRUCTIONS.md for skill scanning")
+        logger.debug("Added PM_INSTRUCTIONS_CACHE.md for skill scanning")
 
     logger.debug(f"Scanning {len(agent_files)} agent files (including PM instructions)")
 

@@ -16,10 +16,10 @@ from enum import Enum, StrEnum
 #   framework composition file).  That file is NOT passed to the model, so
 #   the banner is purely informational for human readers.
 #
-# BANNER_CACHE — written into the .meta sidecar of PM_INSTRUCTIONS.md (the
-#   launcher cache / system-prompt file).  The cache file itself must remain
-#   clean (no banner) because its content is passed verbatim to Claude via
-#   --system-prompt-file.
+# BANNER_CACHE — written into the .meta sidecar of PM_INSTRUCTIONS_CACHE.md
+#   (the launcher cache / system-prompt file).  The cache file itself must
+#   remain clean (no banner) because its content is passed verbatim to Claude
+#   via --system-prompt-file.
 # ---------------------------------------------------------------------------
 
 BANNER_DEPLOYED: str = (

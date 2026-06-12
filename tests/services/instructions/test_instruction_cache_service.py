@@ -49,11 +49,11 @@ class TestInstructionCacheService:
         assert service.cache_dir == temp_project_root / ".claude-mpm"
         assert (
             service.cache_file
-            == temp_project_root / ".claude-mpm" / "PM_INSTRUCTIONS.md"
+            == temp_project_root / ".claude-mpm" / "PM_INSTRUCTIONS_CACHE.md"
         )
         assert (
             service.meta_file
-            == temp_project_root / ".claude-mpm" / "PM_INSTRUCTIONS.md.meta"
+            == temp_project_root / ".claude-mpm" / "PM_INSTRUCTIONS_CACHE.md.meta"
         )
 
     def test_init_uses_cwd_when_no_root_provided(self):
@@ -77,7 +77,7 @@ class TestInstructionCacheService:
         assert cache_service.meta_file.exists()
 
         # Verify cache file contains exactly the supplied content — no banner
-        # is prepended because PM_INSTRUCTIONS.md is passed verbatim to Claude
+        # is prepended because PM_INSTRUCTIONS_CACHE.md is passed verbatim to Claude
         # via --system-prompt-file.  The "do not edit" notice lives in the
         # .meta sidecar (see _write_metadata / BANNER_CACHE_NOTICE).
         cached_text = cache_service.cache_file.read_text()
@@ -264,7 +264,7 @@ class TestInstructionCacheService:
         """Test that get_cache_path returns the correct cache file path."""
         path = cache_service.get_cache_path()
         assert path == cache_service.cache_file
-        assert path.name == "PM_INSTRUCTIONS.md"
+        assert path.name == "PM_INSTRUCTIONS_CACHE.md"
 
     def test_get_cache_info_returns_metadata(
         self, cache_service, test_instruction_content

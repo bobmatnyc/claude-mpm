@@ -43,8 +43,8 @@ logger = get_logger(__name__)
 class InstructionCacheService:
     """Manages cached assembled PM instruction content for file-based loading.
 
-    The cache is stored at `.claude-mpm/PM_INSTRUCTIONS.md` and includes
-    a metadata file `.claude-mpm/PM_INSTRUCTIONS.md.meta` containing:
+    The cache is stored at `.claude-mpm/PM_INSTRUCTIONS_CACHE.md` and includes
+    a metadata file `.claude-mpm/PM_INSTRUCTIONS_CACHE.md.meta` containing:
     - notice: Human-readable "do not edit" notice (auto-generated banner)
     - content_hash: SHA-256 of assembled instruction content
     - content_size_bytes: Size of cached content in bytes
@@ -54,9 +54,19 @@ class InstructionCacheService:
     - version: Cache format version
 
     Design note: the auto-generated "do not edit" notice is stored in the
-    .meta sidecar rather than prepended to the cache file.  PM_INSTRUCTIONS.md
-    is passed verbatim to Claude via --system-prompt-file, so any prefix added
-    to the file would pollute every session's system prompt.
+    .meta sidecar rather than prepended to the cache file.
+    PM_INSTRUCTIONS_CACHE.md is passed verbatim to Claude via
+    --system-prompt-file, so any prefix added to the file would pollute
+    every session's system prompt.
+
+    Rename rationale: the previous filename (PM_INSTRUCTIONS.md) collided
+    with the project-override input that the SystemInstructionsDeployer
+    reads from ``.claude-mpm/PM_INSTRUCTIONS.md``.  The rename resolves the
+    collision: the launcher cache is now PM_INSTRUCTIONS_CACHE.md while
+    the override input keeps its original name.  Existing installs that
+    have a stale cache at the old path are unaffected — the cache is
+    regenerated on startup and the deployer's override guard rejects any
+    leftover old-name file that lacks the ``## Identity`` marker.
 
     Cache Updates:
     - Triggered during agent deployment or interactive sessions
@@ -77,8 +87,8 @@ class InstructionCacheService:
     """
 
     CACHE_DIR = ".claude-mpm"
-    CACHE_FILENAME = "PM_INSTRUCTIONS.md"
-    META_FILENAME = "PM_INSTRUCTIONS.md.meta"
+    CACHE_FILENAME = "PM_INSTRUCTIONS_CACHE.md"
+    META_FILENAME = "PM_INSTRUCTIONS_CACHE.md.meta"
     CACHE_VERSION = "1.0"
 
     def __init__(self, project_root: Path | None = None) -> None:
@@ -146,11 +156,12 @@ class InstructionCacheService:
                 }
 
             # Write content to cache (atomic operation).
-            # The banner is intentionally NOT prepended here: PM_INSTRUCTIONS.md
-            # is passed verbatim to Claude via --system-prompt-file, so injecting
-            # an HTML comment would add ~200 bytes of noise into every session's
-            # system prompt.  The do-not-edit notice lives in the .meta sidecar
-            # (see _write_metadata) where it is visible to human readers without
+            # The banner is intentionally NOT prepended here:
+            # PM_INSTRUCTIONS_CACHE.md is passed verbatim to Claude via
+            # --system-prompt-file, so injecting an HTML comment would add
+            # ~200 bytes of noise into every session's system prompt.  The
+            # do-not-edit notice lives in the .meta sidecar (see
+            # _write_metadata) where it is visible to human readers without
             # polluting the model input.
             temp_file = self.cache_file.with_suffix(".tmp")
             temp_file.write_text(instruction_content, encoding="utf-8")
@@ -182,12 +193,12 @@ class InstructionCacheService:
         """Get path to cache file.
 
         Returns:
-            Path to PM_INSTRUCTIONS.md cache
+            Path to PM_INSTRUCTIONS_CACHE.md cache
 
         Example:
             >>> service = InstructionCacheService()
             >>> cache_path = service.get_cache_path()
-            >>> print(cache_path)  # .claude-mpm/PM_INSTRUCTIONS.md
+            >>> print(cache_path)  # .claude-mpm/PM_INSTRUCTIONS_CACHE.md
         """
         return self.cache_file
 

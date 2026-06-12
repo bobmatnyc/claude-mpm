@@ -337,3 +337,58 @@ def test_kuzu_augmentation_still_injects_when_detected() -> None:
     assert MEMORY_SYSTEM_REFERENCE in memory_stored, (
         "System-level MEMORY stub was lost when the kuzu prefix was prepended"
     )
+
+
+# ── Test 7: kuzu augmentation injects on the from_deployed=True path ──────────
+
+
+@pytest.mark.unit
+def test_kuzu_augmentation_injects_when_from_deployed_and_detected() -> None:
+    """Dynamic kuzu-memory prefix injects even when instructions came from DEPLOYED.
+
+    When ``_loaded_from_deployed=True`` the static MEMORY block is already
+    present in PM_INSTRUCTIONS_DEPLOYED.md and must NOT be re-loaded
+    (``load_memory_file`` must not be called).  However, the dynamic
+    kuzu-memory augmentation is environment-dependent and cannot be baked
+    into DEPLOYED; it must still run and produce its prefix notice.
+
+    This is the deployed-path counterpart of
+    ``test_kuzu_augmentation_still_injects_when_detected`` (which tests the
+    non-deployed path).
+    """
+    loader = InstructionLoader()
+    # Simulate that PM_INSTRUCTIONS_DEPLOYED.md was already loaded; the
+    # sentinel tells load_memory_instructions to skip the static re-load.
+    content: dict = {"_loaded_from_deployed": True}
+
+    with (
+        patch.object(loader, "_detect_kuzu_memory", return_value=True),
+        patch.object(loader.file_loader, "load_memory_file") as mock_load_memory,
+    ):
+        loader.load_memory_instructions(content)
+
+    # load_memory_file must NOT be called on the deployed path.
+    assert mock_load_memory.call_count == 0, (
+        "load_memory_file must not be called when _loaded_from_deployed is set"
+    )
+
+    memory_stored = content.get("memory_instructions", "")
+
+    # The kuzu prefix must have been injected despite the deployed path.
+    assert "kuzu-memory Active (legacy fallback)" in memory_stored, (
+        "kuzu-memory prefix was NOT injected on the from_deployed=True path — "
+        "the environment-dependent augmentation must run regardless of deployed status"
+    )
+    assert "mcp__kuzu-memory__kuzu_remember" in memory_stored, (
+        "kuzu MCP tool reference missing from augmented memory content (deployed path)"
+    )
+
+    # On the deployed path the static MEMORY body is already in DEPLOYED; only
+    # the dynamic kuzu prefix is written to memory_instructions.  The
+    # MEMORY_SYSTEM_REFERENCE stub is intentionally NOT present here because it
+    # would duplicate the content already in DEPLOYED (see instruction_loader.py
+    # lines ~391-403 for the exact branching logic).
+    level_stored = content.get("memory_instructions_level", "")
+    assert level_stored == "system", (
+        f"Expected memory_instructions_level='system' on deployed path, got {level_stored!r}"
+    )

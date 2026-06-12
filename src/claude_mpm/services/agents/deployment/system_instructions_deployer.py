@@ -71,12 +71,14 @@ class SystemInstructionsDeployer:
         positive marker (from ``BLOCK_MARKERS``) — proving it really is content
         for *this* block and not, e.g., a malformed launcher-cache artefact.
 
-        The bug this prevents: ``.claude-mpm/PM_INSTRUCTIONS.md`` doubles as the
-        launcher cache AND a project-override source.  A malformed 19-byte cache
-        (``"System instructions"``) was accepted as a valid PM override because
-        ``_detect_stale_override`` only checks for *other* blocks' markers — and
-        a 19-byte file contains none.  The merged DEPLOYED file then LOST the
-        canonical ``## Identity`` / Prohibitions / Circuit-Breakers content.
+        The bug this prevented (now also addressed by renaming the cache to
+        ``PM_INSTRUCTIONS_CACHE.md``): ``.claude-mpm/PM_INSTRUCTIONS.md``
+        previously doubled as the launcher cache AND the project-override source.
+        A malformed 19-byte cache (``"System instructions"``) was accepted as a
+        valid PM override because ``_detect_stale_override`` only checks for
+        *other* blocks' markers — and a 19-byte file contains none.  The merged
+        DEPLOYED file then LOST the canonical ``## Identity`` / Prohibitions /
+        Circuit-Breakers content.
 
         The positive-marker requirement alone defeats that artefact: the 19-byte
         cache has no ``## Identity`` heading, so it is rejected.  A length floor
@@ -92,7 +94,19 @@ class SystemInstructionsDeployer:
             True if the override is structurally valid for *block_name*.
         """
         own_markers = BLOCK_MARKERS.get(block_name, [])
-        if own_markers and not any(marker in content for marker in own_markers):
+        if not own_markers:
+            # No marker entry for this block in BLOCK_MARKERS: the positive-marker
+            # guard is a no-op and the override is accepted unconditionally.  Log
+            # at DEBUG so that a future block added without a marker entry is
+            # immediately discoverable in debug output without changing behaviour.
+            self.logger.debug(
+                "_override_is_valid: no BLOCK_MARKERS entry for %r — "
+                "positive-marker check skipped (override accepted unconditionally). "
+                "Add an entry to BLOCK_MARKERS to enable the integrity guard for this block.",
+                block_name,
+            )
+            return True
+        if not any(marker in content for marker in own_markers):
             return False
         return True
 
@@ -125,30 +139,48 @@ class SystemInstructionsDeployer:
         parts: list[str] = []
 
         if user_path.exists():
-            user_content = user_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("WORKFLOW.md", user_content):
+            try:
+                user_content = user_path.read_text(encoding="utf-8")
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
-                    "Stale override detected: ~/.claude-mpm/WORKFLOW.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove ~/.claude-mpm/WORKFLOW.md to suppress "
-                    "this warning.",
+                    "Could not read ~/.claude-mpm/WORKFLOW.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(user_content)
-                has_override = True
+                user_content = None
+            if user_content is not None:
+                if self._detect_stale_override("WORKFLOW.md", user_content):
+                    self.logger.warning(
+                        "Stale override detected: ~/.claude-mpm/WORKFLOW.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove ~/.claude-mpm/WORKFLOW.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(user_content)
+                    has_override = True
 
         if project_path.exists():
-            project_content = project_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("WORKFLOW.md", project_content):
+            try:
+                project_content = project_path.read_text(encoding="utf-8")
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
-                    "Stale override detected: .claude-mpm/WORKFLOW.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove .claude-mpm/WORKFLOW.md to suppress "
-                    "this warning.",
+                    "Could not read .claude-mpm/WORKFLOW.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(project_content)
-                has_override = True
+                project_content = None
+            if project_content is not None:
+                if self._detect_stale_override("WORKFLOW.md", project_content):
+                    self.logger.warning(
+                        "Stale override detected: .claude-mpm/WORKFLOW.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove .claude-mpm/WORKFLOW.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(project_content)
+                    has_override = True
 
         if has_override:
             # User/project override present — inline it verbatim (it is
@@ -193,34 +225,56 @@ class SystemInstructionsDeployer:
 
         # NOTE: unlike _resolve_block for PM_INSTRUCTIONS.md, this intentionally
         # does NOT call _override_is_valid().  MEMORY.md is not a launcher-cache
-        # collision target (only PM_INSTRUCTIONS.md doubles as the launcher
-        # cache), so a malformed positive-marker artefact cannot arrive here.
-        # Stale-override detection (cross-block marker bleed) still applies.
+        # collision target.  The launcher cache was previously at
+        # .claude-mpm/PM_INSTRUCTIONS.md (same name as the PM block override
+        # input), but has been renamed to PM_INSTRUCTIONS_CACHE.md to eliminate
+        # the collision.  A stale old-path cache file lacks "## Identity" and is
+        # rejected by _override_is_valid() on the PM_INSTRUCTIONS.md block;
+        # MEMORY.md is unaffected.  Stale-override detection (cross-block marker
+        # bleed) still applies here.
         if user_path.exists():
-            user_content = user_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("MEMORY.md", user_content):
+            try:
+                user_content = user_path.read_text(encoding="utf-8")
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
-                    "Stale override detected: ~/.claude-mpm/MEMORY.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove ~/.claude-mpm/MEMORY.md to suppress "
-                    "this warning.",
+                    "Could not read ~/.claude-mpm/MEMORY.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(user_content)
-                has_override = True
+                user_content = None
+            if user_content is not None:
+                if self._detect_stale_override("MEMORY.md", user_content):
+                    self.logger.warning(
+                        "Stale override detected: ~/.claude-mpm/MEMORY.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove ~/.claude-mpm/MEMORY.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(user_content)
+                    has_override = True
 
         if project_path.exists():
-            project_content = project_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("MEMORY.md", project_content):
+            try:
+                project_content = project_path.read_text(encoding="utf-8")
+            except (OSError, ValueError) as exc:
                 self.logger.warning(
-                    "Stale override detected: .claude-mpm/MEMORY.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove .claude-mpm/MEMORY.md to suppress "
-                    "this warning.",
+                    "Could not read .claude-mpm/MEMORY.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(project_content)
-                has_override = True
+                project_content = None
+            if project_content is not None:
+                if self._detect_stale_override("MEMORY.md", project_content):
+                    self.logger.warning(
+                        "Stale override detected: .claude-mpm/MEMORY.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove .claude-mpm/MEMORY.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(project_content)
+                    has_override = True
 
         if has_override:
             self.logger.debug(
