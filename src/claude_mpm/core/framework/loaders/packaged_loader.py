@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from claude_mpm.core.framework.loaders.workflow_constants import (
+    MEMORY_SYSTEM_REFERENCE,
     WORKFLOW_SYSTEM_REFERENCE,
 )
 from claude_mpm.core.logging_utils import get_logger
@@ -174,11 +175,21 @@ class PackagedLoader:
                     "Lazy-loaded packaged WORKFLOW.md (reference stub, deferred the full WORKFLOW body)"
                 )
 
-            # Load MEMORY.md
-            memory_content = self.load_packaged_file("MEMORY.md")
-            if memory_content:
-                content["memory_instructions"] = memory_content
+            # Load MEMORY.md — system default is lazy-loaded (reference stub only).
+            # Mirrors WORKFLOW.md: PackagedLoader only runs for system-level
+            # (PyPI) installs; project/user overrides are handled by
+            # InstructionLoader.load_memory_instructions() which runs after this
+            # method and overwrites the key if an override exists.  The stub
+            # preserves memory-trigger awareness while deferring the full
+            # ~1,776-token MEMORY.md body.
+            # Check is not None (presence), not truthiness — an empty file is still valid.
+            _memory_content = self.load_packaged_file("MEMORY.md")
+            if _memory_content is not None:
+                content["memory_instructions"] = MEMORY_SYSTEM_REFERENCE
                 content["memory_instructions_level"] = "system"
+                self.logger.info(
+                    "Lazy-loaded packaged MEMORY.md (reference stub, deferred the full MEMORY body)"
+                )
 
         except Exception as e:
             self.logger.error(f"Failed to load packaged framework content: {e}")
@@ -252,11 +263,19 @@ class PackagedLoader:
                     "(reference stub, deferred the full WORKFLOW body)"
                 )
 
-            # Load MEMORY.md
-            memory_content = self.load_packaged_file_fallback("MEMORY.md", resources)
-            if memory_content:
-                content["memory_instructions"] = memory_content
+            # Load MEMORY.md — system default is lazy-loaded (reference stub only).
+            # Same rationale as load_framework_content: defers the full MEMORY body.
+            # Check is not None (presence), not truthiness — an empty file is still valid.
+            _memory_content_fb = self.load_packaged_file_fallback(
+                "MEMORY.md", resources
+            )
+            if _memory_content_fb is not None:
+                content["memory_instructions"] = MEMORY_SYSTEM_REFERENCE
                 content["memory_instructions_level"] = "system"
+                self.logger.info(
+                    "Lazy-loaded packaged MEMORY.md via fallback "
+                    "(reference stub, deferred the full MEMORY body)"
+                )
 
         except Exception as e:
             self.logger.error(

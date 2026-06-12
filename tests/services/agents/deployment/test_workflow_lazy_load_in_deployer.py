@@ -20,6 +20,7 @@ from unittest.mock import patch
 import pytest
 
 from claude_mpm.core.framework.loaders.workflow_constants import (
+    MEMORY_SYSTEM_REFERENCE,
     WORKFLOW_SYSTEM_REFERENCE,
 )
 from claude_mpm.services.agents.deployment.system_instructions_deployer import (
@@ -279,7 +280,13 @@ class TestWorkflowLazyLoadInDeployer:
     # ------------------------------------------------------------------
 
     def test_other_blocks_still_present_in_deployed_file(self, tmp_path: Path) -> None:
-        """Lazy-load change must not affect the other three blocks."""
+        """Lazy-load change must not affect the PM and AGENT_DELEGATION blocks.
+
+        MEMORY.md is now ALSO lazy-loaded (mirrors WORKFLOW.md): with only a
+        system-level MEMORY.md the deployed file carries the reference stub, not
+        the full body.  The PM_INSTRUCTIONS and AGENT_DELEGATION blocks remain
+        inlined verbatim.
+        """
         agents_path = tmp_path / "agents"
         agents_path.mkdir()
         working_dir = tmp_path / "project"
@@ -294,8 +301,14 @@ class TestWorkflowLazyLoadInDeployer:
         assert "## Available Agent Capabilities" in deployed, (
             "AGENT_DELEGATION.md content missing from PM_INSTRUCTIONS_DEPLOYED.md"
         )
-        assert "## Static Memory Management" in deployed, (
-            "MEMORY.md content missing from PM_INSTRUCTIONS_DEPLOYED.md"
+        # MEMORY.md is lazy-loaded: the full body ('## Static Memory Management')
+        # must be ABSENT and the reference stub present instead.
+        assert "## Static Memory Management" not in deployed, (
+            "Full MEMORY.md body found in PM_INSTRUCTIONS_DEPLOYED.md — "
+            "MEMORY.md lazy-load optimisation defeated."
+        )
+        assert MEMORY_SYSTEM_REFERENCE in deployed, (
+            "MEMORY_SYSTEM_REFERENCE stub missing from PM_INSTRUCTIONS_DEPLOYED.md."
         )
 
     # ------------------------------------------------------------------
