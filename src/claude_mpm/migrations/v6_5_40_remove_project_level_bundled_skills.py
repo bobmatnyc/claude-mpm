@@ -92,14 +92,19 @@ def run_migration() -> bool:
                 )
                 continue
 
+            # Count one logical removal per skill regardless of whether we remove
+            # a directory, a flat file, or both (avoids double-counting).
+            skill_removed = False
+
             # Remove project-level directory
             project_skill_dir = project_skills_base / skill_name
             if project_skill_dir.exists():
                 try:
                     shutil.rmtree(project_skill_dir)
-                    total_removed += 1
+                    skill_removed = True
                     logger.info(
-                        "Removed project-level bundled skill: %s (user copy at %s)",
+                        "Removed project-level bundled skill directory: %s "
+                        "(user copy at %s)",
                         skill_name,
                         user_skill_file,
                     )
@@ -112,7 +117,7 @@ def run_migration() -> bool:
             if project_skill_file.exists():
                 try:
                     project_skill_file.unlink()
-                    total_removed += 1
+                    skill_removed = True
                     logger.info(
                         "Removed legacy flat skill file: %s", project_skill_file
                     )
@@ -120,8 +125,13 @@ def run_migration() -> bool:
                     logger.error("Failed to remove %s: %s", project_skill_file, exc)
                     any_error = True
 
+            if skill_removed:
+                total_removed += 1
+
         logger.info(
-            "Migration complete: removed=%d, errors=%s", total_removed, any_error
+            "Migration complete: removed=%d skills (logical), errors=%s",
+            total_removed,
+            any_error,
         )
         return not any_error
 
