@@ -95,11 +95,11 @@ sync_repo() {
     execute_cmd "git fetch --prune origin"
     print_message "$GREEN" "  ✓ Remote references updated"
 
-    # Step 1: Stash any uncommitted changes (tracked files only)
+    # Step 1: Stash any uncommitted changes (excludes untracked and ignored files)
     # Use git status --porcelain and filter to lines that indicate tracked changes
     # (modified, deleted, renamed, copied, added to index — but not purely untracked
-    # '??' lines). This avoids false-positive stashes when only cache files like
-    # .etag_cache.json are present as untracked files.
+    # '??' lines or ignored '!!' lines). This avoids false-positive stashes when only
+    # cache files like .etag_cache.json are present as untracked files.
     print_message "$YELLOW" "Step 1: Checking for uncommitted changes..."
     TRACKED_CHANGES=$(git status --porcelain 2>/dev/null | grep -v '^??' | grep -v '^!!' || true)
     if [ -n "$TRACKED_CHANGES" ]; then
@@ -194,7 +194,7 @@ Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
         else
             # Confirm push — honour non-interactive / automation mode
             print_message "$YELLOW" "  About to push to origin/$CURRENT_BRANCH"
-            if [ "${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "${CI:-}" = "true" ]; then
+            if [ "${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ -n "${CI:-}" ]; then
                 print_message "$GREEN" "  Auto-confirming push (CLAUDE_MPM_ASSUME_YES/CI set)"
                 REPLY="y"
             elif [ ! -t 0 ]; then
