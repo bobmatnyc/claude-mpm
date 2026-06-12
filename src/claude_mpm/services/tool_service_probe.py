@@ -31,6 +31,15 @@ from typing import Literal
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_hint(text: str, max_len: int = 120) -> str:
+    """Truncate hint to max_len chars and strip newlines for safe PM prompt injection."""
+    truncated = text.replace("\n", " ").replace("\r", " ")
+    if len(truncated) > max_len:
+        truncated = truncated[: max_len - 3] + "..."
+    return truncated
+
+
 # Service name -> stdio spawn command. These are the EXACT argv lists the
 # trusty-* binaries expect when started in stdio MCP server mode.
 SERVICE_PROBE_COMMANDS: dict[str, list[str]] = {
@@ -134,13 +143,17 @@ async def _probe_single_service(
         except TimeoutError:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} initialize handshake timed out after {timeout}s — check daemon / binary",
+                hint=_safe_hint(
+                    f"{service} initialize handshake timed out after {timeout}s — check daemon / binary"
+                ),
             )
 
         if not raw_init:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} closed stdout without responding to initialize",
+                hint=_safe_hint(
+                    f"{service} closed stdout without responding to initialize"
+                ),
             )
 
         try:
@@ -148,13 +161,15 @@ async def _probe_single_service(
         except json.JSONDecodeError as exc:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} returned non-JSON initialize response: {exc}",
+                hint=_safe_hint(
+                    f"{service} returned non-JSON initialize response: {exc}"
+                ),
             )
 
         if not isinstance(init_resp, dict) or "result" not in init_resp:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} initialize response missing 'result' key",
+                hint=_safe_hint(f"{service} initialize response missing 'result' key"),
             )
 
         # --- Step 2: send notifications/initialized (no response expected) ---
@@ -176,13 +191,17 @@ async def _probe_single_service(
         except TimeoutError:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} tools/list timed out — service may be reachable but not fully wired",
+                hint=_safe_hint(
+                    f"{service} tools/list timed out — service may be reachable but not fully wired"
+                ),
             )
 
         if not raw_tools:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} closed stdout during tools/list — check `serve --stdio` wiring",
+                hint=_safe_hint(
+                    f"{service} closed stdout during tools/list — check `serve --stdio` wiring"
+                ),
             )
 
         try:
@@ -190,13 +209,15 @@ async def _probe_single_service(
         except json.JSONDecodeError as exc:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} returned non-JSON tools/list response: {exc}",
+                hint=_safe_hint(
+                    f"{service} returned non-JSON tools/list response: {exc}"
+                ),
             )
 
         if not isinstance(tools_resp, dict) or "result" not in tools_resp:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} tools/list response missing 'result' key",
+                hint=_safe_hint(f"{service} tools/list response missing 'result' key"),
             )
 
         tools: list[dict] = tools_resp["result"].get("tools", [])
@@ -205,7 +226,7 @@ async def _probe_single_service(
         if not tool_names:
             return ProbeResult(
                 state="degraded",
-                hint=(
+                hint=_safe_hint(
                     f"{service} reachable but no tools exposed — "
                     f"check `serve --stdio` wiring / restart daemon"
                 ),
@@ -220,7 +241,7 @@ async def _probe_single_service(
         logger.debug("_probe_single_service(%s): unexpected error: %s", service, exc)
         return ProbeResult(
             state="degraded",
-            hint=f"{service} probe failed unexpectedly: {exc}",
+            hint=_safe_hint(f"{service} probe failed unexpectedly: {exc}"),
         )
     finally:
         # Always reap the subprocess — no orphans, even on timeout or crash.
@@ -260,7 +281,9 @@ async def probe_all_services(
     except Exception as exc:  # pragma: no cover - gather itself cannot normally raise
         logger.debug("probe_all_services: gather failed: %s", exc)
         return {
-            svc: ProbeResult(state="degraded", hint=f"probe gather failed: {exc}")
+            svc: ProbeResult(
+                state="degraded", hint=_safe_hint(f"probe gather failed: {exc}")
+            )
             for svc in SERVICE_PROBE_COMMANDS
         }
 
@@ -269,7 +292,7 @@ async def probe_all_services(
         if isinstance(result, BaseException):
             results[svc] = ProbeResult(
                 state="degraded",
-                hint=f"{svc} probe raised: {result}",
+                hint=_safe_hint(f"{svc} probe raised: {result}"),
             )
         elif isinstance(result, ProbeResult):
             results[svc] = result
@@ -277,7 +300,9 @@ async def probe_all_services(
             # Should never happen — _probe_single_service always returns ProbeResult
             results[svc] = ProbeResult(
                 state="degraded",
-                hint=f"{svc} probe returned unexpected type: {type(result)}",
+                hint=_safe_hint(
+                    f"{svc} probe returned unexpected type: {type(result)}"
+                ),
             )
     return results
 
@@ -301,16 +326,23 @@ def probe_all_services_sync(
     try:
         return asyncio.run(probe_all_services(timeout_per_probe))
     except RuntimeError as exc:
-        # "This event loop is already running." — common in test environments
-        # or when called from inside an async context.
-        hint = f"event loop conflict: {exc}"
+        # Distinguish event-loop conflicts (ABSENT) from other RuntimeErrors (DEGRADED).
+        if (
+            "event loop is already running" in str(exc).lower()
+            or "cannot run the event loop while another loop is running"
+            in str(exc).lower()
+        ):
+            hint = _safe_hint(f"event loop conflict: {exc}")
+            state = "absent"
+        else:
+            hint = _safe_hint(f"sync probe wrapper failed: {exc}")
+            state = "degraded"
         logger.debug("probe_all_services_sync: %s", hint)
         return {
-            svc: ProbeResult(state="absent", hint=hint)
-            for svc in SERVICE_PROBE_COMMANDS
+            svc: ProbeResult(state=state, hint=hint) for svc in SERVICE_PROBE_COMMANDS
         }
     except Exception as exc:  # pragma: no cover - defensive catch-all
-        hint = f"sync probe wrapper failed: {exc}"
+        hint = _safe_hint(f"sync probe wrapper failed: {exc}")
         logger.debug("probe_all_services_sync: %s", hint)
         return {
             svc: ProbeResult(state="degraded", hint=hint)
