@@ -71,30 +71,22 @@ class TestGetPackageVersion:
     """_get_package_version() delegates to claude_mpm.__version__."""
 
     def test_returns_version_string(self):
+        import claude_mpm
         from claude_mpm.cli.startup import _get_package_version
 
-        with patch("claude_mpm.__version__", "9.9.9", create=True):
-            # Re-import to pick up the patched value via the helper's import.
-            # The helper does a fresh `from claude_mpm import __version__` so
-            # we patch the attribute on the module object instead.
-            import claude_mpm as _pkg
+        # Use patch.object so the helper's `from claude_mpm import __version__`
+        # picks up the patched attribute without any redundant manual mutation.
+        with patch.object(claude_mpm, "__version__", "9.9.9"):
+            assert _get_package_version() == "9.9.9"
 
-            original = getattr(_pkg, "__version__", None)
-            _pkg.__version__ = "9.9.9"
-            try:
-                assert _get_package_version() == "9.9.9"
-            finally:
-                if original is not None:
-                    _pkg.__version__ = original
-
-    def test_returns_unknown_on_import_error(self):
+    def test_returns_none_on_import_error(self):
         from claude_mpm.cli.startup import _get_package_version
 
         with patch.dict("sys.modules", {"claude_mpm": None}):
-            # Simulate missing module: the helper should swallow the error.
+            # Simulate missing module: the helper should swallow the error
+            # and return None so callers treat the version as a cache miss.
             result = _get_package_version()
-            # When the module is shadowed by None, an import error is raised.
-            assert isinstance(result, str)
+            assert result is None
 
 
 class TestIsBundledSkillsSyncFresh:
@@ -103,7 +95,12 @@ class TestIsBundledSkillsSyncFresh:
     def test_returns_false_when_ttl_stale(self):
         from claude_mpm.cli.startup import _is_bundled_skills_sync_fresh
 
-        with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
+        # The refactored function loads state directly, so simulate a stale
+        # TTL by providing a last-sync timestamp older than the TTL window.
+        with patch(
+            "claude_mpm.cli.startup._load_sync_state",
+            return_value={"bundled_skills": 0},  # epoch → definitely stale
+        ):
             assert _is_bundled_skills_sync_fresh() is False
 
     def test_returns_false_when_version_missing_from_state(self):
@@ -135,6 +132,26 @@ class TestIsBundledSkillsSyncFresh:
                 },
             ),
             patch("claude_mpm.cli.startup._get_package_version", return_value="2.0.0"),
+        ):
+            assert _is_bundled_skills_sync_fresh() is False
+
+    def test_returns_false_when_current_version_unknown(self):
+        """When _get_package_version() returns None, treat cache as not fresh."""
+        from claude_mpm.cli.startup import (
+            _BUNDLED_SKILLS_VERSION_KEY,
+            _is_bundled_skills_sync_fresh,
+        )
+
+        with (
+            patch("claude_mpm.cli.startup._is_sync_fresh", return_value=True),
+            patch(
+                "claude_mpm.cli.startup._load_sync_state",
+                return_value={
+                    "bundled_skills": time.time(),
+                    _BUNDLED_SKILLS_VERSION_KEY: "3.1.4",
+                },
+            ),
+            patch("claude_mpm.cli.startup._get_package_version", return_value=None),
         ):
             assert _is_bundled_skills_sync_fresh() is False
 
@@ -262,6 +279,38 @@ class TestDeployBundledSkillsVersionAwareTTL:
         assert updated_state.get(_BUNDLED_SKILLS_VERSION_KEY) == "7.0.0", (
             "Version was not recorded after legacy-state deploy"
         )
+
+    # (e) Unknown version (None) + fresh TTL → RUNS (must not suppress via self-match)
+    def test_unknown_version_fresh_ttl_runs_deployment(
+        self, mock_skills_service, tmp_path, monkeypatch
+    ):
+        """When version cannot be determined, deployment runs even if TTL is fresh.
+
+        Regression guard: before this fix, _get_package_version() returned
+        "unknown", which meant stored=="unknown" == current=="unknown" caused
+        _is_bundled_skills_sync_fresh() to return True and permanently suppress
+        deployment when the version was unavailable.
+        """
+        import json
+
+        monkeypatch.setenv("HOME", str(tmp_path))
+
+        # Write a sync-state with a fresh timestamp AND a stored None-equivalent
+        # entry (simulate the old "unknown" sentinel now omitted on write).
+        state_dir = tmp_path / ".claude-mpm" / "cache"
+        state_dir.mkdir(parents=True)
+        # State has fresh TTL but NO bundled_skills_version (as _mark_bundled_skills_sync_done
+        # now omits the key when version is None).
+        fresh_state = {"bundled_skills": time.time() - 60}  # 1 minute ago
+        (state_dir / "sync-state.json").write_text(json.dumps(fresh_state))
+
+        from claude_mpm.cli.startup import deploy_bundled_skills
+
+        with patch("claude_mpm.cli.startup._get_package_version", return_value=None):
+            deploy_bundled_skills(force_deploy=False)
+
+        # Deployment must run — unknown version must not suppress it.
+        mock_skills_service.deploy_bundled_skills.assert_called_once()
 
     # force_deploy=True must always run regardless of TTL/version
     def test_force_deploy_bypasses_version_ttl_gate(self, mock_skills_service):
