@@ -552,15 +552,25 @@ class TestFailSafe:
         assert isinstance(result, dict)
         assert set(result) == set(SERVICE_PROBE_COMMANDS)
 
-    def test_event_loop_conflict_returns_absent(self) -> None:
+    def test_event_loop_conflict_returns_degraded(self) -> None:
+        """RuntimeError from asyncio.run → DEGRADED (not ABSENT) for all services.
+
+        ABSENT means the binary is not on PATH.  An event-loop conflict means
+        the probe couldn't run at all — tool availability is unknown, which maps
+        to DEGRADED so agents are told to treat the service as unreliable rather
+        than uninstalled.
+        """
         with patch(
             "claude_mpm.services.tool_service_probe.asyncio.run",
             side_effect=RuntimeError("This event loop is already running."),
         ):
             result = probe_all_services_sync()
-        # RuntimeError → ABSENT (event loop conflict path).
+        # RuntimeError (event loop conflict) → DEGRADED, never ABSENT.
         for svc, r in result.items():
-            assert r.state == "absent", f"{svc}: expected absent, got {r.state}"
+            assert r.state == "degraded", f"{svc}: expected degraded, got {r.state}"
+        # Hint must explain the conflict clearly.
+        for r in result.values():
+            assert "event loop conflict" in r.hint
 
     def test_unexpected_exception_returns_degraded(self) -> None:
         with patch(
@@ -657,18 +667,15 @@ class TestGetTrustyCapabilitiesLive:
                 "trusty-review": "absent",
             },
         )
-        # Remove the module from sys.modules to simulate ImportError on next import.
-        saved = sys.modules.pop("claude_mpm.services.tool_service_probe", None)
-        # Stash the module in a fake entry that raises.
-        sys.modules["claude_mpm.services.tool_service_probe"] = None  # type: ignore[assignment]
-        try:
+        # Simulate ImportError on the next `from claude_mpm.services.tool_service_probe
+        # import ...` by patching the module with a sentinel that raises ImportError.
+        # patch.dict auto-restores sys.modules after the with-block, making this
+        # portable and safe across test-runner isolation strategies.
+        with patch.dict(
+            sys.modules,
+            {"claude_mpm.services.tool_service_probe": None},  # type: ignore[dict-item]
+        ):
             caps = trusty_status.get_trusty_capabilities_live()
-        finally:
-            # Restore the module.
-            if saved is not None:
-                sys.modules["claude_mpm.services.tool_service_probe"] = saved
-            else:
-                sys.modules.pop("claude_mpm.services.tool_service_probe", None)
 
         # Should have fallen back without raising.
         assert isinstance(caps, dict)

@@ -36,7 +36,14 @@ logger = logging.getLogger(__name__)
 SENTINEL_TOOL = "console_metrics"
 
 # Service name -> stdio spawn command. These are the EXACT argv lists the
-# trusty-* binaries expect when started in stdio MCP server mode.
+# trusty-* binaries expect when started in stdio MCP server mode:
+#   memory  → `serve --stdio`
+#   search  → `serve`
+#   analyze → `mcp`
+#   review  → `serve --stdio`
+# These must track the trusty binaries' stdio-MCP CLI. A CLI drift (e.g. a
+# renamed subcommand after a trusty release) will surface as DEGRADED probes
+# rather than a crash, making the mismatch easy to diagnose and fix here.
 SERVICE_PROBE_COMMANDS: dict[str, list[str]] = {
     "trusty-memory": ["trusty-memory", "serve", "--stdio"],
     "trusty-search": ["trusty-search", "serve"],
@@ -235,14 +242,11 @@ async def _probe_single_service(
                 ),
             )
 
-        # Two-tier sentinel check (issue #814):
-        # Tier 1 — sentinel (console_metrics) present → definitively ON.
-        # Tier 2 — any tools returned without sentinel → ON (sentinel may not be
-        # in every deployment build; loose-check intentional, see module docstring).
-        if SENTINEL_TOOL in tool_names:
-            # Sentinel present: fully wired.
-            return ProbeResult(state="on", hint="")
-        # Fallback tier: some tools but no sentinel → still ON.
+        # Both presence of SENTINEL_TOOL ("console_metrics") and "any tools
+        # returned" are treated as ON today.  The sentinel check is intentionally
+        # loose: if the sentinel is absent but other tools are present the binary
+        # is still considered healthy (not every deployment build exposes it).
+        # See SENTINEL_TOOL and module docstring for rationale.
         return ProbeResult(state="on", hint="")
 
     except Exception as exc:  # pragma: no cover - unexpected catch-all
@@ -321,21 +325,24 @@ def probe_all_services_sync(
 
     What: Calls asyncio.run(probe_all_services(timeout_per_probe)). If an event
     loop is already running (e.g. inside pytest-asyncio), falls back to returning
-    all ABSENT with a hint explaining the conflict. Any other exception → all
-    DEGRADED. Never raises.
+    all DEGRADED with a hint explaining the conflict — tool availability is
+    unknown, not absent. Any other exception → all DEGRADED. Never raises.
 
     Test: tests/services/test_tool_service_probe.py::TestFailSafe — verifies no
-    exception propagates even when asyncio.run raises.
+    exception propagates even when asyncio.run raises, and that an event-loop
+    conflict yields DEGRADED (not ABSENT) for all services.
     """
     try:
         return asyncio.run(probe_all_services(timeout_per_probe))
     except RuntimeError as exc:
         # "This event loop is already running." — common in test environments
         # or when called from inside an async context.
-        hint = f"event loop conflict: {exc}"
+        # DEGRADED (not ABSENT): the probe couldn't run; we don't know whether
+        # the binaries are installed or not.
+        hint = f"probe skipped (event loop conflict) — tool availability unknown: {exc}"
         logger.debug("probe_all_services_sync: %s", hint)
         return {
-            svc: ProbeResult(state="absent", hint=hint)
+            svc: ProbeResult(state="degraded", hint=hint)
             for svc in SERVICE_PROBE_COMMANDS
         }
     except Exception as exc:  # pragma: no cover - defensive catch-all

@@ -724,7 +724,6 @@ def get_trusty_capabilities_live(timeout: float = 1.5) -> dict[str, str]:
     Test: tests/services/test_tool_service_probe.py::TestGetTrustyCapabilitiesLive
     — verifies state mapping, hint storage, and fallback behaviour.
     """
-    global _PROBE_HINTS
     try:
         from claude_mpm.services.tool_service_probe import probe_all_services_sync
 
@@ -733,13 +732,14 @@ def get_trusty_capabilities_live(timeout: float = 1.5) -> dict[str, str]:
             svc: result.hint for svc, result in probe_results.items() if result.hint
         }
         with _PROBE_HINTS_LOCK:
-            _PROBE_HINTS = new_hints
+            _PROBE_HINTS.clear()
+            _PROBE_HINTS.update(new_hints)
         return {svc: result.state for svc, result in probe_results.items()}
     except Exception:
         # Fall back to the original filesystem-based detection so startup
         # never breaks over a probe failure.
         with _PROBE_HINTS_LOCK:
-            _PROBE_HINTS = {}
+            _PROBE_HINTS.clear()
         return get_trusty_capabilities()
 
 
