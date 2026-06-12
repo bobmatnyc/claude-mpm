@@ -100,6 +100,15 @@ def dedup_project_skills(
 
     Never touches skills whose names are not in USER_LEVEL_SKILLS.
 
+    WHAT: Iterates every subdirectory of ``project_dir/.claude/skills/``,
+          classifies each as a framework skill duplicate, a kept skill (no
+          user-level copy yet), or a project-unique skill, then removes
+          confirmed duplicates (or skips removal in dry-run mode) and returns
+          a :class:`ProjectDedupResult` with full per-skill accounting.
+    WHY: Removing only when the user-level copy is confirmed present prevents
+         accidentally stripping a skill that failed to deploy at the user level,
+         which would silently break agent behaviour.
+
     Args:
         project_dir: Root of the project (parent of .claude/).
         user_skills_base: Path to the user-level skills directory (~/.claude/skills/).
@@ -181,6 +190,15 @@ def sweep_projects(
     Only looks one level deep: ``<root>/<project>/.claude/skills/``.
     Sub-directories of *root* that contain no ``.claude/skills/`` directory are
     counted in ``projects_scanned`` but produce no :class:`ProjectDedupResult`.
+
+    WHAT: Enumerates immediate children of *root*, calls
+          :func:`dedup_project_skills` for each child that has a
+          ``.claude/skills/`` directory, accumulates per-project
+          :class:`ProjectDedupResult` objects, and returns a
+          :class:`SweepSummary` with aggregate counts and the dry-run flag.
+    WHY: A single-level scan covers the common layout (all projects under one
+         workspace root) without recursing into nested repos, keeping both
+         runtime and accidental-deletion risk low.
 
     Args:
         root: Directory whose immediate children are treated as project roots.
