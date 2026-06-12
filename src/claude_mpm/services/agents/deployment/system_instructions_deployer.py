@@ -137,30 +137,48 @@ class SystemInstructionsDeployer:
         parts: list[str] = []
 
         if user_path.exists():
-            user_content = user_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("WORKFLOW.md", user_content):
+            try:
+                user_content = user_path.read_text(encoding="utf-8")
+            except Exception as exc:
                 self.logger.warning(
-                    "Stale override detected: ~/.claude-mpm/WORKFLOW.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove ~/.claude-mpm/WORKFLOW.md to suppress "
-                    "this warning.",
+                    "Could not read ~/.claude-mpm/WORKFLOW.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(user_content)
-                has_override = True
+                user_content = None
+            if user_content is not None:
+                if self._detect_stale_override("WORKFLOW.md", user_content):
+                    self.logger.warning(
+                        "Stale override detected: ~/.claude-mpm/WORKFLOW.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove ~/.claude-mpm/WORKFLOW.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(user_content)
+                    has_override = True
 
         if project_path.exists():
-            project_content = project_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("WORKFLOW.md", project_content):
+            try:
+                project_content = project_path.read_text(encoding="utf-8")
+            except Exception as exc:
                 self.logger.warning(
-                    "Stale override detected: .claude-mpm/WORKFLOW.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove .claude-mpm/WORKFLOW.md to suppress "
-                    "this warning.",
+                    "Could not read .claude-mpm/WORKFLOW.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(project_content)
-                has_override = True
+                project_content = None
+            if project_content is not None:
+                if self._detect_stale_override("WORKFLOW.md", project_content):
+                    self.logger.warning(
+                        "Stale override detected: .claude-mpm/WORKFLOW.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove .claude-mpm/WORKFLOW.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(project_content)
+                    has_override = True
 
         if has_override:
             # User/project override present — inline it verbatim (it is
@@ -209,30 +227,48 @@ class SystemInstructionsDeployer:
         # cache), so a malformed positive-marker artefact cannot arrive here.
         # Stale-override detection (cross-block marker bleed) still applies.
         if user_path.exists():
-            user_content = user_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("MEMORY.md", user_content):
+            try:
+                user_content = user_path.read_text(encoding="utf-8")
+            except Exception as exc:
                 self.logger.warning(
-                    "Stale override detected: ~/.claude-mpm/MEMORY.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove ~/.claude-mpm/MEMORY.md to suppress "
-                    "this warning.",
+                    "Could not read ~/.claude-mpm/MEMORY.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(user_content)
-                has_override = True
+                user_content = None
+            if user_content is not None:
+                if self._detect_stale_override("MEMORY.md", user_content):
+                    self.logger.warning(
+                        "Stale override detected: ~/.claude-mpm/MEMORY.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove ~/.claude-mpm/MEMORY.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(user_content)
+                    has_override = True
 
         if project_path.exists():
-            project_content = project_path.read_text(encoding="utf-8")
-            if self._detect_stale_override("MEMORY.md", project_content):
+            try:
+                project_content = project_path.read_text(encoding="utf-8")
+            except Exception as exc:
                 self.logger.warning(
-                    "Stale override detected: .claude-mpm/MEMORY.md contains "
-                    "content from other blocks. Ignoring override and using "
-                    "system default. Remove .claude-mpm/MEMORY.md to suppress "
-                    "this warning.",
+                    "Could not read .claude-mpm/MEMORY.md (%s); "
+                    "falling back to system default.",
+                    exc,
                 )
-            else:
-                parts.append(project_content)
-                has_override = True
+                project_content = None
+            if project_content is not None:
+                if self._detect_stale_override("MEMORY.md", project_content):
+                    self.logger.warning(
+                        "Stale override detected: .claude-mpm/MEMORY.md contains "
+                        "content from other blocks. Ignoring override and using "
+                        "system default. Remove .claude-mpm/MEMORY.md to suppress "
+                        "this warning.",
+                    )
+                else:
+                    parts.append(project_content)
+                    has_override = True
 
         if has_override:
             self.logger.debug(
