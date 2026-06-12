@@ -622,7 +622,36 @@ class _SubagentSummary:
 
 
 def _parse_subagent_transcript(path: Path) -> _SubagentSummary:
-    """Parse a subagent JSONL file into a _SubagentSummary."""
+    """Parse a subagent JSONL file into a _SubagentSummary.
+
+    WHAT: Performs two sequential passes over the JSONL lines at *path*. The
+          first pass builds a tool_use_id → result-text index by scanning every
+          ``user`` role message for ``tool_result`` content blocks, so that
+          paired tool responses are available before assistant turns are processed.
+          The second pass iterates all lines in order: ``user`` role messages whose
+          content is not purely tool_result blocks are treated as the subagent's
+          initial prompt (the first such message wins); ``assistant`` role messages
+          accumulate token usage into a running total, update the aggregate model
+          string (first non-empty wins), collect the last non-empty text block as
+          the candidate response, and build a list of CallDetail objects for every
+          ``tool_use`` content block (with Skill-specific fields populated). For
+          each assistant turn a TimelineEvent is constructed and appended to
+          all_events, with the event_type classified as agent_call / skill_call /
+          mcp_call / pm_turn based on the dominant tool name in that turn's calls.
+          After both passes, aggregate cost is computed via compute_cost and a
+          _SubagentSummary is returned carrying the agent_id (from the filename
+          stem), attribution_agent (from the ``attributionAgent`` field), the first
+          user prompt text, the last assistant response text, aggregate model/usage/
+          cost, and the full per-turn event list.
+    WHY:  Subagent transcripts are stored in separate JSONL files under
+          {session_id}/subagents/agent-{id}.jsonl. Parsing them independently and
+          returning a compact summary lets the main parse_session function correlate
+          them to PM agent_call events by timestamp without having to load the full
+          subagent event list unless deep reporting is requested. The two-pass design
+          is required because tool_result lines appear in later ``user`` messages that
+          follow the ``assistant`` turn that issued the tool_use, so the result index
+          must be fully built before assistant turns are processed.
+    """
     lines = _parse_jsonl(path)
 
     stem = path.stem  # "agent-{agentId}"
