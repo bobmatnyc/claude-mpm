@@ -45,7 +45,7 @@ SERVICE_PROBE_COMMANDS: dict[str, list[str]] = {
 }
 
 # JSON-RPC initialize request (MCP protocol 2024-11-05).
-_INIT_REQUEST: dict = {
+_INIT_REQUEST: dict[str, object] = {
     "jsonrpc": "2.0",
     "method": "initialize",
     "params": {
@@ -57,14 +57,14 @@ _INIT_REQUEST: dict = {
 }
 
 # JSON-RPC notifications/initialized notification (no response expected).
-_INITIALIZED_NOTIFICATION: dict = {
+_INITIALIZED_NOTIFICATION: dict[str, object] = {
     "jsonrpc": "2.0",
     "method": "notifications/initialized",
     "params": {},
 }
 
 # JSON-RPC tools/list request.
-_TOOLS_LIST_REQUEST: dict = {
+_TOOLS_LIST_REQUEST: dict[str, object] = {
     "jsonrpc": "2.0",
     "method": "tools/list",
     "params": {},
@@ -203,8 +203,13 @@ async def _probe_single_service(
                 hint=f"{service} tools/list response missing 'result' key",
             )
 
-        tools: list[dict] = tools_resp["result"].get("tools", [])
-        tool_names: set[str] = {t.get("name", "") for t in tools if isinstance(t, dict)}
+        result_block = tools_resp.get("result") or {}
+        tools_list: list[object] = (
+            result_block.get("tools", []) if isinstance(result_block, dict) else []
+        )
+        tool_names: set[str] = {
+            str(t["name"]) for t in tools_list if isinstance(t, dict) and "name" in t
+        }
 
         if not tool_names:
             return ProbeResult(
