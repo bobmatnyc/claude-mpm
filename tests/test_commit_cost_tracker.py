@@ -1294,3 +1294,97 @@ class TestAmendCommitMessageZeroSkip:
 
         assert "X-AI-Tokens-In: 1000" in new_msg
         assert "X-AI-Tokens-Out: 200" in new_msg
+
+
+# ---------------------------------------------------------------------------
+# run_as_git_hook() worktree fallback tests
+# ---------------------------------------------------------------------------
+
+_MODULE = "claude_mpm.hooks.commit_cost_tracker"
+
+
+class TestRunAsGitHookWorktreeFallback:
+    """run_as_git_hook() must resolve the main working tree when no .claude-mpm/
+    directory is found (e.g. a repo that never ran mpm-init).
+
+    WHY: when a subagent commits inside a linked worktree
+    (.claude/worktrees/agent-XXXX) of such a repo, the previous fallback used the
+    raw worktree cwd as working_dir, so the baseline/transcript lookup landed in
+    the worktree path and token deltas were lost across worktree cycles. The fix
+    routes the None-project-root fallback through resolve_main_working_tree() so
+    working_dir is the canonical main-tree path.
+
+    All git subprocess + helper calls are patched so the test never touches real
+    git, matching the mocking style of TestResolveMainWorkingTree.
+    """
+
+    def _make_run(self, stdout: str, returncode: int = 0) -> MagicMock:
+        m = MagicMock()
+        m.returncode = returncode
+        m.stdout = stdout
+        m.stderr = ""
+        return m
+
+    def test_no_claude_mpm_resolves_main_tree(self, tmp_path: Path) -> None:
+        """When _find_project_root returns None and cwd is a linked-worktree path,
+        working_dir is resolved via resolve_main_working_tree (main-tree path) and
+        every downstream consumer receives that main-tree path.
+        """
+        from claude_mpm.hooks import commit_cost_tracker as cct
+
+        main_tree = str(tmp_path / "main-repo")
+        worktree_cwd = tmp_path / "main-repo" / ".claude" / "worktrees" / "agent-abc"
+
+        # Two HEAD rev-parse calls happen inside run_as_git_hook (initial SHA and
+        # the re-read after amend); both must report success.
+        head_result = self._make_run("abc1234\n")
+
+        with (
+            patch.dict("os.environ", {}, clear=False) as _env,
+            patch(f"{_MODULE}.Path.cwd", return_value=worktree_cwd),
+            patch(f"{_MODULE}._find_project_root", return_value=None),
+            patch(
+                f"{_MODULE}.resolve_main_working_tree", return_value=main_tree
+            ) as mock_resolve,
+            patch(f"{_MODULE}.get_token_delta", return_value={}) as mock_delta,
+            patch(f"{_MODULE}.amend_commit_message") as mock_amend,
+            patch(f"{_MODULE}.write_cost_log") as mock_log,
+            patch("subprocess.run", side_effect=[head_result, head_result]),
+        ):
+            # Ensure the recursion guard is not set for this invocation.
+            _env.pop(cct._RECURSION_GUARD_ENV, None)
+            cct.run_as_git_hook()
+
+        # The fallback must consult resolve_main_working_tree with the worktree cwd.
+        mock_resolve.assert_called_once_with(str(worktree_cwd))
+
+        # And its result (the main-tree path) must be the working_dir used by every
+        # downstream consumer — never the worktree path.
+        assert mock_delta.call_args[0][0] == main_tree
+        assert mock_amend.call_args[0][2] == main_tree
+        assert mock_log.call_args[0][2] == main_tree
+
+    def test_project_root_found_does_not_call_resolver(self, tmp_path: Path) -> None:
+        """Regression: when _find_project_root finds a root, resolve_main_working_tree
+        is NOT called and that root is used as working_dir.
+        """
+        from claude_mpm.hooks import commit_cost_tracker as cct
+
+        project_root = tmp_path / "found-root"
+        head_result = self._make_run("def5678\n")
+
+        with (
+            patch.dict("os.environ", {}, clear=False) as _env,
+            patch(f"{_MODULE}.Path.cwd", return_value=project_root),
+            patch(f"{_MODULE}._find_project_root", return_value=project_root),
+            patch(f"{_MODULE}.resolve_main_working_tree") as mock_resolve,
+            patch(f"{_MODULE}.get_token_delta", return_value={}) as mock_delta,
+            patch(f"{_MODULE}.amend_commit_message"),
+            patch(f"{_MODULE}.write_cost_log"),
+            patch("subprocess.run", side_effect=[head_result, head_result]),
+        ):
+            _env.pop(cct._RECURSION_GUARD_ENV, None)
+            cct.run_as_git_hook()
+
+        mock_resolve.assert_not_called()
+        assert mock_delta.call_args[0][0] == str(project_root)
