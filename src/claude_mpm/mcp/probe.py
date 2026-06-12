@@ -69,6 +69,7 @@ def probe_mcp_stdio(command: list[str], *, timeout: float = 4.0) -> bool:
         return False
 
     process: subprocess.Popen[bytes] | None = None
+    reader: threading.Thread | None = None
     try:
         process = subprocess.Popen(
             command,
@@ -84,7 +85,10 @@ def probe_mcp_stdio(command: list[str], *, timeout: float = 4.0) -> bool:
         # Write the initialize request.
         request_bytes = (json.dumps(_INITIALIZE_REQUEST) + "\n").encode()
         try:
-            assert process.stdin is not None  # always set with PIPE
+            if process.stdin is None or process.stdout is None:
+                # Should never happen with PIPE, but asserts are stripped under
+                # python -O so we use an explicit guard instead.
+                return False
             process.stdin.write(request_bytes)
             process.stdin.flush()
             process.stdin.close()
@@ -95,7 +99,6 @@ def probe_mcp_stdio(command: list[str], *, timeout: float = 4.0) -> bool:
             return False
 
         # Read one line from stdout with a wall-clock timeout via a thread.
-        assert process.stdout is not None
         result_holder: list[bytes] = []
 
         def _read_line() -> None:
@@ -152,3 +155,11 @@ def probe_mcp_stdio(command: list[str], *, timeout: float = 4.0) -> bool:
             pass
         except OSError:
             pass
+        # Best-effort: give the reader thread a chance to exit now that the
+        # process is dead.  Bounded join prevents lingering daemon threads if
+        # process.kill() raised.  Never raises on its own.
+        if reader is not None:
+            try:
+                reader.join(timeout=2.0)
+            except Exception:
+                pass
