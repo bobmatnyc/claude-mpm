@@ -214,7 +214,7 @@ workflow:
   - **Checkstyle (MethodLength):** Default max = 150 lines (but 50 is more stringent and more commonly adopted in modern codebases)
   - **Google Python Style Guide:** "Avoid functions longer than 40 lines" (retrieved from https://google.github.io/styleguide/pyguide.html)
 
-**Configurable:** Teams may adjust this to `75` for verbose languages (Java) or `25` for terse languages (Go), but 50 is a reasonable default across Python, TypeScript, and similar languages.
+**Configurable:** Teams may adjust this to `75` for verbose languages (Java) or `25` for terse languages (Go), but 50 is a reasonable default across Python, TypeScript, and similar languages. Rust uses a lower default (~30 LOC / CC > 5) because ownership semantics, trait bounds, and lifetime annotations make even short functions semantically dense — a 30-line Rust function often carries as much cognitive load as a 50-line Python function.
 
 ### Cyclomatic Complexity: 10
 
