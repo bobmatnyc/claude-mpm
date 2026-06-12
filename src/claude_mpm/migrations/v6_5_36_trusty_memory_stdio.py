@@ -146,11 +146,14 @@ def _process_file(path: Path) -> bool:
     if not _fix_servers(servers):
         return False
 
+    tmp = path.with_suffix(".tmp")
     try:
-        with open(path, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
             f.write("\n")
+        tmp.replace(path)
     except OSError as exc:
+        tmp.unlink(missing_ok=True)
         logger.warning("Failed to write %s: %s", path, exc)
         return False
 
