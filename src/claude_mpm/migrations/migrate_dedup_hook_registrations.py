@@ -108,6 +108,19 @@ def _dedup_hooks_in_block(
 ) -> list[dict[str, Any]]:
     """Collapse duplicate MPM hook commands within a single matcher block.
 
+    WHAT: Iterates over ``block_hooks``, passes non-MPM entries through
+    unchanged, and for MPM entries groups them by ``(command, args)``
+    fingerprint.  The first occurrence of each fingerprint is replaced by a
+    canonical dict (type, command, _mpm=True, canonical timeout, optional
+    args and _mpm_service); subsequent duplicates are discarded.  Returns the
+    resulting deduplicated list in first-seen order.
+
+    WHY: Two independent installers wrote MPM hook entries differing only in
+    ``timeout`` (15 vs 60 s) to the same file; the v6_3_19 dedup key
+    included timeout so both entries survived, causing each hook event to
+    fire twice (issue #677).  Separating this function from the file I/O
+    makes it straightforwardly testable and keeps _migrate_file thin.
+
     Non-MPM hooks are kept as-is. For MPM hooks sharing the same fingerprint,
     a single entry is emitted with:
     - ``command`` and ``args`` from the first occurrence
@@ -288,6 +301,18 @@ def _rotate_backups(path: Path) -> None:
 
 def _migrate_file(path: Path) -> bool:
     """Dedup MPM hook entries in a single settings file.
+
+    WHAT: Reads ``path`` as JSON, calls ``_dedup_settings`` to collapse
+    duplicate MPM hook entries in-place, and — only when duplicates were
+    found — creates a timestamped backup (rotating to keep at most 5) before
+    overwriting the file with the deduplicated contents.  JSON parse errors,
+    read failures, and write failures are all handled fail-open: they log a
+    WARNING and return True so startup is never blocked.
+
+    WHY: Encapsulates all I/O for one settings file so ``run_migration`` can
+    loop over candidate paths without repeating backup/write logic, and so
+    individual files can be tested in isolation by pointing the function at a
+    temporary path.
 
     Args:
         path: Path to the settings JSON file.
