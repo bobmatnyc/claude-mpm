@@ -188,6 +188,18 @@ def _is_disabled(cwd: str) -> bool:
 def _resolve_threshold(cwd: str) -> float:
     """Return the warning threshold percentage to use.
 
+    WHAT: Resolves the context-breaker warning threshold by consulting, in
+    priority order: the ``CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD`` env var,
+    then ``context_circuit_breaker.threshold_pct`` from each settings file
+    (settings.local.json, settings.json, ~/.claude/settings.json), and
+    finally the module-level ``CRITICAL_THRESHOLD`` constant (95.0).
+    Invalid values (non-numeric or outside [1, 100]) are silently skipped.
+
+    WHY: Centralises threshold resolution so every call site (evaluate,
+    tests, and future hooks) gets the same precedence logic without
+    duplicating the env-var / settings-file cascade.  Fail-open design
+    ensures a misconfigured threshold never hard-blocks a session.
+
     Precedence (highest first):
     1. ``CLAUDE_MPM_CONTEXT_BREAKER_THRESHOLD`` env var.
     2. ``context_circuit_breaker.threshold_pct`` in .claude/settings.local.json.
@@ -308,6 +320,20 @@ def _compute_percentage(state: dict[str, Any]) -> float | None:
 
 def evaluate(event: dict[str, Any]) -> dict[str, Any]:
     """Evaluate the breaker against the current event.
+
+    WHAT: Inspects the current session's context-usage state and, when the
+    computed percentage meets or exceeds the configured threshold, returns a
+    ``permissionDecision: "allow"`` dict carrying the warning text in
+    ``permissionDecisionReason``.  Returns an empty dict (pass-through) when
+    the breaker is disabled, the tool is in ``ALWAYS_ALLOWED_TOOLS``, the
+    state file is absent/malformed, the state belongs to a different session,
+    or the usage is below threshold.
+
+    WHY: Replaces the pre-#642 hard-block (``permissionDecision: "deny"``)
+    with an allow-with-warning so sessions near their context limit remain
+    usable.  The public API is a single function so the main() entry point,
+    unit tests, and any future hook dispatcher all exercise the same code
+    path.
 
     Returns a ``hookSpecificOutput``-shaped dict when the breaker fires a
     *warning*, and an empty dict otherwise.  At/above threshold the decision
