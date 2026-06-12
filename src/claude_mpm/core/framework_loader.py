@@ -384,10 +384,7 @@ class FrameworkLoader:
         degraded-mode note when all absent, and an empty string on probe error.
         """
         try:
-            from claude_mpm.services.trusty_status import (
-                get_probe_hint,
-                get_trusty_capabilities_live,
-            )
+            from claude_mpm.services.trusty_status import get_trusty_capabilities_live
 
             capabilities = get_trusty_capabilities_live()
         except Exception:
@@ -402,8 +399,7 @@ class FrameworkLoader:
         if not capabilities:
             return ""
 
-        # get_probe_hint is defined alongside get_trusty_capabilities_live; if
-        # the import above used the fallback path, provide a no-op stand-in.
+        # get_probe_hint has a no-op fallback if import fails.
         try:
             from claude_mpm.services.trusty_status import get_probe_hint
         except Exception:
@@ -483,11 +479,12 @@ class FrameworkLoader:
                     impact = f"{impact} {note}"
             lines.append(f"| {service} | {label} | {impact} |")
             if not is_on:
-                # For DEGRADED services, append the actionable hint from the probe
-                # in parentheses so the PM knows why the service is unavailable.
+                # For DEGRADED or ABSENT services, append the actionable hint
+                # from the probe in parentheses so the PM knows why the service
+                # is unavailable.
                 hint = get_probe_hint(service)
                 negation = f"- {impact}"
-                if hint and state == "degraded":
+                if hint and state in ("degraded", "absent"):
                     negation = f"{negation} ({hint})"
                 negations.append(negation)
 
