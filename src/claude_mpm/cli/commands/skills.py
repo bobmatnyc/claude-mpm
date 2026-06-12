@@ -70,7 +70,17 @@ class SkillsManagementCommand(BaseCommand):
         return None
 
     def run(self, args) -> CommandResult:
-        """Execute the skills command."""
+        """Execute the skills command.
+
+        WHAT: Dispatches the parsed CLI args to the appropriate subcommand handler via a
+              string-keyed command_map; falls back to _list_skills when no subcommand is
+              given and returns a CommandResult(exit_code=1) for unrecognised subcommands
+              or unhandled exceptions.
+        WHY: Centralises all routing logic in one place so new subcommands only require a
+             single entry in command_map rather than a growing if/elif chain, and wraps the
+             entire dispatch in a try/except so every code path returns a well-formed
+             CommandResult instead of crashing the CLI process.
+        """
         try:
             # Handle default case (no subcommand) - show list
             if not hasattr(args, "skills_command") or not args.skills_command:
@@ -875,6 +885,22 @@ class SkillsManagementCommand(BaseCommand):
 
         Without --apply the command runs in dry-run mode: it prints what WOULD
         be removed without making any changes.
+
+        WHAT: Resolves the *root* directory (defaults to ~/Projects, errors gracefully if
+              absent), delegates the actual file-system scan to ``sweep_projects(root,
+              dry_run)``, then renders the results in two stages: first a Rich summary
+              table with one row per project showing counts of removed/kept/unique/errored
+              skills, then per-project detail blocks listing every skill that would be
+              (or was) deleted and any project-unique skills that were preserved.  The
+              final summary line reports total directories acted upon and the total number
+              of projects scanned.  In dry-run mode (default when --apply is absent) no
+              files are touched and a reminder to re-run with --apply is printed.
+        WHY: Framework skills installed at the user level (~/.claude/skills/) should be
+             the single authoritative copy; having identical copies inside every project's
+             .claude/skills/ wastes disk space and causes version skew when the user-level
+             copy is updated but project copies are not.  The dry-run-first default lets
+             developers audit what will be removed before committing to deletion, matching
+             the mental model of git --dry-run for destructive operations.
 
         Args:
             args: Parsed arguments with optional ``root`` and ``apply`` fields.
