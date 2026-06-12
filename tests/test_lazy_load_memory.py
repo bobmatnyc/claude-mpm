@@ -363,16 +363,14 @@ def test_kuzu_augmentation_injects_when_from_deployed_and_detected() -> None:
 
     with (
         patch.object(loader, "_detect_kuzu_memory", return_value=True),
-        # load_memory_file must NOT be called on the deployed path.
-        patch.object(
-            loader.file_loader,
-            "load_memory_file",
-            side_effect=AssertionError(
-                "load_memory_file must not be called when _loaded_from_deployed is set"
-            ),
-        ),
+        patch.object(loader.file_loader, "load_memory_file") as mock_load_memory,
     ):
         loader.load_memory_instructions(content)
+
+    # load_memory_file must NOT be called on the deployed path.
+    assert mock_load_memory.call_count == 0, (
+        "load_memory_file must not be called when _loaded_from_deployed is set"
+    )
 
     memory_stored = content.get("memory_instructions", "")
 
