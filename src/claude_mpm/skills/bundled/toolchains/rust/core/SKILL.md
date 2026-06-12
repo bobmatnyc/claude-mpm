@@ -890,7 +890,8 @@ pub fn data_dir() -> anyhow::Result<PathBuf> { ... }
 ```
 
 Rules:
-- Every public `fn`/`struct`/`trait`/`mod` carries three doc-comment lines — `Why:` (the problem it solves), `What:` (mechanics), `Test:` (where coverage lives, or why untestable).
+- Non-trivial public `fn`/`struct`/`trait`/`mod` items carry three doc-comment lines — `Why:` (the problem it solves), `What:` (mechanics), `Test:` (where coverage lives, or why untestable). "Non-trivial" in Rust is calibrated at roughly > 30 LOC or cyclomatic complexity > 5.
+- Trivial wrappers, one-liners, and simple getters (e.g. `pub fn is_empty(&self) -> bool { self.0.is_empty() }`) need at most a single summary line. Forcing a three-line Why/What/Test triple on code shorter than its own docstring adds noise, not signal.
 - Clippy cannot enforce intent; this is how future readers reconstruct design without git archaeology.
 
 ---
