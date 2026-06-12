@@ -126,8 +126,11 @@ async def _probe_single_service(
             stderr=asyncio.subprocess.DEVNULL,
         )
 
-        assert process.stdin is not None
-        assert process.stdout is not None
+        if process.stdin is None or process.stdout is None:
+            return ProbeResult(
+                state="degraded",
+                hint=_safe_hint(f"{service} subprocess missing stdin/stdout pipes"),
+            )
 
         # --- Step 1: send initialize request ---
         init_line = (json.dumps(_INIT_REQUEST) + "\n").encode()
