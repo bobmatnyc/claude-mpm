@@ -202,6 +202,35 @@ def test_missing_mcp_servers_key_is_noop(tmp_path: Path) -> None:
     assert mcp_path.read_text() == original
 
 
+def test_atomic_write_no_tmp_left_on_success(tmp_path: Path) -> None:
+    """Successful rewrite must not leave a .tmp sibling behind."""
+    _write_mcp(
+        tmp_path,
+        {"mcpServers": {"trusty-memory": dict(_BRIDGE_ENTRY)}},
+    )
+
+    changed = mod.run_migration(project_dir=tmp_path)
+
+    assert changed is True
+    # The atomic write uses a sibling .tmp file; it must be cleaned up.
+    assert not (tmp_path / ".mcp.json.tmp").exists()
+
+
+def test_atomic_write_result_is_valid_json(tmp_path: Path) -> None:
+    """After rewrite, .mcp.json must be parseable and contain the canonical entry."""
+    _write_mcp(
+        tmp_path,
+        {"mcpServers": {"trusty-memory": dict(_BRIDGE_ENTRY)}},
+    )
+
+    mod.run_migration(project_dir=tmp_path)
+
+    mcp_path = tmp_path / ".mcp.json"
+    # File must be valid JSON (not truncated).
+    data = json.loads(mcp_path.read_text())
+    assert data["mcpServers"]["trusty-memory"] == _STDIO_ENTRY
+
+
 # ---------------------------------------------------------------------------
 # _needs_rewrite helper
 # ---------------------------------------------------------------------------
