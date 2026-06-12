@@ -418,10 +418,22 @@ class SkillsRegistry:
             except Exception as e:
                 logger.error(f"Error loading user skill {skill_dir}: {e}")
 
-        # Legacy flat .md skills (backward compat) — override directory-style
+        # Legacy flat .md skills (backward compat).
+        # Directory-style skills loaded above take precedence: if a same-named
+        # directory-style skill is already registered, skip the flat file and
+        # warn so the user knows the stale flat file is being ignored.
         for skill_file in user_skills_dir.glob("*.md"):
             try:
                 skill_name = skill_file.stem
+                if (
+                    skill_name in self.skills
+                    and self.skills[skill_name].source == "user"
+                ):
+                    logger.warning(
+                        f"Flat skill '{skill_name}.md' shadowed by directory-style skill "
+                        f"at {user_skills_dir / skill_name}; ignoring stale flat file"
+                    )
+                    continue
                 content = skill_file.read_text(encoding="utf-8")
                 frontmatter = self._parse_skill_frontmatter(content)
                 skill = self._create_skill_from_frontmatter(
@@ -471,10 +483,22 @@ class SkillsRegistry:
             except Exception as e:
                 logger.error(f"Error loading project skill {skill_dir}: {e}")
 
-        # Legacy flat .md skills (backward compat) — override directory-style
+        # Legacy flat .md skills (backward compat).
+        # Directory-style skills loaded above take precedence: if a same-named
+        # directory-style skill is already registered for this project, skip the
+        # flat file and warn so the user knows the stale flat file is being ignored.
         for skill_file in project_skills_dir.glob("*.md"):
             try:
                 skill_name = skill_file.stem
+                if (
+                    skill_name in self.skills
+                    and self.skills[skill_name].source == "project"
+                ):
+                    logger.warning(
+                        f"Flat skill '{skill_name}.md' shadowed by directory-style skill "
+                        f"at {project_skills_dir / skill_name}; ignoring stale flat file"
+                    )
+                    continue
                 content = skill_file.read_text(encoding="utf-8")
                 frontmatter = self._parse_skill_frontmatter(content)
                 skill = self._create_skill_from_frontmatter(
