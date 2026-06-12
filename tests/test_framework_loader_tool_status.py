@@ -34,8 +34,10 @@ def _render(monkeypatch, capabilities) -> str:
     """Invoke the section generator with a stubbed capabilities probe.
 
     ``capabilities`` may be a dict (returned verbatim) or an Exception instance
-    (raised) to exercise the fail-safe path. The method only touches
-    ``self.logger``, so we bind it to a minimal stub to avoid heavy init.
+    (raised) to exercise the fail-safe path. The method touches ``self.logger``
+    and ``self._trusty_search_index_note()``, so the stub provides both.
+    We patch both get_trusty_capabilities_live (new live probe) and the fallback
+    get_trusty_capabilities so either code path exercises the right mock.
     """
 
     def _fake_caps():
@@ -44,7 +46,13 @@ def _render(monkeypatch, capabilities) -> str:
         return capabilities
 
     monkeypatch.setattr(trusty_status, "get_trusty_capabilities", _fake_caps)
-    stub = SimpleNamespace(logger=logging.getLogger("test_tool_status"))
+    monkeypatch.setattr(trusty_status, "get_trusty_capabilities_live", _fake_caps)
+    # get_probe_hint should return "" for all services in these tests (no live probe).
+    monkeypatch.setattr(trusty_status, "get_probe_hint", lambda _svc: "")
+    stub = SimpleNamespace(
+        logger=logging.getLogger("test_tool_status"),
+        _trusty_search_index_note=lambda: "",
+    )
     return FrameworkLoader._generate_tool_status_section(stub)
 
 
