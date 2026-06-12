@@ -243,6 +243,13 @@ def _run_remove_project_level_bundled_skills_migration() -> bool:
     return run_migration()
 
 
+def _run_remove_stale_pm_instructions_cache_migration() -> bool:
+    """Remove stale .claude-mpm/PM_INSTRUCTIONS.md auto-generated cache files (issue #796)."""
+    from .v6_5_41_remove_stale_pm_instructions_cache import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -439,6 +446,15 @@ MIGRATIONS: list[Migration] = [
         version="6.5.40",
         description="Remove project-level copies of bundled skills now that they deploy at user level (~/.claude/skills/)",
         run=_run_remove_project_level_bundled_skills_migration,
+        run_always=True,
+    ),
+    Migration(
+        id="v6_5_41_remove_stale_pm_instructions_cache",
+        version="6.5.41",
+        description="Remove stale .claude-mpm/PM_INSTRUCTIONS.md auto-generated cache files left over from pre-#794 installs (issue #796). User-override files (no auto-generated banner) are preserved.",
+        run=_run_remove_stale_pm_instructions_cache_migration,
+        # run_always=True: idempotent per-project cleanup — each project (and the
+        # user-level dir) is swept the next time claude-mpm starts in it.
         run_always=True,
     ),
 ]
