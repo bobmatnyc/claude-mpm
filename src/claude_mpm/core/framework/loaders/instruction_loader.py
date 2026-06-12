@@ -8,7 +8,7 @@ from claude_mpm.core.workflow_loader import load_workflow
 
 from .file_loader import FileLoader
 from .packaged_loader import PackagedLoader
-from .workflow_constants import WORKFLOW_SYSTEM_REFERENCE
+from .workflow_constants import MEMORY_SYSTEM_REFERENCE, WORKFLOW_SYSTEM_REFERENCE
 
 
 class InstructionLoader:
@@ -162,6 +162,12 @@ class InstructionLoader:
                     # Version OK, use deployed
                     content["framework_instructions"] = deployed_content
                     content["loaded"] = True
+                    # Sentinel: the merged DEPLOYED file already contains the
+                    # AGENT_DELEGATION + WORKFLOW-stub + MEMORY blocks (and any
+                    # project/user overrides, which the deployer inlines).  The
+                    # subsidiary loaders MUST NOT re-append the system defaults
+                    # or the prompt would contain each block twice.
+                    content["_loaded_from_deployed"] = True
                     self.logger.info(
                         f"Loaded PM_INSTRUCTIONS_DEPLOYED.md v{deployed_version:04d} from .claude-mpm/"
                     )
@@ -170,6 +176,7 @@ class InstructionLoader:
                 # Source doesn't exist, use deployed even without version check
                 content["framework_instructions"] = deployed_content
                 content["loaded"] = True
+                content["_loaded_from_deployed"] = True
                 self.logger.info("Loaded PM_INSTRUCTIONS_DEPLOYED.md from .claude-mpm/")
                 return
 
@@ -217,10 +224,17 @@ class InstructionLoader:
 
         Precedence: project .claude-mpm/ > user ~/.claude-mpm/ > system agents/
 
+        When framework_instructions was loaded from PM_INSTRUCTIONS_DEPLOYED.md
+        the merged file already contains the AGENT_DELEGATION block (overrides
+        inlined by the deployer), so we skip re-appending it to avoid double
+        injection.
+
         Args:
             content: Dictionary to update with agent delegation instructions
         """
         if not self.framework_path:
+            return
+        if content.get("_loaded_from_deployed"):
             return
         delegation, level = self.file_loader.load_agent_delegation_file(
             self.current_dir, self.framework_path
@@ -242,9 +256,16 @@ class InstructionLoader:
           summary table in PM_INSTRUCTIONS.md; the full detail can be Read on
           demand via the Read tool for complex tasks.
 
+        When framework_instructions was loaded from PM_INSTRUCTIONS_DEPLOYED.md
+        the merged file already contains the WORKFLOW block (stub for the system
+        default, or the inlined override), so we skip re-appending it to avoid
+        double injection.
+
         Args:
             content: Dictionary to update with workflow instructions
         """
+        if content.get("_loaded_from_deployed"):
+            return
         workflow, level = load_workflow(self.current_dir, self.framework_path)
         if not workflow:
             return
@@ -289,21 +310,66 @@ class InstructionLoader:
     def load_memory_instructions(self, content: dict[str, Any]) -> None:
         """Load MEMORY.md from appropriate location.
 
-        If kuzu-memory is detected AND no project-level .claude-mpm/MEMORY.md exists,
-        prepends a legacy kuzu-memory notice to the memory content.
-        trusty-memory is the primary recommended backend; kuzu-memory is a
-        deprecated legacy fallback retained for backward compatibility.
+        Lazy-loading strategy (mirrors WORKFLOW.md, saves ~1,776 tokens):
+        - Project-level (.claude-mpm/MEMORY.md): embedded verbatim — project
+          customisations must be available immediately.
+        - User-level (~/.claude-mpm/MEMORY.md): embedded verbatim — same
+          rationale.
+        - System-level (src/claude_mpm/agents/MEMORY.md): replaced with the
+          compact ``MEMORY_SYSTEM_REFERENCE`` stub.  The stub preserves
+          memory-trigger awareness (trigger phrases, categories, the
+          ``mcp__trusty-memory__memory_remember`` tool, and a pointer to the
+          full MEMORY.md), so the PM never misses a trigger.
+
+        Two behaviours are preserved when framework_instructions was loaded
+        from PM_INSTRUCTIONS_DEPLOYED.md (the ``_loaded_from_deployed`` sentinel):
+        1. The static MEMORY block is NOT re-appended (the merged DEPLOYED file
+           already contains it — re-appending would double-inject).
+        2. The dynamic kuzu-memory augmentation STILL runs.  It is
+           environment-dependent (depends on whether kuzu-memory is installed on
+           *this* machine) and therefore cannot be baked into DEPLOYED.
+
+        If kuzu-memory is detected AND no project-level .claude-mpm/MEMORY.md
+        exists, prepends a legacy kuzu-memory notice.  trusty-memory is the
+        primary recommended backend; kuzu-memory is a deprecated legacy fallback
+        retained for backward compatibility.
 
         Args:
             content: Dictionary to update with memory instructions
         """
-        memory, level = self.file_loader.load_memory_file(
-            self.current_dir, self.framework_path or Path()
-        )
+        from_deployed = bool(content.get("_loaded_from_deployed"))
 
-        # Auto-inject legacy kuzu-memory notice when detected and no project override.
-        # trusty-memory is primary; if the user has kuzu-memory installed but not
-        # trusty-memory, surface a notice so they know memory is still active.
+        if from_deployed:
+            # DEPLOYED already contains the static MEMORY block; do not re-load
+            # it.  We still evaluate the dynamic, environment-dependent kuzu
+            # augmentation below (it cannot be baked into DEPLOYED).
+            memory, level = None, None
+        else:
+            memory, level = self.file_loader.load_memory_file(
+                self.current_dir, self.framework_path or Path()
+            )
+
+            if level in ("project", "user"):
+                # Project/user overrides are small and project-specific — embed
+                # them verbatim so they are immediately available.
+                self.logger.info(
+                    f"Embedded {level}-level MEMORY.md ({len(memory)} chars)"
+                )
+            else:
+                # System default: substitute the compact reference stub instead
+                # of the full ~1,776-token document.
+                memory = MEMORY_SYSTEM_REFERENCE
+                level = "system"
+                self.logger.info(
+                    "Lazy-loaded system-level MEMORY.md "
+                    "(reference only, saved ~1,776 tokens)"
+                )
+
+        # Auto-inject legacy kuzu-memory notice when detected and no project
+        # override.  trusty-memory is primary; if the user has kuzu-memory
+        # installed but not trusty-memory, surface a notice so they know memory
+        # is still active.  This runs even in the DEPLOYED path because it is
+        # environment-dependent and cannot be precompiled into DEPLOYED.
         if level != "project" and self._detect_kuzu_memory():
             kuzu_prefix = (
                 "## Memory: kuzu-memory Active (legacy fallback)\n\n"
@@ -314,7 +380,13 @@ class InstructionLoader:
                 "- `mcp__kuzu-memory__kuzu_remember` — store facts immediately\n\n"
                 "Consider migrating to trusty-memory (primary recommended backend).\n\n"
             )
-            if memory:
+            if from_deployed:
+                # In the DEPLOYED path the static body is already present; only
+                # the dynamic kuzu prefix is injected (NOT the static MEMORY.md
+                # body, which would duplicate the merged content).
+                memory = kuzu_prefix
+                level = "system"
+            elif memory:
                 memory = kuzu_prefix + memory
             else:
                 memory = kuzu_prefix
