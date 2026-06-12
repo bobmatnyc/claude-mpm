@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path  # noqa: TC003 - used at runtime in tmp_path fixture annotation
 
 import pytest
 
@@ -146,16 +147,9 @@ def test_accepts_error_response_as_valid() -> None:
     assert result is True
 
 
-def test_subprocess_always_reaped_on_success() -> None:
+def test_subprocess_always_reaped_on_success(tmp_path: Path) -> None:
     """After a successful probe the server process must be dead (no zombies)."""
-    import subprocess
-
-    # Script that prints a PID file path to stderr so we can check process
-    # state after probe returns.
-    import tempfile
-    from pathlib import Path
-
-    pid_file = Path(tempfile.mktemp(suffix=".pid"))
+    pid_file = tmp_path / "probe_child.pid"
 
     script = (
         "import sys, os, json; "
