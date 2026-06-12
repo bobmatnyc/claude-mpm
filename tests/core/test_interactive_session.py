@@ -531,8 +531,8 @@ class TestInteractiveSession:
             ]
             # Check that command structure is correct (first 5 elements)
             assert result[:5] == expected
-            # Verify the last element is a path to PM_INSTRUCTIONS.md
-            assert str(result[5]).endswith(".claude-mpm/PM_INSTRUCTIONS.md")
+            # Verify the last element is a path to PM_INSTRUCTIONS_CACHE.md
+            assert str(result[5]).endswith(".claude-mpm/PM_INSTRUCTIONS_CACHE.md")
 
     def test_build_claude_command_with_args(self, interactive_session):
         """Test Claude command building with additional arguments."""
@@ -565,8 +565,8 @@ class TestInteractiveSession:
             ]
             # Check that command structure is correct (first 8 elements)
             assert result[:8] == expected
-            # Verify the last element is a path to PM_INSTRUCTIONS.md
-            assert str(result[8]).endswith(".claude-mpm/PM_INSTRUCTIONS.md")
+            # Verify the last element is a path to PM_INSTRUCTIONS_CACHE.md
+            assert str(result[8]).endswith(".claude-mpm/PM_INSTRUCTIONS_CACHE.md")
 
     def test_build_claude_command_with_system_prompt(self, interactive_session):
         """Test Claude command building with system prompt."""
@@ -598,8 +598,8 @@ class TestInteractiveSession:
             ]
             # Check that command structure is correct (first 5 elements)
             assert result[:5] == expected
-            # Verify the last element is a path to PM_INSTRUCTIONS.md
-            assert str(result[5]).endswith(".claude-mpm/PM_INSTRUCTIONS.md")
+            # Verify the last element is a path to PM_INSTRUCTIONS_CACHE.md
+            assert str(result[5]).endswith(".claude-mpm/PM_INSTRUCTIONS_CACHE.md")
 
     def test_prepare_environment(self, interactive_session):
         """Test environment preparation."""
