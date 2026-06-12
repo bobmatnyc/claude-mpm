@@ -1095,9 +1095,10 @@ def deploy_bundled_skills(force_deploy: bool = False):
             )
 
         # Import and run skills deployment
+        from ..core.config_scope import ConfigScope
         from ..skills.skills_service import SkillsService
 
-        skills_service = SkillsService()
+        skills_service = SkillsService(scope=ConfigScope.USER)
         deployment_result = skills_service.deploy_bundled_skills()
 
         # Log results
