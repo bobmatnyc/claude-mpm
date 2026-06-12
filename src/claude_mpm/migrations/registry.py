@@ -236,6 +236,13 @@ def _run_trusty_memory_stdio_migration() -> bool:
     return run_migration()
 
 
+def _run_remove_project_level_bundled_skills_migration() -> bool:
+    """Remove project-level bundled skills duplicates, replaced by user-level deployment."""
+    from .v6_5_40_remove_project_level_bundled_skills import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -426,6 +433,13 @@ MIGRATIONS: list[Migration] = [
         version="6.5.36",
         description="Rewrite stale trusty-memory-mcp-bridge MCP entries to the canonical direct-stdio form (trusty-memory serve --stdio) — the bridge is broken in v0.15.2+",
         run=_run_trusty_memory_stdio_migration,
+    ),
+    Migration(
+        id="v6_5_40_remove_project_level_bundled_skills",
+        version="6.5.40",
+        description="Remove project-level copies of bundled skills now that they deploy at user level (~/.claude/skills/)",
+        run=_run_remove_project_level_bundled_skills_migration,
+        run_always=True,
     ),
 ]
 
