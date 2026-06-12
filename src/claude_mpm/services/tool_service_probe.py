@@ -12,10 +12,12 @@ _probe_single_service (async, internal), probe_all_services (async, public),
 and probe_all_services_sync (sync wrapper). All four probes run concurrently
 via asyncio.gather so total added latency is bounded by one probe timeout
 (~1.5s) rather than 4x timeout. Always reaps child processes in finally blocks.
+Service classification uses a non-empty tools list as the ON signal; sentinel
+tool checking is not implemented (any tools returned → ON).
 
 Test: tests/services/test_tool_service_probe.py — covers ABSENT, ON (with and
-without the sentinel tool), DEGRADED (no tools / timeout / crash), concurrency,
-process reaping, and fail-safe behaviour.
+without any tools), DEGRADED (no tools / timeout / crash), concurrency, process
+reaping, and fail-safe behaviour.
 """
 
 from __future__ import annotations
@@ -28,12 +30,6 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 logger = logging.getLogger(__name__)
-
-# The tool we look for first in the tools/list response to confirm a service
-# is fully wired. If absent but other tools are returned we still report ON
-# (the sentinel may not be present in every deployment build), documented here
-# so future readers understand the intentional fallback.
-SENTINEL_TOOL = "console_metrics"
 
 # Service name -> stdio spawn command. These are the EXACT argv lists the
 # trusty-* binaries expect when started in stdio MCP server mode.
