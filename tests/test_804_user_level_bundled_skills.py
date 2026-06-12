@@ -238,12 +238,26 @@ def test_user_level_skills_contains_all_bundled() -> None:
     """USER_LEVEL_SKILLS must contain all 54 bundled skill names.
 
     Why: The dedup guard skips project-level deploy only for skills in this set.
-    Test: Assert the frozenset is a superset of BUNDLED_SKILL_NAMES.
+    The set is now derived dynamically from the bundled skills directory so that
+    newly-added bundled skills are automatically included without a manual edit.
+    Test: Assert both the module-level frozenset and get_user_level_skill_names()
+    are supersets of BUNDLED_SKILL_NAMES.
     """
-    from claude_mpm.services.skills.selective_skill_deployer import USER_LEVEL_SKILLS
+    from claude_mpm.services.skills.selective_skill_deployer import (
+        USER_LEVEL_SKILLS,
+        get_user_level_skill_names,
+    )
 
+    # Module-level constant (computed once at import time)
     missing = BUNDLED_SKILL_NAMES - USER_LEVEL_SKILLS
     assert not missing, f"Missing from USER_LEVEL_SKILLS: {sorted(missing)}"
+
+    # Dynamic function must produce the same superset
+    dynamic = get_user_level_skill_names()
+    missing_dynamic = BUNDLED_SKILL_NAMES - dynamic
+    assert not missing_dynamic, (
+        f"Missing from get_user_level_skill_names(): {sorted(missing_dynamic)}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -427,8 +441,6 @@ def test_deploy_bundled_skills_uses_user_scope(tmp_path: Path) -> None:
 
     captured_kwargs: dict = {}
 
-    original_init_called = False
-
     class MockSkillsService:
         def __init__(self, scope: ConfigScope = ConfigScope.USER) -> None:
             captured_kwargs["scope"] = scope
@@ -459,8 +471,16 @@ def test_deploy_bundled_skills_uses_user_scope(tmp_path: Path) -> None:
             ):
                 try:
                     startup.deploy_bundled_skills(force_deploy=True)
+                except (ImportError, AttributeError, TypeError):
+                    # These are expected when the real startup machinery is not
+                    # fully wired in tests; we only care about SkillsService call
+                    # args captured above.
+                    pass
                 except Exception:
-                    pass  # Allowed — we only care about SkillsService call args
+                    # Unexpected error — surface it so the test fails clearly
+                    # instead of silently masking the failure.
+                    if not captured_kwargs:
+                        raise
 
     assert captured_kwargs.get("scope") == ConfigScope.USER, (
         f"Expected scope=ConfigScope.USER, got {captured_kwargs.get('scope')}"
