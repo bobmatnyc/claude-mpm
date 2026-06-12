@@ -1178,7 +1178,10 @@ class TestTrustyMemoryStdioDetection:
         )
         # The service key "trusty-memory" is present → _is_present returns True.
         assert trusty_status._is_present("trusty-memory") is True
-        # The bridge entry type is "stdio" → _is_stdio_configured returns True.
+        # The bridge entry uses stdio TRANSPORT (type: "stdio"), so
+        # _is_stdio_configured correctly returns True here.  _is_stdio_configured
+        # checks the "type" field, NOT the command name — a future tightening of
+        # this check should be deliberate, not accidental.
         assert trusty_status._is_stdio_configured("trusty-memory") is True
 
     def test_absent_when_not_configured(self, monkeypatch, tmp_path):
