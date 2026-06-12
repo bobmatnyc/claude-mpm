@@ -308,6 +308,8 @@ Document WHY, not WHAT. Code shows what; comments explain decisions.
 - All error conditions handled, recovery strategies, propagation decisions
 - Big-O complexity for non-trivial algorithms
 
+For SLD-governed code, "significant" maps to the canonical thresholds: LOC > 50 or cyclomatic complexity > 10 — see `wwl-granularity.md §2`. Trivial one-liners and simple wrappers get a single-line docstring, not the full rationale block.
+
 **Example (design decision):**
 ```python
 class CacheManager:

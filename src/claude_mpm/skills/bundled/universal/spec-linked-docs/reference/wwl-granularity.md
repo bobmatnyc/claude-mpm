@@ -119,6 +119,27 @@ SPEC-{SUBSYSTEM}-{NN}~{rev} : docs/specs/{subsystem}.md#SPEC-{SUBSYSTEM}-{NN}
 """
 ```
 
+### Pure Re-Export / Scaffolding Modules (Exempt)
+
+`__init__.py` files and modules whose entire body consists of `__all__` assignments, re-exports, or empty stubs carry no independent logic. They need only a one-line module docstring (or none at all when the package structure is self-evident). Do not force WHAT/WHY/LINK on a file whose content is `from .foo import Bar` — there is nothing to document beyond what the imported names already say.
+
+Examples that qualify for the exemption:
+
+```python
+# claude_mpm/hooks/__init__.py  — pure re-export, one-liner is enough
+"""Public surface for the hooks package."""
+from .dispatcher import dispatch_hook
+from .registry import HandlerRegistry
+
+__all__ = ["dispatch_hook", "HandlerRegistry"]
+```
+
+```python
+# claude_mpm/utils/__init__.py  — empty scaffold, no docstring needed
+```
+
+This file (`wwl-granularity.md`) is the **authoritative home** for the proportionality and module-exemption rules. Cross-reference it from other files rather than duplicating the rule text.
+
 ### Function/Class/Method Level (Conditional)
 
 A function, class, or method requires its own WWL block when **EITHER**:
@@ -193,7 +214,7 @@ workflow:
   - **Checkstyle (MethodLength):** Default max = 150 lines (but 50 is more stringent and more commonly adopted in modern codebases)
   - **Google Python Style Guide:** "Avoid functions longer than 40 lines" (retrieved from https://google.github.io/styleguide/pyguide.html)
 
-**Configurable:** Teams may adjust this to `75` for verbose languages (Java) or `25` for terse languages (Go), but 50 is a reasonable default across Python, TypeScript, and similar languages.
+**Configurable:** Teams may adjust this to `75` for verbose languages (Java) or `25` for terse languages (Go), but 50 is a reasonable default across Python, TypeScript, and similar languages. Rust uses a lower default (~30 LOC / CC > 5) because ownership semantics, trait bounds, and lifetime annotations make even short functions semantically dense — a 30-line Rust function often carries as much cognitive load as a 50-line Python function.
 
 ### Cyclomatic Complexity: 10
 

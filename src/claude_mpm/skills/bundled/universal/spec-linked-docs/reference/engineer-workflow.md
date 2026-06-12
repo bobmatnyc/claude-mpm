@@ -93,6 +93,19 @@ SPEC-HOOKS-02~v1 : docs/specs/hooks.md#SPEC-HOOKS-02
 
 For any function or class that implements a *specific* spec section (distinct from the module-level spec), add a `:spec:` field to the docstring.
 
+**Coverage rule:** If a full specification is available, aim to link **at least the major classes and public entry-point functions** to the relevant spec sections — not necessarily every internal helper. Linkage density should be proportional to complexity: over-threshold units (LOC > 50 or cyclomatic complexity > 10; see `wwl-granularity.md §2`) require a `:spec:` link; simpler units may omit it.
+
+**No-spec rule:** If **no** specification exists or is applicable for a unit, the docstring **must** include `:spec: none` — this is the machine-detectable required form. An optional free-text supplement may follow, but it does not replace `:spec: none`:
+
+```python
+# Required — tooling checks for the :spec: field:
+# :spec: none
+# Optional supplement (human-readable context, not a substitute for the line above):
+# No governing spec — see backfill-workflow.md for backfill guidance.
+```
+
+Silently omitting `:spec:` on an over-threshold unit is indistinguishable from an accidental omission. `:spec: none` signals intentional awareness; any free-text note is supplemental context only.
+
 **Template:**
 
 ```python
