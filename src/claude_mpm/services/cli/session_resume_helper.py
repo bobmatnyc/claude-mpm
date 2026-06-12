@@ -95,9 +95,9 @@ class SessionResumeHelper:
     def _find_md_only_sessions(self, directory: Path) -> list[Path]:
         """Find timestamped .md session files lacking a .json counterpart.
 
-        Normal session pauses write three sibling files atomically (.json, .yaml,
-        .md). If only the .md file exists, the session is from older code or an
-        interrupted write — we still want users to be able to see and resume it.
+        Normal session pauses write two sibling files (.json, .md). If only the
+        .md file exists, the session is from older code or an interrupted write
+        — we still want users to be able to see and resume it.
 
         Args:
             directory: Directory to scan for .md-only sessions.
