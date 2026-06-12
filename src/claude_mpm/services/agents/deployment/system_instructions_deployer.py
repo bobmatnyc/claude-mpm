@@ -201,6 +201,16 @@ class SystemInstructionsDeployer:
     def _resolve_memory_block(self, agents_path: Path) -> str:
         """Resolve MEMORY.md with lazy-load logic identical to InstructionLoader.
 
+        WHAT: Checks user (~/.claude-mpm/MEMORY.md) and project (.claude-mpm/MEMORY.md)
+              override paths in that order, validates each for stale cross-block content,
+              and returns the concatenated override texts when any are present. When no
+              override exists, returns MEMORY_SYSTEM_REFERENCE (a compact stub) instead
+              of inlining the full ~1,776-token system MEMORY.md.
+        WHY:  Mirrors _resolve_workflow_block and InstructionLoader.load_memory_instructions()
+              so PM_INSTRUCTIONS_DEPLOYED.md stays in sync with the live assembled prompt.
+              Using the reference stub for the system default avoids re-injecting the full
+              memory detail on every session start while still letting users override it.
+
         Mirrors ``_resolve_workflow_block``: when no user or project override is
         present the full system-level MEMORY.md is NOT inlined; instead
         ``MEMORY_SYSTEM_REFERENCE`` is used.  This keeps the deployed
@@ -292,6 +302,18 @@ class SystemInstructionsDeployer:
 
     def _resolve_block(self, block_name: str, agents_path: Path) -> str:
         """Resolve a block file with additive project+user override semantics.
+
+        WHAT: Looks for user-level (~/.claude-mpm/<block_name>) and project-level
+              (.claude-mpm/<block_name>) override files in that order. Each candidate
+              is checked for stale cross-block content (_detect_stale_override) and for
+              structural validity (_override_is_valid). Valid overrides are concatenated
+              and returned; if no valid overrides are found, the system default from
+              agents_path is returned instead.
+        WHY:  The additive override model lets teams or individuals customise individual
+              PM instruction blocks without forking the entire system default, while the
+              stale-detection and positive-marker guards prevent corrupted launcher-cache
+              artefacts (e.g. a 19-byte PM_INSTRUCTIONS_CACHE.md) from silently replacing
+              canonical content.
 
         Priority: user_override + project_override (additive, together replace system)
         Fallback: system default from agents_path

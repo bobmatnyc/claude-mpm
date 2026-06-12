@@ -222,8 +222,21 @@ class UnifiedAgentRegistry:
         )
 
     def discover_agents(self, force_refresh: bool = False) -> dict[str, AgentMetadata]:
-        """
-        Discover all agents from configured paths with tier precedence.
+        """Discover all agents from configured paths with tier precedence.
+
+        WHAT: Checks the in-process registry cache (skipping re-scan when valid and
+              force_refresh is False), then clears the registry and iterates every
+              configured discovery_path to call _discover_path, assigns each file a
+              temporary tier-suffixed key, resolves name conflicts via
+              _apply_tier_precedence (PROJECT > USER > SYSTEM), links any matching
+              memory files via _discover_memory_integration, optionally persists the
+              result via _cache_registry, and returns the final name->AgentMetadata
+              mapping while updating timing and count statistics.
+        WHY: Consolidates the previously scattered agent-discovery logic from three
+             duplicate registry modules into one authoritative implementation; the
+             cache layer avoids redundant filesystem scans on repeated calls within the
+             same session while force_refresh=True supports callers that need guaranteed
+             fresh data (e.g., after add_discovery_path).
 
         Args:
             force_refresh: Force re-discovery even if cache is valid

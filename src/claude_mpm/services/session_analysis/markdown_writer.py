@@ -351,6 +351,22 @@ def _parse_meta_comment(comment_body: str) -> dict[str, str]:
 def read_markdown(path: Path) -> dict[str, Any]:
     """Parse a canonical session-report Markdown file.
 
+    WHAT: Reads the file at *path* and splits it into two parts. The YAML
+          frontmatter between the opening ``---`` fences is parsed with
+          ``yaml.safe_load`` into a dict; YAML errors produce a warning and an
+          empty dict rather than a hard failure. The remainder of the document is
+          scanned line-by-line with a stateful parser: each ``#### HH:MM · actor
+          · title`` heading starts a new event dict, an inline ``<!-- meta: ... -->``
+          comment is parsed into key/value pairs, ``**Calls:**`` / ``**Outcome:**``
+          / ``**Links:**`` markers route subsequent lines into their respective
+          accumulator lists, and ``---`` horizontal-rule separators are silently
+          skipped. When the next heading (or end-of-file) is reached, the
+          accumulated state is flushed into the events list. Returns a dict with
+          keys ``frontmatter`` and ``events``.
+    WHY:  Enables round-trip testing (render → read → verify) and gives the JSX
+          converter a structured parse target that does not need to re-implement
+          the full JSONL parser or reload raw transcripts.
+
     Returns a dict with:
     - ``frontmatter`` (dict from YAML)
     - ``events`` (list of dicts, one per timeline entry)
@@ -358,10 +374,6 @@ def read_markdown(path: Path) -> dict[str, Any]:
     Each event dict has:
     ``time``, ``actor``, ``title``, ``detail``, ``meta`` (from HTML comment),
     ``calls_text``, ``outcome_text``, ``links_text``.
-
-    WHY: Enables round-trip testing (render → read → verify) and gives the
-         JSX converter a structured parse target without re-implementing the
-         full JSONL parser.
     """
     text = path.read_text(encoding="utf-8")
 

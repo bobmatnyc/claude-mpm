@@ -389,7 +389,21 @@ class SkillsRegistry:
         logger.debug(f"Loaded {skill_count} bundled skills")
 
     def _load_user_skills(self):
-        """Load user-installed skills from ~/.claude/skills/"""
+        """Load user-installed skills from ~/.claude/skills/.
+
+        WHAT: Iterates ~/.claude/skills/ in two passes: first loads structured
+              directory-style skills (<skill-name>/SKILL.md), registering each under its
+              directory name with source='user'; then loads legacy flat .md files, but
+              skips any name already claimed by the directory-style pass and emits a
+              warning so the user knows the stale flat file is being silently ignored.
+              Both passes parse YAML frontmatter with backward-compatibility migration and
+              log the override of any bundled skill with the same name.
+        WHY: User-installed skills must override bundled ones so that local customisations
+             take effect without modifying the package; the two-pass approach with
+             directory-style precedence ensures the newer structured format wins over
+             legacy flat files while still loading them for backward compatibility,
+             preventing silent data loss for users who have not yet migrated.
+        """
         user_skills_dir = Path.home() / ".claude" / "skills"
         if not user_skills_dir.exists():
             logger.debug("User skills directory not found, skipping")
@@ -452,7 +466,21 @@ class SkillsRegistry:
             logger.debug(f"Loaded {skill_count} user skills")
 
     def _load_project_skills(self):
-        """Load project-specific skills from .claude/skills/"""
+        """Load project-specific skills from .claude/skills/.
+
+        WHAT: Iterates .claude/skills/ (relative to cwd) in two passes identical in
+              structure to _load_user_skills: directory-style skills (<skill-name>/SKILL.md)
+              are registered first with source='project', then legacy flat .md files are
+              processed with a skip-and-warn guard for names already claimed by the
+              directory-style pass.  Both passes parse frontmatter with backward-
+              compatibility migration and log when a project skill overrides a bundled or
+              user skill.
+        WHY: Project-level skills represent the highest precedence tier (project > user >
+             bundled), enabling per-project skill customisation without affecting other
+             projects or the user's global setup; the same two-pass strategy used for user
+             skills is applied here so the migration path from flat files to structured
+             directories is consistent across all tiers.
+        """
         project_skills_dir = Path.cwd() / ".claude" / "skills"
         if not project_skills_dir.exists():
             logger.debug("Project skills directory not found, skipping")

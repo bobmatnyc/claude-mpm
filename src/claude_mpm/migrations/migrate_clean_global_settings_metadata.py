@@ -148,6 +148,18 @@ def _is_mpm_hook_command(hook_cmd: Any) -> bool:
 def _strip_stale_metadata(settings: dict[str, Any]) -> tuple[dict[str, Any], int]:
     """Remove stale MPM metadata and hook entries from a global settings dict.
 
+    WHAT: Mutates ``settings`` in-place by (1) deleting any of the
+    ``_STALE_METADATA_KEYS`` (``_mpm_managed``, ``_mpm_version``) that are
+    present, (2) filtering out MPM-owned hook commands from every matcher
+    block in the ``hooks`` dict, and (3) removing any event keys or the
+    entire ``hooks`` key when they become empty after filtering.  Returns the
+    modified dict and a count of items removed.
+
+    WHY: Isolates the pure transformation logic from I/O so that
+    ``run_migration`` can be kept thin and so that unit tests can exercise
+    the mutation without touching the filesystem.  Preserves spinner keys
+    and all user-authored hook entries so cleanup is surgical and safe.
+
     Mutates ``settings`` in-place and returns the updated dict alongside the
     total count of keys/entries removed.
 
@@ -242,6 +254,19 @@ def _rotate_backups(path: Path) -> None:
 
 def run_migration() -> bool:
     """Remove stale MPM metadata from ``~/.claude/settings.json``.
+
+    WHAT: Reads ``~/.claude/settings.json``, passes it through
+    ``_strip_stale_metadata``, and — only when at least one item was removed
+    — creates a timestamped backup, rotates old backups to keep at most 5,
+    and atomically overwrites the original file via a temp-file-plus-replace
+    pattern.  Is idempotent (second run is a no-op) and fail-open (any I/O
+    or parse error is logged at WARNING level and the function returns True).
+
+    WHY: Runs automatically on startup (>= 6.5.21) so that every existing
+    installation is healed exactly once without requiring user action.
+    Returning True unconditionally ensures a failing migration never blocks
+    the session from starting, satisfying the fail-open contract shared by
+    all MPM startup migrations.
 
     Intended to be called by the migration runner on first startup of
     claude-mpm >= 6.5.21.

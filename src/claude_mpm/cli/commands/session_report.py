@@ -1,5 +1,9 @@
 """session-report command: generate a canonical Markdown session report.
 
+WHAT: Parses a Claude Code JSONL session transcript (offline, no LLM calls) and
+renders a structured Markdown document with timeline, subagent delegations, skill
+and MCP calls, per-call token counts, and estimated cost at public rack rates.
+
 WHY: Claude Code records full JSONL transcripts of every session. This command
 reads those transcripts — without any LLM calls — and produces a structured
 Markdown document capturing the full timeline, all subagent delegations, skill
@@ -134,7 +138,16 @@ def run_session_report(args: argparse.Namespace) -> int:
 
 
 def add_session_report_parser(subparsers: argparse.ArgumentParser) -> None:
-    """Register the session-report subcommand."""
+    """Register the session-report subcommand.
+
+    WHAT: Attaches a ``session-report`` sub-parser to *subparsers* with
+          ``--session``, ``--project``, ``--output``, and ``--no-redact``
+          arguments, and binds it to :func:`run_session_report` via
+          ``set_defaults(command="session-report")``.
+    WHY: Centralising all argument declarations here keeps the main CLI
+         entry-point free of per-command argument boilerplate and lets the
+         subcommand's help text be generated and tested independently.
+    """
     parser = subparsers.add_parser(
         "session-report",
         help="Generate a Markdown session report from a Claude Code transcript",

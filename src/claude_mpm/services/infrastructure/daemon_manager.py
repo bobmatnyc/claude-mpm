@@ -157,6 +157,17 @@ class SocketIODaemonManager:
     def _start_subprocess_daemon(self) -> bool:
         """Spawn the daemon as a detached subprocess (exec-based, no fork).
 
+        WHAT: Builds a Python one-liner command that re-invokes SocketIODaemonManager
+              with _SOCKETIO_DAEMON_ENV_KEY=1 set in the child environment, launches it
+              via subprocess.Popen(start_new_session=True) with stdio redirected to the
+              port-keyed log file, then polls up to 15 seconds for the child to write its
+              PID file. Returns True once a valid positive PID is confirmed, or False if
+              the child exits prematurely or the timeout elapses.
+        WHY:  Replaces the old os.fork()-based double-fork daemonization. On macOS,
+              forking a multithreaded process that has touched CoreFoundation causes
+              EXC_BAD_ACCESS / SIGSEGV in the child. exec-based spawning via Popen never
+              inherits that state, giving the same session-detachment semantics safely.
+
         The child detects _SOCKETIO_DAEMON_ENV_KEY=1 and calls _run_server()
         directly in foreground mode.  start_new_session=True provides the
         session-detachment that the old double-fork used to provide.  The PID
