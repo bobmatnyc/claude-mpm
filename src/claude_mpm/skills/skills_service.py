@@ -27,6 +27,7 @@ from typing import Any
 
 import yaml
 
+from claude_mpm.core.config_scope import ConfigScope, resolve_skills_dir
 from claude_mpm.core.mixins import LoggerMixin
 
 # Security constants
@@ -55,19 +56,23 @@ class SkillsService(LoggerMixin):
     :spec: SPEC-SKILLS-02~1
     """
 
-    def __init__(self) -> None:
+    def __init__(self, scope: ConfigScope = ConfigScope.USER) -> None:
         """Initialize Skills Service.
 
         Sets up paths for:
         - project_root: Root directory of the project
         - bundled_skills_path: Source bundled skills (src/claude_mpm/skills/bundled)
-        - deployed_skills_path: Deployment target (.claude/skills/)
+        - deployed_skills_path: Deployment target (scope-resolved; defaults to ~/.claude/skills/)
         - registry_path: Skills registry YAML (config/skills_registry.yaml)
+
+        Args:
+            scope: ConfigScope.USER (default) deploys to ~/.claude/skills/;
+                   ConfigScope.PROJECT deploys to {project_root}/.claude/skills/.
         """
         super().__init__()
         self.project_root: Path = self._get_project_root()
         self.bundled_skills_path: Path = Path(__file__).parent / "bundled"
-        self.deployed_skills_path: Path = self.project_root / ".claude" / "skills"
+        self.deployed_skills_path: Path = resolve_skills_dir(scope, self.project_root)
         self.registry_path: Path = (
             Path(__file__).parent.parent.parent.parent
             / "config"

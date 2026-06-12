@@ -336,12 +336,12 @@ skills:
         result = get_required_skills_from_agents(agents_dir)
 
         # Verify slash-separated paths are normalized to dashes.
-        # Note: universal-collaboration-git-workflow is in USER_LEVEL_SKILLS so it
-        # is excluded from project-level deployment (lives at ~/.claude/skills/).
+        # universal-collaboration-git-workflow is NOT a bundled skill name so it is
+        # NOT in USER_LEVEL_SKILLS and stays in the project-level result.
         expected = {
             "explicit-skill",
             "toolchains-python-frameworks-django",
-            # "universal-collaboration-git-workflow" filtered to user level
+            "universal-collaboration-git-workflow",
         } - USER_LEVEL_SKILLS
         assert result == expected
 

@@ -50,41 +50,52 @@ logger = get_logger(__name__)
 # Deployment tracking index file
 DEPLOYED_INDEX_FILE = ".mpm-deployed-skills.json"
 
+
+def get_user_level_skill_names() -> frozenset[str]:
+    """Return the set of skill names that belong at the USER level (~/.claude/skills/).
+
+    All bundled skills deploy at user level and must NOT be re-deployed at the
+    project level (.claude/skills/).  The set is derived dynamically from the
+    bundled skills directory via SkillsService so that newly-added bundled skills
+    are automatically included without any manual list edit.
+
+    If discovery fails (e.g. import error during early startup), an empty
+    frozenset is returned and a warning is logged — callers should treat that
+    as "no user-level skills known" rather than "no skills to guard".
+
+    Returns:
+        frozenset of skill names that must only be deployed at user scope.
+
+    Example:
+        >>> names = get_user_level_skill_names()
+        >>> "mpm-delegation-patterns" in names
+        True
+    """
+    try:
+        from claude_mpm.core.config_scope import ConfigScope
+        from claude_mpm.skills.skills_service import SkillsService
+
+        service = SkillsService(scope=ConfigScope.USER)
+        bundled = service.discover_bundled_skills()
+        return frozenset(s["name"] for s in bundled)
+    except Exception as exc:
+        logger.warning(
+            "Could not discover bundled skill names dynamically; "
+            "USER_LEVEL_SKILLS will be empty (project-level dedup guard disabled): %s",
+            exc,
+        )
+        return frozenset()
+
+
 # Canonical set of skills that belong at the USER level (~/.claude/skills/).
-# These are deployed by PMSkillsDeployerService to ~/.claude/skills/ and must
-# NOT be re-deployed at the project level (.claude/skills/); SelectiveSkillDeployer
-# will skip any skill in this set when deploying project-level skills.
-USER_LEVEL_SKILLS: frozenset[str] = frozenset(
-    {
-        # Core MPM command skills
-        "mpm",
-        "mpm-agent-update-workflow",
-        "mpm-bug-reporting",
-        "mpm-circuit-breaker-enforcement",
-        "mpm-config",
-        "mpm-delegation-patterns",
-        "mpm-doctor",
-        "mpm-git-file-tracking",
-        "mpm-help",
-        "mpm-init",
-        "mpm-postmortem",
-        "mpm-pr-workflow",
-        "mpm-session-management",
-        "mpm-session-pause",
-        "mpm-session-resume",
-        "mpm-status",
-        "mpm-teaching-mode",
-        "mpm-ticket-view",
-        "mpm-ticketing-integration",
-        "mpm-tool-usage-guide",
-        "mpm-verification-protocols",
-        # Universal skills deployed at user level
-        "universal-collaboration-git-workflow",
-        "universal-debugging-systematic-debugging",
-        "universal-security-security-scanning",
-        "universal-testing-test-driven-development",
-    }
-)
+# Derived dynamically from the bundled skills directory so that any newly-added
+# bundled skill is automatically user-level with no manual registration needed.
+# PMSkillsDeployerService deploys these to ~/.claude/skills/; SelectiveSkillDeployer
+# skips any skill in this set when deploying project-level skills (dedup guard).
+#
+# NOTE: module-level assignment computes the set once at import time.  Call
+# get_user_level_skill_names() directly if you need a fresh computation.
+USER_LEVEL_SKILLS: frozenset[str] = get_user_level_skill_names()
 
 # Core PM skills that should always be deployed
 # These are referenced in PM_INSTRUCTIONS.md with [SKILL: name] markers
