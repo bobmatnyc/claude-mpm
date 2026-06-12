@@ -229,6 +229,13 @@ def _run_rename_trusty_analyzer_migration() -> bool:
     return run_migration()
 
 
+def _run_trusty_memory_stdio_migration() -> bool:
+    """Rewrite stale trusty-memory-mcp-bridge entries to the canonical trusty-memory serve --stdio form."""
+    from .v6_5_36_trusty_memory_stdio import run_migration
+
+    return run_migration()
+
+
 def _run_remove_absolute_hook_paths_migration() -> bool:
     """Replace absolute MPM hook paths with the portable 'claude-hook' entry point (issue #563)."""
     from pathlib import Path
@@ -413,6 +420,12 @@ MIGRATIONS: list[Migration] = [
         version="6.5.34",
         description="Rename stale trusty-analyzer MCP server entry to trusty-analyze and remove old com.bobmatnyc.trusty-analyzer launchd plist (issue #782)",
         run=_run_rename_trusty_analyzer_migration,
+    ),
+    Migration(
+        id="v6_5_36_trusty_memory_stdio",
+        version="6.5.36",
+        description="Rewrite stale trusty-memory-mcp-bridge MCP entries to the canonical direct-stdio form (trusty-memory serve --stdio) — the bridge is broken in v0.15.2+",
+        run=_run_trusty_memory_stdio_migration,
     ),
 ]
 
