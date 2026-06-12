@@ -264,6 +264,57 @@ def _qualname_of(node: ast.AST, parent_qualname: str) -> str:
     return name
 
 
+def _is_pure_reexport_module(filepath: Path) -> bool:
+    """Return True if this file is a pure re-export module exempt from module-level WWL.
+
+    WHAT: Detects ``__init__.py`` files that contain only imports, ``__all__``
+          assignments, and string literals / pass statements — no real logic.
+    WHY:  The WWL docs standard (#798) exempts these modules from the
+          module-level WHAT/WHY requirement since they carry no logic worth
+          documenting.
+
+    Parameters
+    ----------
+    filepath : Path
+        Absolute path to the ``.py`` file under inspection.
+
+    Returns
+    -------
+    bool
+        True only when the file is named ``__init__.py`` AND every top-level
+        statement is an import, an ``__all__`` (Aug)Assign, a string/constant
+        expression, or ``pass``.  False otherwise (including on SyntaxError,
+        so broken files fall through to the normal checker).
+    """
+    if filepath.name != "__init__.py":
+        return False
+    try:
+        source = filepath.read_text(encoding="utf-8", errors="replace")
+        tree = ast.parse(source, filename=str(filepath))
+    except SyntaxError:
+        return False
+
+    for stmt in tree.body:
+        if isinstance(stmt, (ast.Import, ast.ImportFrom, ast.Pass)):
+            continue
+        if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
+            # String literals / docstrings / other bare constants.
+            continue
+        if isinstance(stmt, ast.Assign) and all(
+            isinstance(t, ast.Name) and t.id == "__all__" for t in stmt.targets
+        ):
+            continue
+        if (
+            isinstance(stmt, ast.AugAssign)
+            and isinstance(stmt.target, ast.Name)
+            and stmt.target.id == "__all__"
+        ):
+            continue
+        # Anything else (function/class def, real assignment, etc.) → not pure.
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Per-file analysis
 # ---------------------------------------------------------------------------
@@ -357,7 +408,7 @@ def analyze_file(
 
     # --- Module-level WWL check ---
     has_module_wwl = _has_wwl_docstring(tree)
-    if not has_module_wwl:
+    if not has_module_wwl and not _is_pure_reexport_module(path):
         violations.append(
             Violation(
                 relpath=relpath,
