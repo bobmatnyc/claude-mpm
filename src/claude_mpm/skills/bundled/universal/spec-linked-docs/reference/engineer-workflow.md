@@ -95,16 +95,16 @@ For any function or class that implements a *specific* spec section (distinct fr
 
 **Coverage rule:** If a full specification is available, aim to link **at least the major classes and public entry-point functions** to the relevant spec sections — not necessarily every internal helper. Linkage density should be proportional to complexity: over-threshold units (LOC > 50 or cyclomatic complexity > 10; see `wwl-granularity.md §2`) require a `:spec:` link; simpler units may omit it.
 
-**No-spec rule:** If **no** specification exists or is applicable for a unit, the docstring must state this explicitly rather than silently omitting the field:
+**No-spec rule:** If **no** specification exists or is applicable for a unit, the docstring **must** include `:spec: none` — this is the machine-detectable required form. An optional free-text supplement may follow, but it does not replace `:spec: none`:
 
 ```python
-# Acceptable forms when no spec governs this unit:
+# Required — tooling checks for the :spec: field:
 # :spec: none
-# or inline note:
-# No governing spec — see wwl-granularity.md §7 for backfill guidance.
+# Optional supplement (human-readable context, not a substitute for the line above):
+# No governing spec — see backfill-workflow.md for backfill guidance.
 ```
 
-Silently omitting `:spec:` on an over-threshold unit is indistinguishable from an accidental omission. Using `:spec: none` (or an equivalent explicit note) signals intentional awareness, not negligence.
+Silently omitting `:spec:` on an over-threshold unit is indistinguishable from an accidental omission. `:spec: none` signals intentional awareness; any free-text note is supplemental context only.
 
 **Template:**
 
