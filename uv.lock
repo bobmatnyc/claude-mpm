@@ -648,7 +648,7 @@ wheels = [
 
 [[package]]
 name = "claude-mpm"
-version = "6.5.37"
+version = "6.5.38"
 source = { editable = "." }
 dependencies = [
     { name = "ai-trackdown-pytools" },
@@ -781,6 +781,7 @@ dev = [
     { name = "mutmut" },
     { name = "mypy" },
     { name = "playwright" },
+    { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -896,6 +897,7 @@ dev = [
     { name = "mutmut", specifier = "==2.5.1" },
     { name = "mypy", specifier = ">=1.0.0" },
     { name = "playwright", specifier = ">=1.40.0" },
+    { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=7.0" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
