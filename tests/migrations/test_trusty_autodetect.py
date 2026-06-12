@@ -502,10 +502,12 @@ def _service_descriptor(name: str) -> dict[str, object]:
 
 
 def test_trusty_review_registered_in_services() -> None:
-    """trusty-review is a known autodetect service with the stdio serve entry."""
+    """trusty-review is a known autodetect service with jsonrpc detection mode."""
     svc = _service_descriptor("trusty-review")
     assert svc["binary"] == "trusty-review"
-    assert svc["fallback_addr"] == "127.0.0.1:7880"
+    # trusty-review is review-on-demand — no HTTP daemon, so no fallback_addr.
+    assert "fallback_addr" not in svc
+    assert svc.get("detect") == "jsonrpc"
     assert svc["mcp_entry"] == {
         "type": "stdio",
         "command": "trusty-review",
@@ -532,8 +534,9 @@ def test_trusty_review_env_holds_no_secrets() -> None:
 def test_trusty_review_wired_without_palace_or_hooks(
     project_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Healthy trusty-review → .mcp.json entry written, but NO palace created
-    and NO trusty-review hooks injected (it has no _TRUSTY_HOOK_SPECS entry)."""
+    """Healthy trusty-review → .mcp.json entry written via jsonrpc probe, but
+    NO palace created and NO trusty-review hooks injected (it has no
+    _TRUSTY_HOOK_SPECS entry)."""
     from claude_mpm.services import trusty_hooks
 
     palace_calls: list[object] = []
@@ -548,8 +551,9 @@ def test_trusty_review_wired_without_palace_or_hooks(
 
     with (
         patch.object(mod.shutil, "which", side_effect=_make_which({"trusty-review"})),
-        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
-        patch.object(mod, "_http_health_check", return_value=True),
+        # trusty-review uses jsonrpc detection — mock _probe_mcp_stdio, not
+        # _http_health_check / _resolve_base_url.
+        patch.object(mod, "_probe_mcp_stdio", return_value=True),
     ):
         changed = mod.run_migration(project_dir=project_dir)
 
@@ -566,6 +570,96 @@ def test_trusty_review_wired_without_palace_or_hooks(
     # inject_trusty_hooks is called with trusty-review, but it has no hook spec
     # so nothing is actually injected for it.
     assert hook_services == [["trusty-review"]]
+
+
+def test_trusty_review_not_wired_when_probe_fails(project_dir: Path) -> None:
+    """Binary present but JSON-RPC probe returns False → entry NOT written."""
+    with (
+        patch.object(mod.shutil, "which", side_effect=_make_which({"trusty-review"})),
+        patch.object(mod, "_probe_mcp_stdio", return_value=False),
+    ):
+        changed = mod.run_migration(project_dir=project_dir)
+
+    assert changed is False
+    assert not (project_dir / ".mcp.json").exists()
+
+
+def test_trusty_review_idempotent_when_already_present(project_dir: Path) -> None:
+    """trusty-review entry already in .mcp.json → probe not called, no-op."""
+    existing = {
+        "mcpServers": {
+            "trusty-review": {
+                "type": "stdio",
+                "command": "trusty-review",
+                "args": ["serve", "--stdio"],
+                "env": {"TRUSTY_REVIEW_AUTH_MODE": "cli"},
+            }
+        }
+    }
+    mcp_path = project_dir / ".mcp.json"
+    mcp_path.write_text(json.dumps(existing, indent=2) + "\n")
+    original_contents = mcp_path.read_text()
+
+    probe_called: list[list[str]] = []
+
+    def tracking_probe(cmd: list[str], **kwargs: object) -> bool:
+        probe_called.append(cmd)
+        return True
+
+    with (
+        patch.object(mod.shutil, "which", side_effect=_make_which({"trusty-review"})),
+        patch.object(mod, "_probe_mcp_stdio", side_effect=tracking_probe),
+    ):
+        changed = mod.run_migration(project_dir=project_dir)
+
+    # The entry was already present so no probe subprocess should have been
+    # spawned at all (Fix 1: skip probe when service already in .mcp.json).
+    assert probe_called == [], (
+        f"_probe_mcp_stdio must NOT be called when entry already present; "
+        f"got calls: {probe_called}"
+    )
+    assert changed is False
+    assert mcp_path.read_text() == original_contents
+
+
+def test_http_services_unaffected_by_jsonrpc_mode(project_dir: Path) -> None:
+    """http-mode services (trusty-search, trusty-memory) still work via the
+    existing HTTP health-check path when trusty-review's jsonrpc probe fires."""
+    http_probe_called: list[str] = []
+    jsonrpc_probe_called: list[list[str]] = []
+
+    def tracking_http(url: str, **kwargs: object) -> bool:
+        http_probe_called.append(url)
+        return True
+
+    def tracking_jsonrpc(cmd: list[str], **kwargs: object) -> bool:
+        jsonrpc_probe_called.append(cmd)
+        return True
+
+    with (
+        patch.object(
+            mod.shutil,
+            "which",
+            side_effect=_make_which(
+                {"trusty-search", "trusty-memory", "trusty-review"}
+            ),
+        ),
+        patch.object(mod, "_resolve_base_url", side_effect=_fake_resolve_base_url),
+        patch.object(mod, "_http_health_check", side_effect=tracking_http),
+        patch.object(mod, "_probe_mcp_stdio", side_effect=tracking_jsonrpc),
+    ):
+        changed = mod.run_migration(project_dir=project_dir)
+
+    assert changed is True
+    # HTTP probe called for search + memory, not review.
+    assert len(http_probe_called) == 2
+    assert all("/health" in url for url in http_probe_called)
+    # JSON-RPC probe called only for trusty-review.
+    assert len(jsonrpc_probe_called) == 1
+    assert jsonrpc_probe_called[0] == ["trusty-review", "serve", "--stdio"]
+    # All three entries wired.
+    servers = json.loads((project_dir / ".mcp.json").read_text())["mcpServers"]
+    assert set(servers.keys()) == {"trusty-search", "trusty-memory", "trusty-review"}
 
 
 def test_trusty_review_has_no_hook_spec() -> None:
