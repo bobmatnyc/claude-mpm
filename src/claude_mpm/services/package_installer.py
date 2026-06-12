@@ -582,13 +582,12 @@ def get_package_specs() -> dict[SetupService, PackageSpec]:
             bin_name="trusty-memory",
         ),
         SetupService.TRUSTY_ANALYZE: PackageSpec(
-            # Crate package + binary are both named `trusty-analyzer`, but the
-            # repo (and the user-facing setup verb) is `trusty-analyze`.
-            name="trusty-analyzer",
-            binary_name="trusty-analyzer",
+            # Binary and crate are both named `trusty-analyze` (no trailing "r").
+            name="trusty-analyze",
+            binary_name="trusty-analyze",
             installer=InstallerType.CARGO,
             git_url="https://github.com/bobmatnyc/trusty-analyze.git",
-            bin_name="trusty-analyzer",
+            bin_name="trusty-analyze",
         ),
     }
 

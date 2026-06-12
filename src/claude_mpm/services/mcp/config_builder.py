@@ -69,9 +69,9 @@ class MCPServiceConfigBuilder:
             "command": "trusty-memory-mcp-bridge",
             "args": [],
         },
-        "trusty-analyzer": {
+        "trusty-analyze": {
             "type": "stdio",
-            "command": "trusty-analyzer",
+            "command": "trusty-analyze",
             "args": ["mcp"],
         },
         # Review-on-demand MCP server. ``env`` carries ONLY non-secret config:

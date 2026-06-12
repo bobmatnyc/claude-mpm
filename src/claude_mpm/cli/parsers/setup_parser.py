@@ -36,7 +36,7 @@ Available services:
   mcp-skillset           Set up mcp-skillset RAG-powered skills (USER-LEVEL, not project-specific)
   trusty-search          Set up trusty-search Rust hybrid code search daemon (port 7878)
   trusty-memory          Set up trusty-memory Rust AI memory daemon (port 3038)
-  trusty-analyze         Set up trusty-analyzer Rust code-analysis sidecar (port 7879)
+  trusty-analyze         Set up trusty-analyze Rust code-analysis sidecar (port 7879)
 
 Service options:
   --oauth-service NAME   Service name for OAuth setup (required for oauth)
