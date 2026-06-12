@@ -150,11 +150,16 @@ class TestResolveBlockWithStaleDetection:
         system_file = agents_path / "PM_INSTRUCTIONS.md"
         system_file.write_text("# System Default")
 
-        # Set up clean project override
+        # Set up clean project override. A genuine PM override must carry its
+        # own positive marker (## Identity) — that is what _override_is_valid
+        # requires to distinguish real content from a malformed launcher-cache
+        # artefact (see _override_is_valid / BLOCK_MARKERS).
         project_override_dir = tmp_path / ".claude-mpm"
         project_override_dir.mkdir()
         clean_override = project_override_dir / "PM_INSTRUCTIONS.md"
-        override_content = "# Custom Project PM Instructions\n\nLegitimate override."
+        override_content = (
+            "# Custom Project PM Instructions\n\n## Identity\n\nLegitimate override."
+        )
         clean_override.write_text(override_content)
 
         result = deployer._resolve_block("PM_INSTRUCTIONS.md", agents_path)
