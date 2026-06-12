@@ -45,9 +45,15 @@ MEMORY_FULL_DETAIL_MARKERS = [
 ]
 
 # Trigger keywords + storage tool that MUST survive lazy-loading in the stub.
+# This lists ALL spec-required trigger phrases (not a subset) so that a future
+# edit to MEMORY_SYSTEM_REFERENCE which silently drops one is caught here.
 MEMORY_TRIGGER_KEYWORDS = [
     "remember",
     "note that",
+    "don't forget",
+    "always",
+    "never",
+    "keep in mind",
     "memory_remember",
 ]
 
@@ -63,15 +69,33 @@ def base_prompt() -> str:
     .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md artefact is not picked up (which
     would otherwise inline content and break the 'not in base prompt'
     assertions).
+
+    ``Path.home()`` is ALSO redirected to a clean temp dir so that a real
+    ``~/.claude-mpm/MEMORY.md`` (or WORKFLOW.md) on the runner is not loaded as a
+    user-level override — that would embed the file verbatim and make the
+    system-level lazy-load assertions env-dependent (mirrors the ``_deploy()``
+    Path.home patch in test_instruction_pipeline_integrity.py).
     """
-    with tempfile.TemporaryDirectory() as _clean_cwd:
+    with (
+        tempfile.TemporaryDirectory() as _clean_cwd,
+        tempfile.TemporaryDirectory() as _clean_home,
+    ):
         clean_path = Path(_clean_cwd)
+        clean_home = Path(_clean_home)
         with (
             patch(
                 "claude_mpm.core.framework.loaders.instruction_loader.Path.cwd",
                 return_value=clean_path,
             ),
             patch("claude_mpm.core.framework_loader.Path.cwd", return_value=clean_path),
+            patch(
+                "claude_mpm.core.framework.loaders.file_loader.Path.home",
+                return_value=clean_home,
+            ),
+            patch(
+                "claude_mpm.core.framework_loader.Path.home",
+                return_value=clean_home,
+            ),
         ):
             loader = FrameworkLoader()
             return loader.get_framework_instructions()
