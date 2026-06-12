@@ -19,6 +19,7 @@ ARCHITECTURE:
 
 import os
 import subprocess  # nosec B404
+from pathlib import Path
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -199,19 +200,44 @@ class SkillsManagementCommand(BaseCommand):
             console.print(f"[red]Error listing skills: {e}[/red]")
             return CommandResult(success=False, message=str(e), exit_code=1)
 
+    @staticmethod
+    def _normalize_deploy_result(result: dict) -> dict:
+        """Normalize ``deploy_skills`` flat output to the project-deploy shape.
+
+        WHAT: Maps the ``deploy_skills_count``/``deployed_skills`` keys returned
+        by user-level ``deploy_skills`` onto the ``deployed``/``updated``/
+        ``skipped``/``failed``/``deployment_dir`` keys the result-rendering code
+        in ``_deploy_skills`` expects.
+        WHY: ``deploy_skills`` (flat, user-level) and ``deploy_skills_to_project``
+        return different result schemas; normalizing lets both scopes share one
+        rendering path (issue #806).
+        """
+        return {
+            "deployed": result.get("deployed_skills", []),
+            "updated": [],
+            "skipped": result.get("skipped_skills", []),
+            "failed": result.get("errors", []),
+            "deployment_dir": result.get(
+                "deployment_dir", str(Path.home() / ".claude" / "skills")
+            ),
+        }
+
     def _deploy_skills(self, args) -> CommandResult:
         """Deploy skills using two-phase sync: cache → deploy.
 
         Phase 3 Integration (1M-486): Uses Git skill source manager for deployment.
         - Phase 1: Sync skills to ~/.claude-mpm/cache/skills/ (if needed)
-        - Phase 2: Deploy from cache to project .claude-mpm/skills/
+        - Phase 2: Deploy from cache to the scope-selected destination
 
         This replaces bundled skill deployment with a multi-project
         architecture where one cache serves multiple project deployments.
+
+        WHAT: Honors --scope so 'user' deploys to ~/.claude/skills/ and
+        'project' deploys to the project-local skills directory (issue #806).
+        WHY: The handler previously ignored args.scope and always deployed
+        project-local, making --scope user a silent no-op.
         """
         try:
-            from pathlib import Path
-
             from ...config.skill_sources import SkillSourceConfiguration
             from ...services.skills.git_skill_source_manager import (
                 GitSkillSourceManager,
@@ -219,6 +245,7 @@ class SkillsManagementCommand(BaseCommand):
 
             force = getattr(args, "force", False)
             specific_skills = getattr(args, "skills", None)
+            scope = getattr(args, "scope", "project")
 
             console.print("\n[bold cyan]Deploying skills...[/bold cyan]\n")
 
@@ -238,13 +265,26 @@ class SkillsManagementCommand(BaseCommand):
             )
             console.print(f"[dim]Synced {synced_count} skill source(s)[/dim]\n")
 
-            # Phase 2: Deploy from cache to project
-            console.print("[dim]Phase 2: Deploying from cache to project...[/dim]\n")
-            deploy_result = git_skill_manager.deploy_skills_to_project(
-                project_dir=project_dir,
-                skill_list=specific_skills,
-                force=force,
-            )
+            # Phase 2: Deploy from cache to the scope-selected destination
+            if scope == "user":
+                console.print(
+                    "[cyan]Deploying to user level (~/.claude/skills/)...[/cyan]\n"
+                )
+                deploy_result = git_skill_manager.deploy_skills(
+                    target_dir=Path.home() / ".claude" / "skills",
+                    force=force,
+                    skill_filter=set(specific_skills) if specific_skills else None,
+                )
+                deploy_result = self._normalize_deploy_result(deploy_result)
+            else:
+                console.print(
+                    "[cyan]Deploying to project level (.claude/skills/)...[/cyan]\n"
+                )
+                deploy_result = git_skill_manager.deploy_skills_to_project(
+                    project_dir=project_dir,
+                    skill_list=specific_skills,
+                    force=force,
+                )
 
             # Display results
             if deploy_result["deployed"]:
