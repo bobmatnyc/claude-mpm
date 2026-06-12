@@ -396,23 +396,43 @@ class SkillsRegistry:
             return
 
         skill_count = 0
+
+        # Directory-style skills: <skill-name>/SKILL.md
+        for skill_dir in user_skills_dir.iterdir():
+            if not skill_dir.is_dir():
+                continue
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                continue
+            try:
+                skill_name = skill_dir.name
+                content = skill_md.read_text(encoding="utf-8")
+                frontmatter = self._parse_skill_frontmatter(content)
+                skill = self._create_skill_from_frontmatter(
+                    frontmatter, skill_md, content, "user"
+                )
+                if skill:
+                    self.skills[skill_name] = skill
+                    skill_count += 1
+                    logger.debug(f"User skill '{skill_name}' overrides bundled version")
+            except Exception as e:
+                logger.error(f"Error loading user skill {skill_dir}: {e}")
+
+        # Legacy flat .md skills (backward compat) — override directory-style
         for skill_file in user_skills_dir.glob("*.md"):
             try:
                 skill_name = skill_file.stem
                 content = skill_file.read_text(encoding="utf-8")
-
-                # Parse frontmatter with backward compatibility
                 frontmatter = self._parse_skill_frontmatter(content)
-
-                # Create skill from frontmatter
                 skill = self._create_skill_from_frontmatter(
                     frontmatter, skill_file, content, "user"
                 )
                 if skill:
-                    # User skills override bundled skills
                     self.skills[skill_name] = skill
                     skill_count += 1
-                    logger.debug(f"User skill '{skill_name}' overrides bundled version")
+                    logger.debug(
+                        f"User skill '{skill_name}' (flat) overrides bundled version"
+                    )
             except Exception as e:
                 logger.error(f"Error loading user skill {skill_file}: {e}")
 
@@ -427,24 +447,44 @@ class SkillsRegistry:
             return
 
         skill_count = 0
-        for skill_file in project_skills_dir.glob("*.md"):
+
+        # Directory-style skills: <skill-name>/SKILL.md
+        for skill_dir in project_skills_dir.iterdir():
+            if not skill_dir.is_dir():
+                continue
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                continue
             try:
-                skill_name = skill_file.stem
-                content = skill_file.read_text(encoding="utf-8")
-
-                # Parse frontmatter with backward compatibility
+                skill_name = skill_dir.name
+                content = skill_md.read_text(encoding="utf-8")
                 frontmatter = self._parse_skill_frontmatter(content)
-
-                # Create skill from frontmatter
                 skill = self._create_skill_from_frontmatter(
-                    frontmatter, skill_file, content, "project"
+                    frontmatter, skill_md, content, "project"
                 )
                 if skill:
-                    # Project skills override both user and bundled skills
                     self.skills[skill_name] = skill
                     skill_count += 1
                     logger.debug(
                         f"Project skill '{skill_name}' overrides other versions"
+                    )
+            except Exception as e:
+                logger.error(f"Error loading project skill {skill_dir}: {e}")
+
+        # Legacy flat .md skills (backward compat) — override directory-style
+        for skill_file in project_skills_dir.glob("*.md"):
+            try:
+                skill_name = skill_file.stem
+                content = skill_file.read_text(encoding="utf-8")
+                frontmatter = self._parse_skill_frontmatter(content)
+                skill = self._create_skill_from_frontmatter(
+                    frontmatter, skill_file, content, "project"
+                )
+                if skill:
+                    self.skills[skill_name] = skill
+                    skill_count += 1
+                    logger.debug(
+                        f"Project skill '{skill_name}' (flat) overrides other versions"
                     )
             except Exception as e:
                 logger.error(f"Error loading project skill {skill_file}: {e}")
