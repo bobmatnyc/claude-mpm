@@ -1,9 +1,10 @@
 ---
+name: session-analyzer
 skill_id: session-analyzer
-skill_version: 0.2.0
-when_to_use: when analyzing a completed Claude session to understand cost breakdown, agent behavior, tool usage timeline, or to generate a visual session report
+skill_version: 0.3.0
 description: "Debug and teach agentic coding: a deterministic-first session timeline + cost report, with optional narrative polish and a standalone JSX visualiser."
-updated_at: 2026-06-10T00:00:00Z
+when_to_use: when analyzing a completed Claude session to understand cost breakdown, agent behavior, tool usage timeline, or to generate a visual session report
+updated_at: 2026-06-12T00:00:00Z
 tags: [session, reporting, cost, teaching, debugging]
 effort: medium
 ---
@@ -104,6 +105,11 @@ python scripts/session_timeline_to_jsx.py docs/reporting/session-tracker/<sessio
   -o docs/reporting/session-tracker/<session_id>.jsx
 ```
 
+The script is bundled at `scripts/session_timeline_to_jsx.py` relative to this
+skill directory. An identical copy also lives at `scripts/session_timeline_to_jsx.py`
+in the repo root (used by the CLI render path and the test suite — do not delete
+the root copy).
+
 The renderer reads the `frontmatter` + `events` structure parsed from the
 report and produces an interactive timeline dashboard. Because it consumes the
 `<!-- meta: ... -->` data, it works on both raw (stage 1) and polished
@@ -163,10 +169,10 @@ raw subagent transcripts in
 
 ## Reference
 
-- `docs/reporting/session-tracker/README.md` — full canonical Markdown schema,
-  frontmatter key reference, pricing table, and correlation details.
+- `references/schema.md` — full canonical Markdown schema, frontmatter key
+  reference, pricing table, and correlation details (bundled copy).
 - `scripts/session_timeline_to_jsx.py` — the deterministic Markdown → JSX
-  renderer.
+  renderer (bundled copy; repo-root copy also used by CLI and tests).
 
 ## Remember
 
