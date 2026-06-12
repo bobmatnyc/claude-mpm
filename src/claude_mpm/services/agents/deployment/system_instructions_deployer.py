@@ -16,8 +16,16 @@ from typing import Any
 
 from claude_mpm.constants import BANNER_DEPLOYED
 from claude_mpm.core.framework.loaders.workflow_constants import (
+    MEMORY_SYSTEM_REFERENCE,
     WORKFLOW_SYSTEM_REFERENCE,
 )
+
+# Minimum content length (chars) for a PM_INSTRUCTIONS.md override to be
+# considered sane.  A malformed launcher-cache artefact (e.g. the 19-byte
+# string "System instructions") must be rejected so the canonical system
+# default — which carries ## Identity / Prohibitions / Circuit Breakers — is
+# used instead.
+_MIN_PM_OVERRIDE_LEN = 200
 
 # Markers that uniquely identify content belonging to specific blocks.
 # Used to detect stale override files that contain previously-deployed merged content.
@@ -61,6 +69,39 @@ class SystemInstructionsDeployer:
                 other_markers.extend(markers)
 
         return any(marker in content for marker in other_markers)
+
+    def _override_is_valid(self, block_name: str, content: str) -> bool:
+        """Validate that an override actually contains the block's OWN content.
+
+        Integrity guard (GitHub issue: PM-block override corruption).  A
+        project/user override is only accepted if it contains the block's own
+        positive marker (from ``BLOCK_MARKERS``) — proving it really is content
+        for *this* block and not, e.g., a malformed launcher-cache artefact.
+
+        The bug this prevents: ``.claude-mpm/PM_INSTRUCTIONS.md`` doubles as the
+        launcher cache AND a project-override source.  A malformed 19-byte cache
+        (``"System instructions"``) was accepted as a valid PM override because
+        ``_detect_stale_override`` only checks for *other* blocks' markers — and
+        a 19-byte file contains none.  The merged DEPLOYED file then LOST the
+        canonical ``## Identity`` / Prohibitions / Circuit-Breakers content.
+
+        For ``PM_INSTRUCTIONS.md`` an additional minimum-length check
+        (``_MIN_PM_OVERRIDE_LEN``) rejects tiny truncated artefacts even if they
+        happened to contain the marker.
+
+        Args:
+            block_name: The block this override is for.
+            content: The override file content.
+
+        Returns:
+            True if the override is structurally valid for *block_name*.
+        """
+        own_markers = BLOCK_MARKERS.get(block_name, [])
+        if own_markers and not any(marker in content for marker in own_markers):
+            return False
+        if block_name == "PM_INSTRUCTIONS.md" and len(content) < _MIN_PM_OVERRIDE_LEN:
+            return False
+        return True
 
     def _resolve_workflow_block(self, agents_path: Path) -> str:
         """Resolve WORKFLOW.md with lazy-load logic identical to InstructionLoader.
@@ -132,6 +173,71 @@ class SystemInstructionsDeployer:
         )
         return WORKFLOW_SYSTEM_REFERENCE
 
+    def _resolve_memory_block(self, agents_path: Path) -> str:
+        """Resolve MEMORY.md with lazy-load logic identical to InstructionLoader.
+
+        Mirrors ``_resolve_workflow_block``: when no user or project override is
+        present the full system-level MEMORY.md is NOT inlined; instead
+        ``MEMORY_SYSTEM_REFERENCE`` is used.  This keeps the deployed
+        ``PM_INSTRUCTIONS_DEPLOYED.md`` in sync with
+        ``InstructionLoader.load_memory_instructions()`` and saves ~1,776 tokens
+        per session.  Project/user overrides are inlined verbatim.
+
+        Args:
+            agents_path: Path to the system agents directory (unused for the
+                system default — the stub replaces it — but kept for signature
+                parity with the other block resolvers).
+
+        Returns:
+            Resolved content string — either override content or the reference
+            stub for the system default.
+        """
+        user_path = Path.home() / ".claude-mpm" / "MEMORY.md"
+        project_path = self.working_directory / ".claude-mpm" / "MEMORY.md"
+
+        has_override = False
+        parts: list[str] = []
+
+        if user_path.exists():
+            user_content = user_path.read_text(encoding="utf-8")
+            if self._detect_stale_override("MEMORY.md", user_content):
+                self.logger.warning(
+                    "Stale override detected: ~/.claude-mpm/MEMORY.md contains "
+                    "content from other blocks. Ignoring override and using "
+                    "system default. Remove ~/.claude-mpm/MEMORY.md to suppress "
+                    "this warning.",
+                )
+            else:
+                parts.append(user_content)
+                has_override = True
+
+        if project_path.exists():
+            project_content = project_path.read_text(encoding="utf-8")
+            if self._detect_stale_override("MEMORY.md", project_content):
+                self.logger.warning(
+                    "Stale override detected: .claude-mpm/MEMORY.md contains "
+                    "content from other blocks. Ignoring override and using "
+                    "system default. Remove .claude-mpm/MEMORY.md to suppress "
+                    "this warning.",
+                )
+            else:
+                parts.append(project_content)
+                has_override = True
+
+        if has_override:
+            self.logger.debug(
+                "Inlining MEMORY.md override in PM_INSTRUCTIONS_DEPLOYED.md"
+            )
+            return "\n\n".join(parts)
+
+        # System default only: substitute the compact reference stub to avoid
+        # re-injecting ~1,776 tokens of memory detail into every PM prompt.
+        self.logger.debug(
+            "Using MEMORY_SYSTEM_REFERENCE in PM_INSTRUCTIONS_DEPLOYED.md "
+            "(system default, no user/project override)"
+        )
+        return MEMORY_SYSTEM_REFERENCE
+
     def _resolve_block(self, block_name: str, agents_path: Path) -> str:
         """Resolve a block file with additive project+user override semantics.
 
@@ -161,6 +267,15 @@ class SystemInstructionsDeployer:
                     block_name,
                     block_name,
                 )
+            elif not self._override_is_valid(block_name, user_content):
+                self.logger.warning(
+                    "Invalid override detected: ~/.claude-mpm/%s is missing its "
+                    "own content marker (or is too short). Ignoring override and "
+                    "using system default. Remove ~/.claude-mpm/%s to suppress "
+                    "this warning.",
+                    block_name,
+                    block_name,
+                )
             else:
                 parts.append(user_content)
         if project_path.exists():
@@ -170,6 +285,15 @@ class SystemInstructionsDeployer:
                     "Stale override detected: .claude-mpm/%s contains "
                     "content from other blocks. Ignoring override and using "
                     "system default. Remove .claude-mpm/%s to suppress "
+                    "this warning.",
+                    block_name,
+                    block_name,
+                )
+            elif not self._override_is_valid(block_name, project_content):
+                self.logger.warning(
+                    "Invalid override detected: .claude-mpm/%s is missing its "
+                    "own content marker (or is too short). Ignoring override and "
+                    "using system default. Remove .claude-mpm/%s to suppress "
                     "this warning.",
                     block_name,
                     block_name,
@@ -261,12 +385,14 @@ class SystemInstructionsDeployer:
             ]
 
             # Resolve each block with additive override semantics.
-            # WORKFLOW.md uses a dedicated helper that applies the same
-            # lazy-load logic as InstructionLoader: system-level → reference
-            # stub; user/project override → inline verbatim.
+            # WORKFLOW.md and MEMORY.md use dedicated helpers that apply the
+            # same lazy-load logic as InstructionLoader: system-level →
+            # reference stub; user/project override → inline verbatim.
             def _resolve(block: str) -> str:
                 if block == "WORKFLOW.md":
                     return self._resolve_workflow_block(agents_path)
+                if block == "MEMORY.md":
+                    return self._resolve_memory_block(agents_path)
                 return self._resolve_block(block, agents_path)
 
             merged_content = [_resolve(b) for b in BLOCKS]
