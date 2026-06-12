@@ -347,11 +347,36 @@ def run_migration(project_dir: Path | None = None) -> bool:
         logger.debug("trusty auto-link disabled via env var or project config")
         return False
 
+    # Load the existing .mcp.json servers set upfront so we can skip detection
+    # work (especially the expensive jsonrpc subprocess probe) for services that
+    # are already configured.  This makes normal startup — where all entries are
+    # already present — a cheap shutil.which + dict-lookup path with no
+    # subprocess spawning at all.
+    config = _load_mcp_config(mcp_path)
+    servers = config.setdefault("mcpServers", {})
+    existing_names: frozenset[str] = frozenset(servers)
+
     # Determine which services are detectable BEFORE touching .mcp.json so a
     # cold path (no daemons running) doesn't open the file at all.
     detected: list[dict[str, Any]] = []
     for svc in _SERVICES:
         if shutil.which(svc["binary"]) is None:
+            continue
+
+        # Skip detection probes (including the jsonrpc subprocess probe) when
+        # the service entry is already present in .mcp.json.  The migration is
+        # idempotent: if it's wired, there's nothing to do from a wiring
+        # perspective.  We still resolve the base URL for http-mode services so
+        # that the palace-creation step (step 2) can run idempotently on every
+        # startup — registering the MCP entry is not enough if the palace was
+        # never created.
+        if svc["name"] in existing_names:
+            detect_mode_pre = svc.get("detect", "http")
+            if detect_mode_pre == "http":
+                base_url_pre = _resolve_base_url(svc["addr_file"], svc["fallback_addr"])
+                detected.append({**svc, "base_url": base_url_pre})
+            else:
+                detected.append(dict(svc))
             continue
 
         detect_mode = svc.get("detect", "http")
@@ -384,8 +409,6 @@ def run_migration(project_dir: Path | None = None) -> bool:
     #    migration code indirectly during CLI bootstrap).
     from ..cli.commands.setup.mcp_config import _mcp_config_transaction
 
-    config = _load_mcp_config(mcp_path)
-    servers = config.setdefault("mcpServers", {})
     to_write: list[dict[str, Any]] = [
         svc for svc in detected if svc["name"] not in servers
     ]
