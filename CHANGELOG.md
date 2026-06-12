@@ -19,6 +19,27 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.34 (2026-06-11)
+
+### Feat
+
+- add missing when_to_use triggers + normalize skill frontmatter (#762) (#765)
+
+### Fix
+
+- rename trusty-analyzer → trusty-analyze throughout (#782) (#783)
+- PM_INSTRUCTIONS_DEPLOYED.md version tag so deployed fast-path isn't discarded (#757) (#767)
+- **agents**: sync drifted bundled seed agents (ticketing, rust-engineer); clarify canonical source (#760) (#764)
+- agent definition cleanup — code-critic description, openrouter schema (#755)
+- BLOCK_MARKERS reference non-existent headings (fragile stale-override detection) (#754)
+- replace deprecated kuzu-memory with trusty-memory in presets (#752)
+- stop bundled skill from shadowing native /mcp command (#736) (#748)
+- session pause/resume on pipx installs + version-aware skill deploy (#735) (#747)
+
+### Perf
+
+- lazy-load WORKFLOW.md in PackagedLoader (~1,150 tokens/session saved) (#777)
+
 ## v6.5.33 (2026-06-11)
 
 ### Fix
