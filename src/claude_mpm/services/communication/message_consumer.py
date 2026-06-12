@@ -95,7 +95,17 @@ class MessageConsumer:
 
 
 def main():
-    """Main entry point for the message consumer."""
+    """Main entry point for the message consumer.
+
+    WHAT: Parses CLI arguments (--workers, --quiet, --daemon), then either
+          spawns a fully detached subprocess via subprocess.Popen(start_new_session=True)
+          when --daemon is requested (exec-based, no fork), or runs MessageConsumer
+          directly in the foreground. A CLAUDE_MPM_MSG_CONSUMER_DAEMON environment
+          variable guards against the child re-entering daemon-spawn mode recursively.
+    WHY:  The exec-based approach replaces the old double-fork daemonization that
+          triggered EXC_BAD_ACCESS / SIGSEGV on macOS when CoreFoundation state was
+          inherited across fork in a multithreaded parent process.
+    """
     parser = argparse.ArgumentParser(
         description="Run the Claude MPM message queue consumer"
     )
