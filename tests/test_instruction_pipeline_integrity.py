@@ -8,8 +8,10 @@ Covers two HIGH-severity defects and their fix:
    instructions"``) was wrongly accepted as a valid PM override because the
    stale-override detector only looked for *other* blocks' markers.  The merged
    ``PM_INSTRUCTIONS_DEPLOYED.md`` then LOST ``## Identity`` / Prohibitions /
-   Circuit-Breakers.  Fix: require the block's OWN positive marker (and a sane
-   minimum length for PM_INSTRUCTIONS) before accepting an override.
+   Circuit-Breakers.  Fix: require the block's OWN positive marker (e.g.
+   ``## Identity``) before accepting an override.  The marker alone defeats the
+   artefact; no length floor is used (it would reject genuinely short but valid
+   overrides — see issue #757).
 
 2. Double-injection when DEPLOYED is the source.
    ``PM_INSTRUCTIONS_DEPLOYED.md`` already contains the merged
@@ -107,9 +109,11 @@ def test_malformed_pm_cache_is_ignored_by_deployer(tmp_path: Path) -> None:
     assert PM_PROHIBITIONS_MARKER in deployed, (
         "## Prohibitions (canonical Circuit-Breaker table) lost from deployed file"
     )
-    # The malformed content must NOT be the whole PM block.
-    assert deployed.count(MALFORMED_CACHE) == 0 or len(deployed) > 5_000, (
-        "Deployed file looks truncated — malformed cache may have replaced the PM block"
+    # The malformed sentinel string must be absent entirely, regardless of the
+    # deployed file's overall size.
+    assert deployed.count(MALFORMED_CACHE) == 0, (
+        "Malformed cache string present in deployed file — "
+        "it may have replaced or contaminated the PM block"
     )
 
 
@@ -161,9 +165,12 @@ def test_deployed_source_has_no_double_injection(tmp_path: Path) -> None:
     content: dict = {}
     loader.load_all_instructions(content)
 
-    # Sentinel must be set when DEPLOYED was used.
-    assert content.get("_loaded_from_deployed") is True, (
-        "_loaded_from_deployed sentinel not set despite DEPLOYED being present"
+    # The sentinel is an internal coordination signal that load_all_instructions
+    # pops once all loaders have consumed it — it must NOT leak to downstream
+    # consumers (content_formatter, etc.).
+    assert "_loaded_from_deployed" not in content, (
+        "_loaded_from_deployed sentinel leaked past load_all_instructions — "
+        "downstream consumers would see the private coordination key"
     )
 
     framework = content.get("framework_instructions", "")
@@ -193,6 +200,21 @@ def test_deployed_source_has_no_double_injection(tmp_path: Path) -> None:
     assert "workflow_instructions" not in content, (
         "load_workflow_instructions ran despite DEPLOYED — double injection risk"
     )
+    # MEMORY must not be statically re-injected on the DEPLOYED path: the merged
+    # file already carries the MEMORY block.  ``memory_instructions`` is only
+    # acceptable if absent, or — when kuzu-memory is installed on this runner —
+    # present as ONLY the dynamic kuzu prefix (which cannot be baked into
+    # DEPLOYED), never the static MEMORY.md body or its stub.
+    memory_instr = content.get("memory_instructions")
+    if memory_instr is not None:
+        assert memory_instr.startswith("## Memory: kuzu-memory Active"), (
+            "memory_instructions on the DEPLOYED path is not the dynamic kuzu "
+            "prefix — the static MEMORY block was re-injected (double injection)"
+        )
+        assert "## Memory System" not in memory_instr, (
+            "static MEMORY stub body leaked into the DEPLOYED-path "
+            "memory_instructions (double injection)"
+        )
 
 
 # ── Valid project override is still accepted ───────────────────────────────
