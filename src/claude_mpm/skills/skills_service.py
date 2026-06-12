@@ -169,20 +169,29 @@ class SkillsService(LoggerMixin):
     def discover_bundled_skills(self) -> list[dict[str, Any]]:
         """Discover all skills in bundled directory.
 
-        Scans bundled_skills_path for skills organized by category:
+        Recursively scans bundled_skills_path for any SKILL.md at any depth,
+        so both shallow and deeply-nested layouts are supported:
         bundled/
-          ├── development/
+          ├── development/                       # category = "development"
           │   ├── test-driven-development/
-          │   │   └── SKILL.md
+          │   │   └── SKILL.md                    # name = "test-driven-development"
           │   └── systematic-debugging/
           │       └── SKILL.md
-          └── testing/
-              └── ...
+          ├── toolchains/                         # category = "toolchains"
+          │   └── rust/
+          │       └── core/
+          │           └── SKILL.md                # name = "core"  (level 3)
+          └── universal/                          # category = "universal"
+              └── spec-linked-docs/
+                  └── SKILL.md                    # name = "spec-linked-docs"
+
+        The skill name is the immediate parent directory of SKILL.md; the
+        category is the first-level subdirectory under bundled_skills_path.
 
         Returns:
             List of skill dictionaries containing:
-            - name: Skill name (directory name)
-            - category: Category (parent directory name)
+            - name: Skill name (immediate parent directory of SKILL.md)
+            - category: Category (top-level subdirectory under bundled root)
             - path: Full path to skill directory
             - metadata: Parsed YAML frontmatter from SKILL.md
         """
@@ -194,25 +203,34 @@ class SkillsService(LoggerMixin):
             )
             return skills
 
-        for category_dir in self.bundled_skills_path.iterdir():
-            if not category_dir.is_dir() or category_dir.name.startswith("."):
+        for skill_md in self.bundled_skills_path.rglob("SKILL.md"):
+            skill_dir = skill_md.parent
+
+            try:
+                relative = skill_dir.relative_to(self.bundled_skills_path)
+            except ValueError:
                 continue
 
-            for skill_dir in category_dir.iterdir():
-                if not skill_dir.is_dir():
-                    continue
+            # Skip skills nested under any hidden directory.
+            if any(part.startswith(".") for part in relative.parts):
+                continue
 
-                skill_md = skill_dir / "SKILL.md"
-                if skill_md.exists():
-                    metadata = self._parse_skill_metadata(skill_md)
-                    skills.append(
-                        {
-                            "name": skill_dir.name,
-                            "category": category_dir.name,
-                            "path": skill_dir,
-                            "metadata": metadata,
-                        }
-                    )
+            # Category is the first-level subdirectory under the bundled root;
+            # fall back to the skill directory name for top-level SKILL.md files.
+            try:
+                category = relative.parts[0]
+            except IndexError:
+                category = skill_dir.name
+
+            metadata = self._parse_skill_metadata(skill_md)
+            skills.append(
+                {
+                    "name": skill_dir.name,
+                    "category": category,
+                    "path": skill_dir,
+                    "metadata": metadata,
+                }
+            )
 
         self.logger.info(f"Discovered {len(skills)} bundled skills")
 
