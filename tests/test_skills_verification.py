@@ -16,10 +16,12 @@ from claude_mpm.skills.skill_manager import SkillManager
 
 
 def test_bundled_skills_count():
-    """Verify exactly 21 bundled flat skills exist.
+    """Verify exactly 20 bundled flat skills exist.
 
     systematic-debugging.md and test-driven-development.md were removed as flat
     duplicates in #751; both now live under bundled/*/SKILL.md structured dirs.
+    session-analyzer.md was converted to a directory skill in
+    bundled/reporting/session-analyzer/SKILL.md (skill_version 0.3.0).
     """
     print("\n=== TEST 1: Bundled Skills Count ===")
     bundled_dir = Path("src/claude_mpm/skills/bundled")
@@ -30,10 +32,10 @@ def test_bundled_skills_count():
     for f in sorted(skill_files):
         print(f"  - {f.stem}")
 
-    assert len(skill_files) == 21, (
-        f"Expected 21 bundled skills, found {len(skill_files)}"
+    assert len(skill_files) == 20, (
+        f"Expected 20 bundled skills, found {len(skill_files)}"
     )
-    print("✅ PASS: Exactly 21 bundled skills found")
+    print("✅ PASS: Exactly 20 bundled skills found")
     return True
 
 
