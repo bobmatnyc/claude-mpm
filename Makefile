@@ -1062,20 +1062,36 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	}
 	@VERSION=$$(cat VERSION); \
 	echo "Publishing version: $$VERSION"; \
-	read -p "Continue with publishing? [y/N]: " confirm; \
-	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
-		echo "$(RED)Publishing aborted$(NC)"; \
+	if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "$${CI:-}" = "true" ]; then \
+		echo "$(GREEN)Auto-confirming (CLAUDE_MPM_ASSUME_YES/CI set)$(NC)"; \
+	elif [ ! -t 0 ]; then \
+		echo "$(RED)✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set.$(NC)"; \
+		echo "$(RED)  Re-run with: CLAUDE_MPM_ASSUME_YES=1 make release-publish$(NC)"; \
 		exit 1; \
+	else \
+		read -p "Continue with publishing? [y/N]: " confirm; \
+		if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+			echo "$(RED)Publishing aborted$(NC)"; \
+			exit 1; \
+		fi; \
 	fi
 	@echo ""
 	@echo "$(YELLOW)🔄 Syncing agent and skills repositories...$(NC)"
 	@if [ -f "scripts/sync_agent_skills_repos.sh" ]; then \
 		./scripts/sync_agent_skills_repos.sh || { \
 			echo "$(RED)✗ Repository sync failed$(NC)"; \
-			read -p "Continue with publishing anyway? [y/N]: " continue_confirm; \
-			if [ "$$continue_confirm" != "y" ] && [ "$$continue_confirm" != "Y" ]; then \
-				echo "$(RED)Publishing aborted$(NC)"; \
+			if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "$${CI:-}" = "true" ]; then \
+				echo "$(YELLOW)Auto-continuing despite sync failure (CLAUDE_MPM_ASSUME_YES/CI set)$(NC)"; \
+			elif [ ! -t 0 ]; then \
+				echo "$(RED)✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set.$(NC)"; \
+				echo "$(RED)  Re-run with: CLAUDE_MPM_ASSUME_YES=1 make release-publish$(NC)"; \
 				exit 1; \
+			else \
+				read -p "Continue with publishing anyway? [y/N]: " continue_confirm; \
+				if [ "$$continue_confirm" != "y" ] && [ "$$continue_confirm" != "Y" ]; then \
+					echo "$(RED)Publishing aborted$(NC)"; \
+					exit 1; \
+				fi; \
 			fi; \
 		}; \
 	else \
@@ -1123,11 +1139,20 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
-	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
+	if [ ! -f "$$SDIST" ]; then \
+		echo "$(YELLOW)⚠ Exact-version sdist not found, building it now...$(NC)"; \
+		find dist -name "*.tar.gz" ! -name "claude_mpm-$$VERSION.tar.gz" -delete 2>/dev/null; \
+		uv build --sdist; \
+	fi; \
+	if [ ! -f "$$SDIST" ]; then \
+		echo "$(RED)✗ Expected sdist not found after build: $$SDIST$(NC)"; \
+		echo "$(RED)  Refusing to attach a stale artifact. Check the build output above.$(NC)"; \
+		exit 1; \
+	fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
 		--notes-file dist/release-notes-latest.md \
-		$$SDIST || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
+		"$$SDIST" || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
 
@@ -1196,10 +1221,18 @@ release-publish-current: ## Publish current built version
 	fi
 	@VERSION=$$(cat VERSION); \
 	echo "Publishing version: $$VERSION"; \
-	read -p "Continue with publishing? [y/N]: " confirm; \
-	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
-		echo "$(RED)Publishing aborted$(NC)"; \
+	if [ "$${CLAUDE_MPM_ASSUME_YES:-}" = "1" ] || [ "$${CI:-}" = "true" ]; then \
+		echo "$(GREEN)Auto-confirming (CLAUDE_MPM_ASSUME_YES/CI set)$(NC)"; \
+	elif [ ! -t 0 ]; then \
+		echo "$(RED)✗ stdin is not a TTY and CLAUDE_MPM_ASSUME_YES is not set.$(NC)"; \
+		echo "$(RED)  Re-run with: CLAUDE_MPM_ASSUME_YES=1 make release-publish-current$(NC)"; \
 		exit 1; \
+	else \
+		read -p "Continue with publishing? [y/N]: " confirm; \
+		if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+			echo "$(RED)Publishing aborted$(NC)"; \
+			exit 1; \
+		fi; \
 	fi
 	@echo "$(YELLOW)📤 Pushing tag (triggers PyPI publish via CI)...$(NC)"
 	@# PyPI publishing is owned by release-wheels.yml (per-platform wheels + sdist
@@ -1225,11 +1258,15 @@ release-publish-current: ## Publish current built version
 	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
-	if [ ! -f "$$SDIST" ]; then SDIST="$$(ls dist/*.tar.gz 2>/dev/null | head -n1)"; fi; \
+	if [ ! -f "$$SDIST" ]; then \
+		echo "$(RED)✗ Expected sdist not found: $$SDIST$(NC)"; \
+		echo "$(RED)  Refusing to attach a stale artifact. Run 'make release-build-current' first.$(NC)"; \
+		exit 1; \
+	fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
 		--notes-file dist/release-notes-latest.md \
-		$$SDIST || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
+		"$$SDIST" || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
 
