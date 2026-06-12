@@ -823,10 +823,15 @@ def run_as_git_hook() -> None:
         project_root = _find_project_root(cwd)
         _debug(f"  project_root={project_root}")
         if project_root is None:
-            _debug("  no .claude-mpm dir found; using cwd as project_root")
-            project_root = cwd
-
-        working_dir = str(project_root)
+            # No .claude-mpm/ found (e.g. repo never ran mpm-init). Resolve the
+            # main working tree so baseline/transcript lookups use the canonical
+            # main-tree path rather than a linked-worktree path.
+            working_dir = resolve_main_working_tree(str(cwd))
+            _debug(
+                f"  no .claude-mpm dir found; resolved main working tree => {working_dir}"
+            )
+        else:
+            working_dir = str(project_root)
 
         # 2. Compute token delta.
         delta = get_token_delta(working_dir)
