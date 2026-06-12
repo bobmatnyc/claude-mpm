@@ -1,5 +1,11 @@
 """Migration 6.5.40: Remove project-level copies of all bundled skills.
 
+WHAT: For each skill in the dynamically-discovered bundled set, removes the
+project-level directory (.claude/skills/<name>/) and any legacy flat file
+(.claude/skills/<name>.md) only when the corresponding user-level copy
+(~/.claude/skills/<name>/SKILL.md) is confirmed present.  Logs totals and
+errors, returns True when all deletions succeeded, False on any OSError.
+
 WHY: All bundled skills now deploy at user level (~/.claude/skills/).
 Project-level copies (.claude/skills/) are duplicates that create confusion.
 This migration safely removes them only when the user-level copy exists.
