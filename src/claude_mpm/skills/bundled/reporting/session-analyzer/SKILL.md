@@ -2,11 +2,20 @@
 name: session-analyzer
 skill_id: session-analyzer
 skill_version: 0.3.0
+version: 0.3.0
+category: reporting
 description: "Debug and teach agentic coding: a deterministic-first session timeline + cost report, with optional narrative polish and a standalone JSX visualiser."
 when_to_use: when analyzing a completed Claude session to understand cost breakdown, agent behavior, tool usage timeline, or to generate a visual session report
 updated_at: 2026-06-12T00:00:00Z
 tags: [session, reporting, cost, teaching, debugging]
 effort: medium
+progressive_disclosure:
+  entry_point:
+    summary: "Reconstruct a Claude session's full timeline and cost breakdown deterministically from JSONL transcripts, with optional LLM prose polish and a standalone JSX visualiser."
+    when_to_use: "When analyzing a completed Claude session to understand cost breakdown, agent behavior, tool usage timeline, or to generate a visual session report."
+    quick_start: "1. Locate the session JSONL transcript 2. Run the deterministic extract 3. Review the timeline + cost report 4. (Optional) polish prose 5. (Optional) render the JSX visualiser"
+  references:
+    - references/schema.md
 ---
 
 # Session Analyzer
