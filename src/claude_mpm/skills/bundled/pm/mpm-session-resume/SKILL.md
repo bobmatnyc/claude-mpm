@@ -2,7 +2,7 @@
 name: mpm-session-resume
 description: Load context from paused session
 user-invocable: true
-version: "1.3.0"
+version: "1.4.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -50,173 +50,31 @@ When invoked, this skill:
 
 ## Implementation
 
-### Step 0 — Resolve the correct Python interpreter (REQUIRED)
-
-`claude_mpm` may be installed in an **isolated** environment (pipx, `uv tool`,
-`pip --user`) that the system `python3` **cannot** import — bare
-`python3 -c "import claude_mpm"` then fails with `ModuleNotFoundError`. Resolve
-the interpreter that owns the installed `claude-mpm` executable first:
+Run the console script directly — no interpreter resolution needed:
 
 ```bash
-# Honor an explicit override, then ask claude_mpm to resolve itself, then
-# derive the venv python from the claude-mpm console script.
-if [ -n "$CLAUDE_MPM_PYTHON" ]; then
-    MPM_PY="$CLAUDE_MPM_PYTHON"
-else
-    MPM_PY="$(python3 -m claude_mpm.utils.interpreter_resolver 2>/dev/null)"
-    if [ -z "$MPM_PY" ]; then
-        CMPM="$(command -v claude-mpm 2>/dev/null)"
-        if [ -n "$CMPM" ]; then
-            MPM_PY="$(dirname "$(readlink -f "$CMPM" 2>/dev/null || echo "$CMPM")")/python"
-        fi
-    fi
-    [ -x "$MPM_PY" ] || MPM_PY="$(command -v python3)"
-fi
-echo "Using interpreter: $MPM_PY"
-```
+# Resume most recent session (lists if multiple exist)
+claude-mpm session resume
 
-This works for pipx, `uv tool`, `pip --user`, and editable/dev installs. Run
-the code below with **`$MPM_PY`** (NOT bare `python3`). Parse the user's
-invocation arguments first, then dispatch to the appropriate code path.
+# Resume the 2nd most recent session
+claude-mpm session resume --select 2
+
+# Resume by partial session ID (date prefix)
+claude-mpm session resume --select 20240101
+
+# Resume by exact session ID
+claude-mpm session resume session-20240101-143022
+```
 
 > **Permission note (Bug #735):** Do **not** probe for sessions with
 > `ls .claude-mpm/sessions/ 2>/dev/null` — that swallows stderr, so a
 > permission-denied read looks identical to "no sessions" and resume wrongly
-> reports nothing to resume. The helper's `check_and_display_resume_prompt()`
-> already distinguishes *denied* from *empty* via `check_session_dir_access()`
-> and prints an explicit warning on denial. Trust the helper; never blanket-
-> suppress stderr when checking the session directory.
-
-```python
-import sys
-from pathlib import Path
-
-try:
-    from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
-except ImportError:
-    print(
-        "ERROR: claude_mpm is not importable in the current Python environment.\n"
-        "Resolve the correct interpreter first (see Step 0 above), e.g.:\n"
-        "  MPM_PY=\"$(python3 -m claude_mpm.utils.interpreter_resolver)\"\n"
-        "  \"$MPM_PY\" -c 'from claude_mpm.services.cli.session_resume_helper "
-        "import SessionResumeHelper'\n"
-        "Or set CLAUDE_MPM_PYTHON to the interpreter where claude-mpm is installed.\n"
-        "Alternatively, invoke directly: claude-mpm session-resume"
-    )
-    raise SystemExit(1)
-
-# --------------------------------------------------------------------------
-# Argument parsing
-# Invocation forms:
-#   /mpm-session-resume                    → list_mode=True if >1 session, else resume most recent
-#   /mpm-session-resume --select <value>   → select by index or partial ID
-#   /mpm-session-resume <session-id>       → exact session-id (backward-compatible)
-# --------------------------------------------------------------------------
-
-# The skill receives user arguments via the 'args' variable set by the harness,
-# or you can parse from the invocation line.  Use whichever is available.
-# For safety, default to an empty list if 'args' is not defined.
-try:
-    raw_args = args  # type: ignore[name-defined]  # set by skill harness
-except NameError:
-    raw_args = []
-
-select_value: str | None = None
-exact_session_id: str | None = None
-
-i = 0
-while i < len(raw_args):
-    token = str(raw_args[i])
-    if token == "--select" and i + 1 < len(raw_args):
-        select_value = str(raw_args[i + 1])
-        i += 2
-    elif not token.startswith("--"):
-        exact_session_id = token
-        i += 1
-    else:
-        i += 1
-
-# --------------------------------------------------------------------------
-# Create helper scoped to the current project.
-# --------------------------------------------------------------------------
-helper = SessionResumeHelper(project_path=Path.cwd())
-
-# --------------------------------------------------------------------------
-# Dispatch
-# --------------------------------------------------------------------------
-
-if select_value is not None:
-    # --select <index-or-partial-id>
-    session_data, error_msg = helper.resolve_session_by_selection(select_value)
-    if session_data is None:
-        print(error_msg)
-    else:
-        prompt_text = helper.format_resume_prompt(session_data)
-        print(prompt_text)
-        session_id = session_data.get("session_id", "unknown")
-        file_path = session_data.get("file_path")
-        print(f"Loaded session: {session_id}")
-        if file_path:
-            print(f"Source: {file_path}")
-
-elif exact_session_id is not None:
-    # Exact session ID supplied (backward-compatible form).
-    all_sessions = helper.list_all_sessions()
-    matched = [
-        s for s in all_sessions
-        if s.get("session_id") == exact_session_id
-    ]
-    if not matched:
-        print(f"No session found with ID: {exact_session_id}")
-        print("")
-        print(helper.format_session_list())
-    else:
-        session_data = matched[0]
-        prompt_text = helper.format_resume_prompt(session_data)
-        print(prompt_text)
-        file_path = session_data.get("file_path")
-        print(f"Loaded session: {exact_session_id}")
-        if file_path:
-            print(f"Source: {file_path}")
-
-else:
-    # No arguments — list when multiple sessions exist, else resume most recent.
-    session_count = helper.get_session_count()
-    if session_count == 0:
-        print("No paused sessions found for this project in .claude-mpm/sessions/")
-        print("")
-        print("To create a paused session, use: /mpm-session-pause")
-    elif session_count > 1:
-        # Show numbered list so the user can pick.
-        print(helper.format_session_list())
-        print("")
-        print("Resuming the most recent session automatically…")
-        session_data = helper.check_and_display_resume_prompt()
-        if session_data:
-            session_id = session_data.get("session_id", "unknown")
-            file_path = session_data.get("file_path")
-            print(f"Loaded session: {session_id}")
-            if file_path:
-                print(f"Source: {file_path}")
-    else:
-        # Only one session — resume it directly (existing behaviour).
-        session_data = helper.check_and_display_resume_prompt()
-        if session_data is None:
-            print("No paused sessions found for this project in .claude-mpm/sessions/")
-            print("")
-            print("To create a paused session, use: /mpm-session-pause")
-        else:
-            session_id = session_data.get("session_id", "unknown")
-            file_path = session_data.get("file_path")
-            print(f"")
-            print(f"Loaded session: {session_id}")
-            if file_path:
-                print(f"Source: {file_path}")
-```
+> reports nothing to resume. The `claude-mpm session resume` command handles
+> this correctly via `check_session_dir_access()`.
 
 ## Session Storage Location
 
-**Session location:** project-local `.claude-mpm/sessions/session-*.md` (and `.json`/`.yaml`)
+**Session location:** project-local `.claude-mpm/sessions/session-*.md` (and `.json`)
 
 Sessions are stored relative to the project root so each project has its own
 isolated session history. Resume always validates that the session belongs to
@@ -228,8 +86,7 @@ The store contains:
 <project-root>/.claude-mpm/sessions/
 ├── LATEST-SESSION.txt                  # Pointer to most recent session
 ├── session-YYYYMMDD-HHMMSS.md          # Human-readable
-├── session-YYYYMMDD-HHMMSS.json        # Machine-readable (loaded by resume)
-└── session-YYYYMMDD-HHMMSS.yaml        # Config format
+└── session-YYYYMMDD-HHMMSS.json        # Machine-readable (loaded by resume)
 ```
 
 Resume reads the `.json` file (authoritative machine-readable format). The `.md` file is for humans; resume will not attempt to parse it as JSON.
@@ -260,11 +117,11 @@ This loads the session summary, accomplishments, next steps, git history, and pe
 - Reads existing sessions only. Does NOT create new files.
 - Auto-pause at 70% context creates sessions automatically; this skill reads them.
 - Session files are kept after resume (not auto-deleted) so you can resume multiple times.
-- To clear a session after resume, call `helper.clear_session(session_data)` explicitly.
 
 ## Related Commands
 
-- `/mpm-session-pause` - Pause current session and save state
-- `/mpm-init resume` - Alternative resume entry point
+- `/mpm-session-pause` — Pause current session and save state
+- `claude-mpm session pause` — CLI entry point for pause
+- `claude-mpm session resume --help` — Full CLI usage
 
 See `docs/features/session-auto-resume.md` for auto-pause behavior.
