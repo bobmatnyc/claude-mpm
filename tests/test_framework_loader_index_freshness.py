@@ -140,15 +140,24 @@ class TestSectionIntegration:
     """The note must appear ON the trusty-search row in the rendered block."""
 
     def _render(self, monkeypatch, *, note):
+        _caps = {
+            "trusty-memory": "absent",
+            "trusty-search": "on",
+            "trusty-analyze": "absent",
+            "trusty-review": "absent",
+        }
+        # Patch both the live-probe variant (tried first) AND the config-only
+        # fallback so _generate_tool_status_section sees trusty-search as "on"
+        # regardless of whether an ambient daemon is running in CI.
+        monkeypatch.setattr(
+            trusty_status,
+            "get_trusty_capabilities_live",
+            lambda: _caps,
+        )
         monkeypatch.setattr(
             trusty_status,
             "get_trusty_capabilities",
-            lambda: {
-                "trusty-memory": "absent",
-                "trusty-search": "on",
-                "trusty-analyze": "absent",
-                "trusty-review": "absent",
-            },
+            lambda: _caps,
         )
         stub = _stub_loader()
         # _generate_tool_status_section calls self._trusty_search_index_note();

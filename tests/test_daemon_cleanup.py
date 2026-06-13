@@ -3,9 +3,12 @@
 Test that the monitor daemon starts and stops cleanly.
 """
 
+import os
 import sys
 import time
 from pathlib import Path
+
+import pytest
 
 # Add the project root to path
 project_root = Path(__file__).parent.parent
@@ -14,6 +17,10 @@ sys.path.insert(0, str(project_root / "src"))
 from claude_mpm.services.monitor.daemon import UnifiedMonitorDaemon
 
 
+@pytest.mark.skipif(
+    os.environ.get("CI") == "true",
+    reason="binds a real daemon on port 8765 and crashes xdist workers; manual smoke test only",
+)
 def test_daemon():
     """Test daemon start/stop."""
     print("Testing monitor daemon cleanup...")

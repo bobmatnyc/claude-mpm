@@ -30,6 +30,7 @@ METRICS TRACKED:
 import json
 import logging
 import os
+import shutil
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -282,6 +283,10 @@ class TestAgentSystemE2E:
             f"Agent discovery completed in {self.performance_metrics['operation_times']['discovery_and_loading']:.3f}s"
         )
 
+    @pytest.mark.skipif(
+        shutil.which("claude") is None,
+        reason="requires claude CLI binary (not available in CI)",
+    )
     def test_agent_prompt_caching_and_performance(self):
         """
         Test agent prompt retrieval consistency and performance.
@@ -409,6 +414,10 @@ class TestAgentSystemE2E:
         self.performance_metrics["operation_times"]["deployment"] = deployment_time
         logger.info(f"Deployed {len(agents)} agents in {deployment_time:.3f}s")
 
+    @pytest.mark.skipif(
+        shutil.which("claude") is None,
+        reason="requires claude CLI binary (not available in CI)",
+    )
     def test_concurrent_agent_operations(self):
         """
         Test agent system under concurrent load.

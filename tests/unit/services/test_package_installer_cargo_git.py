@@ -56,7 +56,7 @@ def installer() -> PackageInstallerService:
         (
             SetupService.TRUSTY_ANALYZE,
             "https://github.com/bobmatnyc/trusty-analyze.git",
-            "trusty-analyzer",
+            "trusty-analyze",
         ),
     ],
 )
@@ -194,7 +194,7 @@ def test_run_cargo_install_force_appends_force_to_both_attempts(
     assert "--force" in call_log[1]
     assert "https://github.com/bobmatnyc/trusty-analyze.git" in call_log[1]
     bin_idx = call_log[1].index("--bin")
-    assert call_log[1][bin_idx + 1] == "trusty-analyzer"
+    assert call_log[1][bin_idx + 1] == "trusty-analyze"
 
 
 def test_run_cargo_install_without_binstall_uses_cargo_install(

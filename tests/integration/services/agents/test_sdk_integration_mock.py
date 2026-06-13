@@ -27,11 +27,16 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def fake_sdk_module(monkeypatch: pytest.MonkeyPatch) -> None:
+def fake_sdk_module(monkeypatch: pytest.MonkeyPatch):  # type: ignore[return]
     """Install a minimal fake claude_agent_sdk into sys.modules.
 
     This lets sdk_runtime.py complete its top-level import block without
     requiring the real package.  Each test then patches sdk_query directly.
+
+    IMPORTANT: sdk_runtime and sdk_event_bridge are purged (plain pop, NOT
+    monkeypatch.delitem) on both setup and teardown so they always re-import
+    against the current fake SDK.  Using monkeypatch.delitem would restore the
+    stale, fake-bound module on teardown, poisoning later unit tests.
     """
     sdk = ModuleType("claude_agent_sdk")
 
@@ -77,13 +82,32 @@ def fake_sdk_module(monkeypatch: pytest.MonkeyPatch) -> None:
     sdk.PermissionResultDeny = _PermissionResultDeny  # type: ignore[attr-defined]
     sdk.query = AsyncMock()  # patched per-test below  # type: ignore[attr-defined]
 
-    # Replace or insert the module
+    # Replace or insert the module — auto-restored on teardown by monkeypatch
     monkeypatch.setitem(sys.modules, "claude_agent_sdk", sdk)
 
-    # Also remove any previously cached sdk_runtime so it re-imports cleanly
-    for mod_name in list(sys.modules):
-        if "sdk_runtime" in mod_name or "sdk_event_bridge" in mod_name:
-            monkeypatch.delitem(sys.modules, mod_name, raising=False)
+    # Purge cached sdk_runtime/sdk_event_bridge so they re-import against the
+    # fake SDK.  Use plain pop (NOT monkeypatch.delitem) so they are NOT
+    # restored on teardown — restoring a stale, fake-bound module is what
+    # poisoned later unit tests.
+    #
+    # Also remove the bound attribute from the parent package object so that
+    # `from claude_mpm.services.agents import sdk_runtime` does a fresh lookup
+    # through sys.modules rather than returning the package's cached attribute.
+    def _purge_sdk_runtime_modules() -> None:
+        for mod_name in list(sys.modules):
+            if "sdk_runtime" in mod_name or "sdk_event_bridge" in mod_name:
+                sys.modules.pop(mod_name, None)
+        # Clear cached submodule attributes from the parent package so both
+        # import styles (`from pkg import mod` and `from pkg.mod import X`)
+        # resolve to the same freshly-imported module object.
+        agents_pkg = sys.modules.get("claude_mpm.services.agents")
+        if agents_pkg is not None:
+            agents_pkg.__dict__.pop("sdk_runtime", None)
+            agents_pkg.__dict__.pop("sdk_event_bridge", None)
+
+    _purge_sdk_runtime_modules()
+    yield
+    _purge_sdk_runtime_modules()
 
 
 # ---------------------------------------------------------------------------

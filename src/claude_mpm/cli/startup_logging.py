@@ -915,8 +915,11 @@ def get_latest_startup_log(project_root: Path | None = None) -> Path | None:
     if not log_dir.exists():
         return None
 
+    # Sort by filename (which encodes the timestamp as startup-YYYY-MM-DD-HH-MM-SS.log)
+    # rather than st_mtime to avoid flakiness when multiple files are created in quick
+    # succession and the filesystem clock resolution causes identical mtimes.
     log_files = sorted(
-        log_dir.glob("startup-*.log"), key=lambda p: p.stat().st_mtime, reverse=True
+        log_dir.glob("startup-*.log"), key=lambda p: p.name, reverse=True
     )
 
     return log_files[0] if log_files else None
