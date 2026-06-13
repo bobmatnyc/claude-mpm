@@ -126,10 +126,11 @@ def add_session_subparser(subparsers: Any) -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  claude-mpm session resume                      # Resume most recent\n"
-            "  claude-mpm session resume --select 2           # 2nd most recent\n"
-            "  claude-mpm session resume --select 20240101    # Partial ID match\n"
-            "  claude-mpm session resume <session-id>         # Exact session ID\n"
+            "  claude-mpm session resume                                # Resume most recent\n"
+            "  claude-mpm session resume --select 2                    # 2nd most recent\n"
+            "  claude-mpm session resume --select 20240101             # Partial ID match\n"
+            "  claude-mpm session resume <session-id>                  # Exact session ID\n"
+            "  claude-mpm session resume --project-path /my/project    # Specify project\n"
         ),
     )
     resume_parser.add_argument(
@@ -149,8 +150,9 @@ def add_session_subparser(subparsers: Any) -> None:
         help="Exact session ID to resume (backward-compatible positional argument)",
     )
     resume_parser.add_argument(
-        "project_path",
-        nargs="?",
+        "--project-path",
+        type=str,
         default=".",
+        dest="project_path",
         help="Path to project directory (default: current directory)",
     )
