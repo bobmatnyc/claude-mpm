@@ -542,46 +542,66 @@ class TestFailSafe:
     """probe_all_services_sync must never raise, even on event-loop conflicts."""
 
     def test_sync_wrapper_never_raises(self) -> None:
-        with patch(
-            "claude_mpm.services.tool_service_probe.asyncio.run",
-            side_effect=RuntimeError("boom"),
+        """asyncio.run raising a generic exception → all DEGRADED."""
+        # Simulate no running loop (get_running_loop raises RuntimeError).
+        with (
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.get_running_loop",
+                side_effect=RuntimeError("no running event loop"),
+            ),
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.run",
+                side_effect=OSError("disk full"),
+            ),
         ):
             result = probe_all_services_sync()
-        # Generic RuntimeError (not an event-loop conflict) → DEGRADED.
+        # OSError from asyncio.run → DEGRADED.
         assert isinstance(result, dict)
         assert set(result) == set(SERVICE_PROBE_COMMANDS)
         for svc, r in result.items():
             assert r.state == "degraded", f"{svc}: expected degraded, got {r.state}"
 
-    def test_event_loop_conflict_returns_absent(self) -> None:
+    def test_event_loop_running_returns_absent(self) -> None:
+        """When get_running_loop() succeeds (loop IS running) → all ABSENT."""
+        mock_loop = MagicMock()
         with patch(
-            "claude_mpm.services.tool_service_probe.asyncio.run",
-            side_effect=RuntimeError("This event loop is already running."),
+            "claude_mpm.services.tool_service_probe.asyncio.get_running_loop",
+            return_value=mock_loop,
         ):
             result = probe_all_services_sync()
-        # RuntimeError → ABSENT (event loop conflict path).
+        # Loop already running → ABSENT with explanatory hint.
         for svc, r in result.items():
             assert r.state == "absent", f"{svc}: expected absent, got {r.state}"
+            assert "event loop already running" in r.hint
 
-    def test_unexpected_exception_returns_degraded(self) -> None:
-        with patch(
-            "claude_mpm.services.tool_service_probe.asyncio.run",
-            side_effect=OSError("disk full"),
+    def test_unexpected_exception_from_asyncio_run_returns_degraded(self) -> None:
+        """Any exception from asyncio.run (no loop running) → DEGRADED."""
+        with (
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.get_running_loop",
+                side_effect=RuntimeError("no running event loop"),
+            ),
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.run",
+                side_effect=RuntimeError("some other runtime error"),
+            ),
         ):
             result = probe_all_services_sync()
-        # OSError is not RuntimeError → DEGRADED.
         for svc, r in result.items():
             assert r.state == "degraded", f"{svc}: expected degraded, got {r.state}"
 
     def test_sync_wrapper_returns_all_services(self) -> None:
-        async def _all_absent() -> dict[str, Any]:
-            return {svc: ProbeResult(state="absent") for svc in SERVICE_PROBE_COMMANDS}
-
-        with patch(
-            "claude_mpm.services.tool_service_probe.asyncio.run",
-            return_value={
-                svc: ProbeResult(state="absent") for svc in SERVICE_PROBE_COMMANDS
-            },
+        with (
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.get_running_loop",
+                side_effect=RuntimeError("no running event loop"),
+            ),
+            patch(
+                "claude_mpm.services.tool_service_probe.asyncio.run",
+                return_value={
+                    svc: ProbeResult(state="absent") for svc in SERVICE_PROBE_COMMANDS
+                },
+            ),
         ):
             result = probe_all_services_sync()
         assert set(result) == set(SERVICE_PROBE_COMMANDS)
