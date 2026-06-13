@@ -293,7 +293,7 @@ PORT="${CLAUDE_MPM_SOCKETIO_PORT:-8765}"
                 \"data\": $INPUT
             }
         }" \
-        --connect-timeout 0.2 --max-time 0.3 2>/dev/null
+        --connect-timeout 0.2 --max-time 0.3 >/dev/null 2>&1
 } &
 
 # =============================================================================
