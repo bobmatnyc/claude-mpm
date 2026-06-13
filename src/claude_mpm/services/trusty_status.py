@@ -41,6 +41,7 @@ Design (scoped per #598)
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -657,6 +658,15 @@ def get_trusty_status(service: str) -> tuple[str, str]:
         return ("absent", "")
 
 
+# Module-level store for probe hints populated by get_trusty_capabilities_live().
+# Keys are service names; values are the actionable hint strings for DEGRADED
+# services. get_probe_hint() reads this dict.
+# Guarded by _PROBE_HINTS_LOCK for thread-safety and test isolation — tests that
+# call get_trusty_capabilities_live() concurrently cannot corrupt each other's
+# hint state.
+_PROBE_HINTS: dict[str, str] = {}
+_PROBE_HINTS_LOCK: threading.Lock = threading.Lock()
+
 # Services whose per-session capability is reported to the PM prompt. Order is
 # stable so the injected table renders deterministically.
 _CAPABILITY_SERVICES: tuple[str, ...] = (
@@ -695,3 +705,54 @@ def get_trusty_capabilities() -> dict[str, str]:
             state = "absent"
         capabilities[service] = state
     return capabilities
+
+
+def get_trusty_capabilities_live(timeout: float = 1.5) -> dict[str, str]:
+    """Why: get_trusty_capabilities() infers service state from config files and
+    HTTP health checks, but cannot confirm the stdio MCP transport is correctly
+    wired. This function adds a live initialize + tools/list probe that gives
+    ground-truth availability — including a DEGRADED state with an actionable
+    hint when the binary is present but the probe fails.
+
+    What: Calls probe_all_services_sync(timeout) from tool_service_probe, maps
+    ProbeResult.state → state string ("on" / "degraded" / "absent"), stores
+    hints in the module-level _PROBE_HINTS dict for get_probe_hint() to serve,
+    and returns the same {service: state} dict shape as get_trusty_capabilities().
+    Falls back to get_trusty_capabilities() on any import error or exception so
+    startup is never broken by a probe failure.
+
+    Test: tests/services/test_tool_service_probe.py::TestGetTrustyCapabilitiesLive
+    — verifies state mapping, hint storage, and fallback behaviour.
+    """
+    try:
+        from claude_mpm.services.tool_service_probe import probe_all_services_sync
+
+        probe_results = probe_all_services_sync(timeout)
+        new_hints = {
+            svc: result.hint for svc, result in probe_results.items() if result.hint
+        }
+        with _PROBE_HINTS_LOCK:
+            _PROBE_HINTS.clear()
+            _PROBE_HINTS.update(new_hints)
+        return {svc: result.state for svc, result in probe_results.items()}
+    except Exception:
+        # Fall back to the original filesystem-based detection so startup
+        # never breaks over a probe failure.
+        with _PROBE_HINTS_LOCK:
+            _PROBE_HINTS.clear()
+        return get_trusty_capabilities()
+
+
+def get_probe_hint(service: str) -> str:
+    """Why: Callers (framework_loader) need the actionable hint for DEGRADED
+    services to include in the "Skip the following this session" block.
+
+    What: Returns the hint string stored by the most recent
+    get_trusty_capabilities_live() call for ``service``, or an empty string if
+    the service is ON / ABSENT or no live probe has been run yet.
+
+    Test: tests/services/test_tool_service_probe.py::TestGetProbeHint — verifies
+    hint returned for DEGRADED, empty string for ON/ABSENT and unknown services.
+    """
+    with _PROBE_HINTS_LOCK:
+        return _PROBE_HINTS.get(service, "")

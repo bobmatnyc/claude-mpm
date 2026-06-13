@@ -384,12 +384,26 @@ class FrameworkLoader:
         degraded-mode note when all absent, and an empty string on probe error.
         """
         try:
-            from claude_mpm.services.trusty_status import get_trusty_capabilities
+            from claude_mpm.services.trusty_status import (
+                get_probe_hint,
+                get_trusty_capabilities_live,
+            )
 
-            capabilities = get_trusty_capabilities()
-        except Exception as e:  # pragma: no cover - defensive
-            self.logger.debug(f"Skipping tool status section: {e}")
-            return ""
+            capabilities = get_trusty_capabilities_live()
+        except Exception:
+            try:
+                from claude_mpm.services.trusty_status import get_trusty_capabilities
+
+                capabilities = get_trusty_capabilities()
+            except Exception as e:  # pragma: no cover - defensive
+                self.logger.debug(f"Skipping tool status section: {e}")
+                return ""
+            # get_probe_hint is defined unconditionally in trusty_status.py, but
+            # we're here because the live-probe import failed; provide a no-op so
+            # downstream code works without a second import attempt.
+
+            def get_probe_hint(_svc: str) -> str:  # type: ignore[misc]
+                return ""
 
         if not capabilities:
             return ""
@@ -400,6 +414,7 @@ class FrameworkLoader:
             "configured": "NOT RUNNING",
             "not_running": "NOT RUNNING",
             "absent": "ABSENT",
+            "degraded": "⚠ DEGRADED",
         }
 
         # Per-service Impact text keyed by availability (ON vs everything else).
@@ -465,7 +480,13 @@ class FrameworkLoader:
                     impact = f"{impact} {note}"
             lines.append(f"| {service} | {label} | {impact} |")
             if not is_on:
-                negations.append(f"- {impact}")
+                # For DEGRADED services, append the actionable hint from the probe
+                # in parentheses so the PM knows why the service is unavailable.
+                hint = get_probe_hint(service)
+                negation = f"- {impact}"
+                if hint and state == "degraded":
+                    negation = f"{negation} ({hint})"
+                negations.append(negation)
 
         if negations:
             lines.append("\n**Skip the following this session:**\n")
