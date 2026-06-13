@@ -41,6 +41,7 @@ Design (scoped per #598)
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -670,7 +671,10 @@ _CAPABILITY_SERVICES: tuple[str, ...] = (
 # Module-level store for probe hints populated by get_trusty_capabilities_live().
 # Keys are service names; values are the actionable hint strings for DEGRADED
 # services. get_probe_hint() reads this dict.
+# _PROBE_HINTS_LOCK serialises concurrent writes from get_trusty_capabilities_live()
+# and reads from get_probe_hint() so no partial updates are visible.
 _PROBE_HINTS: dict[str, str] = {}
+_PROBE_HINTS_LOCK = threading.Lock()
 
 
 def get_trusty_capabilities() -> dict[str, str]:
@@ -720,19 +724,22 @@ def get_trusty_capabilities_live(timeout: float = 1.5) -> dict[str, str]:
     Test: tests/services/test_tool_service_probe.py::TestGetTrustyCapabilitiesLive
     — verifies state mapping, hint storage, and fallback behaviour.
     """
-    global _PROBE_HINTS
     try:
-        from claude_mpm.services.tool_service_probe import probe_all_services_sync
+        import claude_mpm.services.tool_service_probe as _probe_mod
 
-        probe_results = probe_all_services_sync(timeout)
-        _PROBE_HINTS = {
+        probe_results = _probe_mod.probe_all_services_sync(timeout)
+        new_hints = {
             svc: result.hint for svc, result in probe_results.items() if result.hint
         }
+        with _PROBE_HINTS_LOCK:
+            _PROBE_HINTS.clear()
+            _PROBE_HINTS.update(new_hints)
         return {svc: result.state for svc, result in probe_results.items()}
     except Exception:
         # Fall back to the original filesystem-based detection so startup
         # never breaks over a probe failure.
-        _PROBE_HINTS = {}
+        with _PROBE_HINTS_LOCK:
+            _PROBE_HINTS.clear()
         return get_trusty_capabilities()
 
 
@@ -747,4 +754,5 @@ def get_probe_hint(service: str) -> str:
     Test: tests/services/test_tool_service_probe.py::TestGetProbeHint — verifies
     hint returned for DEGRADED, empty string for ON/ABSENT and unknown services.
     """
-    return _PROBE_HINTS.get(service, "")
+    with _PROBE_HINTS_LOCK:
+        return _PROBE_HINTS.get(service, "")
