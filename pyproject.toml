@@ -59,7 +59,7 @@ sdk = [ "claude-agent-sdk>=0.1.48",]
 telegram = [ "python-telegram-bot>=20.0",]
 google = []
 llmlingua = [ "llmlingua>=0.2.0",]
-contracts = [ "icontract>=2.6.0", "icontract-hypothesis>=0.1.0",]
+contracts = [ "icontract>=2.6.0", "icontract-hypothesis>=0.1.0", "hypothesis>=6.92.0,<6.137.3",]
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
