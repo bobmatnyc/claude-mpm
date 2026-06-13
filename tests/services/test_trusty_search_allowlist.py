@@ -172,12 +172,28 @@ class TestDeriveId:
 
 
 class TestCheckDenylist:
+    @pytest.fixture()
+    def original_subtree_roots(self, monkeypatch):
+        """Restore the original _DENYLIST_SUBTREE_ROOTS for tests that verify
+        /tmp paths are denied.
+
+        The module-level autouse fixture removes the resolved tmp root from
+        _DENYLIST_SUBTREE_ROOTS so pytest's tmp_path works as a safe directory
+        in non-denylist tests.  On Linux, /tmp resolves to /tmp itself, so that
+        fixture strips "/tmp" from the set — breaking tests that explicitly
+        verify /tmp paths are denied.  Request this fixture to restore the
+        original set for those specific tests.
+        """
+        monkeypatch.setattr(
+            _mod, "_DENYLIST_SUBTREE_ROOTS", _ORIGINAL_DENYLIST_SUBTREE_ROOTS
+        )
+
     def test_rejects_home_root(self):
         home = Path.home().resolve()
         with pytest.raises(DeniedPathError, match="sensitive-path denylist"):
             _check_denylist(home)
 
-    def test_rejects_slash_tmp(self):
+    def test_rejects_slash_tmp(self, original_subtree_roots):
         with pytest.raises(DeniedPathError):
             _check_denylist(Path("/tmp"))
 
@@ -214,12 +230,12 @@ class TestCheckDenylist:
 
     # --- Subtree denylist (fix #2) -------------------------------------------
 
-    def test_rejects_tmp_subdirectory(self):
+    def test_rejects_tmp_subdirectory(self, original_subtree_roots):
         """A path under /tmp must be refused even though /tmp itself is the root."""
         with pytest.raises(DeniedPathError, match="ephemeral/system"):
             _check_denylist(Path("/tmp/foo"))
 
-    def test_rejects_tmp_deep_subdirectory(self):
+    def test_rejects_tmp_deep_subdirectory(self, original_subtree_roots):
         """Deeply nested /tmp path must also be refused."""
         with pytest.raises(DeniedPathError, match="ephemeral/system"):
             _check_denylist(Path("/tmp/a/b/c/my-project"))
