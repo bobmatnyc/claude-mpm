@@ -953,18 +953,22 @@ def should_skip_background_services(args, processed_argv):
     if hasattr(args, "command"):
         command = args.command
 
-        # Skip background services for lightweight commands
-        if is_lightweight_command(command):
-            return True
+        # command=None means the main "run" invocation (no subcommand) — it always
+        # needs background services. Only named subcommands (e.g. "agents", "monitor")
+        # are eligible for the lightweight / read-only gate below.
+        if command is not None:
+            # Skip background services for lightweight commands
+            if is_lightweight_command(command):
+                return True
 
-        # Skip background services for read-only subcommands.
-        # Delegates to needs_project_workspace() via the shared _READ_ONLY_SUBCOMMANDS
-        # registry so the two gate functions stay in sync automatically.
-        # WHY: monitor status/port only reads daemon state; agents list/skills list
-        # only read from ~/.claude-mpm/cache/ — none of them write to the project dir
-        # and all of them must not trigger sync_deployment_on_startup (issue #703).
-        if not needs_project_workspace(args):
-            return True
+            # Skip background services for read-only subcommands.
+            # Delegates to needs_project_workspace() via the shared _READ_ONLY_SUBCOMMANDS
+            # registry so the two gate functions stay in sync automatically.
+            # WHY: monitor status/port only reads daemon state; agents list/skills list
+            # only read from ~/.claude-mpm/cache/ — none of them write to the project dir
+            # and all of them must not trigger sync_deployment_on_startup (issue #703).
+            if not needs_project_workspace(args):
+                return True
 
     return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands)
 
