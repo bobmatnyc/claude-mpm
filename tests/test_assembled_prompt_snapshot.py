@@ -186,6 +186,7 @@ def test_workflow_compact_reference_present(assembled_prompt: str) -> None:
 @pytest.mark.unit
 def test_pm_memories_excluded_when_mcp_backend_detected(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """PM_memories.md content must be absent when MCP backend is simulated as active.
 
@@ -194,13 +195,40 @@ def test_pm_memories_excluded_when_mcp_backend_detected(
     memory injection dynamically, so the system prompt must not contain the
     static PM_memories content.
 
-    We simulate an active backend by setting MPM_USE_MCP_MEMORY=true, which
-    is the explicit opt-in path in _detect_mcp_memory_backend().
+    We mock _detect_mcp_memory_backend to return True (simulating an active
+    backend) and run the loader against an isolated tmp_path so no real
+    PM_memories.md file can be picked up from the project tree.  We also
+    clear the global service-container memory cache to prevent a stale cache
+    hit (the module-scoped assembled_prompt fixture populates the cache before
+    this test runs).
     """
-    monkeypatch.setenv("MPM_USE_MCP_MEMORY", "true")
+    # Clear stale memory cache BEFORE constructing the loader so that when
+    # _load_framework_content() calls load_memories() it gets a cache miss and
+    # actually exercises _detect_mcp_memory_backend() (which we patch below).
+    # Without this, a previous test that loaded real memories may have left a
+    # cache hit with non-empty actual_memories, bypassing the detection path.
+    from claude_mpm.services.core.service_container import get_global_container
+    from claude_mpm.services.core.service_interfaces import ICacheManager
 
-    loader = FrameworkLoader()
-    prompt = loader.get_framework_instructions()
+    _container = get_global_container()
+    if _container.is_registered(ICacheManager):
+        _container.resolve(ICacheManager).clear_memory_caches()
+
+    # Isolate cwd so no real PM_memories.md is discovered
+    with (
+        patch(
+            "claude_mpm.core.framework.loaders.instruction_loader.Path.cwd",
+            return_value=tmp_path,
+        ),
+        patch("claude_mpm.core.framework_loader.Path.cwd", return_value=tmp_path),
+        patch(
+            "claude_mpm.services.core.memory_manager.MemoryManager"
+            "._detect_mcp_memory_backend",
+            return_value=True,
+        ),
+    ):
+        loader = FrameworkLoader()
+        prompt = loader.get_framework_instructions()
 
     # actual_memories should be empty when MCP backend is flagged
     actual_memories = loader.framework_content.get("actual_memories", "")
