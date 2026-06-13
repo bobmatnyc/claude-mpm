@@ -44,10 +44,9 @@ def handle_pause(args) -> int:
     try:
         from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
 
-        # Resolve project path
-        project_path = (
-            Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
-        )
+        # Resolve project path — parser always sets the default "." so getattr
+        # covers both the CLI path and any direct Namespace construction in tests.
+        project_path = Path(getattr(args, "project_path", "."))
 
         console.print("\n[cyan]Creating session pause...[/cyan]")
 
@@ -140,10 +139,9 @@ def handle_resume(args) -> int:
     try:
         from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
 
-        # Resolve project path
-        project_path = (
-            Path(args.project_path) if hasattr(args, "project_path") else Path.cwd()
-        )
+        # Resolve project path — parser always sets the default "." so getattr
+        # covers both the CLI path and any direct Namespace construction in tests.
+        project_path = Path(getattr(args, "project_path", "."))
 
         helper = SessionResumeHelper(project_path=project_path)
 
@@ -154,15 +152,15 @@ def handle_resume(args) -> int:
             # --select <index-or-partial-id>
             session_data, error_msg = helper.resolve_session_by_selection(select_value)
             if session_data is None:
-                print(error_msg)
+                console.print(error_msg)
                 return 1
             prompt_text = helper.format_resume_prompt(session_data)
-            print(prompt_text)
+            console.print(prompt_text)
             sid = session_data.get("session_id", "unknown")
             file_path = session_data.get("file_path")
-            print(f"Loaded session: {sid}")
+            console.print(f"Loaded session: {sid}")
             if file_path:
-                print(f"Source: {file_path}")
+                console.print(f"Source: {file_path}")
 
         elif exact_session_id is not None:
             # Exact session ID supplied (backward-compatible positional form)
@@ -171,57 +169,61 @@ def handle_resume(args) -> int:
                 s for s in all_sessions if s.get("session_id") == exact_session_id
             ]
             if not matched:
-                print(f"No session found with ID: {exact_session_id}")
-                print("")
-                print(helper.format_session_list())
+                console.print(f"No session found with ID: {exact_session_id}")
+                console.print("")
+                console.print(helper.format_session_list())
                 return 1
             session_data = matched[0]
             prompt_text = helper.format_resume_prompt(session_data)
-            print(prompt_text)
+            console.print(prompt_text)
             file_path = session_data.get("file_path")
-            print(f"Loaded session: {exact_session_id}")
+            console.print(f"Loaded session: {exact_session_id}")
             if file_path:
-                print(f"Source: {file_path}")
+                console.print(f"Source: {file_path}")
 
         else:
             # No arguments — list when multiple sessions exist, else resume most recent
             session_count = helper.get_session_count()
             if session_count == 0:
-                print(
+                console.print(
                     "No paused sessions found for this project in .claude-mpm/sessions/"
                 )
-                print("")
-                print("To create a paused session, use: claude-mpm session pause")
+                console.print("")
+                console.print(
+                    "To create a paused session, use: claude-mpm session pause"
+                )
                 return 0
             if session_count > 1:
                 # Show numbered list so the user can pick
-                print(helper.format_session_list())
-                print("")
-                print("Resuming the most recent session automatically...")
+                console.print(helper.format_session_list())
+                console.print("")
+                console.print("Resuming the most recent session automatically...")
                 session_data = helper.check_and_display_resume_prompt()
                 if session_data:
                     sid = session_data.get("session_id", "unknown")
                     file_path = session_data.get("file_path")
-                    print(f"Loaded session: {sid}")
+                    console.print(f"Loaded session: {sid}")
                     if file_path:
-                        print(f"Source: {file_path}")
+                        console.print(f"Source: {file_path}")
             else:
                 # Only one session — resume it directly
                 session_data = helper.check_and_display_resume_prompt()
                 if session_data is None:
-                    print(
+                    console.print(
                         "No paused sessions found for this project in "
                         ".claude-mpm/sessions/"
                     )
-                    print("")
-                    print("To create a paused session, use: claude-mpm session pause")
+                    console.print("")
+                    console.print(
+                        "To create a paused session, use: claude-mpm session pause"
+                    )
                     return 0
                 sid = session_data.get("session_id", "unknown")
                 file_path = session_data.get("file_path")
-                print("")
-                print(f"Loaded session: {sid}")
+                console.print("")
+                console.print(f"Loaded session: {sid}")
                 if file_path:
-                    print(f"Source: {file_path}")
+                    console.print(f"Source: {file_path}")
 
         return 0
 
