@@ -737,6 +737,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add session command parser (pause / resume)
+    try:
+        from .session_parser import add_session_subparser
+
+        add_session_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Add search command parser
     try:
         from .search_parser import add_search_subparser

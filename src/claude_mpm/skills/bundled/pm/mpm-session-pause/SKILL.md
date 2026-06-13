@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.1.0"
+version: "1.3.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -16,10 +16,9 @@ Pause the current session and save all work state for later resume.
 
 When invoked, this skill:
 1. Captures current work state (todos, git status, context summary)
-2. Creates session file at `.claude-mpm/sessions/session-{timestamp}.md` (project-local)
+2. Creates session files at `.claude-mpm/sessions/session-{timestamp}.*` (project-local)
 3. Updates `.claude-mpm/sessions/LATEST-SESSION.txt` pointer
-4. Optionally commits session state to git
-5. Shows user the session file path for later resume
+4. Shows the session file path for later resume
 
 ## Usage
 
@@ -36,86 +35,26 @@ When invoked, this skill:
 
 ## Implementation
 
-### Step 0 — Resolve the correct Python interpreter (REQUIRED)
-
-`claude_mpm` may be installed in an **isolated** environment (pipx, `uv tool`,
-`pip --user`) that the system `python3` **cannot** import. Running bare
-`python3 -c "from claude_mpm..."` then fails with `ModuleNotFoundError`.
-
-**Before running any Python below, resolve the interpreter that owns the
-installed `claude-mpm`.** Run this shell snippet and use the captured value
-(`$MPM_PY`) as your interpreter:
+Run the console script directly — no interpreter resolution needed:
 
 ```bash
-# Honor an explicit override first, then ask claude_mpm to resolve itself,
-# then fall back to the venv python beside the claude-mpm console script.
-if [ -n "$CLAUDE_MPM_PYTHON" ]; then
-    MPM_PY="$CLAUDE_MPM_PYTHON"
-else
-    MPM_PY="$(python3 -m claude_mpm.utils.interpreter_resolver 2>/dev/null)"
-    if [ -z "$MPM_PY" ]; then
-        # Derive the venv python from the installed claude-mpm executable.
-        CMPM="$(command -v claude-mpm 2>/dev/null)"
-        if [ -n "$CMPM" ]; then
-            MPM_PY="$(dirname "$(readlink -f "$CMPM" 2>/dev/null || echo "$CMPM")")/python"
-        fi
-    fi
-    [ -x "$MPM_PY" ] || MPM_PY="$(command -v python3)"
-fi
-echo "Using interpreter: $MPM_PY"
+# Basic pause
+claude-mpm session pause
+
+# With a descriptive message
+claude-mpm session pause -m "End of day — auth refactor in progress"
+
+# Skip git commit
+claude-mpm session pause --no-commit
+
+# Export a copy to a specific location
+claude-mpm session pause --export /tmp/session-backup.json
 ```
 
-Then run the pause code with **`$MPM_PY`** (NOT bare `python3`):
-`"$MPM_PY" - <<'PY' ... PY`
+If the user provided a message after `/mpm-session-pause`, pass it via `-m`:
 
-**Execute the following Python code to pause the session:**
-
-```python
-from pathlib import Path
-
-try:
-    from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
-except ImportError:
-    print(
-        "ERROR: claude_mpm is not importable in the current Python environment.\n"
-        "Resolve the correct interpreter first (see Step 0 above), e.g.:\n"
-        "  MPM_PY=\"$(python3 -m claude_mpm.utils.interpreter_resolver)\"\n"
-        "  \"$MPM_PY\" -c 'from claude_mpm.services.cli.session_pause_manager "
-        "import SessionPauseManager'\n"
-        "Or set CLAUDE_MPM_PYTHON to the interpreter where claude-mpm is installed.\n"
-        "Alternatively, invoke directly: claude-mpm session-pause"
-    )
-    raise SystemExit(1)
-
-# Optional: Get message from user's command
-# If user provided message after /mpm-session-pause, extract it
-# Otherwise, message = None
-
-# Create session pause manager
-manager = SessionPauseManager(project_path=Path.cwd())
-
-# Create pause session
-session_id = manager.create_pause_session(
-    message=message,  # Optional context message
-    skip_commit=False,  # Will commit to git if in a repo
-    export_path=None,  # No additional export needed
-)
-
-# Report success to user
-print(f"✅ Session paused successfully!")
-print(f"")
-print(f"Session ID: {session_id}")
-print(f"Session files:")
-print(f"  - .claude-mpm/sessions/{session_id}.md (human-readable)")
-print(f"  - .claude-mpm/sessions/{session_id}.json (machine-readable)")
-print(f"  - .claude-mpm/sessions/{session_id}.yaml (config format)")
-print(f"")
-print(f"Quick resume:")
-print(f"  /mpm-session-resume")
-print(f"")
-print(f"View session context:")
-print(f"  cat .claude-mpm/sessions/LATEST-SESSION.txt")
-print(f"  cat .claude-mpm/sessions/{session_id}.md")
+```bash
+claude-mpm session pause -m "<user message here>"
 ```
 
 ## What Gets Saved
@@ -136,7 +75,6 @@ print(f"  cat .claude-mpm/sessions/{session_id}.md")
 **File Formats:**
 - `.md` - Human-readable markdown (for reading)
 - `.json` - Machine-readable (for tooling)
-- `.yaml` - Human-readable config (for editing)
 
 ## Session File Location
 
@@ -145,8 +83,7 @@ All session files are stored in the **project-local** directory:
 <project-root>/.claude-mpm/sessions/
 ├── LATEST-SESSION.txt          # Pointer to most recent session
 ├── session-YYYYMMDD-HHMMSS.md
-├── session-YYYYMMDD-HHMMSS.json
-└── session-YYYYMMDD-HHMMSS.yaml
+└── session-YYYYMMDD-HHMMSS.json
 ```
 
 This ensures sessions are scoped to the project that created them — pausing in
@@ -166,6 +103,11 @@ project A and opening project B will never load project A's session state.
 To resume this session:
 ```
 /mpm-session-resume
+```
+
+Or from the CLI:
+```bash
+claude-mpm session resume
 ```
 
 Or manually:
@@ -204,9 +146,9 @@ should not be committed. No git commit is created by the pause operation.
 
 ## Related Commands
 
-- `/mpm-session-resume` - Resume from most recent paused session
-- `/mpm-init resume` - Alternative resume command
-- See `docs/features/session-auto-resume.md` for auto-pause behavior
+- `/mpm-session-resume` — Resume from most recent paused session
+- `claude-mpm session resume` — CLI entry point for resume
+- `claude-mpm session pause --help` — Full CLI usage
 
 ## Notes
 
