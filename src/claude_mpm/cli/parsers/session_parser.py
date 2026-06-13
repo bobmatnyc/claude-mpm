@@ -22,9 +22,15 @@ from typing import Any
 def add_session_subparser(subparsers: Any) -> None:
     """Add the session subparser to the main parser.
 
+    WHAT: Registers the ``session`` top-level command group and its ``pause``
+    and ``resume`` subcommands — with all flags and positional arguments —
+    onto the provided ``subparsers`` object.
+
     WHY: The ``session`` command group gives users and skills a clean,
     memorable entry point for pause/resume operations without needing to
     know about the ``mpm-init`` subcommand hierarchy.
+
+    :spec: SPEC-CLI-04~1
 
     Args:
         subparsers: The subparsers object to add the session command to
