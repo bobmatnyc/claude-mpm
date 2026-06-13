@@ -27,7 +27,7 @@ import json
 import logging
 import shutil
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ SERVICE_PROBE_COMMANDS: dict[str, list[str]] = {
 }
 
 # JSON-RPC initialize request (MCP protocol 2024-11-05).
-_INIT_REQUEST: dict = {
+_INIT_REQUEST: dict[str, Any] = {
     "jsonrpc": "2.0",
     "method": "initialize",
     "params": {
@@ -62,14 +62,14 @@ _INIT_REQUEST: dict = {
 }
 
 # JSON-RPC notifications/initialized notification (no response expected).
-_INITIALIZED_NOTIFICATION: dict = {
+_INITIALIZED_NOTIFICATION: dict[str, Any] = {
     "jsonrpc": "2.0",
     "method": "notifications/initialized",
     "params": {},
 }
 
 # JSON-RPC tools/list request.
-_TOOLS_LIST_REQUEST: dict = {
+_TOOLS_LIST_REQUEST: dict[str, Any] = {
     "jsonrpc": "2.0",
     "method": "tools/list",
     "params": {},
@@ -320,8 +320,9 @@ def probe_all_services_sync(
 
     What: Uses asyncio.get_running_loop() to detect an already-running event
     loop (raises RuntimeError when NO loop is running — counterintuitive but
-    correct). If a loop IS running, returns all ABSENT with an explanatory hint.
-    Otherwise calls asyncio.run(probe_all_services(timeout)). Any other
+    correct). If a loop IS running, returns all DEGRADED with an explanatory
+    hint — the services may be healthy but we cannot verify them from an async
+    context. Otherwise calls asyncio.run(probe_all_services(timeout)). Any other
     exception → all DEGRADED. Never raises.
 
     Test: tests/services/test_tool_service_probe.py::TestFailSafe — verifies no
@@ -329,12 +330,13 @@ def probe_all_services_sync(
     """
     try:
         asyncio.get_running_loop()
-        # A loop is already running — cannot use asyncio.run().
-        # Return ABSENT for all services with an explanatory hint.
+        # A loop is already running — cannot use asyncio.run() to probe.
+        # The services may be installed and healthy; we just can't verify them
+        # from an async context. DEGRADED (not ABSENT) is the accurate signal.
         hint = _safe_hint("event loop already running — probe skipped")
         logger.debug("probe_all_services_sync: %s", hint)
         return {
-            svc: ProbeResult(state="absent", hint=hint)
+            svc: ProbeResult(state="degraded", hint=hint)
             for svc in SERVICE_PROBE_COMMANDS
         }
     except RuntimeError:
