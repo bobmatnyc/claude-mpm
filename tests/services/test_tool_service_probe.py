@@ -25,6 +25,7 @@ from claude_mpm.services.tool_service_probe import (
     SERVICE_PROBE_COMMANDS,
     ProbeResult,
     _probe_single_service,
+    _safe_hint,
     probe_all_services,
     probe_all_services_sync,
 )
@@ -127,6 +128,84 @@ class TestProbeResult:
         r = ProbeResult(state="on")
         with pytest.raises((AttributeError, TypeError)):
             r.state = "absent"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# _safe_hint: sanitization helper
+# ---------------------------------------------------------------------------
+
+
+class TestSafeHint:
+    """_safe_hint strips newlines, truncates, and passes short strings unchanged."""
+
+    def test_short_string_passes_through_unchanged(self) -> None:
+        text = "trusty-memory probe failed: connection refused"
+        assert _safe_hint(text) == text
+
+    def test_newline_stripped(self) -> None:
+        text = "error line 1\nerror line 2\nerror line 3"
+        result = _safe_hint(text)
+        assert "\n" not in result
+        assert "error line 1" in result
+
+    def test_carriage_return_stripped(self) -> None:
+        text = "error\r\nwith CRLF\r\nlinebreaks"
+        result = _safe_hint(text)
+        assert "\r" not in result
+        assert "\n" not in result
+
+    def test_truncation_at_max_len(self) -> None:
+        long_text = "x" * 200
+        result = _safe_hint(long_text, max_len=120)
+        assert len(result) <= 120
+        assert result.endswith("...")
+
+    def test_truncation_suffix_present(self) -> None:
+        long_text = "a" * 200
+        result = _safe_hint(long_text, max_len=50)
+        assert result.endswith("...")
+        assert len(result) == 50
+
+    def test_exactly_max_len_not_truncated(self) -> None:
+        text = "a" * 120
+        result = _safe_hint(text, max_len=120)
+        # Exactly at limit: no truncation needed
+        assert result == text
+        assert not result.endswith("...")
+
+    def test_multiline_traceback_sanitized(self) -> None:
+        traceback_text = (
+            "Traceback (most recent call last):\n"
+            '  File "/home/user/.local/lib/python3.13/site-packages/foo.py", line 42\n'
+            '    raise ValueError("boom")\n'
+            "ValueError: boom"
+        )
+        result = _safe_hint(traceback_text, max_len=120)
+        assert "\n" not in result
+        assert len(result) <= 120
+        assert result.endswith("...")
+
+    def test_custom_max_len(self) -> None:
+        text = "b" * 80
+        result = _safe_hint(text, max_len=40)
+        assert len(result) == 40
+        assert result.endswith("...")
+
+    def test_empty_string_returns_empty(self) -> None:
+        assert _safe_hint("") == ""
+
+    def test_leading_trailing_whitespace_stripped(self) -> None:
+        text = "  some error message  "
+        result = _safe_hint(text)
+        assert result == "some error message"
+
+    def test_tiny_max_len_no_overflow(self) -> None:
+        result = _safe_hint("abcdefgh", max_len=2)
+        assert len(result) <= 2
+
+    def test_tiny_max_len_3_no_overflow(self) -> None:
+        result = _safe_hint("abcdefgh", max_len=3)
+        assert len(result) <= 3
 
 
 # ---------------------------------------------------------------------------

@@ -79,6 +79,22 @@ _TOOLS_LIST_REQUEST: dict[str, object] = {
 }
 
 
+def _safe_hint(text: str, max_len: int = 120) -> str:
+    """Sanitize a probe hint for safe injection into the PM prompt.
+
+    Strips newlines/carriage returns and truncates to ``max_len`` chars so raw
+    exception text, multi-line tracebacks, or long absolute paths cannot bloat
+    or leak into the framework prompt. Returns the cleaned, bounded string.
+    """
+    cleaned = text.replace("\n", " ").replace("\r", " ").strip()
+    if len(cleaned) <= max_len:
+        return cleaned
+    # For very small budgets there's no room for the "..." marker; hard-truncate.
+    if max_len < 4:
+        return cleaned[:max_len]
+    return cleaned[: max_len - 3] + "..."
+
+
 @dataclass(frozen=True)
 class ProbeResult:
     """Result of a single service probe.
@@ -161,7 +177,9 @@ async def _probe_single_service(
         except json.JSONDecodeError as exc:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} returned non-JSON initialize response: {exc}",
+                hint=_safe_hint(
+                    f"{service} returned non-JSON initialize response: {exc}"
+                ),
             )
 
         if not isinstance(init_resp, dict) or "result" not in init_resp:
@@ -216,7 +234,9 @@ async def _probe_single_service(
         except json.JSONDecodeError as exc:
             return ProbeResult(
                 state="degraded",
-                hint=f"{service} returned non-JSON tools/list response: {exc}",
+                hint=_safe_hint(
+                    f"{service} returned non-JSON tools/list response: {exc}"
+                ),
             )
 
         if not isinstance(tools_resp, dict) or "result" not in tools_resp:
@@ -253,7 +273,7 @@ async def _probe_single_service(
         logger.debug("_probe_single_service(%s): unexpected error: %s", service, exc)
         return ProbeResult(
             state="degraded",
-            hint=f"{service} probe failed unexpectedly: {exc}",
+            hint=_safe_hint(f"{service} probe failed unexpectedly: {exc}"),
         )
     finally:
         # Always reap the subprocess — no orphans, even on timeout or crash.
@@ -293,7 +313,9 @@ async def probe_all_services(
     except Exception as exc:  # pragma: no cover - gather itself cannot normally raise
         logger.debug("probe_all_services: gather failed: %s", exc)
         return {
-            svc: ProbeResult(state="degraded", hint=f"probe gather failed: {exc}")
+            svc: ProbeResult(
+                state="degraded", hint=_safe_hint(f"probe gather failed: {exc}")
+            )
             for svc in SERVICE_PROBE_COMMANDS
         }
 
@@ -302,7 +324,7 @@ async def probe_all_services(
         if isinstance(result, BaseException):
             results[svc] = ProbeResult(
                 state="degraded",
-                hint=f"{svc} probe raised: {result}",
+                hint=_safe_hint(f"{svc} probe raised: {result}"),
             )
         elif isinstance(result, ProbeResult):
             results[svc] = result
@@ -310,7 +332,9 @@ async def probe_all_services(
             # Should never happen — _probe_single_service always returns ProbeResult
             results[svc] = ProbeResult(
                 state="degraded",
-                hint=f"{svc} probe returned unexpected type: {type(result)}",
+                hint=_safe_hint(
+                    f"{svc} probe returned unexpected type: {type(result)}"
+                ),
             )
     return results
 
@@ -339,14 +363,16 @@ def probe_all_services_sync(
         # or when called from inside an async context.
         # DEGRADED (not ABSENT): the probe couldn't run; we don't know whether
         # the binaries are installed or not.
-        hint = f"probe skipped (event loop conflict) — tool availability unknown: {exc}"
+        hint = _safe_hint(
+            f"probe skipped (event loop conflict) — tool availability unknown: {exc}"
+        )
         logger.debug("probe_all_services_sync: %s", hint)
         return {
             svc: ProbeResult(state="degraded", hint=hint)
             for svc in SERVICE_PROBE_COMMANDS
         }
     except Exception as exc:  # pragma: no cover - defensive catch-all
-        hint = f"sync probe wrapper failed: {exc}"
+        hint = _safe_hint(f"sync probe wrapper failed: {exc}")
         logger.debug("probe_all_services_sync: %s", hint)
         return {
             svc: ProbeResult(state="degraded", hint=hint)
