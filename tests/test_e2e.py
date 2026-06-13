@@ -2,6 +2,7 @@
 """End-to-end tests for claude-mpm interactive and non-interactive modes."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -110,8 +111,8 @@ class TestE2E:
         assert "49" in result.stdout, f"Expected '49' in output, got: {result.stdout}"
 
     @pytest.mark.skipif(
-        bool(os.environ.get("CLAUDECODE")),
-        reason="Cannot launch Claude Code from within a Claude Code session (CLAUDECODE env var set)",
+        shutil.which("claude") is None,
+        reason="requires claude CLI binary (not available in CI)",
     )
     def test_interactive_mode_startup_and_exit(self):
         """Test that interactive mode starts and can exit cleanly."""
@@ -155,8 +156,8 @@ class TestE2E:
     # Removed test_subprocess_orchestrator as --subprocess flag is deprecated
 
     @pytest.mark.skipif(
-        bool(os.environ.get("CLAUDECODE")),
-        reason="Cannot launch Claude Code from within a Claude Code session (CLAUDECODE env var set)",
+        shutil.which("claude") is None,
+        reason="requires claude CLI binary (not available in CI)",
     )
     @pytest.mark.parametrize(
         "prompt,expected",
