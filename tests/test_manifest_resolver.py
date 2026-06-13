@@ -133,7 +133,7 @@ class TestLoadBuiltinPreset:
 class TestBuiltinPresetSchemaValidation:
     """Verifies each built-in preset passes the manifest schema."""
 
-    @pytest.mark.parametrize("name", list(BUILTIN_PRESET_NAMES))
+    @pytest.mark.parametrize("name", sorted(BUILTIN_PRESET_NAMES))
     def test_builtin_validates(self, name: str) -> None:
         from claude_mpm.manifest.schema import validate_manifest
 
