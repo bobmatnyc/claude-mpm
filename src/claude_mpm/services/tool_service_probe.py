@@ -87,9 +87,12 @@ def _safe_hint(text: str, max_len: int = 120) -> str:
     or leak into the framework prompt. Returns the cleaned, bounded string.
     """
     cleaned = text.replace("\n", " ").replace("\r", " ").strip()
-    if len(cleaned) > max_len:
-        cleaned = cleaned[: max_len - 3] + "..."
-    return cleaned
+    if len(cleaned) <= max_len:
+        return cleaned
+    # For very small budgets there's no room for the "..." marker; hard-truncate.
+    if max_len < 4:
+        return cleaned[:max_len]
+    return cleaned[: max_len - 3] + "..."
 
 
 @dataclass(frozen=True)
