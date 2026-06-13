@@ -199,6 +199,14 @@ class TestSafeHint:
         result = _safe_hint(text)
         assert result == "some error message"
 
+    def test_tiny_max_len_no_overflow(self) -> None:
+        result = _safe_hint("abcdefgh", max_len=2)
+        assert len(result) <= 2
+
+    def test_tiny_max_len_3_no_overflow(self) -> None:
+        result = _safe_hint("abcdefgh", max_len=3)
+        assert len(result) <= 3
+
 
 # ---------------------------------------------------------------------------
 # _probe_single_service: ABSENT
