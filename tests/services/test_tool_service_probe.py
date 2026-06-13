@@ -561,17 +561,22 @@ class TestFailSafe:
         for svc, r in result.items():
             assert r.state == "degraded", f"{svc}: expected degraded, got {r.state}"
 
-    def test_event_loop_running_returns_absent(self) -> None:
-        """When get_running_loop() succeeds (loop IS running) → all ABSENT."""
+    def test_event_loop_running_returns_degraded(self) -> None:
+        """When get_running_loop() succeeds (loop IS running) → all DEGRADED.
+
+        DEGRADED (not ABSENT) because the services may be installed and healthy;
+        we simply cannot verify them from an async context. ABSENT would imply
+        the service is not installed, which is incorrect.
+        """
         mock_loop = MagicMock()
         with patch(
             "claude_mpm.services.tool_service_probe.asyncio.get_running_loop",
             return_value=mock_loop,
         ):
             result = probe_all_services_sync()
-        # Loop already running → ABSENT with explanatory hint.
+        # Loop already running → DEGRADED with explanatory hint.
         for svc, r in result.items():
-            assert r.state == "absent", f"{svc}: expected absent, got {r.state}"
+            assert r.state == "degraded", f"{svc}: expected degraded, got {r.state}"
             assert "event loop already running" in r.hint
 
     def test_unexpected_exception_from_asyncio_run_returns_degraded(self) -> None:
