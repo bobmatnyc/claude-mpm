@@ -491,6 +491,13 @@ def execute_command(command: str, args) -> int:
             args.days = 0
         return run_llmlingua_stats(args)
 
+    # Handle session command (pause / resume) with lazy import
+    if command == "session":
+        from .commands.session import manage_session
+
+        result = manage_session(args)
+        return result if result is not None else 0
+
     # Handle session-report command (offline transcript analysis)
     if command == "session-report":
         from .commands.session_report import run_session_report
@@ -565,6 +572,7 @@ def execute_command(command: str, args) -> int:
         "manifest",
         "search-index",
         "si",
+        "session",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)
