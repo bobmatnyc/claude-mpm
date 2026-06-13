@@ -311,40 +311,38 @@ async def probe_all_services(
 
 
 def probe_all_services_sync(
-    timeout_per_probe: float = 1.5,
+    timeout: float = 1.5,
 ) -> dict[str, ProbeResult]:
     """Synchronous wrapper around probe_all_services for use in non-async callers.
 
     Why: trusty_status.py and framework_loader.py are synchronous; this wrapper
     bridges to the async probe without requiring callers to manage event loops.
 
-    What: Calls asyncio.run(probe_all_services(timeout_per_probe)). If an event
-    loop is already running (e.g. inside pytest-asyncio), falls back to returning
-    all ABSENT with a hint explaining the conflict. Any other exception → all
-    DEGRADED. Never raises.
+    What: Uses asyncio.get_running_loop() to detect an already-running event
+    loop (raises RuntimeError when NO loop is running — counterintuitive but
+    correct). If a loop IS running, returns all ABSENT with an explanatory hint.
+    Otherwise calls asyncio.run(probe_all_services(timeout)). Any other
+    exception → all DEGRADED. Never raises.
 
     Test: tests/services/test_tool_service_probe.py::TestFailSafe — verifies no
     exception propagates even when asyncio.run raises.
     """
     try:
-        return asyncio.run(probe_all_services(timeout_per_probe))
-    except RuntimeError as exc:
-        # Distinguish event-loop conflicts (ABSENT) from other RuntimeErrors (DEGRADED).
-        if (
-            "event loop is already running" in str(exc).lower()
-            or "cannot run the event loop while another loop is running"
-            in str(exc).lower()
-        ):
-            hint = _safe_hint(f"event loop conflict: {exc}")
-            state = "absent"
-        else:
-            hint = _safe_hint(f"sync probe wrapper failed: {exc}")
-            state = "degraded"
+        asyncio.get_running_loop()
+        # A loop is already running — cannot use asyncio.run().
+        # Return ABSENT for all services with an explanatory hint.
+        hint = _safe_hint("event loop already running — probe skipped")
         logger.debug("probe_all_services_sync: %s", hint)
         return {
-            svc: ProbeResult(state=state, hint=hint) for svc in SERVICE_PROBE_COMMANDS
+            svc: ProbeResult(state="absent", hint=hint)
+            for svc in SERVICE_PROBE_COMMANDS
         }
-    except Exception as exc:  # pragma: no cover - defensive catch-all
+    except RuntimeError:
+        # No loop running — safe to call asyncio.run().
+        pass
+    try:
+        return asyncio.run(probe_all_services(timeout))
+    except Exception as exc:
         hint = _safe_hint(f"sync probe wrapper failed: {exc}")
         logger.debug("probe_all_services_sync: %s", hint)
         return {
