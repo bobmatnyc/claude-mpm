@@ -107,8 +107,11 @@ def _get_selected_scenarios() -> list[dict[str, Any]]:
     selected = [
         s for s in all_scenarios if s.get("scenario_id") in SELECTED_SCENARIO_IDS
     ]
-    # Preserve the selection order from SELECTED_SCENARIO_IDS
-    order = list(SELECTED_SCENARIO_IDS)
+    # Sort by a deterministic order of the selected IDs. ``SELECTED_SCENARIO_IDS``
+    # is a set, so iterating it directly is non-deterministic under hash
+    # randomization (breaks pytest-xdist collection). ``sorted`` gives a stable
+    # parametrization order across workers.
+    order = sorted(SELECTED_SCENARIO_IDS)
     selected.sort(
         key=lambda s: (
             order.index(s["scenario_id"]) if s["scenario_id"] in order else 999
