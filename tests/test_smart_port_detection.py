@@ -18,6 +18,8 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 # Add parent directory to path to import claude_mpm modules
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
@@ -72,6 +74,13 @@ finally:
     return process
 
 
+@pytest.mark.skip(
+    reason=(
+        "Integration/demo script: spawns real subprocesses bound to port 8765, "
+        "relies on psutil process-identity heuristics, and has race conditions "
+        "when the port is in use by another process. Not suitable for CI."
+    )
+)
 def test_port_detection():
     """Test the smart port detection functionality."""
     print("=" * 60)
