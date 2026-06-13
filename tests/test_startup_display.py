@@ -635,6 +635,7 @@ class TestTrustyBannerStatus:
                 "trusty-memory: on   palace: demo   localhost:7070",
             ),
             "trusty-search": ("on", "trusty-search: on   localhost:7878"),
+            "trusty-review": ("absent", ""),
         }
         monkeypatch.setattr(
             "src.claude_mpm.cli.startup_display.get_trusty_status",
@@ -655,6 +656,7 @@ class TestTrustyBannerStatus:
                 "trusty-memory: on   palace: demo   localhost:7070",
             ),
             "trusty-search": ("absent", ""),
+            "trusty-review": ("absent", ""),
         }
         monkeypatch.setattr(
             "src.claude_mpm.cli.startup_display.get_trusty_status",
@@ -676,6 +678,7 @@ class TestTrustyBannerStatus:
                 "trusty-memory: not running  (start: x)",
             ),
             "trusty-search": ("absent", ""),
+            "trusty-review": ("absent", ""),
         }
         monkeypatch.setattr(
             "src.claude_mpm.cli.startup_display.get_trusty_status",
