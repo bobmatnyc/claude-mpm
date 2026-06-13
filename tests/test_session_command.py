@@ -93,6 +93,19 @@ class TestSessionParser:
         args = parser.parse_args(["session", "resume"])
         assert args.select is None
         assert args.session_id is None
+        assert args.project_path == "."
+
+    def test_resume_project_path_flag(self) -> None:
+        parser = self._make_parser()
+        args = parser.parse_args(["session", "resume", "--project-path", "/my/project"])
+        assert args.project_path == "/my/project"
+
+    def test_resume_project_path_does_not_collide_with_session_id(self) -> None:
+        """Passing a path-like string must not be swallowed into session_id."""
+        parser = self._make_parser()
+        args = parser.parse_args(["session", "resume", "--project-path", "/my/project"])
+        assert args.session_id is None
+        assert args.project_path == "/my/project"
 
     def test_session_registered_in_full_parser(self) -> None:
         """Verify the session subparser is visible in the full CLI parser."""
