@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.config import Config
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 def test_memory_system_comprehensive(tmp_path):
@@ -43,7 +44,12 @@ def test_memory_system_comprehensive(tmp_path):
         assert memory, f"Should create memory for {agent_id}"
 
         # Check file location
-        project_file = test_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
+        project_file = (
+            test_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id(agent_id)}_memories.md"
+        )
         assert project_file.exists(), (
             f"{agent_id} memory should be in project directory"
         )
@@ -73,7 +79,12 @@ def test_memory_system_comprehensive(tmp_path):
         assert success, f"Should update {agent_id} memory"
 
         # Verify content was saved to project directory
-        project_file = test_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
+        project_file = (
+            test_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id(agent_id)}_memories.md"
+        )
         file_content = project_file.read_text()
         assert content in file_content, f"Content should be in {agent_id} memory"
         print(f"  ✅ Updated in project dir with: '{content[:40]}...'")
@@ -126,7 +137,12 @@ def test_memory_system_comprehensive(tmp_path):
         assert success, f"Should extract memories for {agent_id}"
 
         # Verify memories were saved to project directory
-        project_file = test_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
+        project_file = (
+            test_dir
+            / ".claude-mpm"
+            / "memories"
+            / f"{normalize_agent_id(agent_id)}_memories.md"
+        )
         file_content = project_file.read_text()
 
         for memory in memories:
