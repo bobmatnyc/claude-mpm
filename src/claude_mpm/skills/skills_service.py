@@ -22,6 +22,7 @@ SPEC-SKILLS-02~1 : docs/specs/skills.md#SPEC-SKILLS-02~1
 
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -188,9 +189,18 @@ class SkillsService(LoggerMixin):
         The skill name is the immediate parent directory of SKILL.md; the
         category is the first-level subdirectory under bundled_skills_path.
 
+        Each returned dict includes a ``canonical_id`` field that is the
+        POSIX-formatted relative path from the bundled root to the skill
+        directory (e.g. ``"toolchains/rust/core"``).  Callers that need a
+        collision-free key should use ``canonical_id`` rather than ``name``
+        alone: multiple skills under different paths can share the same leaf
+        name (e.g. ``toolchains/rust/core`` and ``toolchains/python/core``
+        both have ``name == "core"``).
+
         Returns:
             List of skill dictionaries containing:
             - name: Skill name (immediate parent directory of SKILL.md)
+            - canonical_id: Relative POSIX path from bundled root (unique per skill)
             - category: Category (top-level subdirectory under bundled root)
             - path: Full path to skill directory
             - metadata: Parsed YAML frontmatter from SKILL.md
@@ -222,10 +232,26 @@ class SkillsService(LoggerMixin):
             except IndexError:
                 category = skill_dir.name
 
+            # Warn when the skill sits directly under the bundled root with no
+            # category prefix — its leaf name IS its full path, making it
+            # indistinguishable from any other root-level skill with the same name.
+            if len(relative.parts) == 1:
+                self.logger.warning(
+                    f"Skill '{skill_dir.name}' sits directly under the bundled root "
+                    f"with no category prefix; canonical_id equals the leaf name "
+                    f"which may collide with future skills. "
+                    f"Consider moving it under a category directory."
+                )
+
+            # canonical_id is the full relative POSIX path (e.g. "toolchains/rust/core").
+            # It is unique across the entire bundled tree and safe to use as a dict key.
+            canonical_id = relative.as_posix()
+
             metadata = self._parse_skill_metadata(skill_md)
             skills.append(
                 {
                     "name": skill_dir.name,
+                    "canonical_id": canonical_id,
                     "category": category,
                     "path": skill_dir,
                     "metadata": metadata,
@@ -236,6 +262,9 @@ class SkillsService(LoggerMixin):
 
         # Optionally scan Superpowers cache for additional skills.
         # MPM's own bundled skills take precedence on name conflicts.
+        # Use canonical_id (leaf name for Superpowers, which is always flat) for
+        # the dedup guard so that bundled skills with the same leaf name as a
+        # Superpowers skill are not silently dropped.
         superpowers_path = (
             Path.home() / ".claude" / "plugins" / "cache" / "Superpowers" / "skills"
         )
@@ -243,16 +272,25 @@ class SkillsService(LoggerMixin):
             self.logger.debug(
                 f"Found Superpowers cache at {superpowers_path}, scanning for skills"
             )
-            existing_names = {s["name"] for s in skills}
+            # Dedup by leaf name: compare the Superpowers skill leaf name
+            # against the leaf names of already-discovered skills (not canonical
+            # ids, which are full relative paths and would never match the flat
+            # Superpowers directory name).
+            existing_leaf_names = {s["name"] for s in skills}
             for skill_dir in superpowers_path.iterdir():
                 if not skill_dir.is_dir():
                     continue
                 skill_md = skill_dir / "SKILL.md"
-                if skill_md.exists() and skill_dir.name not in existing_names:
+                # Superpowers skills are flat (single level), so their canonical_id
+                # is just the directory name — identical to what name would be.
+                superpowers_canonical_id = skill_dir.name
+                # Intentional: bundled skills take precedence over Superpowers skills with the same leaf name.
+                if skill_md.exists() and skill_dir.name not in existing_leaf_names:
                     metadata = self._parse_skill_metadata(skill_md)
                     skills.append(
                         {
                             "name": skill_dir.name,
+                            "canonical_id": superpowers_canonical_id,
                             "category": "superpowers",
                             "path": skill_dir,
                             "metadata": metadata,
@@ -540,9 +578,12 @@ class SkillsService(LoggerMixin):
             - not_deployed: List of skill names (in bundled, not deployed)
             - orphaned: List of skill names (in deployed, not bundled)
         """
-        bundled = {s["name"]: s for s in self.discover_bundled_skills()}
+        # Key bundled skills by canonical_id to avoid silent leaf-name collisions
+        # (e.g. toolchains/rust/core and toolchains/python/core both have name="core").
+        bundled = {s["canonical_id"]: s for s in self.discover_bundled_skills()}
 
-        # Discover deployed skills
+        # Discover deployed skills (deployed flat by leaf name; key by leaf name here
+        # since the deployed layout does not carry a canonical path).
         deployed = {}
         if self.deployed_skills_path.exists():
             for category_dir in self.deployed_skills_path.iterdir():
@@ -568,8 +609,21 @@ class SkillsService(LoggerMixin):
         not_deployed = []
         orphaned = []
 
-        # Check for updates
-        for name, bundled_skill in bundled.items():
+        # Warn when bundled skills share a leaf name — the update-check loop uses leaf
+        # names and will silently skip all but one skill with a colliding name.
+        _name_counts_cfu = Counter(s["name"] for s in bundled.values())
+        _collisions_cfu = [n for n, c in _name_counts_cfu.items() if c > 1]
+        if _collisions_cfu:
+            self.logger.warning(
+                f"check_for_updates: ambiguous leaf names {_collisions_cfu}; "
+                "pass canonical_id to update a specific skill."
+            )
+
+        # Check for updates — compare by leaf name since deployed layout is flat.
+        # NOTE: keyed by leaf name; if two bundled skills share a leaf name the
+        # last one wins here. This is acceptable for update-check purposes.
+        for canonical_id, bundled_skill in bundled.items():
+            name = bundled_skill["name"]
             bundled_version = bundled_skill["metadata"].get("version", "0.0.0")
 
             if name not in deployed:
@@ -588,9 +642,10 @@ class SkillsService(LoggerMixin):
                 else:
                     up_to_date.append(name)
 
-        # Check for orphaned skills
+        # Check for orphaned skills (deployed leaf names not present in bundled).
+        bundled_leaf_names = {s["name"] for s in bundled.values()}
         for name in deployed:
-            if name not in bundled:
+            if name not in bundled_leaf_names:
                 orphaned.append(name)
 
         return {
@@ -626,17 +681,39 @@ class SkillsService(LoggerMixin):
         updated = []
         errors = []
 
-        bundled = {s["name"]: s for s in self.discover_bundled_skills()}
+        # Key by canonical_id to avoid silent leaf-name collisions; look up by
+        # leaf name separately so callers can still pass plain skill names.
+        bundled_by_canonical = {
+            s["canonical_id"]: s for s in self.discover_bundled_skills()
+        }
+        bundled_by_name = {s["name"]: s for s in bundled_by_canonical.values()}
+
+        name_counts = Counter(s["name"] for s in bundled_by_canonical.values())
+        collisions = [n for n, c in name_counts.items() if c > 1]
+        if collisions:
+            self.logger.warning(
+                f"update_skills: ambiguous leaf names {collisions}; "
+                "pass canonical_id to update a specific skill."
+            )
 
         for skill_name in skill_names:
-            if skill_name not in bundled:
+            if skill_name not in bundled_by_name:
                 errors.append(
                     {"skill": skill_name, "error": "Skill not found in bundled skills"}
                 )
                 continue
 
+            if skill_name in collisions:
+                errors.append(
+                    {
+                        "skill": skill_name,
+                        "error": "Ambiguous leaf name; pass canonical_id to disambiguate",
+                    }
+                )
+                continue
+
             try:
-                skill = bundled[skill_name]
+                skill = bundled_by_name[skill_name]
                 target_dir = (
                     self.deployed_skills_path / skill["category"] / skill["name"]
                 )
