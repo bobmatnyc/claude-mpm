@@ -285,6 +285,8 @@ class SkillsService(LoggerMixin):
                 # is just the directory name — identical to what name would be.
                 superpowers_canonical_id = skill_dir.name
                 # Intentional: bundled skills take precedence over Superpowers skills with the same leaf name.
+                # TODO: once callers migrate to canonical_id, revisit this heuristic — a Superpowers skill is
+                # currently suppressed if ANY bundled skill shares its leaf name, regardless of category.
                 if skill_md.exists() and skill_dir.name not in existing_leaf_names:
                     metadata = self._parse_skill_metadata(skill_md)
                     skills.append(
@@ -611,11 +613,11 @@ class SkillsService(LoggerMixin):
 
         # Warn when bundled skills share a leaf name — the update-check loop uses leaf
         # names and will silently skip all but one skill with a colliding name.
-        _name_counts_cfu = Counter(s["name"] for s in bundled.values())
-        _collisions_cfu = [n for n, c in _name_counts_cfu.items() if c > 1]
-        if _collisions_cfu:
+        name_counts = Counter(s["name"] for s in bundled.values())
+        collisions = [n for n, c in name_counts.items() if c > 1]
+        if collisions:
             self.logger.warning(
-                f"check_for_updates: ambiguous leaf names {_collisions_cfu}; "
+                f"check_for_updates: ambiguous leaf names {collisions}; "
                 "pass canonical_id to update a specific skill."
             )
 
@@ -686,6 +688,8 @@ class SkillsService(LoggerMixin):
         bundled_by_canonical = {
             s["canonical_id"]: s for s in self.discover_bundled_skills()
         }
+        # Lossy on leaf-name collision: only the last skill with a given name survives.
+        # The collision guard below makes ambiguous caller lookups safe by rejecting them explicitly.
         bundled_by_name = {s["name"]: s for s in bundled_by_canonical.values()}
 
         name_counts = Counter(s["name"] for s in bundled_by_canonical.values())
