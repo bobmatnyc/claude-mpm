@@ -78,9 +78,11 @@ If the command exits non-zero, capture the full error and show it verbatim —
 do **not** summarise with a generic "not importable" message:
 
 ```bash
-if ! claude-mpm session resume 2>&1; then
+claude-mpm session resume 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
     echo ""
-    echo "ERROR: claude-mpm session resume failed (exit $?)."
+    echo "ERROR: claude-mpm session resume failed (exit $rc)."
     echo "Full error shown above."
     echo ""
     echo "Diagnostic steps:"
