@@ -479,6 +479,10 @@ class TestPathResolver:
         self, resolver, tmp_path, monkeypatch
     ):
         """Test detecting development deployment context."""
+        # Clear CLAUDE_MPM_USER_PWD so _get_working_dir() uses Path.cwd(),
+        # not an ambient shell variable that may point to a directory without
+        # pyproject.toml (causing spurious UNKNOWN instead of DEVELOPMENT).
+        monkeypatch.delenv("CLAUDE_MPM_USER_PWD", raising=False)
         # Create pyproject.toml in current directory
         monkeypatch.chdir(tmp_path)
         (tmp_path / "pyproject.toml").touch()
