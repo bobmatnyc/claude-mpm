@@ -22,6 +22,7 @@ SPEC-SKILLS-02~1 : docs/specs/skills.md#SPEC-SKILLS-02~1
 
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -271,7 +272,11 @@ class SkillsService(LoggerMixin):
             self.logger.debug(
                 f"Found Superpowers cache at {superpowers_path}, scanning for skills"
             )
-            existing_canonical_ids = {s["canonical_id"] for s in skills}
+            # Dedup by leaf name: compare the Superpowers skill leaf name
+            # against the leaf names of already-discovered skills (not canonical
+            # ids, which are full relative paths and would never match the flat
+            # Superpowers directory name).
+            existing_leaf_names = {s["name"] for s in skills}
             for skill_dir in superpowers_path.iterdir():
                 if not skill_dir.is_dir():
                     continue
@@ -279,10 +284,7 @@ class SkillsService(LoggerMixin):
                 # Superpowers skills are flat (single level), so their canonical_id
                 # is just the directory name — identical to what name would be.
                 superpowers_canonical_id = skill_dir.name
-                if (
-                    skill_md.exists()
-                    and superpowers_canonical_id not in existing_canonical_ids
-                ):
+                if skill_md.exists() and skill_dir.name not in existing_leaf_names:
                     metadata = self._parse_skill_metadata(skill_md)
                     skills.append(
                         {
@@ -607,6 +609,8 @@ class SkillsService(LoggerMixin):
         orphaned = []
 
         # Check for updates — compare by leaf name since deployed layout is flat.
+        # NOTE: keyed by leaf name; if two bundled skills share a leaf name the
+        # last one wins here. This is acceptable for update-check purposes.
         for canonical_id, bundled_skill in bundled.items():
             name = bundled_skill["name"]
             bundled_version = bundled_skill["metadata"].get("version", "0.0.0")
@@ -672,6 +676,14 @@ class SkillsService(LoggerMixin):
             s["canonical_id"]: s for s in self.discover_bundled_skills()
         }
         bundled_by_name = {s["name"]: s for s in bundled_by_canonical.values()}
+
+        name_counts = Counter(s["name"] for s in bundled_by_canonical.values())
+        collisions = [n for n, c in name_counts.items() if c > 1]
+        if collisions:
+            self.logger.warning(
+                f"update_skills: ambiguous leaf names {collisions}; "
+                "pass canonical_id to update a specific skill."
+            )
 
         for skill_name in skill_names:
             if skill_name not in bundled_by_name:
