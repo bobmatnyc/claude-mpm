@@ -46,7 +46,6 @@ def add_session_subparser(subparsers: Any) -> None:
             "Examples:\n"
             "  claude-mpm session pause                       # Pause current session\n"
             "  claude-mpm session pause -m 'End of day'      # Pause with message\n"
-            "  claude-mpm session pause --no-commit           # Skip git commit\n"
             "  claude-mpm session resume                      # Resume most recent session\n"
             "  claude-mpm session resume --select 2           # Resume 2nd most recent\n"
             "  claude-mpm session resume --select 20240101    # Resume by partial ID\n"
@@ -83,7 +82,6 @@ def add_session_subparser(subparsers: Any) -> None:
             "Examples:\n"
             "  claude-mpm session pause                          # Basic pause\n"
             "  claude-mpm session pause -m 'End of day'         # With message\n"
-            "  claude-mpm session pause --no-commit             # Skip git commit\n"
             "  claude-mpm session pause --export session.json   # Export copy\n"
         ),
     )
@@ -94,10 +92,12 @@ def add_session_subparser(subparsers: Any) -> None:
         default=None,
         help="Optional message describing pause reason or context",
     )
+    # --no-commit is kept as a deprecated no-op for back-compat; sessions are
+    # written to .claude-mpm/sessions/ which is gitignored and never committed.
     pause_parser.add_argument(
         "--no-commit",
         action="store_true",
-        help="Skip git commit of session state",
+        help=argparse.SUPPRESS,  # deprecated no-op — sessions are never committed
     )
     pause_parser.add_argument(
         "--export",
