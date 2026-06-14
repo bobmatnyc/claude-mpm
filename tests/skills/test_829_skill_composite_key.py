@@ -184,3 +184,51 @@ def test_hidden_dirs_still_excluded_with_canonical_id(tmp_path: Path) -> None:
     canonical_ids = {s["canonical_id"] for s in skills}
     assert "category-a/skill-visible" in canonical_ids
     assert ".hidden/skill-hidden" not in canonical_ids
+
+
+# ---------------------------------------------------------------------------
+# update_skills: leaf-name collision warning
+# ---------------------------------------------------------------------------
+
+
+def test_update_skills_warns_on_leaf_name_collision(
+    tmp_path: Path, caplog: object
+) -> None:
+    """update_skills must emit a WARNING when two bundled skills share a leaf name.
+
+    Why: Callers pass plain leaf names to update_skills; if two bundled skills
+    share the same leaf name the correct one to update is ambiguous.  The
+    collision warning makes this visible so callers can pass canonical_id instead.
+
+    What: Set up two bundled skills with the same leaf name ("core") under
+    different category paths, then call update_skills with that name; assert
+    the warning text appears in the log.
+
+    Test: The captured log must contain "ambiguous leaf names" and the
+    colliding name.
+    """
+    import logging
+
+    bundled = tmp_path / "bundled"
+    _write_skill(bundled / "cat-a" / "core", "core")
+    _write_skill(bundled / "cat-b" / "core", "core")
+
+    service = SkillsService()
+    service.bundled_skills_path = bundled
+    service.deployed_skills_path = tmp_path / "deployed"
+
+    with caplog.at_level(logging.WARNING, logger="claude_mpm.skills.skills_service"):
+        # Pass "core" explicitly so the method does not bail out early on an
+        # empty skill_names list; the collision warning fires before the
+        # individual skill lookup.
+        service.update_skills(["core"])
+
+    warning_records = [r for r in caplog.records if r.levelno == logging.WARNING]
+    collision_warnings = [
+        r for r in warning_records if "ambiguous leaf names" in r.message
+    ]
+    assert collision_warnings, (
+        f"Expected a collision warning but got records: "
+        f"{[r.message for r in warning_records]}"
+    )
+    assert "core" in collision_warnings[0].message
