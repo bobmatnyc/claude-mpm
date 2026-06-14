@@ -19,6 +19,27 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.42 (2026-06-14)
+
+### Feat
+
+- **cli**: add top-level claude-mpm session pause|resume command; skills stop interpreter-hunting (#823)
+- live tools/list proxy probe for Available Tool Services detection (closes #814) (#815)
+
+### Fix
+
+- **skills**: surface actual ImportError in session-pause/resume diagnostics (#781) (#826)
+- **skills**: replace iterdir with rglob in discover_bundled_skills for deep nesting (#808) (#813)
+- **cli**: session pause no longer prints false 'Git commit created'; correct docstrings (#825)
+- **tests**: repair chronically-red Test Suite CI (sdk_runtime contamination + cluster triage) (#821)
+- **services**: sanitize probe hints to prevent raw exception/path leakage into PM prompt (#820)
+- **ci**: pin hypothesis<6.137.3 for icontract-hypothesis compat (unblock pytest) (#817)
+
+### Refactor
+
+- **skills**: post-#831 review polish — rename opaque locals, add clarifying comments (#832)
+- **skills**: add canonical_id to prevent leaf-name collision in bundled skill discovery (#831)
+
 ## v6.5.41 (2026-06-12)
 
 ### Feat
