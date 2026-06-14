@@ -2,7 +2,7 @@
 name: mpm-session-resume
 description: Load context from paused session
 user-invocable: true
-version: "1.4.0"
+version: "1.4.1"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -71,6 +71,35 @@ claude-mpm session resume session-20240101-143022
 > permission-denied read looks identical to "no sessions" and resume wrongly
 > reports nothing to resume. The `claude-mpm session resume` command handles
 > this correctly via `check_session_dir_access()`.
+
+### If `claude-mpm session resume` fails
+
+If the command exits non-zero, capture the full error and show it verbatim —
+do **not** summarise with a generic "not importable" message:
+
+```bash
+claude-mpm session resume 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    echo ""
+    echo "ERROR: claude-mpm session resume failed (exit $rc)."
+    echo "Full error shown above."
+    echo ""
+    echo "Diagnostic steps:"
+    echo "  1. Verify claude-mpm is on PATH:  command -v claude-mpm"
+    echo "  2. Check the actual import error:  python3 -c 'import claude_mpm' 2>&1"
+    echo "  3. If a transitive dep fails (e.g. shadowed stdlib module), check"
+    echo "     sys.path[0] is not /tmp:  python3 -c 'import sys; print(sys.path[0])'"
+fi
+```
+
+> **Note on misleading ImportError messages (issue #781):** A bare
+> `except ImportError` can fire for transitive failures (e.g. a stray
+> `/tmp/bisect.py` shadowing stdlib `bisect`) unrelated to `claude_mpm`
+> itself. Always inspect the **actual** exception — `e.name` tells you
+> which module failed. If `e.name` does not start with `claude_mpm`, the
+> problem is a shadowed or missing transitive dependency, not a missing
+> `claude_mpm` installation.
 
 ## Session Storage Location
 
