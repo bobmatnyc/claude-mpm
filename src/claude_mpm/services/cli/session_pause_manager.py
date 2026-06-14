@@ -1,16 +1,21 @@
 """Session Pause Manager Service.
 
-WHY: This service creates session pause documents that capture complete conversation
-context, git state, todos, and working directory for seamless resume.
+WHAT: Creates session pause documents (JSON + Markdown) capturing git state,
+todos, and working-directory context so sessions can be resumed later.
+
+WHY: Centralises all pause-document creation so both ``session pause`` and
+``mpm-init pause`` share a single, tested code path.
 
 DESIGN DECISIONS:
 - Two format output (JSON, Markdown) for different use cases
 - .yaml was dropped: no reader exists in the codebase; .json is authoritative,
   .md serves as the human-readable view and legacy-resume fallback
 - Atomic file operations using StateStorage
-- Git integration for automatic commits
 - Compatible with SessionResumeHelper for resume workflow
 - LATEST-SESSION.txt pointer for quick access
+- Sessions are written PROJECT-LOCAL to ``<project>/.claude-mpm/sessions/``
+  (NOT to ``~/.claude-mpm/sessions/``). The directory is gitignored; sessions
+  are intentionally never committed to version control.
 """
 
 import json
@@ -26,7 +31,11 @@ logger = get_logger(__name__)
 
 
 class SessionPauseManager:
-    """Manages creating pause sessions and capturing state."""
+    """Manages creating pause sessions and capturing state.
+
+    Sessions are written project-locally to ``<project>/.claude-mpm/sessions/``
+    and are intentionally NOT committed to git (the directory is gitignored).
+    """
 
     def __init__(self, project_path: Path | None = None):
         """Initialize session pause manager.
@@ -43,14 +52,18 @@ class SessionPauseManager:
     def create_pause_session(
         self,
         message: str | None = None,
-        skip_commit: bool = False,
+        skip_commit: bool = False,  # deprecated no-op: sessions are never committed
         export_path: str | None = None,
     ) -> str:
         """Create a pause session with captured state.
 
+        Sessions are written to the project-local ``.claude-mpm/sessions/``
+        directory which is gitignored.  No git commit is ever created —
+        ``skip_commit`` is accepted for API stability but has no effect.
+
         Args:
             message: Optional pause reason/context message
-            skip_commit: Skip git commit of session state
+            skip_commit: Accepted but ignored; sessions are never committed.
             export_path: Optional export location for session file
 
         Returns:
@@ -89,10 +102,6 @@ class SessionPauseManager:
                 logger.warning(f"Failed to export to {export_file}")
             else:
                 logger.info(f"Exported session to {export_file}")
-
-        # Optional git commit
-        if not skip_commit and self._is_git_repo():
-            self._commit_pause_session(session_id, message)
 
         logger.info(f"Pause session created: {session_id}")
         return session_id
@@ -485,29 +494,6 @@ Validation:
             logger.debug(f"Updated LATEST-SESSION.txt: {session_id}")
         except Exception as e:
             logger.warning(f"Failed to update LATEST-SESSION.txt: {e}")
-
-    def _commit_pause_session(self, session_id: str, message: str | None) -> None:
-        """Skip git commit — session files live in the global home store.
-
-        Session files are written to ``~/.claude-mpm/sessions/`` (see
-        ``self.pause_dir``), which is not inside the project git repository.
-        Attempting to ``git add`` a project-relative path would silently fail,
-        and attempting to commit the global directory would require the home
-        directory to be a repo. Sessions are intentionally stored globally so
-        they are accessible across projects and CWDs, so there is nothing
-        meaningful to commit here.
-
-        Args:
-            session_id: Session identifier (for logging)
-            message: Optional context message (unused, kept for API stability)
-        """
-        _ = message  # intentionally unused
-        logger.debug(
-            "Skipping git commit for pause session %s: sessions are stored "
-            "globally at %s and are not part of the project repo",
-            session_id,
-            self.pause_dir,
-        )
 
     def _get_project_version(self) -> str:
         """Get project version from pyproject.toml or package.
