@@ -284,6 +284,7 @@ class SkillsService(LoggerMixin):
                 # Superpowers skills are flat (single level), so their canonical_id
                 # is just the directory name — identical to what name would be.
                 superpowers_canonical_id = skill_dir.name
+                # Intentional: bundled skills take precedence over Superpowers skills with the same leaf name.
                 if skill_md.exists() and skill_dir.name not in existing_leaf_names:
                     metadata = self._parse_skill_metadata(skill_md)
                     skills.append(
@@ -608,6 +609,16 @@ class SkillsService(LoggerMixin):
         not_deployed = []
         orphaned = []
 
+        # Warn when bundled skills share a leaf name — the update-check loop uses leaf
+        # names and will silently skip all but one skill with a colliding name.
+        _name_counts_cfu = Counter(s["name"] for s in bundled.values())
+        _collisions_cfu = [n for n, c in _name_counts_cfu.items() if c > 1]
+        if _collisions_cfu:
+            self.logger.warning(
+                f"check_for_updates: ambiguous leaf names {_collisions_cfu}; "
+                "pass canonical_id to update a specific skill."
+            )
+
         # Check for updates — compare by leaf name since deployed layout is flat.
         # NOTE: keyed by leaf name; if two bundled skills share a leaf name the
         # last one wins here. This is acceptable for update-check purposes.
@@ -689,6 +700,15 @@ class SkillsService(LoggerMixin):
             if skill_name not in bundled_by_name:
                 errors.append(
                     {"skill": skill_name, "error": "Skill not found in bundled skills"}
+                )
+                continue
+
+            if skill_name in collisions:
+                errors.append(
+                    {
+                        "skill": skill_name,
+                        "error": "Ambiguous leaf name; pass canonical_id to disambiguate",
+                    }
                 )
                 continue
 
