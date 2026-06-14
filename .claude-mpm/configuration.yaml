@@ -202,43 +202,38 @@ verbose: false
 skills:
   agent_referenced:
   - api-design-patterns
-  - brainstorming
   - bug-fix-verification
   - code-production-process
   - code-review-standards
   - database-migration
-  - dispatching-parallel-agents
   - git-workflow
   - git-worktrees
-  - internal-comms
   - java-algorithm-patterns
   - java-async-concurrent
   - json-data-handling
   - python-algorithm-cookbook
   - python-async-patterns
   - python-di-soa-patterns
-  - requesting-code-review
   - research-google-workspace
   - research-mcp-skillset
   - research-ticketing-protocol
-  - root-cause-tracing
   - security-scanning
   - software-patterns
   - stacked-prs
-  - systematic-debugging
-  - test-driven-development
   - toolchains-rust-core
   - toolchains-universal-infrastructure-docker
   - toolchains-universal-security-api-review
+  - universal-collaboration-git-workflow
   - universal-data-database-migration
+  - universal-debugging-systematic-debugging
   - universal-debugging-verification-before-completion
+  - universal-security-security-scanning
+  - universal-testing-test-driven-development
   - universal-testing-test-quality-inspector
   - universal-testing-testing-anti-patterns
   - universal-verification-bug-fix
   - universal-verification-pre-merge
   - universal-verification-screenshot
-  - verification-before-completion
-  - writing-plans
   user_defined: []
 active_profile: framework-development
 workflow:
