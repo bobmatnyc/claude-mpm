@@ -133,29 +133,30 @@ class TestSessionParser:
 
     def test_pause_no_commit_not_shown_in_help(self) -> None:
         """Regression #824: --no-commit is SUPPRESS'd and must not appear in help."""
-        import io
-
-        parser = self._make_parser()
-        buf = io.StringIO()
-        try:
-            parser.parse_args(["session", "pause", "--help"])
-        except SystemExit:
-            pass
-        # Re-create and print_help to capture output
-        parser2 = self._make_parser()
-        buf2 = io.StringIO()
-        # Access the pause subparser directly to check its help
         from claude_mpm.cli.parsers.session_parser import add_session_subparser
 
-        p = argparse.ArgumentParser()
+        # Build a fresh parser so we can drill into the pause subparser directly.
+        p = argparse.ArgumentParser(prog="claude-mpm-test")
         sp = p.add_subparsers(dest="command")
         add_session_subparser(sp)
-        # Verify --no-commit is not in the printed help text
-        help_buf = io.StringIO()
-        try:
-            p.parse_args(["session", "pause", "--help"])
-        except SystemExit:
-            pass  # expected from --help
+
+        # Navigate to the pause subparser: session_parser -> its _SubParsersAction
+        # -> choices["pause"].
+        session_parser = sp.choices["session"]
+        pause_parser = next(
+            a
+            for a in session_parser._subparsers._group_actions
+            if isinstance(a, argparse._SubParsersAction)
+        ).choices["pause"]
+
+        help_text = pause_parser.format_help()
+        assert "--no-commit" not in help_text, (
+            "deprecated --no-commit must be hidden from help (SUPPRESS'd)"
+        )
+
+        # Also assert the flag is still ACCEPTED without error when passed.
+        ns = p.parse_args(["session", "pause", "--no-commit"])
+        assert ns.no_commit is True, "--no-commit must still parse silently"
 
 
 # ---------------------------------------------------------------------------
