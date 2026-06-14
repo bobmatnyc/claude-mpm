@@ -6,9 +6,13 @@ Covers:
 - Handler dispatch to the shared pause/resume logic
 - ``--select``, exact-id, and default-resume paths route correctly
 - Back-compat: ``mpm-init pause`` still dispatches to the same shared logic
+- Regression (#824): ``session pause`` must NEVER print "Git commit created"
+  and must NEVER create a git commit (sessions are gitignored project-local
+  files, not version-controlled artefacts)
 """
 
 import argparse
+import io
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -115,6 +119,44 @@ class TestSessionParser:
         args = parser.parse_args(["session", "pause"])
         assert args.command == "session"
         assert args.session_command == "pause"
+
+    # ------------------------------------------------------------------
+    # Back-compat: --no-commit is deprecated but must still parse (#824)
+    # ------------------------------------------------------------------
+
+    def test_pause_no_commit_still_accepted_as_deprecated_noop(self) -> None:
+        """Regression #824: --no-commit is a suppressed no-op but must not error."""
+        parser = self._make_parser()
+        # Should not raise SystemExit / argparse error
+        args = parser.parse_args(["session", "pause", "--no-commit"])
+        assert args.no_commit is True
+
+    def test_pause_no_commit_not_shown_in_help(self) -> None:
+        """Regression #824: --no-commit is SUPPRESS'd and must not appear in help."""
+        from claude_mpm.cli.parsers.session_parser import add_session_subparser
+
+        # Build a fresh parser so we can drill into the pause subparser directly.
+        p = argparse.ArgumentParser(prog="claude-mpm-test")
+        sp = p.add_subparsers(dest="command")
+        add_session_subparser(sp)
+
+        # Navigate to the pause subparser: session_parser -> its _SubParsersAction
+        # -> choices["pause"].
+        session_parser = sp.choices["session"]
+        pause_parser = next(
+            a
+            for a in session_parser._subparsers._group_actions
+            if isinstance(a, argparse._SubParsersAction)
+        ).choices["pause"]
+
+        help_text = pause_parser.format_help()
+        assert "--no-commit" not in help_text, (
+            "deprecated --no-commit must be hidden from help (SUPPRESS'd)"
+        )
+
+        # Also assert the flag is still ACCEPTED without error when passed.
+        ns = p.parse_args(["session", "pause", "--no-commit"])
+        assert ns.no_commit is True, "--no-commit must still parse silently"
 
 
 # ---------------------------------------------------------------------------
@@ -290,6 +332,73 @@ class TestHandlePause:
             result = handle_pause(args)
 
         assert result == 1
+
+    # ------------------------------------------------------------------
+    # Regression tests for #824: no false "Git commit created" message
+    # ------------------------------------------------------------------
+
+    def test_pause_does_not_print_git_commit_created(self, tmp_path: Path) -> None:
+        """Regression #824: handle_pause must never emit 'Git commit created'."""
+        from rich.console import Console
+
+        from claude_mpm.cli.commands.session_shared import handle_pause
+
+        args = self._make_args(project_path=str(tmp_path))
+
+        mock_manager = MagicMock()
+        mock_manager.create_pause_session.return_value = "session-20250101-120000"
+        # Simulate being inside a git repo — the false message was shown only
+        # when _is_git_repo() returned True, so this is the critical case.
+        mock_manager._is_git_repo.return_value = True
+
+        captured = io.StringIO()
+        test_console = Console(file=captured, highlight=False, markup=False)
+
+        with (
+            patch(
+                "claude_mpm.services.cli.session_pause_manager.SessionPauseManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.commands.session_shared.console", test_console),
+        ):
+            result = handle_pause(args)
+
+        output = captured.getvalue()
+        assert result == 0
+        assert "Git commit created" not in output, (
+            "handle_pause must not print 'Git commit created' — sessions are "
+            "gitignored and never committed (issue #824)"
+        )
+
+    def test_pause_with_no_commit_flag_does_not_print_git_commit_created(
+        self, tmp_path: Path
+    ) -> None:
+        """Regression #824: --no-commit (deprecated) must also produce no false message."""
+        from rich.console import Console
+
+        from claude_mpm.cli.commands.session_shared import handle_pause
+
+        args = self._make_args(project_path=str(tmp_path), no_commit=True)
+
+        mock_manager = MagicMock()
+        mock_manager.create_pause_session.return_value = "session-20250101-120000"
+        mock_manager._is_git_repo.return_value = True
+
+        captured = io.StringIO()
+        test_console = Console(file=captured, highlight=False, markup=False)
+
+        with (
+            patch(
+                "claude_mpm.services.cli.session_pause_manager.SessionPauseManager",
+                return_value=mock_manager,
+            ),
+            patch("claude_mpm.cli.commands.session_shared.console", test_console),
+        ):
+            result = handle_pause(args)
+
+        output = captured.getvalue()
+        assert result == 0
+        assert "Git commit created" not in output
 
 
 # ---------------------------------------------------------------------------

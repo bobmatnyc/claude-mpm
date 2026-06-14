@@ -36,7 +36,7 @@ def handle_pause(args) -> int:
     Args:
         args: Parsed argparse Namespace with optional attributes:
               ``project_path`` (str|Path), ``message`` (str|None),
-              ``no_commit`` (bool), ``export`` (str|None).
+              ``export`` (str|None).
 
     Returns:
         0 on success, 1 on error.
@@ -74,11 +74,6 @@ def handle_pause(args) -> int:
         console.print(f"  - [dim]{session_id}.json[/dim] - Machine-readable data")
         console.print(f"  - [dim]{session_id}.md[/dim] - Human-readable documentation")
         console.print("  - [dim]LATEST-SESSION.txt[/dim] - Quick reference pointer")
-
-        # Git commit info
-        if not getattr(args, "no_commit", False) and pause_manager._is_git_repo():
-            console.print()
-            console.print("[green]Git commit created[/green]")
 
         # Export info
         if getattr(args, "export", None):

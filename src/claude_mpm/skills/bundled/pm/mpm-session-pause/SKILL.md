@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.3.0"
+version: "1.4.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -43,9 +43,6 @@ claude-mpm session pause
 
 # With a descriptive message
 claude-mpm session pause -m "End of day — auth refactor in progress"
-
-# Skip git commit
-claude-mpm session pause --no-commit
 
 # Export a copy to a specific location
 claude-mpm session pause --export /tmp/session-backup.json

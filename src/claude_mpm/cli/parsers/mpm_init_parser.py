@@ -281,7 +281,6 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         epilog="Examples:\n"
         "  claude-mpm mpm-init pause                          # Basic pause\n"
         "  claude-mpm mpm-init pause -m 'End of day'         # With message\n"
-        "  claude-mpm mpm-init pause --no-commit             # Skip git commit\n"
         "  claude-mpm mpm-init pause --export session.json   # Export copy",
     )
     pause_parser.add_argument(
@@ -291,10 +290,12 @@ def add_mpm_init_subparser(subparsers: Any) -> None:
         default=None,
         help="Optional message describing pause reason or context",
     )
+    # --no-commit is a deprecated no-op kept for back-compat; sessions are
+    # written to .claude-mpm/sessions/ (gitignored) and are never committed.
     pause_parser.add_argument(
         "--no-commit",
         action="store_true",
-        help="Skip git commit of session state",
+        help=argparse.SUPPRESS,  # deprecated no-op — sessions are never committed
     )
     pause_parser.add_argument(
         "--export",
