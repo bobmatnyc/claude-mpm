@@ -232,3 +232,57 @@ def test_update_skills_warns_on_leaf_name_collision(
         f"{[r.message for r in warning_records]}"
     )
     assert "core" in collision_warnings[0].message
+
+
+# ---------------------------------------------------------------------------
+# update_skills: ambiguous leaf name records error, does not silently deploy
+# ---------------------------------------------------------------------------
+
+
+def test_update_skills_ambiguous_name_records_error_not_silent_deploy(
+    tmp_path,
+) -> None:
+    """update_skills must record an error for ambiguous leaf names, not silently deploy.
+
+    Why: When two bundled skills share the same leaf name (e.g. "core"),
+    deploying via that name is ambiguous — the wrong skill could be deployed
+    silently.  The fix blocks the deploy and records an explicit error so the
+    caller gets a clear failure instead of a silent wrong deploy.
+
+    What: Set up two bundled skills named "core" under different category
+    paths (cat-a/core, cat-b/core), then call update_skills(["core"]) and
+    assert that:
+    1. The result "errors" list contains an entry for "core" with an
+       "Ambiguous" message.
+    2. The result "updated" list does NOT contain "core" (nothing deployed).
+    3. The deployed directory remains empty (no silent partial deploy).
+    """
+    bundled = tmp_path / "bundled"
+    _write_skill(bundled / "cat-a" / "core", "core")
+    _write_skill(bundled / "cat-b" / "core", "core")
+
+    deployed = tmp_path / "deployed"
+
+    service = SkillsService()
+    service.bundled_skills_path = bundled
+    service.deployed_skills_path = deployed
+
+    result = service.update_skills(["core"])
+
+    # Error recorded, not silently deployed
+    assert result["updated"] == [], (
+        f"Expected no successful updates but got: {result['updated']}"
+    )
+    error_entries = [e for e in result["errors"] if e["skill"] == "core"]
+    assert error_entries, (
+        f"Expected an error entry for 'core' but got errors: {result['errors']}"
+    )
+    assert "Ambiguous" in error_entries[0]["error"], (
+        f"Expected 'Ambiguous' in error message but got: {error_entries[0]['error']}"
+    )
+
+    # Deployed directory must remain empty (no silent deploy happened)
+    deployed_skills = list(deployed.rglob("SKILL.md")) if deployed.exists() else []
+    assert deployed_skills == [], (
+        f"Expected no deployed skills but found: {deployed_skills}"
+    )
