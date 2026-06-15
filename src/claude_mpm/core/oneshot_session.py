@@ -273,12 +273,13 @@ class OneshotSession:
         # Fire on-complete hook before releasing other resources so the script can
         # still observe the session artefacts (e.g. response files, temp prompts).
         if self.on_complete:
-            if Path(self.on_complete).is_file():
-                self.logger.debug(f"Firing on-complete hook: {self.on_complete}")
-                subprocess.run([self.on_complete], check=False)  # nosec B603 B606
+            resolved = Path(self.on_complete).resolve()
+            if resolved.is_file():
+                self.logger.info("Firing on-complete hook: %s", resolved)
+                subprocess.run([str(resolved)], check=False)  # nosec B603
             else:
                 self.logger.warning(
-                    f"--on-complete script not found, skipping: {self.on_complete}"
+                    "--on-complete script not found, skipping: %s", resolved
                 )
 
         # Clean up temp system prompt file
