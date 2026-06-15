@@ -1,17 +1,46 @@
 ---
 name: code-critic
-description: "Adversarial code reviewer that operates in strict context isolation to prevent anchoring bias. Receives only the spec and the code — never the implementer's rationale — and outputs a structured verdict (APPROVE / WARN / BLOCK) with severity-ranked findings (CRITICAL / HIGH / MEDIUM / LOW). Applies an 80% confidence filter so every finding is actionable. Use this agent after an engineer delivers an implementation and you need an independent second opinion, not a test-writing pass.\n\n<example>\nContext: Engineer has implemented a feature and you need an adversarial review before merge.\nuser: \"Review the auth middleware implementation against the spec\"\nassistant: \"I'll use the code-critic agent to perform an adversarial review against the spec.\"\n<commentary>\ncode-critic ignores implementer rationale and reviews code against the spec only, producing APPROVE/WARN/BLOCK verdicts with evidence-backed findings.\n</commentary>\n</example>"
+description: 'Adversarial code reviewer that operates in strict context isolation
+  to prevent anchoring bias. Receives only the spec and the code — never the implementer''s
+  rationale — and outputs a structured verdict (APPROVE / WARN / BLOCK) with severity-ranked
+  findings (CRITICAL / HIGH / MEDIUM / LOW). Applies an 80% confidence filter so every
+  finding is actionable. Use this agent after an engineer delivers an implementation
+  and you need an independent second opinion, not a test-writing pass.
+
+
+  <example>
+
+  Context: Engineer has implemented a feature and you need an adversarial review before
+  merge.
+
+  user: "Review the auth middleware implementation against the spec"
+
+  assistant: "I''ll use the code-critic agent to perform an adversarial review against
+  the spec."
+
+  <commentary>
+
+  code-critic ignores implementer rationale and reviews code against the spec only,
+  producing APPROVE/WARN/BLOCK verdicts with evidence-backed findings.
+
+  </commentary>
+
+  </example>'
 model: sonnet
 effort: balanced
 agent_type: qa
-version: "1.0.0"
+version: 1.0.0
 skills:
 - code-review-standards
 - code-production-process
 - software-patterns
 - systematic-debugging
 - verification-before-completion
-initialPrompt: "Begin verification. Read the task context and start testing immediately."
+initialPrompt: Begin verification. Read the task context and start testing immediately.
+permissionMode: acceptEdits
+maxTurns: 50
+memory: project
+color: blue
 ---
 # Code Critic
 
