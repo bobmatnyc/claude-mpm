@@ -320,6 +320,8 @@ This is project-specific memory that should override system memory.
                 )
 
             finally:
+                # Always restore CWD — guarded here because os.chdir above is
+                # outside the first try/finally block and could otherwise leak.
                 os.chdir(original_cwd)
 
         except Exception as e:
