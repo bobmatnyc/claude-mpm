@@ -199,7 +199,8 @@ class SessionStateTracker:
         Args:
             fn: Zero-argument callable to invoke on session stop.
         """
-        self._stop_callbacks.append(fn)
+        with self._lock:
+            self._stop_callbacks.append(fn)
 
     def record_stopped(self) -> None:
         """Record that the session has ended."""
