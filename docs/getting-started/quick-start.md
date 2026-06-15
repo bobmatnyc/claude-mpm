@@ -5,7 +5,7 @@ Get Claude MPM running in under 5 minutes.
 ## Prerequisites
 
 - **Python 3.11-3.13** (Python 3.13 recommended; 3.14 NOT supported yet)
-- **Claude Code CLI v1.0.92+**: `claude --version`
+- **Claude Code CLI v1.0.92+** (v2.1.3+ to use Skills features): `claude --version`
   - Install: https://docs.anthropic.com/en/docs/claude-code
 - **GitHub Token** (recommended): Avoid rate limits when using skill sources
   ```bash
