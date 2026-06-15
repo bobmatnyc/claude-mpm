@@ -96,6 +96,14 @@ class FrameworkLoader:
         self.framework_last_modified = None
         self.config = config or {}
 
+        # Resolve instructions override: read from env var set by CLI.
+        # CLAUDE_MPM_INSTRUCTIONS_OVERRIDE holds an absolute or cwd-relative path
+        # to a file whose contents replace INSTRUCTIONS.md for this session.
+        _override_env = os.environ.get("CLAUDE_MPM_INSTRUCTIONS_OVERRIDE")
+        self.instructions_override_path: Path | None = (
+            Path(_override_env) if _override_env else None
+        )
+
         # Validate API keys on startup (before any other initialization)
         self._validate_api_keys()
 
@@ -165,7 +173,10 @@ class FrameworkLoader:
         # Loaders
         self.file_loader = FileLoader()
         self.packaged_loader = PackagedLoader()
-        self.instruction_loader = InstructionLoader(self.framework_path)
+        self.instruction_loader = InstructionLoader(
+            self.framework_path,
+            instructions_override_path=self.instructions_override_path,
+        )
         self.agent_loader = AgentLoader(self.framework_path)
 
         # Formatters
