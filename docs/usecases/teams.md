@@ -29,7 +29,7 @@ This guide shows how teams can leverage Claude MPM for effective collaboration, 
 ### Prerequisites
 
 **All team members need:**
-1. Claude Code CLI (v2.0.30+)
+1. Claude Code CLI (v1.0.92+; v2.1.3+ to use Skills features)
 2. Claude MPM installed via pipx
 3. Shared GitHub repository access
 4. Anthropic API key (team or individual)
