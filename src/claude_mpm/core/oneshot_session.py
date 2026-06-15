@@ -258,7 +258,7 @@ class OneshotSession:
         except Exception as e:
             return self._handle_unexpected_error(e)
 
-    def cleanup_session(self) -> None:
+    def cleanup_session(self, exit_code: int | None = None) -> None:
         """Clean up the session and restore state.
 
         WHAT: Fires the optional on-complete hook first, then releases temporary
@@ -269,6 +269,13 @@ class OneshotSession:
         The on-complete hook fires before temp files are removed and cwd is restored
         so that the script can still observe session artefacts (e.g. response files,
         temp prompts).
+
+        Args:
+            exit_code: The exit code from the Claude subprocess, forwarded to the
+                on-complete hook script via CLAUDE_MPM_EXIT_CODE.  Falls back to 0
+                when the caller does not track the subprocess exit code.
+                # TODO: surface the actual subprocess returncode from _run_subprocess
+                # (currently returns (bool, str) rather than the raw exit code).
         """
         # Fire on-complete hook before releasing other resources so the script can
         # still observe the session artefacts (e.g. response files, temp prompts).
@@ -276,7 +283,13 @@ class OneshotSession:
             resolved = Path(self.on_complete).resolve()
             if resolved.is_file() and os.access(resolved, os.X_OK):
                 self.logger.info("Firing on-complete hook: %s", resolved)
-                subprocess.run([str(resolved)], check=False)  # nosec B603
+                hook_env = {
+                    **os.environ.copy(),
+                    "CLAUDE_MPM_EXIT_CODE": str(
+                        exit_code if exit_code is not None else 0
+                    ),
+                }
+                subprocess.run([str(resolved)], check=False, env=hook_env)  # nosec B603
             else:
                 self.logger.warning(
                     "--on-complete script not found or not executable: %s", resolved
