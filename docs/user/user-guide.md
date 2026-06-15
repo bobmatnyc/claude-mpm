@@ -109,8 +109,8 @@ Claude MPM provides OAuth authentication for MCP services like Google Workspace.
 GOOGLE_OAUTH_CLIENT_ID="your-id.apps.googleusercontent.com"
 GOOGLE_OAUTH_CLIENT_SECRET="your-secret"  # pragma: allowlist secret
 
-# 2. Run OAuth setup
-claude-mpm oauth setup workspace-mcp
+# 2. Run setup (includes OAuth)
+claude-mpm setup gworkspace-mcp
 ```
 
 ### OAuth Commands
