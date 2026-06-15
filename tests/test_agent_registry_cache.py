@@ -29,15 +29,18 @@ from claude_mpm.services.memory.cache.simple_cache import SimpleCacheService
     "both cache miss and hit complete in ~100-200μs (pure dict lookups), making "
     "the 2x ratio unpredictable. Cache correctness is verified by stats-based tests."
 )
-def test_basic_caching():
+def test_basic_caching(monkeypatch):
     """Test basic caching functionality."""
     import claude_mpm.core.unified_agent_registry as _reg_module
 
     print("\n=== Testing Basic Caching ===")
 
     # Reset global singleton to ensure first discovery is a fresh cache miss
-    # (other tests may have pre-warmed the singleton, making both calls equally fast)
-    _reg_module._agent_registry = None
+    # (other tests may have pre-warmed the singleton, making both calls equally fast).
+    # Use monkeypatch.setattr so pytest RESTORES the original singleton at teardown;
+    # a bare assignment would leak a reset singleton into other xdist tests sharing
+    # this process, causing "No agent found with name: research" flakiness.
+    monkeypatch.setattr(_reg_module, "_agent_registry", None)
 
     # Create registry with default cache
     registry = get_agent_registry()
@@ -90,9 +93,18 @@ def test_force_refresh():
     print("✓ Force refresh bypasses cache correctly")
 
 
-def test_file_modification_detection(tmp_path):
+def test_file_modification_detection(tmp_path, monkeypatch):
     """Test that cache invalidates when files are modified."""
+    import claude_mpm.core.unified_agent_registry as _reg_module
+
     print("\n=== Testing File Modification Detection ===")
+
+    # This test calls registry.add_discovery_path(tmp_path), permanently adding a
+    # temp path to the process-wide singleton. Reset the singleton via monkeypatch
+    # so this test builds (and pollutes) a throwaway registry; pytest restores the
+    # original singleton at teardown, preventing the temp path from leaking into
+    # other xdist tests that share this process.
+    monkeypatch.setattr(_reg_module, "_agent_registry", None)
 
     # Create a temporary directory with an agent file
     tmpdir = tmp_path
