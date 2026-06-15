@@ -100,9 +100,10 @@ class TestAgentSystemE2E:
         import claude_mpm.agents.agent_loader as _loader_module
         import claude_mpm.core.unified_agent_registry as _reg_module
 
-        # TODO: remove this CLAUDE_MPM_USER_PWD workaround once
-        # UnifiedAgentRegistry._setup_discovery_paths honors the path manager
-        # instead of bare Path.cwd() (planned PR 3 / root-cause fix).
+        # The production fix (UnifiedAgentRegistry._setup_discovery_paths using
+        # path_manager.project_root) is in this PR; this setenv still seeds
+        # CLAUDE_MPM_USER_PWD so the path manager resolves the real repo agents
+        # dir even when a sibling test left the process CWD elsewhere.
         monkeypatch.setenv("CLAUDE_MPM_USER_PWD", str(PROJECT_ROOT))
         monkeypatch.setattr(_reg_module, "_agent_registry", None)
         monkeypatch.setattr(_loader_module, "_loader", None)
