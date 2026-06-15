@@ -425,8 +425,6 @@ class GitOperationsService:
         # Other pull errors
         raise GitOperationError(f"Failed to pull {branch}: {stderr}")
 
-        return True
-
     def checkout_branch(self, repo_path: Path, branch_name: str) -> bool:
         """
         Checkout existing branch.
