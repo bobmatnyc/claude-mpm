@@ -414,6 +414,14 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         dest="debug_ztk",
         help="Enable ztk debug logging to stderr (env: CLAUDE_MPM_ZTK_DEBUG=1)",
     )
+    run_group.add_argument(
+        "--instructions-override",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Path to a file whose contents replace INSTRUCTIONS.md for this session "
+        "(env: CLAUDE_MPM_INSTRUCTIONS_OVERRIDE)",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(
