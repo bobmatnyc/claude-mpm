@@ -110,7 +110,12 @@ def _get_agent_templates_dirs() -> dict[AgentTier, Path | None]:
     # repo root, so the resulting path is identical to before.
     from claude_mpm.core.unified_paths import get_path_manager
 
-    project_dir = get_path_manager().project_root / ".claude" / "agents"
+    # Defensive fallback: if the path manager is unavailable (e.g. early
+    # bootstrap), fall back to Path.cwd() exactly as the old code did rather
+    # than raising on a None / missing project_root.
+    _pm = get_path_manager()
+    _base = _pm.project_root if _pm is not None else Path.cwd()
+    project_dir = _base / ".claude" / "agents"
     if project_dir.exists():
         dirs[AgentTier.PROJECT] = project_dir
         logger.debug(f"Found PROJECT agents at: {project_dir}")
