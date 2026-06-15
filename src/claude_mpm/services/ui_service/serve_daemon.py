@@ -51,6 +51,23 @@ def _global_pid_file(port: int) -> Path:
     return base / f"serve-{port}.pid"
 
 
+def _global_pid_file_for_socket(sock_hash: str) -> Path:
+    """Return a global (home-dir) PID file path keyed on a socket path hash.
+
+    Used when ``socket_path`` is set so that a Unix-socket daemon and a TCP
+    daemon sharing the same default port do not collide on the same PID file.
+
+    Args:
+        sock_hash: Short hex digest derived from the socket path (8 chars).
+
+    Returns:
+        Path to the PID file, e.g. ``~/.claude-mpm/serve-sock-a1b2c3d4.pid``.
+    """
+    base = Path.home() / ".claude-mpm"
+    base.mkdir(parents=True, exist_ok=True)
+    return base / f"serve-sock-{sock_hash}.pid"
+
+
 def _global_log_file(port: int) -> Path:
     """Return a global (home-dir) log file path for the serve daemon."""
     log_dir = Path.home() / ".claude-mpm" / "logs"
@@ -102,7 +119,17 @@ class ServeDaemon:
         self.socket_path = socket_path
 
         # Build explicit global paths so DaemonManager never falls back to CWD.
-        pid_path = _global_pid_file(port)
+        # When socket_path is set, key the PID file on the socket path hash so
+        # a Unix-socket daemon and a TCP daemon on the same default port do not
+        # overwrite each other's PID file.
+        if socket_path:
+            import hashlib
+
+            resolved_sock = str(Path(socket_path).expanduser())
+            sock_hash = hashlib.md5(resolved_sock.encode()).hexdigest()[:8]  # nosec MD5 for non-security use
+            pid_path = _global_pid_file_for_socket(sock_hash)
+        else:
+            pid_path = _global_pid_file(port)
         log_path = _global_log_file(port)
 
         self.lifecycle = _ServeDaemonManager(
