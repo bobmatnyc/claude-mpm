@@ -150,17 +150,27 @@ class ProjectInitializer:
             ) or any(flag in sys.argv for flag in ["--version", "-v", "--help", "-h"])
 
             if not is_mcp_mode and not is_lightweight_command:
+                # Route startup/diagnostic notices to STDERR so they never
+                # corrupt machine-readable STDOUT (e.g. non-interactive `run`
+                # output). STDERR is the correct channel for diagnostic noise.
                 if directory_existed:
-                    print(f"✓ Found existing .claude-mpm/ directory in {project_root}")
+                    print(
+                        f"✓ Found existing .claude-mpm/ directory in {project_root}",
+                        file=sys.stderr,
+                    )
                 else:
-                    print(f"✓ Initialized .claude-mpm/ in {project_root}")
+                    print(
+                        f"✓ Initialized .claude-mpm/ in {project_root}",
+                        file=sys.stderr,
+                    )
 
                 # Check if migration happened
                 agents_dir = self.project_dir / "agents"
                 if agents_dir.exists() and any(agents_dir.glob("*.json")):
                     agent_count = len(list(agents_dir.glob("*.json")))
                     print(
-                        f"✓ Found {agent_count} project agent(s) in .claude-mpm/agents/"
+                        f"✓ Found {agent_count} project agent(s) in .claude-mpm/agents/",
+                        file=sys.stderr,
                     )
 
             # Verify and deploy PM skills (non-blocking)
@@ -178,7 +188,10 @@ class ProjectInitializer:
 
         except Exception as e:
             self.logger.error(f"Failed to initialize project directory: {e}")
-            print(f"✗ Failed to create .claude-mpm/ directory: {e}")
+            print(
+                f"✗ Failed to create .claude-mpm/ directory: {e}",
+                file=sys.stderr,
+            )
             return False
 
     def _verify_and_deploy_pm_skills(
