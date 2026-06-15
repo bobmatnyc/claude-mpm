@@ -10,12 +10,15 @@ SPEC-SESSIONS-09~1 : docs/specs/sessions.md#SPEC-SESSIONS-09~1
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
+
+_logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -214,8 +217,9 @@ class SessionStateTracker:
         for cb in callbacks:
             try:
                 cb()
-            except Exception:
-                pass  # Swallow errors; a bad callback must not disrupt teardown
+            except Exception as e:
+                # Log but do not re-raise: a bad callback must not disrupt teardown.
+                _logger.warning("Stop callback %r raised: %s", cb, e)
 
     # -- Read methods (called from HTTP thread) --
 
