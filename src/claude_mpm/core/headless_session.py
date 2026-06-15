@@ -323,18 +323,23 @@ class HeadlessSession:
 
         # Pass --max-turns to Claude CLI when requested.
         # Claude Code honours this flag natively; MPM just forwards it.
-        if max_turns is not None and max_turns > 0:
+        # _positive_int validator ensures max_turns > 0 at parse time,
+        # so the > 0 guard here is redundant and misleading.
+        if max_turns is not None:
             cmd.extend(["--max-turns", str(max_turns)])
             self.logger.debug(f"Limiting session to {max_turns} turn(s)")
 
-        # Warn when exit-condition is requested but cannot be evaluated turn-by-turn.
+        # Fail fast when exit-condition is requested but cannot be evaluated turn-by-turn.
         # In exec mode Claude handles the full session so MPM has no per-turn hook.
+        # Exiting non-zero here lets CI pipelines detect misconfigured invocations
+        # rather than silently ignoring the flag.
         if exit_condition:
             print(
-                "WARNING: --exit-condition is not supported in exec-based headless mode; "
+                "ERROR: --exit-condition is not supported in exec-based headless mode; "
                 "use --sdk for condition evaluation",
                 file=sys.stderr,
             )
+            sys.exit(1)
 
         # Check if using stream-json input format (vibe-kanban compatibility)
         # When --input-format stream-json is passed, stdin passes through to Claude
@@ -446,15 +451,17 @@ class HeadlessSession:
             sys.stderr.flush()
             return 1
 
-        # Fire on-complete hook if the path exists and the session ended (any code).
+        # Fire on-complete hook if the path exists, is a file, and is executable.
+        # Pass the Claude process exit code so hook scripts can branch on success/failure.
         if on_complete:
             resolved = Path(on_complete).resolve()
-            if resolved.is_file():
+            if resolved.is_file() and os.access(resolved, os.X_OK):
                 self.logger.info("Firing on-complete hook: %s", resolved)
-                subprocess.run([str(resolved)], check=False, env=env)  # nosec B603
+                hook_env = {**env, "CLAUDE_MPM_EXIT_CODE": str(exit_code)}
+                subprocess.run([str(resolved)], check=False, env=hook_env)  # nosec B603
             else:
                 self.logger.warning(
-                    "--on-complete script not found, skipping: %s", resolved
+                    "--on-complete script not found or not executable: %s", resolved
                 )
 
         return exit_code
