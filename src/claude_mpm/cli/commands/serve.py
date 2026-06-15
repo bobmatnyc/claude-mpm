@@ -83,6 +83,7 @@ class ServeCommand(BaseCommand):
         force = getattr(args, "force", False)
         channels_str = getattr(args, "channels", None)
         project_root = getattr(args, "project_root", None)
+        socket_path = getattr(args, "socket_path", None)
 
         channels: list[str] = []
         if channels_str:
@@ -97,9 +98,14 @@ class ServeCommand(BaseCommand):
             daemon_mode = True  # default to background
 
         mode_str = "background/daemon" if daemon_mode else "foreground"
-        self.logger.info(
-            "Starting serve daemon on %s:%s (mode: %s)", host, port, mode_str
-        )
+        if socket_path:
+            self.logger.info(
+                "Starting serve daemon on socket %s (mode: %s)", socket_path, mode_str
+            )
+        else:
+            self.logger.info(
+                "Starting serve daemon on %s:%s (mode: %s)", host, port, mode_str
+            )
 
         daemon = ServeDaemon(
             host=host,
@@ -107,6 +113,7 @@ class ServeCommand(BaseCommand):
             daemon_mode=daemon_mode,
             channels=channels,
             project_root=project_root,
+            socket_path=socket_path,
         )
 
         # Guard against already-running instance.
@@ -115,7 +122,7 @@ class ServeCommand(BaseCommand):
             return CommandResult.success_result(
                 f"Serve daemon already running with PID {existing_pid}",
                 data={
-                    "url": f"http://{host}:{port}",
+                    "url": daemon.get_base_url(),
                     "port": port,
                     "pid": existing_pid,
                 },
@@ -135,9 +142,15 @@ class ServeCommand(BaseCommand):
             else:
                 mode_info = " in foreground"
 
+            bind_desc = socket_path or f"{host}:{port}"
             return CommandResult.success_result(
-                f"Serve daemon started on {host}:{port}{mode_info}",
-                data={"url": f"http://{host}:{port}", "port": port, "mode": mode_str},
+                f"Serve daemon started on {bind_desc}{mode_info}",
+                data={
+                    "url": daemon.get_base_url(),
+                    "port": port,
+                    "socket_path": socket_path,
+                    "mode": mode_str,
+                },
             )
 
         return CommandResult.error_result(
