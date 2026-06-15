@@ -7,7 +7,7 @@
 
 **A comprehensive workflow and agent management framework for Claude Code** that transforms your AI coding assistant into a full-featured development platform with multi-agent orchestration, skills system, MCP integration, session management, and semantic code search.
 
-> **⚠️ Important**: Claude MPM **requires Claude Code CLI** (v2.1.3+), not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
+> **⚠️ Important**: Claude MPM **requires Claude Code CLI** (v1.0.92+; v2.1.3+ to use Skills features), not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
 >
 > **Don't have Claude Code?** Install from: https://docs.anthropic.com/en/docs/claude-code
 >
@@ -103,7 +103,7 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 ### Prerequisites
 
 1. **Python 3.11-3.13** (Python 3.13 recommended; 3.14 NOT yet supported)
-2. **Claude Code CLI v2.1.3+** (required!)
+2. **Claude Code CLI v1.0.92+** (required!; v2.1.3+ to use Skills features)
 3. **GitHub Token** (recommended for skill sources)
 
 > **Python Version Warning**:
