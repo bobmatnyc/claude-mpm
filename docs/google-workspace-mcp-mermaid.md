@@ -1,6 +1,6 @@
 # Mermaid Diagram Rendering in Google Docs
 
-The google-workspace-mcp server now supports rendering Mermaid diagrams as images and inserting them into Google Docs.
+The external `gworkspace-mcp` MCP server supports rendering Mermaid diagrams as images and inserting them into Google Docs via its `render_mermaid_to_doc` tool. The Python snippets below are illustrative: `gworkspace_mcp_client` denotes whatever MCP client you use to call the external server's tools — there is no in-repo Google Workspace server module.
 
 ## Feature Overview
 
@@ -24,7 +24,7 @@ The tool uses `npx` to run `@mermaid-js/mermaid-cli` without requiring global in
 ### Basic Example
 
 ```python
-result = await google_workspace_server.call_tool(
+result = await gworkspace_mcp_client.call_tool(
     "render_mermaid_to_doc",
     {
         "document_id": "your-doc-id",
@@ -125,7 +125,7 @@ erDiagram
 ### Insert at Specific Position
 
 ```python
-result = await google_workspace_server.call_tool(
+result = await gworkspace_mcp_client.call_tool(
     "render_mermaid_to_doc",
     {
         "document_id": "doc-id",
@@ -138,7 +138,7 @@ result = await google_workspace_server.call_tool(
 ### Custom Size
 
 ```python
-result = await google_workspace_server.call_tool(
+result = await gworkspace_mcp_client.call_tool(
     "render_mermaid_to_doc",
     {
         "document_id": "doc-id",
@@ -152,7 +152,7 @@ result = await google_workspace_server.call_tool(
 ### PNG Format
 
 ```python
-result = await google_workspace_server.call_tool(
+result = await gworkspace_mcp_client.call_tool(
     "render_mermaid_to_doc",
     {
         "document_id": "doc-id",
