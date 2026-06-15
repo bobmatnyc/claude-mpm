@@ -40,11 +40,16 @@ class OneshotSession:
     complexity < 10 and lines < 80, making the code easier to test and modify.
     """
 
-    def __init__(self, runner: "ClaudeRunnerProtocol"):
+    def __init__(
+        self,
+        runner: "ClaudeRunnerProtocol",
+        on_complete: str | None = None,
+    ):
         """Initialize the oneshot session with a reference to the runner.
 
         Args:
-            runner: The ClaudeRunner instance (or any object matching ClaudeRunnerProtocol)
+            runner: The ClaudeRunner instance (or any object matching ClaudeRunnerProtocol).
+            on_complete: Optional path to a shell script executed after natural session end.
         """
         self.runner: ClaudeRunnerProtocol = runner
         self.logger = get_logger("oneshot_session")
@@ -52,6 +57,7 @@ class OneshotSession:
         self.session_id = None
         self.original_cwd = None
         self.temp_system_prompt_file = None
+        self.on_complete: str | None = on_complete
 
     def initialize_session(self, prompt: str) -> tuple[bool, str | None]:
         """Initialize the oneshot session.
@@ -253,7 +259,27 @@ class OneshotSession:
             return self._handle_unexpected_error(e)
 
     def cleanup_session(self) -> None:
-        """Clean up the session and restore state."""
+        """Clean up the session and restore state.
+
+        WHAT: Releases temporary resources, restores the working directory, emits
+        session-summary logs, and fires the optional on-complete hook script.
+
+        WHY: Centralises teardown so callers (SessionManagementService) have a
+        single method to call regardless of whether the session succeeded or failed.
+        The on-complete hook fires after all other cleanup so that the script sees
+        a consistent filesystem state (temp files removed, cwd restored).
+        """
+        # Fire on-complete hook before releasing other resources so the script can
+        # still observe the session artefacts (e.g. response files, temp prompts).
+        if self.on_complete:
+            if Path(self.on_complete).is_file():
+                self.logger.debug(f"Firing on-complete hook: {self.on_complete}")
+                subprocess.run([self.on_complete], check=False)  # nosec B603 B606
+            else:
+                self.logger.warning(
+                    f"--on-complete script not found, skipping: {self.on_complete}"
+                )
+
         # Clean up temp system prompt file
         if self.temp_system_prompt_file:
             try:
