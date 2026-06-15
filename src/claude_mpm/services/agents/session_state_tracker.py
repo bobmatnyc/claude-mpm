@@ -82,6 +82,7 @@ class SessionStateTracker:
         self._total_cost_usd: float = 0.0
         self._tokens_used: int = 0  # Cumulative input+output tokens
         self._events: deque[ActivityEvent] = deque(maxlen=max_events)
+        self._stop_callbacks: list[Callable[[], None]] = []
 
     # -- Write methods (called from REPL thread) --
 
@@ -195,8 +196,6 @@ class SessionStateTracker:
         Args:
             fn: Zero-argument callable to invoke on session stop.
         """
-        if not hasattr(self, "_stop_callbacks"):
-            self._stop_callbacks: list[Callable[[], None]] = []
         self._stop_callbacks.append(fn)
 
     def record_stopped(self) -> None:
@@ -209,7 +208,7 @@ class SessionStateTracker:
         # Callbacks that try to read session state (e.g. get_session_state)
         # must not hold the lock themselves — calling them under the lock
         # would cause a deadlock.
-        for cb in getattr(self, "_stop_callbacks", []):
+        for cb in self._stop_callbacks:
             try:
                 cb()
             except Exception:
