@@ -62,8 +62,57 @@ from claude_mpm.validation.agent_validator import AgentValidator
 logger = logging.getLogger(__name__)
 
 
+# xdist_group serializes the tests WITHIN this class onto a single xdist worker
+# as a belt-and-suspenders guard for intra-process ordering. xdist runs each
+# worker in a separate process, so the registry/loader singletons are per-process;
+# this marker is NOT inter-process synchronization. Its only job is to keep these
+# tests from interleaving with sibling tests *on the same worker* (e.g.
+# test_agent_registry_cache / test_agent_name_normalization) that reset the
+# process-wide singleton mid-run. The autouse _isolate_agent_registry fixture
+# below is the real fix.
+@pytest.mark.xdist_group("agent_registry")
 class TestAgentSystemE2E:
     """Comprehensive E2E tests for the agent system."""
+
+    @pytest.fixture(autouse=True)
+    def _isolate_agent_registry(self, monkeypatch):
+        """Build the loader/registry singletons against the REAL repo agents.
+
+        Root cause of the "No agent found with name: research" flakiness
+        (e.g. in test_agent_handoff_simulation): a concurrent/earlier xdist
+        test resets the registry singleton under a pytest tmp CWD without
+        restoring it, and a fresh registry then gets built while CWD is that
+        tmp dir -- so its discovery paths miss the real .claude/agents/ and
+        lookups for real agents (research/engineer/qa) fail.
+
+        Defense (test-side only; production Path.cwd() fix is a separate PR):
+          1. Pin the project root to the repo via CLAUDE_MPM_USER_PWD so
+             UnifiedPathManager.project_root resolves the real agents dir
+             regardless of the current working directory.
+          2. Reset both singletons via monkeypatch.setattr so a clean
+             registry/loader is rebuilt for this test against that root.
+          3. Warm the loader/registry singletons (agent-agnostic) so they are
+             populated against that root before the actual assertions run.
+
+        monkeypatch automatically restores the env var and both globals at
+        teardown, so this isolation never leaks into other tests.
+        """
+        import claude_mpm.agents.agent_loader as _loader_module
+        import claude_mpm.core.unified_agent_registry as _reg_module
+
+        # TODO: remove this CLAUDE_MPM_USER_PWD workaround once
+        # UnifiedAgentRegistry._setup_discovery_paths honors the path manager
+        # instead of bare Path.cwd() (planned PR 3 / root-cause fix).
+        monkeypatch.setenv("CLAUDE_MPM_USER_PWD", str(PROJECT_ROOT))
+        monkeypatch.setattr(_reg_module, "_agent_registry", None)
+        monkeypatch.setattr(_loader_module, "_loader", None)
+
+        # Warm the loader/registry singletons against the real repo root.
+        # Use the agent-agnostic loader builder (which constructs AgentLoader,
+        # which calls get_agent_registry() and runs discovery) rather than
+        # looking up a specific agent. A future rename of any single agent must
+        # not make this warm-up error out and mask the real test failure.
+        _loader_module._get_loader()
 
     @pytest.fixture(autouse=True)
     def setup(self, tmp_path):
