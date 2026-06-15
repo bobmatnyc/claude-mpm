@@ -218,9 +218,9 @@ class SessionStateTracker:
         for cb in callbacks:
             try:
                 cb()
-            except Exception as e:
+            except Exception:
                 # Log but do not re-raise: a bad callback must not disrupt teardown.
-                _logger.warning("Stop callback %r raised: %s", cb, e)
+                _logger.error("Stop callback %r raised an exception", cb, exc_info=True)
 
     # -- Read methods (called from HTTP thread) --
 
