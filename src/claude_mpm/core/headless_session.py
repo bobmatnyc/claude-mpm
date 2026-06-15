@@ -376,7 +376,9 @@ class HeadlessSession:
         # When on_complete is active, exit_condition can be passed through because
         # MPM retains control after Claude exits and can evaluate it externally.
         if on_complete:
-            return self._run_subprocess_with_hooks(cmd, env, on_complete)
+            return self._run_subprocess_with_hooks(
+                cmd, env, on_complete, exit_condition=exit_condition
+            )
 
         # Fail fast when exit-condition is requested but cannot be evaluated turn-by-turn.
         # In exec mode Claude handles the full session so MPM has no per-turn hook.
@@ -420,7 +422,11 @@ class HeadlessSession:
             return 1
 
     def _run_subprocess_with_hooks(
-        self, cmd: list, env: dict, on_complete: str | None
+        self,
+        cmd: list,
+        env: dict,
+        on_complete: str | None,
+        exit_condition: str | None = None,
     ) -> int:
         """Run Claude via subprocess.run() and fire on-complete hook on exit.
 
@@ -434,10 +440,20 @@ class HeadlessSession:
             cmd: The fully-built claude CLI command list.
             env: The prepared environment dict.
             on_complete: Path to a shell script to run after Claude exits, or None.
+            exit_condition: Python expression from --exit-condition, or None.
+                When provided in subprocess mode, MPM emits a warning because it
+                cannot inspect per-turn output; the on-complete hook still fires.
 
         Returns:
             The exit code returned by the Claude CLI subprocess.
         """
+        if exit_condition:
+            print(
+                f"WARNING: --exit-condition '{exit_condition}' is not evaluated in subprocess mode "
+                "(MPM cannot inspect per-turn output when Claude runs as a subprocess); "
+                "the hook in --on-complete will still fire.",
+                file=sys.stderr,
+            )
         try:
             result = subprocess.run(cmd, env=env, check=False)  # nosec B603
             exit_code = result.returncode
