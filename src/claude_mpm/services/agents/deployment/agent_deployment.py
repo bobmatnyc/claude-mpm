@@ -519,7 +519,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             # to .claude/ directory. These files should only be created when explicitly requested
             # by the user through agent-manager commands.
             # See deploy_system_instructions_explicit() for manual deployment.
-            # self._deploy_system_instructions(agents_dir, force_rebuild, results)
 
             self.logger.info(
                 f"Deployed {len(results['deployed'])} agents, "

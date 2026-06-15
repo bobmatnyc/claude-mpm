@@ -239,7 +239,6 @@ class LogMonitor(SyncBaseService, ILogMonitor):
         if not log_path.exists():
             self.log_warning(f"Log file does not exist: {log_file}")
             # Still create handler - it will start monitoring when file is created
-            # return
 
         with self._lock:
             # Check if already monitoring

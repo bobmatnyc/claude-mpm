@@ -93,9 +93,6 @@ def main(argv: list | None = None):
 
     # Configuration prompt removed - users can run `/mpm-configure` manually
     # See: handle_missing_configuration() in helpers.py if re-enabling
-    # if not has_configuration_file() and not is_help_or_version:
-    #     if not should_skip_config_check(getattr(args, "command", None)):
-    #         handle_missing_configuration()
 
     setup_configure_command_environment(args)
 
