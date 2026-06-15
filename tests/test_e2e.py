@@ -93,8 +93,8 @@ class TestE2E:
         assert "10" in result.stdout, f"Expected '10' in output, got: {result.stdout}"
 
     @pytest.mark.skipif(
-        bool(os.environ.get("CLAUDECODE")),
-        reason="Cannot launch Claude Code from within a Claude Code session (CLAUDECODE env var set)",
+        shutil.which("claude") is None,
+        reason="requires claude CLI binary (not available in CI)",
     )
     def test_non_interactive_stdin(self):
         """Test non-interactive mode reading from stdin."""
