@@ -58,6 +58,9 @@ class OneshotSession:
         self.original_cwd = None
         self.temp_system_prompt_file = None
         self.on_complete: str | None = on_complete
+        # Tracks the raw subprocess returncode so cleanup_session can forward
+        # the real exit code to the on-complete hook via CLAUDE_MPM_EXIT_CODE.
+        self._last_exit_code: int = 0
 
     def initialize_session(self, prompt: str) -> tuple[bool, str | None]:
         """Initialize the oneshot session.
@@ -237,6 +240,10 @@ class OneshotSession:
                 cmd, capture_output=True, text=True, env=env, check=False
             )
 
+            # Capture the real exit code so cleanup_session can forward it to
+            # the on-complete hook via CLAUDE_MPM_EXIT_CODE.
+            self._last_exit_code = result.returncode
+
             if result.returncode == 0:
                 response = result.stdout.strip()
                 self._handle_successful_response(response, prompt)
@@ -272,10 +279,9 @@ class OneshotSession:
 
         Args:
             exit_code: The exit code from the Claude subprocess, forwarded to the
-                on-complete hook script via CLAUDE_MPM_EXIT_CODE.  Falls back to 0
-                when the caller does not track the subprocess exit code.
-                # TODO: surface the actual subprocess returncode from _run_subprocess
-                # (currently returns (bool, str) rather than the raw exit code).
+                on-complete hook script via CLAUDE_MPM_EXIT_CODE.  Falls back to
+                ``self._last_exit_code`` (the raw returncode captured by
+                ``_run_subprocess``), which is 0 before any subprocess runs.
         """
         # Fire on-complete hook before releasing other resources so the script can
         # still observe the session artefacts (e.g. response files, temp prompts).
@@ -286,7 +292,7 @@ class OneshotSession:
                 hook_env = {
                     **os.environ.copy(),
                     "CLAUDE_MPM_EXIT_CODE": str(
-                        exit_code if exit_code is not None else 0
+                        exit_code if exit_code is not None else self._last_exit_code
                     ),
                 }
                 subprocess.run([str(resolved)], check=False, env=hook_env)  # nosec B603
