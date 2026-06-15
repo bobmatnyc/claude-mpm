@@ -23,7 +23,7 @@ References
 SPEC-SESSIONS-09~1 : docs/specs/sessions.md#SPEC-SESSIONS-09~1
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from claude_mpm.services.ui_service.models.session import (
     SessionCreate,
@@ -165,14 +165,16 @@ async def get_session_status(
         session_id=state.id,
         status=state.status.value,
         context_percent_used=state.context_percent_used,
-        last_activity=state.last_activity.isoformat(),
+        last_activity=state.last_activity.isoformat() if state.last_activity else None,
         schema_version="1",
     )
 
 
 @router.get("/{session_id}/activity", summary="Get recent session activity events")
 async def get_session_activity(
-    request: Request, session_id: str, limit: int = 50
+    request: Request,
+    session_id: str,
+    limit: int = Query(default=50, ge=1, le=100),
 ) -> dict:
     """Return recent activity events recorded by the session's state tracker.
 
@@ -188,8 +190,6 @@ async def get_session_activity(
         session = pm.get_session(session_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-    limit = min(max(1, limit), 100)
 
     tracker = getattr(session, "state_tracker", None)
     if tracker is None:
