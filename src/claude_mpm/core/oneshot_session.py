@@ -261,13 +261,14 @@ class OneshotSession:
     def cleanup_session(self) -> None:
         """Clean up the session and restore state.
 
-        WHAT: Releases temporary resources, restores the working directory, emits
-        session-summary logs, and fires the optional on-complete hook script.
+        WHAT: Fires the optional on-complete hook first, then releases temporary
+        resources, restores the working directory, and emits session-summary logs.
 
         WHY: Centralises teardown so callers (SessionManagementService) have a
         single method to call regardless of whether the session succeeded or failed.
-        The on-complete hook fires after all other cleanup so that the script sees
-        a consistent filesystem state (temp files removed, cwd restored).
+        The on-complete hook fires before temp files are removed and cwd is restored
+        so that the script can still observe session artefacts (e.g. response files,
+        temp prompts).
         """
         # Fire on-complete hook before releasing other resources so the script can
         # still observe the session artefacts (e.g. response files, temp prompts).
