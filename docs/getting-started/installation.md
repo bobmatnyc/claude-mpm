@@ -4,7 +4,7 @@ Install Claude MPM and verify Claude Code CLI is available.
 
 ## Requirements
 
-- **Claude Code CLI v1.0.92+**: https://docs.anthropic.com/en/docs/claude-code
+- **Claude Code CLI v1.0.92+** (v2.1.3+ to use Skills features): https://docs.anthropic.com/en/docs/claude-code
 - **Python 3.11 - 3.13** (Python 3.13 recommended)
 - **GitHub Token** (recommended): For skill sources from GitHub repositories
 

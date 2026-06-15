@@ -8,7 +8,7 @@ Claude MPM extends Claude Code CLI with multi-agent workflows, session managemen
 
 ### Do I need Claude Desktop or Claude Code?
 
-You need **Claude Code CLI** (v1.0.92+). Claude Desktop is not supported.
+You need **Claude Code CLI** (v1.0.92+; v2.1.3+ to use Skills features). Claude Desktop is not supported.
 
 Install: https://docs.anthropic.com/en/docs/claude-code
 

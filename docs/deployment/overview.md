@@ -283,7 +283,7 @@ See [../user/MIGRATION.md](../user/MIGRATION.md) for version-specific migration 
 
 ## Deployment Checklist
 
-- [ ] Install Claude Code CLI (v1.0.92+)
+- [ ] Install Claude Code CLI (v1.0.92+; v2.1.3+ to use Skills features)
 - [ ] Install Claude MPM with monitoring
 - [ ] Run `claude-mpm doctor` diagnostics
 - [ ] Configure user settings

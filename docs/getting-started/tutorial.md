@@ -21,7 +21,7 @@ Before starting, ensure you have:
 
 ### Required Software
 
-- **Claude Code CLI v1.0.92+** - [Installation guide](https://docs.anthropic.com/en/docs/claude-code)
+- **Claude Code CLI v1.0.92+** (v2.1.3+ to use Skills features) - [Installation guide](https://docs.anthropic.com/en/docs/claude-code)
   - ⚠️ Note: This is Claude *Code* CLI, not Claude Desktop app
   - Verify: `claude --version`
 - **Python 3.11+** - Check with `python --version`

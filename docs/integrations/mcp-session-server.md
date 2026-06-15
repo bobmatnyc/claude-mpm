@@ -24,7 +24,7 @@ The MCP Session Server provides:
 
 1. **claude-mpm installed** (v5.0+)
 2. **ANTHROPIC_API_KEY** environment variable set
-3. **Claude Code CLI** (v2.1.3+) installed
+3. **Claude Code CLI** (v1.0.92+; v2.1.3+ to use Skills features) installed
 
 ### Entry Point
 
