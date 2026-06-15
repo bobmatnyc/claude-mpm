@@ -102,6 +102,8 @@ manager there is **no OpenRouter key and none is needed** — the daemon exposes
 1. **Spawn** — `tm session new <repo> --git-ref <ref> --task "<desc>"
    [--name-hint <h>]`; capture the session id.
 2. **Wait active** — poll `activity` until the runtime is live (not provisioning).
+   Bound this wait (~5 min / ~20 polls): if it never goes active, stop polling and
+   escalate to the human — never wait indefinitely.
 3. **Observe** — read `raw_pane`; classify the session's state.
 4. **Act** (within your tier): wait while working; answer pending decisions;
    `send` routine instructions to nudge idle sessions; escalate on error.

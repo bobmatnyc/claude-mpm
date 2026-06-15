@@ -136,6 +136,9 @@ provisioning ──▶ active ⇄ stopped ──▶ decommissioned (terminal)
 1. spawn       → tm session new <repo> --git-ref <ref> --task "<desc>" --name-hint <h>
                  capture the returned session id.
 2. wait active → poll `tm session activity <id>` until runtime_active && not provisioning.
+                 BOUND THIS WAIT: if the session is still provisioning / not active
+                 after ~5 min (≈20 polls at 15 s), STOP polling and escalate to the
+                 human (likely a provisioning/infra fault) — never wait indefinitely.
 3. observe     → read raw_pane. Classify: working / idle / blocked / errored / done.
 4. branch:
    - working    → wait, then poll again (backoff; see cadence below).
@@ -156,12 +159,19 @@ Poll `activity` on a backoff to avoid hammering the daemon:
 - Steady "working" state: back off to every **15–30 s**.
 - Always re-poll immediately after `send` or `answer` to confirm the session
   consumed it.
+- **Hard timeout (mandatory).** Cap every wait loop at a stated bound — e.g.
+  **~5 minutes / 20 iterations** for the "wait until active" phase, and a similarly
+  finite bound for any "working with no progress" wait. When the bound is reached
+  **STOP polling and escalate to the human** with the last `raw_pane`; never poll
+  indefinitely.
 
-Use a bounded poll loop, never an unbounded busy-wait:
+Use a bounded poll loop, never an unbounded busy-wait. The loop below also
+escalates if the session never reaches an actionable state within the bound:
 
 ```bash
 SID="$1"
-for i in $(seq 1 40); do
+MAX_ITERS=20        # ~5 min at 15 s/iter — the hard escalation bound
+for i in $(seq 1 "$MAX_ITERS"); do
   ACT="$(tm session activity "$SID")"
   PENDING="$(printf '%s' "$ACT" | jq -r '.pending_decision // empty')"
   ACTIVE="$(printf '%s' "$ACT" | jq -r '.runtime_active')"
@@ -169,6 +179,10 @@ for i in $(seq 1 40); do
   printf '%s' "$ACT" | jq -r '.raw_pane'
   [ -n "$PENDING" ] && { echo "PENDING_DECISION: $PENDING"; break; }
   [ "$ACTIVE" = "false" ] && { echo "RUNTIME_INACTIVE"; break; }
+  if [ "$i" -eq "$MAX_ITERS" ]; then
+    echo "ESCALATE: session $SID not actionable after $MAX_ITERS polls; stopping wait — hand to human"
+    break
+  fi
   sleep 15
 done
 ```
@@ -266,9 +280,13 @@ End-to-end exercise of every verb (mirrors issue #842 acceptance criteria):
 curl -sf http://localhost:7424/health
 
 # 1. spawn
+# `tm session new` prints a human-readable line: "spawned <name> (<id>) [<state>]".
+# It has NO --json flag, so extract the id from the parenthesised field.
 SID="$(tm session new https://github.com/org/repo --git-ref main \
         --task "run the test suite and report failures" \
-        --name-hint smoke --json | jq -r '.id')"
+        --name-hint smoke | sed -n 's/^spawned [^(]*(\([^)]*\)).*/\1/p')"
+# Fallback if the spawn line format changes: `ls` DOES support --json — take the
+# newest session id:  SID="$(tm session ls --json | jq -r '.sessions[-1].id')"
 
 # 2. observe until active, reading raw_pane
 tm session activity "$SID"
