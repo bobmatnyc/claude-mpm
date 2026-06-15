@@ -7,12 +7,18 @@ lowercase names, aliases, and space-separated names.
 
 import logging
 import unittest
+from pathlib import Path
+
+import pytest
 
 from claude_mpm.agents.agent_loader import (
     get_agent_prompt,
     get_agent_prompt_with_model_info,
 )
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
+
+# Repo root, resolved from this file's location (CWD-independent, stable in CI).
+_REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Configure logging for tests
 logging.basicConfig(level=logging.DEBUG)
@@ -281,6 +287,7 @@ def _agent_templates_available():
 _HAS_AGENT_TEMPLATES = _agent_templates_available()
 
 
+@pytest.mark.xdist_group("agent_registry")
 @unittest.skipUnless(
     _HAS_AGENT_TEMPLATES,
     "Agent template files not available (archive removed; agents loaded from cache at runtime)",
@@ -291,7 +298,46 @@ class TestAgentLoaderNormalization(unittest.TestCase):
     These tests require agent template JSON files to be discoverable
     by the unified_agent_registry. They are skipped when templates
     are not available (e.g., after archive/ deletion).
+
+    The xdist_group marker keeps every test in this class on a single
+    xdist worker so they cannot interleave with sibling tests (e.g.
+    test_agent_registry_cache) that reset the process-wide registry
+    singleton mid-run. The autouse _isolate_agent_registry fixture below
+    is the primary defense: it pins the project root to the real repo and
+    rebuilds a clean singleton before each test, while monkeypatch restores
+    all globals/env at teardown.
     """
+
+    @pytest.fixture(autouse=True)
+    def _isolate_agent_registry(self, monkeypatch):
+        """Build the loader/registry singletons against the REAL repo agents.
+
+        Root cause of the "No agent found with name: research" flakiness:
+        a concurrent xdist test resets the registry singleton, and a fresh
+        registry then gets built while CWD is a pytest tmp dir -- so its
+        discovery paths miss the real .claude/agents/ and lookups fail.
+
+        Defense (test-side only; production Path.cwd() fix is a separate PR):
+          1. Pin the project root to the repo via CLAUDE_MPM_USER_PWD so
+             UnifiedPathManager.project_root resolves the real agents dir
+             regardless of the current working directory.
+          2. Reset both singletons via monkeypatch.setattr so a clean
+             registry/loader is rebuilt for this test against that root.
+          3. Warm the loader so the singleton is populated before the
+             actual assertions run.
+
+        monkeypatch automatically restores the env var and both globals at
+        teardown, so this isolation never leaks into other tests.
+        """
+        import claude_mpm.agents.agent_loader as _loader_module
+        import claude_mpm.core.unified_agent_registry as _reg_module
+
+        monkeypatch.setenv("CLAUDE_MPM_USER_PWD", str(_REPO_ROOT))
+        monkeypatch.setattr(_reg_module, "_agent_registry", None)
+        monkeypatch.setattr(_loader_module, "_loader", None)
+
+        # Warm the loader so the singleton is built against the real repo root.
+        get_agent_prompt("engineer")
 
     def test_capitalized_names_in_loader(self):
         """Test that agent loader handles capitalized names (as used by PM)."""
