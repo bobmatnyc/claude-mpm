@@ -14,7 +14,7 @@ from claude_mpm.core.logger import get_logger
 logger = get_logger("test_claude_mpm")
 
 
-def test_claude_mpm_loading():
+def test_claude_mpm_loading(monkeypatch):
     """Test that framework loader correctly loads from .claude-mpm/ directories."""
 
     # Create a temporary directory for testing
@@ -79,110 +79,97 @@ Custom memory instructions from .claude-mpm/MEMORY.md
         (claude_dir / "MEMORY.md").write_text("SHOULD NOT BE LOADED")
 
         # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            import os
+        monkeypatch.chdir(test_dir)
 
-            os.chdir(test_dir)
+        # Initialize framework loader
+        loader = FrameworkLoader()
 
-            # Initialize framework loader
-            loader = FrameworkLoader()
+        # Check that custom instructions were loaded
+        content = loader.framework_content
 
-            # Check that custom instructions were loaded
-            content = loader.framework_content
+        print("\n=== Test Results ===\n")
 
-            print("\n=== Test Results ===\n")
+        # Test INSTRUCTIONS.md loading
+        if content.get("custom_instructions"):
+            print("✅ INSTRUCTIONS.md loaded from .claude-mpm/")
+            print(f"   Level: {content.get('custom_instructions_level', 'unknown')}")
+            if "Test Project Instructions" in content["custom_instructions"]:
+                print("   ✅ Correct content loaded")
+            else:
+                print("   ❌ Wrong content loaded")
+        else:
+            print("❌ INSTRUCTIONS.md NOT loaded")
 
-            # Test INSTRUCTIONS.md loading
-            if content.get("custom_instructions"):
-                print("✅ INSTRUCTIONS.md loaded from .claude-mpm/")
-                print(
-                    f"   Level: {content.get('custom_instructions_level', 'unknown')}"
-                )
-                if "Test Project Instructions" in content["custom_instructions"]:
-                    print("   ✅ Correct content loaded")
+        # Test WORKFLOW.md loading
+        if content.get("workflow_instructions"):
+            print("✅ WORKFLOW.md loaded")
+            print(f"   Level: {content.get('workflow_instructions_level', 'unknown')}")
+            if "Test Workflow" in content["workflow_instructions"]:
+                print("   ✅ Correct content loaded from .claude-mpm/")
+            elif "SHOULD NOT BE LOADED" in content["workflow_instructions"]:
+                print("   ❌ WRONG! Loaded from .claude/ directory")
+            else:
+                print("   ℹ️  Loaded from system defaults")  # noqa: RUF001
+        else:
+            print("❌ WORKFLOW.md NOT loaded")
+
+        # Test MEMORY.md loading
+        if content.get("memory_instructions"):
+            print("✅ MEMORY.md loaded")
+            print(f"   Level: {content.get('memory_instructions_level', 'unknown')}")
+            if "Test Memory Instructions" in content["memory_instructions"]:
+                print("   ✅ Correct content loaded from .claude-mpm/")
+            elif "SHOULD NOT BE LOADED" in content["memory_instructions"]:
+                print("   ❌ WRONG! Loaded from .claude/ directory")
+            else:
+                print("   ℹ️  Loaded from system defaults")  # noqa: RUF001
+        else:
+            print("❌ MEMORY.md NOT loaded")
+
+        # Test actual memories loading
+        if content.get("actual_memories"):
+            print("✅ PM_memories.md loaded")
+            if "This project uses Python 3.11" in content["actual_memories"]:
+                print("   ✅ Correct memory content loaded")
+            else:
+                print("   ❌ Wrong memory content")
+        else:
+            print("ℹ️  No PM memories loaded (expected if no deployed agents)")  # noqa: RUF001
+
+        # Verify .claude/ directory was NOT read
+        instructions_text = loader.get_framework_instructions()
+        if "SHOULD NOT BE LOADED" in instructions_text:
+            print("\n❌ ERROR: Content from .claude/ directory was loaded!")
+            print(
+                "   This is a critical bug - framework should NEVER read from .claude/"
+            )
+        else:
+            print("\n✅ Correctly ignored .claude/ directory")
+
+        print("\n=== User Home Directory Test ===\n")
+
+        # Now test user-level loading
+        user_claude_mpm = Path.home() / ".claude-mpm"
+        if user_claude_mpm.exists():
+            print(f"Found user .claude-mpm at: {user_claude_mpm}")
+
+            # Check what files exist
+            for file in ["INSTRUCTIONS.md", "WORKFLOW.md", "MEMORY.md"]:
+                file_path = user_claude_mpm / file
+                if file_path.exists():
+                    print(f"   ✅ {file} exists")
                 else:
-                    print("   ❌ Wrong content loaded")
-            else:
-                print("❌ INSTRUCTIONS.md NOT loaded")
+                    print(f"   ℹ️  {file} not found")  # noqa: RUF001
 
-            # Test WORKFLOW.md loading
-            if content.get("workflow_instructions"):
-                print("✅ WORKFLOW.md loaded")
-                print(
-                    f"   Level: {content.get('workflow_instructions_level', 'unknown')}"
-                )
-                if "Test Workflow" in content["workflow_instructions"]:
-                    print("   ✅ Correct content loaded from .claude-mpm/")
-                elif "SHOULD NOT BE LOADED" in content["workflow_instructions"]:
-                    print("   ❌ WRONG! Loaded from .claude/ directory")
-                else:
-                    print("   ℹ️  Loaded from system defaults")  # noqa: RUF001
-            else:
-                print("❌ WORKFLOW.md NOT loaded")
-
-            # Test MEMORY.md loading
-            if content.get("memory_instructions"):
-                print("✅ MEMORY.md loaded")
-                print(
-                    f"   Level: {content.get('memory_instructions_level', 'unknown')}"
-                )
-                if "Test Memory Instructions" in content["memory_instructions"]:
-                    print("   ✅ Correct content loaded from .claude-mpm/")
-                elif "SHOULD NOT BE LOADED" in content["memory_instructions"]:
-                    print("   ❌ WRONG! Loaded from .claude/ directory")
-                else:
-                    print("   ℹ️  Loaded from system defaults")  # noqa: RUF001
-            else:
-                print("❌ MEMORY.md NOT loaded")
-
-            # Test actual memories loading
-            if content.get("actual_memories"):
-                print("✅ PM_memories.md loaded")
-                if "This project uses Python 3.11" in content["actual_memories"]:
-                    print("   ✅ Correct memory content loaded")
-                else:
-                    print("   ❌ Wrong memory content")
-            else:
-                print("ℹ️  No PM memories loaded (expected if no deployed agents)")  # noqa: RUF001
-
-            # Verify .claude/ directory was NOT read
-            instructions_text = loader.get_framework_instructions()
-            if "SHOULD NOT BE LOADED" in instructions_text:
-                print("\n❌ ERROR: Content from .claude/ directory was loaded!")
-                print(
-                    "   This is a critical bug - framework should NEVER read from .claude/"
-                )
-            else:
-                print("\n✅ Correctly ignored .claude/ directory")
-
-            print("\n=== User Home Directory Test ===\n")
-
-            # Now test user-level loading
-            user_claude_mpm = Path.home() / ".claude-mpm"
-            if user_claude_mpm.exists():
-                print(f"Found user .claude-mpm at: {user_claude_mpm}")
-
-                # Check what files exist
-                for file in ["INSTRUCTIONS.md", "WORKFLOW.md", "MEMORY.md"]:
-                    file_path = user_claude_mpm / file
-                    if file_path.exists():
-                        print(f"   ✅ {file} exists")
-                    else:
-                        print(f"   ℹ️  {file} not found")  # noqa: RUF001
-
-                # Check memories directory
-                memories_dir = user_claude_mpm / "memories"
-                if memories_dir.exists():
-                    print("   ✅ memories/ directory exists")
-                    pm_memories = memories_dir / "PM_memories.md"
-                    if pm_memories.exists():
-                        print("      ✅ PM_memories.md exists")
-            else:
-                print(f"ℹ️  No user .claude-mpm directory at: {user_claude_mpm}")  # noqa: RUF001
-
-        finally:
-            os.chdir(original_cwd)
+            # Check memories directory
+            memories_dir = user_claude_mpm / "memories"
+            if memories_dir.exists():
+                print("   ✅ memories/ directory exists")
+                pm_memories = memories_dir / "PM_memories.md"
+                if pm_memories.exists():
+                    print("      ✅ PM_memories.md exists")
+        else:
+            print(f"ℹ️  No user .claude-mpm directory at: {user_claude_mpm}")  # noqa: RUF001
 
     print("\n=== Test Complete ===\n")
 
