@@ -329,18 +329,6 @@ class HeadlessSession:
             cmd.extend(["--max-turns", str(max_turns)])
             self.logger.debug(f"Limiting session to {max_turns} turn(s)")
 
-        # Fail fast when exit-condition is requested but cannot be evaluated turn-by-turn.
-        # In exec mode Claude handles the full session so MPM has no per-turn hook.
-        # Exiting non-zero here lets CI pipelines detect misconfigured invocations
-        # rather than silently ignoring the flag.
-        if exit_condition:
-            print(
-                "ERROR: --exit-condition is not supported in exec-based headless mode; "
-                "use --sdk for condition evaluation",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
         # Check if using stream-json input format (vibe-kanban compatibility)
         # When --input-format stream-json is passed, stdin passes through to Claude
         claude_args = self.runner.claude_args or []
@@ -385,8 +373,22 @@ class HeadlessSession:
 
         # --on-complete requires MPM to stay alive after Claude exits so we can
         # fire the hook script.  Fall back to subprocess.run() in that case.
+        # When on_complete is active, exit_condition can be passed through because
+        # MPM retains control after Claude exits and can evaluate it externally.
         if on_complete:
             return self._run_subprocess_with_hooks(cmd, env, on_complete)
+
+        # Fail fast when exit-condition is requested but cannot be evaluated turn-by-turn.
+        # In exec mode Claude handles the full session so MPM has no per-turn hook.
+        # This guard only applies to the exec path (no on_complete); the subprocess
+        # fallback path above retains MPM control and can support exit-condition callers.
+        if exit_condition:
+            print(
+                "ERROR: --exit-condition is not supported in exec-based headless mode; "
+                "use --sdk for condition evaluation",
+                file=sys.stderr,
+            )
+            return 1
 
         try:
             # Replace this process with claude - no return on success
