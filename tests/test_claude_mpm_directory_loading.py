@@ -14,7 +14,7 @@ from claude_mpm.core.framework_loader import FrameworkLoader
 class TestClaudeMpmDirectoryLoading:
     """Test suite for .claude-mpm/ directory loading."""
 
-    def test_project_instructions_loading(self, tmp_path):
+    def test_project_instructions_loading(self, tmp_path, monkeypatch):
         """Test that project-level INSTRUCTIONS.md is loaded from .claude-mpm/."""
         # Create .claude-mpm directory
         claude_mpm_dir = tmp_path / ".claude-mpm"
@@ -24,25 +24,16 @@ class TestClaudeMpmDirectoryLoading:
         instructions_content = "# Project Instructions\nTest content"
         (claude_mpm_dir / "INSTRUCTIONS.md").write_text(instructions_content)
 
-        # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            loader = FrameworkLoader()
+        # Change to test directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
+        loader = FrameworkLoader()
 
-            # Verify instructions were loaded
-            assert loader.framework_content.get("custom_instructions") is not None
-            assert (
-                "Project Instructions"
-                in loader.framework_content["custom_instructions"]
-            )
-            assert (
-                loader.framework_content.get("custom_instructions_level") == "project"
-            )
-        finally:
-            os.chdir(original_cwd)
+        # Verify instructions were loaded
+        assert loader.framework_content.get("custom_instructions") is not None
+        assert "Project Instructions" in loader.framework_content["custom_instructions"]
+        assert loader.framework_content.get("custom_instructions_level") == "project"
 
-    def test_project_workflow_loading(self, tmp_path):
+    def test_project_workflow_loading(self, tmp_path, monkeypatch):
         """Test that project-level WORKFLOW.md is loaded from .claude-mpm/."""
         # Create .claude-mpm directory
         claude_mpm_dir = tmp_path / ".claude-mpm"
@@ -52,24 +43,16 @@ class TestClaudeMpmDirectoryLoading:
         workflow_content = "# Project Workflow\nCustom workflow"
         (claude_mpm_dir / "WORKFLOW.md").write_text(workflow_content)
 
-        # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            loader = FrameworkLoader()
+        # Change to test directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
+        loader = FrameworkLoader()
 
-            # Verify workflow was loaded
-            assert loader.framework_content.get("workflow_instructions") is not None
-            assert (
-                "Project Workflow" in loader.framework_content["workflow_instructions"]
-            )
-            assert (
-                loader.framework_content.get("workflow_instructions_level") == "project"
-            )
-        finally:
-            os.chdir(original_cwd)
+        # Verify workflow was loaded
+        assert loader.framework_content.get("workflow_instructions") is not None
+        assert "Project Workflow" in loader.framework_content["workflow_instructions"]
+        assert loader.framework_content.get("workflow_instructions_level") == "project"
 
-    def test_project_memory_loading(self, tmp_path):
+    def test_project_memory_loading(self, tmp_path, monkeypatch):
         """Test that project-level MEMORY.md is loaded from .claude-mpm/."""
         # Create .claude-mpm directory
         claude_mpm_dir = tmp_path / ".claude-mpm"
@@ -79,22 +62,16 @@ class TestClaudeMpmDirectoryLoading:
         memory_content = "# Project Memory\nCustom memory instructions"
         (claude_mpm_dir / "MEMORY.md").write_text(memory_content)
 
-        # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            loader = FrameworkLoader()
+        # Change to test directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
+        loader = FrameworkLoader()
 
-            # Verify memory was loaded
-            assert loader.framework_content.get("memory_instructions") is not None
-            assert "Project Memory" in loader.framework_content["memory_instructions"]
-            assert (
-                loader.framework_content.get("memory_instructions_level") == "project"
-            )
-        finally:
-            os.chdir(original_cwd)
+        # Verify memory was loaded
+        assert loader.framework_content.get("memory_instructions") is not None
+        assert "Project Memory" in loader.framework_content["memory_instructions"]
+        assert loader.framework_content.get("memory_instructions_level") == "project"
 
-    def test_claude_directory_ignored(self, tmp_path):
+    def test_claude_directory_ignored(self, tmp_path, monkeypatch):
         """Test that .claude/ directory is completely ignored."""
         # Create both .claude-mpm and .claude directories
         claude_mpm_dir = tmp_path / ".claude-mpm"
@@ -114,36 +91,32 @@ class TestClaudeMpmDirectoryLoading:
         (claude_dir / "WORKFLOW.md").write_text("CLAUDE_DIR_WORKFLOW - SHOULD NOT LOAD")
         (claude_dir / "MEMORY.md").write_text("CLAUDE_DIR_MEMORY - SHOULD NOT LOAD")
 
-        # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            loader = FrameworkLoader()
+        # Change to test directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
+        loader = FrameworkLoader()
 
-            # Get all instructions
-            full_instructions = loader.get_framework_instructions()
+        # Get all instructions
+        full_instructions = loader.get_framework_instructions()
 
-            # Verify correct content was loaded
-            assert "CORRECT INSTRUCTIONS" in loader.framework_content.get(
-                "custom_instructions", ""
-            )
-            assert "CORRECT WORKFLOW" in loader.framework_content.get(
-                "workflow_instructions", ""
-            )
-            assert "CORRECT MEMORY" in loader.framework_content.get(
-                "memory_instructions", ""
-            )
+        # Verify correct content was loaded
+        assert "CORRECT INSTRUCTIONS" in loader.framework_content.get(
+            "custom_instructions", ""
+        )
+        assert "CORRECT WORKFLOW" in loader.framework_content.get(
+            "workflow_instructions", ""
+        )
+        assert "CORRECT MEMORY" in loader.framework_content.get(
+            "memory_instructions", ""
+        )
 
-            # Verify wrong content was NOT loaded (from .claude/ directory)
-            assert "CLAUDE_DIR_INSTRUCTIONS" not in full_instructions
-            assert "CLAUDE_DIR_WORKFLOW" not in full_instructions
-            assert "CLAUDE_DIR_MEMORY" not in full_instructions
+        # Verify wrong content was NOT loaded (from .claude/ directory)
+        assert "CLAUDE_DIR_INSTRUCTIONS" not in full_instructions
+        assert "CLAUDE_DIR_WORKFLOW" not in full_instructions
+        assert "CLAUDE_DIR_MEMORY" not in full_instructions
 
-            # Note: we do NOT assert ".claude/" not in full_instructions because
-            # the PM system instructions themselves legitimately reference .claude/agents/
-            # paths. The important thing is that content FROM .claude/ was not loaded.
-        finally:
-            os.chdir(original_cwd)
+        # Note: we do NOT assert ".claude/" not in full_instructions because
+        # the PM system instructions themselves legitimately reference .claude/agents/
+        # paths. The important thing is that content FROM .claude/ was not loaded.
 
     def test_precedence_order(self, tmp_path, monkeypatch):
         """Test that precedence order is: project > user > system."""
@@ -160,37 +133,31 @@ class TestClaudeMpmDirectoryLoading:
         # Mock Path.home() to return our fake home
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "fake_home")
 
-        # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            loader = FrameworkLoader()
+        # Change to test directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
+        loader = FrameworkLoader()
 
-            # Project should override user
-            assert "PROJECT INSTRUCTIONS" in loader.framework_content.get(
-                "custom_instructions", ""
-            )
-            assert "USER INSTRUCTIONS" not in loader.framework_content.get(
-                "custom_instructions", ""
-            )
-            assert (
-                loader.framework_content.get("custom_instructions_level") == "project"
-            )
+        # Project should override user
+        assert "PROJECT INSTRUCTIONS" in loader.framework_content.get(
+            "custom_instructions", ""
+        )
+        assert "USER INSTRUCTIONS" not in loader.framework_content.get(
+            "custom_instructions", ""
+        )
+        assert loader.framework_content.get("custom_instructions_level") == "project"
 
-            # Now remove project file and test user level
-            (project_dir / "INSTRUCTIONS.md").unlink()  # Remove the file first
-            project_dir.rmdir()  # Then remove the directory
-            loader = FrameworkLoader()
+        # Now remove project file and test user level
+        (project_dir / "INSTRUCTIONS.md").unlink()  # Remove the file first
+        project_dir.rmdir()  # Then remove the directory
+        loader = FrameworkLoader()
 
-            # User level should be loaded
-            assert "USER INSTRUCTIONS" in loader.framework_content.get(
-                "custom_instructions", ""
-            )
-            assert loader.framework_content.get("custom_instructions_level") == "user"
-        finally:
-            os.chdir(original_cwd)
+        # User level should be loaded
+        assert "USER INSTRUCTIONS" in loader.framework_content.get(
+            "custom_instructions", ""
+        )
+        assert loader.framework_content.get("custom_instructions_level") == "user"
 
-    def test_memory_files_loading(self, tmp_path):
+    def test_memory_files_loading(self, tmp_path, monkeypatch):
         """Test that PM_memories.md is loaded from .claude-mpm/memories/."""
         # Create directory structure
         memories_dir = tmp_path / ".claude-mpm" / "memories"
@@ -200,35 +167,26 @@ class TestClaudeMpmDirectoryLoading:
         pm_content = "# PM Memories\n- Project uses Python\n- Testing is important"
         (memories_dir / "PM_memories.md").write_text(pm_content)
 
-        # Change to test directory.
+        # Change to test directory (monkeypatch restores CWD after the test).
         # Force flat-file mode so a live MCP memory backend on this host does
         # not clear actual_memories before the assertions.
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            with patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}):
-                loader = FrameworkLoader()
+        monkeypatch.chdir(tmp_path)
+        with patch.dict(os.environ, {"MPM_USE_MCP_MEMORY": "false"}):
+            loader = FrameworkLoader()
 
-                # The FrameworkLoader uses a singleton DI container shared across
-                # instances.  Clear the memory cache to force reload from the
-                # current (tmp_path) directory, then re-populate framework_content
-                # with fresh memories.
-                loader.clear_memory_caches()
-                loader._load_actual_memories(loader.framework_content)
+            # The FrameworkLoader uses a singleton DI container shared across
+            # instances.  Clear the memory cache to force reload from the
+            # current (tmp_path) directory, then re-populate framework_content
+            # with fresh memories.
+            loader.clear_memory_caches()
+            loader._load_actual_memories(loader.framework_content)
 
-                # Verify PM memories were loaded
-                assert loader.framework_content.get("actual_memories") is not None
-                assert (
-                    "Project uses Python" in loader.framework_content["actual_memories"]
-                )
-                assert (
-                    "Testing is important"
-                    in loader.framework_content["actual_memories"]
-                )
-        finally:
-            os.chdir(original_cwd)
+            # Verify PM memories were loaded
+            assert loader.framework_content.get("actual_memories") is not None
+            assert "Project uses Python" in loader.framework_content["actual_memories"]
+            assert "Testing is important" in loader.framework_content["actual_memories"]
 
-    def test_instructions_in_final_output(self, tmp_path):
+    def test_instructions_in_final_output(self, tmp_path, monkeypatch):
         """Test that custom instructions appear in final formatted output."""
         # Create .claude-mpm directory with all files
         claude_mpm_dir = tmp_path / ".claude-mpm"
@@ -244,21 +202,17 @@ class TestClaudeMpmDirectoryLoading:
             "# Custom Memory\nRemember everything"
         )
 
-        # Change to test directory
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmp_path)
-            loader = FrameworkLoader()
+        # Change to test directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
+        loader = FrameworkLoader()
 
-            # Get final formatted instructions
-            final = loader.get_framework_instructions()
+        # Get final formatted instructions
+        final = loader.get_framework_instructions()
 
-            # Verify custom content appears with proper labels
-            assert "Custom PM Instructions" in final
-            assert "Custom Workflow" in final
-            assert "Custom Memory" in final
+        # Verify custom content appears with proper labels
+        assert "Custom PM Instructions" in final
+        assert "Custom Workflow" in final
+        assert "Custom Memory" in final
 
-            # Verify level indicators appear
-            assert "(project level)" in final or "project-specific" in final.lower()
-        finally:
-            os.chdir(original_cwd)
+        # Verify level indicators appear
+        assert "(project level)" in final or "project-specific" in final.lower()

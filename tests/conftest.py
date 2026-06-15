@@ -149,25 +149,47 @@ def verify_agents_untouched():
     Checks both agents/ (for removals) and agents/unused/ (for archives),
     since the damage path is shutil.move() from agents/ to agents/unused/.
 
+    Also checks file *contents* via MD5 checksums to catch contamination of
+    existing files (e.g. code-analyzer.md being overwritten by a parallel
+    worker whose CWD leaked via bare os.chdir()).
+
     Uses Path(__file__) rather than Path.cwd() so the guard is stable in CI
     environments where the working directory may differ from the repo root.
     """
+    import hashlib
+
     repo_root = Path(__file__).resolve().parent.parent
     agents_dir = repo_root / ".claude" / "agents"
     unused_dir = agents_dir / "unused"
 
-    def _snapshot(directory: Path) -> set:
+    def _name_snapshot(directory: Path) -> set:
         if not directory.exists():
             return set()
         return {f.name for f in directory.glob("*.md")}
 
-    before_agents = _snapshot(agents_dir)
-    before_unused = _snapshot(unused_dir)
+    def _content_snapshot(directory: Path) -> dict:
+        if not directory.exists():
+            return {}
+        result = {}
+        for f in directory.glob("*.md"):
+            content = f.read_bytes()
+            result[f.name] = {
+                "size": len(content),
+                "hash": hashlib.md5(
+                    content
+                ).hexdigest(),  # MD5 is sufficient for detecting accidental overwrites; not used for security
+            }
+        return result
+
+    before_agents = _name_snapshot(agents_dir)
+    before_unused = _name_snapshot(unused_dir)
+    before_content = _content_snapshot(agents_dir)
 
     yield
 
-    after_agents = _snapshot(agents_dir)
-    after_unused = _snapshot(unused_dir)
+    after_agents = _name_snapshot(agents_dir)
+    after_unused = _name_snapshot(unused_dir)
+    after_content = _content_snapshot(agents_dir)
 
     removed = before_agents - after_agents
     added_to_unused = after_unused - before_unused
@@ -179,6 +201,17 @@ def verify_agents_untouched():
         problems.append(
             f"agents archived to .claude/agents/unused/: {sorted(added_to_unused)}"
         )
+
+    # Detect content modifications to existing files (the CWD-leak contamination path)
+    for name, before_info in before_content.items():
+        after_info = after_content.get(name)
+        if after_info is None:
+            continue  # Already captured in the removed set above
+        if after_info["hash"] != before_info["hash"]:
+            problems.append(
+                f"agent file CONTENT MODIFIED: {name} "
+                f"(size {before_info['size']} -> {after_info['size']})"
+            )
 
     assert not problems, (
         "TEST BUG: Real deployed agents were modified during test.\n"

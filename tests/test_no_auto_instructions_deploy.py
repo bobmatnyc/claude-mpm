@@ -7,7 +7,6 @@ This test ensures that:
 3. Framework correctly reads from .claude-mpm/ instead
 """
 
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -106,51 +105,40 @@ class TestNoAutoInstructionsDeploy:
                     "MEMORY.md should NOT be auto-created in .claude/"
                 )
 
-    def test_framework_loader_reads_from_claude_mpm(self):
+    def test_framework_loader_reads_from_claude_mpm(self, tmp_path, monkeypatch):
         """Test that framework loader reads from .claude-mpm/ not .claude/."""
+        # Create .claude-mpm directory with test instructions
+        claude_mpm_dir = tmp_path / ".claude-mpm"
+        claude_mpm_dir.mkdir(parents=True, exist_ok=True)
+        (claude_mpm_dir / "INSTRUCTIONS.md").write_text(
+            "# Correct Instructions\nFrom .claude-mpm/"
+        )
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
+        # Create .claude directory with wrong instructions
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir(parents=True, exist_ok=True)
+        (claude_dir / "INSTRUCTIONS.md").write_text(
+            "# Wrong Instructions\nFrom .claude/ - should not be loaded"
+        )
 
-            # Create .claude-mpm directory with test instructions
-            claude_mpm_dir = tmpdir_path / ".claude-mpm"
-            claude_mpm_dir.mkdir(parents=True, exist_ok=True)
-            (claude_mpm_dir / "INSTRUCTIONS.md").write_text(
-                "# Correct Instructions\nFrom .claude-mpm/"
-            )
+        # Change to temp directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmp_path)
 
-            # Create .claude directory with wrong instructions
-            claude_dir = tmpdir_path / ".claude"
-            claude_dir.mkdir(parents=True, exist_ok=True)
-            (claude_dir / "INSTRUCTIONS.md").write_text(
-                "# Wrong Instructions\nFrom .claude/ - should not be loaded"
-            )
+        # Create framework loader
+        loader = FrameworkLoader()
 
-            # Change to temp directory
-            original_cwd = Path.cwd()
-            try:
-                os.chdir(tmpdir_path)
+        # Check custom instructions
+        custom_instructions = loader.framework_content.get("custom_instructions", "")
 
-                # Create framework loader
-                loader = FrameworkLoader()
+        # Should load from .claude-mpm/
+        assert "Correct Instructions" in custom_instructions, (
+            "Should load instructions from .claude-mpm/"
+        )
 
-                # Check custom instructions
-                custom_instructions = loader.framework_content.get(
-                    "custom_instructions", ""
-                )
-
-                # Should load from .claude-mpm/
-                assert "Correct Instructions" in custom_instructions, (
-                    "Should load instructions from .claude-mpm/"
-                )
-
-                # Should NOT load from .claude/
-                assert "Wrong Instructions" not in custom_instructions, (
-                    "Should NOT load instructions from .claude/"
-                )
-
-            finally:
-                os.chdir(original_cwd)
+        # Should NOT load from .claude/
+        assert "Wrong Instructions" not in custom_instructions, (
+            "Should NOT load instructions from .claude/"
+        )
 
     def test_deploy_system_instructions_to_claude_mpm(self):
         """Test the new deploy_system_instructions_to_claude_mpm method."""
