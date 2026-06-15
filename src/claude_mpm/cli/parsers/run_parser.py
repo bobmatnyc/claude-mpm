@@ -23,7 +23,12 @@ def _positive_int(value: str) -> int:
     WHY: Catching ``--max-turns 0`` or ``--max-turns -1`` early produces a clear
     argparse error message instead of a late RuntimeError deep in session code.
     """
-    n = int(value)
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"--max-turns requires a positive integer, got {value!r}"
+        ) from None
     if n <= 0:
         raise argparse.ArgumentTypeError(
             f"--max-turns must be a positive integer, got {n}"
