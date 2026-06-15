@@ -314,6 +314,10 @@ class HeadlessSession:
         Returns:
             Exit code from Claude Code process (only on exec failure or subprocess exit).
         """
+        # Validate max_turns before doing any I/O
+        if max_turns is not None and max_turns <= 0:
+            raise ValueError(f"--max-turns must be a positive integer, got {max_turns}")
+
         # Verify hooks are deployed before execution
         # This ensures MPM features (session management, skills) work in headless mode
         self._verify_hooks_deployed()
@@ -330,10 +334,10 @@ class HeadlessSession:
         # Warn when exit-condition is requested but cannot be evaluated turn-by-turn.
         # In exec mode Claude handles the full session so MPM has no per-turn hook.
         if exit_condition:
-            self.logger.warning(
-                "--exit-condition is not supported in exec-based headless mode "
-                "(Claude owns the process after exec). "
-                "Use --sdk mode for turn-level condition evaluation."
+            print(
+                "WARNING: --exit-condition is not supported in exec-based headless mode; "
+                "use --sdk for condition evaluation",
+                file=sys.stderr,
             )
 
         # Check if using stream-json input format (vibe-kanban compatibility)
@@ -448,8 +452,9 @@ class HeadlessSession:
 
         # Fire on-complete hook if the path exists and the session ended (any code).
         if on_complete and Path(on_complete).is_file():
-            self.logger.debug(f"Firing on-complete hook: {on_complete}")
-            subprocess.run([on_complete], check=False)  # nosec B603 B606
+            resolved = Path(on_complete).resolve()
+            self.logger.info("Firing on-complete hook: %s", resolved)
+            subprocess.run([str(resolved)], check=False)  # nosec B603
         elif on_complete:
             self.logger.warning(
                 f"--on-complete script not found, skipping: {on_complete}"
