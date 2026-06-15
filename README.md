@@ -13,7 +13,7 @@
 >
 > **Quick Start**: See [Getting Started Guide](docs/getting-started/README.md) to get running in 5 minutes!
 
-> **Current stable version: v6.1.0** — plugin install path, binary consolidation, and auto-migration. See [Beta Guide](docs/beta-6.0.md) for v6.0 release notes.
+> **Current stable version: v6.5.43** — plugin install path, binary consolidation, and auto-migration. See [Beta Guide](docs/beta-6.0.md) for the v6.0 release notes and [CHANGELOG](CHANGELOG.md) for the full history.
 
 ---
 
