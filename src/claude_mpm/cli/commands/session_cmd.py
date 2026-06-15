@@ -137,13 +137,17 @@ def _http_post_unix(base_url: str, path: str, payload: dict) -> dict:
     except ImportError:
         print(
             "Unix socket transport requires httpx: pip install httpx\n"
-            "Alternatively, start the daemon with --port and use --url instead.",
+            "Alternatively, bypass the auto-detected socket with "
+            "--url http://127.0.0.1:<port>",
             file=sys.stderr,
         )
         sys.exit(1)
 
+    from urllib.parse import unquote
+
+    raw_path = unquote(base_url.replace("http+unix://", ""))
     try:
-        transport = httpx.HTTPTransport(uds=base_url.replace("http+unix://", ""))
+        transport = httpx.HTTPTransport(uds=raw_path)
         with httpx.Client(transport=transport, base_url="http://localhost") as client:
             resp = client.post(path, json=payload, timeout=10)
             resp.raise_for_status()
