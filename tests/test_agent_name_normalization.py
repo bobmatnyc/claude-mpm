@@ -287,6 +287,12 @@ def _agent_templates_available():
 _HAS_AGENT_TEMPLATES = _agent_templates_available()
 
 
+# xdist_group serializes the tests WITHIN this class onto a single worker as a
+# belt-and-suspenders guard for intra-process ordering. xdist runs each worker in
+# a separate process, so the registry/loader singletons are per-process; this
+# marker is NOT inter-process synchronization. Its only job is to keep these tests
+# from interleaving with sibling tests *on the same worker* that reset the
+# process-wide singleton mid-run. The autouse fixture below is the real fix.
 @pytest.mark.xdist_group("agent_registry")
 @unittest.skipUnless(
     _HAS_AGENT_TEMPLATES,
@@ -323,8 +329,8 @@ class TestAgentLoaderNormalization(unittest.TestCase):
              regardless of the current working directory.
           2. Reset both singletons via monkeypatch.setattr so a clean
              registry/loader is rebuilt for this test against that root.
-          3. Warm the loader so the singleton is populated before the
-             actual assertions run.
+          3. Warm the loader/registry singletons (agent-agnostic) so they are
+             populated against that root before the actual assertions run.
 
         monkeypatch automatically restores the env var and both globals at
         teardown, so this isolation never leaks into other tests.
@@ -332,12 +338,19 @@ class TestAgentLoaderNormalization(unittest.TestCase):
         import claude_mpm.agents.agent_loader as _loader_module
         import claude_mpm.core.unified_agent_registry as _reg_module
 
+        # TODO: remove this CLAUDE_MPM_USER_PWD workaround once
+        # UnifiedAgentRegistry._setup_discovery_paths honors the path manager
+        # instead of bare Path.cwd() (planned PR 3 / root-cause fix).
         monkeypatch.setenv("CLAUDE_MPM_USER_PWD", str(_REPO_ROOT))
         monkeypatch.setattr(_reg_module, "_agent_registry", None)
         monkeypatch.setattr(_loader_module, "_loader", None)
 
-        # Warm the loader so the singleton is built against the real repo root.
-        get_agent_prompt("engineer")
+        # Warm the loader/registry singletons against the real repo root.
+        # Use the agent-agnostic loader builder (which constructs AgentLoader,
+        # which calls get_agent_registry() and runs discovery) rather than
+        # looking up a specific agent. A future rename of any single agent must
+        # not make this warm-up error out and mask the real test failure.
+        _loader_module._get_loader()
 
     def test_capitalized_names_in_loader(self):
         """Test that agent loader handles capitalized names (as used by PM)."""
