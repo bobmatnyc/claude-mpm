@@ -203,12 +203,15 @@ class SessionStateTracker:
         with self._lock:
             self._state = SessionState.STOPPED
             self._last_activity = time.time()
+            # Snapshot the callback list under the lock to prevent a race with
+            # concurrent register_stop_callback() calls that append to it.
+            callbacks = list(self._stop_callbacks)
 
         # Fire stop callbacks outside the lock to avoid deadlocks.
         # Callbacks that try to read session state (e.g. get_session_state)
         # must not hold the lock themselves — calling them under the lock
         # would cause a deadlock.
-        for cb in self._stop_callbacks:
+        for cb in callbacks:
             try:
                 cb()
             except Exception:
