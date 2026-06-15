@@ -208,7 +208,15 @@ class UnifiedAgentRegistry:
         # running under a temp CWD still finds the real project's deployed agents.
         # In the normal case (cwd == repo root, no env override) project_root
         # resolves to the repo root, so the resulting path is identical to before.
-        deployed_path = self.path_manager.project_root / ".claude" / "agents"
+        # Defensive fallback: if the path manager is unavailable (e.g. early
+        # bootstrap), fall back to Path.cwd() exactly as the old code did rather
+        # than raising on a None / missing project_root.
+        _base = (
+            self.path_manager.project_root
+            if self.path_manager is not None
+            else Path.cwd()
+        )
+        deployed_path = _base / ".claude" / "agents"
         if deployed_path.exists():
             self.discovery_paths.insert(0, deployed_path)  # Highest priority
 
