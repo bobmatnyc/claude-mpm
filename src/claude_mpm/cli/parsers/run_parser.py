@@ -152,6 +152,25 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Run in headless mode for automation/CI/CD (disables Rich console, outputs NDJSON for programmatic parsing)",
     )
+    io_group.add_argument(
+        "--max-turns",
+        type=int,
+        metavar="N",
+        help="Exit after N Claude turns (headless/oneshot only)",
+    )
+    io_group.add_argument(
+        "--exit-condition",
+        type=str,
+        metavar="EXPR",
+        help="Python expression evaluated after each turn; exit when truthy. "
+        "Context vars: turns, status, output",
+    )
+    io_group.add_argument(
+        "--on-complete",
+        type=str,
+        metavar="SCRIPT",
+        help="Shell script path executed when the session terminates naturally",
+    )
 
     # Claude Code passthrough flags for Vibe Kanban compatibility
     # These flags are accepted by claude-mpm and forwarded to Claude Code
