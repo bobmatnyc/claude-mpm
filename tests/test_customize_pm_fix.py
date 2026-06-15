@@ -131,7 +131,7 @@ def main():
 
             class _FakeMonkeypatch:
                 def chdir(self, path):
-                    pass  # already chdir'd above
+                    os.chdir(path)
 
             fake_mp = _FakeMonkeypatch()
             fake_tmp = Path(tmpdir)
