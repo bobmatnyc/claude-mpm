@@ -382,7 +382,7 @@ def test_unified_registry_discovers_local_templates(mock_path_manager):
     reason="Creates .json template file but discover_local_templates() only reads .md files "
     "(v4.26.0+ migration); local agent is not discovered and not included in capabilities."
 )
-def test_framework_loader_includes_local_agents():
+def test_framework_loader_includes_local_agents(monkeypatch):
     """Test that FrameworkLoader properly includes local agents in capabilities."""
     from claude_mpm.core.framework_loader import FrameworkLoader
 
@@ -416,21 +416,15 @@ def test_framework_loader_includes_local_agents():
             MockCache.__name__ = "CacheManager"  # Fix mock attribute issue
 
             # Change working directory to our test project
-            import os
+            # (monkeypatch restores CWD after the test)
+            monkeypatch.chdir(project_dir)
 
-            original_cwd = os.getcwd()
-            try:
-                os.chdir(project_dir)
+            loader = FrameworkLoader()
 
-                loader = FrameworkLoader()
+            # Generate capabilities
+            capabilities = loader._generate_agent_capabilities_section()
 
-                # Generate capabilities
-                capabilities = loader._generate_agent_capabilities_section()
-
-                # Verify local agent is included
-                assert "local_test" in capabilities
-                assert "Local Test Agent" in capabilities
-                assert "[LOCAL-PROJECT]" in capabilities or "LOCAL" in capabilities
-
-            finally:
-                os.chdir(original_cwd)
+            # Verify local agent is included
+            assert "local_test" in capabilities
+            assert "Local Test Agent" in capabilities
+            assert "[LOCAL-PROJECT]" in capabilities or "LOCAL" in capabilities
