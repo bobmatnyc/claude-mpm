@@ -1116,7 +1116,6 @@ def run_session_legacy(args):
         print("Native agents disabled")
     else:
         # Agent versions removed from startup display - use /mpm-agents to view
-        # list_agent_versions_at_startup()
         pass
 
     # Smart dependency checking - only when needed

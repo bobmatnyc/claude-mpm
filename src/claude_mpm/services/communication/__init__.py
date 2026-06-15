@@ -22,8 +22,6 @@ except ImportError:
 
 from .message_service import MessageService
 
-# from .websocket import SocketIOClientManager  # Module has import issues
-
 __all__ = [
     "MessageService",
 ]

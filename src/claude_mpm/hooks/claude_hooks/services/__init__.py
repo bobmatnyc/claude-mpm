@@ -1,8 +1,7 @@
 """Hook handler services for modular functionality."""
 
 # Use HTTP-based connection manager for stable dashboard communication
-# from .connection_manager import ConnectionManagerService  # Old SocketIO-based
-from .connection_manager_http import ConnectionManagerService  # New HTTP-based
+from .connection_manager_http import ConnectionManagerService
 from .container import HookServiceContainer, get_container
 from .duplicate_detector import DuplicateEventDetector
 from .protocols import (
