@@ -314,10 +314,6 @@ class HeadlessSession:
         Returns:
             Exit code from Claude Code process (only on exec failure or subprocess exit).
         """
-        # Validate max_turns before doing any I/O
-        if max_turns is not None and max_turns <= 0:
-            raise ValueError(f"--max-turns must be a positive integer, got {max_turns}")
-
         # Verify hooks are deployed before execution
         # This ensures MPM features (session management, skills) work in headless mode
         self._verify_hooks_deployed()
@@ -451,14 +447,15 @@ class HeadlessSession:
             return 1
 
         # Fire on-complete hook if the path exists and the session ended (any code).
-        if on_complete and Path(on_complete).is_file():
+        if on_complete:
             resolved = Path(on_complete).resolve()
-            self.logger.info("Firing on-complete hook: %s", resolved)
-            subprocess.run([str(resolved)], check=False)  # nosec B603
-        elif on_complete:
-            self.logger.warning(
-                f"--on-complete script not found, skipping: {on_complete}"
-            )
+            if resolved.is_file():
+                self.logger.info("Firing on-complete hook: %s", resolved)
+                subprocess.run([str(resolved)], check=False, env=env)  # nosec B603
+            else:
+                self.logger.warning(
+                    "--on-complete script not found, skipping: %s", resolved
+                )
 
         return exit_code
 
