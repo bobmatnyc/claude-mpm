@@ -130,7 +130,7 @@ class ServiceFactory:
 ### Strategy Pattern
 Used for pluggable behaviors:
 ```python
-# services/unified/strategies.py
+# services/project/detection_strategies.py
 # Detection strategies for project analysis
 ```
 
