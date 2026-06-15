@@ -106,6 +106,8 @@ def filter_claude_mpm_args(claude_args):
         "-d",  # --debug (MPM-specific, not Claude CLI)
         # SDK oneshot flag (MPM-specific)
         "--prompt",
+        # Instructions override (MPM-specific, consumed before ClaudeRunner)
+        "--instructions-override",
     }
 
     filtered_args = []
@@ -133,6 +135,7 @@ def filter_claude_mpm_args(claude_args):
                 "-i",
                 "--input",
                 "--prompt",
+                "--instructions-override",
             }
             optional_value_flags = {
                 "--mpm-resume"
@@ -563,6 +566,15 @@ class RunCommand(BaseCommand):
         # Add --no-chrome if flag is set
         if getattr(args, "no_chrome", False) and "--no-chrome" not in claude_args:
             claude_args.insert(0, "--no-chrome")
+
+        # Propagate --instructions-override to FrameworkLoader via env var.
+        # The flag value takes precedence over any pre-existing env var so that
+        # a per-invocation override is always honoured.
+        instructions_override = getattr(args, "instructions_override", None)
+        if instructions_override is None:
+            instructions_override = os.environ.get("CLAUDE_MPM_INSTRUCTIONS_OVERRIDE")
+        if instructions_override:
+            os.environ["CLAUDE_MPM_INSTRUCTIONS_OVERRIDE"] = instructions_override
 
         # Create runner
         runner = ClaudeRunner(
