@@ -44,47 +44,6 @@ class NetworkConfig:
     This class maintains backward compatibility but delegates to NetworkPorts.
     """
 
-    # Import from network_config for single source of truth
-    # Lazy import to avoid circular dependencies
-    @property
-    def SOCKETIO_PORT_RANGE(self) -> tuple[int, int]:
-        """Return the (start, end) port range for Socket.IO servers.
-
-        WHY: Delegates to NetworkPorts in network_config.py so there is a single source
-        of truth for port ranges; this property keeps backward-compatible attribute access.
-        WHAT: Imports NetworkPorts lazily and returns the PORT_RANGE_START/END tuple.
-        TEST: Instantiate NetworkConfig(); assert isinstance(result, tuple) and len==2.
-        """
-        from .network_config import NetworkPorts
-
-        return (NetworkPorts.PORT_RANGE_START, NetworkPorts.PORT_RANGE_END)
-
-    @property
-    def DEFAULT_SOCKETIO_PORT(self) -> int:
-        """Return the default Socket.IO server port.
-
-        WHY: Delegates to NetworkPorts so the default is never defined in two places;
-        callers using the old NetworkConfig attribute path continue to work.
-        WHAT: Imports NetworkPorts lazily and returns SOCKETIO_DEFAULT.
-        TEST: Instantiate NetworkConfig(); assert result == NetworkPorts.SOCKETIO_DEFAULT.
-        """
-        from .network_config import NetworkPorts
-
-        return NetworkPorts.SOCKETIO_DEFAULT
-
-    @property
-    def DEFAULT_DASHBOARD_PORT(self) -> int:
-        """Return the default Dashboard server port.
-
-        WHY: Delegates to NetworkPorts so the default is never defined in two places;
-        callers using the old NetworkConfig attribute path continue to work.
-        WHAT: Imports NetworkPorts lazily and returns DASHBOARD_DEFAULT.
-        TEST: Instantiate NetworkConfig(); assert result == NetworkPorts.DASHBOARD_DEFAULT.
-        """
-        from .network_config import NetworkPorts
-
-        return NetworkPorts.DASHBOARD_DEFAULT
-
     # Port ranges (module-level for backward compatibility)
     SOCKETIO_PORT_RANGE: tuple[int, int] = (8765, 8785)  # Will be updated at runtime
     DEFAULT_SOCKETIO_PORT = 8768  # Updated to match new default
@@ -368,29 +327,6 @@ class NetworkPorts:
         from .network_config import NetworkPorts as NewNetworkPorts
 
         return NewNetworkPorts
-
-    # Delegate to new NetworkPorts
-    @property
-    def DEFAULT_SOCKETIO(self) -> int:
-        """Return the default Socket.IO port by delegating to the canonical NetworkPorts.
-
-        WHY: Maintains backward-compatible instance attribute access while the single
-        source of truth lives in network_config.py.
-        WHAT: Calls _get_config() and returns SOCKETIO_DEFAULT from the result.
-        TEST: Instantiate NetworkPorts(); assert result equals the value in network_config.
-        """
-        return self._get_config().SOCKETIO_DEFAULT
-
-    @property
-    def DEFAULT_DASHBOARD(self) -> int:
-        """Return the default Dashboard port by delegating to the canonical NetworkPorts.
-
-        WHY: Maintains backward-compatible instance attribute access while the single
-        source of truth lives in network_config.py.
-        WHAT: Calls _get_config() and returns DASHBOARD_DEFAULT from the result.
-        TEST: Instantiate NetworkPorts(); assert result equals the value in network_config.
-        """
-        return self._get_config().DASHBOARD_DEFAULT
 
     # Keep class-level attributes for compatibility
     DEFAULT_SOCKETIO = 8768  # Updated to match network_config
