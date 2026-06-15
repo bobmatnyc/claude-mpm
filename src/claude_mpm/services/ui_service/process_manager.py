@@ -56,7 +56,7 @@ class ManagedSession:
         permission_mode: Active permission mode string.
         message_history: Ordered list of user/assistant message dicts.
         output_queue: Parsed stream-json events for current turn.
-        state_tracker: Per-session activity and state tracker (always present).
+        state_tracker: Per-session activity and state tracker (None for persisted/stub sessions).
         _stdin_lock: Serialises writes to process stdin.
     """
 
@@ -74,7 +74,7 @@ class ManagedSession:
     project_root: str | None = None
     message_history: list[dict] = field(default_factory=list)
     output_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
-    state_tracker: SessionStateTracker = field(default_factory=SessionStateTracker)
+    state_tracker: SessionStateTracker | None = field(default=None)
     _stdin_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def to_state(self) -> ManagedSessionState:
@@ -264,7 +264,8 @@ class ProcessManager:
             return
 
         session.status = SessionStatus.terminated
-        session.state_tracker.record_stopped()
+        if session.state_tracker is not None:
+            session.state_tracker.record_stopped()
 
         if session.process and session.process.returncode is None:
             try:
@@ -388,7 +389,8 @@ class ProcessManager:
 
         # Record in history and tracker
         session.message_history.append({"role": "user", "content": content})
-        session.state_tracker.record_user_input(content)
+        if session.state_tracker is not None:
+            session.state_tracker.record_user_input(content)
 
         if not session.process or session.process.returncode is not None:
             # Stub mode: yield a synthetic response
@@ -407,7 +409,8 @@ class ProcessManager:
             except (BrokenPipeError, ConnectionResetError) as exc:
                 logger.error("Stdin write failed for session %s: %s", session_id, exc)
                 session.status = SessionStatus.terminated
-                session.state_tracker.set_state(SessionState.STOPPED)
+                if session.state_tracker is not None:
+                    session.state_tracker.set_state(SessionState.STOPPED)
                 yield StreamEvent(type="error", data={"message": str(exc)})
                 return
 
@@ -419,7 +422,8 @@ class ProcessManager:
                 )
             except TimeoutError:
                 session.status = SessionStatus.idle
-                session.state_tracker.set_state(SessionState.IDLE)
+                if session.state_tracker is not None:
+                    session.state_tracker.set_state(SessionState.IDLE)
                 yield StreamEvent(
                     type="timeout", data={"message": "Response timed out"}
                 )
@@ -461,7 +465,8 @@ class ProcessManager:
             try:
                 session.process.send_signal(signal.SIGINT)
                 session.status = SessionStatus.idle
-                session.state_tracker.set_state(SessionState.IDLE)
+                if session.state_tracker is not None:
+                    session.state_tracker.set_state(SessionState.IDLE)
             except ProcessLookupError:
                 pass
 
@@ -500,7 +505,8 @@ class ProcessManager:
             logger.error("stdout reader error for session %s: %s", session.id, exc)
         finally:
             session.status = SessionStatus.terminated
-            session.state_tracker.record_stopped()
+            if session.state_tracker is not None:
+                session.state_tracker.record_stopped()
 
     def _parse_stream_event(self, session: ManagedSession, data: dict) -> StreamEvent:
         """Parse a raw stream-json dict into a StreamEvent, updating session state.
@@ -519,7 +525,8 @@ class ProcessManager:
             session_id_val = data.get("session_id") or data.get("sessionId")
             if session_id_val and not session.claude_session_id:
                 session.claude_session_id = session_id_val
-                session.state_tracker.set_session_id(session_id_val)
+                if session.state_tracker is not None:
+                    session.state_tracker.set_session_id(session_id_val)
                 logger.debug(
                     "Captured claude_session_id=%s for session %s",
                     session_id_val,
@@ -541,7 +548,8 @@ class ProcessManager:
                 if total:
                     session.context_tokens_used = total
 
-        # Capture assistant content
+        # Capture assistant content (streaming chunks — do NOT record activity here;
+        # wait for the terminal "result" event to avoid duplicate entries).
         content = None
         if event_type == "assistant":
             msg = data.get("message", {})
@@ -556,13 +564,9 @@ class ProcessManager:
                     content = "".join(texts) or None
                 elif isinstance(content_list, str):
                     content = content_list
-            if content:
-                usage_dict = (
-                    data.get("usage") if isinstance(data.get("usage"), dict) else None
-                )
-                session.state_tracker.record_assistant_message(content, usage_dict)
 
-        # When result arrives, record assistant turn and update tracker
+        # When result arrives, record the completed assistant turn and update tracker.
+        # Recording here (not per streaming chunk) prevents duplicate activity entries.
         if event_type == "result":
             result_text = data.get("result", "")
             if result_text:
@@ -573,12 +577,15 @@ class ProcessManager:
             usage_dict = (
                 data.get("usage") if isinstance(data.get("usage"), dict) else None
             )
-            session.state_tracker.record_result(
-                session_id=data.get("session_id") or data.get("sessionId"),
-                cost=data.get("cost_usd"),
-                num_turns=data.get("num_turns"),
-                usage=usage_dict,
-            )
+            if result_text and session.state_tracker is not None:
+                session.state_tracker.record_assistant_message(result_text, usage_dict)
+            if session.state_tracker is not None:
+                session.state_tracker.record_result(
+                    session_id=data.get("session_id") or data.get("sessionId"),
+                    cost=data.get("cost_usd"),
+                    num_turns=data.get("num_turns"),
+                    usage=usage_dict,
+                )
 
         return StreamEvent(
             type=event_type,
@@ -605,7 +612,8 @@ class ProcessManager:
             f"[UI Service stub mode — claude CLI not available. Echo: {content[:80]}]"
         )
         session.message_history.append({"role": "assistant", "content": stub_text})
-        session.state_tracker.record_assistant_message(stub_text)
+        if session.state_tracker is not None:
+            session.state_tracker.record_assistant_message(stub_text)
 
         yield StreamEvent(
             type="assistant",
@@ -618,9 +626,10 @@ class ProcessManager:
         )
         session.status = SessionStatus.idle
         session.last_activity = datetime.now(tz=UTC)
-        session.state_tracker.record_result(
-            session_id=None, cost=None, num_turns=None, usage=None
-        )
+        if session.state_tracker is not None:
+            session.state_tracker.record_result(
+                session_id=None, cost=None, num_turns=None, usage=None
+            )
 
     async def _cleanup_loop(self) -> None:
         """Periodically remove sessions that have exceeded the timeout."""
