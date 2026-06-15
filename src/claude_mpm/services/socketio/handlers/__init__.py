@@ -8,8 +8,7 @@ and maintainability.
 
 from .base import BaseEventHandler
 
-# DISABLED: File Tree interface removed from dashboard
-# from .code_analysis import CodeAnalysisEventHandler
+# NOTE: CodeAnalysisEventHandler (File Tree interface) was removed from the dashboard.
 from .connection import ConnectionEventHandler
 from .file import FileEventHandler
 from .git import GitEventHandler

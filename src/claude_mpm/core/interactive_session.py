@@ -545,9 +545,6 @@ class InteractiveSession:
                 self.logger.warning(f"Failed to cache instructions, using inline: {e}")
                 cmd.extend(["--append-system-prompt", system_prompt])
 
-        # Final command verification
-        # self.logger.info(f"Final Claude command built: {' '.join(cmd)}")
-
         # Explicit --resume flag verification
         if "--resume" in cmd:
             self.logger.info("✅ VERIFIED: --resume flag IS included in final command")

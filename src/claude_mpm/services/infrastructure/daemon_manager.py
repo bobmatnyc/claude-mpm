@@ -35,7 +35,6 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "psutil"])
     import psutil
 
-# from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.socketio.server.main import SocketIOServer
 
@@ -61,7 +60,6 @@ class SocketIODaemonManager:
             host: Host to bind the server to
             port: Port to bind the server to
         """
-        # super().__init__()
         self.host = host
         self.port = port
 

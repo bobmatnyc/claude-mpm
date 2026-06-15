@@ -269,11 +269,6 @@ class SocketIOServer(SocketIOServiceInterface):
         if self.event_registry:
             from ..handlers import ConnectionEventHandler
 
-            # DISABLED: File Tree interface removed from dashboard
-            # Stop analysis runner (code analysis handler is disabled)
-            # analysis_handler = self.event_registry.get_handler(CodeAnalysisEventHandler)
-            # if analysis_handler and hasattr(analysis_handler, "cleanup"):
-            #     analysis_handler.cleanup()
             # Stop health monitoring in connection handler
             conn_handler = self.event_registry.get_handler(ConnectionEventHandler)
             if conn_handler and hasattr(conn_handler, "stop_health_monitoring"):

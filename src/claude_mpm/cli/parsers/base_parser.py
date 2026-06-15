@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
-from ...constants import CLICommands, CLIPrefix, LogLevel
+from ...constants import CLIPrefix, LogLevel
 
 
 class SuggestingArgumentParser(argparse.ArgumentParser):
@@ -804,10 +804,9 @@ def create_parser(
         add_cleanup_parser(subparsers)
 
         # MCP pipx configuration command
-        if hasattr(CLICommands, "MCP_PIPX_CONFIG") or True:  # Always add for now
-            from ..commands.mcp_pipx_config import add_parser as add_mcp_pipx_parser
+        from ..commands.mcp_pipx_config import add_parser as add_mcp_pipx_parser
 
-            add_mcp_pipx_parser(subparsers)
+        add_mcp_pipx_parser(subparsers)
 
         from ..commands.doctor import add_doctor_parser
 
