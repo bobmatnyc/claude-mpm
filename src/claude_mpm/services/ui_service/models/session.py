@@ -1,4 +1,14 @@
-"""Pydantic models for session management."""
+"""Pydantic models for session management.
+
+WHAT: Pydantic data-contract models for the UI-service session REST API.
+WHY: A single, versioned schema layer isolates REST consumers from internal
+     ManagedSession implementation changes and enables stable contract
+     evolution via schema_version.
+
+References
+----------
+SPEC-SESSIONS-09~1 : docs/specs/sessions.md#SPEC-SESSIONS-09~1
+"""
 
 from datetime import datetime
 from enum import Enum
@@ -71,6 +81,7 @@ class ManagedSessionState(BaseModel):
         context_tokens_total: Total context window capacity.
         context_percent_used: Percentage of context window used.
         permission_mode: Active permission mode.
+        schema_version: API schema version for forward-compatibility detection.
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -87,3 +98,31 @@ class ManagedSessionState(BaseModel):
     context_tokens_total: int = 200000
     context_percent_used: float = 0.0
     permission_mode: str = "default"
+    schema_version: str = "1"
+
+
+class SessionStatusResponse(BaseModel):
+    """Minimal stable status contract for programmatic polling.
+
+    This is a narrower, forward-compatible alternative to ManagedSessionState.
+    Only the fields most likely to be polled by external tooling are included.
+    schema_version lets consumers detect breaking changes without coupling to
+    the full session model.
+
+    Attributes:
+        session_id: UI service session UUID.
+        status: Current lifecycle status string.
+        context_percent_used: Percentage of context window consumed, or None
+            when token data is not yet available.
+        last_activity: ISO-8601 timestamp of the most recent input/output, or
+            None when not yet recorded.
+        schema_version: API schema version; currently "1".
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    session_id: str
+    status: str
+    context_percent_used: float | None = None
+    last_activity: str | None = None
+    schema_version: str = "1"
