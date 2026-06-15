@@ -274,12 +274,12 @@ class OneshotSession:
         # still observe the session artefacts (e.g. response files, temp prompts).
         if self.on_complete:
             resolved = Path(self.on_complete).resolve()
-            if resolved.is_file():
+            if resolved.is_file() and os.access(resolved, os.X_OK):
                 self.logger.info("Firing on-complete hook: %s", resolved)
                 subprocess.run([str(resolved)], check=False)  # nosec B603
             else:
                 self.logger.warning(
-                    "--on-complete script not found, skipping: %s", resolved
+                    "--on-complete script not found or not executable: %s", resolved
                 )
 
         # Clean up temp system prompt file
