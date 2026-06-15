@@ -14,14 +14,23 @@ from .workflow_constants import MEMORY_SYSTEM_REFERENCE, WORKFLOW_SYSTEM_REFEREN
 class InstructionLoader:
     """Handles loading of INSTRUCTIONS, WORKFLOW, and MEMORY files."""
 
-    def __init__(self, framework_path: Path | None = None):
+    def __init__(
+        self,
+        framework_path: Path | None = None,
+        instructions_override_path: Path | None = None,
+    ):
         """Initialize the instruction loader.
 
         Args:
             framework_path: Path to framework installation
+            instructions_override_path: Optional path to a file whose contents
+                replace INSTRUCTIONS.md for this session.  When set and the file
+                exists, load_custom_instructions() uses it instead of the normal
+                .claude-mpm/INSTRUCTIONS.md resolution.
         """
         self.logger = get_logger("instruction_loader")
         self.framework_path = framework_path
+        self.instructions_override_path = instructions_override_path
         self.file_loader = FileLoader()
         self.packaged_loader = PackagedLoader()
         self.current_dir = Path.cwd()
@@ -66,9 +75,33 @@ class InstructionLoader:
     def load_custom_instructions(self, content: dict[str, Any]) -> None:
         """Load custom INSTRUCTIONS.md from .claude-mpm directories.
 
+        When ``instructions_override_path`` is set on this loader (populated from
+        the ``--instructions-override`` CLI flag or ``CLAUDE_MPM_INSTRUCTIONS_OVERRIDE``
+        env var), the file at that path is used in place of the normal
+        .claude-mpm/INSTRUCTIONS.md tier resolution.  The override is labelled
+        level="override" so callers can distinguish it from project/user sources.
+        If the override path does not exist or cannot be read, a warning is logged
+        and the normal resolution proceeds as a fallback.
+
         Args:
             content: Dictionary to update with loaded instructions
         """
+        if self.instructions_override_path is not None:
+            override_path = self.instructions_override_path
+            loaded = self.file_loader.try_load_file(
+                override_path, "instructions override"
+            )
+            if loaded:
+                self.logger.info(f"Using --instructions-override file: {override_path}")
+                content["custom_instructions"] = loaded
+                content["custom_instructions_level"] = "override"
+                return
+            # Override file absent or unreadable — fall through to normal resolution.
+            self.logger.warning(
+                f"--instructions-override path not found or unreadable: {override_path}; "
+                "falling back to normal INSTRUCTIONS.md resolution"
+            )
+
         instructions, level = self.file_loader.load_instructions_file(self.current_dir)
         if instructions:
             content["custom_instructions"] = instructions
