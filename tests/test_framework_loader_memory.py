@@ -22,7 +22,7 @@ from claude_mpm.core.framework_loader import FrameworkLoader
     "PM_memories.md, causing 'Test PM memory' assertion to fail. Needs singleton isolation "
     "or FrameworkLoader cache reset between tests."
 )
-def test_memory_loading():
+def test_memory_loading(monkeypatch):
     """Test that memory loading works correctly with the new glob pattern."""
 
     print("=" * 60)
@@ -59,70 +59,63 @@ def test_memory_loading():
         (agents_dir / "QA.md").write_text("# QA Agent")
 
         # Create a FrameworkLoader with the temp directory as cwd
-        import os
+        monkeypatch.chdir(tmpdir)
+        loader = FrameworkLoader()
 
-        old_cwd = os.getcwd()
-        os.chdir(tmpdir)
+        print(f"\nTest directory: {memories_dir}")
+        print("Deployed agents: Engineer, QA")
+        print()
 
-        try:
-            loader = FrameworkLoader()
+        # Load framework content which will trigger memory loading
+        content = loader._load_framework_content()
+        loader._load_actual_memories(content)
 
-            print(f"\nTest directory: {memories_dir}")
-            print("Deployed agents: Engineer, QA")
-            print()
+        # Get the loaded memories
+        has_pm = bool(content.get("actual_memories"))
+        agent_memories = content.get("agent_memories", {})
 
-            # Load framework content which will trigger memory loading
-            content = loader._load_framework_content()
-            loader._load_actual_memories(content)
+        print(f"PM memory loaded: {has_pm}")
+        print(f"Agent memories in framework content: {list(agent_memories.keys())}")
 
-            # Get the loaded memories
-            has_pm = bool(content.get("actual_memories"))
-            agent_memories = content.get("agent_memories", {})
+        # Verify results
+        print("\n" + "=" * 60)
+        print("Verification:")
+        print("=" * 60)
 
-            print(f"PM memory loaded: {has_pm}")
-            print(f"Agent memories in framework content: {list(agent_memories.keys())}")
+        # Check that PM memory was loaded
+        print(f"✓ PM_memories.md loaded: {has_pm}")
+        assert has_pm, "PM_memories.md should always be loaded"
+        assert "Test PM memory" in content["actual_memories"], (
+            "PM memory content not found"
+        )
 
-            # Verify results
-            print("\n" + "=" * 60)
-            print("Verification:")
-            print("=" * 60)
+        # NEW ARCHITECTURE: Agent memories are NOT loaded at framework time
+        # They are loaded at agent deployment time and appended to each agent file
+        print("\n✓ Agent memories NOT in framework content (expected behavior)")
+        print("  Agent memories are now loaded at deployment time")
+        assert len(agent_memories) == 0, (
+            "Agent memories should NOT be loaded at framework time anymore. "
+            "They are now appended to agent files at deployment time."
+        )
 
-            # Check that PM memory was loaded
-            print(f"✓ PM_memories.md loaded: {has_pm}")
-            assert has_pm, "PM_memories.md should always be loaded"
-            assert "Test PM memory" in content["actual_memories"], (
-                "PM memory content not found"
-            )
+        # Check that README and NOTES were not loaded as memories
+        all_memory_content = content.get("actual_memories", "")
+        assert "README" not in all_memory_content, "README.md should NOT be loaded"
+        assert "Notes" not in all_memory_content, "NOTES.md should NOT be loaded"
+        print("✓ README.md and NOTES.md NOT loaded")
 
-            # NEW ARCHITECTURE: Agent memories are NOT loaded at framework time
-            # They are loaded at agent deployment time and appended to each agent file
-            print("\n✓ Agent memories NOT in framework content (expected behavior)")
-            print("  Agent memories are now loaded at deployment time")
-            assert len(agent_memories) == 0, (
-                "Agent memories should NOT be loaded at framework time anymore. "
-                "They are now appended to agent files at deployment time."
-            )
+        # Verify count (PM only)
+        total_loaded = 1 if has_pm else 0
+        expected_count = 1
+        print(
+            f"\n✓ Expected {expected_count} memory source (PM only), loaded {total_loaded}"
+        )
+        assert total_loaded == expected_count, (
+            f"Expected {expected_count} memory sources (PM only), got {total_loaded}"
+        )
 
-            # Check that README and NOTES were not loaded as memories
-            all_memory_content = content.get("actual_memories", "")
-            assert "README" not in all_memory_content, "README.md should NOT be loaded"
-            assert "Notes" not in all_memory_content, "NOTES.md should NOT be loaded"
-            print("✓ README.md and NOTES.md NOT loaded")
-
-            # Verify count (PM only)
-            total_loaded = 1 if has_pm else 0
-            expected_count = 1
-            print(
-                f"\n✓ Expected {expected_count} memory source (PM only), loaded {total_loaded}"
-            )
-            assert total_loaded == expected_count, (
-                f"Expected {expected_count} memory sources (PM only), got {total_loaded}"
-            )
-
-            print("\n✅ All tests passed! Memory filtering is working correctly.")
-            print("=" * 60)
-        finally:
-            os.chdir(old_cwd)
+        print("\n✅ All tests passed! Memory filtering is working correctly.")
+        print("=" * 60)
 
 
 if __name__ == "__main__":
