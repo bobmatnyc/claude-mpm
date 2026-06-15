@@ -180,7 +180,23 @@ class UnifiedAgentRegistry:
         )
 
     def _setup_discovery_paths(self) -> None:
-        """Setup standard discovery paths for agent files."""
+        """Setup standard discovery paths for agent files.
+
+        WHAT: Builds the ordered ``discovery_paths`` list across agent tiers by
+              querying the path manager for the project, user, and system agents
+              directories (appending each that exists), then prepending the
+              deployed ``.claude/agents`` directory (resolved from
+              ``path_manager.project_root``, with a defensive ``Path.cwd()``
+              fallback when the path manager is unavailable) as the highest
+              priority, and finally appending the remote ``~/.claude-mpm/cache/
+              agents`` directory.
+        WHY: Centralizes tier ordering so PROJECT/deployed agents take precedence
+             over USER and SYSTEM ones; resolving the deployed path via
+             project_root keeps discovery CWD-independent (subprocesses and tests
+             under a temp CWD still find the real project's agents), while the
+             cwd fallback preserves the original behavior during early bootstrap
+             when no path manager is set.
+        """
         # Project-level agents (highest priority)
         project_path = self.path_manager.get_project_agents_dir()
         if project_path.exists():
