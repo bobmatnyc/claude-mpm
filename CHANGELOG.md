@@ -19,6 +19,24 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.44 (2026-06-15)
+
+### Feat
+
+- **agents,skills**: session-manager driver agent + skill (#842) (#844)
+- add --max-turns, --exit-condition, and --on-complete for non-interactive sessions (#839)
+
+### Fix
+
+- route init directory diagnostics to stderr to keep non-interactive stdout clean
+- add WWL annotation to _setup_discovery_paths
+- fall back to cwd when path manager unavailable in unified_agent_registry.py
+- fall back to cwd when path manager unavailable in agent_loader.py
+- resolve project agents dir via path manager instead of bare cwd
+- resolve project agents dir via path manager instead of bare cwd
+- apply native-field and color migrations to deployed code-critic agent
+- add WWL annotation to handle_session_create
+
 ## v6.5.43 (2026-06-14)
 
 ### Feat
