@@ -15,7 +15,10 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class SessionState(str, Enum):
@@ -182,11 +185,35 @@ class SessionStateTracker:
                     "output_tokens", 0
                 )
 
+    def register_stop_callback(self, fn: Callable[[], None]) -> None:
+        """Register a zero-argument callable to be called when the session stops.
+
+        Callbacks are invoked outside the internal lock in registration order.
+        Exceptions raised by callbacks are silently swallowed so that a bad
+        callback cannot prevent the session-stopped state from being set.
+
+        Args:
+            fn: Zero-argument callable to invoke on session stop.
+        """
+        if not hasattr(self, "_stop_callbacks"):
+            self._stop_callbacks: list[Callable[[], None]] = []
+        self._stop_callbacks.append(fn)
+
     def record_stopped(self) -> None:
         """Record that the session has ended."""
         with self._lock:
             self._state = SessionState.STOPPED
             self._last_activity = time.time()
+
+        # Fire stop callbacks outside the lock to avoid deadlocks.
+        # Callbacks that try to read session state (e.g. get_session_state)
+        # must not hold the lock themselves — calling them under the lock
+        # would cause a deadlock.
+        for cb in getattr(self, "_stop_callbacks", []):
+            try:
+                cb()
+            except Exception:
+                pass  # Swallow errors; a bad callback must not disrupt teardown
 
     # -- Read methods (called from HTTP thread) --
 
