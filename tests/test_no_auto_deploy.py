@@ -104,7 +104,7 @@ def test_no_automatic_deployment():
         return True
 
 
-def test_framework_loader_paths():
+def test_framework_loader_paths(monkeypatch):
     """Test that framework loader looks in correct directories."""
 
     logger.info("\nTesting framework loader search paths...")
@@ -126,36 +126,25 @@ def test_framework_loader_paths():
             "# Wrong Instructions\nShould not be loaded."
         )
 
-        # Change to temp directory for testing
-        original_cwd = Path.cwd()
-        try:
-            os.chdir(tmpdir_path)
+        # Change to temp directory (monkeypatch restores CWD after the test)
+        monkeypatch.chdir(tmpdir_path)
 
-            # Create framework loader
-            loader = FrameworkLoader()
+        # Create framework loader
+        loader = FrameworkLoader()
 
-            # Check if it loaded from .claude-mpm (correct) and not .claude (wrong)
-            custom_instructions = loader.framework_content.get(
-                "custom_instructions", ""
-            )
+        # Check if it loaded from .claude-mpm (correct) and not .claude (wrong)
+        custom_instructions = loader.framework_content.get("custom_instructions", "")
 
-            if "Test Instructions" in custom_instructions:
-                logger.info(
-                    "✅ PASS: Framework loader correctly reads from .claude-mpm/"
+        if "Test Instructions" in custom_instructions:
+            logger.info("✅ PASS: Framework loader correctly reads from .claude-mpm/")
+            if "Wrong Instructions" in custom_instructions:
+                logger.error(
+                    "❌ FAILED: Framework loader also read from .claude/ (should NOT)"
                 )
-                if "Wrong Instructions" in custom_instructions:
-                    logger.error(
-                        "❌ FAILED: Framework loader also read from .claude/ (should NOT)"
-                    )
-                    return False
-                return True
-            logger.warning(
-                "⚠️  Framework loader didn't find instructions in .claude-mpm/"
-            )
-            return False
-
-        finally:
-            os.chdir(original_cwd)
+                return False
+            return True
+        logger.warning("⚠️  Framework loader didn't find instructions in .claude-mpm/")
+        return False
 
 
 def main():
@@ -172,8 +161,18 @@ def main():
         all_passed = False
 
     # Test 2: Framework loader paths
-    if not test_framework_loader_paths():
-        all_passed = False
+    # test_framework_loader_paths() now takes a pytest monkeypatch fixture;
+    # provide a minimal shim so the standalone main() entry point still works.
+    class _FakeMonkeypatch:
+        def chdir(self, path):
+            os.chdir(path)
+
+    original_cwd = Path.cwd()
+    try:
+        if not test_framework_loader_paths(_FakeMonkeypatch()):
+            all_passed = False
+    finally:
+        os.chdir(original_cwd)
 
     logger.info("\n" + "=" * 60)
     if all_passed:
