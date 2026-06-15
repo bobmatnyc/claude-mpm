@@ -244,6 +244,17 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         "Overrides CLAUDE_MPM_PM_MODEL env var. Example: --model opus",
     )
 
+    # Instructions override option
+    instructions_group = parser.add_argument_group("instructions options")
+    instructions_group.add_argument(
+        "--instructions-override",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Path to a file whose contents replace INSTRUCTIONS.md for this session "
+        "(env: CLAUDE_MPM_INSTRUCTIONS_OVERRIDE)",
+    )
+
     # Claude CLI arguments
     parser.add_argument(
         "claude_args",
