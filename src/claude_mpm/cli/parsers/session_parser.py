@@ -2,13 +2,12 @@
 Session parser module for claude-mpm CLI.
 
 WHAT: Provides the ``add_session_subparser`` factory that registers the top-level
-``session`` command group with ``pause`` and ``resume`` subcommands.
+``session`` command group with ``pause``, ``resume``, and ``create`` subcommands.
 
-WHY: Exposes ``claude-mpm session pause|resume`` as first-class CLI commands so
-that skill implementations can shell out to a stable console-script entry point
-instead of resolving Python interpreters or inlining Python code. Mirrors the
-existing ``mpm-init pause``/``mpm-init context`` argument sets exactly so both
-routes dispatch to the same shared service logic.
+WHY: Exposes ``claude-mpm session pause|resume|create`` as first-class CLI
+commands so that skill implementations and shell scripts can use a stable
+console-script entry point.  The ``create`` subcommand was added for issue #771
+to enable programmatic session creation via the REST/socket daemon API.
 
 References
 ----------
@@ -37,10 +36,11 @@ def add_session_subparser(subparsers: Any) -> None:
     """
     session_parser = subparsers.add_parser(
         "session",
-        help="Manage session state (pause / resume)",
+        help="Manage session state (pause / resume / create)",
         description=(
             "Manage Claude MPM session state. Use 'pause' to save current work "
-            "context and 'resume' to load a previously saved session."
+            "context, 'resume' to load a previously saved session, or 'create' to "
+            "programmatically create a new session via the REST daemon API."
         ),
         epilog=(
             "Examples:\n"
@@ -50,6 +50,9 @@ def add_session_subparser(subparsers: Any) -> None:
             "  claude-mpm session resume --select 2           # Resume 2nd most recent\n"
             "  claude-mpm session resume --select 20240101    # Resume by partial ID\n"
             "  claude-mpm session resume <session-id>         # Resume by exact ID\n"
+            "  claude-mpm session create                      # Create session via daemon\n"
+            "  claude-mpm session create --model opus         # Create with specific model\n"
+            "  SESSION_ID=$(claude-mpm session create)        # Capture session id\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -155,4 +158,76 @@ def add_session_subparser(subparsers: Any) -> None:
         default=".",
         dest="project_path",
         help="Path to project directory (default: current directory)",
+    )
+
+    # -------------------------------------------------------------------------
+    # create subcommand (issue #771 — programmatic session creation)
+    # -------------------------------------------------------------------------
+    create_parser = session_subparsers.add_parser(
+        "create",
+        help="Create a new session via the serve daemon REST API",
+        description=(
+            "Create a new Claude session via the running serve daemon and print "
+            "the session_id to stdout.  The daemon must be started first with "
+            "'claude-mpm serve start'.\n\n"
+            "Ideal for shell scripting:\n"
+            "  SESSION_ID=$(claude-mpm session create --model opus)\n"
+            "  claude-mpm session create --cwd /path/to/project"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  claude-mpm session create                         # Default model\n"
+            "  claude-mpm session create --model claude-opus-4-5 # Specific model\n"
+            "  claude-mpm session create --cwd /my/project       # Set working dir\n"
+            "  claude-mpm session create --url http://localhost:7777  # Explicit URL\n"
+            "  SESSION=$(claude-mpm session create) && echo $SESSION\n"
+        ),
+    )
+    create_parser.add_argument(
+        "--prompt",
+        type=str,
+        default=None,
+        metavar="TEXT",
+        help="Initial prompt to send to the new session (optional).",
+    )
+    create_parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        metavar="MODEL",
+        help="Claude model identifier (e.g. claude-opus-4-5, sonnet). "
+        "Defaults to daemon's configured default.",
+    )
+    create_parser.add_argument(
+        "--cwd",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Working directory for the new Claude subprocess (default: daemon default)",
+    )
+    create_parser.add_argument(
+        "--permission-mode",
+        dest="permission_mode",
+        type=str,
+        default="default",
+        metavar="MODE",
+        help="Permission mode for the session (default: 'default')",
+    )
+    create_parser.add_argument(
+        "--url",
+        type=str,
+        default=None,
+        metavar="URL",
+        help="Daemon HTTP URL (e.g. http://127.0.0.1:7777). "
+        "Overrides auto-detection from socket file.",
+    )
+    create_parser.add_argument(
+        "--socket",
+        dest="socket_path",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Unix socket path of the daemon "
+        "(default: ~/.claude-mpm/daemon.sock if it exists).",
     )

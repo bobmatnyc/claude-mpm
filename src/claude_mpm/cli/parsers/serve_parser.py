@@ -84,6 +84,18 @@ def add_serve_subparser(subparsers) -> argparse.ArgumentParser:
         default=None,
         help="Default project root directory for new sessions",
     )
+    start_parser.add_argument(
+        "--socket",
+        dest="socket_path",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Unix domain socket path for the daemon "
+            "(default: ~/.claude-mpm/daemon.sock when --daemon flag is used). "
+            "When set, overrides --host/--port for local IPC."
+        ),
+    )
 
     # ------------------------------------------------------------------
     # stop

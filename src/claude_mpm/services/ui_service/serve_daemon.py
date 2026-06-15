@@ -17,6 +17,9 @@ DESIGN DECISIONS:
   loop via asyncio.gather(uvicorn_serve, channel_hub.start()).
 - The /health endpoint (already in app.py) is augmented here to return the
   expected service identifier so DaemonManager.is_our_service() works.
+- When socket_path is supplied, uvicorn binds to that Unix domain socket
+  instead of a TCP host:port.  get_base_url() returns the correct URL for
+  programmatic callers (http+unix://... for socket, http://... for TCP).
 
 References
 ----------
@@ -48,6 +51,23 @@ def _global_pid_file(port: int) -> Path:
     return base / f"serve-{port}.pid"
 
 
+def _global_pid_file_for_socket(sock_hash: str) -> Path:
+    """Return a global (home-dir) PID file path keyed on a socket path hash.
+
+    Used when ``socket_path`` is set so that a Unix-socket daemon and a TCP
+    daemon sharing the same default port do not collide on the same PID file.
+
+    Args:
+        sock_hash: Short hex digest derived from the socket path (8 chars).
+
+    Returns:
+        Path to the PID file, e.g. ``~/.claude-mpm/serve-sock-a1b2c3d4.pid``.
+    """
+    base = Path.home() / ".claude-mpm"
+    base.mkdir(parents=True, exist_ok=True)
+    return base / f"serve-sock-{sock_hash}.pid"
+
+
 def _global_log_file(port: int) -> Path:
     """Return a global (home-dir) log file path for the serve daemon."""
     log_dir = Path.home() / ".claude-mpm" / "logs"
@@ -65,12 +85,19 @@ class ServeDaemon:
         daemon.stop()    # sends SIGTERM
         daemon.status()  # returns a dict describing current state
 
+        # Unix socket variant (for --daemon shorthand):
+        daemon = ServeDaemon(socket_path="~/.claude-mpm/daemon.sock")
+        daemon.start()
+        url = daemon.get_base_url()  # "http+unix://%2F...%2Fdaemon.sock"
+
     Attributes:
-        host: Host address to bind to.
-        port: Port to listen on.
+        host: Host address to bind to (TCP mode).
+        port: Port to listen on (TCP mode).
         daemon_mode: True → launch as detached background process.
         channels: Optional list of channel adapter names to enable.
         project_root: Default working directory for new sessions.
+        socket_path: Optional Unix domain socket path; when set, uvicorn
+            binds to this socket instead of host:port.
 
     :spec: SPEC-INTEGRATIONS-11~1
     """
@@ -82,15 +109,27 @@ class ServeDaemon:
         daemon_mode: bool = True,
         channels: list[str] | None = None,
         project_root: str | None = None,
+        socket_path: str | None = None,
     ) -> None:
         self.host = host
         self.port = port
         self.daemon_mode = daemon_mode
         self.channels = channels or []
         self.project_root = project_root
+        self.socket_path = socket_path
 
         # Build explicit global paths so DaemonManager never falls back to CWD.
-        pid_path = _global_pid_file(port)
+        # When socket_path is set, key the PID file on the socket path hash so
+        # a Unix-socket daemon and a TCP daemon on the same default port do not
+        # overwrite each other's PID file.
+        if socket_path:
+            import hashlib
+
+            resolved_sock = str(Path(socket_path).expanduser())
+            sock_hash = hashlib.md5(resolved_sock.encode()).hexdigest()[:8]  # nosec MD5 for non-security use
+            pid_path = _global_pid_file_for_socket(sock_hash)
+        else:
+            pid_path = _global_pid_file(port)
         log_path = _global_log_file(port)
 
         self.lifecycle = _ServeDaemonManager(
@@ -100,6 +139,7 @@ class ServeDaemon:
             log_file=str(log_path),
             channels=self.channels,
             project_root=project_root,
+            socket_path=socket_path,
         )
 
     # ------------------------------------------------------------------
@@ -157,8 +197,28 @@ class ServeDaemon:
             "host": self.host,
             "port": self.port,
             "pid": pid,
-            "url": f"http://{self.host}:{self.port}" if running else None,
+            "socket_path": self.socket_path,
+            "url": self.get_base_url() if running else None,
         }
+
+    def get_base_url(self) -> str:
+        """Return the base URL for the running daemon.
+
+        For TCP daemons this is ``http://{host}:{port}``.
+        For Unix-socket daemons this is ``http+unix://{encoded_path}``
+        where the path is percent-encoded (``/`` → ``%2F``) so that
+        httpx/aiohttp accept it as a valid URL.
+
+        Returns:
+            Base URL string suitable for use with an HTTP client.
+        """
+        if self.socket_path:
+            from urllib.parse import quote
+
+            resolved = str(Path(self.socket_path).expanduser())
+            encoded = quote(resolved, safe="")
+            return f"http+unix://{encoded}"
+        return f"http://{self.host}:{self.port}"
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -206,12 +266,20 @@ class ServeDaemon:
         # Patch the /health endpoint to include the service identifier.
         _patch_health_endpoint(app)
 
-        uv_config = uvicorn.Config(
-            app,
-            host=self.host,
-            port=self.port,
-            log_level="info",
-        )
+        if self.socket_path:
+            resolved_socket = str(Path(self.socket_path).expanduser())
+            uv_config = uvicorn.Config(
+                app,
+                uds=resolved_socket,
+                log_level="info",
+            )
+        else:
+            uv_config = uvicorn.Config(
+                app,
+                host=self.host,
+                port=self.port,
+                log_level="info",
+            )
         uv_server = uvicorn.Server(uv_config)
 
         if self.channels:
@@ -257,10 +325,12 @@ class _ServeDaemonManager(DaemonManager):
         log_file: str,
         channels: list[str] | None = None,
         project_root: str | None = None,
+        socket_path: str | None = None,
     ) -> None:
         super().__init__(port=port, host=host, pid_file=pid_file, log_file=log_file)
         self._channels = channels or []
         self._project_root = project_root
+        self._socket_path = socket_path
 
     def use_subprocess_daemon(self) -> bool:
         """Use subprocess mode unless we are already inside the subprocess."""
@@ -300,6 +370,8 @@ class _ServeDaemonManager(DaemonManager):
                 cmd += ["--channels", ",".join(self._channels)]
             if self._project_root:
                 cmd += ["--project-root", self._project_root]
+            if self._socket_path:
+                cmd += ["--socket", self._socket_path]
 
             # Mark environment so the re-entered subprocess doesn't recurse.
             env = os.environ.copy()
