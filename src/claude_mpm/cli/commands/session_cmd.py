@@ -165,6 +165,16 @@ def _http_post_unix(base_url: str, path: str, payload: dict) -> dict:
 def handle_session_create(args) -> int:
     """Handle ``claude-mpm session create``.
 
+    WHAT: Resolves the serve daemon's address, assembles a JSON payload from
+          the optional ``prompt``/``model``/``cwd``/``permission_mode`` args,
+          POSTs it to ``/api/v1/sessions``, then prints the returned
+          session_id to stdout (errors and status go to stderr) and returns
+          0 on success or 1 when the daemon response carries no session id.
+    WHY: Operators need the new session_id captured cleanly via ``$(...)`` in
+         shell scripts, so stdout is reserved exclusively for the id while all
+         diagnostics are routed to stderr and failures surface as a non-zero
+         exit code rather than crashing the CLI.
+
     POSTs to the running serve daemon to create a new managed session and
     prints the resulting session_id to stdout (clean for shell capture).
 
