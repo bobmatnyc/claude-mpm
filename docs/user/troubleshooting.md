@@ -48,7 +48,7 @@ Common issues and solutions for Claude MPM.
 
 **Problem**: `claude: command not found` or Claude MPM reports Claude Code missing.
 
-**Why This Matters**: Claude MPM requires Claude Code CLI (v1.0.92+) to function. It's not the same as Claude Desktop.
+**Why This Matters**: Claude MPM requires Claude Code CLI (v1.0.92+; v2.1.3+ to use Skills features) to function. It's not the same as Claude Desktop.
 
 **Solutions:**
 
@@ -75,6 +75,7 @@ claude-mpm doctor
 
 **Version Requirements:**
 - **Minimum**: v1.0.92 (hooks support)
+- **Skills features**: v2.1.3+ (required to use Skills)
 - **Recommended**: v2.0.30+ (latest features)
 
 ### Claude Code Version Outdated
@@ -110,6 +111,7 @@ claude-mpm doctor --checks updates
 | Basic hooks support | v1.0.92 | v2.0.30+ |
 | Full MCP integration | v2.0.12 | v2.0.30+ |
 | Update checking | v1.0.92 | v2.0.30+ |
+| Skills features | v2.1.3 | v2.1.3+ |
 
 ### "command not found: claude-mpm"
 
