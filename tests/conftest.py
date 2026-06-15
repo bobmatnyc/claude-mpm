@@ -175,7 +175,9 @@ def verify_agents_untouched():
             content = f.read_bytes()
             result[f.name] = {
                 "size": len(content),
-                "hash": hashlib.md5(content).hexdigest(),
+                "hash": hashlib.md5(
+                    content
+                ).hexdigest(),  # MD5 is sufficient for detecting accidental overwrites; not used for security
             }
         return result
 
