@@ -19,6 +19,18 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.43 (2026-06-14)
+
+### Feat
+
+- **api**: add stable programmatic session status API (#836)
+- add --socket support to serve daemon and session create CLI subcommand (#837)
+- add --instructions-override flag to inject custom instructions at session start (#835)
+
+### Fix
+
+- **tests**: prevent parallel test CWD contamination of .claude/agents/ (#838)
+
 ## v6.5.42 (2026-06-14)
 
 ### Feat
