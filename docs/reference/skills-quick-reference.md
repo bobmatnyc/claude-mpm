@@ -263,7 +263,7 @@ claude-mpm skills check-deployed
 
 # 3. Check Claude Code version
 claude --version
-# Need v1.0.92+ for skills support
+# Need v2.1.3+ to use Skills features (v1.0.92+ for base Claude MPM)
 
 # 4. Verify skill files exist
 ls -la ~/.claude/skills/
@@ -527,7 +527,7 @@ Need skills for your project?
 **Last Updated:** 2025-01-21
 **Compatible with:**
 - Claude MPM 5.4.68+
-- Claude Code v1.0.92+
+- Claude Code v1.0.92+ (v2.1.3+ to use Skills features)
 - claude-mpm-skills repository (latest)
 
 **Changelog:**
