@@ -108,6 +108,10 @@ def filter_claude_mpm_args(claude_args):
         "--prompt",
         # Instructions override (MPM-specific, consumed before ClaudeRunner)
         "--instructions-override",
+        # Non-interactive session control flags (MPM-specific; issue #772)
+        "--max-turns",
+        "--exit-condition",
+        "--on-complete",
     }
 
     filtered_args = []
@@ -136,6 +140,10 @@ def filter_claude_mpm_args(claude_args):
                 "--input",
                 "--prompt",
                 "--instructions-override",
+                # Issue #772: non-interactive session control flags
+                "--max-turns",
+                "--exit-condition",
+                "--on-complete",
             }
             optional_value_flags = {
                 "--mpm-resume"
@@ -813,7 +821,13 @@ def _run_headless_session(args) -> int:
     )
     session = HeadlessSession(runner)
 
-    return session.run(prompt=prompt, resume_session=resume_session)
+    return session.run(
+        prompt=prompt,
+        resume_session=resume_session,
+        max_turns=getattr(args, "max_turns", None),
+        exit_condition=getattr(args, "exit_condition", None),
+        on_complete=getattr(args, "on_complete", None),
+    )
 
 
 def run_sdk_oneshot(prompt: str, args) -> None:
