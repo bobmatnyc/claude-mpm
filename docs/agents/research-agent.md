@@ -459,7 +459,7 @@ for skill in recommendations:
 **Solutions:**
 1. Restart Claude Code (skills load at startup only)
 2. Verify skill installation: `/plugin list`
-3. Check Claude Code version: `claude --version` (need v1.0.92+)
+3. Check Claude Code version: `claude --version` (need v2.1.3+ to use Skills features; v1.0.92+ for base Claude MPM)
 4. Review installation logs for errors
 
 ## Related Documentation
