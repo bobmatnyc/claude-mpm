@@ -108,6 +108,7 @@ def _get_agent_templates_dirs() -> dict[AgentTier, Path | None]:
     # under a temp CWD still finds the real project's deployed agents. In the
     # normal case (cwd == repo root, no env override) project_root resolves to the
     # repo root, so the resulting path is identical to before.
+    # Local import to avoid a circular import (unified_paths <- agent_loader chain).
     from claude_mpm.core.unified_paths import get_path_manager
 
     # Defensive fallback: if the path manager is unavailable (e.g. early
