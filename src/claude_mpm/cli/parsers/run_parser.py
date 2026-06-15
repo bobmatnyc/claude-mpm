@@ -15,6 +15,27 @@ from ...constants import CLICommands
 from .base_parser import add_common_arguments
 
 
+def _positive_int(value: str) -> int:
+    """Argparse type validator that accepts only positive integers.
+
+    WHAT: Converts a CLI string to int and rejects non-positive values at parse
+    time, before any session setup begins.
+    WHY: Catching ``--max-turns 0`` or ``--max-turns -1`` early produces a clear
+    argparse error message instead of a late RuntimeError deep in session code.
+    """
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"--max-turns requires a positive integer, got {value!r}"
+        ) from None
+    if n <= 0:
+        raise argparse.ArgumentTypeError(
+            f"--max-turns must be a positive integer, got {n}"
+        )
+    return n
+
+
 def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     """
     Add arguments specific to the run command.
@@ -151,6 +172,26 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         "--headless",
         action="store_true",
         help="Run in headless mode for automation/CI/CD (disables Rich console, outputs NDJSON for programmatic parsing)",
+    )
+    io_group.add_argument(
+        "--max-turns",
+        type=_positive_int,
+        metavar="N",
+        help="Exit after N Claude turns (headless/oneshot only; must be a positive integer)",
+    )
+    io_group.add_argument(
+        "--exit-condition",
+        type=str,
+        metavar="EXPR",
+        help="Python expression evaluated after each turn; exit when truthy. "
+        "NOTE: not yet evaluated in exec-based headless mode — pass --sdk to enable per-turn evaluation. "
+        "Context vars: turns, status, output",
+    )
+    io_group.add_argument(
+        "--on-complete",
+        type=str,
+        metavar="SCRIPT",
+        help="Shell script path executed when the session terminates naturally",
     )
 
     # Claude Code passthrough flags for Vibe Kanban compatibility

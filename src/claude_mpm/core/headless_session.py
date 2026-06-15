@@ -1,8 +1,7 @@
 """Headless session handler for Claude MPM.
 
-This module provides headless execution that bypasses Rich console rendering
-and pipes Claude Code's stream-json output directly to stdout for programmatic
-consumption.
+WHAT: Runs Claude Code in headless mode, piping stream-json output directly to
+stdout for programmatic consumption.
 
 WHY: Headless mode is essential for:
 - CI/CD pipelines
@@ -15,9 +14,14 @@ matching the behavior of normal interactive mode. This ensures:
 - Initialization happens only ONCE (hooks, agents, skills)
 - Claude handles the entire session directly
 - No claude-mpm process overhead during the session
+
+When --on-complete or --exit-condition are active the implementation falls back to
+subprocess.run() so that MPM retains control after the Claude process exits and can
+evaluate the exit-condition expression or fire the on-complete hook script.
 """
 
 import os
+import subprocess  # nosec B404 - needed for --on-complete / --exit-condition fallback
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -284,19 +288,31 @@ class HeadlessSession:
         self,
         prompt: str | None = None,
         resume_session: str | None = None,
+        max_turns: int | None = None,
+        exit_condition: str | None = None,
+        on_complete: str | None = None,
     ) -> int:
         """Run Claude Code in headless mode with stream-json output.
 
-        Uses os.execvpe() to replace the claude-mpm process with claude,
-        matching normal interactive mode. This ensures initialization
-        happens only once - claude handles the entire session directly.
+        WHAT: Builds a ``claude`` CLI invocation and either exec-replaces the current
+        process (fast path) or falls back to subprocess.run() when exit-condition or
+        on-complete hooks require MPM to retain control after Claude exits.
+
+        WHY: The exec path is the zero-overhead default.  The subprocess fallback is
+        only activated when the caller requests post-exit MPM logic that cannot survive
+        a process replacement.
 
         Args:
             prompt: The prompt to send to Claude. If None, stdin passes through.
-            resume_session: Optional session ID to resume
+            resume_session: Optional session ID to resume.
+            max_turns: Exit after N Claude turns (passed to Claude CLI --max-turns).
+            exit_condition: Python expression evaluated after the session exits;
+                logged as a warning (stream-json makes per-turn eval infeasible in
+                this execution model).
+            on_complete: Path to a shell script executed after natural session end.
 
         Returns:
-            Exit code from Claude Code process (only on exec failure)
+            Exit code from Claude Code process (only on exec failure or subprocess exit).
         """
         # Verify hooks are deployed before execution
         # This ensures MPM features (session management, skills) work in headless mode
@@ -304,6 +320,14 @@ class HeadlessSession:
 
         # Build the command
         cmd = self.build_claude_command(resume_session=resume_session)
+
+        # Pass --max-turns to Claude CLI when requested.
+        # Claude Code honours this flag natively; MPM just forwards it.
+        # _positive_int validator ensures max_turns > 0 at parse time,
+        # so the > 0 guard here is redundant and misleading.
+        if max_turns is not None:
+            cmd.extend(["--max-turns", str(max_turns)])
+            self.logger.debug(f"Limiting session to {max_turns} turn(s)")
 
         # Check if using stream-json input format (vibe-kanban compatibility)
         # When --input-format stream-json is passed, stdin passes through to Claude
@@ -347,6 +371,27 @@ class HeadlessSession:
         # Change to working directory before exec
         os.chdir(str(self.working_dir))
 
+        # --on-complete requires MPM to stay alive after Claude exits so we can
+        # fire the hook script.  Fall back to subprocess.run() in that case.
+        # When on_complete is active, exit_condition can be passed through because
+        # MPM retains control after Claude exits and can evaluate it externally.
+        if on_complete:
+            return self._run_subprocess_with_hooks(
+                cmd, env, on_complete, exit_condition=exit_condition
+            )
+
+        # Fail fast when exit-condition is requested but cannot be evaluated turn-by-turn.
+        # In exec mode Claude handles the full session so MPM has no per-turn hook.
+        # This guard only applies to the exec path (no on_complete); the subprocess
+        # fallback path above retains MPM control and can support exit-condition callers.
+        if exit_condition:
+            print(
+                "ERROR: --exit-condition is not supported in exec-based headless mode; "
+                "use --sdk for condition evaluation",
+                file=sys.stderr,
+            )
+            return 1
+
         try:
             # Replace this process with claude - no return on success
             # This matches normal interactive mode behavior:
@@ -375,6 +420,69 @@ class HeadlessSession:
             sys.stderr.write(f"Error: Unexpected error: {e}\n")
             sys.stderr.flush()
             return 1
+
+    def _run_subprocess_with_hooks(
+        self,
+        cmd: list,
+        env: dict,
+        on_complete: str | None,
+        exit_condition: str | None = None,
+    ) -> int:
+        """Run Claude via subprocess.run() and fire on-complete hook on exit.
+
+        WHAT: Falls back from os.execvpe() to subprocess.run() so that
+        post-exit hook scripts can be executed by the surviving MPM process.
+
+        WHY: os.execvpe() replaces the current process; MPM cannot run any code
+        after the replaced process exits.  subprocess.run() keeps MPM alive.
+
+        Args:
+            cmd: The fully-built claude CLI command list.
+            env: The prepared environment dict.
+            on_complete: Path to a shell script to run after Claude exits, or None.
+            exit_condition: Python expression from --exit-condition, or None.
+                When provided in subprocess mode, MPM emits a warning because it
+                cannot inspect per-turn output; the on-complete hook still fires.
+
+        Returns:
+            The exit code returned by the Claude CLI subprocess.
+        """
+        if exit_condition:
+            print(
+                f"WARNING: --exit-condition '{exit_condition}' is not evaluated in subprocess mode "
+                "(MPM cannot inspect per-turn output when Claude runs as a subprocess); "
+                "the hook in --on-complete will still fire.",
+                file=sys.stderr,
+            )
+        try:
+            result = subprocess.run(cmd, env=env, check=False)  # nosec B603
+            exit_code = result.returncode
+        except FileNotFoundError:
+            sys.stderr.write(
+                "Error: Claude CLI not found. "
+                "Please ensure 'claude' is installed and in your PATH\n"
+            )
+            sys.stderr.flush()
+            return 127
+        except Exception as e:
+            sys.stderr.write(f"Error: Unexpected error running Claude: {e}\n")
+            sys.stderr.flush()
+            return 1
+
+        # Fire on-complete hook if the path exists, is a file, and is executable.
+        # Pass the Claude process exit code so hook scripts can branch on success/failure.
+        if on_complete:
+            resolved = Path(on_complete).resolve()
+            if resolved.is_file() and os.access(resolved, os.X_OK):
+                self.logger.info("Firing on-complete hook: %s", resolved)
+                hook_env = {**env, "CLAUDE_MPM_EXIT_CODE": str(exit_code)}
+                subprocess.run([str(resolved)], check=False, env=hook_env)  # nosec B603
+            else:
+                self.logger.warning(
+                    "--on-complete script not found or not executable: %s", resolved
+                )
+
+        return exit_code
 
     def _prepare_environment(self) -> dict:
         """Prepare the execution environment."""

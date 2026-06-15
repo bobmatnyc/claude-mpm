@@ -10,12 +10,18 @@ SPEC-SESSIONS-09~1 : docs/specs/sessions.md#SPEC-SESSIONS-09~1
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+_logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class SessionState(str, Enum):
@@ -79,6 +85,7 @@ class SessionStateTracker:
         self._total_cost_usd: float = 0.0
         self._tokens_used: int = 0  # Cumulative input+output tokens
         self._events: deque[ActivityEvent] = deque(maxlen=max_events)
+        self._stop_callbacks: list[Callable[[], None]] = []
 
     # -- Write methods (called from REPL thread) --
 
@@ -182,11 +189,38 @@ class SessionStateTracker:
                     "output_tokens", 0
                 )
 
+    def register_stop_callback(self, fn: Callable[[], None]) -> None:
+        """Register a zero-argument callable to be called when the session stops.
+
+        Callbacks are invoked outside the internal lock in registration order.
+        Exceptions raised by callbacks are silently swallowed so that a bad
+        callback cannot prevent the session-stopped state from being set.
+
+        Args:
+            fn: Zero-argument callable to invoke on session stop.
+        """
+        with self._lock:
+            self._stop_callbacks.append(fn)
+
     def record_stopped(self) -> None:
         """Record that the session has ended."""
         with self._lock:
             self._state = SessionState.STOPPED
             self._last_activity = time.time()
+            # Snapshot the callback list under the lock to prevent a race with
+            # concurrent register_stop_callback() calls that append to it.
+            callbacks = list(self._stop_callbacks)
+
+        # Fire stop callbacks outside the lock to avoid deadlocks.
+        # Callbacks that try to read session state (e.g. get_session_state)
+        # must not hold the lock themselves — calling them under the lock
+        # would cause a deadlock.
+        for cb in callbacks:
+            try:
+                cb()
+            except Exception:
+                # Log but do not re-raise: a bad callback must not disrupt teardown.
+                _logger.error("Stop callback %r raised an exception", cb, exc_info=True)
 
     # -- Read methods (called from HTTP thread) --
 

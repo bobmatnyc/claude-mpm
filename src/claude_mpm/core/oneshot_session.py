@@ -40,11 +40,16 @@ class OneshotSession:
     complexity < 10 and lines < 80, making the code easier to test and modify.
     """
 
-    def __init__(self, runner: "ClaudeRunnerProtocol"):
+    def __init__(
+        self,
+        runner: "ClaudeRunnerProtocol",
+        on_complete: str | None = None,
+    ):
         """Initialize the oneshot session with a reference to the runner.
 
         Args:
-            runner: The ClaudeRunner instance (or any object matching ClaudeRunnerProtocol)
+            runner: The ClaudeRunner instance (or any object matching ClaudeRunnerProtocol).
+            on_complete: Optional path to a shell script executed after natural session end.
         """
         self.runner: ClaudeRunnerProtocol = runner
         self.logger = get_logger("oneshot_session")
@@ -52,6 +57,10 @@ class OneshotSession:
         self.session_id = None
         self.original_cwd = None
         self.temp_system_prompt_file = None
+        self.on_complete: str | None = on_complete
+        # Tracks the raw subprocess returncode so cleanup_session can forward
+        # the real exit code to the on-complete hook via CLAUDE_MPM_EXIT_CODE.
+        self._last_exit_code: int = 0
 
     def initialize_session(self, prompt: str) -> tuple[bool, str | None]:
         """Initialize the oneshot session.
@@ -231,6 +240,10 @@ class OneshotSession:
                 cmd, capture_output=True, text=True, env=env, check=False
             )
 
+            # Capture the real exit code so cleanup_session can forward it to
+            # the on-complete hook via CLAUDE_MPM_EXIT_CODE.
+            self._last_exit_code = result.returncode
+
             if result.returncode == 0:
                 response = result.stdout.strip()
                 self._handle_successful_response(response, prompt)
@@ -252,8 +265,42 @@ class OneshotSession:
         except Exception as e:
             return self._handle_unexpected_error(e)
 
-    def cleanup_session(self) -> None:
-        """Clean up the session and restore state."""
+    def cleanup_session(self, exit_code: int | None = None) -> None:
+        """Clean up the session and restore state.
+
+        WHAT: Fires the optional on-complete hook first, then releases temporary
+        resources, restores the working directory, and emits session-summary logs.
+
+        WHY: Centralises teardown so callers (SessionManagementService) have a
+        single method to call regardless of whether the session succeeded or failed.
+        The on-complete hook fires before temp files are removed and cwd is restored
+        so that the script can still observe session artefacts (e.g. response files,
+        temp prompts).
+
+        Args:
+            exit_code: The exit code from the Claude subprocess, forwarded to the
+                on-complete hook script via CLAUDE_MPM_EXIT_CODE.  Falls back to
+                ``self._last_exit_code`` (the raw returncode captured by
+                ``_run_subprocess``), which is 0 before any subprocess runs.
+        """
+        # Fire on-complete hook before releasing other resources so the script can
+        # still observe the session artefacts (e.g. response files, temp prompts).
+        if self.on_complete:
+            resolved = Path(self.on_complete).resolve()
+            if resolved.is_file() and os.access(resolved, os.X_OK):
+                self.logger.info("Firing on-complete hook: %s", resolved)
+                hook_env = {
+                    **os.environ.copy(),
+                    "CLAUDE_MPM_EXIT_CODE": str(
+                        exit_code if exit_code is not None else self._last_exit_code
+                    ),
+                }
+                subprocess.run([str(resolved)], check=False, env=hook_env)  # nosec B603
+            else:
+                self.logger.warning(
+                    "--on-complete script not found or not executable: %s", resolved
+                )
+
         # Clean up temp system prompt file
         if self.temp_system_prompt_file:
             try:
