@@ -13,7 +13,7 @@
 >
 > **Quick Start**: See [Getting Started Guide](docs/getting-started/README.md) to get running in 5 minutes!
 
-> **Current stable version: v6.1.0** — plugin install path, binary consolidation, and auto-migration. See [Beta Guide](docs/beta-6.0.md) for v6.0 release notes.
+> **Current stable version: v6.5.43** — plugin install path, binary consolidation, and auto-migration. See [Beta Guide](docs/beta-6.0.md) for the v6.0 release notes and [CHANGELOG](CHANGELOG.md) for the full history.
 
 ---
 
@@ -76,9 +76,9 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 - **Skills Optimization** - Intelligent project analysis with automated skill recommendations
 
 ### 🔌 MCP Integration (Model Context Protocol)
-- **Google Workspace MCP** - 34 tools for Gmail, Calendar, Drive, Docs, Tasks
-- **Notion** - 7 tools + bulk operations for databases, pages, markdown import
-- **Confluence** - 7 tools + bulk operations for pages, spaces, CQL search
+- **Google Workspace MCP** - 67 tools for Gmail, Calendar, Drive, Docs, Sheets, Slides, Tasks
+- **Notion** - pages and databases via the official Notion MCP server
+- **Confluence** - pages, spaces, CQL search + bulk operations
 - **Slack** - User proxy for channels, messages, DMs, search
 - **Semantic Code Search** - AI-powered code discovery via trusty-search
 - **Ticket Management** - GitHub, Linear, Jira integration via mcp-ticketer
@@ -242,16 +242,6 @@ uv tool install mcp-browser --python 3.13
 
 [→ Learn more: Developer Use Cases](docs/usecases/developers.md#semantic-code-search)
 
-### 🧪 MPM Commander (ALPHA)
-- **Multi-Project Orchestration** with autonomous AI coordination across codebases
-- **Tmux Integration** for isolated project environments and session management
-- **Event-Driven Architecture** with inbox system for cross-project communication
-- **LLM-Powered Decisions** via OpenRouter for autonomous work queue processing
-- **Real-Time Monitoring** with state tracking (IDLE, WORKING, BLOCKED, PAUSED, ERROR)
-- ⚠️ **Experimental** - API and CLI interface subject to change
-
-[→ Commander Documentation](docs/commander/usage-guide.md)
-
 ### 🔌 Advanced Integration
 - **MCP Integration** with full Model Context Protocol support
 - **MCP Session Server** (`claude-mpm mcp serve session`) for programmatic session management
@@ -259,34 +249,35 @@ uv tool install mcp-browser --python 3.13
 - **Multi-Project Support** with per-session working directories
 - **Git Integration** with diff viewing and change tracking
 
-[→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md) | [→ MCP Session Server](docs/mcp-session-server.md)
+[→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md) | [→ MCP Session Server](docs/integrations/mcp-session-server.md)
 
 ### 🔐 External Integrations
 - **Browser-Based OAuth** for secure authentication with MCP services
-- **Google Workspace MCP** built-in server with **34 tools** for:
-  - **Gmail** (5 tools): Search, read, send, draft, reply
-  - **Calendar** (6 tools): List, get, create, update, delete events
-  - **Drive** (7 tools): Search, read, create folders, upload, delete, move files
-  - **Docs** (4 tools): Create, read, append, markdown-to-doc conversion
-  - **Tasks** (12 tools): Full task and task list management
-- **Notion MCP** built-in server with **7 tools** + bulk operations:
-  - Query databases, get/create/update pages, search, markdown import
-  - Setup: `claude-mpm setup notion`
-- **Confluence MCP** built-in server with **7 tools** + bulk operations:
+- **Google Workspace MCP** (`gworkspace-mcp`) with **67 tools** for Gmail, Calendar, Drive, Docs, Sheets, Slides, and Tasks:
+  - **Gmail** (18 tools): search, read, send, drafts, labels
+  - **Calendar** (10 tools): list, get, create, update, delete events
+  - **Drive** (17 tools): search, read, folders, upload, download, move
+  - **Docs** (11 tools): create, edit, append, comments, markdown import
+  - **Tasks** (10 tools): task lists and task management
+  - Setup: `claude-mpm setup gworkspace-mcp`
+- **Notion MCP** via the official `@notionhq/notion-mcp-server` package:
+  - Read/write Notion pages and databases
+  - Setup: `claude-mpm setup notion-mpm`
+- **Confluence MCP** (`confluence-mcp`) with bulk operations:
   - Get/create/update pages, search with CQL, list spaces, markdown import
   - Setup: `claude-mpm setup confluence`
-- **Slack MCP** user proxy with **12 tools**:
-  - Channels, messages, DMs, search - acts as authenticated user
+- **Slack MCP** user proxy — acts as the authenticated user:
+  - Channels, messages, DMs, search
   - Setup: `claude-mpm setup slack-mpm`
 - **Encrypted Token Storage** using Fernet encryption with system keychain
 - **Automatic Token Refresh** handles expiration seamlessly
 
 ```bash
-# Set up Google Workspace OAuth
-claude-mpm oauth setup workspace-mcp
+# Set up Google Workspace (runs OAuth as part of setup)
+claude-mpm setup gworkspace-mcp
 
 # Set up Notion (API token)
-claude-mpm setup notion
+claude-mpm setup notion-mpm
 
 # Set up Confluence (URL + API token)
 claude-mpm setup confluence
@@ -294,14 +285,14 @@ claude-mpm setup confluence
 # Set up Slack (OAuth user token)
 claude-mpm setup slack-mpm
 
-# Check token status
-claude-mpm oauth status workspace-mcp
+# Check Google Workspace token status
+claude-mpm oauth status gworkspace-mcp
 
 # List OAuth-capable services
 claude-mpm oauth list
 ```
 
-[→ Google Workspace Setup](docs/guides/oauth-setup.md) | [→ Notion Setup](docs/integrations/NOTION_SETUP.md) | [→ Confluence Setup](docs/integrations/CONFLUENCE_SETUP.md) | [→ Slack Setup](docs/integrations/SLACK_USER_PROXY_SETUP.md)
+[→ Google Workspace Setup](docs/integrations/gworkspace-mcp.md) | [→ Confluence Setup](docs/integrations/CONFLUENCE_SETUP.md) | [→ Slack Setup](docs/integrations/SLACK_USER_PROXY_SETUP.md) | [→ All Integrations](docs/integrations/README.md)
 
 ### ⚡ Performance & Security
 - **ZTK Shell Output Compression** — 80–97% token reduction on shell commands (find, grep, ls, git, etc.) with automatic bundled binary
@@ -353,12 +344,12 @@ claude-mpm doctor
 claude-mpm verify
 
 # Manage memory
-claude-mpm cleanup-memory
+claude-mpm cleanup
 ```
 
 **💡 Startup Performance**: Claude MPM syncs agents and skills once per day. Subsequent launches are near-instant (~100ms). Use `--force-sync` to pull the latest content immediately or set `CLAUDE_MPM_SYNC_TTL` (seconds) to customize the sync interval.
 
-**💡 Update Checking**: Claude MPM automatically checks for updates and verifies Claude Code compatibility on startup. Configure in `~/.claude-mpm/configuration.yaml` or see [docs/update-checking.md](docs/update-checking.md).
+**💡 Update Checking**: Claude MPM automatically checks for updates and verifies Claude Code compatibility on startup. Configure in `~/.claude-mpm/configuration.yaml` or see the [Configuration Reference](docs/configuration/reference.md).
 
 [→ Complete usage examples: User Guide](docs/user/user-guide.md)
 
@@ -372,11 +363,11 @@ Claude MPM lets you pin any agent — including the Planner — to a specific mo
 
 | Alias | Resolves to |
 |-------|-------------|
-| `haiku` | `claude-3-5-haiku-20241022` |
-| `sonnet` | `claude-sonnet-4-5` |
+| `haiku` | `haiku` (current Claude Code haiku tier) |
+| `sonnet` | `claude-sonnet-4-6` |
 | `opus` | `claude-opus-4-7` |
 
-Full Anthropic model names (e.g. `claude-opus-4-7`) are also accepted in place of an alias.
+Full Anthropic model names (e.g. `claude-opus-4-7`) are also accepted in place of an alias; dated `opus` IDs all resolve to the opus tier model.
 
 ### Priority order (highest to lowest)
 
@@ -657,8 +648,6 @@ Before cloud sled work begins, Phase 4 completes the channel hub foundation:
 3. GitHub context injection in plain `--sdk` mode (not just channels mode)
 4. Test coverage for the channels and GitHub service layers
 
-See [`docs/research/multi-channel-github-phase4-analysis-2026-03-26.md`](docs/research/multi-channel-github-phase4-analysis-2026-03-26.md) for the detailed Phase 4 analysis.
-
 ---
 
 ## Documentation
@@ -669,7 +658,7 @@ See [`docs/research/multi-channel-github-phase4-analysis-2026-03-26.md`](docs/re
 
 #### 👥 For Users
 - **[🚀 5-Minute Quick Start](docs/user/quickstart.md)** - Get running immediately
-- **[📦 Installation Guide](docs/user/installation.md)** - All installation methods
+- **[📦 Installation Guide](docs/getting-started/installation.md)** - All installation methods
 - **[📖 User Guide](docs/user/user-guide.md)** - Complete user documentation
 - **[❓ FAQ](docs/guides/FAQ.md)** - Common questions answered
 
@@ -677,17 +666,17 @@ See [`docs/research/multi-channel-github-phase4-analysis-2026-03-26.md`](docs/re
 - **[🏗️ Architecture Overview](docs/developer/ARCHITECTURE.md)** - Service-oriented system design
 - **[💻 Developer Guide](docs/developer/README.md)** - Complete development documentation
 - **[🧪 Contributing](docs/developer/03-development/README.md)** - How to contribute
-- **[📊 API Reference](docs/API.md)** - Complete API documentation
+- **[📊 API Reference](docs/reference/api-overview.md)** - API documentation overview
 
 #### 🤖 For Agent Creators
-- **[🤖 Agent System](docs/AGENTS.md)** - Complete agent development guide
+- **[🤖 Agent System](docs/reference/agents-overview.md)** - Agent system overview
 - **[📝 Creation Guide](docs/developer/07-agent-system/creation-guide.md)** - Step-by-step tutorials
 - **[📋 Schema Reference](docs/developer/10-schemas/agent_schema_documentation.md)** - Agent format specifications
 
 #### 🚀 For Operations
-- **[🚀 Deployment](docs/DEPLOYMENT.md)** - Release management & versioning
-- **[📊 Monitoring](docs/MONITOR.md)** - Real-time dashboard & metrics
-- **[🐛 Troubleshooting](docs/TROUBLESHOOTING.md)** - Enhanced `doctor` command with auto-fix
+- **[🚀 Deployment](docs/deployment/README.md)** - Release management & versioning
+- **[📊 Monitoring](docs/guides/monitoring.md)** - Real-time dashboard & metrics
+- **[🐛 Troubleshooting](docs/user/troubleshooting.md)** - Enhanced `doctor` command with auto-fix
 
 ---
 
@@ -706,8 +695,8 @@ Claude MPM supports multiple integrations for enhanced functionality. See **[Com
 
 - **[Google Workspace MCP](docs/integrations/gworkspace-mcp.md)** - Gmail, Calendar, Drive, Docs, Tasks (67 tools)
 - **[Slack](docs/integrations/slack.md)** - Slack workspace integration via user proxy
-- **[Notion](docs/integrations/NOTION_SETUP.md)** - Notion databases and pages (7 MCP tools + bulk CLI)
-- **[Confluence](docs/integrations/CONFLUENCE_SETUP.md)** - Confluence pages and spaces (7 MCP tools + bulk CLI)
+- **[Notion](docs/integrations/README.md#notion)** - Notion databases and pages via the official Notion MCP server
+- **[Confluence](docs/integrations/CONFLUENCE_SETUP.md)** - Confluence pages and spaces (MCP tools + bulk CLI)
 
 ### Quick Setup
 
@@ -721,7 +710,7 @@ claude-mpm setup trusty-search
 claude-mpm setup gworkspace-mcp         # Canonical name (preferred)
 claude-mpm setup google-workspace-mcp   # Legacy alias (also works)
 claude-mpm setup slack-mpm
-claude-mpm setup notion
+claude-mpm setup notion-mpm
 claude-mpm setup confluence
 
 # Setup multiple at once
