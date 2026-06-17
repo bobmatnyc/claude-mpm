@@ -8,6 +8,7 @@ Testing documentation for Claude MPM.
 - **Eval System Quick Start**: [eval-system/quickstart.md](eval-system/quickstart.md)
 - **Eval System Test Cases**: [eval-system/test-cases.md](eval-system/test-cases.md)
 - **QA Test Index**: [QA_TEST_INDEX.md](QA_TEST_INDEX.md)
+- **Mutation Testing**: [../mutation-testing.md](../mutation-testing.md) — framework service for scoped mutmut analysis on pure-logic modules
 
 ## Notes
 
