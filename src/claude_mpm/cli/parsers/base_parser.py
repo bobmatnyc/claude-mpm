@@ -737,6 +737,17 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add mutate command parser
+    try:
+        from .mutate_parser import MutateParser
+
+        parser_obj = MutateParser()
+        mutate_p = subparsers.add_parser("mutate", help=parser_obj.help_text)
+        parser_obj.add_arguments(mutate_p)
+        mutate_p.set_defaults(command="mutate")
+    except ImportError:
+        pass
+
     # Add mpm-init command parser
     try:
         from .mpm_init_parser import add_mpm_init_subparser

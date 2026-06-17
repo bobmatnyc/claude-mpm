@@ -77,6 +77,7 @@ class CLICommands(StrEnum):
     AGGREGATE = "aggregate"
     ANALYZE = "analyze"
     ANALYZE_CODE = "analyze-code"
+    MUTATE = "mutate"
     CLEANUP = "cleanup-memory"
     MCP = "mcp"
     DOCTOR = "doctor"
