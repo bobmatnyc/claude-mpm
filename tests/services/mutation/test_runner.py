@@ -16,6 +16,7 @@ LINK: none  (feature introduced in this PR, tracked in GitHub issue #853)
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import subprocess
 from pathlib import Path
@@ -86,6 +87,20 @@ REMOVAL_DIFF = """\
 +    pass
 """
 
+# An ARITHMETIC mutation on a line that *contains* a ``<`` (unchanged). The
+# ``<`` belongs to a comparison that is identical on both sides, so the only
+# thing that changed is the ``+``→``-`` arithmetic operator. This must classify
+# as "arithmetic", NOT "boundary" — the prior classifier misfired here because
+# it flagged boundary whenever ``<``/``>`` merely appeared on the line.
+ARITHMETIC_WITH_LT_DIFF = """\
+--- src/pkg/mod.py
++++ src/pkg/mod.py
+@@ -1,3 +1,3 @@
+ def scaled(a, b):
+-    return (a + b) if a < 10 else 0
++    return (a - b) if a < 10 else 0
+"""
+
 
 # ---------------------------------------------------------------------------
 # Diff parser
@@ -139,6 +154,9 @@ def test_parse_show_diff_normalizes_absolute_path_to_repo_relative(tmp_path):
     [
         (BOUNDARY_DIFF, "boundary"),
         (ARITHMETIC_DIFF, "arithmetic"),
+        # Arithmetic edit on a line containing an UNCHANGED ``<`` must NOT be
+        # misclassified as boundary (finding #2 regression guard).
+        (ARITHMETIC_WITH_LT_DIFF, "arithmetic"),
         (STRING_DIFF, "string"),
         (PREDICATE_DIFF, "predicate"),
         (REMOVAL_DIFF, "removal"),
@@ -148,6 +166,41 @@ def test_mutation_type_inference(diff, expected_type):
     survivor = _parse_show_diff(1, diff)
     assert survivor is not None
     assert survivor.mutation_type == expected_type
+
+
+@pytest.mark.parametrize(
+    ("original", "mutant"),
+    [
+        ("if a < 0:", "if a <= 0:"),  # < -> <=
+        ("if a > 0:", "if a >= 0:"),  # > -> >=
+        ("if a < 0:", "if a > 0:"),  # < -> >
+        ("while x <= n:", "while x < n:"),  # <= -> <
+    ],
+)
+def test_classify_mutation_boundary_only_on_operator_change(original, mutant):
+    """A real comparison-operator flip classifies as boundary."""
+    assert _classify_mutation(original, mutant) == "boundary"
+
+
+def test_classify_mutation_unchanged_comparison_is_not_boundary():
+    """A line carrying ``<``/``>`` that did NOT change is not boundary.
+
+    Finding #2: arithmetic/predicate/string edits on a line that merely
+    *contains* a comparison operator must reach their own branch.
+    """
+    # Arithmetic edit, comparison ``<`` identical on both sides.
+    assert (
+        _classify_mutation(
+            "y = (a + b) if a < 10 else 0", "y = (a - b) if a < 10 else 0"
+        )
+        == "arithmetic"
+    )
+    # Type subscript ``dict[str, int]`` contains ``<``-free brackets but a
+    # string edit on a line with a comparison must still classify as string.
+    assert (
+        _classify_mutation('x = "v" if a < 1 else "w"', 'x = "XX" if a < 1 else "w"')
+        == "string"
+    )
 
 
 def test_classify_mutation_other_fallback():
@@ -170,6 +223,36 @@ def test_build_runner_command_basic():
 def test_build_runner_command_with_exclude():
     cmd = _build_runner_command(Path("tests/test_x.py"), "slow or flaky")
     assert "-k 'not (slow or flaky)'" in cmd
+
+
+def test_build_runner_command_allows_realistic_k_expressions():
+    """Benign pytest -k expressions (dots, colons, parens, hyphens) are kept."""
+    expr = "TestFoo and (not slow) or test_bar.py::test_baz-fast"
+    cmd = _build_runner_command(Path("tests/test_x.py"), expr)
+    assert f"-k 'not ({expr})'" in cmd
+
+
+@pytest.mark.parametrize(
+    "evil",
+    [
+        "slow; rm -rf /",  # command separator
+        "slow && curl evil",  # logical-and shell op
+        "slow | tee out",  # pipe (vs the word 'or')
+        "$(whoami)",  # command substitution
+        "`id`",  # backtick substitution
+        "slow > /etc/passwd",  # redirect
+        "slow' ; echo pwned ; '",  # quote breakout
+        "slow\nrm -rf /",  # newline injection
+    ],
+)
+def test_build_runner_command_rejects_shell_metacharacters(evil):
+    """exclude_tests with shell metacharacters must raise ValueError.
+
+    mutmut runs the --runner string through a shell, so this is a shell-injection
+    guard (finding #1).
+    """
+    with pytest.raises(ValueError, match="exclude_tests"):
+        _build_runner_command(Path("tests/test_x.py"), evil)
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +320,7 @@ def test_read_cache_schema_mismatch_propagates_into_error(tmp_path, monkeypatch)
     monkeypatch.setattr(
         runner_mod.subprocess,
         "run",
-        _fake_subprocess_run(show_output=""),
+        _fake_subprocess_run(show_output="", fresh_cache=cache),
     )
 
     target = tmp_path / "src" / "mod.py"
@@ -255,8 +338,19 @@ def test_read_cache_schema_mismatch_propagates_into_error(tmp_path, monkeypatch)
 # ---------------------------------------------------------------------------
 
 
-def _fake_subprocess_run(show_output: str = "", run_raises: bool = False):
-    """Return a fake subprocess.run that mimics mutmut/git calls."""
+def _fake_subprocess_run(
+    show_output: str = "",
+    run_raises: bool = False,
+    fresh_cache: Path | None = None,
+):
+    """Return a fake subprocess.run that mimics mutmut/git calls.
+
+    If ``fresh_cache`` is given, the simulated ``mutmut run`` touches that cache
+    file so its mtime is current — mirroring real mutmut, which rewrites the
+    ``.mutmut-cache`` on every run. The runner's run-scope freshness guard
+    requires the cache to be newer than run-start, so happy-path tests mark the
+    cache fresh; the stale-cache test deliberately omits this.
+    """
 
     def _fake(cmd, *args, **kwargs):
         # Identify which command this is by its mutmut SUBCOMMAND (the token
@@ -273,6 +367,8 @@ def _fake_subprocess_run(show_output: str = "", run_raises: bool = False):
             if sub == "run":
                 if run_raises:
                     raise RuntimeError("mutmut exploded")
+                if fresh_cache is not None and fresh_cache.exists():
+                    fresh_cache.touch()  # mutmut rewrites the cache each run
                 return subprocess.CompletedProcess(cmd, 1, "", "")
         if isinstance(cmd, list) and "git" in cmd:
             if "diff" in cmd:
@@ -298,7 +394,11 @@ def test_run_mutation_happy_path(tmp_path, monkeypatch):
 
     monkeypatch.setattr(runner_mod, "_repo_root", lambda: tmp_path)
     monkeypatch.setattr(
-        runner_mod.subprocess, "run", _fake_subprocess_run(show_output=BOUNDARY_DIFF)
+        runner_mod.subprocess,
+        "run",
+        _fake_subprocess_run(
+            show_output=BOUNDARY_DIFF, fresh_cache=tmp_path / ".mutmut-cache"
+        ),
     )
 
     result = run_mutation(target, tmp_path / "tests" / "test_mod.py")
@@ -320,7 +420,11 @@ def test_run_mutation_kill_rate_zero_when_no_mutants(tmp_path, monkeypatch):
     target.write_text("x = 1\n")
 
     monkeypatch.setattr(runner_mod, "_repo_root", lambda: tmp_path)
-    monkeypatch.setattr(runner_mod.subprocess, "run", _fake_subprocess_run())
+    monkeypatch.setattr(
+        runner_mod.subprocess,
+        "run",
+        _fake_subprocess_run(fresh_cache=tmp_path / ".mutmut-cache"),
+    )
 
     result = run_mutation(target, tmp_path / "tests" / "test_mod.py")
     assert result.total_mutants == 0
@@ -340,6 +444,49 @@ def test_run_mutation_missing_cache_sets_error(tmp_path, monkeypatch):
     result = run_mutation(target, tmp_path / "tests" / "test_mod.py")
     assert result.error is not None
     assert "no cache" in result.error
+
+
+def test_run_mutation_stale_cache_sets_error(tmp_path, monkeypatch):
+    """A pre-existing cache NOT rewritten by this run yields a stale error.
+
+    Finding #3: a leftover ``.mutmut-cache`` from a prior run would report
+    counts/survivors for the WRONG target. The run-scope freshness guard must
+    refuse it instead of returning possibly-wrong results.
+    """
+    cache = _make_cache(tmp_path, [(1, "bad_survived"), (2, "ok_killed")])
+    # Backdate the cache far into the past so it predates the run-start
+    # timestamp (and the mtime tolerance window) — i.e. it is unambiguously
+    # stale. The fake ``mutmut run`` does NOT touch it (no fresh_cache).
+    stale_time = cache.stat().st_mtime - 3600
+    os.utime(cache, (stale_time, stale_time))
+
+    target = tmp_path / "src" / "mod.py"
+    target.parent.mkdir(parents=True)
+    target.write_text("x = 1\n")
+
+    monkeypatch.setattr(runner_mod, "_repo_root", lambda: tmp_path)
+    monkeypatch.setattr(runner_mod.subprocess, "run", _fake_subprocess_run())
+
+    result = run_mutation(target, tmp_path / "tests" / "test_mod.py")
+    assert result.error is not None
+    assert "stale" in result.error
+    assert result.kill_rate == 0.0
+    assert result.total_mutants == 0
+
+
+def test_repo_root_raises_when_git_fails(monkeypatch):
+    """_repo_root raises RuntimeError when git is unavailable (finding #4).
+
+    The runner REQUIRES git for safety-restore and cache pathing; a silent
+    cwd fallback would point them at the wrong tree.
+    """
+
+    def _fake_git_fail(cmd, *args, **kwargs):
+        return subprocess.CompletedProcess(cmd, 128, "", "not a git repository")
+
+    monkeypatch.setattr(runner_mod.subprocess, "run", _fake_git_fail)
+    with pytest.raises(RuntimeError, match="git is required"):
+        runner_mod._repo_root()
 
 
 def test_safety_restore_called_in_finally_even_on_exception(tmp_path, monkeypatch):
@@ -434,9 +581,19 @@ def test_integration_real_mutmut_against_pilot():
 
     result = run_mutation(target, tests_file)
 
+    # Baseline kill rate measured on the pilot during the Phase-1 experiment was
+    # ~0.615. We assert a conservative floor (default 0.5) rather than the exact
+    # baseline so that legitimate future test-suite changes (which shift the kill
+    # rate) do not cause spurious failures. The floor is overridable via the
+    # MUTATION_PILOT_MIN_KILL_RATE env var for tuning/CI without editing code.
+    min_kill_rate = float(os.environ.get("MUTATION_PILOT_MIN_KILL_RATE", "0.5"))
+
     assert result.error is None, f"mutmut errored: {result.error}"
     assert result.total_mutants > 0
-    assert result.kill_rate > 0.5, f"kill rate too low: {result.kill_rate}"
+    assert result.kill_rate > min_kill_rate, (
+        f"kill rate {result.kill_rate} below floor {min_kill_rate} "
+        "(baseline ~0.615); set MUTATION_PILOT_MIN_KILL_RATE to adjust"
+    )
     assert result.survivors, "expected at least one survivor to inspect"
 
     sample = result.survivors[0]
