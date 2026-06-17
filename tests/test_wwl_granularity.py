@@ -739,3 +739,502 @@ class TestWWLConfig:
         assert "WWL" in block, (
             "SLD instruction block must mention WWL for agents to know about it"
         )
+
+
+# ===========================================================================
+# MUTATION-HARDENING TESTS (target specific surviving mutants)
+# ===========================================================================
+
+
+class TestModuleConstants:
+    """Pin the public constant values that flow into the baseline JSON schema
+    and the default thresholds/enforcement mode.  Targets the literal/number/
+    None mutants on lines 45, 48, 51, 54, 55."""
+
+    def test_default_thresholds_have_documented_values(self):
+        """DEFAULT_LINE_THRESHOLD == 50 and DEFAULT_COMPLEXITY_THRESHOLD == 10.
+
+        Targets the numeric off-by-one mutants on the threshold constants
+        (lines 45, 48). These values are the documented WWL contract (LOC 50,
+        McCabe CC 10); a silent drift to 51/11 would shift every CI decision.
+        """
+        from claude_mpm.quality.wwl_checker import (
+            DEFAULT_COMPLEXITY_THRESHOLD,
+            DEFAULT_LINE_THRESHOLD,
+        )
+
+        assert DEFAULT_LINE_THRESHOLD == 50
+        assert DEFAULT_COMPLEXITY_THRESHOLD == 10
+
+    def test_default_enforcement_is_baseline(self):
+        """DEFAULT_ENFORCEMENT is exactly the string "baseline".
+
+        Targets the string-literal and None mutants on line 51. The default
+        enforcement mode must be the ratchet mode "baseline"; a None or mangled
+        value would change the meaning of CheckResult.failed for every default
+        run.
+        """
+        from claude_mpm.quality.wwl_checker import DEFAULT_ENFORCEMENT
+
+        assert DEFAULT_ENFORCEMENT == "baseline"
+        assert isinstance(DEFAULT_ENFORCEMENT, str)
+
+    def test_violation_type_codes_have_exact_values(self):
+        """The violation-type codes are exactly their documented strings.
+
+        Targets the string-literal and None mutants on lines 54-55. These codes
+        are serialised into .wwl-baseline.json (the `violation_type` field) and
+        compared by load/save; renaming them silently invalidates every baseline
+        entry written with the old name.
+        """
+        from claude_mpm.quality.wwl_checker import (
+            MISSING_FILE_WWL,
+            MISSING_UNIT_WWL,
+        )
+
+        assert MISSING_FILE_WWL == "MISSING_FILE_WWL"
+        assert MISSING_UNIT_WWL == "MISSING_UNIT_WWL"
+
+
+class TestViolationDataclass:
+    """Pin immutability and the to_dict serialisation schema of Violation.
+    Targets frozen=True (line 92) and the to_dict key literals (lines 126-127)."""
+
+    def test_violation_is_frozen(self):
+        """Violation instances are immutable (frozen dataclass).
+
+        Targets `@dataclass(frozen=True)` -> `frozen=False` (line 92). Violations
+        are stored in frozensets (CheckResult.baseline_keys) and used as stable
+        baseline keys; mutating one would corrupt set membership. Frozen must
+        raise on attribute assignment.
+        """
+        import dataclasses
+
+        from claude_mpm.quality.wwl_checker import MISSING_FILE_WWL, Violation
+
+        v = Violation("src/x.py", "", MISSING_FILE_WWL, "desc")
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            v.relpath = "mutated"  # type: ignore[misc]
+
+    def test_to_dict_has_exact_schema_keys(self):
+        """to_dict() emits exactly relpath/qualname/violation_type/description.
+
+        Targets the mangled key-literal mutants on lines 126-127. load_baseline
+        and the baseline-schema test read these exact keys; a renamed key would
+        produce baseline entries that load_baseline silently drops.
+        """
+        from claude_mpm.quality.wwl_checker import MISSING_UNIT_WWL, Violation
+
+        v = Violation("src/x.py", "Cls.method", MISSING_UNIT_WWL, "detail")
+        d = v.to_dict()
+
+        assert set(d.keys()) == {
+            "relpath",
+            "qualname",
+            "violation_type",
+            "description",
+        }
+        assert d["violation_type"] == MISSING_UNIT_WWL
+        assert d["description"] == "detail"
+
+
+class TestCheckResultFailedPredicate:
+    """Pin the strict-vs-baseline failure predicate. Targets the "strict"
+    literal and the `> 0` comparison on lines 152-153."""
+
+    def test_strict_mode_uses_total_violations_not_new(self):
+        """strict mode fails on ANY violation, even when new_violations is empty.
+
+        Targets the `== "strict"` literal mutant (line 152). We build a result in
+        strict mode that has a violation but an EMPTY new_violations list (as if
+        every violation were already in the baseline). Real code: the strict
+        branch keys off `violations`, so failed is True. Mutant ("strict" mangled
+        to a non-matching string): falls through to the baseline branch, which
+        keys off the empty new_violations, so failed would be False.
+        """
+        from claude_mpm.quality.wwl_checker import (
+            MISSING_FILE_WWL,
+            CheckResult,
+            Violation,
+        )
+
+        v = Violation("src/x.py", "", MISSING_FILE_WWL, "d")
+        result = CheckResult(
+            violations=[v],
+            new_violations=[],  # nothing "new", but strict ignores that
+            enforcement="strict",
+        )
+        assert result.failed is True
+
+    def test_strict_mode_with_zero_violations_does_not_fail(self):
+        """strict mode with zero violations is NOT a failure.
+
+        Targets the `len(self.violations) > 0` -> `>= 0` mutant (line 153). With
+        an empty violation list, real `0 > 0` is False (pass); the mutant
+        `0 >= 0` is True and would wrongly fail a clean strict run.
+        """
+        from claude_mpm.quality.wwl_checker import CheckResult
+
+        result = CheckResult(
+            violations=[],
+            new_violations=[],
+            enforcement="strict",
+        )
+        assert result.failed is False
+
+
+class TestCountBranchesNestedAndAccumulation:
+    """Pin the DFS skip-into-nested-defs and the accumulation operators in
+    _count_branches.  Targets the continue->break (line 198) and the
+    comprehension/BoolOp count operators (lines 202, 208)."""
+
+    def _fn(self, src: str):
+        import ast
+
+        return ast.parse(textwrap.dedent(src)).body[0]
+
+    def test_branches_after_nested_def_are_still_counted(self):
+        """An outer branch following a nested def must still be counted.
+
+        Targets the `continue` -> `break` mutant (line 198). Source order places
+        the outer `if` FIRST and the nested `def` LAST, so the nested def is
+        popped from the DFS stack before the `if` is counted. Real code uses
+        `continue` (skip just the nested def, keep walking) -> count 1. The
+        `break` mutant aborts the whole walk at the nested def -> count 0.
+        """
+        from claude_mpm.quality.wwl_checker import _count_branches
+
+        fn = self._fn(
+            """
+            def outer(x):
+                if x:
+                    return 2
+                def inner(y):
+                    if y:
+                        return 1
+            """
+        )
+        assert _count_branches(fn) == 1
+
+    def test_comprehension_if_count_accumulates(self):
+        """Comprehension if-clauses ADD to the running branch count.
+
+        Targets the `count += len(child.ifs)` mutants (line 202): `=` (reset) and
+        `-=` (subtract). Source places the comprehension FIRST and an `if`
+        statement LAST so the comprehension is processed before the `if` is
+        counted; reset/subtract therefore diverge from accumulate. Real total:
+        2 (comp ifs) + 1 (if) = 3. `=` mutant -> 2, `-=` mutant -> -1.
+        """
+        from claude_mpm.quality.wwl_checker import _count_branches
+
+        fn = self._fn(
+            """
+            def f(xs):
+                r = [v for v in xs if v if v]
+                if xs:
+                    pass
+            """
+        )
+        assert _count_branches(fn) == 3
+
+    def test_boolop_count_accumulates(self):
+        """BoolOp operands ADD to the running branch count.
+
+        Targets the `count += len(child.values) - 1` -> `count =` mutant
+        (line 208). Source places the `and` expression FIRST and an `if` LAST.
+        Real total: 2 (a and b and c -> 3 values -> +2) + 1 (if) = 3; the reset
+        mutant yields 2.
+        """
+        from claude_mpm.quality.wwl_checker import _count_branches
+
+        fn = self._fn(
+            """
+            def f(a, b, c):
+                r = a and b and c
+                if a:
+                    pass
+            """
+        )
+        assert _count_branches(fn) == 3
+
+
+class TestNodeLocGuard:
+    """Pin the missing-lineno guard in _node_loc. Targets the `or`->`and`
+    guard and the `return 0` literal on lines 226-227, using synthetic nodes
+    that real Python ASTs never produce (only one of lineno/end_lineno set)."""
+
+    def test_partial_lineno_returns_zero(self):
+        """A node with lineno set but end_lineno missing returns 0.
+
+        Targets the `start is None or end is None` -> `and` mutant (line 226).
+        With start=5, end=None: real `or` is True -> return 0. The `and` mutant
+        is False -> falls through to `end - start` (None - 5) and would raise
+        TypeError.
+        """
+        from types import SimpleNamespace
+
+        from claude_mpm.quality.wwl_checker import _node_loc
+
+        node = SimpleNamespace(lineno=5, end_lineno=None)
+        assert _node_loc(node) == 0
+
+
+class TestHasWWLDocstringGuards:
+    """Pin the empty-body and non-string-docstring guards in
+    _has_wwl_docstring. Targets the `return False` literals on lines 247, 253."""
+
+    def test_empty_body_is_not_wwl(self):
+        """A node with an empty body has no WWL docstring (returns False).
+
+        Targets the `if not body: return False` -> `return True` mutant
+        (line 247). An empty module body must NOT be reported as having a WWL
+        docstring.
+        """
+        import ast
+
+        from claude_mpm.quality.wwl_checker import _has_wwl_docstring
+
+        empty_module = ast.parse("")  # body == []
+        assert _has_wwl_docstring(empty_module) is False
+
+    def test_non_string_first_expr_is_not_wwl(self):
+        """A first statement that is a non-string constant is not a docstring.
+
+        Targets the `return False` -> `return True` mutant on line 253 (the
+        guard for `not isinstance(val.value, str)`). Here the function's first
+        statement is the integer constant 42 (an Expr whose value is a numeric
+        Constant), which is not a docstring and must not satisfy WWL.
+        """
+        import ast
+
+        from claude_mpm.quality.wwl_checker import _has_wwl_docstring
+
+        fn = ast.parse(
+            textwrap.dedent(
+                """
+                def f():
+                    42
+                """
+            )
+        ).body[0]
+        assert _has_wwl_docstring(fn) is False
+
+
+class TestPureReexportScanContinues:
+    """Pin that the re-export scan keeps inspecting statements after each
+    exempt one (it must not stop early). Targets the three continue->break
+    mutants on lines 301, 305, 311."""
+
+    def _write(self, tmp_path, body: str):
+        f = tmp_path / "__init__.py"
+        f.write_text(textwrap.dedent(body), encoding="utf-8")
+        return f
+
+    def test_constant_then_real_logic_is_not_pure(self, tmp_path):
+        """A docstring/constant followed by a function def is NOT pure re-export.
+
+        Targets the `continue` -> `break` mutant on the string/constant arm
+        (line 301). The first statement is a docstring (exempt); the second is a
+        real `def` (non-exempt). Real `continue` keeps scanning and reaches the
+        def -> returns False. The `break` mutant stops after the docstring and
+        never sees the def -> would wrongly return True (pure).
+        """
+        from claude_mpm.quality.wwl_checker import _is_pure_reexport_module
+
+        f = self._write(
+            tmp_path,
+            '''
+            """just a summary"""
+
+            def helper():
+                return 1
+            ''',
+        )
+        assert _is_pure_reexport_module(f) is False
+
+    def test_all_assign_then_real_logic_is_not_pure(self, tmp_path):
+        """An __all__ = [...] followed by real logic is NOT pure re-export.
+
+        Targets the `continue` -> `break` mutant on the `__all__` Assign arm
+        (line 305).
+        """
+        from claude_mpm.quality.wwl_checker import _is_pure_reexport_module
+
+        f = self._write(
+            tmp_path,
+            """
+            __all__ = ["foo"]
+
+            def helper():
+                return 1
+            """,
+        )
+        assert _is_pure_reexport_module(f) is False
+
+    def test_all_augassign_then_real_logic_is_not_pure(self, tmp_path):
+        """An __all__ += [...] followed by real logic is NOT pure re-export.
+
+        Targets the `continue` -> `break` mutant on the `__all__` AugAssign arm
+        (line 311).
+        """
+        from claude_mpm.quality.wwl_checker import _is_pure_reexport_module
+
+        f = self._write(
+            tmp_path,
+            """
+            __all__ = ["foo"]
+            __all__ += ["bar"]
+
+            def helper():
+                return 1
+            """,
+        )
+        assert _is_pure_reexport_module(f) is False
+
+
+class TestClassUnitThresholds:
+    """Pin the class cyclomatic-complexity base (1 + branches) and the
+    over-threshold predicate in _iter_units.  Targets lines 356 and 358.
+
+    A class's CC counts only class-body-level branch nodes (method bodies are
+    skipped as separate units), so N body-level `if` statements give CC = 1 + N.
+    """
+
+    def _class_with_ifs(self, n: int) -> str:
+        ifs = "\n".join("    if True:\n        pass" for _ in range(n))
+        return "class C:\n" + ifs + "\n"
+
+    def _units(self, src: str, line_threshold: int, complexity_threshold: int):
+        import ast
+
+        from claude_mpm.quality.wwl_checker import _iter_units
+
+        tree = ast.parse(textwrap.dedent(src))
+        return list(_iter_units(tree, line_threshold, complexity_threshold))
+
+    def test_class_cc_base_is_one_plus_branches(self):
+        """A class with CC exactly == threshold is NOT over-threshold.
+
+        9 body-level ifs -> CC = 1 + 9 = 10. With complexity_threshold=10 and a
+        large line_threshold, `10 > 10` is False, so the class yields no unit.
+
+        Targets two mutants on line 356/358 at once:
+          - `cc = 1 + ...` -> `cc = 2 + ...` (id 121): CC would be 11 > 10 ->
+            wrongly flagged.
+          - `cc >` -> `cc >=` (id 126, line 358): `10 >= 10` True -> wrongly
+            flagged.
+        Real behaviour yields no unit for this class.
+        """
+        src = self._class_with_ifs(9)  # CC = 10, LOC = 19
+        units = self._units(src, line_threshold=1000, complexity_threshold=10)
+        names = [qn for (_n, qn, _loc, _cc, _w) in units]
+        assert "C" not in names, (
+            "a class whose CC equals the threshold must not be over-threshold"
+        )
+
+    def test_class_cc_base_not_inverted(self):
+        """A class with CC above the threshold IS flagged (base term not negated).
+
+        10 body-level ifs -> CC = 1 + 10 = 11 > 10 -> the class is a unit.
+        Targets the `1 + branches` -> `1 - branches` mutant (id 122, line 356),
+        which would make CC = 1 - 10 = -9 (never over threshold).
+        """
+        src = self._class_with_ifs(10)  # CC = 11, LOC = 21
+        units = self._units(src, line_threshold=1000, complexity_threshold=10)
+        flagged = [(qn, cc) for (_n, qn, _loc, cc, _w) in units]
+        assert ("C", 11) in flagged, (
+            "a class with CC 11 must be reported over a threshold of 10"
+        )
+
+    def test_loc_boundary_is_strict_greater_than(self):
+        """LOC exactly equal to the threshold is NOT over-threshold.
+
+        The 9-if class has LOC 19 and CC 10. With line_threshold=19 and
+        complexity_threshold=10, neither `19 > 19` nor `10 > 10` is True, so the
+        class yields no unit. Targets the `loc >` -> `loc >=` mutant (id 125,
+        line 358), which would flag it via `19 >= 19`.
+        """
+        src = self._class_with_ifs(9)  # LOC = 19, CC = 10
+        units = self._units(src, line_threshold=19, complexity_threshold=10)
+        names = [qn for (_n, qn, _loc, _cc, _w) in units]
+        assert "C" not in names, "LOC equal to the threshold must use strict > (not >=)"
+
+    def test_loc_or_complexity_either_triggers(self):
+        """A large but simple class is flagged via LOC alone (OR, not AND).
+
+        A class with many simple statements (CC = 1) but LOC above the line
+        threshold must be flagged. Targets the `loc > lt or cc > ct` -> `and`
+        mutant (id 127, line 358): under `and` the low CC would veto the LOC
+        trigger and the class would be missed.
+        """
+        # 20 plain assignments -> CC = 1, LOC well above 10.
+        body = "\n".join(f"    x{i} = {i}" for i in range(20))
+        src = "class Big:\n" + body + "\n"
+        units = self._units(src, line_threshold=10, complexity_threshold=10)
+        names = [qn for (_n, qn, _loc, _cc, _w) in units]
+        assert "Big" in names, (
+            "a large, low-complexity class must be flagged by LOC alone (OR semantics)"
+        )
+
+
+class TestLoadBaselineFieldGuard:
+    """Pin the both-fields-required guard in load_baseline and the parents=True
+    in save_baseline. Targets lines 464 and 480."""
+
+    def test_entry_missing_qualname_is_skipped_not_fatal(self, tmp_path):
+        """An entry missing `qualname` is skipped; valid entries still load.
+
+        Targets the `"relpath" in entry and "qualname" in entry` -> `or` mutant
+        (line 464). The baseline has one complete entry plus one entry missing
+        `qualname`. Real `and`: the incomplete entry is skipped (its key is never
+        built), so the good key loads. The `or` mutant: the incomplete entry
+        passes the filter, then `entry['qualname']` raises KeyError, which the
+        except clause turns into an empty frozenset -> the good key is LOST.
+        """
+        import json
+
+        from claude_mpm.quality.wwl_checker import load_baseline
+
+        path = tmp_path / ".wwl-baseline.json"
+        path.write_text(
+            json.dumps(
+                [
+                    {
+                        "relpath": "src/good.py",
+                        "qualname": "Good.method",
+                        "violation_type": "MISSING_UNIT_WWL",
+                        "description": "d",
+                    },
+                    {"relpath": "src/incomplete.py"},  # missing qualname
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        keys = load_baseline(path)
+        assert "src/good.py::Good.method" in keys, (
+            "a valid entry must still load when another entry is incomplete"
+        )
+
+    def test_save_baseline_creates_missing_parent_dirs(self, tmp_path):
+        """save_baseline creates missing parent directories (parents=True).
+
+        Targets the `mkdir(parents=True, ...)` -> `parents=False` mutant
+        (line 480). Writing to a path whose grandparent does not yet exist must
+        succeed; with parents=False, mkdir raises FileNotFoundError.
+        """
+        from claude_mpm.quality.wwl_checker import (
+            MISSING_FILE_WWL,
+            Violation,
+            load_baseline,
+            save_baseline,
+        )
+
+        nested = tmp_path / "a" / "b" / "c" / ".wwl-baseline.json"
+        assert not nested.parent.exists()
+
+        violations = [Violation("src/x.py", "", MISSING_FILE_WWL, "d")]
+        save_baseline(violations, nested)  # must create a/b/c
+
+        assert nested.exists()
+        assert "src/x.py::" in load_baseline(nested)
