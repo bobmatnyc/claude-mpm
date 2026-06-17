@@ -114,8 +114,11 @@ class MutateParser:
             metavar="N",
             default=None,
             help=(
-                "If set, exit 1 when survivors > N. If UNSET (default), the "
-                "command is purely advisory and ALWAYS exits 0."
+                "Survivor gate. --threshold 0 means zero survivors tolerated "
+                "(ANY survivor fails, exit 1); --threshold N exits 1 when "
+                "survivors > N. If UNSET (default), the command is purely "
+                "advisory and ALWAYS exits 0 (survivors are signal, not "
+                "failure)."
             ),
         )
         behavior_group.add_argument(
