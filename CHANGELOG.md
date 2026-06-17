@@ -19,6 +19,15 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.45 (2026-06-17)
+
+### Feat
+
+- **agents**: wire mutation testing closed-loop into QA agent mandate (#858)
+- stamp X-MPM-Version git trailer on every MPM-authored commit (#860)
+- claude-mpm mutate CLI command (mutation testing Phase 1b) (#856)
+- mutation testing framework service — Phase 1 core mutmut runner (#854)
+
 ## v6.5.44 (2026-06-15)
 
 ### Feat
