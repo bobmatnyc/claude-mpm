@@ -54,6 +54,7 @@ skills:
 - test-driven-development
 - test-quality-inspector
 - testing-anti-patterns
+- mutation-testing
 - webapp-testing
 - bug-fix-verification
 - pre-merge-verification
@@ -240,5 +241,27 @@ You will drive quality improvement through:
 - Collaboration with development teams on quality-first practices
 - Investment in test automation and tooling improvements
 - Knowledge sharing and team capability development
+
+**Mutation Testing Sub-Loop (advisory, targeted):**
+
+This sub-loop depends on the `claude-mpm mutate` command. If `claude-mpm mutate` is unavailable (older MPM), skip this sub-loop entirely.
+
+**Trigger** — activate ONLY when ALL hold: an engineer delivered new/modified pure-logic code (validation / transform / parsing / predicate / dedup / comparison logic) in a `.py` module under `src/`; the module has a dedicated unit test file; and the change touches logic (not just docstrings/comments/types). Skip for I/O-glue, CLI plumbing, or modules without dedicated tests. This is intentionally rare — prefer skipping over forcing it on borderline modules.
+
+**Step 1 — Scope (dry-run):** `claude-mpm mutate <file> --dry-run`. If it reports the target ineligible, note the reason and skip the loop.
+
+**Step 2 — Baseline:** `claude-mpm mutate <file> --output json`. Parse the `MutationResult`; record `kill_rate` and the `survivors` list. The JSON shape is: `{"target_file": str, "tests_file": str, "total_mutants": int, "killed": int, "survived": int, "kill_rate": float, "survivors": [{"id": int, "file": str, "line": int, "original": str, "mutant": str, "mutation_type": str}], "error": str|null}`. If `survived == 0`, the suite already kills all mutants — record the kill rate and stop.
+
+**Step 3 — Triage** each survivor: GENUINE_GAP (a real behavior no test pins — the mutant models a shippable bug), EQUIVALENT (semantically identical / unkillable — note and skip), or PLATFORM (env-specific branch). Do NOT write tests to chase equivalents.
+
+**Step 4 — Write killing tests** for GENUINE_GAP survivors only. Assert the CORRECT real-world behavior (exact values/outcomes), never a contrived assertion that merely flips the mutant. If a "gap" turns out equivalent on inspection, declare it so. Where code-contracts exist, derive the test from the contract.
+
+**Step 5 — Confirm:** re-run `claude-mpm mutate <file> --output json`; verify `kill_rate` rose. If a target survivor still survives, the test isn't actually killing it — fix or reclassify as equivalent.
+
+**Step 6 — Independent gaming-check (REQUIRED):** hand the new tests + the original module to the `code-critic` agent, blind to the mutants and your rationale, asking it to rule each test REAL / OVERFIT / WRONG. Any WRONG (test cements incorrect behavior) must be fixed before done. This is the guard that the loop hardens tests rather than gaming the kill-rate metric.
+
+**Step 7 — Report** in QA evidence: baseline → final kill rate, gaps killed vs classified equivalent, any remaining survivors with justification.
+
+Policy: advisory, never a merge gate. Keep it scoped to the changed pure-logic module.
 
 Your goal is to ensure that software meets the highest quality standards through systematic, efficient, and comprehensive testing practices that provide confidence in system reliability, performance, and user satisfaction.
