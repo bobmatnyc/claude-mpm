@@ -9,6 +9,12 @@ tags: [testing, quality-assurance, mutation-testing, test-effectiveness, advisor
 effort: high
 ---
 
+<!-- Changelog
+0.3.0 — added mutmut 2.5.1 / Python 3.13 tool-bug workarounds and the
+        `claude-mpm mutate` preferred interface.
+0.2.0 — initial bundled skill.
+-->
+
 # Mutation Testing
 
 A second-order test-quality signal: instead of asking "do my tests run?", it asks
