@@ -422,3 +422,212 @@ class TestSweepProjects:
         assert (project / ".claude" / "skills" / "cargo-publish").exists()
         assert (project / ".claude" / "skills" / "buffer").exists()
         assert (project / ".claude" / "skills" / "example-skill").exists()
+
+
+# ---------------------------------------------------------------------------
+# Mutation-hardening tests (target specific surviving mutants)
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultsAndGuards:
+    """Pin default-argument and field-default behaviour that prior tests
+    overwrote before observing.  These target mutants on the dry_run defaults,
+    the SweepSummary.projects_scanned field default, the None-guard on
+    user_skills_base, and the sweep loop's continue/break semantics."""
+
+    def test_dedup_default_is_dry_run(self, tmp_path: Path):
+        """dedup_project_skills() with NO dry_run arg must NOT delete files.
+
+        Targets the `dry_run: bool = True` default on dedup_project_skills
+        (line 92). Earlier tests always passed dry_run explicitly, so flipping
+        the default to False went unnoticed. Here we rely on the default and
+        assert the on-disk skill dir survives — i.e. the safe default is
+        dry-run, not apply.
+        """
+        from claude_mpm.services.skills.skill_dedup import dedup_project_skills
+
+        user_skills = tmp_path / "user_skills"
+        _make_user_skill(user_skills, "mpm-help")
+
+        project = tmp_path / "proj"
+        _make_project_skill(project / ".claude", "mpm-help")
+
+        # Call WITHOUT dry_run — the default must protect the file.
+        result = dedup_project_skills(
+            project_dir=project,
+            user_skills_base=user_skills,
+        )
+
+        assert result.removed == ["mpm-help"]  # reported as "would remove"
+        assert (project / ".claude" / "skills" / "mpm-help").exists(), (
+            "default must be dry-run: file must still exist on disk"
+        )
+
+    def test_sweep_default_is_dry_run(self, tmp_path: Path):
+        """sweep_projects() with NO dry_run arg must NOT delete files.
+
+        Targets the `dry_run: bool = True` default on sweep_projects (line 185).
+        """
+        from claude_mpm.services.skills.skill_dedup import sweep_projects
+
+        user_skills = tmp_path / "user_skills"
+        _make_user_skill(user_skills, "mpm-help")
+
+        root = tmp_path / "Projects"
+        _make_project(root, "proj-a", ["mpm-help"])
+
+        # Call WITHOUT dry_run — default must be dry-run.
+        summary = sweep_projects(root=root, user_skills_base=user_skills)
+
+        assert summary.total_removed == 1
+        assert summary.dry_run is True
+        assert (root / "proj-a" / ".claude" / "skills" / "mpm-help").exists(), (
+            "default sweep must be dry-run: file must still exist on disk"
+        )
+
+    def test_projects_scanned_defaults_to_zero_on_missing_root(self, tmp_path: Path):
+        """A missing root returns a SweepSummary with projects_scanned == 0.
+
+        Targets the `projects_scanned: int = 0` field default (line 74). On the
+        `not root.exists()` early-return path the field is never assigned, so the
+        default is the only thing observable. The empty-root test does not catch
+        this because there len(top_level) overwrites the default with 0 anyway.
+        """
+        from claude_mpm.services.skills.skill_dedup import sweep_projects
+
+        root = tmp_path / "does-not-exist"
+        user_skills = tmp_path / "user_skills"
+        user_skills.mkdir()
+
+        summary = sweep_projects(root=root, user_skills_base=user_skills)
+
+        assert summary.projects_scanned == 0
+        assert isinstance(summary.projects_scanned, int)
+        assert summary.results == []
+
+    def test_sweep_skips_skill_less_projects_and_continues(self, tmp_path: Path):
+        """A skill-less project earlier in sort order must NOT stop the sweep.
+
+        Targets the `continue` -> `break` mutant in the sweep loop (line 230).
+        'aaa-bare' (no .claude/skills/) sorts before 'zzz-real' (a removable
+        framework skill). With `continue` the sweep skips the bare project and
+        still processes the later one; with `break` it would stop at the bare
+        project and miss the real duplicate.
+        """
+        from claude_mpm.services.skills.skill_dedup import sweep_projects
+
+        user_skills = tmp_path / "user_skills"
+        _make_user_skill(user_skills, "mpm-help")
+
+        root = tmp_path / "Projects"
+        (root / "aaa-bare").mkdir(parents=True)  # sorts first, no skills dir
+        _make_project(root, "zzz-real", ["mpm-help"])  # sorts last, has duplicate
+
+        summary = sweep_projects(root=root, user_skills_base=user_skills, dry_run=True)
+
+        assert summary.projects_scanned == 2
+        assert summary.total_removed == 1, (
+            "sweep must continue past the skill-less project to reach the duplicate"
+        )
+
+    def test_sweep_user_skills_base_defaults_to_home(self, tmp_path: Path, monkeypatch):
+        """Omitting user_skills_base falls back to ~/.claude/skills (not None).
+
+        Targets the `if user_skills_base is None:` guard (line 210). The mutant
+        flips it to `is not None`, which leaves user_skills_base as None and makes
+        the downstream `None / skill_name` raise TypeError. We monkeypatch
+        Path.home() to a tmp dir so the real home is never touched, place the
+        user-level copy there, and assert the sweep resolves the duplicate via
+        the home fallback.
+        """
+        from claude_mpm.services.skills import skill_dedup
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        # User-level copy lives under the (patched) home dir.
+        _make_user_skill(fake_home / ".claude" / "skills", "mpm-help")
+        monkeypatch.setattr(
+            skill_dedup.Path, "home", classmethod(lambda cls: fake_home)
+        )
+
+        root = tmp_path / "Projects"
+        _make_project(root, "proj", ["mpm-help"])
+
+        # No user_skills_base -> must default to fake_home/.claude/skills.
+        summary = skill_dedup.sweep_projects(root=root, dry_run=True)
+
+        assert summary.total_removed == 1, (
+            "default user_skills_base must resolve to ~/.claude/skills (home fallback)"
+        )
+
+
+class TestUserCopyDetectionLogic:
+    """Pin the exact predicate that decides a user-level copy exists:
+    `is_dir() and (SKILL.md exists OR any *.md)`.  Targets the or/and and
+    is_dir-and/or mutants on lines 147-148."""
+
+    def test_non_skill_md_file_still_counts_as_user_copy(self, tmp_path: Path):
+        """A user dir with only a non-SKILL.md *.md file still counts as a copy.
+
+        Targets two mutants on line 147:
+          - glob pattern `*.md` -> `XX*.mdXX` (id 37): under the mutant the glob
+            finds nothing, so detection falls back to the (missing) SKILL.md and
+            the skill is wrongly kept.
+          - `or` -> `and` (id 38): under the mutant BOTH SKILL.md and a *.md match
+            would be required; with only index.md present, detection fails and the
+            skill is wrongly kept.
+        Real behaviour: the `or` + `*.md` glob means index.md alone is enough to
+        confirm the copy, so the project duplicate IS removed.
+        """
+        from claude_mpm.services.skills.skill_dedup import dedup_project_skills
+
+        user_skills = tmp_path / "user_skills"
+        user_skill_dir = user_skills / "mpm-help"
+        user_skill_dir.mkdir(parents=True)
+        # Deliberately NO SKILL.md — only a differently named markdown file.
+        (user_skill_dir / "index.md").write_text("# mpm-help")
+
+        project = tmp_path / "proj"
+        _make_project_skill(project / ".claude", "mpm-help")
+
+        result = dedup_project_skills(
+            project_dir=project,
+            user_skills_base=user_skills,
+            dry_run=False,
+        )
+
+        assert result.removed == ["mpm-help"], (
+            "a non-SKILL.md *.md file must still confirm the user-level copy"
+        )
+        assert result.kept == []
+        assert not (project / ".claude" / "skills" / "mpm-help").exists()
+
+    def test_empty_user_dir_is_not_a_copy(self, tmp_path: Path):
+        """An empty user-level dir (no *.md at all) does NOT count as a copy.
+
+        Targets the `is_dir() and (...)` -> `is_dir() or (...)` mutant (id 39,
+        lines 147-148). The user dir EXISTS (is_dir() True) but contains no md
+        files, so the right operand is False. Real `and`: True and False = False
+        -> skill kept. Mutant `or`: True -> skill wrongly removed. Asserting the
+        skill is KEPT (and the file survives) distinguishes the two.
+        """
+        from claude_mpm.services.skills.skill_dedup import dedup_project_skills
+
+        user_skills = tmp_path / "user_skills"
+        empty_user_dir = user_skills / "mpm-help"
+        empty_user_dir.mkdir(parents=True)  # exists, but no *.md inside
+
+        project = tmp_path / "proj"
+        _make_project_skill(project / ".claude", "mpm-help")
+
+        result = dedup_project_skills(
+            project_dir=project,
+            user_skills_base=user_skills,
+            dry_run=False,
+        )
+
+        assert result.removed == []
+        assert result.kept == ["mpm-help"], (
+            "an empty user dir must NOT be treated as a confirmed copy"
+        )
+        assert (project / ".claude" / "skills" / "mpm-help").exists()
