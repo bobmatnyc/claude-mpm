@@ -1112,7 +1112,7 @@ class TestClassUnitThresholds:
         tree = ast.parse(textwrap.dedent(src))
         return list(_iter_units(tree, line_threshold, complexity_threshold))
 
-    def test_class_cc_base_is_one_plus_branches(self, tmp_path):
+    def test_class_cc_base_is_one_plus_branches(self):
         """A class with CC exactly == threshold is NOT over-threshold.
 
         9 body-level ifs -> CC = 1 + 9 = 10. With complexity_threshold=10 and a
@@ -1132,7 +1132,7 @@ class TestClassUnitThresholds:
             "a class whose CC equals the threshold must not be over-threshold"
         )
 
-    def test_class_cc_base_not_inverted(self, tmp_path):
+    def test_class_cc_base_not_inverted(self):
         """A class with CC above the threshold IS flagged (base term not negated).
 
         10 body-level ifs -> CC = 1 + 10 = 11 > 10 -> the class is a unit.
@@ -1146,7 +1146,7 @@ class TestClassUnitThresholds:
             "a class with CC 11 must be reported over a threshold of 10"
         )
 
-    def test_loc_boundary_is_strict_greater_than(self, tmp_path):
+    def test_loc_boundary_is_strict_greater_than(self):
         """LOC exactly equal to the threshold is NOT over-threshold.
 
         The 9-if class has LOC 19 and CC 10. With line_threshold=19 and
@@ -1159,7 +1159,7 @@ class TestClassUnitThresholds:
         names = [qn for (_n, qn, _loc, _cc, _w) in units]
         assert "C" not in names, "LOC equal to the threshold must use strict > (not >=)"
 
-    def test_loc_or_complexity_either_triggers(self, tmp_path):
+    def test_loc_or_complexity_either_triggers(self):
         """A large but simple class is flagged via LOC alone (OR, not AND).
 
         A class with many simple statements (CC = 1) but LOC above the line
