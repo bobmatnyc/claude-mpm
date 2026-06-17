@@ -502,7 +502,6 @@ class TestDefaultsAndGuards:
         summary = sweep_projects(root=root, user_skills_base=user_skills)
 
         assert summary.projects_scanned == 0
-        assert isinstance(summary.projects_scanned, int)
         assert summary.results == []
 
     def test_sweep_skips_skill_less_projects_and_continues(self, tmp_path: Path):
@@ -546,9 +545,7 @@ class TestDefaultsAndGuards:
         fake_home.mkdir()
         # User-level copy lives under the (patched) home dir.
         _make_user_skill(fake_home / ".claude" / "skills", "mpm-help")
-        monkeypatch.setattr(
-            skill_dedup.Path, "home", classmethod(lambda cls: fake_home)
-        )
+        monkeypatch.setattr("pathlib.Path.home", classmethod(lambda cls: fake_home))
 
         root = tmp_path / "Projects"
         _make_project(root, "proj", ["mpm-help"])
