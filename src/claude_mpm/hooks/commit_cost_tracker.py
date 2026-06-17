@@ -38,6 +38,12 @@ DESIGN DECISIONS:
 - ZERO-SKIP (fix for #696): When the resolved delta is still 0/0 after all
   fallbacks, the X-AI-Tokens-In / X-AI-Tokens-Out trailers are omitted entirely
   rather than emitting useless zeros.
+- VERSION STAMP (issue #859): X-MPM-Version records the installed claude-mpm
+  version on EVERY commit the hook processes, including zero-delta commits.
+  Unlike the token trailers it is NOT gated on a non-empty delta, so a commit
+  with no token activity is still stamped.  The value comes from
+  claude_mpm.__version__ (the VERSION-file single source of truth); if it cannot
+  be resolved the trailer is omitted rather than crashing the hook.
 """
 
 from __future__ import annotations
@@ -113,6 +119,12 @@ _COAUTHORED_CANONICAL_RE = re.compile(
 # The pattern anchors at line start (MULTILINE) and matches any content on the
 # line.  Using .*  rather than [^\n]+ to ensure blank-value lines are stripped.
 _XAI_TRAILER_RE = re.compile(r"^X-AI-[A-Za-z-]+:.*$", re.MULTILINE)
+
+# Git trailer key recording the installed claude-mpm version (issue #859).
+# Stamped on EVERY commit the hook processes, decoupled from the token-delta
+# gate.  Stripped on re-amend (alongside the X-AI-* / Co-Authored-By lines) so
+# it is never duplicated.
+_MPM_VERSION_TRAILER_KEY = "X-MPM-Version"
 
 # Regex to extract the short SHA from a successful `git commit` output.
 # Example: "[main abc1234] Add feature"
@@ -471,6 +483,36 @@ def _format_models_trailer(model_delta: dict[str, dict[str, int]]) -> str | None
     return "; ".join(parts)
 
 
+def _get_mpm_version() -> str | None:
+    """Return the installed claude-mpm version string, or None on failure.
+
+    WHY: Every commit the hook processes should record which claude-mpm version
+    produced it (issue #859) so commits are self-documenting for provenance and
+    so behavior changes can be correlated with MPM releases.  Resolution must
+    never crash the hook: on any failure we return None and the caller omits the
+    trailer rather than emitting a malformed line.
+
+    WHAT: Reads ``claude_mpm.__version__`` — the VERSION-file single source of
+    truth for this project (the same source ``cli/startup._get_package_version``
+    uses).  Returns the stripped version string, or None when the import fails
+    or the value is empty.
+
+    TEST: Patch the resolver to return a known version and assert the trailer
+    equals it; patch it to return None and assert no X-MPM-Version line appears
+    and the hook does not raise.
+
+    :spec: N/A
+    """
+    try:
+        from claude_mpm import __version__
+
+        version = (__version__ or "").strip()
+        return version or None
+    except Exception as exc:  # pragma: no cover - defensive
+        _debug(f"_get_mpm_version: could not resolve version: {exc}")
+        return None
+
+
 def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> None:
     """Amend the latest commit to add token trailers and normalise Co-Authored-By.
 
@@ -478,14 +520,17 @@ def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> No
     1. Retrieve current commit message via ``git log``.
     2. Strip any generic Co-Authored-By: Claude (not MPM) lines.
     3. Ensure exactly one canonical Co-Authored-By: Claude MPM trailer.
-    4. Append X-AI-Tokens-In, X-AI-Tokens-Out, and model trailers.
+    4. Append X-AI-Tokens-In, X-AI-Tokens-Out, and model trailers (token trailers
+       gated on a non-empty delta), then ALWAYS append X-MPM-Version (issue #859).
     5. Amend commit with ``git commit --amend --no-edit -m <msg> --no-verify``.
 
     WHY: Decorates every commit with token usage so teams can audit AI cost per
-    commit without separate tooling.
+    commit without separate tooling, and records the installed claude-mpm
+    version on every commit (including zero-delta commits) for provenance.
 
-    WHAT: Retrieves the commit message, strips old X-AI-* and Co-Authored-By
-    trailers, then appends fresh trailers from *delta*.
+    WHAT: Retrieves the commit message, strips old X-AI-*, X-MPM-Version, and
+    Co-Authored-By trailers, then appends fresh trailers from *delta* plus the
+    resolved claude-mpm version.
 
     TEST: Mock subprocess.run to return a known commit message, call
     amend_commit_message(), assert the amended message contains X-AI-Tokens-In
@@ -530,6 +575,9 @@ def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> No
             # Skip any line that is an X-AI-* trailer.
             if re.match(r"^X-AI-[A-Za-z-]+:", stripped_line):
                 continue
+            # Skip any existing X-MPM-Version trailer (idempotency for re-amend).
+            if re.match(rf"^{re.escape(_MPM_VERSION_TRAILER_KEY)}:", stripped_line):
+                continue
             # Skip any Co-Authored-By: Claude ... trailer (canonical or generic).
             if re.match(r"^Co-Authored-By:\s+Claude\b", stripped_line, re.IGNORECASE):
                 continue
@@ -573,6 +621,19 @@ def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> No
             trailers.append(f"X-AI-Model: {primary_model}")
         if models_trailer:
             trailers.append(f"X-AI-Models: {models_trailer}")
+
+        # X-MPM-Version (issue #859): stamped on EVERY commit, decoupled from the
+        # token-delta gate above — present even when the X-AI-* trailers are
+        # omitted (zero-delta commit).  Omitted only when the version cannot be
+        # resolved, so the trailer is never malformed.
+        mpm_version = _get_mpm_version()
+        if mpm_version:
+            trailers.append(f"{_MPM_VERSION_TRAILER_KEY}: {mpm_version}")
+        else:
+            _debug(
+                "amend_commit_message: skipping X-MPM-Version trailer "
+                "— claude-mpm version could not be resolved"
+            )
 
         new_msg = "\n".join(normalised_lines + trailers)
 
