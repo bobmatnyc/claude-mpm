@@ -120,17 +120,20 @@ def test_eligibility_accepts_pure_logic_file(tmp_path):
 
 
 def test_changed_file_scanner_filters_to_existing_src_py(monkeypatch, tmp_path):
-    # Two src .py files (one exists, one does not), a non-src py, and a non-py.
+    # git diff emits repo-root-relative paths; existence is checked against the
+    # repo root (here stubbed to tmp_path), NOT the CWD.
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
+
     existing = tmp_path / "src" / "pkg" / "real.py"
     existing.parent.mkdir(parents=True)
     existing.write_text("x = 1\n")
 
     diff_output = "\n".join(
         [
-            str(existing),  # src + .py + exists  -> kept
+            "src/pkg/real.py",  # src + .py + exists  -> kept
             "src/pkg/missing.py",  # src + .py + NOT exists -> dropped
             "docs/notes.py",  # .py but not under src/ -> dropped
-            str(tmp_path / "src" / "pkg" / "data.txt"),  # not .py -> dropped
+            "src/pkg/data.txt",  # not .py -> dropped
         ]
     )
 
@@ -142,10 +145,12 @@ def test_changed_file_scanner_filters_to_existing_src_py(monkeypatch, tmp_path):
     monkeypatch.setattr(mutate_mod.subprocess, "run", lambda *a, **k: _Proc())
 
     result = get_changed_files_vs_main("origin/main")
-    assert result == [existing]
+    assert result == [Path("src/pkg/real.py")]
 
 
-def test_changed_file_scanner_returns_empty_on_git_failure(monkeypatch):
+def test_changed_file_scanner_returns_empty_on_git_failure(monkeypatch, tmp_path):
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
+
     class _Proc:
         returncode = 1
         stdout = ""
@@ -161,7 +166,7 @@ def test_changed_file_scanner_returns_empty_on_git_failure(monkeypatch):
 
 
 def test_infer_tests_file_single_match(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
     tests_dir = tmp_path / "tests" / "services"
     tests_dir.mkdir(parents=True)
     test_file = tests_dir / "test_widget.py"
@@ -174,7 +179,7 @@ def test_infer_tests_file_single_match(monkeypatch, tmp_path):
 
 
 def test_infer_tests_file_no_match_errors(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
     (tmp_path / "tests").mkdir()
     target = Path("src/pkg/widget.py")
     inferred, err = infer_tests_file(target)
@@ -183,7 +188,7 @@ def test_infer_tests_file_no_match_errors(monkeypatch, tmp_path):
 
 
 def test_infer_tests_file_ambiguous_errors(monkeypatch, tmp_path):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
     a = tmp_path / "tests" / "a"
     b = tmp_path / "tests" / "b"
     a.mkdir(parents=True)
@@ -335,6 +340,7 @@ def test_runner_error_exits_nonzero_even_when_advisory(monkeypatch, tmp_path):
 
 def test_max_files_truncation_is_reported(monkeypatch, tmp_path, capsys):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
     # Three eligible changed files, max_files=1 -> 2 dropped, must be noted.
     files = []
     for i in range(3):
@@ -359,3 +365,91 @@ def test_max_files_truncation_is_reported(monkeypatch, tmp_path, capsys):
     # 3 eligible - 1 cap = 2 dropped, surfaced (no silent capping).
     assert "2 additional eligible" in out
     assert "--max-files" in out
+
+
+# --------------------------------------------------------------------------- #
+# Argument validation (validate_args is wired into manage_mutate)
+# --------------------------------------------------------------------------- #
+
+
+def test_validation_nonexistent_target_errors(monkeypatch, tmp_path, capsys):
+    # A target under src/ that does not exist must be rejected up front with a
+    # non-zero exit code, never silently accepted.
+    missing = tmp_path / "src" / "pkg" / "ghost.py"
+
+    def _boom(*a, **k):
+        raise AssertionError("run_mutation must NOT run on a validation failure")
+
+    monkeypatch.setattr(mutate_mod, "run_mutation", _boom)
+
+    rc = manage_mutate(_args(target=str(missing)))
+    out = capsys.readouterr().out
+    assert rc != 0
+    assert "does not exist" in out.lower()
+
+
+def test_validation_max_files_zero_errors(monkeypatch, capsys):
+    # --max-files 0 is invalid (must be >= 1) and must fail, not silently cap.
+    def _boom(*a, **k):
+        raise AssertionError("run_mutation must NOT run on a validation failure")
+
+    monkeypatch.setattr(mutate_mod, "run_mutation", _boom)
+
+    rc = manage_mutate(_args(target=None, max_files=0))
+    out = capsys.readouterr().out
+    assert rc != 0
+    assert "--max-files" in out
+
+
+# --------------------------------------------------------------------------- #
+# Repo-root anchoring (works from a subdirectory, not just the repo root)
+# --------------------------------------------------------------------------- #
+
+
+def test_resolution_anchored_to_repo_root_from_subdir(monkeypatch, tmp_path):
+    # Lay out a fake repo: src file changed vs base + its paired test file.
+    src_file = tmp_path / "src" / "pkg" / "widget.py"
+    src_file.parent.mkdir(parents=True)
+    src_file.write_text("def f(x):\n    return x + 1\n")
+    test_file = tmp_path / "tests" / "pkg" / "test_widget.py"
+    test_file.parent.mkdir(parents=True)
+    test_file.write_text("def test_f():\n    pass\n")
+
+    # The repo root is tmp_path; the CLI is invoked from a DEEP subdirectory.
+    monkeypatch.setattr(mutate_mod, "_repo_root", lambda: tmp_path)
+    subdir = tmp_path / "src" / "pkg" / "deep" / "nested"
+    subdir.mkdir(parents=True)
+    monkeypatch.chdir(subdir)
+
+    # git diff emits repo-root-relative paths regardless of CWD.
+    class _Proc:
+        returncode = 0
+        stdout = "src/pkg/widget.py\n"
+        stderr = ""
+
+    monkeypatch.setattr(mutate_mod.subprocess, "run", lambda *a, **k: _Proc())
+
+    # Changed-file resolution still finds the file (existence anchored to root).
+    changed = get_changed_files_vs_main("origin/main")
+    assert changed == [Path("src/pkg/widget.py")]
+
+    # Test-file inference still finds the paired test (search anchored to root).
+    inferred, err = infer_tests_file(Path("src/pkg/widget.py"))
+    assert err is None
+    assert inferred == Path("tests/pkg/test_widget.py")
+
+
+def test_repo_root_raises_when_not_in_git_repo(monkeypatch):
+    # _repo_root must raise a clear RuntimeError when git can't find a repo.
+    class _Proc:
+        returncode = 128
+        stdout = ""
+        stderr = "fatal: not a git repository"
+
+    monkeypatch.setattr(mutate_mod.subprocess, "run", lambda *a, **k: _Proc())
+    try:
+        mutate_mod._repo_root()
+    except RuntimeError as exc:
+        assert "git" in str(exc).lower()
+    else:
+        raise AssertionError("_repo_root must raise RuntimeError on git failure")
