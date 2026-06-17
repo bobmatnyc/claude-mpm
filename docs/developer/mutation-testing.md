@@ -126,6 +126,9 @@ claude-mpm mutate [TARGET]
 changed versus `--base` (via `git diff --name-only <base>...HEAD`), filters them
 through the eligibility heuristic, and mutates up to `--max-files` of them.
 
+Raise `--max-files` to mutate more than one changed file per auto-discovery
+invocation (default 1).
+
 | Flag | Default | Meaning |
 |------|---------|---------|
 | `--tests-file PATH` | inferred | Paired unit test file. If omitted, inferred from the target's module stem (`tests/**/test_<stem>.py`); refuses to guess on zero or multiple matches. |
