@@ -505,7 +505,7 @@ def execute_command(command: str, args) -> int:
         return run_session_report(args)
 
     # Handle mutate command (advisory mutation testing) with lazy import
-    if command == "mutate":
+    if command == CLICommands.MUTATE.value:
         from .commands.mutate import manage_mutate
 
         result = manage_mutate(args)
