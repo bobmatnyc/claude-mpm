@@ -1400,36 +1400,55 @@ _VERSION_RESOLVER = "claude_mpm.hooks.commit_cost_tracker._get_mpm_version"
 
 
 class TestGetMpmVersion:
-    """Tests for the _get_mpm_version() resolver."""
+    """Tests for the _get_mpm_version() resolver.
+
+    The resolver reads the module-level ``_MPM_VERSION`` (resolved once at import
+    time), so these tests patch that exact name — patching ``claude_mpm.__version__``
+    would be VACUOUS because the resolver never re-imports it.
+    """
 
     def test_returns_package_version(self) -> None:
-        """Resolver returns the claude_mpm.__version__ value (stripped)."""
-        with patch("claude_mpm.__version__", "9.9.9"):
+        """Resolver returns the module-level _MPM_VERSION value (stripped)."""
+        with patch("claude_mpm.hooks.commit_cost_tracker._MPM_VERSION", "9.9.9"):
             assert _get_mpm_version() == "9.9.9"
 
     def test_strips_whitespace(self) -> None:
         """Surrounding whitespace in the version string is stripped."""
-        with patch("claude_mpm.__version__", "  6.5.44\n"):
+        with patch("claude_mpm.hooks.commit_cost_tracker._MPM_VERSION", "  6.5.44\n"):
             assert _get_mpm_version() == "6.5.44"
 
     def test_empty_version_returns_none(self) -> None:
         """An empty/whitespace version resolves to None (no malformed trailer)."""
-        with patch("claude_mpm.__version__", "   "):
+        with patch("claude_mpm.hooks.commit_cost_tracker._MPM_VERSION", "   "):
             assert _get_mpm_version() is None
 
-    def test_import_failure_returns_none(self) -> None:
-        """If reading the version raises, the resolver returns None (no crash)."""
-        # Simulate the version attribute being unavailable: with __version__
-        # removed, the ``from claude_mpm import __version__`` inside
-        # _get_mpm_version raises ImportError, which the resolver swallows → None.
-        import claude_mpm as _pkg
+    def test_none_version_returns_none(self) -> None:
+        """If _MPM_VERSION is None (import-time failure), resolver returns None.
 
-        original = _pkg.__version__
-        try:
-            del _pkg.__version__
+        This is the equivalent of the old ``test_import_failure_returns_none``
+        under the module-level import: when the import at module load fails,
+        ``_MPM_VERSION`` is None and the resolver must degrade to None (no crash,
+        trailer omitted) rather than raising.
+        """
+        with patch("claude_mpm.hooks.commit_cost_tracker._MPM_VERSION", None):
             assert _get_mpm_version() is None
-        finally:
-            _pkg.__version__ = original
+
+    def test_module_level_import_path_is_clean(self) -> None:
+        """The module-level import that feeds _MPM_VERSION must not have failed.
+
+        Guards against an import-time circular-import regression: if importing
+        ``claude_mpm.__version__`` at module load had blown up, _MPM_VERSION would
+        be None even though the real package exposes a version.  Re-import the
+        module fresh and assert it resolved a non-empty string.
+        """
+        import importlib
+
+        import claude_mpm
+        from claude_mpm.hooks import commit_cost_tracker as cct
+
+        importlib.reload(cct)
+        assert claude_mpm.__version__ == cct._MPM_VERSION
+        assert isinstance(cct._MPM_VERSION, str) and cct._MPM_VERSION.strip()
 
 
 class TestMpmVersionTrailer:
@@ -1463,9 +1482,24 @@ class TestMpmVersionTrailer:
         return r
 
     def _amend_msg(self, mock_run: MagicMock) -> str:
-        """Extract the -m message from the amend (2nd) subprocess call."""
-        amend_call = mock_run.call_args_list[1]
-        argv = amend_call[0][0]
+        """Extract the -m message from the git --amend subprocess call.
+
+        Finds the call whose argv contains ``--amend`` (asserting exactly one)
+        rather than hard-coding ``call_args_list[1]`` — so a future preflight
+        subprocess call inserted before the amend cannot silently shift the
+        index and make this helper read the wrong call.
+        """
+        amend_argvs = [
+            call[0][0]
+            for call in mock_run.call_args_list
+            if call[0]
+            and isinstance(call[0][0], (list, tuple))
+            and "--amend" in call[0][0]
+        ]
+        assert len(amend_argvs) == 1, (
+            f"expected exactly one git --amend call, found {len(amend_argvs)}"
+        )
+        argv = amend_argvs[0]
         return argv[argv.index("-m") + 1]
 
     def test_version_present_with_token_delta(self) -> None:
