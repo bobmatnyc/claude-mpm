@@ -64,6 +64,18 @@ from claude_mpm.hooks.transcript_usage import (
     parse_transcript_usage,
 )
 
+# Module-level resolution of the installed claude-mpm version (issue #859).
+# Resolved once at import time so the code path that reads it is explicit and
+# directly patchable in tests (patch commit_cost_tracker._MPM_VERSION).  No
+# circular-import risk: this module is a submodule of claude_mpm, so the package
+# __init__ (which defines __version__) is already fully loaded by the time this
+# import runs.  Any failure degrades to None → the trailer is omitted, never a
+# crash.
+try:
+    from claude_mpm import __version__ as _MPM_VERSION
+except Exception:  # pragma: no cover - defensive
+    _MPM_VERSION = None
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -118,6 +130,12 @@ _COAUTHORED_CANONICAL_RE = re.compile(
 # Matches lines like "X-AI-Tokens-In: 123" or "X-AI-Model: claude-opus-4-8".
 # The pattern anchors at line start (MULTILINE) and matches any content on the
 # line.  Using .*  rather than [^\n]+ to ensure blank-value lines are stripped.
+#
+# NOTE: This regex covers ONLY the X-AI-* trailers.  The other two trailer
+# families this hook manages — X-MPM-Version and Co-Authored-By — are NOT
+# stripped here; they are stripped line-by-line inside amend_commit_message()'s
+# normalisation loop (see the re.match guards there).  All trailer-stripping for
+# idempotent re-amend therefore lives in that loop, not in this regex.
 _XAI_TRAILER_RE = re.compile(r"^X-AI-[A-Za-z-]+:.*$", re.MULTILINE)
 
 # Git trailer key recording the installed claude-mpm version (issue #859).
@@ -492,25 +510,19 @@ def _get_mpm_version() -> str | None:
     never crash the hook: on any failure we return None and the caller omits the
     trailer rather than emitting a malformed line.
 
-    WHAT: Reads ``claude_mpm.__version__`` — the VERSION-file single source of
-    truth for this project (the same source ``cli/startup._get_package_version``
-    uses).  Returns the stripped version string, or None when the import fails
-    or the value is empty.
+    WHAT: Reads the module-level ``_MPM_VERSION`` (resolved once at import time
+    from ``claude_mpm.__version__`` — the VERSION-file single source of truth,
+    the same source ``cli/startup._get_package_version`` uses).  Returns the
+    stripped version string, or None when the value is unset or empty.
 
-    TEST: Patch the resolver to return a known version and assert the trailer
-    equals it; patch it to return None and assert no X-MPM-Version line appears
-    and the hook does not raise.
+    TEST: Patch ``_MPM_VERSION`` to a known value and assert the trailer equals
+    it; patch it to None/empty and assert no X-MPM-Version line appears and the
+    hook does not raise.
 
     :spec: N/A
     """
-    try:
-        from claude_mpm import __version__
-
-        version = (__version__ or "").strip()
-        return version or None
-    except Exception as exc:  # pragma: no cover - defensive
-        _debug(f"_get_mpm_version: could not resolve version: {exc}")
-        return None
+    version = (_MPM_VERSION or "").strip()
+    return version or None
 
 
 def amend_commit_message(commit_sha: str, delta: dict[str, Any], cwd: str) -> None:
