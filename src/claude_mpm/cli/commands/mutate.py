@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ...services.mutation.runner import run_mutation
+from ..parsers.mutate_parser import MutateParser
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -35,6 +36,40 @@ if TYPE_CHECKING:
     from ...services.mutation.runner import MutationResult
 
 logger = logging.getLogger(__name__)
+
+
+def _repo_root() -> Path:
+    """Resolve the git repository root, independent of the current directory.
+
+    WHAT: Run ``git rev-parse --show-toplevel`` and return the resulting path;
+          raise :class:`RuntimeError` if git fails (not a repo / git missing).
+    WHY:  Auto-discovery and test-file inference must anchor to the repo root,
+          not the CWD — agents may invoke the CLI from any subdirectory, and a
+          CWD-relative ``tests/`` search or changed-file existence check would
+          silently miss everything when run from a subdir.
+
+    Returns:
+        Absolute path to the repository root.
+
+    Raises:
+        RuntimeError: If the command is not run inside a git repository.
+
+    :spec: SPEC-MUTATION-02~1
+    """
+    proc = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            "could not resolve the git repository root "
+            f"(git rev-parse failed: {proc.stderr.strip()}); "
+            "claude-mpm mutate must run inside a git repository"
+        )
+    return Path(proc.stdout.strip())
+
 
 # Top-level imports that mark a module as I/O-heavy / infra-bound and therefore
 # a poor mutation-testing candidate (mutants here are dominated by environment,
@@ -130,10 +165,14 @@ def get_changed_files_vs_main(base: str) -> list[Path]:
     """Return source files changed vs ``base`` that exist as ``.py`` under src/.
 
     WHAT: Run ``git diff --name-only <base>...HEAD`` and return the existing
-          ``.py`` paths that live under a ``src/`` component.
+          ``.py`` paths that live under a ``src/`` component. Existence is
+          checked against the git repo root, not the current directory.
     WHY:  Auto-discovery should only consider real, mutatable source files.
           The ``...`` (merge-base) form scopes to changes introduced on this
-          branch. This is the repo's only branch-diff helper — the existing
+          branch. ``git diff`` emits repo-root-relative paths, so the existence
+          check must anchor to the repo root — otherwise it silently drops every
+          file when the CLI is invoked from a subdirectory. This is the repo's
+          only branch-diff helper — the existing
           ``enhanced_analyzer._get_changed_files`` is time-based, not a
           substitute.
 
@@ -141,10 +180,14 @@ def get_changed_files_vs_main(base: str) -> list[Path]:
         base: Base git ref (e.g. ``origin/main``).
 
     Returns:
-        List of changed source ``Path`` objects (may be empty).
+        List of changed source ``Path`` objects (repo-relative, may be empty).
+
+    Raises:
+        RuntimeError: If not run inside a git repository (via :func:`_repo_root`).
 
     :spec: SPEC-MUTATION-02~1
     """
+    root = _repo_root()
     proc = subprocess.run(
         ["git", "diff", "--name-only", f"{base}...HEAD"],
         capture_output=True,
@@ -168,7 +211,7 @@ def get_changed_files_vs_main(base: str) -> list[Path]:
         path = Path(rel)
         if "src" not in path.parts:
             continue
-        if not path.exists():
+        if not (root / path).exists():
             continue
         results.append(path)
     return results
@@ -177,12 +220,14 @@ def get_changed_files_vs_main(base: str) -> list[Path]:
 def infer_tests_file(target: Path) -> tuple[Path | None, str | None]:
     """Infer the unit test file paired with a target module.
 
-    WHAT: Search ``tests/**/test_<stem>.py`` for the target's module stem;
-          return the single match, or ``(None, error)`` when there are zero or
-          multiple matches.
+    WHAT: Search ``<repo-root>/tests/**/test_<stem>.py`` for the target's
+          module stem; return the single match (as a repo-relative path), or
+          ``(None, error)`` when there are zero or multiple matches.
     WHY:  Convenience for the common case (one obvious test file) while
           refusing to guess when ambiguous — an ambiguous guess could mutate
-          against the wrong suite and report a misleading kill rate.
+          against the wrong suite and report a misleading kill rate. The search
+          is anchored to the git repo root, not the CWD, so inference keeps
+          working when the CLI is invoked from a subdirectory.
 
     Args:
         target: The source module whose test file we want.
@@ -190,9 +235,13 @@ def infer_tests_file(target: Path) -> tuple[Path | None, str | None]:
     Returns:
         ``(test_path, None)`` on a unique match, else ``(None, error_message)``.
 
+    Raises:
+        RuntimeError: If not run inside a git repository (via :func:`_repo_root`).
+
     :spec: SPEC-MUTATION-02~1
     """
-    tests_root = Path("tests")
+    root = _repo_root()
+    tests_root = root / "tests"
     if not tests_root.exists():
         return None, (
             "no tests/ directory found; pass --tests-file explicitly "
@@ -200,7 +249,7 @@ def infer_tests_file(target: Path) -> tuple[Path | None, str | None]:
         )
 
     pattern = f"test_{target.stem}.py"
-    matches = sorted(tests_root.rglob(pattern))
+    matches = sorted(m.relative_to(root) for m in tests_root.rglob(pattern))
     if len(matches) == 1:
         return matches[0], None
     if not matches:
@@ -258,28 +307,34 @@ def _render_text(results: list[MutationResult]) -> None:
                 )
 
 
-def _resolve_targets(args: Namespace) -> tuple[list[Path], int]:
+def _resolve_targets(args: Namespace) -> tuple[list[tuple[Path, bool]], int]:
     """Resolve the list of target files to mutate from the parsed args.
 
-    WHAT: Use an explicit ``TARGET`` if given; otherwise auto-discover changed
-          eligible files vs ``--base``, truncated to ``--max-files`` (returning
-          the dropped count so the caller can log the truncation).
+    WHAT: Use an explicit ``TARGET`` if given (flagged ``pre_filtered=False`` so
+          the caller still runs the eligibility gate on it); otherwise
+          auto-discover changed eligible files vs ``--base`` (each flagged
+          ``pre_filtered=True``), truncated to ``--max-files`` (returning the
+          dropped count so the caller can log the truncation).
     WHY:  Auto-discovery must never silently cap — the dropped count is
-          surfaced to the user so they know more candidates existed.
+          surfaced to the user so they know more candidates existed. Returning
+          the ``pre_filtered`` flag lets :func:`manage_mutate` skip a redundant
+          second AST parse on auto-discovered targets (already filtered here)
+          while still gating an explicitly-named ineligible file.
 
     Returns:
-        ``(targets, dropped_count)``.
+        ``(targets, dropped_count)`` where each target is
+        ``(path, pre_filtered)``.
 
     :spec: SPEC-MUTATION-02~1
     """
     if args.target is not None:
-        return [Path(args.target)], 0
+        return [(Path(args.target), False)], 0
 
     changed = get_changed_files_vs_main(args.base)
     eligible = [p for p in changed if is_eligible_for_mutation(p)[0]]
     max_files = args.max_files or 1
     dropped = max(0, len(eligible) - max_files)
-    return eligible[:max_files], dropped
+    return [(p, True) for p in eligible[:max_files]], dropped
 
 
 def manage_mutate(args: Namespace) -> int:
@@ -302,6 +357,13 @@ def manage_mutate(args: Namespace) -> int:
 
     :spec: SPEC-MUTATION-02~1
     """
+    # Validate the parsed args up front (target exists / is .py / under src/,
+    # --max-files >= 1). A validation failure is a usage error, not advisory.
+    validation_error = MutateParser().validate_args(args)
+    if validation_error is not None:
+        print(f"ERROR: {validation_error}")
+        return 2
+
     targets, dropped = _resolve_targets(args)
 
     if dropped:
@@ -319,10 +381,12 @@ def manage_mutate(args: Namespace) -> int:
         return 0
 
     # Eligibility gate (skipped under --force). Ineligible targets are
-    # informational, not errors.
+    # informational, not errors. Auto-discovered targets are already filtered
+    # by _resolve_targets (pre_filtered=True), so we don't re-parse them; only
+    # an explicitly-named target (pre_filtered=False) is checked here.
     runnable: list[Path] = []
-    for target in targets:
-        if args.force:
+    for target, pre_filtered in targets:
+        if args.force or pre_filtered:
             runnable.append(target)
             continue
         eligible, reason = is_eligible_for_mutation(target)
