@@ -1,13 +1,19 @@
 ---
 skill_id: mutation-testing
-skill_version: 0.2.0
+skill_version: 0.3.0
 name: mutation-testing
 when_to_use: when auditing test suite effectiveness on a critical module, evaluating whether green tests actually protect behavior, or deciding whether to invest more in test coverage
 description: Audit whether a test suite actually detects regressions (not just whether it runs) by introducing small code mutations and measuring how many your tests catch. Apply when hardening a critical, logic-dense module's tests, evaluating coverage confidence after a near-miss bug, or deciding if "green tests" really mean "protected behavior". Advisory and on-demand — not a blocking CI gate.
-updated_at: 2026-06-09T00:00:00Z
+updated_at: 2026-06-17T00:00:00Z
 tags: [testing, quality-assurance, mutation-testing, test-effectiveness, advisory]
 effort: high
 ---
+
+<!-- Changelog
+0.3.0 — added mutmut 2.5.1 / Python 3.13 tool-bug workarounds and the
+        `claude-mpm mutate` preferred interface.
+0.2.0 — initial bundled skill.
+-->
 
 # Mutation Testing
 
@@ -222,3 +228,88 @@ the pipeline slow and fragile, and tempts teams to chase an unreachable 100%. In
 - Keep it scoped to high-value pure-logic modules; expand the mutated set one pilot
   at a time.
 - Track kill rate per critical module as a trend, not a gate.
+
+## Tool bugs & workarounds (mutmut 2.5.1 / Python 3.13)
+
+If you run **mutmut 2.5.1 on Python 3.13 manually**, two bugs will bite you. They
+are load-bearing — without the workarounds you cannot read survivors at all:
+
+1. **`mutmut results` crashes** with a pony-orm `QueryResultIterator not
+   iterable` error. Do not call it. Read survivors and counts directly from the
+   `.mutmut-cache` **SQLite database** written at the repo root after a run. Query
+   the `Mutant` table by `status`:
+   - `bad_survived` → the mutant **survived** (a test gap)
+   - `ok_killed` → the mutant was **killed**
+
+   ```sql
+   -- survivor ids (feed each to `mutmut show <id>`)
+   SELECT id FROM Mutant WHERE status = 'bad_survived' ORDER BY id;
+   -- counts
+   SELECT status, COUNT(*) FROM Mutant GROUP BY status;
+   ```
+
+   Guard for a schema change: if the `Mutant` table or its `id`/`status` columns
+   are absent, fail loudly rather than reporting a bogus 100% kill rate.
+
+2. **`mutmut show` accepts only ONE mutant id per call** in 2.5.1. Loop over the
+   survivor ids and call `mutmut show <id>` once per id, parsing each unified diff
+   (`--- file` / `@@ -start,n @@` / `-original` / `+mutant`) for the location and
+   the before/after source.
+
+Scope the run via mutmut **CLI flags** (`--paths-to-mutate`, `--tests-dir`,
+`--runner`) rather than editing `setup.cfg`, and because mutmut mutates source
+**in place**, always restore in a `finally` (`git diff --exit-code -- <target>`
+then `git checkout HEAD -- <target>`) so a crash never leaves a mutant on disk.
+
+## Preferred interface in this project: `claude-mpm mutate`
+
+In **claude-mpm**, do not invoke mutmut by hand — use the `claude-mpm mutate`
+command. It hides every workaround above (SQLite survivor read, per-id
+`mutmut show`, CLI-flag scoping, in-place restore, stale-cache guard) and gates
+targets through an eligibility heuristic (pure-logic modules with a dedicated
+unit test only; I/O-heavy / infra files are skipped).
+
+```bash
+# Auto-discover changed eligible files vs origin/main, structured output:
+claude-mpm mutate --output json
+
+# Mutate one explicit file:
+claude-mpm mutate src/claude_mpm/services/foo.py --output json
+```
+
+It is **advisory by default** (no `--threshold` → always exits 0; survivors are
+signal). Opt into a gate with `--threshold 0` (any survivor fails) or
+`--threshold N` (fails above N).
+
+`--output json` emits a list of structured results an agent can triage directly:
+
+```json
+[
+  {
+    "target_file": "src/claude_mpm/services/foo.py",
+    "tests_file": "tests/services/test_foo.py",
+    "total_mutants": 42,
+    "killed": 38,
+    "survived": 4,
+    "kill_rate": 0.9047619047619048,
+    "survivors": [
+      {
+        "id": 17,
+        "file": "src/claude_mpm/services/foo.py",
+        "line": 88,
+        "original": "if count <= limit:",
+        "mutant": "if count < limit:",
+        "mutation_type": "boundary"
+      }
+    ],
+    "error": null
+  }
+]
+```
+
+Schema — `MutationResult`: `target_file`, `tests_file`, `total_mutants`,
+`killed`, `survived`, `kill_rate` (`killed/total`, `0.0` when empty),
+`survivors[]`, `error` (set only on a genuine mutmut failure — survivors are
+**not** an error). Each `MutantSurvivor`: `id`, `file`, `line`, `original`,
+`mutant`, `mutation_type` (one of `boundary`, `predicate`, `string`, `removal`,
+`arithmetic`, `other`).
