@@ -24,9 +24,11 @@ LINK: none  (feature introduced in this PR, tracked in GitHub issue #853)
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,9 +37,21 @@ logger = logging.getLogger(__name__)
 # Name of the mutmut SQLite cache file (lives at repo root after a run).
 CACHE_FILENAME = ".mutmut-cache"
 
+# A safe pytest ``-k`` expression allowlist: identifiers/whitespace, the boolean
+# keywords and/or/not (as plain words), parentheses, ``.``, ``-`` and ``:``. This
+# deliberately REJECTS every shell metacharacter (``;`` ``&`` ``$`` backtick
+# ``>`` ``<`` a ``|`` pipe, quotes, newlines) because mutmut runs the
+# ``--runner`` string through a shell with exclude_tests embedded into it.
+_SAFE_EXCLUDE_TESTS = re.compile(r"^[\w\s().:-]+$")
+
 # mutmut status strings (confirmed by inspecting a real 2.5.1 cache on Py3.13).
 _STATUS_SURVIVED = "bad_survived"
 _STATUS_KILLED = "ok_killed"
+
+# Tolerance (seconds) subtracted from the run-start timestamp before comparing
+# it to the cache's mtime, to absorb coarse filesystem mtime granularity so a
+# fresh cache written within the same tick is not misread as stale.
+_CACHE_MTIME_TOLERANCE_S = 2.0
 
 
 @dataclass(frozen=True)
@@ -86,9 +100,25 @@ def _build_runner_command(tests_file: Path, exclude_tests: str | None) -> str:
           ``-x`` stops at the first failure (fastest kill detection); ``-q``
           keeps output small. exclude_tests lets callers skip slow/irrelevant
           tests by pattern.
+
+          SECURITY: mutmut runs this string through a shell, so exclude_tests
+          is validated against :data:`_SAFE_EXCLUDE_TESTS` — a strict allowlist
+          of benign pytest ``-k`` tokens (identifiers, whitespace, and/or/not,
+          parens, ``.``, ``-``, ``:``). Any shell metacharacter (``;`` ``&``
+          ``$`` backtick ``>`` ``<`` ``|`` quotes newlines) raises ValueError.
+
+    :raises ValueError: if exclude_tests contains characters outside the safe
+        pytest ``-k`` allowlist (shell-injection guard).
     """
     cmd = f"uv run python -m pytest {tests_file} -p no:xdist -x -q"
     if exclude_tests:
+        if not _SAFE_EXCLUDE_TESTS.fullmatch(exclude_tests):
+            raise ValueError(
+                "exclude_tests contains characters outside the safe pytest "
+                "-k allowlist (identifiers, whitespace, and/or/not, parens, "
+                f"'.', '-', ':'); refusing to embed in shell command: "
+                f"{exclude_tests!r}"
+            )
         cmd += f" -k 'not ({exclude_tests})'"
     return cmd
 
@@ -111,16 +141,15 @@ def _classify_mutation(original: str, mutant: str) -> str:
     if mut in {"", "pass"}:
         return "removal"
 
-    # Compare the symmetric difference of tokens to see what actually changed.
-    changed = f"{orig} {mut}"
-
-    # Boundary: comparison-operator flips (<= >= < >).
-    boundary_ops = ("<=", ">=", "<", ">")
-    if any(op in orig or op in mut for op in boundary_ops) and orig != mut:
-        # Distinguish from arithmetic: only treat as boundary if a comparison
-        # operator is present (arithmetic handled below otherwise).
-        if any(op in changed for op in ("<", ">")):
-            return "boundary"
+    # Boundary: a COMPARISON OPERATOR actually changed between original and
+    # mutant (e.g. ``<``→``<=``, ``>``→``>=``, ``<``→``>``). We compare the
+    # multiset of comparison-operator tokens on each side and only classify
+    # boundary when that multiset differs. Merely *containing* ``<``/``>`` is
+    # not enough — those characters also appear in type subscripts and bit
+    # shifts, and an arithmetic/predicate/string edit on such a line must still
+    # reach its own branch below.
+    if _comparison_operators(orig) != _comparison_operators(mut):
+        return "boundary"
 
     # Predicate: boolean-logic operators.
     for token in ("and", "or", "not"):
@@ -131,11 +160,30 @@ def _classify_mutation(original: str, mutant: str) -> str:
     if ('"' in orig or "'" in orig) and ('"' in mut or "'" in mut):
         return "string"
 
-    # Arithmetic: binary arithmetic operators.
+    # Arithmetic: binary arithmetic operators (checked on the combined pair).
+    changed = f"{orig} {mut}"
     if any(op in changed for op in ("+", "-", "*", "/")):
         return "arithmetic"
 
     return "other"
+
+
+# Comparison operators ordered longest-first so ``<=``/``>=`` are matched before
+# the bare ``<``/``>`` they contain.
+_COMPARISON_OP_RE = re.compile(r"<=|>=|==|!=|<|>")
+
+
+def _comparison_operators(line: str) -> tuple[str, ...]:
+    """Return the ordered tuple of comparison-operator tokens in a source line.
+
+    WHAT: Tokenize ``<= >= == != < >`` occurrences (longest-match first) into a
+          stable ordered tuple.
+    WHY:  :func:`_classify_mutation` compares the operator multiset of original
+          vs mutant; a boundary mutation is exactly one where this tuple
+          *changes*, which avoids false positives from ``<``/``>`` that appear
+          in type subscripts or arithmetic but are not comparison flips.
+    """
+    return tuple(_COMPARISON_OP_RE.findall(line))
 
 
 def _parse_show_diff(
@@ -289,6 +337,14 @@ def _show_survivor(mutant_id: int, repo_root: Path) -> MutantSurvivor | None:
         check=False,
         cwd=str(repo_root),
     )
+    if proc.returncode != 0:
+        logger.warning(
+            "mutmut show id=%s exited non-zero (%s); stderr: %s",
+            mutant_id,
+            proc.returncode,
+            proc.stderr.strip(),
+        )
+        return None
     return _parse_show_diff(mutant_id, proc.stdout, repo_root=repo_root)
 
 
@@ -331,9 +387,15 @@ def _restore_target(target: Path, repo_root: Path) -> None:
 def _repo_root() -> Path:
     """Return the repo root (where ``.mutmut-cache`` lives).
 
-    WHAT: Resolve the git top-level directory.
+    WHAT: Resolve the git top-level directory, raising if git is unavailable.
     WHY:  Everything must run from the repo root because mutmut writes its
-          cache there; we never rely on the caller's cwd.
+          cache there; we never rely on the caller's cwd. The runner REQUIRES
+          git for both the safety-restore (``git checkout HEAD -- <target>``)
+          and cache pathing, so a silent ``Path.cwd()`` fallback would point the
+          cache/restore at the wrong tree. We fail loudly instead.
+
+    :raises RuntimeError: if ``git rev-parse --show-toplevel`` fails (git not
+        installed, or not inside a git work tree).
     """
     proc = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
@@ -343,7 +405,11 @@ def _repo_root() -> Path:
     )
     if proc.returncode == 0 and proc.stdout.strip():
         return Path(proc.stdout.strip())
-    return Path.cwd()
+    raise RuntimeError(
+        "git is required by the mutation runner (for safety-restore and cache "
+        "pathing) but `git rev-parse --show-toplevel` failed "
+        f"(returncode={proc.returncode}); stderr: {proc.stderr.strip()}"
+    )
 
 
 def run_mutation(
@@ -387,7 +453,14 @@ def run_mutation(
     survived = 0
 
     try:
-        # 1. Run mutmut. Non-zero exit means survivors exist — NOT an error.
+        # 1. Capture a run-start timestamp BEFORE invoking mutmut so we can
+        #    detect a stale ``.mutmut-cache`` left by a prior run afterwards.
+        #    The small tolerance absorbs coarse filesystem mtime granularity
+        #    (some filesystems round to whole seconds), avoiding a false stale
+        #    verdict when mutmut writes the cache within the same tick.
+        run_start = time.time() - _CACHE_MTIME_TOLERANCE_S
+
+        # 1b. Run mutmut. Non-zero exit means survivors exist — NOT an error.
         subprocess.run(
             [
                 "uv",
@@ -409,6 +482,28 @@ def run_mutation(
             error = (
                 f"mutmut produced no cache at {cache_path}; mutmut likely "
                 "failed to start (check that target and tests exist)"
+            )
+            return MutationResult(
+                target_file=rel_target,
+                tests_file=rel_tests,
+                total_mutants=0,
+                killed=0,
+                survived=0,
+                kill_rate=0.0,
+                survivors=[],
+                error=error,
+            )
+
+        # 2b. Run-scope guard: the cache must have been (re)written by THIS run.
+        #     A stale cache from a prior run would report counts/survivors for
+        #     the wrong target, so we refuse it rather than return wrong results.
+        cache_mtime = cache_path.stat().st_mtime
+        if cache_mtime < run_start:
+            error = (
+                f"mutmut cache at {cache_path} is stale (mtime {cache_mtime} "
+                f"predates run start {run_start}); a prior run's cache would "
+                "report counts/survivors for the wrong target. Refusing to "
+                "report possibly-wrong results."
             )
             return MutationResult(
                 target_file=rel_target,
