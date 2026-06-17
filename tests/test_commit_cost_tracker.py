@@ -39,7 +39,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.hooks.commit_cost_tracker import (
     _COAUTHORED_CANONICAL,
+    _MPM_VERSION_TRAILER_KEY,
     _append_jsonl_atomic,
+    _get_mpm_version,
     _read_json_safe,
     _write_json_atomic,
     amend_commit_message,
@@ -1388,3 +1390,253 @@ class TestRunAsGitHookWorktreeFallback:
 
         mock_resolve.assert_not_called()
         assert mock_delta.call_args[0][0] == str(project_root)
+
+
+# ---------------------------------------------------------------------------
+# Issue #859: X-MPM-Version trailer — stamped on EVERY commit (incl. zero-delta)
+# ---------------------------------------------------------------------------
+
+_VERSION_RESOLVER = "claude_mpm.hooks.commit_cost_tracker._get_mpm_version"
+
+
+class TestGetMpmVersion:
+    """Tests for the _get_mpm_version() resolver."""
+
+    def test_returns_package_version(self) -> None:
+        """Resolver returns the claude_mpm.__version__ value (stripped)."""
+        with patch("claude_mpm.__version__", "9.9.9"):
+            assert _get_mpm_version() == "9.9.9"
+
+    def test_strips_whitespace(self) -> None:
+        """Surrounding whitespace in the version string is stripped."""
+        with patch("claude_mpm.__version__", "  6.5.44\n"):
+            assert _get_mpm_version() == "6.5.44"
+
+    def test_empty_version_returns_none(self) -> None:
+        """An empty/whitespace version resolves to None (no malformed trailer)."""
+        with patch("claude_mpm.__version__", "   "):
+            assert _get_mpm_version() is None
+
+    def test_import_failure_returns_none(self) -> None:
+        """If reading the version raises, the resolver returns None (no crash)."""
+        # Simulate the version attribute being unavailable: with __version__
+        # removed, the ``from claude_mpm import __version__`` inside
+        # _get_mpm_version raises ImportError, which the resolver swallows → None.
+        import claude_mpm as _pkg
+
+        original = _pkg.__version__
+        try:
+            del _pkg.__version__
+            assert _get_mpm_version() is None
+        finally:
+            _pkg.__version__ = original
+
+
+class TestMpmVersionTrailer:
+    """Verify amend_commit_message stamps X-MPM-Version on every commit (#859)."""
+
+    _DELTA = {
+        "input_tokens": 500,
+        "output_tokens": 100,
+        "models": {},
+    }
+    _ZERO_DELTA = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "models": {},
+    }
+
+    def _make_log_result(self, message: str) -> MagicMock:
+        r = MagicMock()
+        r.returncode = 0
+        r.stdout = message
+        r.stderr = ""
+        return r
+
+    def _make_amend_result(self) -> MagicMock:
+        r = MagicMock()
+        r.returncode = 0
+        r.stdout = ""
+        r.stderr = ""
+        return r
+
+    def _amend_msg(self, mock_run: MagicMock) -> str:
+        """Extract the -m message from the amend (2nd) subprocess call."""
+        amend_call = mock_run.call_args_list[1]
+        argv = amend_call[0][0]
+        return argv[argv.index("-m") + 1]
+
+    def test_version_present_with_token_delta(self) -> None:
+        """X-MPM-Version appears alongside the X-AI-* trailers (non-zero delta)."""
+        with (
+            patch(_VERSION_RESOLVER, return_value="6.5.44"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                self._make_log_result("feat: add something\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._DELTA, "/tmp")
+
+        new_msg = self._amend_msg(mock_run)
+        assert "X-AI-Tokens-In: 500" in new_msg
+        assert "X-MPM-Version: 6.5.44" in new_msg
+        # Placement: version trailer comes after the token trailers.
+        assert new_msg.index("X-AI-Tokens-In") < new_msg.index("X-MPM-Version")
+
+    def test_version_present_when_delta_is_zero(self) -> None:
+        """THE KEY BEHAVIOR (#859): zero-delta commit is still version-stamped.
+
+        Even though X-AI-Tokens-In / X-AI-Tokens-Out are omitted for a 0/0
+        delta, X-MPM-Version must still be present.
+        """
+        with (
+            patch(_VERSION_RESOLVER, return_value="6.5.44"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                self._make_log_result("chore: no-op change\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._ZERO_DELTA, "/tmp")
+
+        new_msg = self._amend_msg(mock_run)
+        assert "X-AI-Tokens-In:" not in new_msg, "token trailers omitted on 0 delta"
+        assert "X-AI-Tokens-Out:" not in new_msg
+        assert "X-MPM-Version: 6.5.44" in new_msg, (
+            "X-MPM-Version must be stamped even when the token delta is 0/0"
+        )
+        # Co-Authored-By must still be present too.
+        assert _COAUTHORED_CANONICAL in new_msg
+
+    def test_version_value_equals_resolved_version(self) -> None:
+        """The trailer value equals whatever the resolver returns (mocked)."""
+        with (
+            patch(_VERSION_RESOLVER, return_value="1.2.3-rc1"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                self._make_log_result("fix: bug\n"),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._ZERO_DELTA, "/tmp")
+
+        new_msg = self._amend_msg(mock_run)
+        assert f"{_MPM_VERSION_TRAILER_KEY}: 1.2.3-rc1" in new_msg
+
+    def test_version_not_duplicated_on_reamend(self) -> None:
+        """Idempotency: a message already carrying X-MPM-Version is not doubled."""
+        original = f"feat: thing\n\n{_COAUTHORED_CANONICAL}\nX-MPM-Version: 6.5.44\n"
+        with (
+            patch(_VERSION_RESOLVER, return_value="6.5.44"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                self._make_log_result(original),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._ZERO_DELTA, "/tmp")
+
+        new_msg = self._amend_msg(mock_run)
+        assert new_msg.count("X-MPM-Version:") == 1, (
+            "X-MPM-Version must appear exactly once after re-amend"
+        )
+
+    def test_stale_version_replaced_on_reamend(self) -> None:
+        """Idempotency: an old version value is replaced, not kept alongside."""
+        original = "feat: thing\n\nX-MPM-Version: 6.0.0\n"
+        with (
+            patch(_VERSION_RESOLVER, return_value="6.5.44"),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                self._make_log_result(original),
+                self._make_amend_result(),
+            ]
+            amend_commit_message("abc1234", self._ZERO_DELTA, "/tmp")
+
+        new_msg = self._amend_msg(mock_run)
+        assert "X-MPM-Version: 6.0.0" not in new_msg, "stale version must be removed"
+        assert "X-MPM-Version: 6.5.44" in new_msg
+        assert new_msg.count("X-MPM-Version:") == 1
+
+    def test_version_resolution_failure_omits_trailer(self) -> None:
+        """Graceful degradation: resolver returns None → no trailer, no crash."""
+        with (
+            patch(_VERSION_RESOLVER, return_value=None),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                self._make_log_result("docs: update\n"),
+                self._make_amend_result(),
+            ]
+            # Must not raise.
+            amend_commit_message("abc1234", self._ZERO_DELTA, "/tmp")
+
+        new_msg = self._amend_msg(mock_run)
+        assert "X-MPM-Version" not in new_msg, (
+            "no X-MPM-Version line when the version cannot be resolved"
+        )
+        # And no malformed (value-less) trailer either.
+        assert "X-MPM-Version:" not in new_msg
+
+    def test_trailer_is_git_interpret_parseable(self, tmp_path: Path) -> None:
+        """Integration: the stamped trailer is recognised by git interpret-trailers.
+
+        Builds the amended message via a real (non-mocked) git repo so we prove
+        end-to-end that a zero-delta commit gets X-MPM-Version and that
+        ``git interpret-trailers --parse`` recognises it as a trailer.
+        """
+        import subprocess as real_subprocess
+
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        env = {
+            **os.environ,
+            "GIT_AUTHOR_NAME": "t",
+            "GIT_AUTHOR_EMAIL": "t@e.x",
+            "GIT_COMMITTER_NAME": "t",
+            "GIT_COMMITTER_EMAIL": "t@e.x",
+            # Prevent our own post-commit hook from re-entering during the amend.
+            "CLAUDE_MPM_COMMIT_COST_RUNNING": "1",
+        }
+
+        def _git(*args: str) -> real_subprocess.CompletedProcess:
+            return real_subprocess.run(
+                ["git", *args],
+                cwd=str(repo),
+                capture_output=True,
+                text=True,
+                env=env,
+                check=True,
+            )
+
+        _git("init", "-q")
+        (repo / "f.txt").write_text("hello\n")
+        _git("add", "f.txt")
+        _git("commit", "-q", "-m", "chore: initial")
+
+        sha = _git("rev-parse", "--short", "HEAD").stdout.strip()
+
+        with patch(_VERSION_RESOLVER, return_value="6.5.44"):
+            amend_commit_message(sha, self._ZERO_DELTA, str(repo))
+
+        amended = _git("log", "-1", "--format=%B").stdout
+        assert "X-MPM-Version: 6.5.44" in amended
+
+        parsed = real_subprocess.run(
+            ["git", "interpret-trailers", "--parse"],
+            input=amended,
+            cwd=str(repo),
+            capture_output=True,
+            text=True,
+            env=env,
+            check=True,
+        )
+        # The parsed trailer block must contain our key as Key: Value.
+        assert "X-MPM-Version: 6.5.44" in parsed.stdout, (
+            "git interpret-trailers must recognise X-MPM-Version as a valid trailer; "
+            f"parsed output:\n{parsed.stdout!r}"
+        )
