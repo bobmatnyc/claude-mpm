@@ -1648,6 +1648,16 @@ class TestMpmVersionTrailer:
             )
 
         _git("init", "-q")
+        # Configure a LOCAL git identity on the temp repo itself.  The test's
+        # _git() helper passes GIT_AUTHOR_*/GIT_COMMITTER_* via ``env``, but the
+        # production amend_commit_message() shells out to ``git commit --amend``
+        # with the inherited process environment (no GIT_COMMITTER_* set).  On CI
+        # runners there is no global/system git identity, so that amend fails with
+        # "fatal: empty ident name (...) not allowed" and the X-MPM-Version trailer
+        # is never written.  A repo-local identity makes the amend deterministic
+        # regardless of the runner's global git config.
+        _git("config", "user.email", "test@example.com")
+        _git("config", "user.name", "Test User")
         (repo / "f.txt").write_text("hello\n")
         _git("add", "f.txt")
         _git("commit", "-q", "-m", "chore: initial")
