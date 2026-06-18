@@ -11,12 +11,15 @@ The fix replaces the literal with a ``{{trusty_search_index}}`` placeholder in
 the source PM_INSTRUCTIONS.md and resolves it per-project in
 ``SystemInstructionsDeployer`` with precedence:
   1. ``trusty_search.index_id`` from ``.claude-mpm/configuration.yaml`` if set;
-  2. otherwise the working-directory basename.
+  2. otherwise the working-directory basename;
+  3. finally the ``"default"`` sentinel when neither yields a non-blank name.
 
 These tests assert that:
   (a) an explicit config override is honoured;
   (b) the directory basename is used when no config is present;
-  (c) the ``{{trusty_search_index}}`` placeholder never leaks into the output.
+  (c) the ``{{trusty_search_index}}`` placeholder never leaks into the output;
+  (d) an empty/whitespace working-directory basename falls back to ``"default"``
+      so the deployed file never renders an empty ``index:`` value.
 """
 
 import logging
@@ -177,6 +180,7 @@ class TestResolveTrustySearchIndexUnit:
 
     def test_resolver_prefers_config_override(self, tmp_path: Path) -> None:
         working_dir = tmp_path / "proj"
+        working_dir.mkdir()
         (working_dir / ".claude-mpm").mkdir(parents=True)
         (working_dir / ".claude-mpm" / "configuration.yaml").write_text(
             "trusty_search:\n  index_id: custom-index\n",
@@ -208,3 +212,28 @@ class TestResolveTrustySearchIndexUnit:
         working_dir.mkdir()
         text = "no placeholder here"
         assert self._deployer(working_dir)._apply_template_substitutions(text) == text
+
+    def test_resolver_falls_back_to_default_for_empty_dir_name(self) -> None:
+        """An empty working-directory basename (e.g. ``Path('/')``) resolves to
+        the ``"default"`` sentinel rather than an empty string.
+
+        Uses ``Path('/')`` directly: ``Path('/').name == ''``. No filesystem
+        writes occur (the resolver only reads ``.name`` after the config lookup
+        misses), so this stays isolated from the real root directory.
+        """
+        deployer = self._deployer(Path("/"))
+        assert Path("/").name == ""  # guards the precondition this test relies on
+        assert deployer._resolve_trusty_search_index() == "default"
+
+    def test_substitution_renders_default_for_empty_dir_name(self) -> None:
+        """End-to-end of the substitution: an empty basename must produce
+        ``index: default`` in the output — never ``index: `` (empty value) and
+        never a leaked ``{{trusty_search_index}}`` placeholder.
+        """
+        deployer = self._deployer(Path("/"))
+        rendered = deployer._apply_template_substitutions(
+            "- **trusty-search** (index: {{trusty_search_index}})\n"
+        )
+        assert "index: default" in rendered
+        assert "{{trusty_search_index}}" not in rendered
+        assert "index: )" not in rendered  # no empty value leaked
