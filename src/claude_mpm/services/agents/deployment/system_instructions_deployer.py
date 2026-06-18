@@ -49,15 +49,20 @@ class SystemInstructionsDeployer:
               Precedence: (1) ``trusty_search.index_id`` from the project's
               ``.claude-mpm/configuration.yaml`` if set; (2) otherwise the
               working-directory basename (``self.working_directory.name``), which
-              is the same default trusty-search itself uses for an unnamed index.
+              is the same default trusty-search itself uses for an unnamed index;
+              (3) finally the sentinel ``"default"`` when neither yields a
+              non-blank name (e.g. ``Path('/')`` has an empty ``.name``).
         WHY:  The index name was previously hardcoded to ``claude-mpm`` in
               PM_INSTRUCTIONS.md and composed verbatim into every project's
               deployed prompt, so agents in ANY project were told to search the
               ``claude-mpm`` index (GitHub issue #872). Resolving per-project
-              points each project's PM at its own index.
+              points each project's PM at its own index. The ``"default"``
+              sentinel guards against deploying an empty ``index:`` value when
+              the working directory has no basename.
 
         Never raises: a missing/unreadable/malformed configuration.yaml falls
-        back to the directory basename.
+        back to the directory basename, and an empty basename falls back to the
+        ``"default"`` sentinel.
 
         :spec: SPEC-AGENTS-07~1
         """
@@ -77,7 +82,9 @@ class SystemInstructionsDeployer:
             # Missing file, unreadable, parse error, or yaml unavailable — fall
             # through to the directory-basename default below.
             pass
-        return self.working_directory.name
+        # Final guard: an empty/whitespace basename (e.g. Path('/').name == '')
+        # would render `index: ` with no value, so fall back to a safe sentinel.
+        return self.working_directory.name.strip() or "default"
 
     def _apply_template_substitutions(self, text: str) -> str:
         """Substitute ``{{...}}`` placeholders in merged system-instruction text.
@@ -94,9 +101,10 @@ class SystemInstructionsDeployer:
         """
         if "{{trusty_search_index}}" not in text:
             return text
-        return text.replace(
-            "{{trusty_search_index}}", self._resolve_trusty_search_index()
-        )
+        # Resolve once into a local so adding more placeholders later does not
+        # re-read configuration.yaml per placeholder.
+        index = self._resolve_trusty_search_index()
+        return text.replace("{{trusty_search_index}}", index)
 
     def _detect_stale_override(self, block_name: str, content: str) -> bool:
         """Detect if an override file contains content from other blocks.
