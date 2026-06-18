@@ -342,18 +342,35 @@ class TestTwoPhaseProgressBars:
         # skill_filter is passed (may be a set or None)
         assert "skill_filter" in call_args[1]
 
+    @patch("claude_mpm.services.skills.selective_skill_deployer.get_skills_to_deploy")
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.get_required_skills_from_agents"
+    )
     @patch("claude_mpm.utils.progress.ProgressBar")
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
     @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
     def test_no_deploy_when_no_sync_results(
-        self, mock_config_class, mock_manager_class, mock_progress_class
+        self,
+        mock_config_class,
+        mock_manager_class,
+        mock_progress_class,
+        mock_required_skills,
+        mock_skills_to_deploy,
     ):
-        """Test that deployment is always called (even with no sync updates).
+        """Test that deploy_skills is skipped when there are no skills to deploy.
 
-        NOTE: The implementation was updated to ALWAYS call deploy_skills after sync,
-        regardless of how many sources were synced. This ensures stale skills are
-        cleaned up and previously cached skills are deployed consistently.
-        deploy_skills IS called even when synced_count=0 and total_files_updated=0.
+        The implementation gates deployment on ``skill_count > 0`` where
+        ``skill_count = len(skills_to_deploy) if skills_to_deploy else
+        total_skill_count`` (see ``sync_remote_skills_on_startup`` in
+        ``cli/startup.py``). When skill resolution yields nothing AND the manager
+        reports zero available skills, ``skill_count == 0`` and ``deploy_skills``
+        is NOT called.
+
+        This test fully mocks the skill-resolution inputs
+        (``get_required_skills_from_agents``, ``get_skills_to_deploy``, and
+        ``manager.get_all_skills``) so the no-skills scenario is deterministic and
+        does not depend on the real filesystem ``.claude/agents/`` directory or a
+        project ``configuration.yaml``.
         """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
@@ -366,7 +383,14 @@ class TestTwoPhaseProgressBars:
         mock_config.get_enabled_sources.return_value = [mock_source]
         mock_config_class.return_value = mock_config
 
-        # Mock manager with no sync results
+        # Deterministically force the no-skills scenario:
+        #   - no agent-referenced skills
+        #   - no resolved skills to deploy
+        #   - no available skills from the manager (total_skill_count == 0)
+        mock_required_skills.return_value = set()
+        mock_skills_to_deploy.return_value = ([], "no skills configured")
+
+        # Mock manager with no sync results and no available skills
         mock_manager = MagicMock()
         mock_manager._discover_repository_files_via_tree_api.return_value = []
         mock_manager.sync_all_sources.return_value = {
@@ -375,13 +399,8 @@ class TestTwoPhaseProgressBars:
             "total_files_updated": 0,
             "total_files_cached": 0,
         }
-        mock_manager.deploy_skills.return_value = {
-            "deployed_count": 0,
-            "skipped_count": 0,
-            "filtered_count": 0,
-            "removed_count": 0,
-            "errors": [],
-        }
+        # No available skills -> total_skill_count == 0 -> skill_count == 0
+        mock_manager.get_all_skills.return_value = []
         mock_manager_class.return_value = mock_manager
 
         # Mock progress bar
@@ -391,7 +410,80 @@ class TestTwoPhaseProgressBars:
         # Call function
         sync_remote_skills_on_startup()
 
-        # Verify deploy_skills IS called (new behavior: always deploy after sync)
+        # Verify deploy_skills is NOT called (gated: skip when skill_count == 0)
+        mock_manager.deploy_skills.assert_not_called()
+
+        # Verify sync was performed
+        mock_manager.sync_all_sources.assert_called_once()
+
+    @patch("claude_mpm.services.skills.selective_skill_deployer.get_skills_to_deploy")
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.get_required_skills_from_agents"
+    )
+    @patch("claude_mpm.utils.progress.ProgressBar")
+    @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
+    @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
+    def test_deploy_when_skills_present(
+        self,
+        mock_config_class,
+        mock_manager_class,
+        mock_progress_class,
+        mock_required_skills,
+        mock_skills_to_deploy,
+    ):
+        """Test that deploy_skills IS called when there are skills to deploy.
+
+        Positive-path counterpart to ``test_no_deploy_when_no_sync_results``: when
+        skill resolution yields a non-empty list, ``skill_count > 0`` and the
+        gate opens, so ``deploy_skills`` is invoked exactly once. Skill resolution
+        is fully mocked to keep the test independent of real filesystem state.
+        """
+        from claude_mpm.cli.startup import sync_remote_skills_on_startup
+
+        # Mock configuration
+        mock_config = MagicMock()
+        mock_source = MagicMock()
+        mock_source.id = "system"
+        mock_source.url = "https://github.com/bobmatnyc/claude-mpm-skills"
+        mock_source.branch = "main"
+        mock_config.get_enabled_sources.return_value = [mock_source]
+        mock_config_class.return_value = mock_config
+
+        # Deterministically force the skills-present scenario:
+        #   - one agent-referenced skill resolves to one skill to deploy
+        mock_required_skills.return_value = {"skill1"}
+        mock_skills_to_deploy.return_value = (["skill1"], "agent_referenced")
+
+        # Mock manager with no sync updates but available/resolved skills
+        mock_manager = MagicMock()
+        mock_manager._discover_repository_files_via_tree_api.return_value = []
+        mock_manager.sync_all_sources.return_value = {
+            "synced_count": 0,
+            "failed_count": 0,
+            "total_files_updated": 0,
+            "total_files_cached": 0,
+        }
+        mock_manager.get_all_skills.return_value = [
+            {"name": "skill1", "deployment_name": "skill1"}
+        ]
+        mock_manager.deploy_skills.return_value = {
+            "deployed_count": 1,
+            "skipped_count": 0,
+            "filtered_count": 0,
+            "removed_count": 0,
+            "errors": [],
+        }
+        mock_manager_class.return_value = mock_manager
+
+        # Mock progress bars (sync + deploy)
+        sync_progress = MagicMock()
+        deploy_progress = MagicMock()
+        mock_progress_class.side_effect = [sync_progress, deploy_progress]
+
+        # Call function
+        sync_remote_skills_on_startup()
+
+        # Verify deploy_skills IS called (gated: deploy when skill_count > 0)
         mock_manager.deploy_skills.assert_called_once()
 
         # Verify sync was performed
