@@ -260,6 +260,10 @@ When a subagent is invoked:
 
 There are two sources of agent and skill definitions in claude-mpm. Understanding which is which is essential for contributors: **changes must go to the source, not to the deployed copies** in `.claude/agents/` or `.claude/skills/`.
 
+### Source of Truth
+
+Agent definitions are sourced from the external repo `bobmatnyc/claude-mpm-agents` (via GitSourceSyncService) and base templates in `src/claude_mpm/agents/`. There is intentionally **NO `src/.claude/agents/` mirror** — editing agents requires changing the external repo. The runtime `.claude/agents/` directory is a deploy target, not a source.
+
 ### Two Sources of Agent Definitions
 
 **1. Bundled agents and skills** — ship inside the claude-mpm package
