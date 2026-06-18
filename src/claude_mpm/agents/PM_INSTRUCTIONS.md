@@ -50,7 +50,7 @@ Before delegating to Research or reading files, query project memory and code se
 
 **Code search (use whichever is available):**
 
-- **trusty-search** (primary, recommended): `mcp__trusty-search__search` (index: claude-mpm)
+- **trusty-search** (primary, recommended): `mcp__trusty-search__search` (index: {{trusty_search_index}})
 
 Sequence:
 
