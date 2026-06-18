@@ -41,6 +41,63 @@ class SystemInstructionsDeployer:
         self.logger = logger
         self.working_directory = working_directory
 
+    def _resolve_trusty_search_index(self) -> str:
+        """Resolve the per-project trusty-search index name.
+
+        WHAT: Returns the index id to substitute into the
+              ``{{trusty_search_index}}`` placeholder in PM_INSTRUCTIONS.md.
+              Precedence: (1) ``trusty_search.index_id`` from the project's
+              ``.claude-mpm/configuration.yaml`` if set; (2) otherwise the
+              working-directory basename (``self.working_directory.name``), which
+              is the same default trusty-search itself uses for an unnamed index.
+        WHY:  The index name was previously hardcoded to ``claude-mpm`` in
+              PM_INSTRUCTIONS.md and composed verbatim into every project's
+              deployed prompt, so agents in ANY project were told to search the
+              ``claude-mpm`` index (GitHub issue #872). Resolving per-project
+              points each project's PM at its own index.
+
+        Never raises: a missing/unreadable/malformed configuration.yaml falls
+        back to the directory basename.
+
+        :spec: SPEC-AGENTS-07~1
+        """
+        config_path = self.working_directory / ".claude-mpm" / "configuration.yaml"
+        try:
+            import yaml
+
+            with config_path.open(encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            if isinstance(data, dict):
+                section = data.get("trusty_search", {})
+                if isinstance(section, dict):
+                    override = section.get("index_id")
+                    if isinstance(override, str) and override.strip():
+                        return override.strip()
+        except Exception:
+            # Missing file, unreadable, parse error, or yaml unavailable — fall
+            # through to the directory-basename default below.
+            pass
+        return self.working_directory.name
+
+    def _apply_template_substitutions(self, text: str) -> str:
+        """Substitute ``{{...}}`` placeholders in merged system-instruction text.
+
+        WHAT: Replaces the ``{{trusty_search_index}}`` placeholder with the
+              per-project index resolved by :meth:`_resolve_trusty_search_index`.
+              Idempotent and a no-op when the placeholder is absent.
+        WHY:  Centralizing the substitution over the fully merged content (rather
+              than per-block) means the placeholder works regardless of which
+              block contains it, and keeps the deployed
+              ``PM_INSTRUCTIONS_DEPLOYED.md`` free of leaked ``{{...}}`` tokens.
+
+        :spec: SPEC-AGENTS-07~1
+        """
+        if "{{trusty_search_index}}" not in text:
+            return text
+        return text.replace(
+            "{{trusty_search_index}}", self._resolve_trusty_search_index()
+        )
+
     def _detect_stale_override(self, block_name: str, content: str) -> bool:
         """Detect if an override file contains content from other blocks.
 
@@ -511,7 +568,8 @@ class SystemInstructionsDeployer:
             header = BANNER_DEPLOYED
             if version_tag:
                 header = f"{header}{version_tag}\n\n"
-            target_file.write_text(header + "\n\n".join(merged_content))
+            body = self._apply_template_substitutions("\n\n".join(merged_content))
+            target_file.write_text(header + body)
 
             source_desc = ", ".join(str(p) for p in watched_paths if p.exists())
             deployment_info = {
