@@ -42,6 +42,23 @@ For substantive work (feature / fix / refactor), **create or reference a GitHub 
 
 PRs MUST be merged using the **squash-merge** strategy (one clean commit on `main` per PR). **Delete the feature branch immediately after the squash-merge.** Do not use merge commits or rebase-merge for these PRs.
 
+### Normalize Trailers on Squash-Merge (issue #863)
+
+Squash-merge concatenates every branch commit's body into one message, which buries each interior commit's git trailer block as mid-body prose — so only the LAST commit's `X-AI-*` / `X-MPM-Version` trailers stay parseable by `git interpret-trailers --parse` on `main`. To keep token/model/version provenance intact, generate an aggregated trailer block and squash-merge with it:
+
+```bash
+# Compose the normalized squash body (sums tokens, unions models, latest version).
+python scripts/squash_merge_trailers.py --pr <PR> --body-file /tmp/squash-body.txt
+
+# Squash-merge with the normalized body and delete the branch.
+gh pr merge <PR> --squash \
+  --subject "feat: clean squash subject (#<PR>)" \
+  --body-file /tmp/squash-body.txt \
+  --delete-branch
+```
+
+The script is side-effect free (it never merges). See `docs/developer/squash-merge-trailers.md`. Verify after merge: `git log -1 --format=%B main | git interpret-trailers --parse`.
+
 ### Trivial-Work Exemption (Issue Optional)
 
 Trivial work (docs / chore / typo) may **skip the issue**, but still REQUIRES a branch + PR + squash-merge. Never commit trivial work directly to `main`.
