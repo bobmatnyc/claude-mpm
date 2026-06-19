@@ -1,9 +1,6 @@
 """Test dynamic agent name registry refresh."""
 
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 from claude_mpm.core.agent_name_registry import (
     AGENT_NAME_MAP,
@@ -11,6 +8,14 @@ from claude_mpm.core.agent_name_registry import (
     get_agent_name_map,
     invalidate_cache,
 )
+
+# Stable discovery result used to hermetically test name assertions.
+# Mirrors the canonical real-user.md frontmatter (name: Real User) so
+# that the test is not sensitive to what is or is not deployed on disk
+# during the test run.
+_STABLE_DISCOVERED: dict[str, str] = {
+    "real-user": "Real User",
+}
 
 
 class TestAgentNameRegistry:
@@ -56,14 +61,28 @@ class TestAgentNameRegistry:
         frontmatter ``name:`` field is the raw lowercase id (e.g.
         ``nestjs-engineer``), which diverges from the registry display name
         (``NestJS Engineer``) and is therefore not a stable assertion target.
+
+        Isolation: ``_discover_agents_from_paths`` is patched with a stable
+        dict so this test does not depend on the real ``.claude/agents/``
+        directory or ``~/.claude-mpm/cache/agents/``.  Without this patch,
+        a sibling test that writes a ``real-user.md`` with
+        ``name: real-user`` into any directory on the search path would
+        pollute the module-level cache and cause this assertion to fail
+        under ``pytest -n auto``.
         """
-        name_map = get_agent_name_map()
         non_conforming = {
             "real-user": "Real User",
         }
+        with patch(
+            "claude_mpm.core.agent_name_registry._discover_agents_from_paths",
+            return_value=_STABLE_DISCOVERED,
+        ):
+            invalidate_cache()
+            name_map = get_agent_name_map()
+
         for agent_id, expected_name in non_conforming.items():
-            if agent_id in name_map:
-                assert name_map[agent_id] == expected_name, (
-                    f"Non-conforming name for '{agent_id}': "
-                    f"expected '{expected_name}', got '{name_map[agent_id]}'"
-                )
+            assert agent_id in name_map, f"Agent '{agent_id}' missing from name map"
+            assert name_map[agent_id] == expected_name, (
+                f"Non-conforming name for '{agent_id}': "
+                f"expected '{expected_name}', got '{name_map[agent_id]}'"
+            )
