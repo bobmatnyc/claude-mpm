@@ -73,12 +73,17 @@ class TestAgentNameRegistry:
         non_conforming = {
             "real-user": "Real User",
         }
-        with patch(
-            "claude_mpm.core.agent_name_registry._discover_agents_from_paths",
-            return_value=_STABLE_DISCOVERED,
-        ):
+        try:
+            with patch(
+                "claude_mpm.core.agent_name_registry._discover_agents_from_paths",
+                return_value=_STABLE_DISCOVERED,
+            ):
+                invalidate_cache()
+                name_map = get_agent_name_map()
+        finally:
+            # Reset module-level cache so patched data never leaks to
+            # subsequent tests, regardless of pass/fail outcome.
             invalidate_cache()
-            name_map = get_agent_name_map()
 
         for agent_id, expected_name in non_conforming.items():
             assert agent_id in name_map, f"Agent '{agent_id}' missing from name map"
