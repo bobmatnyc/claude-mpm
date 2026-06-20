@@ -995,10 +995,39 @@ release-major: release-check release-test download-ztk ## Create a major release
 	@echo "$(GREEN)✓ Major release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
 
-# Compile per-minor release notes from CHANGELOG
-compile-release-notes: ## Compile per-minor release notes from CHANGELOG
-	@mkdir -p dist docs/releases
+# Compile per-minor release notes from CHANGELOG and auto-commit the artefacts.
+#
+# This target is called by release-patch/minor/major immediately after `cz bump`.
+# It performs three steps so that release-build (which checks for a clean working
+# tree via pre-publish) does not see uncommitted changes:
+#
+#  1. Run the Python script — writes docs/releases/vX.Y.md (the per-minor doc)
+#     and build/release-notes-latest.md (for gh release create).
+#  2. Commit docs/releases/vX.Y.md  ("docs: add vX.Y.Z release notes …")
+#  3. Run `uv lock` to sync uv.lock after pyproject.toml was version-bumped,
+#     then commit uv.lock  ("chore: update uv.lock for vX.Y.Z release")
+#
+# Two commits are created to honour the ONE-FILE-PER-COMMIT convention.
+# build/release-notes-latest.md is intentionally NOT committed — it is a
+# build artefact consumed only by `gh release create`.
+compile-release-notes: ## Compile per-minor release notes from CHANGELOG (auto-commits docs + uv.lock)
+	@mkdir -p docs/releases
 	@uv run python scripts/compile_release_notes.py
+	@VERSION=$$(cat VERSION); \
+	MINOR_DOC="docs/releases/v$$(echo $$VERSION | cut -d. -f1,2).md"; \
+	echo "$(YELLOW)Committing $$MINOR_DOC ...$(NC)"; \
+	git add "$$MINOR_DOC"; \
+	git commit -m "docs: add v$$VERSION release notes to v$$(echo $$VERSION | cut -d. -f1,2) series"
+	@VERSION=$$(cat VERSION); \
+	echo "$(YELLOW)Syncing uv.lock after version bump to v$$VERSION ...$(NC)"; \
+	uv lock; \
+	if git diff --quiet -- uv.lock; then \
+		echo "$(GREEN)✓ uv.lock unchanged — no commit needed$(NC)"; \
+	else \
+		git add uv.lock; \
+		git commit -m "chore: update uv.lock for v$$VERSION release"; \
+		echo "$(GREEN)✓ uv.lock committed$(NC)"; \
+	fi
 
 # ============================================================================
 # Publishing Workflow
@@ -1136,7 +1165,10 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@# Attach ONLY the sdist tarball, never the local py3-none-any wheel: that
 	@# wheel bundles only this host's ztk binary and would mislead users on other
 	@# platforms. The per-platform wheels live on PyPI (published by CI).
-	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
+	@# docs/releases/release-notes-latest.md is written by compile-release-notes into
+	@# docs/releases/ (not dist/ or build/) so it survives `rm -rf dist/ build/` in
+	@# release-build and is available here.
+	@test -f docs/releases/release-notes-latest.md || (echo "ERROR: docs/releases/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then \
@@ -1150,7 +1182,7 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
-		--notes-file dist/release-notes-latest.md \
+		--notes-file docs/releases/release-notes-latest.md \
 		"$$SDIST" || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
@@ -1254,7 +1286,7 @@ release-publish-current: ## Publish current built version
 		echo "$(YELLOW)⚠ npm not found, skipping npm publish$(NC)"; \
 	fi
 	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
-	@test -f dist/release-notes-latest.md || (echo "ERROR: dist/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
+	@test -f docs/releases/release-notes-latest.md || (echo "ERROR: docs/releases/release-notes-latest.md missing — run make compile-release-notes first" && exit 1)
 	@VERSION=$$(cat VERSION); \
 	SDIST="dist/claude_mpm-$$VERSION.tar.gz"; \
 	if [ ! -f "$$SDIST" ]; then \
@@ -1264,7 +1296,7 @@ release-publish-current: ## Publish current built version
 	fi; \
 	gh release create "v$$VERSION" \
 		--title "Claude MPM v$$VERSION" \
-		--notes-file dist/release-notes-latest.md \
+		--notes-file docs/releases/release-notes-latest.md \
 		"$$SDIST" || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
 	@echo "$(GREEN)✓ GitHub release created$(NC)"
 	@$(MAKE) release-verify
