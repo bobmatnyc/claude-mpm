@@ -6,7 +6,9 @@ Called automatically by `make compile-release-notes` after `cz bump`.
 Behaviour:
 - Minor release (X.Y.0): creates docs/releases/vX.Y.md
 - Patch release (X.Y.Z, Z>0): appends ### vX.Y.Z section to docs/releases/vX.Y.md
-- Always writes dist/release-notes-latest.md for gh release create --notes-file
+- Always writes docs/releases/release-notes-latest.md for gh release create --notes-file
+  (written to docs/releases/ not dist/ so it survives the dist/ + build/ clean in
+  release-build and is available when release-publish runs gh release create)
 """
 
 from __future__ import annotations
@@ -172,8 +174,11 @@ def main() -> int:
 
     # 3. Determine paths
     minor_doc = repo_root / "docs" / "releases" / f"v{major}.{minor}.md"
-    dist_dir = repo_root / "dist"
-    dist_file = dist_dir / "release-notes-latest.md"
+    # Write release-notes-latest.md alongside the versioned minor doc rather than
+    # in dist/ or build/ — docs/releases/ is never wiped by the release-build clean
+    # (`rm -rf dist/ build/`), so this file is available when release-publish calls
+    # `gh release create --notes-file`.
+    notes_file = repo_root / "docs" / "releases" / "release-notes-latest.md"
 
     # 4. Build the section text that will appear in the minor doc
     section_text = f"## v{version} ({date_str})\n\n{normalised_body}"
@@ -195,7 +200,7 @@ def main() -> int:
                     f"NOTE: v{version} already present in {minor_doc.relative_to(repo_root)}; skipping prepend.",
                     file=sys.stderr,
                 )
-                # Still fall through to write dist/release-notes-latest.md below
+                # Still fall through to write docs/releases/release-notes-latest.md below
             else:
                 # Insert after the first `# ` heading line so newest patches appear at top
                 title_match = re.match(r"(# [^\n]+\n)", existing)
@@ -220,9 +225,12 @@ def main() -> int:
             )
         print(f"Updated {minor_doc.relative_to(repo_root)} (newest-first)")
 
-    # 6. Always write dist/release-notes-latest.md
-    _write_file(dist_file, section_text + "\n")
-    print(f"Wrote {dist_file.relative_to(repo_root)}")
+    # 6. Always write docs/releases/release-notes-latest.md
+    # docs/releases/ is never cleaned by the release-build `rm -rf dist/ build/`,
+    # so this file survives the uv-build step and is available for `gh release create`.
+    # It is intentionally NOT committed — it is a transient build artefact.
+    _write_file(notes_file, section_text + "\n")
+    print(f"Wrote {notes_file.relative_to(repo_root)}")
 
     return 0
 
