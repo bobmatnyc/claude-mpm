@@ -1013,12 +1013,13 @@ release-major: release-check release-test download-ztk ## Create a major release
 compile-release-notes: ## Compile per-minor release notes from CHANGELOG (auto-commits docs + uv.lock)
 	@mkdir -p docs/releases
 	@uv run python scripts/compile_release_notes.py
-	@VERSION=$$(cat VERSION); \
+	@VERSION=$$(cat VERSION | tr -d '[:space:]'); \
 	MINOR_DOC="docs/releases/v$$(echo $$VERSION | cut -d. -f1,2).md"; \
 	echo "$(YELLOW)Committing $$MINOR_DOC ...$(NC)"; \
+	git check-ignore -q docs/releases/release-notes-latest.md || (echo "$(RED)ERROR: docs/releases/release-notes-latest.md is not gitignored — aborting to avoid committing a transient artefact$(NC)" && exit 1); \
 	git add "$$MINOR_DOC"; \
 	git commit -m "docs: add v$$VERSION release notes to v$$(echo $$VERSION | cut -d. -f1,2) series"
-	@VERSION=$$(cat VERSION); \
+	@VERSION=$$(cat VERSION | tr -d '[:space:]'); \
 	echo "$(YELLOW)Syncing uv.lock after version bump to v$$VERSION ...$(NC)"; \
 	uv lock; \
 	if git diff --quiet -- uv.lock; then \
