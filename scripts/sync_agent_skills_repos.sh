@@ -146,6 +146,23 @@ sync_repo() {
             # is always recoverable from origin).
             if execute_cmd "git reset --hard origin/$CURRENT_BRANCH"; then
                 print_message "$GREEN" "  ✓ Recovered via fetch+reset to origin/$CURRENT_BRANCH"
+                # Restore any stashed tracked changes now — the hard reset already
+                # updated the working tree to origin; the stash may still apply
+                # cleanly (e.g. local edits unrelated to the reset).  This mirrors
+                # the stash-pop block in the failure branch below so both paths
+                # consistently attempt to restore the stash (fix #882 review).
+                if [ "$STASHED" = true ]; then
+                    print_message "$YELLOW" "  Attempting to restore stashed changes..."
+                    if execute_cmd "git stash pop"; then
+                        print_message "$GREEN" "  ✓ Stashed changes restored"
+                        STASHED=false  # Prevent double-pop in Step 3
+                    else
+                        print_message "$YELLOW" "  ⚠ Stash pop failed after reset (conflicts likely); stash preserved"
+                        print_message "$YELLOW" "  Manual intervention may be required: git stash list"
+                        # Do not abort — the clone is clean at origin; stash is preserved
+                        STASHED=false  # Step 3 must not attempt another pop
+                    fi
+                fi
             else
                 print_message "$RED" "  ✗ Fetch+reset fallback also failed"
                 if [ "$STASHED" = true ]; then
