@@ -13,7 +13,9 @@ Covers:
 from __future__ import annotations
 
 import json
+import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -666,6 +668,10 @@ class TestHandleUserPromptSubmitQaPairs:
         qa_pairs = [f for f in stored if "PM:" in f]
         assert qa_pairs == [], f"qa_pairs disabled but got: {qa_pairs}"
 
+        # No standalone fact should be stored either — the disabled path only
+        # deletes the state file and does not fall through to standalone capture.
+        assert stored == [], f"disabled path should store nothing; got: {stored}"
+
         # State file must be gone — unconditional delete prevents stale mis-pairing.
         with patch.object(mc, "_QA_STATE_DIR", state_dir):
             assert mc._read_qa_state(session_id) == "", (
@@ -752,6 +758,147 @@ class TestHandleUserPromptSubmitQaPairs:
         assert stored_tags, "Expected at least one store call"
         for tags in stored_tags:
             assert "my-cool-project" in tags, f"Expected project name in tags: {tags}"
+
+    # --- Freshness window tests -----------------------------------------------
+
+    def test_fresh_state_file_treated_as_qa_reply(self, tmp_path: Path) -> None:
+        """A state file with mtime=now is within the freshness window.
+
+        The prompt is treated as a Q&A reply: paired fact is stored and the
+        short reply bypasses the min-words gate.
+        """
+        backend = _make_mock_backend()
+        session_id = "sess-fresh"
+        state_dir = tmp_path / "state"
+        stored: list[tuple[str, list[str]]] = []
+
+        def fake_store(fact: str, tags: list[str] | None = None) -> None:
+            stored.append((fact, tags or []))
+
+        backend.store = fake_store
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM: fresh prompt response.")
+            # Explicitly set mtime to now (fresh).
+            state_path = mc._qa_state_path(session_id)
+            assert state_path is not None
+            os.utime(state_path, None)  # sets atime + mtime to now
+
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            # Short reply — bypasses word gate because state file is fresh.
+            result = mc.handle_user_prompt_submit(
+                self._event("ok", session_id=session_id)
+            )
+
+        assert result["continue"] is True
+        qa_facts = [f for f, tags in stored if "qa-pair" in tags]
+        assert qa_facts, f"Fresh state file should produce qa-pair fact; got: {stored}"
+        assert "PM: fresh prompt response." in qa_facts[0]
+
+    def test_stale_state_file_not_treated_as_qa_reply(self, tmp_path: Path) -> None:
+        """A state file older than _QA_PAIR_MAX_AGE_SECONDS is stale.
+
+        It must NOT be treated as a Q&A reply:
+        - The stale state file is deleted.
+        - A short reply is dropped by the word-count gate (nothing stored).
+        - A long standalone prompt stores a 'User prompt: ...' fact.
+        """
+        backend = _make_mock_backend()
+        session_id = "sess-stale"
+        state_dir = tmp_path / "state"
+        stored: list[tuple[str, list[str]]] = []
+
+        def fake_store(fact: str, tags: list[str] | None = None) -> None:
+            stored.append((fact, tags or []))
+
+        backend.store = fake_store
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM: old response.")
+            # Back-date the state file well past the freshness window.
+            state_path = mc._qa_state_path(session_id)
+            assert state_path is not None
+            past_mtime = time.time() - mc._QA_PAIR_MAX_AGE_SECONDS - 60
+            os.utime(state_path, (past_mtime, past_mtime))
+
+        # --- Sub-case A: short reply is dropped by word gate (nothing stored) ---
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            result = mc.handle_user_prompt_submit(
+                self._event("ok", session_id=session_id)
+            )
+
+        assert result["continue"] is True
+        assert stored == [], (
+            f"Stale state + short reply should store nothing; got: {stored}"
+        )
+
+        # State file should be deleted by the staleness check.
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            assert mc._read_qa_state(session_id) == "", (
+                "Stale state file should be deleted"
+            )
+
+    def test_stale_state_file_long_prompt_stores_standalone(
+        self, tmp_path: Path
+    ) -> None:
+        """After a stale state file is pruned, a long prompt stores as standalone."""
+        backend = _make_mock_backend()
+        session_id = "sess-stale-long"
+        state_dir = tmp_path / "state"
+        stored: list[tuple[str, list[str]]] = []
+
+        def fake_store(fact: str, tags: list[str] | None = None) -> None:
+            stored.append((fact, tags or []))
+
+        backend.store = fake_store
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM: old response.")
+            state_path = mc._qa_state_path(session_id)
+            assert state_path is not None
+            past_mtime = time.time() - mc._QA_PAIR_MAX_AGE_SECONDS - 60
+            os.utime(state_path, (past_mtime, past_mtime))
+
+        long_prompt = "This is a long standalone prompt with well over ten words total."
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            mc.handle_user_prompt_submit(
+                self._event(long_prompt, session_id=session_id)
+            )
+
+        # Should have stored a standalone "User prompt: ..." fact, NOT a qa-pair.
+        standalone = [
+            f
+            for f, tags in stored
+            if f.startswith("User prompt:") and "qa-pair" not in tags
+        ]
+        assert standalone, (
+            f"Expected standalone 'User prompt:' fact after stale state; got: {stored}"
+        )
+        qa_pairs = [f for f, tags in stored if "qa-pair" in tags]
+        assert qa_pairs == [], (
+            f"Stale state file must not produce a qa-pair; got: {qa_pairs}"
+        )
 
 
 # ---------------------------------------------------------------------------
