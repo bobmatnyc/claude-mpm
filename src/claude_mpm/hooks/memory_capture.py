@@ -21,6 +21,30 @@ Design goals
   start/end metadata. We deliberately do NOT store full tool JSON, file
   contents, or assistant reasoning.
 
+Design note: consume-once semantics for Q&A pair capture
+---------------------------------------------------------
+Q&A pair capture uses a filesystem state file as a cross-process bridge:
+the Stop handler writes the last PM response to
+``~/.claude-mpm/state/{session_id}_last_response.txt``; the next
+UserPromptSubmit reads it and stores a paired ``"PM: ...\\nUser: ..."``
+fact.
+
+The state file is **deleted on the first consumption attempt regardless
+of whether backend.store() later succeeds** (see
+``handle_user_prompt_submit``).  This is intentional:
+
+* If we kept the file until a *successful* store, a transient backend
+  outage (daemon restart, timeout spike) would leave the file in place.
+  Every subsequent UserPromptSubmit within the 600-second window would
+  then pair a **new** user reply with the **same stale PM turn** —
+  fabricating incorrect paired facts that corrupt the memory store.
+* Losing *one* pair on a transient failure is strictly preferable to
+  mis-pairing every subsequent prompt for up to 10 minutes.
+
+**Do not "fix" the eager deletion back to preserve-on-failure.**  If you
+need higher durability, introduce a separate retry queue; do not reuse
+the state file for that purpose.
+
 Invocation: ``python3 -m claude_mpm.hooks.memory_capture`` from
 ``.claude/settings.json`` (PostToolUse, Stop, SubagentStop, SessionStart).
 
