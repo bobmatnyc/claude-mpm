@@ -21,6 +21,30 @@ Design goals
   start/end metadata. We deliberately do NOT store full tool JSON, file
   contents, or assistant reasoning.
 
+Design note: consume-once semantics for Q&A pair capture
+---------------------------------------------------------
+Q&A pair capture uses a filesystem state file as a cross-process bridge:
+the Stop handler writes the last PM response to
+``~/.claude-mpm/state/{session_id}_last_response.txt``; the next
+UserPromptSubmit reads it and stores a paired ``"PM: ...\\nUser: ..."``
+fact.
+
+The state file is **deleted on the first consumption attempt regardless
+of whether backend.store() later succeeds** (see
+``handle_user_prompt_submit``).  This is intentional:
+
+* If we kept the file until a *successful* store, a transient backend
+  outage (daemon restart, timeout spike) would leave the file in place.
+  Every subsequent UserPromptSubmit within the 600-second window would
+  then pair a **new** user reply with the **same stale PM turn** —
+  fabricating incorrect paired facts that corrupt the memory store.
+* Losing *one* pair on a transient failure is strictly preferable to
+  mis-pairing every subsequent prompt for up to 10 minutes.
+
+**Do not "fix" the eager deletion back to preserve-on-failure.**  If you
+need higher durability, introduce a separate retry queue; do not reuse
+the state file for that purpose.
+
 Invocation: ``python3 -m claude_mpm.hooks.memory_capture`` from
 ``.claude/settings.json`` (PostToolUse, Stop, SubagentStop, SessionStart).
 
@@ -834,9 +858,9 @@ def _read_qa_state_with_mtime(session_id: str) -> tuple[str, float] | None:
             content = fh.read().strip()
             mtime = os.fstat(fh.fileno()).st_mtime
         return (content, mtime)
-    except FileNotFoundError:
-        return None
     except Exception:
+        # Covers FileNotFoundError (file absent), PermissionError (unreadable),
+        # and any other OS-level failure — all map to the same "no state" result.
         return None
 
 
@@ -1063,9 +1087,13 @@ def handle_user_prompt_submit(
 
             threading.Thread(target=_bg_store_qa, daemon=True).start()
         elif is_qa_reply:
-            # qa_pairs capture is disabled.  State file was already deleted
-            # synchronously (consume-once) above — nothing left to do here.
-            pass
+            # qa_pairs capture is disabled, but this prompt IS a reply to a PM
+            # turn.  The state file was already deleted synchronously above
+            # (consume-once).  We deliberately do NOT fall through to the
+            # standalone path: the prompt is a conversational reply, not a new
+            # standalone prompt, so storing it as "User prompt: ..." would be
+            # misleading.  The pair is simply not captured when qa_pairs=false.
+            pass  # intentional: no storage, no fallthrough (see comment above)
         else:
             # Standalone prompt — existing behaviour.
             snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()

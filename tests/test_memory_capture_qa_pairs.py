@@ -634,8 +634,19 @@ class TestHandleUserPromptSubmitQaPairs:
         ), f"Expected 'User prompt:' fact; got: {stored}"
 
     def test_qa_pairs_config_disabled_skips_paired_store(self, tmp_path: Path) -> None:
-        """When qa_pairs capture is disabled, paired fact is not stored but state file
-        IS deleted (Finding 4) so it cannot linger and mis-pair with a later prompt.
+        """When qa_pairs is disabled, a PM-reply prompt stores NOTHING and the state
+        file IS deleted.
+
+        Chosen behavior: when qa_pairs=false and the prompt is a reply to a PM turn
+        (is_qa_reply=True), the hook deliberately stores nothing — neither a qa-pair
+        fact nor a standalone "User prompt: ..." fact.  The prompt is a conversational
+        reply, not a new standalone prompt, so storing it as "User prompt: ..." would
+        be semantically misleading.  The state file is still deleted (consume-once) to
+        prevent stale mis-pairing on any subsequent prompt.
+
+        This is an explicit, intentional no-op — not a missing feature.  If the
+        desired behavior changes to "store as standalone when qa_pairs=false", update
+        the elif branch in handle_user_prompt_submit and this test together.
         """
         backend = _make_mock_backend()
         session_id = "sess-qa-disabled"
@@ -1018,32 +1029,37 @@ class TestHandleSessionEndWithQaCapture:
 
         Verifies the item-4 fix: capture is hoisted to main() dispatch level so
         it runs exactly once regardless of backend count.
+
+        sys patch scope: only sys.stdin is patched (the sole sys attribute that
+        main() touches, via _read_event()).  select.select is patched to return a
+        truthy ready-list so _read_event() proceeds to json.load(sys.stdin).
+        print() is patched via builtins to silence stdout during the test.
+        sys.stdout is NOT patched because main() never accesses it directly.
         """
+        import builtins
+        import io
+        import json as _json
+
         backend = _make_mock_backend()
         event = {
             "hook_event_name": "Stop",
             "session_id": "sess-main-dispatch",
             "cwd": str(tmp_path),
         }
-
-        import io
-        import json as _json
-
         event_json = _json.dumps(event)
+        fake_stdin = io.StringIO(event_json)
 
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_capture_pm_turn_on_stop") as mock_capture,
-            patch.object(mc, "sys") as mock_sys,
-            patch("select.select", return_value=([mock_sys.stdin], [], [])),
+            # Patch only the sys.stdin attribute that _read_event() reads.
+            patch.object(mc.sys, "stdin", fake_stdin),
+            # Make select.select report stdin as ready so _read_event() proceeds.
+            patch("select.select", return_value=([fake_stdin], [], [])),
+            # Silence the JSON continue-payload written by _emit_continue().
+            patch.object(builtins, "print"),
         ):
-            mock_sys.stdin = io.StringIO(event_json)
-            mock_sys.stdout = io.StringIO()
-            # Redirect print to avoid actual stdout writes in tests.
-            import builtins
-
-            with patch.object(builtins, "print"):
-                mc.main()
+            mc.main()
 
         assert mock_capture.call_count == 1, (
             "main() must call _capture_pm_turn_on_stop exactly once per Stop event"
