@@ -1063,9 +1063,13 @@ def handle_user_prompt_submit(
 
             threading.Thread(target=_bg_store_qa, daemon=True).start()
         elif is_qa_reply:
-            # qa_pairs capture is disabled.  State file was already deleted
-            # synchronously (consume-once) above — nothing left to do here.
-            pass
+            # qa_pairs capture is disabled, but this prompt IS a reply to a PM
+            # turn.  The state file was already deleted synchronously above
+            # (consume-once).  We deliberately do NOT fall through to the
+            # standalone path: the prompt is a conversational reply, not a new
+            # standalone prompt, so storing it as "User prompt: ..." would be
+            # misleading.  The pair is simply not captured when qa_pairs=false.
+            pass  # intentional: no storage, no fallthrough (see comment above)
         else:
             # Standalone prompt — existing behaviour.
             snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()
