@@ -34,11 +34,13 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import select
 import shutil
 import subprocess  # nosec B404
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -92,11 +94,12 @@ _QA_STATE_TTL_SECONDS = 24 * 3600  # 24 hours
 # or when the store failed and left the file behind.
 _QA_PAIR_MAX_AGE_SECONDS = 600  # 10 minutes
 # Project-name values that carry no signal and add tag noise — computed once at
-# module load time so we pay no per-call cost.  The home-directory basename is
-# included because cwd == $HOME is indistinguishable from "project 'masa'" etc.
-_QA_NOISY_NAMES: frozenset[str] = frozenset(
-    {"", "tmp", "workspace", "~", Path.home().name}
-)
+# module load time so we pay no per-call cost.  We do NOT include the home-dir
+# basename here because a project legitimately named the same as the home-dir
+# basename (e.g. /projects/alice when home is /home/alice) should still be
+# tagged.  The actual home-dir path is handled by an explicit `cwd != Path.home()`
+# guard in handle_user_prompt_submit.
+_QA_NOISY_NAMES: frozenset[str] = frozenset({"", "tmp", "workspace", "~"})
 
 # Default ports / addresses for backends.
 _DEFAULT_TRUSTY_PORT = 7070
@@ -801,6 +804,42 @@ def _read_qa_state(session_id: str) -> str:
         return ""
 
 
+def _read_qa_state_with_mtime(session_id: str) -> tuple[str, float] | None:
+    """Open the Q&A state file ONCE, returning (content, mtime) or None.
+
+    WHAT: Reads both the file content and its mtime from a single ``open``
+    call using ``os.fstat`` on the open file handle, eliminating the TOCTOU
+    race between a separate ``stat()`` freshness check and a second ``open``
+    for the content.
+
+    WHY: The previous code did ``state_path.stat().st_mtime`` and then
+    separately called ``_read_qa_state(session_id)``  — two filesystem
+    operations on the same file.  Between them the file could be replaced or
+    deleted by a concurrent invocation, leading to inconsistent freshness
+    decisions.  A single ``open`` + ``os.fstat`` collapses both into one
+    atomic read.
+
+    Returns:
+        ``(content_str, mtime_float)`` when the file exists and is readable,
+        or ``None`` when the session_id fails sanitization, the file is
+        absent, or any read error occurs.  Never raises.
+    """
+    if not session_id:
+        return None
+    path = _qa_state_path(session_id)
+    if path is None:
+        return None
+    try:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            content = fh.read().strip()
+            mtime = os.fstat(fh.fileno()).st_mtime
+        return (content, mtime)
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return None
+
+
 def _delete_qa_state(session_id: str) -> None:
     """Delete the Q&A state file for ``session_id`` (one-shot consumption).
 
@@ -854,10 +893,12 @@ def _capture_pm_turn_on_stop(event: dict[str, Any], backend_key: str) -> None:
 def _handle_session_end(
     event: dict[str, Any], backend: AbstractMemoryCaptureBackend
 ) -> None:
+    # NOTE: _capture_pm_turn_on_stop is intentionally NOT called here.
+    # It is called once per Stop/SubagentStop event from main() — before the
+    # per-backend loop — so it runs exactly once regardless of how many active
+    # backends are configured.  Calling it here would write the state file once
+    # per backend (e.g. twice with trusty + kuzu both enabled).
     backend_key = backend.name.replace("-", "_")
-    # Persist the last PM turn to the state dir for Q&A pairing.
-    _capture_pm_turn_on_stop(event, backend_key)
-
     if not _capture_enabled(backend_key, "session_end"):
         return
     cwd_raw = event.get("cwd")
@@ -950,27 +991,36 @@ def handle_user_prompt_submit(
     # Only include the project tag when the directory name is meaningful.
     # Values like "~", "tmp", or "workspace" add no signal and create noise.
     # _QA_NOISY_NAMES is a module-level frozenset computed once at import time.
+    # The explicit `cwd != Path.home()` check handles the actual home directory;
+    # we do not put Path.home().name in _QA_NOISY_NAMES because a project
+    # coincidentally named the same as the home-dir basename (e.g. /projects/alice)
+    # should still receive the project tag.
     project_name = cwd.name
     qa_tags: list[str] = ["qa-pair", "prompt"]
     if project_name and project_name not in _QA_NOISY_NAMES and cwd != Path.home():
         qa_tags.append(project_name)
 
-    # Read state file and apply the freshness window.
-    # A state file that is OLDER than _QA_PAIR_MAX_AGE_SECONDS is stale: delete
-    # it and treat this prompt as a standalone (normal word-count gate applies).
+    # Read the state file and apply the freshness window in a SINGLE filesystem
+    # operation (TOCTOU fix): _read_qa_state_with_mtime opens the file once and
+    # returns both content and mtime via os.fstat on the open handle.
+    #
+    # Consume-once semantics: the state file is deleted here, in the synchronous
+    # path, immediately after reading — regardless of whether backend.store()
+    # later succeeds.  This prevents mis-pairing: if we kept the file until a
+    # successful store, a backend outage would leave it in place and every
+    # subsequent UserPromptSubmit within the 600s window would pair a NEW user
+    # reply with the SAME stale PM turn.  Losing one pair on a transient failure
+    # is strictly preferable to fabricating incorrect paired facts.
     pm_snippet = ""
     if session_id:
-        state_path = _qa_state_path(session_id)
-        if state_path is not None and state_path.is_file():
-            is_fresh = False
-            try:
-                age = time.time() - state_path.stat().st_mtime
-                is_fresh = age <= _QA_PAIR_MAX_AGE_SECONDS
-            except Exception:
-                # Cannot read mtime — treat as stale.
-                is_fresh = False
-            if is_fresh:
-                pm_snippet = _read_qa_state(session_id)
+        state_result = _read_qa_state_with_mtime(session_id)
+        if state_result is not None:
+            content, mtime = state_result
+            age = time.time() - mtime
+            if age <= _QA_PAIR_MAX_AGE_SECONDS:
+                pm_snippet = content
+                # Consume-once: delete synchronously before spawning the thread.
+                _delete_qa_state(session_id)
             else:
                 # Stale file: delete it and fall through to standalone path.
                 _delete_qa_state(session_id)
@@ -993,33 +1043,29 @@ def handle_user_prompt_submit(
 
     # 2) Capture (fire-and-forget). Never blocks the return.
     try:
-        import threading
-
         if is_qa_reply and _capture_enabled(backend_key, "qa_pairs"):
-            # Paired Q&A fact.  The state file is deleted INSIDE the background
-            # thread only after a successful backend.store().  On failure the file
-            # is left in place; it will be consumed by the next UserPromptSubmit
-            # only if it is still within _QA_PAIR_MAX_AGE_SECONDS, otherwise the
-            # freshness check in handle_user_prompt_submit will prune it.
+            # Paired Q&A fact.  The state file was already deleted synchronously
+            # (consume-once) before this branch — _bg_store_qa just stores the
+            # fact.  A store failure loses this one pair, which is acceptable for
+            # a best-effort memory system; it is strictly better than keeping the
+            # file and mis-pairing future prompts.
             reply_snippet = prompt[:_QA_REPLY_SNIPPET_MAX_CHARS].strip()
             qa_fact = f"PM: {pm_snippet}\nUser: {reply_snippet}"
 
             def _bg_store_qa() -> None:
                 try:
                     backend.store(qa_fact, tags=qa_tags)
-                    # Only delete the state file once the fact is safely persisted.
-                    _delete_qa_state(session_id)
                 except Exception:
-                    # Store failed — leave the state file for the freshness-window
-                    # check on the next UserPromptSubmit.
+                    # Store failed — pair is lost for this invocation.
+                    # The state file was already consumed (deleted synchronously),
+                    # so no mis-pairing will occur on the next UserPromptSubmit.
                     return
 
             threading.Thread(target=_bg_store_qa, daemon=True).start()
         elif is_qa_reply:
-            # qa_pairs capture is disabled, but a state file was consumed for this
-            # session — delete it now so it does not linger and mis-pair with the
-            # next prompt.
-            _delete_qa_state(session_id)
+            # qa_pairs capture is disabled.  State file was already deleted
+            # synchronously (consume-once) above — nothing left to do here.
+            pass
         else:
             # Standalone prompt — existing behaviour.
             snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()
@@ -1119,6 +1165,16 @@ def main() -> None:
         elif hook_event == "PostToolUse":
             _handle_post_tool_use(event, _BACKEND)
         elif hook_event in ("Stop", "SubagentStop"):
+            # Capture the last PM turn exactly ONCE per Stop event, before the
+            # per-backend loop in _handle_session_end.  _capture_pm_turn_on_stop
+            # was previously called inside _handle_session_end, which meant it
+            # ran once per active backend — writing the state file N times on
+            # Stop events when N backends (e.g. trusty + kuzu) are both enabled.
+            # We use _BACKEND's key here because _BACKEND is the single selected
+            # backend (the first available one), and qa_pairs capture is gated on
+            # that backend's config.  If the user disables qa_pairs for that
+            # backend, capture is skipped — consistent with how it worked before.
+            _capture_pm_turn_on_stop(event, _BACKEND.name.replace("-", "_"))
             _handle_session_end(event, _BACKEND)
         # All other events: no-op
     except Exception:

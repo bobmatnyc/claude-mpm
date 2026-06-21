@@ -445,7 +445,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -483,7 +483,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -496,12 +496,18 @@ class TestHandleUserPromptSubmitQaPairs:
         with patch.object(mc, "_QA_STATE_DIR", state_dir):
             assert mc._read_qa_state(session_id) == ""
 
-    def test_state_file_preserved_when_store_fails(self, tmp_path: Path) -> None:
-        """State file is NOT deleted when backend.store() raises (Finding 1).
+    def test_state_file_deleted_after_consumption_even_when_store_fails(
+        self, tmp_path: Path
+    ) -> None:
+        """State file is deleted on first consumption attempt even if store() fails.
 
-        If the store fails the state file should survive so a future retry can
-        still pair it — the old code deleted the file before spawning the thread,
-        losing the Q&A pair permanently on failure.
+        Consume-once semantics (item 2 of issue #879): the state file is deleted
+        synchronously in handle_user_prompt_submit BEFORE the background thread is
+        spawned — regardless of whether backend.store() later succeeds.  This
+        prevents a persistent backend outage from causing every subsequent
+        UserPromptSubmit within the 600s window to mis-pair a NEW user reply with
+        the SAME stale PM turn.  Losing one pair on a transient failure is
+        strictly preferable to fabricating incorrect paired facts.
         """
         session_id = "sess-qa-store-fail"
         state_dir = tmp_path / "state"
@@ -517,7 +523,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -528,10 +534,12 @@ class TestHandleUserPromptSubmitQaPairs:
         # Hook must still return continue=True (never raises).
         assert result["continue"] is True
 
-        # State file must still exist — store failed so deletion was skipped.
+        # State file must be gone — consume-once deletes it synchronously before
+        # the thread is spawned, so a store failure does not resurrect it.
         with patch.object(mc, "_QA_STATE_DIR", state_dir):
-            assert mc._read_qa_state(session_id) != "", (
-                "State file should be preserved when backend.store() fails"
+            assert mc._read_qa_state(session_id) == "", (
+                "State file should be deleted on first consumption attempt "
+                "regardless of backend.store() outcome (consume-once semantics)"
             )
 
     def test_short_reply_bypasses_min_words_gate(self, tmp_path: Path) -> None:
@@ -553,7 +561,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -580,7 +588,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -611,7 +619,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -656,7 +664,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch.object(mc, "_capture_enabled", side_effect=_capture_enabled_no_qa),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -710,7 +718,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -747,7 +755,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -758,6 +766,53 @@ class TestHandleUserPromptSubmitQaPairs:
         assert stored_tags, "Expected at least one store call"
         for tags in stored_tags:
             assert "my-cool-project" in tags, f"Expected project name in tags: {tags}"
+
+    def test_qa_tags_include_project_named_same_as_home_basename(
+        self, tmp_path: Path
+    ) -> None:
+        """Project whose name matches home-dir basename but path is NOT home is tagged.
+
+        Item 3 of issue #879: removing Path.home().name from _QA_NOISY_NAMES means
+        a project like /projects/alice (where home is /home/alice) no longer has its
+        tag suppressed.  Only the actual home dir (cwd == Path.home()) is suppressed,
+        via the explicit path-equality guard.
+        """
+        backend = _make_mock_backend()
+        session_id = "sess-home-basename"
+        state_dir = tmp_path / "state"
+        stored_tags: list[list[str]] = []
+
+        def fake_store(fact: str, tags: list[str] | None = None) -> None:
+            stored_tags.append(list(tags or []))
+
+        backend.store = fake_store
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM said something.")
+
+        # Create a project directory whose basename matches the home-dir basename.
+        home_basename = Path.home().name
+        project_dir = tmp_path / home_basename  # e.g. /tmp/.../masa — NOT home
+        project_dir.mkdir(exist_ok=True)
+
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "claude_mpm.hooks.memory_capture.threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            mc.handle_user_prompt_submit(
+                self._event("reply", session_id=session_id, cwd=str(project_dir))
+            )
+
+        assert stored_tags, "Expected at least one store call"
+        for tags in stored_tags:
+            assert home_basename in tags, (
+                f"Project named '{home_basename}' under non-home path should be tagged; "
+                f"got tags: {tags}"
+            )
 
     # --- Freshness window tests -----------------------------------------------
 
@@ -788,7 +843,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -833,7 +888,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -878,7 +933,7 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
@@ -925,17 +980,22 @@ class TestHandleSessionEndWithQaCapture:
 
         state_dir = tmp_path / "state"
 
-        with (
-            patch.object(mc, "_QA_STATE_DIR", state_dir),
-            patch.object(mc, "_capture_pm_turn_on_stop"),  # isolate from transcript
-        ):
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
             mc._handle_session_end(event, backend)
 
         session_end_facts = [f for f, _ in stored if "Session ended" in f]
         assert session_end_facts, f"Expected 'Session ended' fact; got: {stored}"
 
-    def test_session_end_calls_capture_pm_turn(self, tmp_path: Path) -> None:
-        """_handle_session_end delegates Q&A state write to _capture_pm_turn_on_stop."""
+    def test_handle_session_end_does_not_call_capture_pm_turn(
+        self, tmp_path: Path
+    ) -> None:
+        """_handle_session_end no longer calls _capture_pm_turn_on_stop (item 4).
+
+        Since issue #879, _capture_pm_turn_on_stop is called once per Stop event
+        from main(), not once per backend inside _handle_session_end.  This test
+        asserts the new invariant: calling _handle_session_end directly must NOT
+        trigger _capture_pm_turn_on_stop.
+        """
         backend = _make_mock_backend()
         event = {
             "hook_event_name": "Stop",
@@ -946,9 +1006,48 @@ class TestHandleSessionEndWithQaCapture:
         with patch.object(mc, "_capture_pm_turn_on_stop") as mock_capture:
             mc._handle_session_end(event, backend)
 
-        mock_capture.assert_called_once()
-        call_args = mock_capture.call_args
-        assert call_args[0][0] is event
+        assert not mock_capture.called, (
+            "_capture_pm_turn_on_stop must not be called from _handle_session_end; "
+            "it is dispatched from main() to run exactly once per Stop event"
+        )
+
+    def test_main_dispatch_calls_capture_pm_turn_once_for_stop(
+        self, tmp_path: Path
+    ) -> None:
+        """main() calls _capture_pm_turn_on_stop exactly once for Stop events.
+
+        Verifies the item-4 fix: capture is hoisted to main() dispatch level so
+        it runs exactly once regardless of backend count.
+        """
+        backend = _make_mock_backend()
+        event = {
+            "hook_event_name": "Stop",
+            "session_id": "sess-main-dispatch",
+            "cwd": str(tmp_path),
+        }
+
+        import io
+        import json as _json
+
+        event_json = _json.dumps(event)
+
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_capture_pm_turn_on_stop") as mock_capture,
+            patch.object(mc, "sys") as mock_sys,
+            patch("select.select", return_value=([mock_sys.stdin], [], [])),
+        ):
+            mock_sys.stdin = io.StringIO(event_json)
+            mock_sys.stdout = io.StringIO()
+            # Redirect print to avoid actual stdout writes in tests.
+            import builtins
+
+            with patch.object(builtins, "print"):
+                mc.main()
+
+        assert mock_capture.call_count == 1, (
+            "main() must call _capture_pm_turn_on_stop exactly once per Stop event"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -988,7 +1087,7 @@ class TestQaPairingEndToEnd:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch(
-                "threading.Thread",
+                "claude_mpm.hooks.memory_capture.threading.Thread",
                 side_effect=lambda target, daemon: _SyncThread(target),
             ),
         ):
