@@ -15,6 +15,24 @@ Trade-offs:
 - Maintainability: Single source of truth for Git operations
 - Flexibility: Easy to extend with skills-specific features
 
+ETag Cache Location Design (fix for #882)
+-----------------------------------------
+The ETag cache for each skill source is stored OUTSIDE the git clone working
+tree to avoid dirtying the clone.  Layout::
+
+    ~/.claude-mpm/cache/skills/system/   ← git clone working tree (clean)
+    ~/.claude-mpm/cache/skills-etag/system.json  ← ETag cache (external)
+
+The ``skills-etag/`` sibling directory is never a git clone so it will
+never interfere with ``git pull``.  Per-source files are named
+``{source_id}.json`` to avoid collisions when multiple sources are
+configured.
+
+Backward-compatible migration: on the first sync after an upgrade, any
+legacy ``.etag_cache.json`` file found inside the clone working tree is
+read, its entries merged into the new external file, and the in-tree copy
+is deleted so the clone remains clean.
+
 References
 ----------
 SPEC-SKILLS-03~1 : docs/specs/skills.md#SPEC-SKILLS-03~1
@@ -127,6 +145,13 @@ class GitSkillSourceManager:
         self.config = config
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # ETag cache lives OUTSIDE every clone working tree (fix #882).
+        # Layout: skills-etag/ is a sibling of skills/ so it is never
+        # inside any per-source git clone.
+        self.etag_dir = self.cache_dir.parent / "skills-etag"
+        self.etag_dir.mkdir(parents=True, exist_ok=True)
+
         self.sync_service = sync_service  # Use injected if provided
         self.logger = get_logger(__name__)
         self._etag_cache_lock = Lock()  # Thread-safe ETag cache operations
@@ -260,6 +285,11 @@ class GitSkillSourceManager:
             # Determine cache path for this source
             cache_path = self._get_source_cache_path(source)
             cache_path.mkdir(parents=True, exist_ok=True)
+
+            # Migrate any legacy in-tree ETag cache to external location.
+            # This runs defensively on every sync but is cheap (stat only)
+            # once the old file has already been removed.
+            self._migrate_legacy_etag_cache(source.id, cache_path)
 
             # Recursively sync repository structure
             files_updated, files_cached = self._recursive_sync_repository(
@@ -585,6 +615,11 @@ class GitSkillSourceManager:
         files_updated = 0
         files_cached = 0
 
+        # Resolve the single per-source ETag cache file that lives OUTSIDE the
+        # clone working tree (fix #882).  All threads share this one file; the
+        # existing self._etag_cache_lock keeps writes serialised.
+        etag_cache_file = self._get_etag_cache_file(source.id)
+
         # Use ThreadPoolExecutor for parallel downloads (10 workers for optimal performance)
         # Trade-off: 10 workers balances speed (306 files in ~3-5s) vs. GitHub rate limits
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -594,7 +629,12 @@ class GitSkillSourceManager:
                 raw_url = f"https://raw.githubusercontent.com/{owner_repo}/{source.branch}/{file_path}"
                 cache_file = cache_path / file_path
                 future = executor.submit(
-                    self._download_file_with_etag, raw_url, cache_file, force, source
+                    self._download_file_with_etag,
+                    raw_url,
+                    cache_file,
+                    force,
+                    source,
+                    etag_cache_file,
                 )
                 future_to_file[future] = file_path
 
@@ -749,20 +789,140 @@ class GitSkillSourceManager:
 
         return all_files
 
+    def _get_etag_cache_file(self, source_id: str) -> Path:
+        """Return the external ETag cache path for *source_id*.
+
+        The file lives at ``self.etag_dir / "{source_id}.json"`` which is a
+        sibling directory of the skills clone root and is therefore never
+        inside any clone working tree.  This keeps the clone clean for
+        ``git pull`` (fix #882).
+
+        Args:
+            source_id: ID of the skill source (e.g. ``"system"``).
+
+        Returns:
+            Absolute path to the per-source ETag JSON file.
+        """
+        return self.etag_dir / f"{source_id}.json"
+
+    def _migrate_legacy_etag_cache(self, source_id: str, cache_path: Path) -> None:
+        """Migrate an in-tree ``.etag_cache.json`` file to the external location.
+
+        WHAT: Checks for a legacy ``.etag_cache.json`` file inside the git-clone
+        working tree at ``cache_path/.etag_cache.json``; if found, reads its
+        ETag entries, merges them into the new external per-source cache file
+        (external entries win on key collision — they are at least as fresh),
+        then deletes the in-tree copy so the clone remains clean.  All errors
+        are caught and logged; the method never raises.
+
+        WHY: Older versions of this manager wrote the ETag cache directly into
+        the git-clone working tree.  That untracked file dirtied the clone and
+        caused ``git pull --rebase`` to emit warnings (issue #882).  Migration
+        preserves existing cache hits across the upgrade so the first sync after
+        the upgrade does not re-download every file.
+
+        Args:
+            source_id: ID of the skill source.
+            cache_path: Root directory of the per-source git clone.
+        """
+        import json
+
+        legacy_file = cache_path / ".etag_cache.json"
+        if not legacy_file.exists():
+            return  # Nothing to migrate — fast path
+
+        self.logger.info(
+            "Migrating legacy in-tree ETag cache for source '%s': %s → %s",
+            source_id,
+            legacy_file,
+            self._get_etag_cache_file(source_id),
+        )
+
+        try:
+            with self._etag_cache_lock:
+                # Read legacy in-tree cache
+                legacy_data: dict[str, str] = {}
+                try:
+                    with open(legacy_file, encoding="utf-8") as fh:
+                        legacy_data = json.load(fh)
+                except Exception as exc:  # nosec B110
+                    self.logger.warning(
+                        "Could not read legacy ETag cache %s: %s — skipping migration",
+                        legacy_file,
+                        exc,
+                    )
+                    # Even if unreadable, delete the file so it stops dirtying the clone
+                    legacy_data = {}
+
+                if legacy_data:
+                    # Merge into the new external cache (external wins on collision)
+                    external_file = self._get_etag_cache_file(source_id)
+                    merged: dict[str, str] = dict(legacy_data)  # start with legacy
+                    if external_file.exists():
+                        try:
+                            with open(external_file, encoding="utf-8") as fh:
+                                existing = json.load(fh)
+                            merged.update(existing)  # external entries win
+                        except Exception as exc:  # nosec B110
+                            self.logger.warning(
+                                "Could not read external ETag cache %s during migration: %s",
+                                external_file,
+                                exc,
+                            )
+
+                    external_file.parent.mkdir(parents=True, exist_ok=True)
+                    with open(external_file, "w", encoding="utf-8") as fh:
+                        json.dump(merged, fh, indent=2)
+
+                    self.logger.info(
+                        "Migrated %d ETag entries for source '%s' to %s",
+                        len(legacy_data),
+                        source_id,
+                        external_file,
+                    )
+
+                # Remove the in-tree file to keep the clone clean
+                try:
+                    legacy_file.unlink()
+                    self.logger.debug(
+                        "Removed legacy in-tree ETag cache: %s", legacy_file
+                    )
+                except Exception as exc:
+                    self.logger.warning(
+                        "Could not remove legacy ETag cache %s: %s", legacy_file, exc
+                    )
+
+        except Exception as exc:
+            self.logger.warning(
+                "ETag cache migration for source '%s' failed: %s — continuing without migration",
+                source_id,
+                exc,
+            )
+
     def _download_file_with_etag(
         self,
         url: str,
         local_path: Path,
         force: bool = False,
         source: SkillSource | None = None,
+        etag_cache_file: Path | None = None,
     ) -> bool:
         """Download file from URL with ETag caching (thread-safe).
+
+        The ETag cache file MUST be located outside the git-clone working tree
+        (fix #882).  Callers should pass ``etag_cache_file`` obtained from
+        :meth:`_get_etag_cache_file`; if omitted the method derives it from
+        ``local_path`` for backward compatibility, but that fallback writes
+        into the clone tree and should not be relied upon.
 
         Args:
             url: Raw GitHub URL
             local_path: Local file path to save to
             force: Force download even if cached
             source: Optional SkillSource for token resolution
+            etag_cache_file: Path to the external per-source ETag JSON file.
+                If ``None``, falls back to ``local_path.parent / ".etag_cache.json"``
+                (legacy behaviour — DEPRECATED, kept for backward compat).
 
         Returns:
             True if file was updated, False if cached
@@ -775,12 +935,28 @@ class GitSkillSourceManager:
         # Create parent directory (thread-safe with exist_ok=True)
         local_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Thread-safe ETag cache operations
-        etag_cache_file = local_path.parent / ".etag_cache.json"
+        # Resolve ETag cache file.  External path (outside clone) is required
+        # for a clean working tree; fall back to in-tree only if not provided
+        # (backward compat with direct callers in tests).
+        if etag_cache_file is None:
+            # DEPRECATED: writing the ETag cache inside the clone working tree
+            # re-introduces the dirty-clone problem fixed in #882.  Any caller
+            # that omits etag_cache_file should be updated to pass the path
+            # returned by _get_etag_cache_file().  This fallback will be removed
+            # in a future release.  (#882)
+            logger.warning(
+                "_download_file_with_etag called without etag_cache_file; "
+                "falling back to in-tree cache at %s/.etag_cache.json.  "
+                "This writes into the git clone working tree and is deprecated "
+                "(re-introduces #882).  Pass etag_cache_file from "
+                "_get_etag_cache_file() instead.",
+                local_path.parent,
+            )
+            etag_cache_file = local_path.parent / ".etag_cache.json"
 
         # Read cached ETag (lock required for file read)
         with self._etag_cache_lock:
-            etag_cache = {}
+            etag_cache: dict[str, str] = {}
             if etag_cache_file.exists():
                 try:
                     with open(etag_cache_file, encoding="utf-8") as f:
@@ -788,10 +964,14 @@ class GitSkillSourceManager:
                 except Exception:  # nosec B110 - intentional: proceed without cache on read failure
                     pass
 
+            # TODO: absolute-path keys make this cache non-portable if ~/.claude-mpm
+            # is relocated or shared across machines.  A future refactor should key
+            # on a path relative to the cache root (e.g. relative to self.cache_dir
+            # or self.etag_dir) so that the JSON file remains valid after a move.
             cached_etag = etag_cache.get(str(local_path))
 
         # Make conditional request (no lock needed - independent HTTP call)
-        headers = {}
+        headers: dict[str, str] = {}
         if cached_etag and not force:
             headers["If-None-Match"] = cached_etag
 
@@ -825,6 +1005,7 @@ class GitSkillSourceManager:
                             etag_cache = {}
 
                     etag_cache[str(local_path)] = response.headers["ETag"]
+                    etag_cache_file.parent.mkdir(parents=True, exist_ok=True)
                     with open(etag_cache_file, "w", encoding="utf-8") as f:
                         json.dump(etag_cache, f, indent=2)
 

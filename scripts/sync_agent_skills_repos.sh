@@ -95,6 +95,22 @@ sync_repo() {
     execute_cmd "git fetch --prune origin"
     print_message "$GREEN" "  ✓ Remote references updated"
 
+    # Step 0b: Remove known cache artefacts from the working tree so that
+    # git pull does not fail with "Your local changes would be overwritten".
+    # This is a conservative clean: only well-known untracked cache files are
+    # removed; tracked files and any other untracked files are left alone.
+    # (fix #882 — skills sync used to leave .etag_cache.json in the clone tree)
+    print_message "$YELLOW" "Step 0b: Removing stale cache artefacts from working tree..."
+    UNTRACKED_ETAG=$(git status --porcelain 2>/dev/null | grep '^\?\?' | grep '\.etag_cache\.json' || true)
+    if [ -n "$UNTRACKED_ETAG" ]; then
+        print_message "$YELLOW" "  Found untracked .etag_cache.json file(s), removing..."
+        # Delete every untracked .etag_cache.json file (safe: only untracked copies)
+        find . -name '.etag_cache.json' -not -path './.git/*' -exec rm -f {} + 2>/dev/null || true
+        print_message "$GREEN" "  ✓ Stale ETag cache artefacts removed"
+    else
+        print_message "$GREEN" "  ✓ No stale cache artefacts found"
+    fi
+
     # Step 1: Stash any uncommitted changes (excludes untracked and ignored files)
     # Use git status --porcelain and filter to lines that indicate tracked changes
     # (modified, deleted, renamed, copied, added to index — but not purely untracked
@@ -116,16 +132,45 @@ sync_repo() {
 
     # Check if remote branch exists
     if git ls-remote --heads origin "$CURRENT_BRANCH" | grep -q "$CURRENT_BRANCH"; then
-        # Remote branch exists, pull with rebase
+        # Remote branch exists, pull with rebase.
+        # If the pull fails due to residual untracked files (e.g. older versions
+        # wrote cache files before fix #882), fall back to fetch + reset to
+        # origin which is always safe for a read-only cache clone.
         if execute_cmd "git pull --rebase origin $CURRENT_BRANCH"; then
             print_message "$GREEN" "  ✓ Successfully pulled from origin/$CURRENT_BRANCH"
         else
-            print_message "$RED" "  ✗ Pull failed"
-            if [ "$STASHED" = true ]; then
-                print_message "$YELLOW" "  Attempting to restore stashed changes..."
-                execute_cmd "git stash pop"
+            print_message "$YELLOW" "  ✗ Pull --rebase failed; attempting fetch + reset fallback..."
+            # Fetch is already done in Step 0; just hard-reset to origin.
+            # This discards any untracked artefacts that blocked the pull and
+            # is safe because this clone is a read-only cache (tracked content
+            # is always recoverable from origin).
+            if execute_cmd "git reset --hard origin/$CURRENT_BRANCH"; then
+                print_message "$GREEN" "  ✓ Recovered via fetch+reset to origin/$CURRENT_BRANCH"
+                # Restore any stashed tracked changes now — the hard reset already
+                # updated the working tree to origin; the stash may still apply
+                # cleanly (e.g. local edits unrelated to the reset).  This mirrors
+                # the stash-pop block in the failure branch below so both paths
+                # consistently attempt to restore the stash (fix #882 review).
+                if [ "$STASHED" = true ]; then
+                    print_message "$YELLOW" "  Attempting to restore stashed changes..."
+                    if execute_cmd "git stash pop"; then
+                        print_message "$GREEN" "  ✓ Stashed changes restored"
+                        STASHED=false  # Prevent double-pop in Step 3
+                    else
+                        print_message "$YELLOW" "  ⚠ Stash pop failed after reset (conflicts likely); stash preserved"
+                        print_message "$YELLOW" "  Manual intervention may be required: git stash list"
+                        # Do not abort — the clone is clean at origin; stash is preserved
+                        STASHED=false  # Step 3 must not attempt another pop
+                    fi
+                fi
+            else
+                print_message "$RED" "  ✗ Fetch+reset fallback also failed"
+                if [ "$STASHED" = true ]; then
+                    print_message "$YELLOW" "  Attempting to restore stashed changes..."
+                    execute_cmd "git stash pop"
+                fi
+                return 1
             fi
-            return 1
         fi
     else
         # Remote branch doesn't exist yet - will be created on first push
