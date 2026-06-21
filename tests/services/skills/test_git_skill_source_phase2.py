@@ -195,18 +195,27 @@ class TestPhase2CacheArchitecture:
 
     @patch("requests.get")
     def test_etag_caching_still_works(self, mock_get, manager):
-        """Test ETag caching is preserved in Phase 2."""
+        """Test ETag caching is preserved in Phase 2 with external cache location.
+
+        After fix #882 the ETag cache lives OUTSIDE the clone working tree at
+        ``manager.etag_dir / "{source_id}.json"``.  This test verifies:
+        - The external cache is read before the HTTP request (304 hit).
+        - No ``.etag_cache.json`` is written into the clone tree.
+        """
         source = manager.config.get_source("test-source")
         cache_path = manager._get_source_cache_path(source)
 
-        # Create cached file with ETag
+        # Create cached file
         test_file = cache_path / "test.md"
         test_file.parent.mkdir(parents=True, exist_ok=True)
         test_file.write_text("cached content")
 
-        # Store ETag
-        etag_cache_file = cache_path / ".etag_cache.json"
-        etag_cache_file.write_text('{"' + str(test_file) + '": "etag123"}')
+        # Store ETag in the NEW external location (fix #882)
+        external_etag_file = manager._get_etag_cache_file(source.id)
+        external_etag_file.parent.mkdir(parents=True, exist_ok=True)
+        import json
+
+        external_etag_file.write_text(json.dumps({str(test_file): "etag123"}))
 
         # Mock refs and tree responses
         refs_response = Mock()
@@ -232,6 +241,174 @@ class TestPhase2CacheArchitecture:
         # Verify ETag cache hit (0 updates, 1 cached)
         assert files_updated == 0
         assert files_cached == 1
+
+    @patch("requests.get")
+    def test_clone_tree_clean_after_sync(self, mock_get, manager):
+        """After a sync, no .etag_cache.json should exist inside the clone tree (#882)."""
+        source = manager.config.get_source("test-source")
+        cache_path = manager._get_source_cache_path(source)
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        # Mock refs + tree + file download
+        refs_response = Mock()
+        refs_response.status_code = 200
+        refs_response.json.return_value = {"object": {"sha": "abc123"}}
+
+        tree_response = Mock()
+        tree_response.status_code = 200
+        tree_response.json.return_value = {
+            "tree": [{"type": "blob", "path": "skill.md"}]
+        }
+
+        file_response = Mock()
+        file_response.status_code = 200
+        file_response.content = b"# skill"
+        file_response.headers = {"ETag": '"newtag"'}
+        mock_get.side_effect = [refs_response, tree_response, file_response]
+
+        manager._recursive_sync_repository(source, cache_path, force=False)
+
+        # The clone working tree must NOT contain .etag_cache.json
+        in_tree_cache = list(cache_path.rglob(".etag_cache.json"))
+        assert in_tree_cache == [], (
+            f"ETag cache files found inside clone working tree: {in_tree_cache}"
+        )
+
+        # The external ETag file MUST exist
+        external_etag_file = manager._get_etag_cache_file(source.id)
+        assert external_etag_file.exists(), (
+            f"External ETag file missing: {external_etag_file}"
+        )
+
+    def test_migrate_legacy_etag_cache(self, manager):
+        """Legacy in-tree .etag_cache.json is migrated to external location and deleted (#882)."""
+        import json
+
+        source = manager.config.get_source("test-source")
+        cache_path = manager._get_source_cache_path(source)
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        legacy_entries = {
+            str(cache_path / "skill.md"): '"etag-legacy"',
+            str(cache_path / "other.md"): '"etag-other"',
+        }
+
+        # Write legacy in-tree cache
+        legacy_file = cache_path / ".etag_cache.json"
+        legacy_file.write_text(json.dumps(legacy_entries))
+        assert legacy_file.exists()
+
+        # Run migration
+        manager._migrate_legacy_etag_cache(source.id, cache_path)
+
+        # Legacy file must be gone (clone is clean)
+        assert not legacy_file.exists(), (
+            "Legacy in-tree .etag_cache.json was not removed"
+        )
+
+        # External file must contain migrated entries
+        external_file = manager._get_etag_cache_file(source.id)
+        assert external_file.exists(), "External ETag file was not created"
+        migrated = json.loads(external_file.read_text())
+        for key, val in legacy_entries.items():
+            assert key in migrated, f"Key {key!r} missing from migrated cache"
+            assert migrated[key] == val
+
+    def test_migrate_legacy_etag_cache_merges_with_existing(self, manager):
+        """Migration merges legacy entries with existing external cache; external wins on collision."""
+        import json
+
+        source = manager.config.get_source("test-source")
+        cache_path = manager._get_source_cache_path(source)
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        skill_path = str(cache_path / "skill.md")
+
+        # Legacy in-tree cache
+        legacy_file = cache_path / ".etag_cache.json"
+        legacy_file.write_text(
+            json.dumps(
+                {skill_path: '"etag-legacy"', str(cache_path / "old.md"): '"old-etag"'}
+            )
+        )
+
+        # Pre-existing external cache (has newer ETag for skill.md)
+        external_file = manager._get_etag_cache_file(source.id)
+        external_file.parent.mkdir(parents=True, exist_ok=True)
+        external_file.write_text(json.dumps({skill_path: '"etag-external"'}))
+
+        manager._migrate_legacy_etag_cache(source.id, cache_path)
+
+        # Legacy file removed
+        assert not legacy_file.exists()
+
+        merged = json.loads(external_file.read_text())
+        # External wins for skill_path
+        assert merged[skill_path] == '"etag-external"'
+        # Legacy-only key is preserved
+        assert str(cache_path / "old.md") in merged
+
+    def test_migrate_legacy_etag_cache_no_legacy_file(self, manager):
+        """Migration is a no-op when no legacy file exists (fast path)."""
+        source = manager.config.get_source("test-source")
+        cache_path = manager._get_source_cache_path(source)
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        # Ensure no legacy in-tree file is present
+        legacy_file = cache_path / ".etag_cache.json"
+        assert not legacy_file.exists()
+
+        # Snapshot the external file state before calling migration
+        external_file = manager._get_etag_cache_file(source.id)
+        pre_mtime = external_file.stat().st_mtime if external_file.exists() else None
+
+        # Should not raise
+        manager._migrate_legacy_etag_cache(source.id, cache_path)
+
+        # External file must NOT have been written (migration was a no-op)
+        if pre_mtime is None:
+            assert not external_file.exists(), (
+                "External ETag file was created despite no legacy file to migrate"
+            )
+        else:
+            assert external_file.stat().st_mtime == pre_mtime, (
+                "External ETag file was modified despite no legacy file to migrate"
+            )
+
+    def test_migrate_legacy_etag_cache_corrupted_file(self, manager):
+        """Migration handles a corrupted in-tree cache gracefully (still removes the file)."""
+        source = manager.config.get_source("test-source")
+        cache_path = manager._get_source_cache_path(source)
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        legacy_file = cache_path / ".etag_cache.json"
+        legacy_file.write_text("NOT VALID JSON {{{{")
+
+        # Should not raise
+        manager._migrate_legacy_etag_cache(source.id, cache_path)
+
+        # File must be removed even on parse error
+        assert not legacy_file.exists(), "Corrupted legacy file was not removed"
+
+    def test_get_etag_cache_file_outside_clone(self, manager):
+        """_get_etag_cache_file returns a path that is NOT inside the clone dir (#882)."""
+        source = manager.config.get_source("test-source")
+        cache_path = manager._get_source_cache_path(source)
+        etag_file = manager._get_etag_cache_file(source.id)
+
+        # The etag file must NOT be a descendant of the clone root
+        is_inside_clone = True
+        try:
+            etag_file.relative_to(cache_path)
+        except ValueError:
+            is_inside_clone = False
+        assert not is_inside_clone, (
+            f"ETag cache file {etag_file} is inside the clone tree {cache_path}"
+        )
+
+        # Confirm the naming scheme
+        assert etag_file.name == f"{source.id}.json"
+        assert etag_file.parent == manager.etag_dir
 
     def test_progress_callback_absolute_positioning(self, manager):
         """Test progress callback receives absolute position, not increments."""
