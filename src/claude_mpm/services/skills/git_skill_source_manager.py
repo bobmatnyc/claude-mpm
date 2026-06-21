@@ -808,23 +808,18 @@ class GitSkillSourceManager:
     def _migrate_legacy_etag_cache(self, source_id: str, cache_path: Path) -> None:
         """Migrate an in-tree ``.etag_cache.json`` file to the external location.
 
-        Background (#882): older versions of this manager wrote
-        ``.etag_cache.json`` directly into the git-clone working tree at
-        ``cache_path/.etag_cache.json`` (and sometimes into nested
-        subdirectories).  That untracked file dirtied the clone and could
-        cause ``git pull --rebase`` to emit warnings.
+        WHAT: Checks for a legacy ``.etag_cache.json`` file inside the git-clone
+        working tree at ``cache_path/.etag_cache.json``; if found, reads its
+        ETag entries, merges them into the new external per-source cache file
+        (external entries win on key collision — they are at least as fresh),
+        then deletes the in-tree copy so the clone remains clean.  All errors
+        are caught and logged; the method never raises.
 
-        This method runs once per sync (cheaply — a single ``stat``) and:
-
-        1. Checks whether a legacy file exists at the clone root
-           (``cache_path/.etag_cache.json``).
-        2. If found, reads its content and **merges** it into the new external
-           cache file (external entries win on collision — they are at least
-           as fresh).
-        3. Deletes the in-tree file so the clone is clean.
-
-        All errors are caught and logged; the migration never raises.  The
-        sync continues normally whether the migration succeeded or not.
+        WHY: Older versions of this manager wrote the ETag cache directly into
+        the git-clone working tree.  That untracked file dirtied the clone and
+        caused ``git pull --rebase`` to emit warnings (issue #882).  Migration
+        preserves existing cache hits across the upgrade so the first sync after
+        the upgrade does not re-download every file.
 
         Args:
             source_id: ID of the skill source.
