@@ -45,6 +45,13 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+try:
+    from claude_mpm.hooks.transcript_usage import (
+        derive_transcript_path as _derive_transcript_path,
+    )
+except ImportError:
+    _derive_transcript_path = None  # type: ignore[assignment]
+
 # Timeouts — kept short so the hook never blocks Claude Code's event loop.
 _HTTP_TIMEOUT_S = 0.2
 _SUBPROCESS_TIMEOUT_S = 2.0
@@ -71,6 +78,12 @@ _QA_REPLY_SNIPPET_MAX_CHARS = 200  # cap user-reply snippet stored to memory
 # State files older than this are pruned on write to avoid unbounded disk growth
 # from sessions that ended without a follow-up UserPromptSubmit.
 _QA_STATE_TTL_SECONDS = 24 * 3600  # 24 hours
+# Project-name values that carry no signal and add tag noise — computed once at
+# module load time so we pay no per-call cost.  The home-directory basename is
+# included because cwd == $HOME is indistinguishable from "project 'masa'" etc.
+_QA_NOISY_NAMES: frozenset[str] = frozenset(
+    {"", "tmp", "workspace", "~", Path.home().name}
+)
 
 # Default ports / addresses for backends.
 _DEFAULT_TRUSTY_PORT = 7070
@@ -690,9 +703,25 @@ def _extract_last_assistant_text(transcript_path: Path) -> str:
     return last_text
 
 
-def _qa_state_path(session_id: str) -> Path:
-    """Return the path for the Q&A state file for ``session_id``."""
-    return _QA_STATE_DIR / f"{session_id}_last_response.txt"
+def _qa_state_path(session_id: str) -> Path | None:
+    """Return the path for the Q&A state file for ``session_id``, or None if invalid.
+
+    Rejects empty session IDs and any that contain path-separator characters
+    (``/``, ``\\``) or the parent-directory sequence ``..``.  After constructing
+    the candidate path it resolves both sides and verifies the result is still
+    a direct child of the state directory, preventing path-traversal attacks.
+    Returns None on any invalid input or resolution failure; callers treat None
+    as "no state".  Never raises.
+    """
+    if not session_id or "/" in session_id or "\\" in session_id or ".." in session_id:
+        return None
+    try:
+        candidate = _QA_STATE_DIR / f"{session_id}_last_response.txt"
+        if candidate.resolve().parent != _QA_STATE_DIR.resolve():
+            return None
+        return candidate
+    except Exception:
+        return None
 
 
 def _prune_stale_qa_state() -> None:
@@ -723,15 +752,19 @@ def _write_qa_state(session_id: str, pm_text: str) -> None:
 
     Creates the state directory if absent.  Truncates to
     ``_QA_PM_SNIPPET_MAX_CHARS``.  Prunes stale state files (TTL-based)
-    before writing.  Never raises.
+    before writing.  Returns silently when session_id fails sanitization.
+    Never raises.
     """
     if not session_id or not pm_text:
+        return
+    path = _qa_state_path(session_id)
+    if path is None:
         return
     try:
         _QA_STATE_DIR.mkdir(parents=True, exist_ok=True)
         _prune_stale_qa_state()
         snippet = pm_text[:_QA_PM_SNIPPET_MAX_CHARS].strip()
-        _qa_state_path(session_id).write_text(snippet, encoding="utf-8")
+        path.write_text(snippet, encoding="utf-8")
     except Exception:
         return
 
@@ -739,13 +772,15 @@ def _write_qa_state(session_id: str, pm_text: str) -> None:
 def _read_qa_state(session_id: str) -> str:
     """Read the persisted PM snippet for ``session_id``.
 
-    Returns an empty string when the file is missing or unreadable.  Never
-    raises.
+    Returns an empty string when the file is missing, the session_id fails
+    sanitization, or the file is unreadable.  Never raises.
     """
     if not session_id:
         return ""
+    path = _qa_state_path(session_id)
+    if path is None:
+        return ""
     try:
-        path = _qa_state_path(session_id)
         if not path.is_file():
             return ""
         return path.read_text(encoding="utf-8").strip()
@@ -756,12 +791,16 @@ def _read_qa_state(session_id: str) -> str:
 def _delete_qa_state(session_id: str) -> None:
     """Delete the Q&A state file for ``session_id`` (one-shot consumption).
 
-    No-op when the file does not exist.  Never raises.
+    No-op when the file does not exist or session_id fails sanitization.
+    Never raises.
     """
     if not session_id:
         return
+    path = _qa_state_path(session_id)
+    if path is None:
+        return
     try:
-        _qa_state_path(session_id).unlink(missing_ok=True)
+        path.unlink(missing_ok=True)
     except Exception:
         return
 
@@ -781,14 +820,14 @@ def _capture_pm_turn_on_stop(event: dict[str, Any], backend_key: str) -> None:
     """
     if not _capture_enabled(backend_key, "qa_pairs"):
         return
+    if _derive_transcript_path is None:
+        return
     try:
-        from claude_mpm.hooks.transcript_usage import derive_transcript_path
-
         session_id = event.get("session_id") or ""
         cwd_raw = event.get("cwd") or ""
         if not session_id or not cwd_raw:
             return
-        transcript_path = derive_transcript_path(session_id, cwd_raw)
+        transcript_path = _derive_transcript_path(session_id, cwd_raw)
         if transcript_path is None or not transcript_path.exists():
             return
         pm_text = _extract_last_assistant_text(transcript_path)
@@ -897,7 +936,7 @@ def handle_user_prompt_submit(
 
     # Only include the project tag when the directory name is meaningful.
     # Values like "~", "tmp", or "workspace" add no signal and create noise.
-    _QA_NOISY_NAMES = {"", "tmp", "workspace", "~", Path.home().name}
+    # _QA_NOISY_NAMES is a module-level frozenset computed once at import time.
     project_name = cwd.name
     qa_tags: list[str] = ["qa-pair", "prompt"]
     if project_name and project_name not in _QA_NOISY_NAMES and cwd != Path.home():
@@ -925,19 +964,27 @@ def handle_user_prompt_submit(
         import threading
 
         if is_qa_reply and _capture_enabled(backend_key, "qa_pairs"):
-            # Paired Q&A fact — consumes the state file immediately (before the
-            # thread fires) to avoid double-consumption if the hook is re-invoked.
-            _delete_qa_state(session_id)
+            # Paired Q&A fact.  The state file is deleted INSIDE the background
+            # thread only after a successful backend.store(), preserving it for a
+            # potential retry if the store fails.
             reply_snippet = prompt[:_QA_REPLY_SNIPPET_MAX_CHARS].strip()
             qa_fact = f"PM: {pm_snippet}\nUser: {reply_snippet}"
 
             def _bg_store_qa() -> None:
                 try:
                     backend.store(qa_fact, tags=qa_tags)
+                    # Only delete the state file once the fact is safely persisted.
+                    _delete_qa_state(session_id)
                 except Exception:
+                    # Store failed — leave the state file intact for a future retry.
                     return
 
             threading.Thread(target=_bg_store_qa, daemon=True).start()
+        elif is_qa_reply:
+            # qa_pairs capture is disabled, but a state file was consumed for this
+            # session — delete it now so it does not linger and mis-pair with the
+            # next prompt.
+            _delete_qa_state(session_id)
         else:
             # Standalone prompt — existing behaviour.
             snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()
