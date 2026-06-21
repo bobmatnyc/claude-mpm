@@ -834,9 +834,9 @@ def _read_qa_state_with_mtime(session_id: str) -> tuple[str, float] | None:
             content = fh.read().strip()
             mtime = os.fstat(fh.fileno()).st_mtime
         return (content, mtime)
-    except FileNotFoundError:
-        return None
     except Exception:
+        # Covers FileNotFoundError (file absent), PermissionError (unreadable),
+        # and any other OS-level failure — all map to the same "no state" result.
         return None
 
 
