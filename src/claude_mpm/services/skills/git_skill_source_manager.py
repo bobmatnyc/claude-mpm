@@ -944,6 +944,19 @@ class GitSkillSourceManager:
         # for a clean working tree; fall back to in-tree only if not provided
         # (backward compat with direct callers in tests).
         if etag_cache_file is None:
+            # DEPRECATED: writing the ETag cache inside the clone working tree
+            # re-introduces the dirty-clone problem fixed in #882.  Any caller
+            # that omits etag_cache_file should be updated to pass the path
+            # returned by _get_etag_cache_file().  This fallback will be removed
+            # in a future release.  (#882)
+            logger.warning(
+                "_download_file_with_etag called without etag_cache_file; "
+                "falling back to in-tree cache at %s/.etag_cache.json.  "
+                "This writes into the git clone working tree and is deprecated "
+                "(re-introduces #882).  Pass etag_cache_file from "
+                "_get_etag_cache_file() instead.",
+                local_path.parent,
+            )
             etag_cache_file = local_path.parent / ".etag_cache.json"
 
         # Read cached ETag (lock required for file read)
@@ -956,6 +969,10 @@ class GitSkillSourceManager:
                 except Exception:  # nosec B110 - intentional: proceed without cache on read failure
                     pass
 
+            # TODO: absolute-path keys make this cache non-portable if ~/.claude-mpm
+            # is relocated or shared across machines.  A future refactor should key
+            # on a path relative to the cache root (e.g. relative to self.cache_dir
+            # or self.etag_dir) so that the JSON file remains valid after a move.
             cached_etag = etag_cache.get(str(local_path))
 
         # Make conditional request (no lock needed - independent HTTP call)
