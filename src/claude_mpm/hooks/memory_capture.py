@@ -62,6 +62,12 @@ _PROMPT_CAPTURE_MAX_CHARS = 100
 _ENRICH_MAX_CHARS = 2000
 _RECALL_LIMIT = 5
 
+# Q&A pair capture — state persisted between Stop and UserPromptSubmit.
+# State dir: ~/.claude-mpm/state/{session_id}_last_response.txt
+_QA_STATE_DIR = Path.home() / ".claude-mpm" / "state"
+_QA_PM_SNIPPET_MAX_CHARS = 500  # cap PM text stored to disk
+_QA_REPLY_SNIPPET_MAX_CHARS = 200  # cap user-reply snippet stored to memory
+
 # Default ports / addresses for backends.
 _DEFAULT_TRUSTY_PORT = 7070
 _TRUSTY_ADDR_FILE = Path.home() / ".trusty-memory" / "http_addr"
@@ -100,9 +106,11 @@ def _load_config() -> dict[str, Any]:
         trusty_memory.port: int (default 7070)
         trusty_memory.palace: str (default basename of cwd)
         trusty_memory.capture.{session_start,file_changes,git_commits,session_end}: bool
+        trusty_memory.capture.qa_pairs: bool (default True) — capture Q&A pairs from
+            the PM turn (Stop) and user reply (UserPromptSubmit)
         kuzu_memory.enabled: bool (default True)
         kuzu_memory.palace: str (unused, kuzu has no palace concept)
-        kuzu_memory.capture.*: same shape as trusty_memory.capture
+        kuzu_memory.capture.*: same shape as trusty_memory.capture (including qa_pairs)
     """
     return _load_yaml(Path.home() / ".claude-mpm" / "config.yaml")
 
@@ -632,10 +640,142 @@ def _extract_commit_message(command: str, event: dict[str, Any]) -> str:
     return ""
 
 
+def _extract_last_assistant_text(transcript_path: Path) -> str:
+    """Extract the last assistant turn's concatenated text blocks from a transcript.
+
+    WHAT: Reads a Claude Code session JSONL transcript, finds the last record
+    with ``type == "assistant"``, and concatenates all ``{type: "text", text: ...}``
+    content blocks into a single string.
+
+    WHY: The Stop hook needs to persist the most-recent PM response so the next
+    UserPromptSubmit can form a Q&A pair.  We only want the textual prose — not
+    tool calls or other block types.
+
+    Returns an empty string when the file is missing, unreadable, or contains no
+    assistant records.  Never raises.
+    """
+    last_text = ""
+    try:
+        with transcript_path.open(encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                raw_line = raw_line.strip()
+                if not raw_line:
+                    continue
+                try:
+                    rec = json.loads(raw_line)
+                except json.JSONDecodeError:
+                    continue
+                if rec.get("type") != "assistant":
+                    continue
+                msg = rec.get("message") or {}
+                content = msg.get("content") or []
+                if not isinstance(content, list):
+                    continue
+                parts: list[str] = []
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        text = block.get("text") or ""
+                        if text:
+                            parts.append(text)
+                if parts:
+                    last_text = " ".join(parts)
+    except Exception:
+        return ""
+    return last_text
+
+
+def _qa_state_path(session_id: str) -> Path:
+    """Return the path for the Q&A state file for ``session_id``."""
+    return _QA_STATE_DIR / f"{session_id}_last_response.txt"
+
+
+def _write_qa_state(session_id: str, pm_text: str) -> None:
+    """Persist the PM turn snippet to the session state file.
+
+    Creates the state directory if absent.  Truncates to
+    ``_QA_PM_SNIPPET_MAX_CHARS``.  Never raises.
+    """
+    if not session_id or not pm_text:
+        return
+    try:
+        _QA_STATE_DIR.mkdir(parents=True, exist_ok=True)
+        snippet = pm_text[:_QA_PM_SNIPPET_MAX_CHARS].strip()
+        _qa_state_path(session_id).write_text(snippet, encoding="utf-8")
+    except Exception:
+        return
+
+
+def _read_qa_state(session_id: str) -> str:
+    """Read the persisted PM snippet for ``session_id``.
+
+    Returns an empty string when the file is missing or unreadable.  Never
+    raises.
+    """
+    if not session_id:
+        return ""
+    try:
+        path = _qa_state_path(session_id)
+        if not path.is_file():
+            return ""
+        return path.read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
+def _delete_qa_state(session_id: str) -> None:
+    """Delete the Q&A state file for ``session_id`` (one-shot consumption).
+
+    No-op when the file does not exist.  Never raises.
+    """
+    if not session_id:
+        return
+    try:
+        _qa_state_path(session_id).unlink(missing_ok=True)
+    except Exception:
+        return
+
+
+def _capture_pm_turn_on_stop(event: dict[str, Any], backend_key: str) -> None:
+    """Read the last PM response from the session transcript and persist it.
+
+    WHAT: Derives the transcript path from ``session_id`` + ``cwd`` in the Stop
+    event, extracts the last assistant text, and writes a snippet to the Q&A
+    state dir so the next UserPromptSubmit can form a paired fact.
+
+    WHY: Hook invocations are separate subprocesses — the only cross-invocation
+    channel is the filesystem.  Writing state here on Stop and reading it on
+    UserPromptSubmit is the lightest-weight cross-process bridge available.
+
+    Never raises: all errors are swallowed so the Stop handler keeps flowing.
+    """
+    if not _capture_enabled(backend_key, "qa_pairs"):
+        return
+    try:
+        from claude_mpm.hooks.transcript_usage import derive_transcript_path
+
+        session_id = event.get("session_id") or ""
+        cwd_raw = event.get("cwd") or ""
+        if not session_id or not cwd_raw:
+            return
+        transcript_path = derive_transcript_path(session_id, cwd_raw)
+        if transcript_path is None or not transcript_path.exists():
+            return
+        pm_text = _extract_last_assistant_text(transcript_path)
+        if not pm_text:
+            return
+        _write_qa_state(session_id, pm_text)
+    except Exception:
+        return
+
+
 def _handle_session_end(
     event: dict[str, Any], backend: AbstractMemoryCaptureBackend
 ) -> None:
-    if not _capture_enabled(backend.name.replace("-", "_"), "session_end"):
+    backend_key = backend.name.replace("-", "_")
+    # Persist the last PM turn to the state dir for Q&A pairing.
+    _capture_pm_turn_on_stop(event, backend_key)
+
+    if not _capture_enabled(backend_key, "session_end"):
         return
     cwd_raw = event.get("cwd")
     cwd = Path(cwd_raw) if cwd_raw else Path.cwd()
@@ -684,12 +824,20 @@ def handle_user_prompt_submit(
     enrichment). Never raises.
 
     Behaviour:
-      * Skip short prompts (< ``_PROMPT_MIN_WORDS`` words) — likely
-        clarifications, not real intents worth remembering.
+      * **Q&A pair mode** (state file exists for this session_id): a prior PM
+        turn was captured at Stop.  This prompt is a reply — lower/skip the
+        ``_PROMPT_MIN_WORDS`` gate and store a paired ``"PM: ...\\nUser: ..."``
+        fact tagged ``["qa-pair", "prompt", project]``.  Consumes and deletes
+        the state file (one-shot).
+      * **Standalone mode** (no state file): existing behaviour — skip short
+        prompts (< ``_PROMPT_MIN_WORDS`` words), store ``"User prompt: ..."``
+        tagged ``["prompt"]``.
       * Skip when no backend is selected.
-      * Recall using the first ``_PROMPT_QUERY_MAX_CHARS`` chars of the prompt.
+      * Recall using the first ``_PROMPT_QUERY_MAX_CHARS`` chars of the prompt
+        (unchanged, always attempted for non-empty prompts when enrichment is
+        enabled — even short replies benefit from memory context).
       * Capture is fire-and-forget on a daemon thread so the hook returns
-        immediately (recall result is the user-visible value).
+        immediately.
       * Inject recalled context as ``additionalContext`` via
         ``hookSpecificOutput`` when there are any results.
 
@@ -706,11 +854,23 @@ def handle_user_prompt_submit(
     prompt = prompt.strip()
     if not prompt:
         return result
-    if len(prompt.split()) < _PROMPT_MIN_WORDS:
-        return result
 
     backend = _BACKEND
     backend_key = backend.name.replace("-", "_")
+
+    # --- Q&A pair detection ---------------------------------------------------
+    # Check for a persisted PM turn from the most-recent Stop event.
+    session_id = event.get("session_id") or ""
+    cwd_raw = event.get("cwd") or ""
+    cwd = Path(cwd_raw) if cwd_raw else Path.cwd()
+    project = cwd.name
+
+    pm_snippet = _read_qa_state(session_id) if session_id else ""
+    is_qa_reply = bool(pm_snippet)
+
+    # Apply the minimum-words gate only for standalone prompts.
+    if not is_qa_reply and len(prompt.split()) < _PROMPT_MIN_WORDS:
+        return result
 
     # 1) Recall (synchronous, bounded). Result drives both enrichment and
     # whether we bother with the additionalContext payload.
@@ -726,16 +886,32 @@ def handle_user_prompt_submit(
     try:
         import threading
 
-        snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()
-        fact = f"User prompt: {snippet}"
+        if is_qa_reply and _capture_enabled(backend_key, "qa_pairs"):
+            # Paired Q&A fact — consumes the state file immediately (before the
+            # thread fires) to avoid double-consumption if the hook is re-invoked.
+            _delete_qa_state(session_id)
+            reply_snippet = prompt[:_QA_REPLY_SNIPPET_MAX_CHARS].strip()
+            qa_fact = f"PM: {pm_snippet}\nUser: {reply_snippet}"
 
-        def _bg_store() -> None:
-            try:
-                backend.store(fact, tags=["prompt"])
-            except Exception:
-                return
+            def _bg_store_qa() -> None:
+                try:
+                    backend.store(qa_fact, tags=["qa-pair", "prompt", project])
+                except Exception:
+                    return
 
-        threading.Thread(target=_bg_store, daemon=True).start()
+            threading.Thread(target=_bg_store_qa, daemon=True).start()
+        else:
+            # Standalone prompt — existing behaviour.
+            snippet = prompt[:_PROMPT_CAPTURE_MAX_CHARS].strip()
+            fact = f"User prompt: {snippet}"
+
+            def _bg_store() -> None:
+                try:
+                    backend.store(fact, tags=["prompt"])
+                except Exception:
+                    return
+
+            threading.Thread(target=_bg_store, daemon=True).start()
     except Exception:
         # Even thread spawn failure must not break the hook.
         pass
