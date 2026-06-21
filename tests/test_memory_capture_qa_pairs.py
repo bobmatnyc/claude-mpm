@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import sys
-import threading
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -64,6 +63,22 @@ def _make_mock_backend(name: str = "trusty-memory") -> MagicMock:
     backend.store = MagicMock()
     backend.recall = MagicMock(return_value=[])
     return backend
+
+
+class _SyncThread:
+    """Drop-in replacement for threading.Thread that runs target synchronously.
+
+    Eliminates the need for time.sleep() in tests: when .start() is called the
+    target callable is invoked immediately in the calling thread, so assertions
+    on side-effects are deterministic.
+    """
+
+    def __init__(self, target: Any, daemon: bool = True) -> None:
+        self._target = target
+        self.daemon = daemon
+
+    def start(self) -> None:
+        self._target()
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +211,63 @@ class TestQaStateHelpers:
 
 
 # ---------------------------------------------------------------------------
+# _prune_stale_qa_state
+# ---------------------------------------------------------------------------
+
+
+class TestPruneStaleQaState:
+    """Tests for the TTL-based cleanup of abandoned Q&A state files."""
+
+    def test_prunes_old_files(self, tmp_path: Path) -> None:
+        """Files older than the TTL are removed on prune."""
+        import time
+
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        old_file = state_dir / "old-sess_last_response.txt"
+        old_file.write_text("stale", encoding="utf-8")
+        # Back-date the mtime to exceed the TTL.
+        past = time.time() - mc._QA_STATE_TTL_SECONDS - 10
+        import os
+
+        os.utime(old_file, (past, past))
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._prune_stale_qa_state()
+
+        assert not old_file.exists(), "Stale file should have been pruned"
+
+    def test_preserves_recent_files(self, tmp_path: Path) -> None:
+        """Files within the TTL are left untouched."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+
+        new_file = state_dir / "new-sess_last_response.txt"
+        new_file.write_text("fresh", encoding="utf-8")
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._prune_stale_qa_state()
+
+        assert new_file.exists(), "Recent file should be preserved"
+
+    def test_noop_when_dir_missing(self, tmp_path: Path) -> None:
+        """Missing state dir is silently handled (no exception)."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "nonexistent"):
+            mc._prune_stale_qa_state()  # must not raise
+
+    def test_prune_called_by_write_qa_state(self, tmp_path: Path) -> None:
+        """_write_qa_state calls _prune_stale_qa_state as a side-effect."""
+        with (
+            patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"),
+            patch.object(mc, "_prune_stale_qa_state") as mock_prune,
+        ):
+            mc._write_qa_state("sess-prune", "some text")
+
+        mock_prune.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
 # _capture_pm_turn_on_stop
 # ---------------------------------------------------------------------------
 
@@ -297,7 +369,7 @@ class TestHandleUserPromptSubmitQaPairs:
         }
 
     def test_qa_pair_stored_when_state_file_exists(self, tmp_path: Path) -> None:
-        """When state file exists, a qa-pair fact is stored via daemon thread."""
+        """When state file exists, a qa-pair fact is stored via (synchronous) thread."""
         backend = _make_mock_backend()
         session_id = "sess-qa-store"
         state_dir = tmp_path / "state"
@@ -316,16 +388,16 @@ class TestHandleUserPromptSubmitQaPairs:
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             result = mc.handle_user_prompt_submit(
                 self._event("Option 2 please.", session_id=session_id)
             )
 
         assert result["continue"] is True
-        # Let daemon thread settle.
-        import time
-
-        time.sleep(0.1)
         assert any("qa-pair" in tags for _, tags in stored_calls), (
             f"Expected a qa-pair store call; got: {stored_calls}"
         )
@@ -350,6 +422,10 @@ class TestHandleUserPromptSubmitQaPairs:
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             mc.handle_user_prompt_submit(
                 self._event("Short reply.", session_id=session_id)
@@ -377,13 +453,14 @@ class TestHandleUserPromptSubmitQaPairs:
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             # "yes" is well below 10 words.
             mc.handle_user_prompt_submit(self._event("yes", session_id=session_id))
 
-        import time
-
-        time.sleep(0.1)
         assert any("qa-pair" in f or "PM:" in f for f in stored), (
             f"Short reply not captured; stored: {stored}"
         )
@@ -403,6 +480,10 @@ class TestHandleUserPromptSubmitQaPairs:
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             # 4 words — below the 10-word gate.
             result = mc.handle_user_prompt_submit(
@@ -410,9 +491,6 @@ class TestHandleUserPromptSubmitQaPairs:
             )
 
         assert result["continue"] is True
-        import time
-
-        time.sleep(0.1)
         assert stored == [], f"Standalone short prompt should be dropped; got: {stored}"
 
     def test_standalone_long_prompt_stores_user_prompt_fact(
@@ -433,14 +511,15 @@ class TestHandleUserPromptSubmitQaPairs:
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             mc.handle_user_prompt_submit(
                 self._event(long_prompt, session_id=session_id)
             )
 
-        import time
-
-        time.sleep(0.1)
         assert any(
             fact.startswith("User prompt:") and "prompt" in tags
             for fact, tags in stored
@@ -474,14 +553,15 @@ class TestHandleUserPromptSubmitQaPairs:
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
             patch.object(mc, "_capture_enabled", side_effect=_capture_enabled_no_qa),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             mc.handle_user_prompt_submit(
                 self._event("short reply", session_id=session_id)
             )
 
-        import time
-
-        time.sleep(0.1)
         qa_pairs = [f for f in stored if "PM:" in f]
         assert qa_pairs == [], f"qa_pairs disabled but got: {qa_pairs}"
 
@@ -497,6 +577,74 @@ class TestHandleUserPromptSubmitQaPairs:
                 }
             )
         assert result == {"continue": True}
+
+    def test_qa_tags_omit_noisy_project_names(self, tmp_path: Path) -> None:
+        """Q&A fact tags omit the project name when cwd is noisy (e.g. 'tmp')."""
+        backend = _make_mock_backend()
+        session_id = "sess-noisy-cwd"
+        state_dir = tmp_path / "state"
+        stored_tags: list[list[str]] = []
+
+        def fake_store(fact: str, tags: list[str] | None = None) -> None:
+            stored_tags.append(list(tags or []))
+
+        backend.store = fake_store
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM said something.")
+
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            # /tmp is in the noisy set — no project tag should be appended.
+            mc.handle_user_prompt_submit(
+                self._event("reply", session_id=session_id, cwd="/tmp")
+            )
+
+        assert stored_tags, "Expected at least one store call"
+        for tags in stored_tags:
+            assert "tmp" not in tags, f"Noisy 'tmp' should not appear in tags: {tags}"
+            assert "qa-pair" in tags
+            assert "prompt" in tags
+
+    def test_qa_tags_include_meaningful_project_name(self, tmp_path: Path) -> None:
+        """Q&A fact tags include the project name when the cwd name is meaningful."""
+        backend = _make_mock_backend()
+        session_id = "sess-good-cwd"
+        state_dir = tmp_path / "state"
+        stored_tags: list[list[str]] = []
+
+        def fake_store(fact: str, tags: list[str] | None = None) -> None:
+            stored_tags.append(list(tags or []))
+
+        backend.store = fake_store
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM said something.")
+
+        project_dir = tmp_path / "my-cool-project"
+        project_dir.mkdir()
+
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            mc.handle_user_prompt_submit(
+                self._event("reply", session_id=session_id, cwd=str(project_dir))
+            )
+
+        assert stored_tags, "Expected at least one store call"
+        for tags in stored_tags:
+            assert "my-cool-project" in tags, f"Expected project name in tags: {tags}"
 
 
 # ---------------------------------------------------------------------------
@@ -585,16 +733,16 @@ class TestQaPairingEndToEnd:
         with (
             patch.object(mc, "_BACKEND", backend),
             patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
         ):
             result = mc.handle_user_prompt_submit(event)
 
         assert result["continue"] is True
 
-        import time
-
-        time.sleep(0.1)
-
-        # Paired fact stored.
+        # Paired fact stored — no sleep needed; _SyncThread ran it synchronously.
         qa_facts = [f for f, tags in stored if "qa-pair" in tags]
         assert qa_facts, f"No qa-pair found; stored={stored}"
         assert "Choose option A or B." in qa_facts[0]
