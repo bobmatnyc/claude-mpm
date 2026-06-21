@@ -38,6 +38,7 @@ import select
 import shutil
 import subprocess  # nosec B404
 import sys
+import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
@@ -67,6 +68,9 @@ _RECALL_LIMIT = 5
 _QA_STATE_DIR = Path.home() / ".claude-mpm" / "state"
 _QA_PM_SNIPPET_MAX_CHARS = 500  # cap PM text stored to disk
 _QA_REPLY_SNIPPET_MAX_CHARS = 200  # cap user-reply snippet stored to memory
+# State files older than this are pruned on write to avoid unbounded disk growth
+# from sessions that ended without a follow-up UserPromptSubmit.
+_QA_STATE_TTL_SECONDS = 24 * 3600  # 24 hours
 
 # Default ports / addresses for backends.
 _DEFAULT_TRUSTY_PORT = 7070
@@ -106,11 +110,13 @@ def _load_config() -> dict[str, Any]:
         trusty_memory.port: int (default 7070)
         trusty_memory.palace: str (default basename of cwd)
         trusty_memory.capture.{session_start,file_changes,git_commits,session_end}: bool
-        trusty_memory.capture.qa_pairs: bool (default True) — capture Q&A pairs from
-            the PM turn (Stop) and user reply (UserPromptSubmit)
+        trusty_memory.capture.qa_pairs: bool — capture Q&A pairs from the PM turn
+            (Stop) and user reply (UserPromptSubmit). **Default: True** (capture is
+            enabled whenever the key is absent; set explicitly to false to disable).
         kuzu_memory.enabled: bool (default True)
         kuzu_memory.palace: str (unused, kuzu has no palace concept)
-        kuzu_memory.capture.*: same shape as trusty_memory.capture (including qa_pairs)
+        kuzu_memory.capture.*: same shape as trusty_memory.capture (including
+            qa_pairs, which also defaults to True)
     """
     return _load_yaml(Path.home() / ".claude-mpm" / "config.yaml")
 
@@ -689,16 +695,41 @@ def _qa_state_path(session_id: str) -> Path:
     return _QA_STATE_DIR / f"{session_id}_last_response.txt"
 
 
+def _prune_stale_qa_state() -> None:
+    """Delete Q&A state files older than ``_QA_STATE_TTL_SECONDS``.
+
+    Deliberately best-effort: any error is silently swallowed.  Called from
+    ``_write_qa_state`` so that state files from abandoned sessions (i.e.
+    sessions that ended without a follow-up UserPromptSubmit) do not
+    accumulate on disk indefinitely.
+    """
+    try:
+        if not _QA_STATE_DIR.is_dir():
+            return
+        cutoff = time.time() - _QA_STATE_TTL_SECONDS
+        for candidate in _QA_STATE_DIR.glob("*_last_response.txt"):
+            try:
+                if candidate.stat().st_mtime < cutoff:
+                    candidate.unlink(missing_ok=True)
+            except Exception:
+                # Best-effort: skip files we cannot stat or unlink.
+                pass
+    except Exception:
+        return
+
+
 def _write_qa_state(session_id: str, pm_text: str) -> None:
     """Persist the PM turn snippet to the session state file.
 
     Creates the state directory if absent.  Truncates to
-    ``_QA_PM_SNIPPET_MAX_CHARS``.  Never raises.
+    ``_QA_PM_SNIPPET_MAX_CHARS``.  Prunes stale state files (TTL-based)
+    before writing.  Never raises.
     """
     if not session_id or not pm_text:
         return
     try:
         _QA_STATE_DIR.mkdir(parents=True, exist_ok=True)
+        _prune_stale_qa_state()
         snippet = pm_text[:_QA_PM_SNIPPET_MAX_CHARS].strip()
         _qa_state_path(session_id).write_text(snippet, encoding="utf-8")
     except Exception:
@@ -863,7 +894,14 @@ def handle_user_prompt_submit(
     session_id = event.get("session_id") or ""
     cwd_raw = event.get("cwd") or ""
     cwd = Path(cwd_raw) if cwd_raw else Path.cwd()
-    project = cwd.name
+
+    # Only include the project tag when the directory name is meaningful.
+    # Values like "~", "tmp", or "workspace" add no signal and create noise.
+    _QA_NOISY_NAMES = {"", "tmp", "workspace", "~", Path.home().name}
+    project_name = cwd.name
+    qa_tags: list[str] = ["qa-pair", "prompt"]
+    if project_name and project_name not in _QA_NOISY_NAMES and cwd != Path.home():
+        qa_tags.append(project_name)
 
     pm_snippet = _read_qa_state(session_id) if session_id else ""
     is_qa_reply = bool(pm_snippet)
@@ -895,7 +933,7 @@ def handle_user_prompt_submit(
 
             def _bg_store_qa() -> None:
                 try:
-                    backend.store(qa_fact, tags=["qa-pair", "prompt", project])
+                    backend.store(qa_fact, tags=qa_tags)
                 except Exception:
                     return
 
