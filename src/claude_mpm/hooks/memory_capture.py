@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import select
 import shutil
@@ -823,8 +824,6 @@ def _read_qa_state_with_mtime(session_id: str) -> tuple[str, float] | None:
         or ``None`` when the session_id fails sanitization, the file is
         absent, or any read error occurs.  Never raises.
     """
-    import os as _os
-
     if not session_id:
         return None
     path = _qa_state_path(session_id)
@@ -833,7 +832,7 @@ def _read_qa_state_with_mtime(session_id: str) -> tuple[str, float] | None:
     try:
         with path.open(encoding="utf-8", errors="replace") as fh:
             content = fh.read().strip()
-            mtime = _os.fstat(fh.fileno()).st_mtime
+            mtime = os.fstat(fh.fileno()).st_mtime
         return (content, mtime)
     except FileNotFoundError:
         return None
