@@ -634,8 +634,19 @@ class TestHandleUserPromptSubmitQaPairs:
         ), f"Expected 'User prompt:' fact; got: {stored}"
 
     def test_qa_pairs_config_disabled_skips_paired_store(self, tmp_path: Path) -> None:
-        """When qa_pairs capture is disabled, paired fact is not stored but state file
-        IS deleted (Finding 4) so it cannot linger and mis-pair with a later prompt.
+        """When qa_pairs is disabled, a PM-reply prompt stores NOTHING and the state
+        file IS deleted.
+
+        Chosen behavior: when qa_pairs=false and the prompt is a reply to a PM turn
+        (is_qa_reply=True), the hook deliberately stores nothing — neither a qa-pair
+        fact nor a standalone "User prompt: ..." fact.  The prompt is a conversational
+        reply, not a new standalone prompt, so storing it as "User prompt: ..." would
+        be semantically misleading.  The state file is still deleted (consume-once) to
+        prevent stale mis-pairing on any subsequent prompt.
+
+        This is an explicit, intentional no-op — not a missing feature.  If the
+        desired behavior changes to "store as standalone when qa_pairs=false", update
+        the elif branch in handle_user_prompt_submit and this test together.
         """
         backend = _make_mock_backend()
         session_id = "sess-qa-disabled"
