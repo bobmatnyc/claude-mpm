@@ -1006,12 +1006,9 @@ class TestHandleSessionEndWithQaCapture:
         with patch.object(mc, "_capture_pm_turn_on_stop") as mock_capture:
             mc._handle_session_end(event, backend)
 
-        (
-            mock_capture.assert_not_called(),
-            (
-                "_capture_pm_turn_on_stop must not be called from _handle_session_end; "
-                "it is dispatched from main() to run exactly once per Stop event"
-            ),
+        assert not mock_capture.called, (
+            "_capture_pm_turn_on_stop must not be called from _handle_session_end; "
+            "it is dispatched from main() to run exactly once per Stop event"
         )
 
     def test_main_dispatch_calls_capture_pm_turn_once_for_stop(
@@ -1048,9 +1045,8 @@ class TestHandleSessionEndWithQaCapture:
             with patch.object(builtins, "print"):
                 mc.main()
 
-        (
-            mock_capture.assert_called_once(),
-            ("main() must call _capture_pm_turn_on_stop exactly once per Stop event"),
+        assert mock_capture.call_count == 1, (
+            "main() must call _capture_pm_turn_on_stop exactly once per Stop event"
         )
 
 
