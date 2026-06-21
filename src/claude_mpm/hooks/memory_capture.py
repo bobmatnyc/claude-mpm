@@ -33,6 +33,7 @@ SPEC-INTEGRATIONS-07~1 : docs/specs/integrations.md#SPEC-INTEGRATIONS-07~1
 from __future__ import annotations
 
 import json
+import logging
 import re
 import select
 import shutil
@@ -45,12 +46,18 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 try:
     from claude_mpm.hooks.transcript_usage import (
         derive_transcript_path as _derive_transcript_path,
     )
 except ImportError:
     _derive_transcript_path = None  # type: ignore[assignment]
+    logger.debug(
+        "Q&A-pair PM-turn capture disabled: claude_mpm.hooks.transcript_usage"
+        " could not be imported."
+    )
 
 # Timeouts — kept short so the hook never blocks Claude Code's event loop.
 _HTTP_TIMEOUT_S = 0.2
@@ -78,6 +85,12 @@ _QA_REPLY_SNIPPET_MAX_CHARS = 200  # cap user-reply snippet stored to memory
 # State files older than this are pruned on write to avoid unbounded disk growth
 # from sessions that ended without a follow-up UserPromptSubmit.
 _QA_STATE_TTL_SECONDS = 24 * 3600  # 24 hours
+# Maximum age (seconds) of a state file for it to be treated as a Q&A reply.
+# A state file written by Stop but not consumed within this window is stale —
+# the next UserPromptSubmit is treated as a new standalone prompt, not a reply.
+# This bounds mis-pairing when the user starts an unrelated session much later
+# or when the store failed and left the file behind.
+_QA_PAIR_MAX_AGE_SECONDS = 600  # 10 minutes
 # Project-name values that carry no signal and add tag noise — computed once at
 # module load time so we pay no per-call cost.  The home-directory basename is
 # included because cwd == $HOME is indistinguishable from "project 'masa'" etc.
@@ -942,7 +955,26 @@ def handle_user_prompt_submit(
     if project_name and project_name not in _QA_NOISY_NAMES and cwd != Path.home():
         qa_tags.append(project_name)
 
-    pm_snippet = _read_qa_state(session_id) if session_id else ""
+    # Read state file and apply the freshness window.
+    # A state file that is OLDER than _QA_PAIR_MAX_AGE_SECONDS is stale: delete
+    # it and treat this prompt as a standalone (normal word-count gate applies).
+    pm_snippet = ""
+    if session_id:
+        state_path = _qa_state_path(session_id)
+        if state_path is not None and state_path.is_file():
+            is_fresh = False
+            try:
+                age = time.time() - state_path.stat().st_mtime
+                is_fresh = age <= _QA_PAIR_MAX_AGE_SECONDS
+            except Exception:
+                # Cannot read mtime — treat as stale.
+                is_fresh = False
+            if is_fresh:
+                pm_snippet = _read_qa_state(session_id)
+            else:
+                # Stale file: delete it and fall through to standalone path.
+                _delete_qa_state(session_id)
+
     is_qa_reply = bool(pm_snippet)
 
     # Apply the minimum-words gate only for standalone prompts.
@@ -965,8 +997,10 @@ def handle_user_prompt_submit(
 
         if is_qa_reply and _capture_enabled(backend_key, "qa_pairs"):
             # Paired Q&A fact.  The state file is deleted INSIDE the background
-            # thread only after a successful backend.store(), preserving it for a
-            # potential retry if the store fails.
+            # thread only after a successful backend.store().  On failure the file
+            # is left in place; it will be consumed by the next UserPromptSubmit
+            # only if it is still within _QA_PAIR_MAX_AGE_SECONDS, otherwise the
+            # freshness check in handle_user_prompt_submit will prune it.
             reply_snippet = prompt[:_QA_REPLY_SNIPPET_MAX_CHARS].strip()
             qa_fact = f"PM: {pm_snippet}\nUser: {reply_snippet}"
 
@@ -976,7 +1010,8 @@ def handle_user_prompt_submit(
                     # Only delete the state file once the fact is safely persisted.
                     _delete_qa_state(session_id)
                 except Exception:
-                    # Store failed — leave the state file intact for a future retry.
+                    # Store failed — leave the state file for the freshness-window
+                    # check on the next UserPromptSubmit.
                     return
 
             threading.Thread(target=_bg_store_qa, daemon=True).start()
