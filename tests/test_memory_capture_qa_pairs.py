@@ -209,6 +209,63 @@ class TestQaStateHelpers:
             assert result == ""
             mc._delete_qa_state("")  # no-op
 
+    # --- Finding 2: path-traversal sanitization ---------------------------------
+
+    def test_qa_state_path_rejects_slash_in_session_id(self, tmp_path: Path) -> None:
+        """_qa_state_path returns None for session IDs containing '/'."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            assert mc._qa_state_path("../evil") is None
+            assert mc._qa_state_path("/absolute/path") is None
+            assert mc._qa_state_path("sess/../../etc/passwd") is None
+
+    def test_qa_state_path_rejects_backslash(self, tmp_path: Path) -> None:
+        """_qa_state_path returns None for session IDs containing '\\'."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            assert mc._qa_state_path("sess\\evil") is None
+
+    def test_qa_state_path_rejects_dotdot(self, tmp_path: Path) -> None:
+        """_qa_state_path returns None for any session ID containing '..' (substring).
+
+        The implementation conservatively rejects '..' anywhere in the session_id,
+        not just when it equals '..', to prevent traversal attempts like 'a..b'
+        on unusual filesystems.
+        """
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            assert mc._qa_state_path("..") is None
+            assert (
+                mc._qa_state_path("sess..evil") is None
+            )  # '..' as substring is rejected
+            assert mc._qa_state_path("a..b") is None  # all '..' occurrences rejected
+
+    def test_traversal_session_id_write_is_noop(self, tmp_path: Path) -> None:
+        """Write with path-traversal session_id silently does nothing."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            mc._write_qa_state("../evil", "data")  # must not raise, must not write
+        # No files should exist outside tmp_path.
+        evil = tmp_path.parent / "evil_last_response.txt"
+        assert not evil.exists()
+
+    def test_traversal_session_id_read_returns_empty(self, tmp_path: Path) -> None:
+        """Read with path-traversal session_id returns empty string, never raises."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            result = mc._read_qa_state("../evil")
+        assert result == ""
+
+    def test_traversal_session_id_delete_is_noop(self, tmp_path: Path) -> None:
+        """Delete with path-traversal session_id is silently a no-op."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            mc._delete_qa_state("../evil")  # must not raise
+
+    def test_valid_session_id_still_works_after_sanitization(
+        self, tmp_path: Path
+    ) -> None:
+        """Normal session IDs (alphanumeric/dashes) are unaffected by sanitization."""
+        with patch.object(mc, "_QA_STATE_DIR", tmp_path / "state"):
+            mc._write_qa_state("sess-abc-123", "valid text")
+            assert mc._read_qa_state("sess-abc-123") == "valid text"
+            mc._delete_qa_state("sess-abc-123")
+            assert mc._read_qa_state("sess-abc-123") == ""
+
 
 # ---------------------------------------------------------------------------
 # _prune_stale_qa_state
@@ -293,14 +350,10 @@ class TestCapturePmTurnOnStop:
 
         state_dir = tmp_path / "state"
 
-        # Patch at the module where the local import is defined so the
-        # function under test picks it up when it does its lazy import.
+        # Patch the module-level alias so the production code sees the mock.
         with (
             patch.object(mc, "_QA_STATE_DIR", state_dir),
-            patch(
-                "claude_mpm.hooks.transcript_usage.derive_transcript_path",
-                return_value=transcript_path,
-            ),
+            patch.object(mc, "_derive_transcript_path", return_value=transcript_path),
         ):
             mc._capture_pm_turn_on_stop(event, "trusty_memory")
             with patch.object(mc, "_QA_STATE_DIR", state_dir):
@@ -319,8 +372,9 @@ class TestCapturePmTurnOnStop:
         # Supply a transcript path that doesn't exist.
         with (
             patch.object(mc, "_QA_STATE_DIR", state_dir),
-            patch(
-                "claude_mpm.hooks.transcript_usage.derive_transcript_path",
+            patch.object(
+                mc,
+                "_derive_transcript_path",
                 return_value=tmp_path / "nonexistent.jsonl",
             ),
         ):
@@ -410,7 +464,11 @@ class TestHandleUserPromptSubmitQaPairs:
         assert "Option 2 please." in qa_facts[0]
 
     def test_state_file_deleted_after_consumption(self, tmp_path: Path) -> None:
-        """State file is deleted once the qa-pair fact is stored (one-shot)."""
+        """State file is deleted once the qa-pair fact is stored (one-shot).
+
+        With _SyncThread the background function runs synchronously, so the
+        delete-after-store path is exercised deterministically.
+        """
         backend = _make_mock_backend()
         session_id = "sess-qa-delete"
         state_dir = tmp_path / "state"
@@ -431,9 +489,48 @@ class TestHandleUserPromptSubmitQaPairs:
                 self._event("Short reply.", session_id=session_id)
             )
 
-        # State file must be gone immediately (deletion happens before thread).
+        # State file must be gone — deletion happens inside _bg_store_qa after
+        # a successful backend.store() call.  _SyncThread makes this synchronous.
         with patch.object(mc, "_QA_STATE_DIR", state_dir):
             assert mc._read_qa_state(session_id) == ""
+
+    def test_state_file_preserved_when_store_fails(self, tmp_path: Path) -> None:
+        """State file is NOT deleted when backend.store() raises (Finding 1).
+
+        If the store fails the state file should survive so a future retry can
+        still pair it — the old code deleted the file before spawning the thread,
+        losing the Q&A pair permanently on failure.
+        """
+        session_id = "sess-qa-store-fail"
+        state_dir = tmp_path / "state"
+
+        backend = _make_mock_backend()
+        backend.store = MagicMock(side_effect=RuntimeError("store failed"))
+
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            mc._write_qa_state(session_id, "PM text for fail test.")
+            assert mc._read_qa_state(session_id) != ""
+
+        with (
+            patch.object(mc, "_BACKEND", backend),
+            patch.object(mc, "_QA_STATE_DIR", state_dir),
+            patch(
+                "threading.Thread",
+                side_effect=lambda target, daemon: _SyncThread(target),
+            ),
+        ):
+            result = mc.handle_user_prompt_submit(
+                self._event("reply", session_id=session_id)
+            )
+
+        # Hook must still return continue=True (never raises).
+        assert result["continue"] is True
+
+        # State file must still exist — store failed so deletion was skipped.
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            assert mc._read_qa_state(session_id) != "", (
+                "State file should be preserved when backend.store() fails"
+            )
 
     def test_short_reply_bypasses_min_words_gate(self, tmp_path: Path) -> None:
         """A reply of <10 words is still captured when a state file exists."""
@@ -527,7 +624,9 @@ class TestHandleUserPromptSubmitQaPairs:
         ), f"Expected 'User prompt:' fact; got: {stored}"
 
     def test_qa_pairs_config_disabled_skips_paired_store(self, tmp_path: Path) -> None:
-        """When qa_pairs capture is disabled in config, paired fact is not stored."""
+        """When qa_pairs capture is disabled, paired fact is not stored but state file
+        IS deleted (Finding 4) so it cannot linger and mis-pair with a later prompt.
+        """
         backend = _make_mock_backend()
         session_id = "sess-qa-disabled"
         state_dir = tmp_path / "state"
@@ -540,6 +639,7 @@ class TestHandleUserPromptSubmitQaPairs:
 
         with patch.object(mc, "_QA_STATE_DIR", state_dir):
             mc._write_qa_state(session_id, "PM text for disabled test.")
+            assert mc._read_qa_state(session_id) != ""
 
         # Patch _capture_enabled to return False for qa_pairs.
         original_capture_enabled = mc._capture_enabled
@@ -562,8 +662,15 @@ class TestHandleUserPromptSubmitQaPairs:
                 self._event("short reply", session_id=session_id)
             )
 
+        # No qa-pair fact should be stored.
         qa_pairs = [f for f in stored if "PM:" in f]
         assert qa_pairs == [], f"qa_pairs disabled but got: {qa_pairs}"
+
+        # State file must be gone — unconditional delete prevents stale mis-pairing.
+        with patch.object(mc, "_QA_STATE_DIR", state_dir):
+            assert mc._read_qa_state(session_id) == "", (
+                "State file should be deleted even when qa_pairs capture is disabled"
+            )
 
     def test_hook_never_raises_when_backend_is_none(self) -> None:
         """handle_user_prompt_submit returns continue=True even with no backend."""
