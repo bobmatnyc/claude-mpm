@@ -947,3 +947,158 @@ class TestNoPruneWorktreesSkipsOrphanSweep:
         assert orphan.exists(), "Orphan sweep must not run when prune_worktrees=False"
         # _last_prune_summary must be None when pruning is skipped.
         assert mgr._last_prune_summary is None
+
+
+# ---------------------------------------------------------------------------
+# Fix 1: git worktree list failure → orphan sweep skipped (issue #894 safety)
+# ---------------------------------------------------------------------------
+
+
+class TestOrphanSweepSkippedWhenGitWorktreeListFails:
+    """When git worktree list fails, the orphan sweep must be skipped entirely.
+
+    If _collect_registered_worktree_paths returns None (git failure), treating
+    every subdirectory as an orphan would delete legitimately-registered
+    worktrees.  The safe response is to skip the sweep and record the reason.
+    """
+
+    def test_orphan_dir_survives_when_git_worktree_list_fails(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        orphan = _make_plain_leftover(repo, "orphan-git-fail")
+        assert orphan.is_dir()
+
+        import subprocess as _subprocess
+
+        real_run = _subprocess.run
+
+        def _fake_run(args, **kwargs):  # type: ignore[override]
+            """Intercept 'git worktree list --porcelain' and simulate failure."""
+            if (
+                isinstance(args, list)
+                and "worktree" in args
+                and "list" in args
+                and "--porcelain" in args
+            ):
+                # Return a fake CompletedProcess with non-zero returncode.
+                return _subprocess.CompletedProcess(
+                    args=args,
+                    returncode=128,
+                    stdout="",
+                    stderr="fatal: not a git repository",
+                )
+            return real_run(args, **kwargs)
+
+        monkeypatch.setattr(
+            "claude_mpm.services.cli.session_pause_manager.subprocess.run",
+            _fake_run,
+        )
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        # Orphan dir must NOT be swept when registered-path enumeration failed.
+        assert orphan.exists(), (
+            "Orphan dir must survive when git worktree list fails — "
+            "sweeping without a trusted registered-path set risks deleting "
+            "legitimately-registered worktrees"
+        )
+        # Summary must record the skip reason.
+        assert "orphan_sweep_skipped" in summary, (
+            "Summary must contain orphan_sweep_skipped when git worktree list fails"
+        )
+        assert summary["orphans_swept"] == 0, (
+            "No orphans must be swept when enumeration failed"
+        )
+        assert summary["orphans"] == [], (
+            "Orphan records list must be empty when sweep was skipped"
+        )
+
+    def test_orphan_dir_survives_when_collect_returns_none(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Covers the None-return path in prune_stale_worktrees.
+
+        Monkeypatches _collect_registered_worktree_paths to return None
+        directly, simulating any failure mode (exception caught internally,
+        non-zero returncode, etc.) so the sweep-skip branch is exercised
+        without disrupting other git calls.
+        """
+        orphan = _make_plain_leftover(repo, "orphan-git-exc")
+        assert orphan.is_dir()
+
+        from claude_mpm.services.cli import session_pause_manager
+
+        def _return_none(self, main_repo):  # type: ignore[override]
+            return None
+
+        monkeypatch.setattr(
+            session_pause_manager.SessionPauseManager,
+            "_collect_registered_worktree_paths",
+            _return_none,
+        )
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert orphan.exists(), "Orphan dir must survive when collection returns None"
+        assert "orphan_sweep_skipped" in summary
+        assert summary["orphans_swept"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Fix 2: non-empty plain (non-git) directory is preserved (issue #894 safety)
+# ---------------------------------------------------------------------------
+
+
+class TestNonEmptyPlainOrphanPreserved:
+    """A plain (non-git) directory that contains files must NOT be swept.
+
+    Only empty plain directories are safe to sweep.  A non-empty plain
+    directory may contain unmanaged data (files never tracked by git).
+    """
+
+    def test_plain_orphan_with_stray_file_is_preserved(self, repo: Path) -> None:
+        """A non-empty orphan directory must never be swept.
+
+        The directory has no .git of its own.  When the orphan is inside the
+        outer repo's working tree, git status will see the file as untracked
+        (non-empty status → PRESERVE).  When the orphan is outside any git
+        repo, the new contents-check path preserves it.  Either way the
+        directory must survive — the test validates the outcome (preservation),
+        not the specific code path that triggers it.
+        """
+        orphan = _make_plain_leftover(repo, "orphan-with-file")
+        # Add a stray file — no git repo inside the orphan dir itself.
+        (orphan / "important_data.txt").write_text("do not delete\n")
+        assert orphan.is_dir()
+        assert not (orphan / ".git").exists()
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert orphan.exists(), (
+            "Non-empty plain orphan dir must NOT be swept; it may contain unmanaged data"
+        )
+        preserved_records = [
+            r for r in summary["orphans"] if r.get("action") == "preserved"
+        ]
+        assert any(str(orphan.resolve()) in r["path"] for r in preserved_records), (
+            f"Expected {orphan} in preserved list. Orphans: {summary['orphans']}"
+        )
+
+    def test_empty_plain_orphan_is_swept(self, repo: Path) -> None:
+        """An empty plain (non-git) directory is swept — no data to lose."""
+        orphan = _make_plain_leftover(repo, "orphan-empty")
+        assert orphan.is_dir()
+        assert not (orphan / ".git").exists()
+        # Confirm truly empty.
+        assert list(orphan.iterdir()) == []
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert not orphan.exists(), "Empty plain orphan dir should be swept"
+        assert summary["orphans_swept"] >= 1, (
+            f"Expected at least 1 swept orphan. Orphans: {summary['orphans']}"
+        )
