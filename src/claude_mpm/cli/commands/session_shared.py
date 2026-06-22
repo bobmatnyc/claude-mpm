@@ -184,12 +184,14 @@ def _print_prune_summary(pause_manager: SessionPauseManager) -> None:
 
         # Orphan sweep section
         if orphans_swept > 0:
+            swept_word = "directory" if orphans_swept == 1 else "directories"
             console.print(
-                f"  [green]Swept {orphans_swept} orphaned director(ies)[/green]"
+                f"  [green]Swept {orphans_swept} orphaned {swept_word}[/green]"
             )
         if orphans_preserved > 0:
+            preserved_word = "directory" if orphans_preserved == 1 else "directories"
             console.print(
-                f"  [yellow]Preserved {orphans_preserved} orphaned director(ies) with unsaved work[/yellow]"
+                f"  [yellow]Preserved {orphans_preserved} orphaned {preserved_word} with unsaved work[/yellow]"
             )
             for orph in orphans:
                 if orph.get("action") == "preserved":
