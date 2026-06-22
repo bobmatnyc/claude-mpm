@@ -224,6 +224,7 @@ class TestHandlePause:
             "message": None,
             "no_commit": False,
             "export": None,
+            "no_prune_worktrees": False,
         }
         defaults.update(kwargs)
         return argparse.Namespace(**defaults)
@@ -251,6 +252,7 @@ class TestHandlePause:
             message=None,
             skip_commit=False,
             export_path=None,
+            prune_worktrees=True,
         )
 
     def test_pause_passes_message(self, tmp_path: Path) -> None:
@@ -272,6 +274,7 @@ class TestHandlePause:
             message="Test message",
             skip_commit=False,
             export_path=None,
+            prune_worktrees=True,
         )
 
     def test_pause_passes_no_commit(self, tmp_path: Path) -> None:
@@ -293,6 +296,7 @@ class TestHandlePause:
             message=None,
             skip_commit=True,
             export_path=None,
+            prune_worktrees=True,
         )
 
     def test_pause_passes_export(self, tmp_path: Path) -> None:
@@ -314,6 +318,7 @@ class TestHandlePause:
             message=None,
             skip_commit=False,
             export_path="/tmp/backup.json",
+            prune_worktrees=True,
         )
 
     def test_pause_returns_1_on_exception(self, tmp_path: Path) -> None:
@@ -332,6 +337,30 @@ class TestHandlePause:
             result = handle_pause(args)
 
         assert result == 1
+
+    def test_pause_no_prune_worktrees_flag(self, tmp_path: Path) -> None:
+        """Regression #892: --no-prune-worktrees passes prune_worktrees=False."""
+        from claude_mpm.cli.commands.session_shared import handle_pause
+
+        args = self._make_args(project_path=str(tmp_path), no_prune_worktrees=True)
+
+        mock_manager = MagicMock()
+        mock_manager.create_pause_session.return_value = "session-20250101-120000"
+        mock_manager._is_git_repo.return_value = False
+
+        with patch(
+            "claude_mpm.services.cli.session_pause_manager.SessionPauseManager",
+            return_value=mock_manager,
+        ):
+            result = handle_pause(args)
+
+        assert result == 0
+        mock_manager.create_pause_session.assert_called_once_with(
+            message=None,
+            skip_commit=False,
+            export_path=None,
+            prune_worktrees=False,
+        )
 
     # ------------------------------------------------------------------
     # Regression tests for #824: no false "Git commit created" message

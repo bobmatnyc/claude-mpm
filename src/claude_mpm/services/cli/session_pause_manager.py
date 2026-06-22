@@ -1,10 +1,15 @@
 """Session Pause Manager Service.
 
 WHAT: Creates session pause documents (JSON + Markdown) capturing git state,
-todos, and working-directory context so sessions can be resumed later.
+todos, and working-directory context so sessions can be resumed later.  Also
+prunes stale git worktrees under ``<repo>/.claude/worktrees/`` at pause time,
+preserving any worktrees that have uncommitted changes, unmerged commits, or a
+git lock.
 
 WHY: Centralises all pause-document creation so both ``session pause`` and
-``mpm-init pause`` share a single, tested code path.
+``mpm-init pause`` share a single, tested code path.  Stale worktrees
+accumulate silently during agent runs; pruning them at pause is a natural
+clean-up gate that reclaims disk and branch namespace without user friction.
 
 DESIGN DECISIONS:
 - Two format output (JSON, Markdown) for different use cases
@@ -16,6 +21,10 @@ DESIGN DECISIONS:
 - Sessions are written PROJECT-LOCAL to ``<project>/.claude-mpm/sessions/``
   (NOT to ``~/.claude-mpm/sessions/``). The directory is gitignored; sessions
   are intentionally never committed to version control.
+- Worktree pruning is conservative: when in doubt PRESERVE.  Removal never
+  uses --force; that defeats the safety checks.
+- All git subprocess calls use ``git -C <path>`` with ``capture_output=True,
+  check=False`` per project stability conventions.
 """
 
 import json
@@ -28,6 +37,9 @@ from claude_mpm.core.logger import get_logger
 from claude_mpm.storage.state_storage import StateStorage
 
 logger = get_logger(__name__)
+
+# Relative location of MPM-managed worktrees inside the repo.
+_WORKTREES_SUBDIR = Path(".claude") / "worktrees"
 
 
 class SessionPauseManager:
@@ -48,12 +60,16 @@ class SessionPauseManager:
         self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
         self.pause_dir.mkdir(parents=True, exist_ok=True)
         self.storage = StateStorage(self.pause_dir)
+        # Populated by create_pause_session after pruning; None if pruning was
+        # skipped or has not yet run.  Accessed via getattr in session_shared.py.
+        self._last_prune_summary: dict[str, Any] | None = None
 
     def create_pause_session(
         self,
         message: str | None = None,
         skip_commit: bool = False,  # deprecated no-op: sessions are never committed
         export_path: str | None = None,
+        prune_worktrees: bool = True,
     ) -> str:
         """Create a pause session with captured state.
 
@@ -61,10 +77,19 @@ class SessionPauseManager:
         directory which is gitignored.  No git commit is ever created —
         ``skip_commit`` is accepted for API stability but has no effect.
 
+        After writing all session files, stale worktrees under
+        ``<repo>/.claude/worktrees/`` are pruned (unless *prune_worktrees* is
+        ``False``).  Pruning failures are logged but never block the session
+        save.
+
         Args:
             message: Optional pause reason/context message
             skip_commit: Accepted but ignored; sessions are never committed.
             export_path: Optional export location for session file
+            prune_worktrees: When True (the default), prune stale git
+                worktrees under ``<repo>/.claude/worktrees/`` after the
+                session state is safely written.  Pass False to skip pruning
+                (also exposed via ``--no-prune-worktrees`` CLI flag).
 
         Returns:
             Session ID
@@ -103,8 +128,560 @@ class SessionPauseManager:
             else:
                 logger.info(f"Exported session to {export_file}")
 
+        # Prune stale worktrees AFTER session state is safely written.
+        # Failures are non-fatal — we log and continue.
+        self._last_prune_summary: dict[str, Any] | None = None
+        if prune_worktrees:
+            try:
+                prune_summary = self.prune_stale_worktrees()
+                logger.info(
+                    "Worktree prune complete: pruned=%d preserved=%d",
+                    prune_summary["pruned_count"],
+                    prune_summary["preserved_count"],
+                )
+                state["worktree_prune_summary"] = prune_summary
+                self._last_prune_summary = prune_summary
+            except Exception as exc:  # nosec B110 - intentional non-fatal wrapper
+                logger.warning("Worktree pruning failed (non-fatal): %s", exc)
+
         logger.info(f"Pause session created: {session_id}")
         return session_id
+
+    # ------------------------------------------------------------------
+    # Worktree pruning
+    # ------------------------------------------------------------------
+
+    def prune_stale_worktrees(self) -> dict[str, Any]:
+        """Prune stale git worktrees under ``<repo>/.claude/worktrees/``.
+
+        WHAT: Enumerates all git worktrees whose path is under
+        ``<main-repo>/.claude/worktrees/``.  For each candidate, classifies
+        it as PRUNE or PRESERVE using conservative safety checks (uncommitted
+        changes, untracked files, unmerged/unpushed commits, git lock).  Only
+        worktrees that are provably clean and fully merged are removed.
+
+        WHY: Agent runs create isolated worktrees that are never automatically
+        cleaned up.  Pruning at pause time reclaims disk and branch namespace
+        without risk of data loss because the safety checks are conservative —
+        when in doubt the worktree is PRESERVED.
+
+        Returns:
+            Summary dict with keys:
+            - ``pruned_count`` (int)
+            - ``preserved_count`` (int)
+            - ``admin_pruned`` (bool) — True if ``git worktree prune`` ran
+            - ``worktrees`` (list[dict]) — per-worktree decision records
+        """
+        summary: dict[str, Any] = {
+            "pruned_count": 0,
+            "preserved_count": 0,
+            "admin_pruned": False,
+            "worktrees": [],
+        }
+
+        if not self._is_git_repo():
+            logger.debug("prune_stale_worktrees: not a git repo, skipping")
+            return summary
+
+        # Resolve the MAIN working tree (we may be running from inside a
+        # linked worktree ourselves).
+        main_repo = self._resolve_main_working_tree(str(self.project_path))
+
+        worktrees_dir = Path(main_repo) / _WORKTREES_SUBDIR
+        if not worktrees_dir.is_dir():
+            logger.debug(
+                "prune_stale_worktrees: %s does not exist, no-op", worktrees_dir
+            )
+            return summary
+
+        # Parse ``git worktree list --porcelain`` output.
+        candidates = self._list_worktree_candidates(main_repo, worktrees_dir)
+
+        for wt in candidates:
+            decision = self._classify_worktree(wt, main_repo)
+            wt.update(decision)
+            summary["worktrees"].append(wt)
+
+            if decision["action"] == "prune":
+                removed = self._remove_worktree(main_repo, wt["path"])
+                if removed:
+                    summary["pruned_count"] += 1
+                    wt["removed"] = True
+                else:
+                    # Removal failed — treat as preserved
+                    summary["preserved_count"] += 1
+                    wt["removed"] = False
+                    wt["action"] = "preserve"
+                    wt["reason"] = wt.get("reason", "") + "; removal failed, preserved"
+            else:
+                summary["preserved_count"] += 1
+
+        # Always run ``git worktree prune`` to clean dangling admin entries
+        # (registered worktrees whose directories no longer exist).
+        prune_result = subprocess.run(  # nosec B603, B607 - safe git command
+            ["git", "-C", str(main_repo), "worktree", "prune"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        summary["admin_pruned"] = prune_result.returncode == 0
+        if prune_result.returncode != 0:
+            logger.warning(
+                "git worktree prune returned %d: %s",
+                prune_result.returncode,
+                prune_result.stderr.strip(),
+            )
+
+        return summary
+
+    def _resolve_main_working_tree(self, cwd: str) -> str:
+        """Return the main git working tree path for *cwd*, handling linked worktrees.
+
+        WHAT: Determines the main (non-linked) git working tree root for any
+        given working directory path, using three fallback strategies in order:
+        (1) compare ``--git-dir`` vs ``--git-common-dir`` to detect when
+        *cwd* is already the main tree; (2) parse ``git worktree list
+        --porcelain`` and return the first ``worktree`` entry, which git always
+        reports as the main tree; (3) resolve the parent of ``--git-common-dir``
+        as a last resort.  Falls back to *cwd* unchanged if all git calls fail.
+
+        WHY: Worktree pruning and path resolution must always operate relative
+        to the main working tree, not a linked worktree.  When ``session pause``
+        is invoked from inside a linked worktree (e.g. during agent runs), the
+        naive approach of using ``cwd`` directly would target the wrong tree.
+        Inlining this avoids a cross-package import dependency on
+        ``commit_cost_tracker``.
+
+        Args:
+            cwd: Absolute path string of the working directory.
+
+        Returns:
+            Absolute path string of the main working tree.
+        """
+        # Fast path: git-dir == git-common-dir means we ARE in the main tree.
+        try:
+            r_dir = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", cwd, "rev-parse", "--git-dir"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            r_common = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", cwd, "rev-parse", "--git-common-dir"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if r_dir.returncode == 0 and r_common.returncode == 0:
+                git_dir = (Path(cwd) / r_dir.stdout.strip()).resolve()
+                git_common = (Path(cwd) / r_common.stdout.strip()).resolve()
+                if git_dir == git_common:
+                    return cwd
+        except Exception as exc:
+            logger.debug("resolve_main_working_tree fast-path failed: %s", exc)
+
+        # Porcelain worktree list — first entry is the main tree.
+        try:
+            result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", cwd, "worktree", "list", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if result.returncode == 0:
+                for line in result.stdout.splitlines():
+                    stripped = line.strip()
+                    if stripped.startswith("worktree "):
+                        return stripped[len("worktree ") :]
+        except Exception as exc:
+            logger.debug("resolve_main_working_tree worktree list failed: %s", exc)
+
+        # Fallback: parent of git-common-dir.
+        try:
+            result2 = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", cwd, "rev-parse", "--git-common-dir"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if result2.returncode == 0:
+                git_common = (Path(cwd) / result2.stdout.strip()).resolve()
+                return str(git_common.parent)
+        except Exception as exc:
+            logger.debug(
+                "resolve_main_working_tree common-dir fallback failed: %s", exc
+            )
+
+        return cwd
+
+    def _list_worktree_candidates(
+        self, main_repo: str, worktrees_dir: Path
+    ) -> list[dict[str, Any]]:
+        """Parse ``git worktree list --porcelain`` and return candidates.
+
+        WHAT: Runs ``git worktree list --porcelain`` from *main_repo*, parses
+        every worktree stanza into a dict with ``path``, ``branch``, and
+        ``locked`` keys, then filters out the main working tree and any entry
+        whose resolved path is not a descendant of *worktrees_dir*.  Returns
+        the remaining list as prune candidates.  Returns an empty list if the
+        git command fails.
+
+        WHY: Pruning must be scoped strictly to MPM-managed worktrees under
+        ``.claude/worktrees/`` so it cannot accidentally remove worktrees that
+        the user or other tools created elsewhere.  The porcelain format is
+        stable across git versions and unambiguous, making it safe to parse
+        without shell pipelines.
+
+        Args:
+            main_repo: Absolute path string of the main git repo.
+            worktrees_dir: Absolute Path of the managed worktrees directory.
+
+        Returns:
+            List of dicts with keys: ``path``, ``branch``, ``locked``.
+        """
+        result = subprocess.run(  # nosec B603, B607 - safe git command
+            ["git", "-C", main_repo, "worktree", "list", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode != 0:
+            logger.warning(
+                "git worktree list failed (rc=%d): %s",
+                result.returncode,
+                result.stderr.strip(),
+            )
+            return []
+
+        candidates: list[dict[str, Any]] = []
+        current: dict[str, Any] = {}
+
+        for raw_line in result.stdout.splitlines():
+            line = raw_line.strip()
+            if line.startswith("worktree "):
+                if current:
+                    candidates.append(current)
+                current = {
+                    "path": line[len("worktree ") :].strip(),
+                    "branch": None,
+                    "locked": False,
+                }
+            elif line.startswith("branch "):
+                current["branch"] = line[len("branch ") :].strip()
+            elif line == "locked" or line.startswith("locked "):
+                current["locked"] = True
+            elif line == "":
+                if current:
+                    candidates.append(current)
+                    current = {}
+        if current:
+            candidates.append(current)
+
+        # Keep only entries under our managed worktrees directory; skip main tree.
+        main_resolved = Path(main_repo).resolve()
+        wt_dir_resolved = worktrees_dir.resolve()
+        filtered: list[dict[str, Any]] = []
+        for wt in candidates:
+            wt_path = Path(wt["path"]).resolve()
+            if wt_path == main_resolved:
+                continue  # Never touch the main working tree
+            try:
+                wt_path.relative_to(wt_dir_resolved)
+            except ValueError:
+                continue  # Not under .claude/worktrees/ — skip
+            wt["path"] = str(wt_path)
+            filtered.append(wt)
+
+        return filtered
+
+    def _classify_worktree(self, wt: dict[str, Any], main_repo: str) -> dict[str, Any]:
+        """Classify a candidate worktree as PRUNE or PRESERVE.
+
+        WHAT: Applies four sequential safety rules to a single worktree dict
+        and returns a decision dict with ``action`` (``"prune"`` or
+        ``"preserve"``) and a human-readable ``reason``.  Rules in evaluation
+        order: (1) git-locked flag; (2) directory existence; (3) non-empty
+        ``git status --porcelain`` (uncommitted or untracked files); (4) branch
+        has commits not reachable from the default branch, via
+        ``_has_unmerged_commits``.  Any git command failure causes an immediate
+        PRESERVE decision.
+
+        WHY: A multi-rule conservative classifier prevents accidental data loss
+        during automated pruning.  Each rule addresses a distinct failure mode:
+        (1) user-locked worktrees must never be touched; (2) admin-only entries
+        without a directory are already handled by ``git worktree prune``; (3)
+        uncommitted work would be destroyed by removal; (4) unmerged commits
+        represent unreachable history after branch deletion.  TOCTOU between
+        this check and removal is mitigated by calling ``git worktree remove``
+        without ``--force`` so git re-validates before deleting.
+
+        Args:
+            wt: Worktree dict with ``path``, ``branch``, ``locked`` keys.
+            main_repo: Absolute path string of the main git repo.
+
+        Returns:
+            Dict with ``action`` (``"prune"`` | ``"preserve"``) and ``reason``.
+        """
+        wt_path = wt["path"]
+        branch = wt.get("branch")
+
+        # Rule 1: Locked
+        if wt.get("locked"):
+            return {"action": "preserve", "reason": "worktree is locked"}
+
+        # Rule 2: Directory missing — admin-only entry, let prune handle it.
+        if not Path(wt_path).is_dir():
+            return {
+                "action": "preserve",
+                "reason": "directory missing; will be cleaned by git worktree prune",
+            }
+
+        # Rule 3: Uncommitted or untracked changes.
+        try:
+            status_result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", wt_path, "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            if status_result.returncode != 0:
+                return {
+                    "action": "preserve",
+                    "reason": f"git status failed (rc={status_result.returncode})",
+                }
+            if status_result.stdout.strip():
+                return {
+                    "action": "preserve",
+                    "reason": "has uncommitted or untracked changes",
+                }
+        except Exception as exc:
+            return {"action": "preserve", "reason": f"git status error: {exc}"}
+
+        # Rule 4: Unmerged/unpushed commits.
+        if branch:
+            unmerged = self._has_unmerged_commits(wt_path, main_repo, branch)
+            if unmerged is None:
+                # Could not determine — be conservative.
+                return {
+                    "action": "preserve",
+                    "reason": "could not determine merge status; preserving conservatively",
+                }
+            if unmerged:
+                return {
+                    "action": "preserve",
+                    "reason": "branch has commits not merged into main branch",
+                }
+
+        return {"action": "prune", "reason": "clean worktree with no unmerged commits"}
+
+    def _has_unmerged_commits(
+        self, wt_path: str, main_repo: str, branch_ref: str
+    ) -> bool | None:
+        """Check whether *branch_ref* has commits not present on the default branch.
+
+        WHAT: Uses a two-pronged strategy to determine whether a worktree
+        branch has commits that have not yet been merged or pushed.  Prong 1:
+        if the branch tracks a remote upstream, runs ``git rev-list --count
+        @{u}..HEAD`` in *wt_path* — any non-zero count means unpushed commits
+        and returns True immediately.  Prong 2: resolves the default branch via
+        ``_get_default_branch``, then runs ``git rev-list --count
+        <ref>..<branch>`` in *main_repo* for both ``origin/<default>`` and the
+        local default ref, returning ``count > 0``.  Returns None if neither
+        check can be completed (caller must PRESERVE conservatively).
+
+        WHY: Pruning a branch with unmerged commits destroys otherwise
+        unreachable history.  The two-prong approach maximises detection
+        coverage: prong 1 catches unpushed work even when the branch has no
+        name on the default ref; prong 2 catches branches that were pushed to
+        origin but not yet merged.  Returning None (rather than defaulting to
+        False) on error ensures the caller does not prune when the merge state
+        is genuinely unknown.
+
+        Args:
+            wt_path: Absolute path to the worktree directory.
+            main_repo: Absolute path to the main git repository.
+            branch_ref: Full ref name (e.g. ``refs/heads/agent-abc``).
+
+        Returns:
+            True if unmerged, False if merged, None if undetermined.
+        """
+        # Derive the short branch name (strip ``refs/heads/`` prefix if present).
+        short_branch = branch_ref
+        if branch_ref.startswith("refs/heads/"):
+            short_branch = branch_ref[len("refs/heads/") :]
+
+        # Check 1: upstream ahead count.
+        try:
+            ahead_result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", wt_path, "rev-list", "--count", "@{u}..HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            if ahead_result.returncode == 0:
+                ahead = int(ahead_result.stdout.strip() or "0")
+                if ahead > 0:
+                    return True
+        except (ValueError, Exception):
+            pass  # nosec B110 - upstream check is optional; fall through
+
+        # Check 2: compare against local default branch in main_repo.
+        default_branch = self._get_default_branch(main_repo)
+        if default_branch is None:
+            return None
+
+        # Use origin/default_branch if available, else local default_branch.
+        # This catches commits that haven't been pushed to origin.
+        for ref_to_compare in [f"origin/{default_branch}", default_branch]:
+            try:
+                ahead_result2 = subprocess.run(  # nosec B603, B607 - safe git command
+                    [
+                        "git",
+                        "-C",
+                        main_repo,
+                        "rev-list",
+                        "--count",
+                        f"{ref_to_compare}..{short_branch}",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    check=False,
+                )
+                if ahead_result2.returncode == 0:
+                    count = int(ahead_result2.stdout.strip() or "0")
+                    return count > 0
+            except (ValueError, Exception):
+                continue  # nosec B112 - try next ref
+
+        return None  # Could not determine
+
+    def _get_default_branch(self, main_repo: str) -> str | None:
+        """Return the name of the default local branch (``main`` or ``master``).
+
+        WHAT: Resolves the short name of the repository's default branch using
+        three strategies in order: (1) ``git symbolic-ref --short
+        refs/remotes/origin/HEAD`` — strips the ``origin/`` prefix from the
+        result; (2) ``git rev-parse --abbrev-ref HEAD`` on *main_repo* if HEAD
+        is not detached; (3) iterates through ``("main", "master")`` and
+        returns the first ref that ``git rev-parse --verify`` can resolve.
+        Returns None if all strategies fail.
+
+        WHY: Different repositories use different default branch names and
+        remote configurations.  The symbolic-ref strategy is the most reliable
+        when the remote is configured; HEAD-based fallback handles local-only
+        repos; and the explicit name scan handles unusual setups where the
+        symbolic ref is unset but a conventional branch name exists.  Returning
+        None signals the caller to treat the branch conservatively (PRESERVE)
+        rather than guess incorrectly.
+
+        Args:
+            main_repo: Absolute path to the main git repository.
+
+        Returns:
+            Short branch name, or None if undetermined.
+        """
+        # Try origin/HEAD symbolic ref.
+        try:
+            ref_result = subprocess.run(  # nosec B603, B607 - safe git command
+                [
+                    "git",
+                    "-C",
+                    main_repo,
+                    "symbolic-ref",
+                    "--short",
+                    "refs/remotes/origin/HEAD",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if ref_result.returncode == 0:
+                ref = ref_result.stdout.strip()
+                # Returns something like ``origin/main``
+                if "/" in ref:
+                    return ref.split("/", 1)[1]
+                return ref
+        except Exception:
+            pass  # nosec B110 - fall through
+
+        # Try HEAD of the main repo itself.
+        try:
+            head_result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", main_repo, "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if head_result.returncode == 0:
+                branch = head_result.stdout.strip()
+                if branch and branch != "HEAD":
+                    return branch
+        except Exception:
+            pass  # nosec B110 - fall through
+
+        # Check common branch names.
+        for candidate in ("main", "master"):
+            try:
+                check = subprocess.run(  # nosec B603, B607 - safe git command
+                    ["git", "-C", main_repo, "rev-parse", "--verify", candidate],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                    check=False,
+                )
+                if check.returncode == 0:
+                    return candidate
+            except Exception:
+                continue  # nosec B112 - try next candidate
+
+        return None
+
+    def _remove_worktree(self, main_repo: str, wt_path: str) -> bool:
+        """Remove a git worktree safely (no --force).
+
+        Using ``git worktree remove`` WITHOUT ``--force`` so git refuses if the
+        worktree still has modifications — a last-resort safety net on top of
+        our classification logic.
+
+        Args:
+            main_repo: Absolute path to the main git repository.
+            wt_path: Absolute path to the worktree to remove.
+
+        Returns:
+            True if removal succeeded, False otherwise.
+        """
+        result = subprocess.run(  # nosec B603, B607 - safe git command
+            ["git", "-C", main_repo, "worktree", "remove", wt_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode != 0:
+            logger.warning(
+                "git worktree remove %s failed (rc=%d): %s",
+                wt_path,
+                result.returncode,
+                result.stderr.strip(),
+            )
+            return False
+        logger.info("Pruned stale worktree: %s", wt_path)
+        return True
+
+    # ------------------------------------------------------------------
+    # State capture
+    # ------------------------------------------------------------------
 
     def _capture_state(self, session_id: str, message: str | None) -> dict[str, Any]:
         """Capture current session state.

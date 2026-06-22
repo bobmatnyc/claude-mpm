@@ -109,6 +109,19 @@ def add_session_subparser(subparsers: Any) -> None:
         help="Export session state to custom location",
     )
     pause_parser.add_argument(
+        "--no-prune-worktrees",
+        dest="no_prune_worktrees",
+        action="store_true",
+        default=False,
+        help=(
+            "Skip automatic pruning of stale git worktrees under "
+            "<repo>/.claude/worktrees/.  By default, worktrees that are "
+            "clean and fully merged are removed at pause time to reclaim "
+            "disk and branch namespace.  Pass this flag to disable that "
+            "behaviour."
+        ),
+    )
+    pause_parser.add_argument(
         "project_path",
         nargs="?",
         default=".",
