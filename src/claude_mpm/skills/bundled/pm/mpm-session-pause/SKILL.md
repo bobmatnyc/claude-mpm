@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.4.1"
+version: "1.5.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -18,7 +18,8 @@ When invoked, this skill:
 1. Captures current work state (todos, git status, context summary)
 2. Creates session files at `.claude-mpm/sessions/session-{timestamp}.*` (project-local)
 3. Updates `.claude-mpm/sessions/LATEST-SESSION.txt` pointer
-4. Shows the session file path for later resume
+4. **Prunes stale git worktrees** under `<repo>/.claude/worktrees/` (see below)
+5. Shows the session file path for later resume
 
 ## Usage
 
@@ -33,16 +34,51 @@ When invoked, this skill:
 /mpm-session-pause Need to context switch to urgent bug fix
 ```
 
+## Worktree Pruning (issue #892)
+
+At pause time, MPM automatically prunes stale agent worktrees under
+`<repo>/.claude/worktrees/`.
+
+**Safety classification** — a worktree is PRESERVED if ANY of the following is
+true:
+- It has uncommitted changes (staged or unstaged).
+- It has untracked files.
+- Its branch has commits not yet merged into the main branch (or not pushed to
+  its upstream remote).
+- It is marked as locked by git.
+- Any git command fails (fail-safe: when in doubt, PRESERVE).
+
+Only worktrees that are provably clean and fully merged are removed.
+
+**Output** — after the session files are written, the pause command prints a
+concise worktree cleanup summary, e.g.:
+
+```
+Worktree Cleanup:
+  Pruned 2 stale worktree(s)
+  Preserved 1 worktree(s) with unsaved work
+    /repo/.claude/worktrees/agent-abc: branch has commits not merged into main branch
+```
+
+**Opt-out** — pass `--no-prune-worktrees` to skip cleanup entirely:
+
+```bash
+claude-mpm session pause --no-prune-worktrees
+```
+
 ## Implementation
 
 Run the console script directly — no interpreter resolution needed:
 
 ```bash
-# Basic pause
+# Basic pause (includes worktree pruning)
 claude-mpm session pause
 
 # With a descriptive message
 claude-mpm session pause -m "End of day — auth refactor in progress"
+
+# Skip worktree pruning
+claude-mpm session pause --no-prune-worktrees
 
 # Export a copy to a specific location
 claude-mpm session pause --export /tmp/session-backup.json
