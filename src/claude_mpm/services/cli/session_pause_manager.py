@@ -60,6 +60,9 @@ class SessionPauseManager:
         self.pause_dir = self.project_path / ".claude-mpm" / "sessions"
         self.pause_dir.mkdir(parents=True, exist_ok=True)
         self.storage = StateStorage(self.pause_dir)
+        # Populated by create_pause_session after pruning; None if pruning was
+        # skipped or has not yet run.  Accessed via getattr in session_shared.py.
+        self._last_prune_summary: dict[str, Any] | None = None
 
     def create_pause_session(
         self,
@@ -385,6 +388,15 @@ class SessionPauseManager:
         - ``git status --porcelain`` is non-empty (uncommitted OR untracked files).
         - Branch has commits not reachable from the main branch (unmerged/unpushed).
         - Any git command errors → fail safe → PRESERVE.
+
+        TOCTOU NOTE: There is an inherent race window between classification
+        (``git status --porcelain`` here) and removal (``_remove_worktree``).
+        A concurrent agent could commit or modify files in the worktree after
+        this check passes but before ``git worktree remove`` runs.  This is
+        intentionally tolerated: ``_remove_worktree`` calls ``git worktree
+        remove`` WITHOUT ``--force``, so git performs its own final dirty-check
+        as the last-resort race guard.  Do NOT add ``--force`` to that call —
+        it would defeat this safety net.
 
         Args:
             wt: Worktree dict with ``path``, ``branch``, ``locked`` keys.
