@@ -1001,3 +1001,199 @@ skill_version: 1.0.0
 
         assert result2["removed_count"] == 1
         assert "skill-c" in result2["removed_skills"]
+
+
+class TestETagCachePortability:
+    """Tests for ETag cache portability and backward-compatibility (issue #884).
+
+    Covers:
+    - Cache entries are written with relative (filename-only) keys.
+    - A 304 cache-hit still works when the cache directory is moved/renamed.
+    - Backward-compat: a cache file with a legacy absolute-path key still
+      yields a 304 hit (no needless re-download on first run after upgrade).
+    """
+
+    @pytest.fixture
+    def temp_cache_dir(self):
+        """Temporary cache directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    @pytest.fixture
+    def temp_config_file(self):
+        """Temporary config file."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            config_path = Path(f.name)
+        yield config_path
+        if config_path.exists():
+            config_path.unlink()
+
+    @pytest.fixture
+    def manager(self, temp_config_file, temp_cache_dir):
+        """GitSkillSourceManager instance with a single system source."""
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+        source = SkillSource(
+            id="system",
+            type="git",
+            url="https://github.com/bobmatnyc/claude-mpm-skills",
+            priority=0,
+            enabled=True,
+        )
+        config.save([source])
+        return GitSkillSourceManager(config=config, cache_dir=temp_cache_dir)
+
+    @patch("requests.get")
+    def test_etag_written_with_relative_key(self, mock_get, manager, temp_cache_dir):
+        """ETag cache entries must be written with local_path.name as the key.
+
+        The absolute path MUST NOT appear as a key so the cache file is
+        portable across machine renames, CI environments, and Docker volumes.
+        """
+        import json
+
+        # Arrange: simulate a fresh 200 response with an ETag header
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = b"# skill content"
+        mock_response.headers = {"ETag": '"abc123"'}
+        mock_get.return_value = mock_response
+
+        local_path = temp_cache_dir / "system" / "some-skill.md"
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        etag_cache_file = manager._get_etag_cache_file("system")
+
+        # Act
+        manager._download_file_with_etag(
+            url="https://raw.githubusercontent.com/owner/repo/main/some-skill.md",
+            local_path=local_path,
+            etag_cache_file=etag_cache_file,
+        )
+
+        # Assert: cache file must exist and use relative key
+        assert etag_cache_file.exists(), "ETag cache file was not created"
+        with open(etag_cache_file, encoding="utf-8") as fh:
+            cache_data = json.load(fh)
+
+        assert "some-skill.md" in cache_data, (
+            f"Expected relative key 'some-skill.md' in cache, got keys: {list(cache_data.keys())}"
+        )
+        assert cache_data["some-skill.md"] == '"abc123"'
+
+        # Absolute path key must NOT be present
+        assert str(local_path) not in cache_data, (
+            "Absolute-path key must not be written — it breaks portability"
+        )
+
+    @patch("requests.get")
+    def test_cache_hit_after_directory_relocation(self, mock_get, manager):
+        """Cache hit (304) works when the cache directory is relocated.
+
+        Simulate relocation by writing a cache file with relative keys at one
+        path, then pointing the manager at a copy of the file in a different
+        directory — the relative key must still match.
+        """
+        import json
+        import shutil
+
+        with (
+            tempfile.TemporaryDirectory() as original_dir,
+            tempfile.TemporaryDirectory() as relocated_dir,
+        ):
+            original_path = Path(original_dir)
+            relocated_path = Path(relocated_dir)
+
+            # Write a cache file with the relative key at the "original" location
+            original_cache = original_path / "system.json"
+            local_path_original = original_path / "skills" / "some-skill.md"
+            (original_path / "skills").mkdir()
+            local_path_original.write_text("# original", encoding="utf-8")
+
+            cache_data = {"some-skill.md": '"etag-v1"'}
+            with open(original_cache, "w", encoding="utf-8") as fh:
+                json.dump(cache_data, fh)
+
+            # "Relocate": copy the cache file to a new directory
+            relocated_cache = relocated_path / "system.json"
+            shutil.copy(original_cache, relocated_cache)
+
+            # The local_path in the relocated environment has a DIFFERENT absolute path
+            relocated_skill_dir = relocated_path / "skills"
+            relocated_skill_dir.mkdir()
+            local_path_relocated = relocated_skill_dir / "some-skill.md"
+            local_path_relocated.write_text("# relocated", encoding="utf-8")
+
+            # Arrange mock: return 304 (we expect this because the relative key matches)
+            mock_response = MagicMock()
+            mock_response.status_code = 304
+            mock_get.return_value = mock_response
+
+            # Act: download with the relocated cache file
+            result = manager._download_file_with_etag(
+                url="https://raw.githubusercontent.com/owner/repo/main/some-skill.md",
+                local_path=local_path_relocated,
+                etag_cache_file=relocated_cache,
+            )
+
+        # Assert: got a cache hit (False = not updated = 304)
+        assert result is False, (
+            "Expected cache hit (False) after directory relocation — "
+            "relative key must survive the move"
+        )
+        # Verify the If-None-Match header was sent with the right ETag
+        call_kwargs = mock_get.call_args[1]
+        sent_headers = call_kwargs.get("headers", {})
+        assert sent_headers.get("If-None-Match") == '"etag-v1"', (
+            f"Expected If-None-Match: '\"etag-v1\"', got headers: {sent_headers}"
+        )
+
+    @patch("requests.get")
+    def test_backward_compat_legacy_absolute_key_yields_304(
+        self, mock_get, manager, temp_cache_dir
+    ):
+        """A cache file containing a legacy absolute-path key still yields a 304 hit.
+
+        When a user upgrades from a version that wrote absolute-path keys, the
+        first sync after upgrade must send If-None-Match (not trigger a full
+        re-download) so the upgrade is quiet.
+        """
+        import json
+
+        # Arrange: pre-populate the cache file with a LEGACY absolute-path key
+        etag_cache_file = manager._get_etag_cache_file("system")
+        etag_cache_file.parent.mkdir(parents=True, exist_ok=True)
+
+        local_path = temp_cache_dir / "system" / "legacy-skill.md"
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        local_path.write_text("# legacy content", encoding="utf-8")
+
+        # Write the legacy key (absolute path)
+        legacy_cache = {str(local_path): '"legacy-etag-v0"'}
+        with open(etag_cache_file, "w", encoding="utf-8") as fh:
+            json.dump(legacy_cache, fh)
+
+        # Arrange mock: server acknowledges the ETag → 304
+        mock_response = MagicMock()
+        mock_response.status_code = 304
+        mock_get.return_value = mock_response
+
+        # Act
+        result = manager._download_file_with_etag(
+            url="https://raw.githubusercontent.com/owner/repo/main/legacy-skill.md",
+            local_path=local_path,
+            etag_cache_file=etag_cache_file,
+        )
+
+        # Assert: cache hit was returned
+        assert result is False, (
+            "Expected cache hit (False) for legacy absolute-path key — "
+            "backward-compat fallback must send If-None-Match"
+        )
+        # Verify If-None-Match was sent (not an unconditional GET)
+        call_kwargs = mock_get.call_args[1]
+        sent_headers = call_kwargs.get("headers", {})
+        assert "If-None-Match" in sent_headers, (
+            "If-None-Match header must be sent for legacy absolute-path key"
+        )
+        assert sent_headers["If-None-Match"] == '"legacy-etag-v0"', (
+            f"Expected the legacy ETag value, got: {sent_headers}"
+        )
