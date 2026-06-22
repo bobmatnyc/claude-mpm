@@ -297,6 +297,13 @@ class ToolHandler:
             # If gh_footer_hook rewrote the command but ztk did not fire
             # (ztk absent, or ztk skipped compound/piped command), surface the
             # footer-fixed tool_input now.
+            #
+            # Invariant: _footer_rewrote is a complete hookSpecificOutput
+            # response (updatedInput already set).  We return it here
+            # regardless of ztk's hookSpecificOutput presence because ztk
+            # returned a no-op ({"continue": True}) — meaning ztk either
+            # chose not to rewrite or is not available.  The footer rewrite
+            # must still reach the harness so the corrected command is used.
             if _footer_rewrote is not None:
                 if _cb_warning_reason:
                     _hso = _footer_rewrote.get("hookSpecificOutput", {})
