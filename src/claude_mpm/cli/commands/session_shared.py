@@ -131,10 +131,13 @@ def _print_prune_summary(pause_manager: SessionPauseManager) -> None:
     """Print a concise worktree prune summary to the console.
 
     WHAT: Reads the prune summary from the most-recently-written session and
-    displays a compact one-liner plus detail for preserved worktrees.
+    displays a compact one-liner plus detail for preserved worktrees and swept
+    orphaned directories.
 
     WHY: Users need to know which worktrees were cleaned and which were kept
-    (and why) so they can take action on preserved ones if needed.
+    (and why) so they can take action on preserved ones if needed.  Orphan
+    sweep results are reported separately so users can distinguish between
+    registered-worktree pruning and leftover-directory cleanup.
 
     Args:
         pause_manager: The SessionPauseManager instance used for the pause;
@@ -155,13 +158,18 @@ def _print_prune_summary(pause_manager: SessionPauseManager) -> None:
         pruned = summary.get("pruned_count", 0)
         preserved = summary.get("preserved_count", 0)
         worktrees = summary.get("worktrees", [])
+        orphans_swept = summary.get("orphans_swept", 0)
+        orphans_preserved = summary.get("orphans_preserved", 0)
+        orphans = summary.get("orphans", [])
 
-        if pruned == 0 and preserved == 0:
-            return  # No managed worktrees found — silent
+        total_activity = pruned + preserved + orphans_swept + orphans_preserved
+        if total_activity == 0:
+            return  # No managed worktrees or orphans found — silent
 
         console.print()
         console.print("[blue]Worktree Cleanup:[/blue]")
 
+        # Registered-worktree section
         if pruned > 0:
             console.print(f"  [green]Pruned {pruned} stale worktree(s)[/green]")
         if preserved > 0:
@@ -172,6 +180,21 @@ def _print_prune_summary(pause_manager: SessionPauseManager) -> None:
                 if wt.get("action") == "preserve":
                     path = wt.get("path", "?")
                     reason = wt.get("reason", "unknown reason")
+                    console.print(f"    [dim]{path}[/dim]: {reason}")
+
+        # Orphan sweep section
+        if orphans_swept > 0:
+            console.print(
+                f"  [green]Swept {orphans_swept} orphaned director(ies)[/green]"
+            )
+        if orphans_preserved > 0:
+            console.print(
+                f"  [yellow]Preserved {orphans_preserved} orphaned director(ies) with unsaved work[/yellow]"
+            )
+            for orph in orphans:
+                if orph.get("action") == "preserved":
+                    path = orph.get("path", "?")
+                    reason = orph.get("reason", "unknown reason")
                     console.print(f"    [dim]{path}[/dim]: {reason}")
     except Exception as exc:  # nosec B110
         logger.debug("_print_prune_summary display error (non-fatal): %s", exc)
