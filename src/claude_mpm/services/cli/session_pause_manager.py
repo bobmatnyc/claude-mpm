@@ -184,6 +184,8 @@ class SessionPauseManager:
             - ``orphans_swept`` (int) — orphaned dirs removed
             - ``orphans_preserved`` (int) — orphaned dirs kept (with reason)
             - ``orphans`` (list[dict]) — per-orphan decision records
+            - ``orphan_sweep_skipped`` (str, optional) — present when the
+              orphan sweep was skipped; value is a human-readable reason
         """
         summary: dict[str, Any] = {
             "pruned_count": 0,
@@ -252,16 +254,25 @@ class SessionPauseManager:
         # Sweep orphaned directories — unregistered subdirs of worktrees_dir.
         # Build the set of registered paths AFTER git worktree prune so we
         # don't treat newly-cleaned entries as orphans.
+        # SAFETY: if enumeration fails (None), skip the sweep entirely rather
+        # than treating all subdirs as orphans.
         registered_paths = self._collect_registered_worktree_paths(main_repo)
-        orphan_records = self._sweep_orphaned_dirs(
-            main_repo, worktrees_dir, registered_paths
-        )
-        for rec in orphan_records:
-            summary["orphans"].append(rec)
-            if rec.get("action") == "swept":
-                summary["orphans_swept"] += 1
-            else:
-                summary["orphans_preserved"] += 1
+        if registered_paths is None:
+            logger.warning(
+                "prune_stale_worktrees: skipping orphan sweep — "
+                "could not enumerate registered worktrees (git worktree list failed)"
+            )
+            summary["orphan_sweep_skipped"] = "could not enumerate registered worktrees"
+        else:
+            orphan_records = self._sweep_orphaned_dirs(
+                main_repo, worktrees_dir, registered_paths
+            )
+            for rec in orphan_records:
+                summary["orphans"].append(rec)
+                if rec.get("action") == "swept":
+                    summary["orphans_swept"] += 1
+                else:
+                    summary["orphans_preserved"] += 1
 
         return summary
 
@@ -709,39 +720,53 @@ class SessionPauseManager:
         logger.info("Pruned stale worktree: %s", wt_path)
         return True
 
-    def _collect_registered_worktree_paths(self, main_repo: str) -> set[Path]:
+    def _collect_registered_worktree_paths(self, main_repo: str) -> set[Path] | None:
         """Return the set of resolved paths for all registered git worktrees.
 
         WHAT: Runs ``git worktree list --porcelain`` from *main_repo* and
         collects every ``worktree`` path line, resolving each to an absolute
-        ``Path``.  Returns the resulting set (may be empty on git failure).
+        ``Path``.  Returns ``None`` when the git command fails so callers can
+        distinguish a genuine "zero registered worktrees" result from a
+        failure that could not enumerate worktrees safely.
 
         WHY: The orphan sweep needs to know which on-disk directories are
-        legitimately registered so it can exclude them from deletion.  Using a
-        dedicated helper keeps the path-collection logic separate from both
-        ``_list_worktree_candidates`` (which applies scope filtering) and the
-        orphan sweep itself (which operates on all immediate children of the
-        managed worktrees directory).
+        legitimately registered so it can exclude them from deletion.  If
+        ``git worktree list`` fails (corrupt repo, git missing, timeout), the
+        safe thing is to skip the orphan sweep entirely rather than return an
+        empty set — an empty set would cause every subdirectory of
+        ``.claude/worktrees/`` to be treated as an orphan and deleted,
+        including legitimately-registered worktrees.  Returning ``None``
+        signals the caller to abort the sweep (when-in-doubt-PRESERVE policy).
 
         Args:
             main_repo: Absolute path string of the main git repository.
 
         Returns:
-            Set of resolved ``Path`` objects for all registered worktrees.
+            Set of resolved ``Path`` objects for all registered worktrees, or
+            ``None`` if the git command failed and the set cannot be trusted.
         """
-        result = subprocess.run(  # nosec B603, B607 - safe git command
-            ["git", "-C", main_repo, "worktree", "list", "--porcelain"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
+        try:
+            result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", main_repo, "worktree", "list", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+        except Exception as exc:
+            logger.warning(
+                "_collect_registered_worktree_paths: git worktree list raised: %s",
+                exc,
+            )
+            return None
+
         if result.returncode != 0:
             logger.warning(
-                "_collect_registered_worktree_paths: git worktree list failed (rc=%d)",
+                "_collect_registered_worktree_paths: git worktree list failed (rc=%d): %s",
                 result.returncode,
+                result.stderr.strip(),
             )
-            return set()
+            return None
 
         paths: set[Path] = set()
         for line in result.stdout.splitlines():
@@ -868,16 +893,19 @@ class SessionPauseManager:
         directory and returns a decision dict with ``action`` (``"sweep"`` or
         ``"preserve"``) and a human-readable ``reason``.  The rules are:
         (1) If the directory is not a usable git work area (broken ``.git``
-        link, not inside any repo) it is SWEEP-eligible only when clean and
-        contains no tracked-but-modified or untracked files — but if ``git
-        status`` itself errors, PRESERVE.  (2) If it IS a usable git work area,
-        apply the same four rules as ``_classify_worktree``: locked flag, missing
-        dir, uncommitted/untracked changes, unmerged commits.  Any ambiguity
-        returns PRESERVE.
+        link, not inside any repo): if it has no ``.git`` entry AND is empty,
+        it is SWEEP-eligible; if it is non-empty it is PRESERVED to avoid
+        deleting unmanaged data; if ``git status`` itself errors but ``.git``
+        exists, PRESERVE (ambiguous state).  (2) If it IS a usable git work
+        area, apply the same four rules as ``_classify_worktree``: locked flag,
+        missing dir, uncommitted/untracked changes, unmerged commits.  Any
+        ambiguity returns PRESERVE.
 
         WHY: De-registered worktree directories may still have modified files or
         unpushed commits that the user has not yet recovered.  The conservative
         ``when-in-doubt-PRESERVE`` policy ensures we never delete real work.
+        Plain (non-git) directories with files could contain unmanaged data that
+        was never tracked; sweeping them could cause irreversible data loss.
         Mirroring ``_classify_worktree`` rules avoids duplicating safety logic.
 
         Args:
@@ -909,10 +937,22 @@ class SessionPauseManager:
                         "action": "preserve",
                         "reason": f"git status failed (rc={status_result.returncode}) but .git exists; ambiguous state",
                     }
-                # No .git at all — plain leftover directory, safe to sweep.
+                # No .git at all — plain leftover directory.  Only sweep if
+                # the directory is empty (or contains only known-disposable
+                # git-worktree scaffolding).  A non-empty plain directory may
+                # contain unmanaged data and must be PRESERVED.
+                try:
+                    contents = list(Path(dir_path).iterdir())
+                except OSError:
+                    contents = []
+                if contents:
+                    return {
+                        "action": "preserve",
+                        "reason": "non-git directory contains files; preserved to avoid deleting unmanaged data",
+                    }
                 return {
                     "action": "sweep",
-                    "reason": "not a git work area (no .git); plain leftover directory",
+                    "reason": "not a git work area (no .git); empty plain leftover directory",
                 }
 
             # git status succeeded — check for any changes.
