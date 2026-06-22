@@ -253,6 +253,85 @@ class TestRewriteBashCommand:
 
 
 # ---------------------------------------------------------------------------
+# FIX 3 regression tests: quoting preservation, multi-line body, title safety
+# ---------------------------------------------------------------------------
+
+
+class TestRewriteBashCommandFix3:
+    """Regression tests added for trusty-review correctness findings."""
+
+    def test_multiline_body_roundtrip(self):
+        """Multi-line body with embedded newlines rewrites footer and stays well-formed."""
+        body = f"## Summary\n\nLine one\nLine two\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        # Embed newlines literally inside a double-quoted shell argument.
+        cmd = f'gh pr create --title "My PR" --body "{body}"'
+        result = rewrite_bash_command(cmd)
+        assert result is not None, "Expected a rewrite for multi-line body"
+        assert MPM_FOOTER_CANONICAL in result
+        assert CLAUDE_CODE_FOOTER_OLD not in result
+        # The --title token must still be intact.
+        assert '--title "My PR"' in result
+
+    def test_old_footer_in_title_does_not_get_rewritten(self):
+        """Regression (finding a): old footer text in --title must not be touched."""
+        title_with_footer = f"PR about {CLAUDE_CODE_FOOTER_OLD}"
+        body_with_footer = f"Description\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        cmd = f'gh pr create --title "{title_with_footer}" --body "{body_with_footer}"'
+        result = rewrite_bash_command(cmd)
+        assert result is not None, "Expected body to be rewritten"
+        # The canonical footer must appear (body was rewritten).
+        assert MPM_FOOTER_CANONICAL in result
+        # The title must be unchanged: the old footer text is still inside it.
+        assert f'--title "{title_with_footer}"' in result
+
+    def test_short_b_flag_standalone_parses(self):
+        """Standalone -b flag is matched; parses and rewrites correctly."""
+        cmd = f'gh issue create -b "{CLAUDE_CODE_FOOTER_OLD}"'
+        result = rewrite_bash_command(cmd)
+        assert result is not None
+        assert MPM_FOOTER_CANONICAL in result
+
+    def test_dash_base_like_token_not_misrewritten(self):
+        """Regression (finding c): -base-like tokens are not treated as -b body flag."""
+        # A command with -base main (not a real gh flag; purely tests the
+        # standalone-flag boundary assertion for -b).
+        cmd = f'gh pr create -base main --body "{CLAUDE_CODE_FOOTER_OLD}"'
+        result = rewrite_bash_command(cmd)
+        # The body should still get rewritten (via --body); -base is untouched.
+        assert result is not None
+        assert "-base main" in result
+        assert MPM_FOOTER_CANONICAL in result
+
+    def test_body_equals_form_preserves_double_quotes(self):
+        """--body= form with double quotes keeps double-quote style after rewrite."""
+        cmd = f'gh pr create --body="{CLAUDE_CODE_FOOTER_OLD}"'
+        result = rewrite_bash_command(cmd)
+        assert result is not None
+        # Result must contain the MPM footer wrapped in double quotes.
+        assert f'"{MPM_FOOTER_CANONICAL}"' in result
+
+    def test_body_space_form_preserves_double_quotes(self):
+        """--body "..." (space separator) keeps double-quote style after rewrite."""
+        cmd = f'gh pr create --body "{CLAUDE_CODE_FOOTER_OLD}"'
+        result = rewrite_bash_command(cmd)
+        assert result is not None
+        assert f'"{MPM_FOOTER_CANONICAL}"' in result
+
+    def test_single_quoted_body_preserves_single_quotes(self):
+        """Single-quoted body stays single-quoted after rewrite (finding b)."""
+        cmd = f"gh pr create --body '{CLAUDE_CODE_FOOTER_OLD}'"
+        result = rewrite_bash_command(cmd)
+        assert result is not None
+        assert f"'{MPM_FOOTER_CANONICAL}'" in result
+
+    def test_idempotent_multiline_body_no_double_rewrite(self):
+        """Idempotency: a body that already has the MPM footer returns None."""
+        body = f"## Summary\n\n{MPM_FOOTER_CANONICAL}"
+        cmd = f'gh pr create --body "{body}"'
+        assert rewrite_bash_command(cmd) is None
+
+
+# ---------------------------------------------------------------------------
 # rewrite_mcp_body — MCP tool body field normalisation
 # ---------------------------------------------------------------------------
 
