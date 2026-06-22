@@ -538,6 +538,12 @@ test-e2e: ## Run end-to-end tests only
 	@uv run pytest tests/e2e/ -n $(TEST_WORKERS) -v
 
 mutation-test: ## Run mutation tests against trusty_search_allowlist (advisory, on-demand only)
+	# CI ISOLATION NOTE (issue #887, 2026-06-22):
+	# This target is intentionally NOT wired into any CI workflow — it is
+	# on-demand only (run locally by developers).  CI runs scripts/check_clean_workspace.sh
+	# at the start of each pytest job to detect any mutated files that might
+	# have been left on disk, turning silent contamination into an obvious failure.
+	# .mutmut-cache and mutants/ are gitignored so local runs cannot leak to CI.
 	@echo "$(YELLOW)🧬 Running mutation tests (scope: trusty_search_allowlist)...$(NC)"
 	@echo "$(YELLOW)   Safety: pilot file will be verified/restored regardless of mutmut exit code.$(NC)"
 	@mutmut_rc=0; uv run mutmut run || mutmut_rc=$$?; \
