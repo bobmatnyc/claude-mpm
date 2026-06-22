@@ -875,8 +875,12 @@ class GitSkillSourceManager:
                         # Later entries for the same filename win (mimics external-wins logic)
                         normalised[relative] = etag_val
 
-                    # Merge into the new external cache (external entries win on collision
-                    # — they are at least as fresh as the in-tree legacy copy)
+                    # Merge into the new external cache.
+                    # Precedence: external cache wins on key collision — external entries
+                    # are at least as fresh as the in-tree legacy copy.
+                    # ALL keys (both legacy and external) are normalised to relative
+                    # filenames (Path(k).name) before merging so the result contains
+                    # only portable relative-filename keys (#884).
                     external_file = self._get_etag_cache_file(source_id)
                     merged: dict[str, str] = dict(
                         normalised
@@ -885,7 +889,12 @@ class GitSkillSourceManager:
                         try:
                             with open(external_file, encoding="utf-8") as fh:
                                 existing = json.load(fh)
-                            merged.update(existing)  # external entries win
+                            # Normalise external keys too so ALL keys in the result
+                            # are relative filenames — prevents a mix of absolute-path
+                            # and relative-filename keys after the merge (#884).
+                            for key, etag_val in existing.items():
+                                relative_key = Path(key).name
+                                merged[relative_key] = etag_val  # external wins
                         except Exception as exc:  # nosec B110
                             self.logger.warning(
                                 "Could not read external ETag cache %s during migration: %s",
