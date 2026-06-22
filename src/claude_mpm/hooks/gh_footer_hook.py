@@ -126,8 +126,9 @@ _GH_BODY_CMD_RE = re.compile(
 # Regex to extract the value of --body / -b from a shell command string.
 # Handles both --body="..." and --body "..." forms (with single or double
 # quotes, or bare unquoted values without spaces).
+# NOTE: (?!-file) prevents --body-file from being matched as --body.
 _BODY_FLAG_RE = re.compile(
-    r"""(?:--body|-b)\s*=?\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+))"""
+    r"""(?:--body(?!-file)|-b(?!ody))\s*=?\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+))"""
 )
 
 # Regex to extract the value of --body-file / -F.
