@@ -522,3 +522,428 @@ class TestNotAGitRepo:
         assert summary["pruned_count"] == 0
         assert summary["preserved_count"] == 0
         assert summary["worktrees"] == []
+
+
+# ---------------------------------------------------------------------------
+# Orphan sweep tests (issue #894)
+# ---------------------------------------------------------------------------
+
+
+def _deregister_worktree(repo: Path, wt_path: Path) -> None:
+    """De-register a worktree with --force, leaving the directory on disk."""
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "worktree",
+            "remove",
+            "--force",
+            str(wt_path),
+        ],
+        capture_output=True,
+        check=False,
+    )
+    # Restore the directory so it is present on disk as an orphan.
+    # git worktree remove --force deletes both the admin entry AND the dir,
+    # so we re-create the directory manually to simulate a partial cleanup
+    # where only the admin entry was cleared.
+    if not wt_path.exists():
+        wt_path.mkdir(parents=True)
+
+
+def _make_plain_leftover(repo: Path, name: str) -> Path:
+    """Create a plain (non-git) directory under .claude/worktrees/ as an orphan."""
+    wt_dir = repo / ".claude" / "worktrees"
+    wt_dir.mkdir(parents=True, exist_ok=True)
+    orphan = wt_dir / name
+    orphan.mkdir()
+    return orphan
+
+
+class TestOrphanCleanMergedSwept:
+    """Orphaned clean dir with no .git (plain leftover) is swept."""
+
+    def test_plain_leftover_dir_is_swept(self, repo: Path) -> None:
+        orphan = _make_plain_leftover(repo, "orphan-plain")
+        assert orphan.is_dir()
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert summary["orphans_swept"] >= 1, (
+            f"Expected at least 1 swept orphan, got {summary['orphans_swept']}. "
+            f"Orphans: {summary['orphans']}"
+        )
+        assert not orphan.exists(), "Plain leftover dir should have been swept"
+
+        # Confirm the record is correct
+        swept_records = [r for r in summary["orphans"] if r.get("action") == "swept"]
+        assert any(str(orphan.resolve()) in r["path"] for r in swept_records)
+
+    def test_clean_deregistered_worktree_dir_is_swept(self, repo: Path) -> None:
+        """A dir left behind after 'git worktree remove --force' with no .git is swept."""
+        # Create a worktree, deregister it (force), then manually leave directory.
+        wt = _add_managed_worktree(repo, "deregistered-clean")
+        # Remove via git (removes admin entry + dir), then re-create as plain dir.
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "remove", "--force", str(wt)],
+            capture_output=True,
+            check=False,
+        )
+        # Re-create as a plain directory (no .git) to simulate orphan scenario.
+        wt.mkdir(parents=True, exist_ok=True)
+        assert wt.is_dir()
+        assert not (wt / ".git").exists()
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert summary["orphans_swept"] >= 1, (
+            f"Expected at least 1 swept orphan. Orphans: {summary['orphans']}"
+        )
+        assert not wt.exists(), "De-registered clean dir should be swept"
+
+
+class TestOrphanDirtyPreserved:
+    """Orphaned dir with uncommitted/untracked changes is preserved."""
+
+    def test_orphan_with_uncommitted_changes_preserved(self, repo: Path) -> None:
+        # Create a real worktree, add staged changes, then deregister it forcibly
+        # while keeping the directory so it still has a working .git file.
+        wt = _add_managed_worktree(repo, "orphan-dirty")
+        (wt / "work.txt").write_text("unsaved\n")
+        subprocess.run(
+            ["git", "-C", str(wt), "add", "work.txt"],
+            check=True,
+            capture_output=True,
+        )
+        # Manually unlink the admin entry from git's perspective by using
+        # git worktree prune --expire=now after pointing .git away.
+        # Simpler approach: just move the .git file so git can't register it
+        # but the dir (with content) still exists.
+        # Actually, the simplest reliable way to have an orphan WITH a .git
+        # link that still works is to remove only the worktree admin data.
+        # We achieve this by doing worktree remove --force and then restoring
+        # the directory WITH a .git file from the repo.
+
+        # Store content before force-remove.
+        work_content = (wt / "work.txt").read_text()
+
+        # Force deregister.
+        subprocess.run(
+            ["git", "-C", str(repo), "worktree", "remove", "--force", str(wt)],
+            capture_output=True,
+            check=False,
+        )
+
+        # Re-create with a functional .git reference so git status works
+        # on the directory and reports the dirty state.
+        wt.mkdir(parents=True, exist_ok=True)
+        # Write a .git file pointing to the branch's gitdir in .git/worktrees/.
+        # This is fragile to reconstruct manually; instead we use a simpler
+        # approach: create a NEW git repo inside the orphan directory and add
+        # an untracked file so git status is non-empty.
+        subprocess.run(
+            ["git", "-C", str(wt), "init"],
+            capture_output=True,
+            check=False,
+        )
+        subprocess.run(
+            ["git", "-C", str(wt), "config", "user.email", "test@example.com"],
+            capture_output=True,
+            check=False,
+        )
+        subprocess.run(
+            ["git", "-C", str(wt), "config", "user.name", "Test"],
+            capture_output=True,
+            check=False,
+        )
+        (wt / "work.txt").write_text(work_content)
+        # Leave the file untracked (no git add) so git status --porcelain is non-empty.
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        # The orphan has untracked content → must be preserved.
+        assert wt.exists(), "Orphan with untracked files must not be swept"
+        preserved_records = [
+            r for r in summary["orphans"] if r.get("action") == "preserved"
+        ]
+        assert any(str(wt.resolve()) in r["path"] for r in preserved_records), (
+            f"Expected orphan {wt} in preserved list. Orphans: {summary['orphans']}"
+        )
+
+    def test_orphan_with_untracked_files_preserved(self, repo: Path) -> None:
+        """A plain orphan dir with an untracked .git repo and files is preserved."""
+        orphan = _make_plain_leftover(repo, "orphan-untracked")
+        # Init a git repo inside and add an untracked file.
+        subprocess.run(
+            ["git", "-C", str(orphan), "init"], capture_output=True, check=False
+        )
+        subprocess.run(
+            ["git", "-C", str(orphan), "config", "user.email", "t@t.com"],
+            capture_output=True,
+            check=False,
+        )
+        subprocess.run(
+            ["git", "-C", str(orphan), "config", "user.name", "T"],
+            capture_output=True,
+            check=False,
+        )
+        (orphan / "unsaved.py").write_text("# work\n")
+        # Do NOT git add — leave it untracked so git status --porcelain is non-empty.
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert orphan.exists(), "Orphan with untracked files must not be swept"
+        preserved = [r for r in summary["orphans"] if r.get("action") == "preserved"]
+        assert any(str(orphan.resolve()) in r["path"] for r in preserved)
+
+
+class TestOrphanUnmergedCommitsPreserved:
+    """Orphaned dir whose branch has unmerged commits is preserved."""
+
+    def test_orphan_unmerged_commits_preserved(self, repo: Path) -> None:
+        orphan = _make_plain_leftover(repo, "orphan-unmerged")
+        # Init an independent git repo inside the orphan dir, create a commit on a
+        # branch whose name is guaranteed not to exist in the outer repo.  Because the
+        # branch is unknown to the outer repo, _has_unmerged_commits cannot determine
+        # whether it is merged (both origin/<branch> and local <branch> are absent)
+        # and therefore returns None.  The classify helper treats None as
+        # "could not determine" → PRESERVE conservatively.
+        unique_branch = "orphan-feature-branch-xyz-894"
+        subprocess.run(
+            ["git", "-C", str(orphan), "init", "--initial-branch", unique_branch],
+            capture_output=True,
+            check=False,
+        )
+        # Fallback for older git that doesn't support --initial-branch.
+        subprocess.run(
+            ["git", "-C", str(orphan), "checkout", "-b", unique_branch],
+            capture_output=True,
+            check=False,
+        )
+        subprocess.run(
+            ["git", "-C", str(orphan), "config", "user.email", "t@t.com"],
+            capture_output=True,
+            check=False,
+        )
+        subprocess.run(
+            ["git", "-C", str(orphan), "config", "user.name", "T"],
+            capture_output=True,
+            check=False,
+        )
+        (orphan / "feature.txt").write_text("feature\n")
+        subprocess.run(
+            ["git", "-C", str(orphan), "add", "."], capture_output=True, check=False
+        )
+        subprocess.run(
+            ["git", "-C", str(orphan), "commit", "-m", "feature"],
+            capture_output=True,
+            check=False,
+        )
+        # Confirm the branch name is what we expect so the test is meaningful.
+        branch_result = subprocess.run(
+            ["git", "-C", str(orphan), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        current_branch = branch_result.stdout.strip()
+        # Accept either the unique branch or the default (in case older git ignored --initial-branch).
+        # If it is main/master, the test still passes because that branch's commit exists
+        # only in the orphan's isolated repo — the rev-list from main_repo will not find
+        # it and _has_unmerged_commits returns None.
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        # The orphan git repo's branch is either a unique name absent from the outer
+        # repo OR its revisions are not reachable from the outer repo.  Either way
+        # _has_unmerged_commits returns None → PRESERVE conservatively.
+        assert orphan.exists(), (
+            f"Orphan with branch '{current_branch}' whose merge status cannot be "
+            f"determined must be preserved. Orphans: {summary['orphans']}"
+        )
+        preserved = [r for r in summary["orphans"] if r.get("action") == "preserved"]
+        assert any(str(orphan.resolve()) in r["path"] for r in preserved), (
+            f"Orphan {orphan} not in preserved list. Orphans: {summary['orphans']}"
+        )
+
+
+class TestRegisteredWorktreeNotDoubleProcessed:
+    """A registered worktree must not appear in the orphan sweep list."""
+
+    def test_registered_worktree_not_in_orphans(self, repo: Path) -> None:
+        wt = _add_managed_worktree(repo, "registered-only")
+        assert wt.is_dir()
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        orphan_paths = [r["path"] for r in summary["orphans"]]
+        assert str(wt.resolve()) not in orphan_paths, (
+            "Registered worktree must not appear in the orphan list"
+        )
+
+        # It should appear in the registered worktrees list instead.
+        wt_paths = [wt_rec["path"] for wt_rec in summary["worktrees"]]
+        assert str(wt.resolve()) in wt_paths
+
+
+class TestMainWorkingTreeOrphanSweep:
+    """The main working tree must never be touched by the orphan sweep."""
+
+    def test_main_tree_not_swept(self, repo: Path) -> None:
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        all_orphan_paths = [r["path"] for r in summary["orphans"]]
+        assert str(repo.resolve()) not in all_orphan_paths, (
+            "Main working tree path must never appear in the orphan sweep"
+        )
+
+
+class TestNoWorktreesDirOrphanSweep:
+    """When .claude/worktrees/ does not exist, orphan sweep is a no-op."""
+
+    def test_no_worktrees_dir_orphan_sweep_noop(self, tmp_path: Path) -> None:
+        repo = _make_git_repo(tmp_path)
+        # Deliberately do NOT create .claude/worktrees/.
+
+        mgr = _make_pause_manager(repo)
+        summary = mgr.prune_stale_worktrees()
+
+        assert summary["orphans_swept"] == 0
+        assert summary["orphans_preserved"] == 0
+        assert summary["orphans"] == []
+
+        shutil.rmtree(str(repo), ignore_errors=True)
+
+
+class TestPathContainmentGuard:
+    """Path-containment guard prevents deletion outside .claude/worktrees/."""
+
+    def test_symlink_outside_worktrees_dir_is_rejected(self, repo: Path) -> None:
+        """A symlink under .claude/worktrees/ that points outside is preserved, not swept."""
+        wt_dir = repo / ".claude" / "worktrees"
+        wt_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a directory OUTSIDE worktrees/ that we'll symlink to.
+        outside_dir = repo.parent / "outside-target"
+        outside_dir.mkdir(parents=True, exist_ok=True)
+        (outside_dir / "precious.txt").write_text("do not delete\n")
+
+        # Create a symlink under .claude/worktrees/ pointing to the outside dir.
+        link = wt_dir / "evil-symlink"
+        try:
+            link.symlink_to(outside_dir)
+        except (OSError, NotImplementedError):
+            pytest.skip("symlinks not supported on this platform")
+
+        try:
+            mgr = _make_pause_manager(repo)
+            summary = mgr.prune_stale_worktrees()
+
+            # The outside dir must not have been deleted.
+            assert outside_dir.exists(), (
+                "Directory outside .claude/worktrees/ must not be deleted"
+            )
+            assert (outside_dir / "precious.txt").exists(), (
+                "Files outside .claude/worktrees/ must not be deleted"
+            )
+
+            # The symlink should be preserved (path resolves outside worktrees_dir).
+            preserved = [
+                r for r in summary["orphans"] if r.get("action") == "preserved"
+            ]
+            # Either it was preserved due to containment guard or due to git errors
+            # on a symlinked non-git dir; either way it must not be in swept.
+            swept = [r for r in summary["orphans"] if r.get("action") == "swept"]
+            swept_paths = [r["path"] for r in swept]
+            assert str(outside_dir.resolve()) not in swept_paths, (
+                "Path outside .claude/worktrees/ must not be swept"
+            )
+        finally:
+            shutil.rmtree(str(outside_dir), ignore_errors=True)
+            if link.is_symlink():
+                link.unlink(missing_ok=True)
+
+    def test_dotdot_path_rejected_by_containment_guard(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """_sweep_orphaned_dirs rejects candidates whose resolved path escapes the managed dir."""
+        from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
+
+        mgr = SessionPauseManager(project_path=repo)
+        main_repo = str(repo.resolve())
+        worktrees_dir = repo / ".claude" / "worktrees"
+        worktrees_dir.mkdir(parents=True, exist_ok=True)
+
+        # Build a path that is NOT under worktrees_dir but IS a directory.
+        outside = repo.parent
+        registered_paths: set = set()
+
+        # Inject an out-of-scope child into the sweep by patching the module-level
+        # Path.iterdir.  We use monkeypatch on the pathlib module used inside
+        # session_pause_manager so that Path.iterdir yields a FakeChild whose
+        # .resolve() returns a path outside worktrees_dir.
+
+        import pathlib
+
+        original_path_class = pathlib.Path
+
+        class FakeChild:
+            """Pretend to be a Path that is a dir but resolves outside worktrees_dir."""
+
+            def is_dir(self) -> bool:
+                return True
+
+            def resolve(self) -> original_path_class:  # type: ignore[valid-type]
+                return outside.resolve()
+
+            def __truediv__(self, other: str) -> FakeChild:
+                return FakeChild()
+
+            def exists(self) -> bool:
+                return True
+
+            def __str__(self) -> str:
+                return str(outside)
+
+        # Patch only when the worktrees_dir is iterated — use a wrapper around
+        # the real iterdir that injects our FakeChild for the target directory.
+        real_iterdir = pathlib.Path.iterdir
+
+        def patched_iterdir(self_path: pathlib.Path):  # type: ignore[override]
+            if self_path.resolve() == worktrees_dir.resolve():
+                yield FakeChild()  # type: ignore[misc]
+            else:
+                yield from real_iterdir(self_path)
+
+        monkeypatch.setattr(pathlib.Path, "iterdir", patched_iterdir)
+
+        records = mgr._sweep_orphaned_dirs(main_repo, worktrees_dir, registered_paths)
+
+        # The fake outside child must be preserved (containment guard fires).
+        assert len(records) == 1
+        assert records[0]["action"] == "preserved"
+        assert "containment" in records[0]["reason"].lower()
+
+
+class TestNoPruneWorktreesSkipsOrphanSweep:
+    """When prune_worktrees=False, the orphan sweep must not run."""
+
+    def test_orphan_sweep_skipped_when_pruning_disabled(self, repo: Path) -> None:
+        orphan = _make_plain_leftover(repo, "orphan-skip")
+        assert orphan.is_dir()
+
+        mgr = _make_pause_manager(repo)
+        mgr.create_pause_session(message="no prune", prune_worktrees=False)
+
+        # The orphan must still exist because pruning was disabled.
+        assert orphan.exists(), "Orphan sweep must not run when prune_worktrees=False"
+        # _last_prune_summary must be None when pruning is skipped.
+        assert mgr._last_prune_summary is None
