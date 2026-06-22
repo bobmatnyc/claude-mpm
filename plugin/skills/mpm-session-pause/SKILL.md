@@ -66,6 +66,11 @@ following is true:
 - It has a `.git` entry but `git status` fails (ambiguous state → PRESERVE).
 - Its branch has commits not merged into the main branch.
 - Its merge status cannot be determined (fail-safe: when in doubt, PRESERVE).
+- It is a plain (non-git) directory that contains any files or subdirectories
+  (preserved to avoid deleting unmanaged data). Only empty plain directories
+  are swept.
+- The `git worktree list` command fails entirely (sweep is skipped and the
+  summary records `orphan_sweep_skipped` to explain why).
 
 A strict path-containment guard ensures deletion can never escape
 `.claude/worktrees/` — symlinks that resolve outside the directory are
@@ -78,8 +83,8 @@ Worktree Cleanup:
   Pruned 2 stale worktree(s)
   Preserved 1 worktree(s) with unsaved work
     /repo/.claude/worktrees/agent-abc: branch has commits not merged into main branch
-  Swept 1 orphaned director(ies)
-  Preserved 1 orphaned director(ies) with unsaved work
+  Swept 1 orphaned directory
+  Preserved 1 orphaned directory with unsaved work
     /repo/.claude/worktrees/leftover-xyz: has uncommitted or untracked changes
 ```
 
