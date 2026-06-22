@@ -18,6 +18,9 @@ from datetime import UTC, datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+import requests
+
 # ---------------------------------------------------------------------------
 # Deterministic agent list used by all hermetic tests.
 #
@@ -34,9 +37,6 @@ _MOCK_AGENT_LIST = [
     "qa-agent.md",
     "documentation-agent.md",
 ]
-
-import pytest
-import requests
 
 from claude_mpm.core.file_utils import get_file_hash
 from claude_mpm.services.agents.sources.agent_sync_state import (
@@ -1009,6 +1009,9 @@ class TestCheckForUpdates:
             updates = git_sync_service.check_for_updates()
 
         mock_agent_list.assert_called()
+        # HEAD was called once per agent — guards against vacuous pass if
+        # check_for_updates() short-circuits before issuing any HEAD requests
+        assert mock_head.call_count == len(_MOCK_AGENT_LIST)
         # On network error the service is conservative: no update assumed
         assert set(updates.keys()) == set(_MOCK_AGENT_LIST)
         assert all(has_update is False for has_update in updates.values())
