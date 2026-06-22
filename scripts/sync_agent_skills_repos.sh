@@ -100,13 +100,26 @@ sync_repo() {
     # This is a conservative clean: only well-known untracked cache files are
     # removed; tracked files and any other untracked files are left alone.
     # (fix #882 — skills sync used to leave .etag_cache.json in the clone tree)
+    #
+    # Hardened (fix #884): delete ONLY the exact paths reported by git as
+    # untracked, not every .etag_cache.json found by find.  This prevents
+    # accidental removal of a hypothetically tracked nested copy elsewhere in
+    # the repository.  git ls-files --others --exclude-standard --z outputs
+    # NUL-delimited untracked paths that pass .gitignore rules, which we
+    # filter to .etag_cache.json entries and remove one by one.
     print_message "$YELLOW" "Step 0b: Removing stale cache artefacts from working tree..."
-    UNTRACKED_ETAG=$(git status --porcelain 2>/dev/null | grep '^\?\?' | grep '\.etag_cache\.json' || true)
-    if [ -n "$UNTRACKED_ETAG" ]; then
-        print_message "$YELLOW" "  Found untracked .etag_cache.json file(s), removing..."
-        # Delete every untracked .etag_cache.json file (safe: only untracked copies)
-        find . -name '.etag_cache.json' -not -path './.git/*' -exec rm -f {} + 2>/dev/null || true
-        print_message "$GREEN" "  ✓ Stale ETag cache artefacts removed"
+    REMOVED_COUNT=0
+    while IFS= read -r -d '' untracked_path; do
+        case "$untracked_path" in
+            *'.etag_cache.json')
+                print_message "$YELLOW" "  Removing untracked cache artefact: $untracked_path"
+                rm -f -- "$untracked_path"
+                REMOVED_COUNT=$((REMOVED_COUNT + 1))
+                ;;
+        esac
+    done < <(git ls-files --others --exclude-standard -z 2>/dev/null || true)
+    if [ "$REMOVED_COUNT" -gt 0 ]; then
+        print_message "$GREEN" "  ✓ Removed $REMOVED_COUNT stale ETag cache artefact(s)"
     else
         print_message "$GREEN" "  ✓ No stale cache artefacts found"
     fi
