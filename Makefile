@@ -882,6 +882,15 @@ release-check: ## Check if environment is ready for release
 	else \
 		echo "$(GREEN)✓ On main branch$(NC)"; \
 	fi
+	@LAST_MSG=$$(git log -1 --format="%s"); \
+	if echo "$$LAST_MSG" | grep -qE "^bump:"; then \
+		echo "$(RED)✗ HEAD is already a bump commit: $$LAST_MSG$(NC)"; \
+		echo "$(YELLOW)  A prior release likely bumped but did not finish.$(NC)"; \
+		echo "$(YELLOW)  To finish it:  make release-build-current && make release-publish$(NC)"; \
+		echo "$(YELLOW)  Do NOT re-run make release-patch — it would double-bump.$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✓ HEAD is not a bump commit$(NC)"
 	@echo "$(GREEN)✓ Release prerequisites check passed$(NC)"
 
 # Run tests before release
