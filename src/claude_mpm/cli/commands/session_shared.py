@@ -15,10 +15,16 @@ References
 SPEC-CLI-04~1 : docs/specs/cli.md#SPEC-CLI-04~1
 """
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from rich.console import Console
+
+if TYPE_CHECKING:
+    from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
 
 console = Console()
 
@@ -50,12 +56,16 @@ def handle_pause(args) -> int:
 
         console.print("\n[cyan]Creating session pause...[/cyan]")
 
+        # ``--no-prune-worktrees`` flag disables pruning (default: prune enabled).
+        prune_worktrees = not getattr(args, "no_prune_worktrees", False)
+
         # Create pause session
         pause_manager = SessionPauseManager(project_path)
         session_id = pause_manager.create_pause_session(
             message=getattr(args, "message", None),
             skip_commit=getattr(args, "no_commit", False),
             export_path=getattr(args, "export", None),
+            prune_worktrees=prune_worktrees,
         )
 
         # Display success message
@@ -85,6 +95,10 @@ def handle_pause(args) -> int:
             console.print()
             console.print(f"[yellow]Context:[/yellow] {args.message}")
 
+        # Worktree prune summary
+        if prune_worktrees:
+            _print_prune_summary(pause_manager)
+
         # Resume instructions
         console.print()
         console.print("[yellow]Resume with:[/yellow] claude-mpm session resume")
@@ -109,6 +123,56 @@ def handle_pause(args) -> int:
 
             traceback.print_exc()
         return 1
+
+
+def _print_prune_summary(pause_manager: SessionPauseManager) -> None:
+    """Print a concise worktree prune summary to the console.
+
+    WHAT: Reads the prune summary from the most-recently-written session and
+    displays a compact one-liner plus detail for preserved worktrees.
+
+    WHY: Users need to know which worktrees were cleaned and which were kept
+    (and why) so they can take action on preserved ones if needed.
+
+    Args:
+        pause_manager: The SessionPauseManager instance used for the pause;
+            its ``prune_stale_worktrees`` result is embedded in the last
+            session JSON.  We call it here only for display purposes —
+            the actual pruning already happened inside ``create_pause_session``.
+    """
+    # The prune summary was computed and stored in the last session JSON by
+    # create_pause_session.  Re-read it from the attribute set on the manager
+    # (we piggy-back on the cached result rather than re-running git).
+    # Fall back to a fresh call only when no cached summary is available
+    # (e.g. callers that bypass create_pause_session).
+    try:
+        summary = getattr(pause_manager, "_last_prune_summary", None)
+        if summary is None:
+            return  # Nothing to show
+
+        pruned = summary.get("pruned_count", 0)
+        preserved = summary.get("preserved_count", 0)
+        worktrees = summary.get("worktrees", [])
+
+        if pruned == 0 and preserved == 0:
+            return  # No managed worktrees found — silent
+
+        console.print()
+        console.print("[blue]Worktree Cleanup:[/blue]")
+
+        if pruned > 0:
+            console.print(f"  [green]Pruned {pruned} stale worktree(s)[/green]")
+        if preserved > 0:
+            console.print(
+                f"  [yellow]Preserved {preserved} worktree(s) with unsaved work[/yellow]"
+            )
+            for wt in worktrees:
+                if wt.get("action") == "preserve":
+                    path = wt.get("path", "?")
+                    reason = wt.get("reason", "unknown reason")
+                    console.print(f"    [dim]{path}[/dim]: {reason}")
+    except Exception:
+        pass  # nosec B110 - display failure must never break the pause flow
 
 
 def handle_resume(args) -> int:
