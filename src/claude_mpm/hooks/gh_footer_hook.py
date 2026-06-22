@@ -123,12 +123,35 @@ _GH_BODY_CMD_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Regex to extract the value of --body / -b from a shell command string.
-# Handles both --body="..." and --body "..." forms (with single or double
-# quotes, or bare unquoted values without spaces).
-# NOTE: (?!-file) prevents --body-file from being matched as --body.
+# Regex to extract the --body / -b flag and its value from a shell command.
+#
+# Design notes
+# ------------
+# Group 1 (flag):  the flag token — ``--body`` or ``-b``.
+# Group 2 (sep):   separator between flag and value — ``=`` or one-or-more spaces.
+# Group 3 (quote): the opening quote character (``"`` or ``'``), or empty string
+#                  when the value is bare/unquoted.
+# Group 4 (dq):    double-quoted value (group 3 == ``"``).
+# Group 5 (sq):    single-quoted value (group 3 == ``'``).
+# Group 6 (bare):  bare unquoted value (group 3 == ``""``).
+#
+# Correctness constraints
+# -----------------------
+# * ``--body-file`` must NOT match as ``--body``:  the ``(?!-file)``
+#   look-ahead on ``--body`` prevents this.
+# * ``-b`` must only match as a standalone flag, NOT as a prefix of longer
+#   tokens such as ``-base`` or ``-branch``:
+#     - Requires a preceding word boundary (start-of-string or whitespace).
+#     - Requires the character after ``-b`` to be ``=``, whitespace, or
+#       end-of-string — i.e. ``(?=\s|=|$)``.
+# * Reconstruction (see _requote / rewrite_bash_command) rebuilds the flag
+#   text purely from the captured groups so it never relies on searching for
+#   the old value string inside the original flag text.
 _BODY_FLAG_RE = re.compile(
-    r"""(?:--body(?!-file)|-b(?!ody))\s*=?\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+))"""
+    r"""((?:--body(?!-file)|(?:(?:^|\s))-b(?=[\s=]|$)))"""  # group 1: flag token
+    r"""(\s*=\s*|\s+)"""  # group 2: separator
+    r"""("((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+))""",  # groups 3-6: quoted or bare value
+    re.MULTILINE,
 )
 
 # Regex to extract the value of --body-file / -F.
@@ -142,18 +165,34 @@ def _is_gh_body_command(command: str) -> bool:
     return bool(_GH_BODY_CMD_RE.search(command))
 
 
-def _extract_body_inline(command: str) -> tuple[str, str] | None:
+def _extract_body_inline(
+    command: str,
+) -> tuple[str, re.Match] | None:  # type: ignore[type-arg]
     """Extract the inline body value from a ``--body``/``-b`` flag.
 
-    Returns ``(raw_value, flag_form)`` where *flag_form* is the matched
-    substring (used for replacement), or None if no inline body flag found.
+    Returns ``(decoded_value, match)`` where *decoded_value* is the unquoted
+    body string and *match* is the regex ``re.Match`` object (used for
+    precise, group-based reconstruction), or None if no inline body flag
+    was found.
+
+    The match groups are:
+      group(1)  — flag token (``--body`` or ``-b`` with surrounding whitespace)
+      group(2)  — separator (``=`` or spaces)
+      group(3)  — full quoted-or-bare value token including quotes
+      group(4)  — inner text when double-quoted (or None)
+      group(5)  — inner text when single-quoted (or None)
+      group(6)  — bare unquoted value (or None)
     """
     m = _BODY_FLAG_RE.search(command)
     if not m:
         return None
-    # One of the three capture groups will be set.
-    value = m.group(1) or m.group(2) or m.group(3) or ""
-    return value, m.group(0)
+    # Exactly one of groups 4, 5, 6 is set.
+    value = (
+        m.group(4)
+        if m.group(4) is not None
+        else (m.group(5) if m.group(5) is not None else (m.group(6) or ""))
+    )
+    return value, m
 
 
 def _extract_body_file(command: str) -> str | None:
@@ -164,14 +203,35 @@ def _extract_body_file(command: str) -> str | None:
     return m.group(1) or m.group(2) or m.group(3) or None
 
 
-def _requote(value: str, original_flag: str) -> str:
-    """Re-wrap *value* in the same quoting style as *original_flag*."""
-    if original_flag.endswith(f'"{value}"') or '="' in original_flag:
-        return f'"{value}"'
-    if original_flag.endswith(f"'{value}'") or "='" in original_flag:
-        return f"'{value}'"
-    # bare or --body= form — use double quotes if the value needs it
-    if " " in value or "\n" in value or '"' in value:
+def _requote(value: str, quote_char: str) -> str:
+    """Re-wrap *value* using the quoting style captured from the original flag.
+
+    *quote_char* is the opening quote character found in the original command
+    (``"`` for double-quoted, ``'`` for single-quoted, ``""`` for bare/unquoted).
+    This is read directly from the regex match group — it is never inferred by
+    searching the old value string inside the flag text, which avoids false
+    matches when the old body appears elsewhere in the command.
+
+    Rules:
+    - Double-quoted → keep double-quoted, escaping backslashes and embedded ``"``.
+    - Single-quoted → keep single-quoted (shell semantics: no escaping inside
+      single quotes, but we must ensure the value contains no literal ``'``; if
+      it does, fall back to double-quoting to avoid shell syntax breakage).
+    - Bare / unquoted → stay bare if safe (no spaces, newlines, or ``"``);
+      otherwise wrap in double quotes.
+    """
+    if quote_char == '"':
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    if quote_char == "'":
+        if "'" not in value:
+            return f"'{value}'"
+        # Value contains a single quote — cannot stay single-quoted safely;
+        # fall back to double quotes with proper escaping.
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    # Bare / no quote char — add double quotes only if value requires them.
+    if " " in value or "\n" in value or '"' in value or "'" in value:
         escaped = value.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
     return value
@@ -180,9 +240,22 @@ def _requote(value: str, original_flag: str) -> str:
 def rewrite_bash_command(command: str) -> str | None:
     """Rewrite a Bash command string so any old footer in the body is canonical.
 
+    WHAT: Parses ``--body``/``-b`` (inline) and ``--body-file``/``-F`` (file)
+          flags from a ``gh pr/issue create/edit`` command, rewrites any old
+          Claude Code footer in the body to the MPM canonical footer, and
+          returns the modified command string.  For file-based bodies, the file
+          is rewritten in place and the command string is returned unchanged.
+    WHY:  This function is the single point where Bash-command bodies are
+          normalised; it must be robust against edge cases (empty values,
+          multi-line bodies, the old footer text appearing in other flags such
+          as ``--title``) so that the hook never corrupts legitimate commands.
+          Reconstruction uses regex match groups exclusively — never string
+          search on the old value — to avoid false matches.
+
     Returns the rewritten command string, or None if no rewrite was needed
     (already canonical, no footer found, or not a gh body command).
-    Fail-safe: any unexpected exception is caught; None is returned.
+    Fail-safe: any unexpected exception is caught; None is returned so the
+    original command is used unmodified.
     """
     try:
         if not _is_gh_body_command(command):
@@ -191,17 +264,32 @@ def rewrite_bash_command(command: str) -> str | None:
         # Try inline --body / -b first.
         extracted = _extract_body_inline(command)
         if extracted is not None:
-            body_value, flag_match = extracted
+            body_value, match = extracted
             new_body = rewrite_footer(body_value)
             if new_body == body_value:
                 return None  # already canonical or no footer
-            # Rebuild the flag with the new body value.
-            new_flag = flag_match[: flag_match.index(body_value)] + _requote(
-                new_body, flag_match
-            )
-            # If requote wrapped differently, reconstruct more carefully.
-            # Simple approach: replace the first occurrence of the old flag.
-            return command.replace(flag_match, new_flag, 1)
+
+            # Determine the quote char from the original flag's structure.
+            # group(3) is the full value token (with quotes); the first char
+            # of group(3) is the opening quote (``"`` or ``'``) or the first
+            # char of a bare value (no quote).
+            value_token = match.group(3) or ""
+            opening_char = value_token[:1] if value_token else ""
+            quote_char = opening_char if opening_char in ('"', "'") else ""
+
+            # Build the replacement text from match groups so the substitution
+            # is anchored to exactly this match position.  We preserve group(1)
+            # (the flag token, including any leading whitespace captured by the
+            # ``(?:^|\s)`` prefix in -b branches) and group(2) (separator).
+            flag_tok = match.group(1)  # e.g. " -b" or "--body"
+            sep_tok = match.group(2)  # e.g. "=" or " "
+            new_quoted = _requote(new_body, quote_char)
+            replacement = flag_tok + sep_tok + new_quoted
+
+            # re.sub with count=1 replaces the first (and only) match at the
+            # precise position found — never accidentally hits the old footer
+            # text that may appear elsewhere in the command (e.g. in --title).
+            return _BODY_FLAG_RE.sub(replacement, command, count=1)
 
         # Try --body-file / -F.
         file_path_str = _extract_body_file(command)
