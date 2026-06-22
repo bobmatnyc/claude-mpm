@@ -810,16 +810,25 @@ class GitSkillSourceManager:
 
         WHAT: Checks for a legacy ``.etag_cache.json`` file inside the git-clone
         working tree at ``cache_path/.etag_cache.json``; if found, reads its
-        ETag entries, merges them into the new external per-source cache file
-        (external entries win on key collision — they are at least as fresh),
-        then deletes the in-tree copy so the clone remains clean.  All errors
-        are caught and logged; the method never raises.
+        ETag entries, normalises any absolute-path keys to portable relative
+        filename keys (fix #884), merges them into the new external per-source
+        cache file (external entries win on key collision — they are at least as
+        fresh), then deletes the in-tree copy so the clone remains clean.  All
+        errors are caught and logged; the method never raises.
 
         WHY: Older versions of this manager wrote the ETag cache directly into
         the git-clone working tree.  That untracked file dirtied the clone and
         caused ``git pull --rebase`` to emit warnings (issue #882).  Migration
         preserves existing cache hits across the upgrade so the first sync after
-        the upgrade does not re-download every file.
+        the upgrade does not re-download every file.  Keys are normalised to
+        filenames so the migrated cache is portable across machine renames and
+        CI/Docker environments (issue #884).
+
+        Note: ``_etag_cache_lock`` is held across the file I/O inside this
+        method.  That is intentional — the migration runs at most once per
+        source per upgrade, so the brief lock duration is acceptable and avoids
+        a race with concurrent ``_download_file_with_etag`` calls that share the
+        same lock.
 
         Args:
             source_id: ID of the skill source.
@@ -839,7 +848,9 @@ class GitSkillSourceManager:
         )
 
         try:
-            with self._etag_cache_lock:
+            with (
+                self._etag_cache_lock
+            ):  # Intentional: brief once-per-upgrade hold (see docstring)
                 # Read legacy in-tree cache
                 legacy_data: dict[str, str] = {}
                 try:
@@ -855,9 +866,22 @@ class GitSkillSourceManager:
                     legacy_data = {}
 
                 if legacy_data:
-                    # Merge into the new external cache (external wins on collision)
+                    # Normalise legacy keys: old caches may use absolute paths as keys
+                    # (e.g. "/home/user/.claude-mpm/cache/skills/system/foo.md").
+                    # Convert each to just the filename so the migrated cache is
+                    # portable — consistent with the new relative-key scheme (#884).
+                    normalised: dict[str, str] = {}
+                    for key, etag_val in legacy_data.items():
+                        relative = Path(key).name  # e.g. "foo.md"
+                        # Later entries for the same filename win (mimics external-wins logic)
+                        normalised[relative] = etag_val
+
+                    # Merge into the new external cache (external entries win on collision
+                    # — they are at least as fresh as the in-tree legacy copy)
                     external_file = self._get_etag_cache_file(source_id)
-                    merged: dict[str, str] = dict(legacy_data)  # start with legacy
+                    merged: dict[str, str] = dict(
+                        normalised
+                    )  # start with normalised legacy
                     if external_file.exists():
                         try:
                             with open(external_file, encoding="utf-8") as fh:
@@ -964,11 +988,17 @@ class GitSkillSourceManager:
                 except Exception:  # nosec B110 - intentional: proceed without cache on read failure
                     pass
 
-            # TODO: absolute-path keys make this cache non-portable if ~/.claude-mpm
-            # is relocated or shared across machines.  A future refactor should key
-            # on a path relative to the cache root (e.g. relative to self.cache_dir
-            # or self.etag_dir) so that the JSON file remains valid after a move.
-            cached_etag = etag_cache.get(str(local_path))
+            # Key on the filename (relative key) for portability: each cache
+            # file lives in its own per-source directory, so local_path.name is
+            # unique within it and stays valid when ~/.claude-mpm is relocated or
+            # shared across CI/Docker machines (fix #884).
+            # Backward-compat: fall back to the legacy absolute-path key so
+            # pre-existing caches still produce a 304 hit on the first run after
+            # upgrade — a missed lookup is only a harmless re-download.
+            relative_key = local_path.name
+            cached_etag = etag_cache.get(relative_key) or etag_cache.get(
+                str(local_path)
+            )
 
         # Make conditional request (no lock needed - independent HTTP call)
         headers: dict[str, str] = {}
@@ -1004,7 +1034,10 @@ class GitSkillSourceManager:
                         except Exception:
                             etag_cache = {}
 
-                    etag_cache[str(local_path)] = response.headers["ETag"]
+                    # Always write the portable relative key (fix #884).
+                    # The legacy absolute-path key is intentionally NOT written
+                    # so migrated caches converge to the new scheme on next sync.
+                    etag_cache[local_path.name] = response.headers["ETag"]
                     etag_cache_file.parent.mkdir(parents=True, exist_ok=True)
                     with open(etag_cache_file, "w", encoding="utf-8") as f:
                         json.dump(etag_cache, f, indent=2)
