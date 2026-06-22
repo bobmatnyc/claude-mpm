@@ -4,12 +4,16 @@ WHAT: Creates session pause documents (JSON + Markdown) capturing git state,
 todos, and working-directory context so sessions can be resumed later.  Also
 prunes stale git worktrees under ``<repo>/.claude/worktrees/`` at pause time,
 preserving any worktrees that have uncommitted changes, unmerged commits, or a
-git lock.
+git lock.  Additionally sweeps orphaned (unregistered) directories under
+``<repo>/.claude/worktrees/`` that were left behind after worktrees were
+de-registered.
 
 WHY: Centralises all pause-document creation so both ``session pause`` and
 ``mpm-init pause`` share a single, tested code path.  Stale worktrees
 accumulate silently during agent runs; pruning them at pause is a natural
 clean-up gate that reclaims disk and branch namespace without user friction.
+Orphaned directories are not reported by ``git worktree list`` so a separate
+sweep is needed to remove them.
 
 DESIGN DECISIONS:
 - Two format output (JSON, Markdown) for different use cases
@@ -23,11 +27,14 @@ DESIGN DECISIONS:
   are intentionally never committed to version control.
 - Worktree pruning is conservative: when in doubt PRESERVE.  Removal never
   uses --force; that defeats the safety checks.
+- Orphan sweep uses shutil.rmtree with a path-containment guard; only paths
+  strictly under ``.claude/worktrees/`` are ever deleted.
 - All git subprocess calls use ``git -C <path>`` with ``capture_output=True,
   check=False`` per project stability conventions.
 """
 
 import json
+import shutil
 import subprocess  # nosec B404 - required for git operations
 from datetime import UTC, datetime
 from pathlib import Path
@@ -159,11 +166,14 @@ class SessionPauseManager:
         it as PRUNE or PRESERVE using conservative safety checks (uncommitted
         changes, untracked files, unmerged/unpushed commits, git lock).  Only
         worktrees that are provably clean and fully merged are removed.
+        Additionally sweeps orphaned (unregistered) directories under
+        ``<main-repo>/.claude/worktrees/`` that are not known to git.
 
         WHY: Agent runs create isolated worktrees that are never automatically
         cleaned up.  Pruning at pause time reclaims disk and branch namespace
         without risk of data loss because the safety checks are conservative —
-        when in doubt the worktree is PRESERVED.
+        when in doubt the worktree is PRESERVED.  Orphaned directories are not
+        reported by ``git worktree list`` so a separate sweep is required.
 
         Returns:
             Summary dict with keys:
@@ -171,12 +181,18 @@ class SessionPauseManager:
             - ``preserved_count`` (int)
             - ``admin_pruned`` (bool) — True if ``git worktree prune`` ran
             - ``worktrees`` (list[dict]) — per-worktree decision records
+            - ``orphans_swept`` (int) — orphaned dirs removed
+            - ``orphans_preserved`` (int) — orphaned dirs kept (with reason)
+            - ``orphans`` (list[dict]) — per-orphan decision records
         """
         summary: dict[str, Any] = {
             "pruned_count": 0,
             "preserved_count": 0,
             "admin_pruned": False,
             "worktrees": [],
+            "orphans_swept": 0,
+            "orphans_preserved": 0,
+            "orphans": [],
         }
 
         if not self._is_git_repo():
@@ -232,6 +248,20 @@ class SessionPauseManager:
                 prune_result.returncode,
                 prune_result.stderr.strip(),
             )
+
+        # Sweep orphaned directories — unregistered subdirs of worktrees_dir.
+        # Build the set of registered paths AFTER git worktree prune so we
+        # don't treat newly-cleaned entries as orphans.
+        registered_paths = self._collect_registered_worktree_paths(main_repo)
+        orphan_records = self._sweep_orphaned_dirs(
+            main_repo, worktrees_dir, registered_paths
+        )
+        for rec in orphan_records:
+            summary["orphans"].append(rec)
+            if rec.get("action") == "swept":
+                summary["orphans_swept"] += 1
+            else:
+                summary["orphans_preserved"] += 1
 
         return summary
 
@@ -678,6 +708,256 @@ class SessionPauseManager:
             return False
         logger.info("Pruned stale worktree: %s", wt_path)
         return True
+
+    def _collect_registered_worktree_paths(self, main_repo: str) -> set[Path]:
+        """Return the set of resolved paths for all registered git worktrees.
+
+        WHAT: Runs ``git worktree list --porcelain`` from *main_repo* and
+        collects every ``worktree`` path line, resolving each to an absolute
+        ``Path``.  Returns the resulting set (may be empty on git failure).
+
+        WHY: The orphan sweep needs to know which on-disk directories are
+        legitimately registered so it can exclude them from deletion.  Using a
+        dedicated helper keeps the path-collection logic separate from both
+        ``_list_worktree_candidates`` (which applies scope filtering) and the
+        orphan sweep itself (which operates on all immediate children of the
+        managed worktrees directory).
+
+        Args:
+            main_repo: Absolute path string of the main git repository.
+
+        Returns:
+            Set of resolved ``Path`` objects for all registered worktrees.
+        """
+        result = subprocess.run(  # nosec B603, B607 - safe git command
+            ["git", "-C", main_repo, "worktree", "list", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode != 0:
+            logger.warning(
+                "_collect_registered_worktree_paths: git worktree list failed (rc=%d)",
+                result.returncode,
+            )
+            return set()
+
+        paths: set[Path] = set()
+        for line in result.stdout.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("worktree "):
+                raw_path = stripped[len("worktree ") :]
+                try:
+                    paths.add(Path(raw_path).resolve())
+                except Exception as exc:
+                    logger.debug(
+                        "_collect_registered_worktree_paths: could not resolve %s: %s",
+                        raw_path,
+                        exc,
+                    )
+        return paths
+
+    def _sweep_orphaned_dirs(
+        self,
+        main_repo: str,
+        worktrees_dir: Path,
+        registered_paths: set[Path],
+    ) -> list[dict[str, Any]]:
+        """Sweep orphaned (unregistered) directories under *worktrees_dir*.
+
+        WHAT: Lists immediate child directories of *worktrees_dir*.  For each
+        child whose resolved path is NOT in *registered_paths* (i.e. not a
+        registered git worktree), classifies it with
+        ``_classify_orphan_candidate``.  Directories classified as safe are
+        removed with ``shutil.rmtree`` after a strict path-containment guard
+        verifies the target is under *worktrees_dir*.  Returns a list of
+        per-directory decision records.
+
+        WHY: ``git worktree list`` only enumerates registered worktrees.
+        Directories orphaned when worktrees were de-registered (e.g. via
+        ``git worktree remove --force``) are invisible to git and accumulate
+        indefinitely.  A separate filesystem scan at the same managed-worktrees
+        root is the only way to find and clean them.
+
+        Args:
+            main_repo: Absolute path to the main git repository.
+            worktrees_dir: Absolute Path of ``<repo>/.claude/worktrees/``.
+            registered_paths: Set of resolved paths for all registered
+                worktrees (used to skip legitimate worktrees).
+
+        Returns:
+            List of dicts with keys: ``path``, ``action`` (``"swept"`` |
+            ``"preserved"``), ``reason``.
+        """
+        records: list[dict[str, Any]] = []
+        wt_dir_resolved = worktrees_dir.resolve()
+        main_resolved = Path(main_repo).resolve()
+
+        try:
+            children = [c for c in worktrees_dir.iterdir() if c.is_dir()]
+        except OSError as exc:
+            logger.warning(
+                "_sweep_orphaned_dirs: could not list %s: %s", worktrees_dir, exc
+            )
+            return records
+
+        for child in children:
+            child_resolved = child.resolve()
+
+            # Skip registered worktrees — they are handled by the main prune path.
+            if child_resolved in registered_paths:
+                continue
+
+            # Skip main working tree (should never appear here but be defensive).
+            if child_resolved == main_resolved:
+                continue
+
+            # Path-containment guard: child must be strictly under worktrees_dir.
+            try:
+                child_resolved.relative_to(wt_dir_resolved)
+            except ValueError:
+                logger.warning(
+                    "_sweep_orphaned_dirs: skipping %s — resolves outside %s",
+                    child,
+                    wt_dir_resolved,
+                )
+                records.append(
+                    {
+                        "path": str(child_resolved),
+                        "action": "preserved",
+                        "reason": "path resolves outside .claude/worktrees/ — containment guard",
+                    }
+                )
+                continue
+
+            # Classify the candidate.
+            decision = self._classify_orphan_candidate(str(child_resolved), main_repo)
+            rec: dict[str, Any] = {"path": str(child_resolved)}
+            rec.update(decision)
+
+            if decision["action"] == "sweep":
+                # Perform the actual removal.
+                try:
+                    shutil.rmtree(str(child_resolved))  # nosec B106 - path-containment guard applied above
+                    logger.info("Swept orphaned dir: %s", child_resolved)
+                    rec["action"] = "swept"
+                    rec["removed"] = True
+                except OSError as exc:
+                    logger.warning(
+                        "_sweep_orphaned_dirs: rmtree(%s) failed: %s",
+                        child_resolved,
+                        exc,
+                    )
+                    rec["action"] = "preserved"
+                    rec["reason"] = f"rmtree failed: {exc}"
+                    rec["removed"] = False
+            else:
+                rec["action"] = "preserved"
+
+            records.append(rec)
+
+        return records
+
+    def _classify_orphan_candidate(
+        self, dir_path: str, main_repo: str
+    ) -> dict[str, Any]:
+        """Classify an unregistered directory as SWEEP or PRESERVE.
+
+        WHAT: Applies conservative safety rules to a single unregistered
+        directory and returns a decision dict with ``action`` (``"sweep"`` or
+        ``"preserve"``) and a human-readable ``reason``.  The rules are:
+        (1) If the directory is not a usable git work area (broken ``.git``
+        link, not inside any repo) it is SWEEP-eligible only when clean and
+        contains no tracked-but-modified or untracked files — but if ``git
+        status`` itself errors, PRESERVE.  (2) If it IS a usable git work area,
+        apply the same four rules as ``_classify_worktree``: locked flag, missing
+        dir, uncommitted/untracked changes, unmerged commits.  Any ambiguity
+        returns PRESERVE.
+
+        WHY: De-registered worktree directories may still have modified files or
+        unpushed commits that the user has not yet recovered.  The conservative
+        ``when-in-doubt-PRESERVE`` policy ensures we never delete real work.
+        Mirroring ``_classify_worktree`` rules avoids duplicating safety logic.
+
+        Args:
+            dir_path: Absolute path string of the orphaned directory.
+            main_repo: Absolute path to the main git repository.
+
+        Returns:
+            Dict with ``action`` (``"sweep"`` | ``"preserve"``) and ``reason``.
+        """
+        # Rule 1: Run git status to determine if this is a usable git work area
+        # and whether it has any changes.
+        try:
+            status_result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", dir_path, "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            if status_result.returncode != 0:
+                # git cannot operate here — may be a broken .git link or a
+                # plain non-git directory.  Treat as non-git dir: safe to sweep
+                # if it's truly not a git area; but we cannot be certain, so
+                # check if .git exists as a heuristic.
+                git_link = Path(dir_path) / ".git"
+                if git_link.exists():
+                    # Has a .git entry but git can't read it — ambiguous, PRESERVE.
+                    return {
+                        "action": "preserve",
+                        "reason": f"git status failed (rc={status_result.returncode}) but .git exists; ambiguous state",
+                    }
+                # No .git at all — plain leftover directory, safe to sweep.
+                return {
+                    "action": "sweep",
+                    "reason": "not a git work area (no .git); plain leftover directory",
+                }
+
+            # git status succeeded — check for any changes.
+            if status_result.stdout.strip():
+                return {
+                    "action": "preserve",
+                    "reason": "has uncommitted or untracked changes",
+                }
+        except Exception as exc:
+            return {"action": "preserve", "reason": f"git status error: {exc}"}
+
+        # Rule 2: Check for unmerged commits (reuse existing helper).
+        # First we need the branch from this directory.
+        try:
+            branch_result = subprocess.run(  # nosec B603, B607 - safe git command
+                ["git", "-C", dir_path, "symbolic-ref", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            branch: str | None = None
+            if branch_result.returncode == 0:
+                branch = branch_result.stdout.strip() or None
+        except Exception:
+            branch = None
+
+        if branch:
+            branch_ref = f"refs/heads/{branch}"
+            unmerged = self._has_unmerged_commits(dir_path, main_repo, branch_ref)
+            if unmerged is None:
+                return {
+                    "action": "preserve",
+                    "reason": "could not determine merge status; preserving conservatively",
+                }
+            if unmerged:
+                return {
+                    "action": "preserve",
+                    "reason": "branch has commits not merged into main branch",
+                }
+
+        return {
+            "action": "sweep",
+            "reason": "clean orphaned directory with no unmerged commits",
+        }
 
     # ------------------------------------------------------------------
     # State capture
