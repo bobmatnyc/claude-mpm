@@ -281,13 +281,30 @@ class TestPhase2CacheArchitecture:
         )
 
     def test_migrate_legacy_etag_cache(self, manager):
-        """Legacy in-tree .etag_cache.json is migrated to external location and deleted (#882)."""
+        """Legacy in-tree .etag_cache.json is migrated to external location with relative keys (#882, #884).
+
+        New contract (fix #884): migrated cache keys are relative filenames
+        (e.g. ``skill.md``), NOT absolute paths.  This makes the cache
+        portable across machine renames and CI/Docker environments.
+
+        This test verifies the no-collision path: no pre-existing external
+        cache, so every legacy entry is migrated as-is (after normalisation).
+        """
         import json
 
         source = manager.config.get_source("test-source")
         cache_path = manager._get_source_cache_path(source)
         cache_path.mkdir(parents=True, exist_ok=True)
 
+        # Ensure no pre-existing external cache for this source so we test
+        # the simple migration path (no collision).  The etag_dir is shared
+        # across tests (it resolves to a sibling of the OS temp dir), so a
+        # prior test may have written it — remove it explicitly.
+        external_file = manager._get_etag_cache_file(source.id)
+        if external_file.exists():
+            external_file.unlink()
+
+        # Legacy cache uses absolute-path keys (old format)
         legacy_entries = {
             str(cache_path / "skill.md"): '"etag-legacy"',
             str(cache_path / "other.md"): '"etag-other"',
@@ -306,47 +323,88 @@ class TestPhase2CacheArchitecture:
             "Legacy in-tree .etag_cache.json was not removed"
         )
 
-        # External file must contain migrated entries
-        external_file = manager._get_etag_cache_file(source.id)
+        # External file must contain migrated entries with RELATIVE filename keys
         assert external_file.exists(), "External ETag file was not created"
         migrated = json.loads(external_file.read_text())
-        for key, val in legacy_entries.items():
-            assert key in migrated, f"Key {key!r} missing from migrated cache"
-            assert migrated[key] == val
+
+        # Keys must be relative filenames, not absolute paths (#884)
+        assert "skill.md" in migrated, (
+            f"Relative key 'skill.md' missing from migrated cache; got keys: {list(migrated)}"
+        )
+        assert "other.md" in migrated, (
+            f"Relative key 'other.md' missing from migrated cache; got keys: {list(migrated)}"
+        )
+        assert migrated["skill.md"] == '"etag-legacy"'
+        assert migrated["other.md"] == '"etag-other"'
+
+        # No absolute-path keys must remain in the migrated cache
+        for key in migrated:
+            assert not key.startswith("/"), (
+                f"Absolute-path key found in migrated cache: {key!r} — expected relative filenames only"
+            )
 
     def test_migrate_legacy_etag_cache_merges_with_existing(self, manager):
-        """Migration merges legacy entries with existing external cache; external wins on collision."""
+        """Migration merges legacy + external caches; ALL keys are normalised to relative filenames.
+
+        Precedence rule (documented in _migrate_legacy_etag_cache docstring):
+        external cache wins on key collision.  Both the legacy in-tree entries
+        AND the pre-existing external entries are normalised to relative
+        filenames before merging, so the result must contain ONLY relative-
+        filename keys — no absolute paths (#884).
+        """
         import json
 
         source = manager.config.get_source("test-source")
         cache_path = manager._get_source_cache_path(source)
         cache_path.mkdir(parents=True, exist_ok=True)
 
-        skill_path = str(cache_path / "skill.md")
-
-        # Legacy in-tree cache
+        # Legacy in-tree cache uses absolute-path keys (old format).
+        # "skill.md" appears in both legacy and external — collision case.
+        # "old.md" appears only in legacy — must be preserved.
         legacy_file = cache_path / ".etag_cache.json"
         legacy_file.write_text(
             json.dumps(
-                {skill_path: '"etag-legacy"', str(cache_path / "old.md"): '"old-etag"'}
+                {
+                    str(cache_path / "skill.md"): '"etag-legacy"',
+                    str(cache_path / "old.md"): '"old-etag"',
+                }
             )
         )
 
-        # Pre-existing external cache (has newer ETag for skill.md)
+        # Pre-existing external cache also uses absolute-path keys (old format).
+        # After migration this entry must be normalised to a relative key too.
         external_file = manager._get_etag_cache_file(source.id)
         external_file.parent.mkdir(parents=True, exist_ok=True)
-        external_file.write_text(json.dumps({skill_path: '"etag-external"'}))
+        external_file.write_text(
+            json.dumps({str(cache_path / "skill.md"): '"etag-external"'})
+        )
 
         manager._migrate_legacy_etag_cache(source.id, cache_path)
 
-        # Legacy file removed
+        # Legacy file must be removed
         assert not legacy_file.exists()
 
         merged = json.loads(external_file.read_text())
-        # External wins for skill_path
-        assert merged[skill_path] == '"etag-external"'
-        # Legacy-only key is preserved
-        assert str(cache_path / "old.md") in merged
+
+        # No absolute-path keys may remain — the whole cache must use relative filenames
+        for key in merged:
+            assert not key.startswith("/"), (
+                f"Absolute-path key found in merged cache: {key!r} — expected relative filenames only"
+            )
+
+        # Collision: external wins → "skill.md" → '"etag-external"'
+        assert "skill.md" in merged, (
+            f"Relative key 'skill.md' missing from merged cache; got: {list(merged)}"
+        )
+        assert merged["skill.md"] == '"etag-external"', (
+            f"Expected external ETag to win on collision; got: {merged['skill.md']}"
+        )
+
+        # Legacy-only entry "old.md" must be preserved with relative key
+        assert "old.md" in merged, (
+            f"Relative key 'old.md' missing from merged cache; got: {list(merged)}"
+        )
+        assert merged["old.md"] == '"old-etag"'
 
     def test_migrate_legacy_etag_cache_no_legacy_file(self, manager):
         """Migration is a no-op when no legacy file exists (fast path)."""
