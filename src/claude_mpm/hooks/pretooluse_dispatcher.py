@@ -43,7 +43,12 @@ import json
 import sys
 from typing import Any
 
-from claude_mpm.hooks import context_circuit_breaker, model_tier_hook, ztk_hook
+from claude_mpm.hooks import (
+    context_circuit_breaker,
+    gh_footer_hook,
+    model_tier_hook,
+    ztk_hook,
+)
 
 
 def _passthrough() -> dict[str, Any]:
@@ -140,8 +145,27 @@ def dispatch(event: dict[str, Any]) -> dict[str, Any]:
             response = model_tier_hook.build_model_tier_response(event)
             return _merge_warning_into_response(response, warning_reason)
         if tool_name == "Bash":
+            # gh_footer_hook runs first so the footer is fixed before ztk
+            # wraps the command.  If ztk does not fire (absent binary or
+            # compound command), the footer-fixed response is returned directly.
+            _footer_rewrite: dict | None = None
+            _footer_resp = gh_footer_hook.build_gh_footer_response(event)
+            if _footer_resp.get("hookSpecificOutput"):
+                _updated = _footer_resp["hookSpecificOutput"].get("updatedInput")
+                if isinstance(_updated, dict):
+                    event["tool_input"] = _updated  # let ztk see the fixed cmd
+                    _footer_rewrite = _footer_resp
             response = ztk_hook.build_ztk_response(event)
-            return _merge_warning_into_response(response, warning_reason)
+            if response.get("hookSpecificOutput"):
+                return _merge_warning_into_response(response, warning_reason)
+            if _footer_rewrite is not None:
+                return _merge_warning_into_response(_footer_rewrite, warning_reason)
+            return _merge_warning_into_response(_passthrough(), warning_reason)
+        if tool_name.startswith("mcp__github__"):
+            # MCP GitHub body normalisation (create_pull_request, create_issue…).
+            _mcp_resp = gh_footer_hook.build_gh_footer_response(event)
+            if _mcp_resp.get("hookSpecificOutput"):
+                return _merge_warning_into_response(_mcp_resp, warning_reason)
 
         base = _passthrough()
         return _merge_warning_into_response(base, warning_reason)
