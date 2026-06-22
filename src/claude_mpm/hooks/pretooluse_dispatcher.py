@@ -109,6 +109,19 @@ def _merge_warning_into_response(
 def dispatch(event: dict[str, Any]) -> dict[str, Any]:
     """Evaluate all PreToolUse / PermissionRequest concerns for one event.
 
+    WHAT: Reads a single hook event and routes it through the full
+          PreToolUse concern stack in order — PermissionRequest routing,
+          context circuit breaker, model-tier injection (Agent), gh-footer
+          normalisation + ztk rewrite (Bash), and MCP GitHub body
+          normalisation — then returns exactly one wire-format response
+          dict ready for JSON serialisation.
+    WHY:  Consolidating four previously separate Python subprocess hooks
+          into one importable function eliminates the subprocess-spawn
+          latency that accumulated on every tool call.  The strict
+          processing order (circuit-breaker first, gh_footer before ztk,
+          fail-open on any exception) is the invariant that makes this
+          dispatcher safe to use across all tool types.
+
     Returns a single wire-format response dict ready to be JSON-serialized.
     Never raises: any failure falls back to pass-through.
     """
