@@ -32,4 +32,16 @@ Steps to follow:
 
 If $ARGUMENTS is empty or not one of patch/minor/major, ask the user which type they want before proceeding.
 
+**Recovery if release fails mid-build**: If `make release-$ARGUMENTS` fails *after*
+the version bump (i.e. during the build or publish step), do **NOT** re-run
+`make release-$ARGUMENTS` — it would bump the version a second time (double-bump).
+Instead, finish the in-progress release without bumping again:
+
+```
+make release-build-current && make release-publish
+```
+
+`release-check` now aborts if HEAD is already a `bump:` commit, which catches this
+case automatically.
+
 **CRITICAL**: Never manually edit version files or call `./scripts/publish_to_pypi.sh` directly. Always use the Makefile targets.
