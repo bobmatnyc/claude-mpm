@@ -848,9 +848,8 @@ class GitSkillSourceManager:
         )
 
         try:
-            with (
-                self._etag_cache_lock
-            ):  # Intentional: brief once-per-upgrade hold (see docstring)
+            # Intentional: brief once-per-upgrade hold (see docstring)
+            with self._etag_cache_lock:
                 # Read legacy in-tree cache
                 legacy_data: dict[str, str] = {}
                 try:
