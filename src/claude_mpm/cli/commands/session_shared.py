@@ -17,6 +17,7 @@ SPEC-CLI-04~1 : docs/specs/cli.md#SPEC-CLI-04~1
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
 
 console = Console()
+logger = logging.getLogger(__name__)
 
 
 def handle_pause(args) -> int:
@@ -171,8 +173,8 @@ def _print_prune_summary(pause_manager: SessionPauseManager) -> None:
                     path = wt.get("path", "?")
                     reason = wt.get("reason", "unknown reason")
                     console.print(f"    [dim]{path}[/dim]: {reason}")
-    except Exception:
-        pass  # nosec B110 - display failure must never break the pause flow
+    except Exception as exc:  # nosec B110
+        logger.debug("_print_prune_summary display error (non-fatal): %s", exc)
 
 
 def handle_resume(args) -> int:
