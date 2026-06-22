@@ -7,6 +7,13 @@ name: Test Suite
 #   WWL baseline ratchet (and every other test) could silently rot — a stale
 #   baseline or a failing test would only be caught locally. This job is the
 #   server-side gate that keeps the ratchet honest (issue #801).
+#
+# Dirty-workspace guard (issue #887): the first step after checkout verifies
+# that no tracked source file is modified at job start.  mutmut (mutation
+# testing) mutates files in-place; a leftover mutant causes shifted line
+# numbers and cryptic TypeErrors at import time.  Note: CI does NOT currently
+# run mutmut in any workflow (the mutation-test Makefile target is on-demand
+# only).  This guard is defence-in-depth against any future leakage.
 
 on:
   push:
@@ -27,6 +34,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Guard: fail immediately if any tracked source file is dirty at job
+      # start (e.g. a mutated file left by mutmut on a prior run).  This turns
+      # silent contamination into an obvious, early, actionable failure.
+      # See scripts/check_clean_workspace.sh and issue #887 for context.
+      - name: Guard — verify clean workspace before testing
+        run: bash scripts/check_clean_workspace.sh
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
