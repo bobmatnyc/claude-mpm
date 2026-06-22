@@ -34,13 +34,15 @@ When invoked, this skill:
 /mpm-session-pause Need to context switch to urgent bug fix
 ```
 
-## Worktree Pruning (issue #892)
+## Worktree Pruning (issues #892, #894)
 
-At pause time, MPM automatically prunes stale agent worktrees under
-`<repo>/.claude/worktrees/`.
+At pause time, MPM automatically prunes stale agent worktrees and orphaned
+directories under `<repo>/.claude/worktrees/`.
 
-**Safety classification** — a worktree is PRESERVED if ANY of the following is
-true:
+### Registered-worktree pruning (#892)
+
+**Safety classification** — a registered worktree is PRESERVED if ANY of the
+following is true:
 - It has uncommitted changes (staged or unstaged).
 - It has untracked files.
 - Its branch has commits not yet merged into the main branch (or not pushed to
@@ -48,7 +50,26 @@ true:
 - It is marked as locked by git.
 - Any git command fails (fail-safe: when in doubt, PRESERVE).
 
-Only worktrees that are provably clean and fully merged are removed.
+Only worktrees that are provably clean and fully merged are removed via
+`git worktree remove` (never `--force`).
+
+### Orphaned-directory sweep (#894)
+
+`git worktree list` only reports registered worktrees.  Directories under
+`.claude/worktrees/` that are no longer registered (e.g. left behind after
+`git worktree remove --force`) are invisible to git and accumulate indefinitely.
+MPM performs a separate filesystem scan to find and remove them.
+
+**Safety classification** — an orphaned directory is PRESERVED if ANY of the
+following is true:
+- It has uncommitted or untracked changes (`git status --porcelain` non-empty).
+- It has a `.git` entry but `git status` fails (ambiguous state → PRESERVE).
+- Its branch has commits not merged into the main branch.
+- Its merge status cannot be determined (fail-safe: when in doubt, PRESERVE).
+
+A strict path-containment guard ensures deletion can never escape
+`.claude/worktrees/` — symlinks that resolve outside the directory are
+rejected and preserved.
 
 **Output** — after the session files are written, the pause command prints:
 
@@ -57,9 +78,13 @@ Worktree Cleanup:
   Pruned 2 stale worktree(s)
   Preserved 1 worktree(s) with unsaved work
     /repo/.claude/worktrees/agent-abc: branch has commits not merged into main branch
+  Swept 1 orphaned director(ies)
+  Preserved 1 orphaned director(ies) with unsaved work
+    /repo/.claude/worktrees/leftover-xyz: has uncommitted or untracked changes
 ```
 
-**Opt-out** — pass `--no-prune-worktrees` to the CLI to skip:
+**Opt-out** — pass `--no-prune-worktrees` to the CLI to skip all cleanup (both
+registered pruning and orphan sweep):
 
 ```bash
 claude-mpm session pause --no-prune-worktrees
