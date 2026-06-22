@@ -81,11 +81,14 @@ Feature/fix work uses git worktrees; the PRIMARY checkout stays on the default b
    ```
    Only run after confirming squash-merge has landed on main. If the worktree has untracked files, inspect with `git -C .claude/worktrees/issue-<N>-<slug> status` first; commit or stash anything you want to keep, then retry removal (or use `--force` only if files are disposable).
 
+6. **Long-running / background builds MUST commit incrementally** — A background or long-running agent (especially `run_in_background: true` in an isolated worktree) must make a WIP commit as each self-contained layer/component lands, NOT one all-or-nothing commit at the end. Uncommitted work in an ephemeral isolated worktree exists only as loose files on disk; if the session ends, pauses, or the agent is killed, the worktree is torn down and any uncommitted files are lost permanently (committed objects, by contrast, survive as dangling commits recoverable via `git fsck`). Commit early, commit often — each layer gets its own `wip:` or conventional commit so progress is durable in git's object database. Squash into clean conventional commits at PR time.
+
 ### Rationale
 - **Eliminates checkout contention**: No competing branch switches in the primary tree
 - **Enables safe parallelism**: Multiple agents work on separate issues without file-system conflicts
 - **Consistent with isolation patterns**: Aligns with the `isolation: "worktree"` pattern on Agent tool calls
 - **Keeps stable HEAD**: Primary tree always points to `main` for reliable reference pulls and deployments
+- **Durable progress**: Incremental commits survive session end; uncommitted worktree files do not
 
 ## Mandatory 5-Phase Sequence
 
