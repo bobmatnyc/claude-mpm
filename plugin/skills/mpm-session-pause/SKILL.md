@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.0.0"
+version: "1.5.0"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 ---
@@ -15,9 +15,10 @@ Pause the current session and save all work state for later resume.
 
 When invoked, this skill:
 1. Captures current work state (todos, git status, context summary)
-2. Creates session file at `.claude-mpm/sessions/session-{timestamp}.md` (project-local)
+2. Creates session files at `.claude-mpm/sessions/session-{timestamp}.*` (project-local)
 3. Updates `.claude-mpm/sessions/LATEST-SESSION.txt` pointer
-4. Optionally commits session state to git
+4. **Prunes stale git worktrees** under `<repo>/.claude/worktrees/` (see Worktree
+   Pruning section below)
 5. Shows user the session file path for later resume
 
 ## Usage
@@ -33,55 +34,69 @@ When invoked, this skill:
 /mpm-session-pause Need to context switch to urgent bug fix
 ```
 
+## Worktree Pruning (issue #892)
+
+At pause time, MPM automatically prunes stale agent worktrees under
+`<repo>/.claude/worktrees/`.
+
+**Safety classification** — a worktree is PRESERVED if ANY of the following is
+true:
+- It has uncommitted changes (staged or unstaged).
+- It has untracked files.
+- Its branch has commits not yet merged into the main branch (or not pushed to
+  its upstream remote).
+- It is marked as locked by git.
+- Any git command fails (fail-safe: when in doubt, PRESERVE).
+
+Only worktrees that are provably clean and fully merged are removed.
+
+**Output** — after the session files are written, the pause command prints:
+
+```
+Worktree Cleanup:
+  Pruned 2 stale worktree(s)
+  Preserved 1 worktree(s) with unsaved work
+    /repo/.claude/worktrees/agent-abc: branch has commits not merged into main branch
+```
+
+**Opt-out** — pass `--no-prune-worktrees` to the CLI to skip:
+
+```bash
+claude-mpm session pause --no-prune-worktrees
+```
+
 ## Implementation
 
-**Execute the following Python code to pause the session:**
+Run the console script directly:
+
+```bash
+# Basic pause (includes worktree pruning)
+claude-mpm session pause
+
+# With a descriptive message
+claude-mpm session pause -m "End of day — auth refactor in progress"
+
+# Skip worktree pruning
+claude-mpm session pause --no-prune-worktrees
+
+# Export a copy to a specific location
+claude-mpm session pause --export /tmp/session-backup.json
+```
+
+Or invoke programmatically:
 
 ```python
 from pathlib import Path
+from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
 
-try:
-    from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
-except ImportError:
-    print(
-        "ERROR: claude_mpm is not importable in the current Python environment.\n"
-        "If you installed via 'uv tool install claude-mpm', run:\n"
-        "  uv run python -c 'from claude_mpm.services.cli.session_pause_manager "
-        "import SessionPauseManager'\n"
-        "Or invoke directly: claude-mpm session-pause\n"
-        "Alternatively, activate the virtual environment where claude-mpm is installed."
-    )
-    raise SystemExit(1)
-
-# Optional: Get message from user's command
-# If user provided message after /mpm-session-pause, extract it
-# Otherwise, message = None
-
-# Create session pause manager
 manager = SessionPauseManager(project_path=Path.cwd())
 
-# Create pause session
+# Default: pruning enabled
 session_id = manager.create_pause_session(
-    message=message,  # Optional context message
-    skip_commit=False,  # Will commit to git if in a repo
-    export_path=None,  # No additional export needed
+    message="End of day",
+    prune_worktrees=True,   # set False to skip pruning
 )
-
-# Report success to user
-print(f"✅ Session paused successfully!")
-print(f"")
 print(f"Session ID: {session_id}")
-print(f"Session files:")
-print(f"  - .claude-mpm/sessions/{session_id}.md (human-readable)")
-print(f"  - .claude-mpm/sessions/{session_id}.json (machine-readable)")
-print(f"  - .claude-mpm/sessions/{session_id}.yaml (config format)")
-print(f"")
-print(f"Quick resume:")
-print(f"  /mpm-session-resume")
-print(f"")
-print(f"View session context:")
-print(f"  cat .claude-mpm/sessions/LATEST-SESSION.txt")
-print(f"  cat .claude-mpm/sessions/{session_id}.md")
 ```
 
 ## What Gets Saved
