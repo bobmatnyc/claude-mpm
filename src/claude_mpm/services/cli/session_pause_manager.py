@@ -238,9 +238,20 @@ class SessionPauseManager:
     def _resolve_main_working_tree(self, cwd: str) -> str:
         """Return the main git working tree path for *cwd*, handling linked worktrees.
 
-        Mirrors the logic in ``commit_cost_tracker.resolve_main_working_tree``
-        but is inlined here to avoid a cross-package dependency.  Falls back
-        to *cwd* unchanged if git calls fail.
+        WHAT: Determines the main (non-linked) git working tree root for any
+        given working directory path, using three fallback strategies in order:
+        (1) compare ``--git-dir`` vs ``--git-common-dir`` to detect when
+        *cwd* is already the main tree; (2) parse ``git worktree list
+        --porcelain`` and return the first ``worktree`` entry, which git always
+        reports as the main tree; (3) resolve the parent of ``--git-common-dir``
+        as a last resort.  Falls back to *cwd* unchanged if all git calls fail.
+
+        WHY: Worktree pruning and path resolution must always operate relative
+        to the main working tree, not a linked worktree.  When ``session pause``
+        is invoked from inside a linked worktree (e.g. during agent runs), the
+        naive approach of using ``cwd`` directly would target the wrong tree.
+        Inlining this avoids a cross-package import dependency on
+        ``commit_cost_tracker``.
 
         Args:
             cwd: Absolute path string of the working directory.
@@ -313,8 +324,18 @@ class SessionPauseManager:
     ) -> list[dict[str, Any]]:
         """Parse ``git worktree list --porcelain`` and return candidates.
 
-        Only worktrees whose resolved path is under *worktrees_dir* are
-        returned.  The main working tree is always excluded.
+        WHAT: Runs ``git worktree list --porcelain`` from *main_repo*, parses
+        every worktree stanza into a dict with ``path``, ``branch``, and
+        ``locked`` keys, then filters out the main working tree and any entry
+        whose resolved path is not a descendant of *worktrees_dir*.  Returns
+        the remaining list as prune candidates.  Returns an empty list if the
+        git command fails.
+
+        WHY: Pruning must be scoped strictly to MPM-managed worktrees under
+        ``.claude/worktrees/`` so it cannot accidentally remove worktrees that
+        the user or other tools created elsewhere.  The porcelain format is
+        stable across git versions and unambiguous, making it safe to parse
+        without shell pipelines.
 
         Args:
             main_repo: Absolute path string of the main git repo.
@@ -382,21 +403,23 @@ class SessionPauseManager:
     def _classify_worktree(self, wt: dict[str, Any], main_repo: str) -> dict[str, Any]:
         """Classify a candidate worktree as PRUNE or PRESERVE.
 
-        Conservative safety rules — PRESERVE if ANY of:
-        - Worktree is marked locked by git.
-        - Directory does not exist (admin entry only → let ``git worktree prune`` handle).
-        - ``git status --porcelain`` is non-empty (uncommitted OR untracked files).
-        - Branch has commits not reachable from the main branch (unmerged/unpushed).
-        - Any git command errors → fail safe → PRESERVE.
+        WHAT: Applies four sequential safety rules to a single worktree dict
+        and returns a decision dict with ``action`` (``"prune"`` or
+        ``"preserve"``) and a human-readable ``reason``.  Rules in evaluation
+        order: (1) git-locked flag; (2) directory existence; (3) non-empty
+        ``git status --porcelain`` (uncommitted or untracked files); (4) branch
+        has commits not reachable from the default branch, via
+        ``_has_unmerged_commits``.  Any git command failure causes an immediate
+        PRESERVE decision.
 
-        TOCTOU NOTE: There is an inherent race window between classification
-        (``git status --porcelain`` here) and removal (``_remove_worktree``).
-        A concurrent agent could commit or modify files in the worktree after
-        this check passes but before ``git worktree remove`` runs.  This is
-        intentionally tolerated: ``_remove_worktree`` calls ``git worktree
-        remove`` WITHOUT ``--force``, so git performs its own final dirty-check
-        as the last-resort race guard.  Do NOT add ``--force`` to that call —
-        it would defeat this safety net.
+        WHY: A multi-rule conservative classifier prevents accidental data loss
+        during automated pruning.  Each rule addresses a distinct failure mode:
+        (1) user-locked worktrees must never be touched; (2) admin-only entries
+        without a directory are already handled by ``git worktree prune``; (3)
+        uncommitted work would be destroyed by removal; (4) unmerged commits
+        represent unreachable history after branch deletion.  TOCTOU between
+        this check and removal is mitigated by calling ``git worktree remove``
+        without ``--force`` so git re-validates before deleting.
 
         Args:
             wt: Worktree dict with ``path``, ``branch``, ``locked`` keys.
@@ -463,15 +486,23 @@ class SessionPauseManager:
     ) -> bool | None:
         """Check whether *branch_ref* has commits not present on the default branch.
 
-        Returns True if unmerged commits exist, False if fully merged, or None
-        when the check cannot be completed (caller should PRESERVE).
+        WHAT: Uses a two-pronged strategy to determine whether a worktree
+        branch has commits that have not yet been merged or pushed.  Prong 1:
+        if the branch tracks a remote upstream, runs ``git rev-list --count
+        @{u}..HEAD`` in *wt_path* — any non-zero count means unpushed commits
+        and returns True immediately.  Prong 2: resolves the default branch via
+        ``_get_default_branch``, then runs ``git rev-list --count
+        <ref>..<branch>`` in *main_repo* for both ``origin/<default>`` and the
+        local default ref, returning ``count > 0``.  Returns None if neither
+        check can be completed (caller must PRESERVE conservatively).
 
-        Strategy (two-pronged):
-        1. If an upstream is configured, check ``git rev-list --count
-           @{u}..HEAD`` — any ahead count means unpushed commits.
-        2. Determine the local default branch (``main`` or ``master`` or the
-           first branch), then run ``git rev-list --count <default>..<branch>``
-           against *main_repo*.  Any count > 0 means unmerged.
+        WHY: Pruning a branch with unmerged commits destroys otherwise
+        unreachable history.  The two-prong approach maximises detection
+        coverage: prong 1 catches unpushed work even when the branch has no
+        name on the default ref; prong 2 catches branches that were pushed to
+        origin but not yet merged.  Returning None (rather than defaulting to
+        False) on error ensures the caller does not prune when the merge state
+        is genuinely unknown.
 
         Args:
             wt_path: Absolute path to the worktree directory.
@@ -536,9 +567,21 @@ class SessionPauseManager:
     def _get_default_branch(self, main_repo: str) -> str | None:
         """Return the name of the default local branch (``main`` or ``master``).
 
-        Tries ``git symbolic-ref refs/remotes/origin/HEAD`` first, then
-        ``git rev-parse --abbrev-ref HEAD`` on the main tree, and finally
-        falls back to the first of ``main``/``master`` that exists locally.
+        WHAT: Resolves the short name of the repository's default branch using
+        three strategies in order: (1) ``git symbolic-ref --short
+        refs/remotes/origin/HEAD`` — strips the ``origin/`` prefix from the
+        result; (2) ``git rev-parse --abbrev-ref HEAD`` on *main_repo* if HEAD
+        is not detached; (3) iterates through ``("main", "master")`` and
+        returns the first ref that ``git rev-parse --verify`` can resolve.
+        Returns None if all strategies fail.
+
+        WHY: Different repositories use different default branch names and
+        remote configurations.  The symbolic-ref strategy is the most reliable
+        when the remote is configured; HEAD-based fallback handles local-only
+        repos; and the explicit name scan handles unusual setups where the
+        symbolic ref is unset but a conventional branch name exists.  Returning
+        None signals the caller to treat the branch conservatively (PRESERVE)
+        rather than guess incorrectly.
 
         Args:
             main_repo: Absolute path to the main git repository.
