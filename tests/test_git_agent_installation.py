@@ -21,6 +21,23 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
+# ---------------------------------------------------------------------------
+# Deterministic agent list used by all hermetic tests.
+#
+# WHY: _get_agent_list() issues two live GET requests to api.github.com
+# (refs/heads → tree recursive).  Any test that calls _get_agent_list()
+# without mocking the HTTP layer is non-hermetic and fails on 403 rate-limit
+# in CI.  We mock _get_agent_list() at the method boundary in every test
+# class that exercises check_for_updates() or uses the agent list directly.
+# ---------------------------------------------------------------------------
+_MOCK_AGENT_LIST = [
+    "engineer.md",
+    "research-agent.md",
+    "security.md",
+    "qa-agent.md",
+    "documentation-agent.md",
+]
+
 from claude_mpm.core.file_utils import get_file_hash
 from claude_mpm.services.agents.sources.agent_sync_state import (
     AgentSyncState,
@@ -428,15 +445,39 @@ class TestGitSourceSyncServiceAgentSync:
     """Test agent synchronization functionality."""
 
     def test_get_agent_list(self, git_sync_service):
-        """Test agent list returns expected agents (from Git Tree API or fallback)."""
-        agent_list = git_sync_service._get_agent_list()
+        """Test agent list returns expected agents via Tree API (mocked, hermetic).
 
-        # Verify list is not empty
+        WHY hermetic: _get_agent_list() issues two live GET requests to
+        api.github.com (refs/heads + recursive tree).  We mock
+        _discover_agents_via_tree_api — the public seam that wraps those
+        requests — so the test verifies the filtering/sorting logic in
+        _get_agent_list() without touching the network.
+        """
+        # Simulate what the Tree API would return for a real repo: a mix of
+        # nested paths, a README to be excluded, and flat agent files.
+        mock_tree_return = [
+            "engineer.md",
+            "research-agent.md",
+            "security.md",
+            "qa-agent.md",
+            "documentation-agent.md",
+        ]
+
+        with patch.object(
+            git_sync_service,
+            "_discover_agents_via_tree_api",
+            return_value=mock_tree_return,
+        ) as mock_tree_api:
+            agent_list = git_sync_service._get_agent_list()
+
+        # Tree API was invoked exactly once (not the fallback path)
+        mock_tree_api.assert_called_once()
+
+        # Verify list is not empty and sorted
         assert len(agent_list) > 0
+        assert agent_list == sorted(agent_list)
 
-        # Check that expected agents are present - could be at root or in paths
-        # The Git Tree API returns full paths; fallback returns just filenames
-        # Use names that appear in BOTH the tree API results and the fallback list
+        # Check that expected agents are present
         all_items = " ".join(agent_list)
         for expected_agent in [
             "engineer.md",
@@ -889,61 +930,90 @@ class TestContentHashTracking:
 
 
 class TestCheckForUpdates:
-    """Test checking for agent updates without downloading."""
+    """Test checking for agent updates without downloading.
+
+    WHY fully hermetic: check_for_updates() calls _get_agent_list() which
+    issues two live GET requests to api.github.com (refs/heads + recursive
+    tree).  These tests only patch requests.Session.head, leaving the GET
+    path open to the network.  On CI, GitHub's unauthenticated rate limit
+    (60 req/hour) causes intermittent 403 responses; _get_agent_list() falls
+    back to a default list, and ETag-based assertions against the mocked HEAD
+    responses then fail unpredictably (Issue #886).
+
+    Fix: patch _get_agent_list() on the service instance in every test so the
+    agent list is deterministic and no live API calls are made.  The mock is
+    asserted called to confirm the network boundary was respected.
+    """
 
     @patch("requests.Session.head")
     def test_check_for_updates_no_changes(self, mock_head, git_sync_service):
-        """Test checking for updates when no changes exist."""
-        # Set cached ETags
-        agent_list = git_sync_service._get_agent_list()
-        for agent in agent_list:
-            url = f"{git_sync_service.source_url}/{agent}"
-            git_sync_service.etag_cache.set_etag(url, '"cached-etag"')
+        """Test checking for updates when no changes exist (all ETags match)."""
+        with patch.object(
+            git_sync_service, "_get_agent_list", return_value=list(_MOCK_AGENT_LIST)
+        ) as mock_agent_list:
+            # Set cached ETags for every agent in the deterministic list
+            for agent in _MOCK_AGENT_LIST:
+                url = f"{git_sync_service.source_url}/{agent}"
+                git_sync_service.etag_cache.set_etag(url, '"cached-etag"')
 
-        # Mock HEAD responses with same ETags
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.headers = {"ETag": '"cached-etag"'}
-        mock_head.return_value = mock_response
+            # Mock HEAD responses that return the same ETag → no update
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.headers = {"ETag": '"cached-etag"'}
+            mock_head.return_value = mock_response
 
-        # Check for updates
-        updates = git_sync_service.check_for_updates()
+            updates = git_sync_service.check_for_updates()
 
-        # All agents should have no updates
+        # _get_agent_list was called (not the live network) — confirms no real API call
+        mock_agent_list.assert_called()
+        # HEAD was called once per agent — confirms the update-check logic ran
+        assert mock_head.call_count == len(_MOCK_AGENT_LIST)
+        # Every agent reports no update because the ETag values match
+        assert set(updates.keys()) == set(_MOCK_AGENT_LIST)
         assert all(has_update is False for has_update in updates.values())
 
     @patch("requests.Session.head")
     def test_check_for_updates_with_changes(self, mock_head, git_sync_service):
-        """Test checking for updates when changes exist."""
-        agent_list = git_sync_service._get_agent_list()
+        """Test checking for updates when all remote ETags differ from cache."""
+        with patch.object(
+            git_sync_service, "_get_agent_list", return_value=list(_MOCK_AGENT_LIST)
+        ) as mock_agent_list:
+            # Set cached ETags with old values
+            for agent in _MOCK_AGENT_LIST:
+                url = f"{git_sync_service.source_url}/{agent}"
+                git_sync_service.etag_cache.set_etag(url, '"old-etag"')
 
-        # Set cached ETags
-        for agent in agent_list:
-            url = f"{git_sync_service.source_url}/{agent}"
-            git_sync_service.etag_cache.set_etag(url, '"old-etag"')
+            # Mock HEAD responses that return a DIFFERENT ETag → update available
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.headers = {"ETag": '"new-etag"'}
+            mock_head.return_value = mock_response
 
-        # Mock HEAD responses with different ETags
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.headers = {"ETag": '"new-etag"'}
-        mock_head.return_value = mock_response
+            updates = git_sync_service.check_for_updates()
 
-        # Check for updates
-        updates = git_sync_service.check_for_updates()
-
-        # All agents should have updates
+        mock_agent_list.assert_called()
+        assert mock_head.call_count == len(_MOCK_AGENT_LIST)
+        # Every agent should report an update because old-etag != new-etag
+        assert set(updates.keys()) == set(_MOCK_AGENT_LIST)
         assert all(has_update is True for has_update in updates.values())
 
     @patch("requests.Session.head")
     def test_check_for_updates_network_error(self, mock_head, git_sync_service):
-        """Test check for updates handles network errors."""
-        # Mock network error
-        mock_head.side_effect = requests.RequestException("Network error")
+        """Test check_for_updates handles network errors conservatively."""
+        with patch.object(
+            git_sync_service, "_get_agent_list", return_value=list(_MOCK_AGENT_LIST)
+        ) as mock_agent_list:
+            # HEAD requests all raise a network error
+            mock_head.side_effect = requests.RequestException("Network error")
 
-        # Check for updates
-        updates = git_sync_service.check_for_updates()
+            updates = git_sync_service.check_for_updates()
 
-        # All agents should be marked as no update (conservative)
+        mock_agent_list.assert_called()
+        # HEAD was called once per agent — guards against vacuous pass if
+        # check_for_updates() short-circuits before issuing any HEAD requests
+        assert mock_head.call_count == len(_MOCK_AGENT_LIST)
+        # On network error the service is conservative: no update assumed
+        assert set(updates.keys()) == set(_MOCK_AGENT_LIST)
         assert all(has_update is False for has_update in updates.values())
 
 
