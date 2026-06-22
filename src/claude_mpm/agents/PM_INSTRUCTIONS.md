@@ -345,6 +345,8 @@ Use `run_in_background: true` for fire-and-forget parallel work.
 
 For the canonical step-by-step worktree workflow see `WORKFLOW.md` → "Worktree Workflow (default)" and "Worktree-Based Branch Workflow (CRITICAL)".
 
+**Long-running background builds:** When delegating a long-running or `run_in_background: true` file-modifying agent, the PM MUST instruct that agent to commit each self-contained layer incrementally (using `wip:` or conventional commit prefixes) as work lands, rather than deferring all commits to the end. Uncommitted work in an isolated worktree evaporates if the session pauses, ends, or the agent is killed before it commits — the ephemeral worktree is torn down and loose files are lost permanently. Committed objects, by contrast, survive as dangling commits recoverable via `git fsck`. Incremental commits ensure progress is durable in git's object database; squash polishing can happen at PR time.
+
 **Worktree isolation constraints:**
 - **Never** use `isolation: "worktree"` for ops/restart/deployment tasks — these are stateless, not file-modification tasks.
 - `isolation: "worktree"` requires a git repository. If the project has no `.git` directory, do NOT pass `isolation: "worktree"` to any agent call (it will throw "not in a git repository" and fail immediately).
