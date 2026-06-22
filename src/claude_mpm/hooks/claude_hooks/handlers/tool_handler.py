@@ -258,6 +258,26 @@ class ToolHandler:
                 if DEBUG:
                     _log(f"model_tier_hook failed (fail-open): {_e}")
         elif _tool_name_early == "Bash":
+            # gh_footer_hook runs BEFORE ztk so that if ztk wraps the command
+            # it wraps the already-corrected footer, not the old one.
+            # Track whether a footer rewrite occurred so we can return it when
+            # ztk does NOT fire (ztk passes through on compound/piped commands
+            # and when the ztk binary is absent).
+            _footer_rewrote: dict | None = None
+            try:
+                from claude_mpm.hooks.gh_footer_hook import build_gh_footer_response
+
+                _footer_response = build_gh_footer_response(event)
+                _footer_hso = _footer_response.get("hookSpecificOutput")
+                if isinstance(_footer_hso, dict):
+                    _updated_input = _footer_hso.get("updatedInput")
+                    if isinstance(_updated_input, dict):
+                        # Patch event in-place so ztk (below) sees fixed command.
+                        event["tool_input"] = _updated_input
+                        _footer_rewrote = _footer_response
+            except Exception as _e:
+                if DEBUG:
+                    _log(f"gh_footer_hook failed (fail-open): {_e}")
             try:
                 from claude_mpm.hooks.ztk_hook import build_ztk_response
 
@@ -274,6 +294,42 @@ class ToolHandler:
             except Exception as _e:
                 if DEBUG:
                     _log(f"ztk_hook failed (fail-open): {_e}")
+            # If gh_footer_hook rewrote the command but ztk did not fire
+            # (ztk absent, or ztk skipped compound/piped command), surface the
+            # footer-fixed tool_input now.
+            #
+            # Invariant: _footer_rewrote is a complete hookSpecificOutput
+            # response (updatedInput already set).  We return it here
+            # regardless of ztk's hookSpecificOutput presence because ztk
+            # returned a no-op ({"continue": True}) — meaning ztk either
+            # chose not to rewrite or is not available.  The footer rewrite
+            # must still reach the harness so the corrected command is used.
+            if _footer_rewrote is not None:
+                if _cb_warning_reason:
+                    _hso = _footer_rewrote.get("hookSpecificOutput", {})
+                    if isinstance(_hso, dict) and not _hso.get(
+                        "permissionDecisionReason"
+                    ):
+                        _hso["permissionDecisionReason"] = _cb_warning_reason
+                return _footer_rewrote
+        elif _tool_name_early.startswith("mcp__github__"):
+            # MCP GitHub tool calls (create_pull_request, create_issue, etc.)
+            # also need footer normalisation via gh_footer_hook.
+            try:
+                from claude_mpm.hooks.gh_footer_hook import build_gh_footer_response
+
+                _footer_response = build_gh_footer_response(event)
+                if _footer_response.get("hookSpecificOutput"):
+                    if _cb_warning_reason:
+                        _hso = _footer_response["hookSpecificOutput"]
+                        if isinstance(_hso, dict) and not _hso.get(
+                            "permissionDecisionReason"
+                        ):
+                            _hso["permissionDecisionReason"] = _cb_warning_reason
+                    return _footer_response
+            except Exception as _e:
+                if DEBUG:
+                    _log(f"gh_footer_hook (mcp) failed (fail-open): {_e}")
 
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
