@@ -551,39 +551,63 @@ class TestRealTimingWaitForIndexReady:
 
     This test does NOT mock _post_reindex_sync away.  Instead it mocks the
     underlying urllib.request.urlopen to sleep a controlled amount per call,
-    simulating slow HTTP probes.  The status check also sleeps per call and
-    never reports ready.  The assertion verifies that total elapsed wall-clock
-    time is bounded by max_wait_seconds + a small tolerance (0.5s for CI slack)
-    even when _post_reindex_sync itself issues multiple HTTP calls inside the
-    budget.
+    simulating slow HTTP probes.  The status probe always returns None (never
+    ready).  The assertion verifies that total elapsed wall-clock time is
+    bounded by assertion_limit even when _post_reindex_sync itself issues
+    multiple HTTP calls — those calls must count INSIDE the budget, not on top.
 
     This test MUST fail against the old deadline-placement code (where
     _post_reindex_sync ran BEFORE the deadline was armed) and MUST pass after
-    the fix (deadline armed first).
+    the fix (deadline armed first).  The parameter arithmetic below is
+    self-documenting so the discriminating power is explicit.
     """
 
     def test_hard_wall_clock_bound_including_post_phase(self, monkeypatch):
-        """Total elapsed ≤ max_wait_seconds + 0.5s even with slow _post_reindex_sync."""
+        """Post-phase HTTP calls count inside the budget; total stays under assertion_limit.
+
+        Parameter arithmetic (self-documenting):
+          per_call_sleep = 0.25s  →  _post_reindex_sync issues up to 3 serial HTTP
+                                     calls, so the post-phase ~= 3 * 0.25s = 0.75s.
+          max_wait       = 0.4s   →  wall-clock budget passed to wait_for_index_ready.
+          assertion_limit= 0.9s   →  hard upper bound asserted on total elapsed time.
+
+          NEW code (deadline armed BEFORE _post_reindex_sync):
+            Post-phase (≈0.75s) runs INSIDE the 0.4s deadline.  Once the deadline
+            passes, the ``while time.monotonic() < deadline`` guard exits without
+            further polling.  One in-flight call can overshoot by at most
+            per_call_sleep, so total ≈ max(0.75, 0.4) + 0.25 ≈ 1.0s... wait,
+            re-check: actually the deadline check precedes _post_reindex_sync start
+            (``if time.monotonic() < deadline``), so it fires once.  _do_reindex
+            sleeps 0.25s, which is the only call before returning False (no create/
+            retry because the 0.4s deadline has already elapsed by the time
+            _do_reindex returns).  Total ~= 0.25s-0.5s < 0.9s  → PASS.
+
+          OLD code (deadline armed AFTER _post_reindex_sync):
+            Post-phase runs ENTIRELY outside the budget: _do_reindex (0.25s) +
+            create attempt (0.25s) + retry reindex (0.25s) = 0.75s, THEN polling
+            loop for max_wait (0.4s).  Total ≈ 0.75 + 0.4 = 1.15s > 0.9s  → FAIL.
+
+          Gap = 1.15s - 0.9s = 0.25s, comfortable for normal CI jitter.
+        """
         import time
         import urllib.request
 
-        per_call_sleep = 0.15  # each mocked HTTP call sleeps this long
-        max_wait = 0.5  # budget
-
-        original_urlopen = urllib.request.urlopen
+        per_call_sleep = 0.25  # each mocked HTTP call sleeps this long
+        max_wait = 0.4  # wall-clock budget passed to wait_for_index_ready
+        # NEW: ≤ 0.5s (one call + deadline guard)  → well under 0.9s → PASS
+        # OLD: ≈ 1.15s (post-phase outside budget) → exceeds 0.9s → FAIL
+        assertion_limit = 0.9
 
         def _slow_urlopen(req, timeout=None):
-            # Sleep to simulate a real HTTP round-trip. The fixture swallows
-            # all opens so there is no actual network activity.
+            # Sleep to simulate a real HTTP round-trip. No actual network activity.
             time.sleep(per_call_sleep)
             raise OSError("mocked: no daemon running")
 
         # Patch urlopen at the module level used by trusty_status internals.
         monkeypatch.setattr(urllib.request, "urlopen", _slow_urlopen)
 
-        # status probe also goes through urlopen → always returns None (not ready).
-        # No separate mock needed; _slow_urlopen raises, so get_trusty_search_index_status
-        # will return None (fail-safe). We additionally patch it for clarity and speed.
+        # Status probe also goes through urlopen → always returns None (not ready).
+        # Patch explicitly for clarity; _slow_urlopen would also make it return None.
         monkeypatch.setattr(
             trusty_status,
             "get_trusty_search_index_status",
@@ -595,17 +619,12 @@ class TestRealTimingWaitForIndexReady:
         elapsed = time.monotonic() - start
 
         assert result is False  # never became ready
-        # Hard bound: must return within max_wait_seconds + 0.5s CI tolerance.
-        # OLD code: _post_reindex_sync ran BEFORE deadline → 3 * 0.15s = 0.45s
-        # extra OUTSIDE the budget → total ~0.95s > max_wait + 0.5s (0.5+0.5=1.0s).
-        # With only 1 slow urlopen call in the create-then-retry path this may still
-        # pass at the boundary, so the tolerance is tight enough to catch the bug.
-        # NEW code: deadline armed first → _post_reindex_sync counts against budget.
-        tolerance = 0.5  # generous for CI
-        assert elapsed <= max_wait + tolerance, (
-            f"wait_for_index_ready took {elapsed:.3f}s > {max_wait + tolerance:.3f}s "
-            f"(max_wait={max_wait}s + tolerance={tolerance}s). "
-            "This indicates _post_reindex_sync is NOT counted against the deadline budget."
+        assert elapsed <= assertion_limit, (
+            f"wait_for_index_ready took {elapsed:.3f}s > {assertion_limit:.3f}s. "
+            f"(max_wait={max_wait}s, per_call_sleep={per_call_sleep}s) "
+            "This indicates _post_reindex_sync is NOT counted against the deadline "
+            "budget (OLD code path: post-phase runs outside the budget, adding "
+            f"~{3 * per_call_sleep:.2f}s on top of max_wait)."
         )
 
 
