@@ -516,53 +516,154 @@ class FrameworkLoader:
         return "\n".join(lines) + "\n"
 
     def _trusty_search_index_note(self) -> str:
-        """Why: When trusty-search is ON, the PM assumes code search "just works",
-        but a brand-new or stale index returns poor results. We check the
-        daemon's OWN view of this project's index (no git/mtime scanning) and, if
-        it is missing/empty/stale, fire a BACKGROUND reindex and tell the PM the
-        results may be incomplete this turn. Must never block or break startup.
+        """Produce a user-facing note when the trusty-search index needs rebuilding.
 
-        What: Resolves the project's index via
-        ``get_trusty_search_index_status``; if missing/empty or daemon-stale,
-        triggers a fire-and-forget ``reindex`` and returns a short note to append
-        to the trusty-search row ("Index not found/empty — background indexing
-        started." / "Index may be stale — background reindex started."). Returns
-        ``""`` for a fresh index OR on ANY error (fail-open).
+        WHAT: Queries the trusty-search daemon for this project's index status,
+        short-circuits to background mode when auto-rebuild is disabled, then
+        delegates the wait-vs-background decision to ``_decide_rebuild_note``.
+        Returns ``""`` for a fresh index or on any error (fail-open).
 
-        Test: ``tests/test_framework_loader_index_freshness.py`` — fresh → no
-        note + no reindex; missing/empty → note + reindex fired; stale → note +
-        reindex fired; daemon error → "" + no reindex + no exception.
+        WHY: When trusty-search is ON the PM assumes code search "just works",
+        but a missing or stale index returns poor results. This thin coordinator
+        separates status-fetching and config-reading from the file-count and
+        wait-strategy logic so each concern stays below the WWL complexity
+        threshold and is independently testable.
+
+        Test: ``tests/test_framework_loader_index_freshness.py`` and
+        ``tests/test_trusty_search_index_auto_rebuild.py``.
         """
         try:
+            from pathlib import Path as _Path
+
             import claude_mpm.services.trusty_status as _ts
 
-            status = _ts.get_trusty_search_index_status()
+            cwd = _Path.cwd()
+            status = _ts.get_trusty_search_index_status(cwd=cwd)
 
-            if _ts.is_index_missing_or_empty(status):
-                index_id = self._resolve_reindex_id(status)
+            needs_rebuild = _ts.is_index_missing_or_empty(status) or _ts.is_index_stale(
+                status
+            )
+            if not needs_rebuild:
+                return ""  # fresh index → no note
+
+            index_id = self._resolve_reindex_id(status, cwd=cwd)
+            _missing = _ts.is_index_missing_or_empty(status)
+
+            # Short-circuit: auto-link disabled or auto-rebuild disabled → background.
+            auto_rebuild_cfg = _ts.get_auto_rebuild_config()
+            if _ts._is_auto_link_disabled() or not auto_rebuild_cfg.get(
+                "enabled", True
+            ):
                 if index_id:
                     _ts.trigger_trusty_search_reindex(index_id)
-                return "Index not found/empty — background indexing started."
-
-            if _ts.is_index_stale(status):
-                index_id = self._resolve_reindex_id(status)
-                if index_id:
-                    _ts.trigger_trusty_search_reindex(index_id)
+                if _missing:
+                    return "Index not found/empty — background indexing started."
                 return "Index may be stale — background reindex started."
 
-            return ""  # fresh index → no note
+            max_wait = float(auto_rebuild_cfg.get("max_wait_seconds", 5.0))
+            threshold = int(auto_rebuild_cfg.get("wait_threshold_files", 1500))
+
+            return FrameworkLoader._decide_rebuild_note(
+                index_id=index_id,
+                missing=_missing,
+                max_wait=max_wait,
+                threshold=threshold,
+                cwd=cwd,
+                ts=_ts,
+            )
+
         except Exception as e:  # pragma: no cover - defensive fail-open
             self.logger.debug(f"Skipping trusty-search index freshness check: {e}")
             return ""
 
     @staticmethod
-    def _resolve_reindex_id(status: dict | None) -> str | None:
+    def _decide_rebuild_note(
+        *,
+        index_id: "str | None",
+        missing: bool,
+        max_wait: float,
+        threshold: int,
+        cwd: "Any",
+        ts: "Any",
+    ) -> str:
+        """Choose wait-vs-background rebuild strategy and return the note string.
+
+        WHAT: Estimates the project file count via ``ts.estimate_index_file_count``,
+        then either blocks up to ``max_wait`` seconds for a small repo (via
+        ``ts.wait_for_index_ready``) or fires a background reindex via
+        ``ts.trigger_trusty_search_reindex`` for a large repo or when no
+        ``index_id`` is available. Returns the appropriate user-facing note.
+
+        WHY: Extracting this decision tree from ``_trusty_search_index_note``
+        keeps each method below the WWL LOC/CC thresholds while preserving the
+        identical logic: estimation failure for a stale index biases toward
+        background to avoid blocking startup unnecessarily, while a missing index
+        defaults to waiting (small unknown is acceptable).
+        """
+        # Estimate file count to decide wait vs background.
+        # Failure/unknown for a STALE but non-empty index biases toward
+        # BACKGROUND (treat as large) to avoid blocking startup for a
+        # potentially-large stale index. A truly missing/empty index still
+        # waits (unknown small is acceptable there).
+        _estimate_failed = False
+        try:
+            file_count = ts.estimate_index_file_count(cwd)
+        except Exception:
+            _estimate_failed = True
+            file_count = 0  # default; overridden below for stale case
+
+        # For stale (non-empty) index: estimation failure → treat as large.
+        if _estimate_failed and not missing:
+            file_count = threshold + 1
+
+        if file_count <= threshold:
+            # Small repo: block and wait so search is usable on turn 1.
+            if index_id:
+                ready = ts.wait_for_index_ready(
+                    index_id, cwd=cwd, max_wait_seconds=max_wait
+                )
+                if ready:
+                    return "Code-search index was rebuilt and is ready."
+                return (
+                    "Code-search index is rebuilding in the background; "
+                    "it may be incomplete this turn."
+                )
+            # No index_id resolved (very unusual) → fall through to background.
+
+        # Large repo or no index_id: background fire-and-forget.
+        if index_id:
+            ts.trigger_trusty_search_reindex(index_id)
+        if file_count > threshold:
+            if missing:
+                return (
+                    "Index not found/empty — background indexing started (large repo)."
+                )
+            return "Index may be stale — background reindex started (large repo)."
+        # Fallback for the no-index_id edge case.
+        if missing:
+            return "Index not found/empty — background indexing started."
+        return "Index may be stale — background reindex started."
+
+    @staticmethod
+    def _resolve_reindex_id(status: dict | None, cwd: Path | None = None) -> str | None:
         """Why: The reindex POST needs an index ID. A matched (but empty/stale)
         index reports its own ``index_id``; a wholly-missing index (status None)
         has none, so we fall back to the first candidate derived from CWD.
 
         What: Returns ``status["index_id"]`` when present, else the first
-        candidate from ``_index_id_candidates(Path.cwd())``, else ``None``.
+        candidate from ``_index_id_candidates(cwd)``, else ``None``. The
+        ``cwd`` parameter accepts the path already captured by the caller
+        (``_trusty_search_index_note``) so both the status probe and the ID
+        fallback use the SAME directory snapshot — avoiding a race where
+        ``Path.cwd()`` is called independently at a slightly different instant.
+        Defaults to ``Path.cwd().resolve()`` for backward compatibility when
+        called without the ``cwd`` argument.
+
+        Args:
+            status: The index status dict (may be ``None`` for a wholly-missing
+                    index).
+            cwd: The project root captured by the caller.  Falls back to a fresh
+                 ``Path.cwd().resolve()`` call when ``None`` (backward compat).
 
         Test: ``tests/test_framework_loader_index_freshness.py`` — status with
         index_id returns it; None status returns the cwd-derived candidate.
@@ -574,7 +675,8 @@ class FrameworkLoader:
         try:
             from claude_mpm.services.trusty_status import index_id_candidates
 
-            candidates = index_id_candidates(Path.cwd().resolve())
+            resolved = (cwd if cwd is not None else Path.cwd()).resolve()
+            candidates = index_id_candidates(resolved)
             return candidates[0] if candidates else None
         except Exception:
             return None
