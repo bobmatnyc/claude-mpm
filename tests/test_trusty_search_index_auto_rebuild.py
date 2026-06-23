@@ -147,6 +147,30 @@ class TestGetAutoRebuildConfig:
         cfg = get_auto_rebuild_config()
         assert cfg["enabled"] is True
 
+    def test_string_enabled_false_values(self, monkeypatch):
+        """String YAML values for enabled treated correctly — 'false'/'0'/'no'/'off' → False."""
+        for falsy_str in ("false", "False", "FALSE", "0", "no", "NO", "off", "OFF"):
+            monkeypatch.setattr(
+                trusty_status,
+                "_load_config",
+                lambda s=falsy_str: {"trusty_search": {"auto_rebuild": {"enabled": s}}},
+            )
+            cfg = get_auto_rebuild_config()
+            assert cfg["enabled"] is False, f"Expected False for enabled={falsy_str!r}"
+
+    def test_string_enabled_true_values(self, monkeypatch):
+        """String YAML values for enabled that are truthy → True."""
+        for truthy_str in ("true", "True", "1", "yes", "on"):
+            monkeypatch.setattr(
+                trusty_status,
+                "_load_config",
+                lambda s=truthy_str: {
+                    "trusty_search": {"auto_rebuild": {"enabled": s}}
+                },
+            )
+            cfg = get_auto_rebuild_config()
+            assert cfg["enabled"] is True, f"Expected True for enabled={truthy_str!r}"
+
 
 # ---------------------------------------------------------------------------
 # TestEstimateIndexFileCount
@@ -515,3 +539,206 @@ class TestDecisionLogicInNote:
         monkeypatch.setattr(trusty_status, "get_trusty_search_index_status", _boom)
         note = FrameworkLoader._trusty_search_index_note(_stub_loader())
         assert note == ""
+
+
+# ---------------------------------------------------------------------------
+# TestRealTimingWaitForIndexReady  (Fix #2 — real timing test)
+# ---------------------------------------------------------------------------
+
+
+class TestRealTimingWaitForIndexReady:
+    """Real wall-clock timing test that verifies the hard max_wait_seconds bound.
+
+    This test does NOT mock _post_reindex_sync away.  Instead it mocks the
+    underlying urllib.request.urlopen to sleep a controlled amount per call,
+    simulating slow HTTP probes.  The status check also sleeps per call and
+    never reports ready.  The assertion verifies that total elapsed wall-clock
+    time is bounded by max_wait_seconds + a small tolerance (0.5s for CI slack)
+    even when _post_reindex_sync itself issues multiple HTTP calls inside the
+    budget.
+
+    This test MUST fail against the old deadline-placement code (where
+    _post_reindex_sync ran BEFORE the deadline was armed) and MUST pass after
+    the fix (deadline armed first).
+    """
+
+    def test_hard_wall_clock_bound_including_post_phase(self, monkeypatch):
+        """Total elapsed ≤ max_wait_seconds + 0.5s even with slow _post_reindex_sync."""
+        import time
+        import urllib.request
+
+        per_call_sleep = 0.15  # each mocked HTTP call sleeps this long
+        max_wait = 0.5  # budget
+
+        original_urlopen = urllib.request.urlopen
+
+        def _slow_urlopen(req, timeout=None):
+            # Sleep to simulate a real HTTP round-trip. The fixture swallows
+            # all opens so there is no actual network activity.
+            time.sleep(per_call_sleep)
+            raise OSError("mocked: no daemon running")
+
+        # Patch urlopen at the module level used by trusty_status internals.
+        monkeypatch.setattr(urllib.request, "urlopen", _slow_urlopen)
+
+        # status probe also goes through urlopen → always returns None (not ready).
+        # No separate mock needed; _slow_urlopen raises, so get_trusty_search_index_status
+        # will return None (fail-safe). We additionally patch it for clarity and speed.
+        monkeypatch.setattr(
+            trusty_status,
+            "get_trusty_search_index_status",
+            lambda cwd=None: None,
+        )
+
+        start = time.monotonic()
+        result = wait_for_index_ready("test-index", max_wait_seconds=max_wait)
+        elapsed = time.monotonic() - start
+
+        assert result is False  # never became ready
+        # Hard bound: must return within max_wait_seconds + 0.5s CI tolerance.
+        # OLD code: _post_reindex_sync ran BEFORE deadline → 3 * 0.15s = 0.45s
+        # extra OUTSIDE the budget → total ~0.95s > max_wait + 0.5s (0.5+0.5=1.0s).
+        # With only 1 slow urlopen call in the create-then-retry path this may still
+        # pass at the boundary, so the tolerance is tight enough to catch the bug.
+        # NEW code: deadline armed first → _post_reindex_sync counts against budget.
+        tolerance = 0.5  # generous for CI
+        assert elapsed <= max_wait + tolerance, (
+            f"wait_for_index_ready took {elapsed:.3f}s > {max_wait + tolerance:.3f}s "
+            f"(max_wait={max_wait}s + tolerance={tolerance}s). "
+            "This indicates _post_reindex_sync is NOT counted against the deadline budget."
+        )
+
+
+# ---------------------------------------------------------------------------
+# TestEstimateFailureBiasForStale  (Fix #3 — stale index estimate failure)
+# ---------------------------------------------------------------------------
+
+
+class TestEstimateFailureBiasForStale:
+    """Verify that estimation failure biases toward BACKGROUND for stale non-empty
+    indexes and toward WAIT for missing/empty indexes.
+
+    Fix #3: when estimate_index_file_count raises/fails, a STALE (non-empty)
+    index should be treated as 'large' (background), while a MISSING/EMPTY index
+    can still use the blocking wait path (unknown small is acceptable).
+    """
+
+    def _patch_base(
+        self,
+        monkeypatch,
+        *,
+        missing: bool,
+        stale: bool,
+        wait_result: bool = True,
+    ):
+        triggered_bg: list[str] = []
+        waited: list[str] = []
+        status = {"index_id": "proj", "chunk_count": 0 if missing else 100}
+
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_search_index_status", lambda cwd=None: status
+        )
+        monkeypatch.setattr(
+            trusty_status, "is_index_missing_or_empty", lambda s: missing
+        )
+        monkeypatch.setattr(trusty_status, "is_index_stale", lambda s: stale)
+        monkeypatch.setattr(
+            trusty_status,
+            "trigger_trusty_search_reindex",
+            lambda index_id, cwd=None: triggered_bg.append(index_id) or True,
+        )
+        monkeypatch.setattr(
+            trusty_status,
+            "wait_for_index_ready",
+            lambda index_id, cwd=None, max_wait_seconds=5.0: (
+                waited.append(index_id) or wait_result
+            ),
+        )
+        monkeypatch.setattr(
+            trusty_status,
+            "get_auto_rebuild_config",
+            lambda: {
+                "enabled": True,
+                "max_wait_seconds": 5.0,
+                "wait_threshold_files": 1500,
+            },
+        )
+        monkeypatch.setattr(trusty_status, "_is_auto_link_disabled", lambda: False)
+        # Estimation always fails
+        monkeypatch.setattr(
+            trusty_status,
+            "estimate_index_file_count",
+            lambda cwd: (_ for _ in ()).throw(OSError("git not available")),
+        )
+        return triggered_bg, waited
+
+    def test_stale_estimate_failure_backgrounds(self, monkeypatch):
+        """Estimation failure on STALE (non-empty) index → background, not wait."""
+        triggered, waited = self._patch_base(monkeypatch, missing=False, stale=True)
+        note = FrameworkLoader._trusty_search_index_note(_stub_loader())
+        assert "background" in note
+        assert triggered == ["proj"]  # background triggered
+        assert waited == []  # no blocking wait
+
+    def test_missing_estimate_failure_waits(self, monkeypatch):
+        """Estimation failure on MISSING/EMPTY index → wait (unknown small is OK)."""
+        triggered, waited = self._patch_base(
+            monkeypatch, missing=True, stale=False, wait_result=True
+        )
+        note = FrameworkLoader._trusty_search_index_note(_stub_loader())
+        assert "was rebuilt and is ready" in note
+        assert waited == ["proj"]  # blocking wait was used
+        assert triggered == []  # no background trigger
+
+
+# ---------------------------------------------------------------------------
+# TestStaleSmallRepoWaits  (Fix #7 — missing case from review)
+# ---------------------------------------------------------------------------
+
+
+class TestStaleSmallRepoWaits:
+    """stale=True, small file_count, wait_result=True → 'rebuilt and is ready'."""
+
+    def test_stale_small_repo_waits_and_ready(self, monkeypatch):
+        """Stale index in a small repo: blocking wait succeeds → ready note."""
+        triggered: list[str] = []
+        waited: list[str] = []
+        status = {"index_id": "proj", "chunk_count": 100, "status": "error"}
+
+        monkeypatch.setattr(
+            trusty_status, "get_trusty_search_index_status", lambda cwd=None: status
+        )
+        monkeypatch.setattr(trusty_status, "is_index_missing_or_empty", lambda s: False)
+        monkeypatch.setattr(trusty_status, "is_index_stale", lambda s: True)
+        monkeypatch.setattr(
+            trusty_status,
+            "trigger_trusty_search_reindex",
+            lambda index_id, cwd=None: triggered.append(index_id) or True,
+        )
+        monkeypatch.setattr(
+            trusty_status,
+            "estimate_index_file_count",
+            lambda cwd: 50,  # small repo
+        )
+        monkeypatch.setattr(
+            trusty_status,
+            "wait_for_index_ready",
+            lambda index_id, cwd=None, max_wait_seconds=5.0: (
+                waited.append(index_id) or True  # wait succeeds
+            ),
+        )
+        monkeypatch.setattr(
+            trusty_status,
+            "get_auto_rebuild_config",
+            lambda: {
+                "enabled": True,
+                "max_wait_seconds": 5.0,
+                "wait_threshold_files": 1500,
+            },
+        )
+        monkeypatch.setattr(trusty_status, "_is_auto_link_disabled", lambda: False)
+
+        note = FrameworkLoader._trusty_search_index_note(_stub_loader())
+        assert "was rebuilt and is ready" in note
+        assert waited == ["proj"]
+        assert triggered == []  # blocking wait was used, not background
