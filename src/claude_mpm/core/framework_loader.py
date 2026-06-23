@@ -516,30 +516,21 @@ class FrameworkLoader:
         return "\n".join(lines) + "\n"
 
     def _trusty_search_index_note(self) -> str:
-        """Why: When trusty-search is ON, the PM assumes code search "just works",
-        but a brand-new or stale index returns poor results. We check the
-        daemon's OWN view of this project's index (no git/mtime scanning) and,
-        if it is missing/empty/stale, decide whether to BLOCK (wait for the
-        rebuild so search is usable on turn 1) or run it in the BACKGROUND
-        based on an estimated file count and user-configured thresholds.
+        """Produce a user-facing note when the trusty-search index needs rebuilding.
 
-        Decision logic (short-circuits in order):
-        1. If auto-link is disabled (env) OR auto-rebuild is disabled (config)
-           → background fire-and-forget (no behavior change from prior code).
-        2. Estimate file count via git ls-files (primary) / scandir (fallback).
-        3. count <= wait_threshold_files → blocking wait (up to max_wait_seconds):
-           - Ready: "Code-search index was rebuilt and is ready."
-           - Timed out: "Code-search index is rebuilding in the background; …"
-        4. count > threshold → background + "… (large repo)."
+        WHAT: Queries the trusty-search daemon for this project's index status,
+        short-circuits to background mode when auto-rebuild is disabled, then
+        delegates the wait-vs-background decision to ``_decide_rebuild_note``.
+        Returns ``""`` for a fresh index or on any error (fail-open).
 
-        Returns ``""`` for a fresh index OR on ANY error (fail-open). Must never
-        block or break startup beyond max_wait_seconds.
+        WHY: When trusty-search is ON the PM assumes code search "just works",
+        but a missing or stale index returns poor results. This thin coordinator
+        separates status-fetching and config-reading from the file-count and
+        wait-strategy logic so each concern stays below the WWL complexity
+        threshold and is independently testable.
 
-        Test: ``tests/test_framework_loader_index_freshness.py`` — fresh → no
-        note + no reindex; missing/empty → note + reindex fired; stale → note +
-        reindex fired; daemon error → "" + no reindex + no exception.
-        ``tests/test_trusty_search_index_auto_rebuild.py`` — small repo →
-        waits; large repo → backgrounds; disabled → backgrounds.
+        Test: ``tests/test_framework_loader_index_freshness.py`` and
+        ``tests/test_trusty_search_index_auto_rebuild.py``.
         """
         try:
             from pathlib import Path as _Path
@@ -556,9 +547,6 @@ class FrameworkLoader:
                 return ""  # fresh index → no note
 
             index_id = self._resolve_reindex_id(status, cwd=cwd)
-
-            # Determine which rebuild verb to use in the note.
-            _action = "indexing" if _ts.is_index_missing_or_empty(status) else "reindex"
             _missing = _ts.is_index_missing_or_empty(status)
 
             # Short-circuit: auto-link disabled or auto-rebuild disabled → background.
@@ -575,51 +563,86 @@ class FrameworkLoader:
             max_wait = float(auto_rebuild_cfg.get("max_wait_seconds", 5.0))
             threshold = int(auto_rebuild_cfg.get("wait_threshold_files", 1500))
 
-            # Estimate file count to decide wait vs background.
-            # Failure/unknown for a STALE but non-empty index biases toward
-            # BACKGROUND (treat as large) to avoid blocking startup for a
-            # potentially-large stale index. A truly missing/empty index still
-            # waits (unknown small is acceptable there).
-            _estimate_failed = False
-            try:
-                file_count = _ts.estimate_index_file_count(cwd)
-            except Exception:
-                _estimate_failed = True
-                file_count = 0  # default; overridden below for stale case
-
-            # For stale (non-empty) index: estimation failure → treat as large.
-            if _estimate_failed and not _missing:
-                file_count = threshold + 1
-
-            if file_count <= threshold:
-                # Small repo: block and wait so search is usable on turn 1.
-                if index_id:
-                    ready = _ts.wait_for_index_ready(
-                        index_id, cwd=cwd, max_wait_seconds=max_wait
-                    )
-                    if ready:
-                        return "Code-search index was rebuilt and is ready."
-                    return (
-                        "Code-search index is rebuilding in the background; "
-                        "it may be incomplete this turn."
-                    )
-                # No index_id resolved (very unusual) → fall through to background.
-
-            # Large repo or no index_id: background fire-and-forget.
-            if index_id:
-                _ts.trigger_trusty_search_reindex(index_id)
-            if file_count > threshold:
-                if _missing:
-                    return "Index not found/empty — background indexing started (large repo)."
-                return "Index may be stale — background reindex started (large repo)."
-            # Fallback for the no-index_id edge case.
-            if _missing:
-                return "Index not found/empty — background indexing started."
-            return "Index may be stale — background reindex started."
+            return FrameworkLoader._decide_rebuild_note(
+                index_id=index_id,
+                missing=_missing,
+                max_wait=max_wait,
+                threshold=threshold,
+                cwd=cwd,
+                ts=_ts,
+            )
 
         except Exception as e:  # pragma: no cover - defensive fail-open
             self.logger.debug(f"Skipping trusty-search index freshness check: {e}")
             return ""
+
+    @staticmethod
+    def _decide_rebuild_note(
+        *,
+        index_id: "str | None",
+        missing: bool,
+        max_wait: float,
+        threshold: int,
+        cwd: "Any",
+        ts: "Any",
+    ) -> str:
+        """Choose wait-vs-background rebuild strategy and return the note string.
+
+        WHAT: Estimates the project file count via ``ts.estimate_index_file_count``,
+        then either blocks up to ``max_wait`` seconds for a small repo (via
+        ``ts.wait_for_index_ready``) or fires a background reindex via
+        ``ts.trigger_trusty_search_reindex`` for a large repo or when no
+        ``index_id`` is available. Returns the appropriate user-facing note.
+
+        WHY: Extracting this decision tree from ``_trusty_search_index_note``
+        keeps each method below the WWL LOC/CC thresholds while preserving the
+        identical logic: estimation failure for a stale index biases toward
+        background to avoid blocking startup unnecessarily, while a missing index
+        defaults to waiting (small unknown is acceptable).
+        """
+        # Estimate file count to decide wait vs background.
+        # Failure/unknown for a STALE but non-empty index biases toward
+        # BACKGROUND (treat as large) to avoid blocking startup for a
+        # potentially-large stale index. A truly missing/empty index still
+        # waits (unknown small is acceptable there).
+        _estimate_failed = False
+        try:
+            file_count = ts.estimate_index_file_count(cwd)
+        except Exception:
+            _estimate_failed = True
+            file_count = 0  # default; overridden below for stale case
+
+        # For stale (non-empty) index: estimation failure → treat as large.
+        if _estimate_failed and not missing:
+            file_count = threshold + 1
+
+        if file_count <= threshold:
+            # Small repo: block and wait so search is usable on turn 1.
+            if index_id:
+                ready = ts.wait_for_index_ready(
+                    index_id, cwd=cwd, max_wait_seconds=max_wait
+                )
+                if ready:
+                    return "Code-search index was rebuilt and is ready."
+                return (
+                    "Code-search index is rebuilding in the background; "
+                    "it may be incomplete this turn."
+                )
+            # No index_id resolved (very unusual) → fall through to background.
+
+        # Large repo or no index_id: background fire-and-forget.
+        if index_id:
+            ts.trigger_trusty_search_reindex(index_id)
+        if file_count > threshold:
+            if missing:
+                return (
+                    "Index not found/empty — background indexing started (large repo)."
+                )
+            return "Index may be stale — background reindex started (large repo)."
+        # Fallback for the no-index_id edge case.
+        if missing:
+            return "Index not found/empty — background indexing started."
+        return "Index may be stale — background reindex started."
 
     @staticmethod
     def _resolve_reindex_id(status: dict | None, cwd: Path | None = None) -> str | None:
