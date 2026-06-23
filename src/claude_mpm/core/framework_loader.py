@@ -555,7 +555,7 @@ class FrameworkLoader:
             if not needs_rebuild:
                 return ""  # fresh index → no note
 
-            index_id = self._resolve_reindex_id(status)
+            index_id = self._resolve_reindex_id(status, cwd=cwd)
 
             # Determine which rebuild verb to use in the note.
             _action = "indexing" if _ts.is_index_missing_or_empty(status) else "reindex"
@@ -622,13 +622,25 @@ class FrameworkLoader:
             return ""
 
     @staticmethod
-    def _resolve_reindex_id(status: dict | None) -> str | None:
+    def _resolve_reindex_id(status: dict | None, cwd: Path | None = None) -> str | None:
         """Why: The reindex POST needs an index ID. A matched (but empty/stale)
         index reports its own ``index_id``; a wholly-missing index (status None)
         has none, so we fall back to the first candidate derived from CWD.
 
         What: Returns ``status["index_id"]`` when present, else the first
-        candidate from ``_index_id_candidates(Path.cwd())``, else ``None``.
+        candidate from ``_index_id_candidates(cwd)``, else ``None``. The
+        ``cwd`` parameter accepts the path already captured by the caller
+        (``_trusty_search_index_note``) so both the status probe and the ID
+        fallback use the SAME directory snapshot — avoiding a race where
+        ``Path.cwd()`` is called independently at a slightly different instant.
+        Defaults to ``Path.cwd().resolve()`` for backward compatibility when
+        called without the ``cwd`` argument.
+
+        Args:
+            status: The index status dict (may be ``None`` for a wholly-missing
+                    index).
+            cwd: The project root captured by the caller.  Falls back to a fresh
+                 ``Path.cwd().resolve()`` call when ``None`` (backward compat).
 
         Test: ``tests/test_framework_loader_index_freshness.py`` — status with
         index_id returns it; None status returns the cwd-derived candidate.
@@ -640,7 +652,8 @@ class FrameworkLoader:
         try:
             from claude_mpm.services.trusty_status import index_id_candidates
 
-            candidates = index_id_candidates(Path.cwd().resolve())
+            resolved = (cwd if cwd is not None else Path.cwd()).resolve()
+            candidates = index_id_candidates(resolved)
             return candidates[0] if candidates else None
         except Exception:
             return None
