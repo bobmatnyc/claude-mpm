@@ -542,9 +542,12 @@ class FrameworkLoader:
         waits; large repo → backgrounds; disabled → backgrounds.
         """
         try:
+            from pathlib import Path as _Path
+
             import claude_mpm.services.trusty_status as _ts
 
-            status = _ts.get_trusty_search_index_status()
+            cwd = _Path.cwd()
+            status = _ts.get_trusty_search_index_status(cwd=cwd)
 
             needs_rebuild = _ts.is_index_missing_or_empty(status) or _ts.is_index_stale(
                 status
@@ -573,16 +576,26 @@ class FrameworkLoader:
             threshold = int(auto_rebuild_cfg.get("wait_threshold_files", 1500))
 
             # Estimate file count to decide wait vs background.
+            # Failure/unknown for a STALE but non-empty index biases toward
+            # BACKGROUND (treat as large) to avoid blocking startup for a
+            # potentially-large stale index. A truly missing/empty index still
+            # waits (unknown small is acceptable there).
+            _estimate_failed = False
             try:
-                file_count = _ts.estimate_index_file_count(Path.cwd())
+                file_count = _ts.estimate_index_file_count(cwd)
             except Exception:
-                file_count = 0  # unknown → treat as small → wait
+                _estimate_failed = True
+                file_count = 0  # default; overridden below for stale case
+
+            # For stale (non-empty) index: estimation failure → treat as large.
+            if _estimate_failed and not _missing:
+                file_count = threshold + 1
 
             if file_count <= threshold:
                 # Small repo: block and wait so search is usable on turn 1.
                 if index_id:
                     ready = _ts.wait_for_index_ready(
-                        index_id, cwd=None, max_wait_seconds=max_wait
+                        index_id, cwd=cwd, max_wait_seconds=max_wait
                     )
                     if ready:
                         return "Code-search index was rebuilt and is ready."
