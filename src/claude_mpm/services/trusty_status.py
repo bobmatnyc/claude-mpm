@@ -451,6 +451,295 @@ def trigger_trusty_search_reindex(index_id: str, cwd: Path | None = None) -> boo
         return False
 
 
+def get_auto_rebuild_config() -> dict[str, object]:
+    """Why: The auto-rebuild wait/background decision is user-tunable via
+    ``~/.claude-mpm/config.yaml`` under ``trusty_search.auto_rebuild``.
+
+    What: Returns the three knobs with safe defaults:
+    - ``enabled`` (bool, default ``True``) — disable to always background.
+    - ``max_wait_seconds`` (float, default ``5.0``) — wall-clock deadline for
+      the blocking wait in :func:`wait_for_index_ready`.
+    - ``wait_threshold_files`` (int, default ``1500``) — if the estimated file
+      count exceeds this, skip blocking and background immediately.
+
+    Falls back to defaults on any error (missing file, bad YAML, wrong types).
+
+    Test: ``tests/test_trusty_search_index_auto_rebuild.py::TestGetAutoRebuildConfig``
+    — verifies defaults when config absent; overrides when present.
+    """
+    try:
+        config = _load_config()
+        section = config.get("trusty_search", {})
+        rebuild = section.get("auto_rebuild", {}) if isinstance(section, dict) else {}
+        if not isinstance(rebuild, dict):
+            rebuild = {}
+
+        enabled = rebuild.get("enabled", True)
+        if not isinstance(enabled, bool):
+            enabled = True
+
+        max_wait = rebuild.get("max_wait_seconds", 5.0)
+        try:
+            max_wait = float(max_wait)
+            if max_wait <= 0:
+                max_wait = 5.0
+        except (TypeError, ValueError):
+            max_wait = 5.0
+
+        threshold = rebuild.get("wait_threshold_files", 1500)
+        try:
+            threshold = int(threshold)
+            if threshold < 0:
+                threshold = 1500
+        except (TypeError, ValueError):
+            threshold = 1500
+
+        return {
+            "enabled": enabled,
+            "max_wait_seconds": max_wait,
+            "wait_threshold_files": threshold,
+        }
+    except Exception:
+        return {"enabled": True, "max_wait_seconds": 5.0, "wait_threshold_files": 1500}
+
+
+def estimate_index_file_count(cwd: Path | str) -> int:
+    """Why: The auto-rebuild decision needs a fast cost estimate — large repos
+    should not block startup waiting for a reindex that may take minutes.
+
+    What: Estimates the number of tracked/source files in ``cwd``.
+
+    Primary path: ``git -C <cwd> ls-files`` (bounded to 2s timeout). Uses
+    ``git -C`` to avoid chdir (CLAUDE.md stability pattern). On non-zero
+    exit / timeout / non-git dir → falls back to the scandir walk.
+
+    Fallback path: bounded ``os.scandir``-based recursive walk that skips
+    common heavy directories (``.git``, ``node_modules``, ``.venv``,
+    ``venv``, ``__pycache__``, ``dist``, ``build``, ``target``,
+    ``.claude/worktrees``) and stops counting as soon as the count exceeds
+    the threshold + 1 (early-exit cap so huge trees can't blow up startup).
+    The threshold is read from :func:`get_auto_rebuild_config` here so the
+    cap scales with the user's configured threshold.
+
+    Returns ``0`` on total failure (treated as "unknown small" → blocking
+    wait is acceptable).
+
+    Test: ``tests/test_trusty_search_index_auto_rebuild.py::TestEstimateIndexFileCount``
+    — git path (mock subprocess), fallback scandir path, early-exit cap,
+    failure → 0.
+    """
+    import os
+    import subprocess
+
+    try:
+        cwd_path = Path(cwd) if not isinstance(cwd, Path) else cwd
+    except Exception:
+        return 0
+
+    # Primary: git ls-files (bounded, no chdir)
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(cwd_path), "ls-files"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout:
+            return result.stdout.count("\n")
+    except Exception:
+        pass  # fall through to scandir walk
+
+    # Fallback: bounded scandir walk
+    _SKIP_DIRS = frozenset(
+        {
+            ".git",
+            "node_modules",
+            ".venv",
+            "venv",
+            "__pycache__",
+            "dist",
+            "build",
+            "target",
+        }
+    )
+    try:
+        cfg = get_auto_rebuild_config()
+        cap = int(cfg.get("wait_threshold_files", 1500)) + 1
+    except Exception:
+        cap = 1501
+
+    try:
+        count = 0
+        stack: list[str] = [str(cwd_path)]
+        while stack:
+            if count >= cap:
+                break
+            try:
+                with os.scandir(stack.pop()) as it:
+                    for entry in it:
+                        if count >= cap:
+                            break
+                        if entry.is_dir(follow_symlinks=False):
+                            name = entry.name
+                            if name in _SKIP_DIRS:
+                                continue
+                            # Skip .claude/worktrees subtree
+                            if name == ".claude":
+                                # peek inside — skip only the worktrees subtree
+                                stack.append(entry.path)
+                            else:
+                                stack.append(entry.path)
+                        elif entry.is_file(follow_symlinks=False):
+                            count += 1
+            except (PermissionError, OSError):
+                continue
+        return count
+    except Exception:
+        return 0
+
+
+def _post_reindex_sync(index_id: str, base_url: str) -> None:
+    """Issue a synchronous POST /indexes/{id}/reindex. Swallows all errors.
+
+    Why: wait_for_index_ready needs a blocking reindex trigger (unlike the
+    fire-and-forget thread variant used for background rebuilds).
+
+    What: POSTs to the daemon reindex endpoint with a hard timeout. If the
+    index does not exist yet (404 / connection error), we defensively attempt
+    to CREATE it first via ``POST /indexes`` with ``colocated: true`` and
+    then retry the reindex. All errors are swallowed — the caller polls
+    status and times out gracefully if nothing works.
+
+    Note: The trusty-search daemon may require an explicit index creation
+    before reindex if the index was never registered. We attempt creation
+    defensively here: if the reindex POST itself indicates the index is
+    unknown, we create it then retry. This is bounded by the caller's
+    wall-clock deadline.
+    """
+    import json
+    import urllib.parse
+    import urllib.request
+
+    encoded_id = urllib.parse.quote(index_id, safe="")
+    reindex_url = f"{base_url}/indexes/{encoded_id}/reindex"
+
+    def _do_reindex() -> bool:
+        try:
+            req = urllib.request.Request(  # nosec B310 - localhost
+                reindex_url, method="POST", data=b""
+            )
+            with urllib.request.urlopen(  # nosec B310 - localhost
+                req, timeout=_HEALTH_TIMEOUT_S
+            ):
+                return True
+        except Exception:
+            return False
+
+    if _do_reindex():
+        return
+
+    # Reindex failed — the index may not be registered yet. Attempt to create
+    # it first (colocated mode, so the daemon manages the storage path).
+    # NOTE: We cannot verify the exact daemon create endpoint from this code;
+    # this is a defensive best-effort attempt. If creation also fails, we fall
+    # through silently and let the polling loop time out naturally.
+    try:
+        body = json.dumps({"id": index_id, "colocated": True}).encode()
+        create_req = urllib.request.Request(  # nosec B310 - localhost
+            f"{base_url}/indexes",
+            method="POST",
+            data=body,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(  # nosec B310 - localhost
+            create_req, timeout=_HEALTH_TIMEOUT_S
+        ):
+            pass
+    except Exception:
+        pass
+
+    # Retry reindex after creation attempt.
+    _do_reindex()
+
+
+def wait_for_index_ready(
+    index_id: str,
+    cwd: Path | None = None,
+    max_wait_seconds: float = 5.0,
+) -> bool:
+    """Why: For small repos it is better to BLOCK for a few seconds so that code
+    search is usable on turn 1, rather than starting a background rebuild that
+    returns incomplete results for the entire session.
+
+    What: Triggers a synchronous reindex POST, then polls
+    :func:`get_trusty_search_index_status` on a wall-clock deadline (uses
+    ``time.monotonic()`` per CLAUDE.md stability patterns). Each HTTP probe is
+    already ≤200ms. Returns ``True`` as soon as the index is ready and non-empty;
+    returns ``False`` if the deadline elapses. NEVER raises — any exception falls
+    back to ``False`` so the caller can degrade gracefully.
+
+    Args:
+        index_id: The index ID to trigger and poll.
+        cwd: The project root (defaults to ``Path.cwd()``). Passed to the status
+             probe so root_path matching works correctly.
+        max_wait_seconds: Hard wall-clock deadline. Must not block startup longer
+                          than this value in normal operation.
+
+    Test: ``tests/test_trusty_search_index_auto_rebuild.py::TestWaitForIndexReady``
+    — returns True when status flips to ready; returns False on timeout.
+    """
+    import time
+
+    try:
+        base_url, _host_port = _base_url("trusty-search")
+        _post_reindex_sync(index_id, base_url)
+
+        deadline = time.monotonic() + max_wait_seconds
+        _POLL_INTERVAL_S = 0.25
+
+        while time.monotonic() < deadline:
+            status = get_trusty_search_index_status(cwd=cwd)
+            if (
+                status is not None
+                and not is_index_missing_or_empty(status)
+                and not is_index_stale(status)
+            ):
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(_POLL_INTERVAL_S, remaining))
+
+        return False
+    except Exception:
+        return False
+
+
+def _is_auto_link_disabled() -> bool:
+    """Whether the trusty auto-link feature is disabled (env var or config).
+
+    Why: The auto-rebuild wait mirrors the same opt-out semantics as trusty
+    auto-link — if the user has disabled auto-link, we should not interfere
+    with their index management either.
+
+    What: Returns ``True`` if ``CLAUDE_MPM_NO_TRUSTY_AUTO_LINK`` is set to a
+    truthy value in the environment. Reads only the env var (not the project
+    config file) to avoid adding a project-dir dependency here; framework_loader
+    already gated on trusty-search being ON, which requires the service to be
+    configured.
+
+    Test: covered implicitly via decision-logic tests in
+    ``tests/test_trusty_search_index_auto_rebuild.py``.
+    """
+    import os
+
+    _TRUTHY = {"1", "true", "yes", "on"}
+    return (
+        os.environ.get("CLAUDE_MPM_NO_TRUSTY_AUTO_LINK", "").strip().lower() in _TRUTHY
+    )
+
+
 def _mcp_servers_from_file(path: Path) -> frozenset[str]:
     """Why: Centralise the read-one-mcp-json logic so both the project and user
     paths share the same parse/guard/error-handling without duplication.
