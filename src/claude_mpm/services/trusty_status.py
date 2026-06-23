@@ -676,15 +676,19 @@ def wait_for_index_ready(
     returns incomplete results for the entire session.
 
     What: Arms a wall-clock deadline FIRST (before any HTTP calls), then triggers
-    a synchronous reindex POST, then polls :func:`get_trusty_search_index_status`
-    until the deadline elapses. Each HTTP probe is already ≤200ms. Returns
-    ``True`` as soon as the index is ready and non-empty; returns ``False`` if the
-    deadline elapses. NEVER raises — any exception falls back to ``False`` so the
-    caller can degrade gracefully.
+    a synchronous reindex POST via ``_post_reindex_sync``, then polls
+    :func:`get_trusty_search_index_status` until the deadline elapses. Each HTTP
+    probe is already ≤200ms. Returns ``True`` as soon as the index is ready and
+    non-empty; returns ``False`` if the deadline elapses. NEVER raises — any
+    exception falls back to ``False`` so the caller can degrade gracefully.
 
     Hard real-time bound: the function returns within ``max_wait_seconds`` plus at
-    most one in-flight ≤200ms probe. The ``_post_reindex_sync`` pre-phase (up to
-    3 sequential ≤200ms HTTP calls) counts INSIDE the budget, not on top of it.
+    most one in-flight polling-phase probe (≤200ms).  The ``_post_reindex_sync``
+    pre-phase (up to 3 sequential ≤200ms HTTP calls: reindex attempt, optional
+    index creation, optional reindex retry) counts INSIDE the budget because the
+    deadline is armed BEFORE ``_post_reindex_sync`` is called.  Once the deadline
+    elapses the polling loop exits immediately; the only overshoot is a single
+    in-flight polling probe (≤200ms), not from the pre-phase.
 
     Args:
         index_id: The index ID to trigger and poll.
@@ -692,8 +696,8 @@ def wait_for_index_ready(
              probe so root_path matching works correctly.
         max_wait_seconds: Hard wall-clock deadline. The function returns within
                           approximately this many seconds (plus ≤200ms for any
-                          in-flight probe) regardless of how many HTTP calls the
-                          pre-phase makes.
+                          in-flight polling probe) regardless of how many HTTP
+                          calls the pre-phase (``_post_reindex_sync``) makes.
 
     Test: ``tests/test_trusty_search_index_auto_rebuild.py::TestWaitForIndexReady``
     — returns True when status flips to ready; returns False on timeout.
