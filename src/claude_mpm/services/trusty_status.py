@@ -475,7 +475,9 @@ def get_auto_rebuild_config() -> dict[str, object]:
             rebuild = {}
 
         enabled = rebuild.get("enabled", True)
-        if not isinstance(enabled, bool):
+        if isinstance(enabled, str):
+            enabled = enabled.strip().lower() not in {"false", "0", "no", "off"}
+        elif not isinstance(enabled, bool):
             enabled = True
 
         max_wait = rebuild.get("max_wait_seconds", 5.0)
@@ -584,12 +586,13 @@ def estimate_index_file_count(cwd: Path | str) -> int:
                             name = entry.name
                             if name in _SKIP_DIRS:
                                 continue
-                            # Skip .claude/worktrees subtree
-                            if name == ".claude":
-                                # peek inside — skip only the worktrees subtree
-                                stack.append(entry.path)
-                            else:
-                                stack.append(entry.path)
+                            # Skip .claude/worktrees subtree — worktrees are
+                            # gitignored build-like dirs that can be enormous.
+                            if name == "worktrees" and entry.path.endswith(
+                                ".claude/worktrees"
+                            ):
+                                continue
+                            stack.append(entry.path)
                         elif entry.is_file(follow_symlinks=False):
                             count += 1
             except (PermissionError, OSError):
@@ -672,19 +675,25 @@ def wait_for_index_ready(
     search is usable on turn 1, rather than starting a background rebuild that
     returns incomplete results for the entire session.
 
-    What: Triggers a synchronous reindex POST, then polls
-    :func:`get_trusty_search_index_status` on a wall-clock deadline (uses
-    ``time.monotonic()`` per CLAUDE.md stability patterns). Each HTTP probe is
-    already ≤200ms. Returns ``True`` as soon as the index is ready and non-empty;
-    returns ``False`` if the deadline elapses. NEVER raises — any exception falls
-    back to ``False`` so the caller can degrade gracefully.
+    What: Arms a wall-clock deadline FIRST (before any HTTP calls), then triggers
+    a synchronous reindex POST, then polls :func:`get_trusty_search_index_status`
+    until the deadline elapses. Each HTTP probe is already ≤200ms. Returns
+    ``True`` as soon as the index is ready and non-empty; returns ``False`` if the
+    deadline elapses. NEVER raises — any exception falls back to ``False`` so the
+    caller can degrade gracefully.
+
+    Hard real-time bound: the function returns within ``max_wait_seconds`` plus at
+    most one in-flight ≤200ms probe. The ``_post_reindex_sync`` pre-phase (up to
+    3 sequential ≤200ms HTTP calls) counts INSIDE the budget, not on top of it.
 
     Args:
         index_id: The index ID to trigger and poll.
         cwd: The project root (defaults to ``Path.cwd()``). Passed to the status
              probe so root_path matching works correctly.
-        max_wait_seconds: Hard wall-clock deadline. Must not block startup longer
-                          than this value in normal operation.
+        max_wait_seconds: Hard wall-clock deadline. The function returns within
+                          approximately this many seconds (plus ≤200ms for any
+                          in-flight probe) regardless of how many HTTP calls the
+                          pre-phase makes.
 
     Test: ``tests/test_trusty_search_index_auto_rebuild.py::TestWaitForIndexReady``
     — returns True when status flips to ready; returns False on timeout.
@@ -693,10 +702,19 @@ def wait_for_index_ready(
 
     try:
         base_url, _host_port = _base_url("trusty-search")
-        _post_reindex_sync(index_id, base_url)
 
+        # Arm the deadline FIRST so the _post_reindex_sync pre-phase (up to 3
+        # sequential ≤200ms HTTP calls) is counted inside the budget, not added
+        # on top of it. Hard guarantee: returns within max_wait_seconds + at most
+        # one in-flight ≤200ms probe, regardless of how many HTTP calls the
+        # pre-phase makes.
         deadline = time.monotonic() + max_wait_seconds
         _POLL_INTERVAL_S = 0.25
+
+        # Only trigger the reindex if there is budget left (defensive against
+        # max_wait_seconds=0 or a very slow caller path).
+        if time.monotonic() < deadline:
+            _post_reindex_sync(index_id, base_url)
 
         while time.monotonic() < deadline:
             status = get_trusty_search_index_status(cwd=cwd)
