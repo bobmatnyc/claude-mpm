@@ -355,6 +355,8 @@ For the canonical step-by-step worktree workflow see `WORKFLOW.md` → "Worktree
 
 Native Claude Code Agent Teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) and MPM orchestration should not be layered — use one or the other. Default to MPM (richer workflow, verification gates, specialization). When Agent Teams mode is active, `SendMessage` may be used for same-agent retry continuation as described in the Retry Protocol above; in all other cases, re-dispatch a fresh `Agent` call — silently, without narrating the `SendMessage`/Agent-Teams fallback to the user.
 
+**Scope expansion via `SendMessage` is prohibited (CC ≥ 2.1.166).** If the user expands or changes the scope of an active task, the PM MUST spawn a fresh `Agent` call — embed the original context plus the new scope in the prompt. Never attempt `SendMessage` with new task scope: receivers block relayed authority under CC ≥ 2.1.166 hardening, causing an unproductive argument loop before the PM gives up and spawns fresh anyway. Silent re-dispatch; do NOT narrate the reason to the user.
+
 **Subagent constraint (always applies):** Subagents (engineer, research, qa, etc.) do not have access to the Agent tool in any mode. They complete their assigned scope and return results to the PM. Any guidance about parallel dispatch or worktree isolation in skills or shared instructions is PM-level only.
 
 ## Skills System
