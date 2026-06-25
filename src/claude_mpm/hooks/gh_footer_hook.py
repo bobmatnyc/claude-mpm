@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -86,8 +87,8 @@ def rewrite_footer(body: str) -> str:
     - If the body already contains the canonical MPM footer → return unchanged
       (idempotent, even if an old footer is also present — avoids duplication).
     - If the body contains one or more old-footer lines → replace with exactly
-      one canonical footer line (the last occurrence position is used for
-      replacement; all additional matches are removed).
+      one canonical footer line (the first occurrence is rewritten to the
+      canonical footer; all subsequent matches are removed).
     - If neither → return unchanged.
     """
     if _already_canonical(body):
@@ -306,7 +307,21 @@ def rewrite_bash_command(command: str) -> str | None:
             if new_body == original_body:
                 return None
             try:
-                file_path.write_text(new_body, encoding="utf-8")
+                # Write atomically: write to a temp file in the same directory
+                # (guarantees same filesystem so os.replace is atomic), then
+                # rename over the target.  Path.write_text is not atomic —
+                # a crash mid-write would corrupt the body file.
+                dir_path = file_path.parent
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    dir=dir_path,
+                    delete=False,
+                    suffix=".tmp",
+                ) as tmp:
+                    tmp_path = tmp.name
+                    tmp.write(new_body)
+                Path(tmp_path).replace(file_path)
             except OSError as exc:
                 logger.debug(
                     "gh_footer_hook: cannot write body file %s: %s", file_path, exc
