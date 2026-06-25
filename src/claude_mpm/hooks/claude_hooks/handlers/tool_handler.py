@@ -339,6 +339,10 @@ class ToolHandler:
                             if isinstance(_hso, dict) and not _hso.get(
                                 "permissionDecisionReason"
                             ):
+                                # Safe: _footer_response is a fresh local dict
+                                # returned by build_gh_footer_response — not the
+                                # caller's event dict — so in-place mutation here
+                                # does not affect the caller.
                                 _hso["permissionDecisionReason"] = _cb_warning_reason
                         return _footer_response
             except Exception as _e:
