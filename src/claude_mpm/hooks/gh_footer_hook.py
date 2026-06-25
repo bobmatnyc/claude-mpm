@@ -321,20 +321,31 @@ def rewrite_bash_command(command: str) -> str | None:
                 return None
             try:
                 # Write atomically: write to a temp file in the same directory
-                # (guarantees same filesystem so os.replace is atomic), then
+                # (guarantees same filesystem so Path.replace is atomic), then
                 # rename over the target.  Path.write_text is not atomic —
                 # a crash mid-write would corrupt the body file.
+                #
+                # Leak-safety: tmp_path is tracked from the moment the file is
+                # created.  A try/finally ensures the temp file is unlinked on
+                # any failure path (write error or rename error), so orphaned
+                # temp files cannot accumulate.
                 dir_path = file_path.parent
-                with tempfile.NamedTemporaryFile(
-                    mode="w",
-                    encoding="utf-8",
-                    dir=dir_path,
-                    delete=False,
-                    suffix=".tmp",
-                ) as tmp:
-                    tmp_path = tmp.name
-                    tmp.write(new_body)
-                Path(tmp_path).replace(file_path)
+                tmp_path: str | None = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode="w",
+                        encoding="utf-8",
+                        dir=dir_path,
+                        delete=False,
+                        suffix=".tmp",
+                    ) as tmp:
+                        tmp_path = tmp.name
+                        tmp.write(new_body)
+                    Path(tmp_path).replace(file_path)
+                    tmp_path = None  # rename succeeded; nothing to clean up
+                finally:
+                    if tmp_path is not None:
+                        Path(tmp_path).unlink(missing_ok=True)
             except OSError as exc:
                 logger.debug(
                     "gh_footer_hook: cannot write body file %s: %s", file_path, exc
