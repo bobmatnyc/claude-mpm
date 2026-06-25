@@ -493,3 +493,88 @@ class TestGracefulDegradation:
     def test_build_response_bash_whitespace_command(self):
         event = {"tool_name": "Bash", "tool_input": {"command": "   "}}
         assert build_gh_footer_response(event) == {"continue": True}
+
+
+# ---------------------------------------------------------------------------
+# _cb_warning_reason injection on the MCP (mcp__github__) branch
+# ---------------------------------------------------------------------------
+
+
+class TestCbWarningReasonMcpBranch:
+    """Verify that the circuit-breaker warning reason propagates through the
+    dispatcher when both the MCP footer rewrite fires AND the breaker has
+    emitted an allow-with-warning.
+
+    This exercises the ``pretooluse_dispatcher.dispatch()`` path:
+        mcp__github__ tool → build_gh_footer_response → rewrite fires
+        → _merge_warning_into_response injects the stashed warning reason.
+    """
+
+    def _mcp_event_with_old_footer(
+        self, tool_name: str = "mcp__github__create_pull_request"
+    ) -> dict:
+        return {
+            "hook_event_name": "PreToolUse",
+            "tool_name": tool_name,
+            "tool_input": {
+                "title": "My PR",
+                "body": f"Description\n\n{CLAUDE_CODE_FOOTER_OLD}",
+            },
+        }
+
+    def test_warning_reason_injected_on_mcp_footer_rewrite(self, monkeypatch):
+        """When context breaker fires allow+warning AND MCP footer is rewritten,
+        the permissionDecisionReason must appear in the returned response."""
+        from claude_mpm.hooks import context_circuit_breaker, pretooluse_dispatcher
+
+        warning_msg = "Context at 97% — consider compacting"
+
+        monkeypatch.setattr(
+            context_circuit_breaker,
+            "evaluate",
+            lambda _event: {
+                "permissionDecision": "allow",
+                "permissionDecisionReason": warning_msg,
+            },
+        )
+
+        event = self._mcp_event_with_old_footer()
+        response = pretooluse_dispatcher.dispatch(event)
+
+        # Footer was rewritten — hookSpecificOutput must be present.
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, "Expected hookSpecificOutput when footer was rewritten"
+
+        # The rewritten body must contain the canonical MPM footer.
+        updated_input = hso.get("updatedInput", {})
+        assert MPM_FOOTER_CANONICAL in updated_input.get("body", ""), (
+            "Expected MPM canonical footer in rewritten MCP body"
+        )
+
+        # The circuit-breaker warning reason must have been injected.
+        assert hso.get("permissionDecisionReason") == warning_msg, (
+            f"Expected warning reason '{warning_msg}' in hookSpecificOutput, "
+            f"got: {hso.get('permissionDecisionReason')!r}"
+        )
+
+    def test_no_warning_when_breaker_silent(self, monkeypatch):
+        """When the circuit breaker does not fire, permissionDecisionReason is
+        absent even when the MCP footer is rewritten."""
+        from claude_mpm.hooks import context_circuit_breaker, pretooluse_dispatcher
+
+        monkeypatch.setattr(
+            context_circuit_breaker,
+            "evaluate",
+            lambda _event: {},
+        )
+
+        event = self._mcp_event_with_old_footer()
+        response = pretooluse_dispatcher.dispatch(event)
+
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, "Expected hookSpecificOutput when footer was rewritten"
+        assert MPM_FOOTER_CANONICAL in hso.get("updatedInput", {}).get("body", "")
+        # No warning reason should be present when breaker was silent.
+        assert not hso.get("permissionDecisionReason"), (
+            "Expected no permissionDecisionReason when circuit breaker was silent"
+        )
