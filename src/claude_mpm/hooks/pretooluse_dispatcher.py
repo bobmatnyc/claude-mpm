@@ -163,12 +163,15 @@ def dispatch(event: dict[str, Any]) -> dict[str, Any]:
             # compound command), the footer-fixed response is returned directly.
             _footer_rewrite: dict | None = None
             _footer_resp = gh_footer_hook.build_gh_footer_response(event)
+            ztk_event = event  # default: ztk sees the original event
             if _footer_resp.get("hookSpecificOutput"):
                 _updated = _footer_resp["hookSpecificOutput"].get("updatedInput")
                 if isinstance(_updated, dict):
-                    event["tool_input"] = _updated  # let ztk see the fixed cmd
+                    # Use a shallow copy so ztk sees the footer-fixed command
+                    # without mutating the caller's event dict in-place.
+                    ztk_event = {**event, "tool_input": _updated}
                     _footer_rewrite = _footer_resp
-            response = ztk_hook.build_ztk_response(event)
+            response = ztk_hook.build_ztk_response(ztk_event)
             if response.get("hookSpecificOutput"):
                 return _merge_warning_into_response(response, warning_reason)
             if _footer_rewrite is not None:
