@@ -238,6 +238,20 @@ class ToolHandler:
         # actual work to do (model injection or ztk rewrite).
         # When a circuit-breaker warning is pending we attach it to the
         # response before returning so it is not silently dropped.
+
+        # Single import guard for build_gh_footer_response — used in both the
+        # Bash and mcp__github__ branches below.  If the module is unavailable
+        # (e.g. partially installed environment) both branches degrade gracefully
+        # via the None sentinel rather than raising ImportError at call sites.
+        _build_gh_footer_response = None
+        try:
+            from claude_mpm.hooks.gh_footer_hook import (
+                build_gh_footer_response as _build_gh_footer_response,
+            )
+        except Exception as _e:
+            if DEBUG:
+                _log(f"gh_footer_hook import failed (fail-open): {_e}")
+
         _tool_name_early = event.get("tool_name", "")
         if _tool_name_early == "Agent":
             try:
@@ -264,24 +278,25 @@ class ToolHandler:
             # ztk does NOT fire (ztk passes through on compound/piped commands
             # and when the ztk binary is absent).
             _footer_rewrote: dict | None = None
+            _ztk_event = event  # default: ztk sees the original event
             try:
-                from claude_mpm.hooks.gh_footer_hook import build_gh_footer_response
-
-                _footer_response = build_gh_footer_response(event)
-                _footer_hso = _footer_response.get("hookSpecificOutput")
-                if isinstance(_footer_hso, dict):
-                    _updated_input = _footer_hso.get("updatedInput")
-                    if isinstance(_updated_input, dict):
-                        # Patch event in-place so ztk (below) sees fixed command.
-                        event["tool_input"] = _updated_input
-                        _footer_rewrote = _footer_response
+                if _build_gh_footer_response is not None:
+                    _footer_response = _build_gh_footer_response(event)
+                    _footer_hso = _footer_response.get("hookSpecificOutput")
+                    if isinstance(_footer_hso, dict):
+                        _updated_input = _footer_hso.get("updatedInput")
+                        if isinstance(_updated_input, dict):
+                            # Use a shallow copy so ztk sees the footer-fixed
+                            # command without mutating the caller's event in-place.
+                            _ztk_event = {**event, "tool_input": _updated_input}
+                            _footer_rewrote = _footer_response
             except Exception as _e:
                 if DEBUG:
                     _log(f"gh_footer_hook failed (fail-open): {_e}")
             try:
                 from claude_mpm.hooks.ztk_hook import build_ztk_response
 
-                _ztk_response = build_ztk_response(event)
+                _ztk_response = build_ztk_response(_ztk_event)
                 if _ztk_response.get("hookSpecificOutput"):
                     # ztk rewrote the command; return the modified tool_input.
                     if _cb_warning_reason:
@@ -316,17 +331,20 @@ class ToolHandler:
             # MCP GitHub tool calls (create_pull_request, create_issue, etc.)
             # also need footer normalisation via gh_footer_hook.
             try:
-                from claude_mpm.hooks.gh_footer_hook import build_gh_footer_response
-
-                _footer_response = build_gh_footer_response(event)
-                if _footer_response.get("hookSpecificOutput"):
-                    if _cb_warning_reason:
-                        _hso = _footer_response["hookSpecificOutput"]
-                        if isinstance(_hso, dict) and not _hso.get(
-                            "permissionDecisionReason"
-                        ):
-                            _hso["permissionDecisionReason"] = _cb_warning_reason
-                    return _footer_response
+                if _build_gh_footer_response is not None:
+                    _footer_response = _build_gh_footer_response(event)
+                    if _footer_response.get("hookSpecificOutput"):
+                        if _cb_warning_reason:
+                            _hso = _footer_response["hookSpecificOutput"]
+                            if isinstance(_hso, dict) and not _hso.get(
+                                "permissionDecisionReason"
+                            ):
+                                # Safe: _footer_response is a fresh local dict
+                                # returned by build_gh_footer_response — not the
+                                # caller's event dict — so in-place mutation here
+                                # does not affect the caller.
+                                _hso["permissionDecisionReason"] = _cb_warning_reason
+                        return _footer_response
             except Exception as _e:
                 if DEBUG:
                     _log(f"gh_footer_hook (mcp) failed (fail-open): {_e}")

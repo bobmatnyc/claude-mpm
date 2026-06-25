@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -86,8 +87,8 @@ def rewrite_footer(body: str) -> str:
     - If the body already contains the canonical MPM footer → return unchanged
       (idempotent, even if an old footer is also present — avoids duplication).
     - If the body contains one or more old-footer lines → replace with exactly
-      one canonical footer line (the last occurrence position is used for
-      replacement; all additional matches are removed).
+      one canonical footer line (the first occurrence is rewritten to the
+      canonical footer; all subsequent matches are removed).
     - If neither → return unchanged.
     """
     if _already_canonical(body):
@@ -147,6 +148,19 @@ _GH_BODY_CMD_RE = re.compile(
 # * Reconstruction (see _requote / rewrite_bash_command) rebuilds the flag
 #   text purely from the captured groups so it never relies on searching for
 #   the old value string inside the original flag text.
+#
+# Why not shlex.split (item 3 evaluation)
+# ----------------------------------------
+# shlex.split correctly tokenises the shell command but loses byte-position
+# information, making it impossible to perform a targeted substitution back
+# into the original string without re-quoting and reconstructing the entire
+# command from scratch — which risks losing formatting, multi-line literals,
+# and heredoc constructs that the regex approach preserves.  For the one
+# realistic failure mode (``--body`` text appearing in *another* flag's
+# value), the existing ``count=1`` constraint already prevents accidental
+# re-matching after the first substitution.  A shlex-based path would be
+# safer in pathological edge cases but would regress on the quoting
+# round-trip tests (``TestRewriteBashCommandFix3``).  Tradeoff accepted.
 _BODY_FLAG_RE = re.compile(
     r"""((?:--body(?!-file)|(?:(?:^|\s))-b(?=[\s=]|$)))"""  # group 1: flag token
     r"""(\s*=\s*|\s+)"""  # group 2: separator
@@ -306,7 +320,32 @@ def rewrite_bash_command(command: str) -> str | None:
             if new_body == original_body:
                 return None
             try:
-                file_path.write_text(new_body, encoding="utf-8")
+                # Write atomically: write to a temp file in the same directory
+                # (guarantees same filesystem so Path.replace is atomic), then
+                # rename over the target.  Path.write_text is not atomic —
+                # a crash mid-write would corrupt the body file.
+                #
+                # Leak-safety: tmp_path is tracked from the moment the file is
+                # created.  A try/finally ensures the temp file is unlinked on
+                # any failure path (write error or rename error), so orphaned
+                # temp files cannot accumulate.
+                dir_path = file_path.parent
+                tmp_path: str | None = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode="w",
+                        encoding="utf-8",
+                        dir=dir_path,
+                        delete=False,
+                        suffix=".tmp",
+                    ) as tmp:
+                        tmp_path = tmp.name
+                        tmp.write(new_body)
+                    Path(tmp_path).replace(file_path)
+                    tmp_path = None  # rename succeeded; nothing to clean up
+                finally:
+                    if tmp_path is not None:
+                        Path(tmp_path).unlink(missing_ok=True)
             except OSError as exc:
                 logger.debug(
                     "gh_footer_hook: cannot write body file %s: %s", file_path, exc
