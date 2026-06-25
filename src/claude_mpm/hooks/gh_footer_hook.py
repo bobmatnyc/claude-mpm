@@ -148,6 +148,19 @@ _GH_BODY_CMD_RE = re.compile(
 # * Reconstruction (see _requote / rewrite_bash_command) rebuilds the flag
 #   text purely from the captured groups so it never relies on searching for
 #   the old value string inside the original flag text.
+#
+# Why not shlex.split (item 3 evaluation)
+# ----------------------------------------
+# shlex.split correctly tokenises the shell command but loses byte-position
+# information, making it impossible to perform a targeted substitution back
+# into the original string without re-quoting and reconstructing the entire
+# command from scratch — which risks losing formatting, multi-line literals,
+# and heredoc constructs that the regex approach preserves.  For the one
+# realistic failure mode (``--body`` text appearing in *another* flag's
+# value), the existing ``count=1`` constraint already prevents accidental
+# re-matching after the first substitution.  A shlex-based path would be
+# safer in pathological edge cases but would regress on the quoting
+# round-trip tests (``TestRewriteBashCommandFix3``).  Tradeoff accepted.
 _BODY_FLAG_RE = re.compile(
     r"""((?:--body(?!-file)|(?:(?:^|\s))-b(?=[\s=]|$)))"""  # group 1: flag token
     r"""(\s*=\s*|\s+)"""  # group 2: separator
