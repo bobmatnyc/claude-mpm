@@ -578,3 +578,106 @@ class TestCbWarningReasonMcpBranch:
         assert not hso.get("permissionDecisionReason"), (
             "Expected no permissionDecisionReason when circuit breaker was silent"
         )
+
+
+# ---------------------------------------------------------------------------
+# _cb_warning_reason injection via ToolHandler.handle_pre_tool_fast (MCP branch)
+# ---------------------------------------------------------------------------
+
+
+class TestCbWarningReasonToolHandlerMcpBranch:
+    """Verify that the circuit-breaker warning reason propagates through
+    ToolHandler.handle_pre_tool_fast() on the mcp__github__ branch.
+
+    tool_handler.py has an independent reimplementation of the same MCP
+    _cb_warning_reason injection logic (~L334-343).  These tests drive that
+    path directly, independent of pretooluse_dispatcher.
+    """
+
+    def _make_tool_handler(self):
+        """Build a minimal ToolHandler with mocked dependencies."""
+        from unittest.mock import MagicMock
+
+        from claude_mpm.hooks.claude_hooks.handlers.base import BaseEventHandler
+        from claude_mpm.hooks.claude_hooks.handlers.tool_handler import ToolHandler
+
+        mock_hh = MagicMock()
+        mock_hh._emit_socketio_event = MagicMock(return_value=None)
+        mock_hh._get_delegation_agent_type = MagicMock(return_value="unknown")
+
+        base = MagicMock(spec=BaseEventHandler)
+        base.hook_handler = mock_hh
+        base._get_git_branch = MagicMock(return_value="main")
+        base.log_manager = None
+
+        return ToolHandler(base)
+
+    def _mcp_event(self, tool_name: str = "mcp__github__create_pull_request") -> dict:
+        return {
+            "hook_event_name": "PreToolUse",
+            "tool_name": tool_name,
+            "tool_input": {
+                "title": "My PR",
+                "body": f"Description\n\n{CLAUDE_CODE_FOOTER_OLD}",
+            },
+            "session_id": "test-session",
+            "cwd": "/tmp",
+        }
+
+    def test_warning_reason_injected_via_tool_handler_mcp(self, monkeypatch):
+        """When context breaker fires allow+warning AND MCP footer is rewritten,
+        ToolHandler.handle_pre_tool_fast must inject permissionDecisionReason."""
+        from claude_mpm.hooks import context_circuit_breaker
+
+        warning_msg = "Context at 96% — consider compacting"
+
+        monkeypatch.setattr(
+            context_circuit_breaker,
+            "evaluate",
+            lambda _event: {
+                "permissionDecision": "allow",
+                "permissionDecisionReason": warning_msg,
+            },
+        )
+
+        handler = self._make_tool_handler()
+        response = handler.handle_pre_tool_fast(self._mcp_event())
+
+        assert response is not None, "Expected a response dict, not None"
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, "Expected hookSpecificOutput when footer was rewritten"
+
+        # Body must have been rewritten to canonical footer.
+        updated_input = hso.get("updatedInput", {})
+        assert MPM_FOOTER_CANONICAL in updated_input.get("body", ""), (
+            "Expected MPM canonical footer in rewritten MCP body"
+        )
+
+        # Warning reason must have been injected.
+        assert hso.get("permissionDecisionReason") == warning_msg, (
+            f"Expected warning reason in hookSpecificOutput, "
+            f"got: {hso.get('permissionDecisionReason')!r}"
+        )
+
+    def test_no_warning_when_breaker_silent_tool_handler(self, monkeypatch):
+        """When the circuit breaker does not fire, no permissionDecisionReason
+        is present in the MCP footer-rewrite response from ToolHandler."""
+        from claude_mpm.hooks import context_circuit_breaker
+
+        monkeypatch.setattr(
+            context_circuit_breaker,
+            "evaluate",
+            lambda _event: {},
+        )
+
+        handler = self._make_tool_handler()
+        response = handler.handle_pre_tool_fast(self._mcp_event())
+
+        assert response is not None, "Expected a response dict, not None"
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, "Expected hookSpecificOutput when footer was rewritten"
+        assert MPM_FOOTER_CANONICAL in hso.get("updatedInput", {}).get("body", "")
+        # No warning reason when breaker was silent.
+        assert not hso.get("permissionDecisionReason"), (
+            "Expected no permissionDecisionReason when circuit breaker was silent"
+        )
