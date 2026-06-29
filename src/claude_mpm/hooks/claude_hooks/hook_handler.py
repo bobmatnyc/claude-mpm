@@ -497,6 +497,23 @@ class ClaudeHookHandler:
                     f"🧹 Performed cleanup after {self.state_manager.events_processed} events"
                 )
 
+            # WorktreeCreate: short-circuit BEFORE generic routing.
+            # Contract: stdout must be ONLY the absolute worktree path; exit 0 on
+            # success, non-zero on failure.  The generic _continue_execution path
+            # would print {"continue": true} which breaks Claude Code's harness.
+            if hook_type == "WorktreeCreate":
+                # Disarm the SIGALRM timeout handler BEFORE any git I/O.
+                # If git worktree add runs long (slow FS / NFS / large repo) and
+                # the 10-second alarm fires, the timeout_handler checks
+                # _continue_sent before emitting {"continue": true}.  Setting it
+                # True here ensures the alarm can never emit bogus JSON for this
+                # event type, re-triggering the exact bug this PR fixes (#906).
+                _continue_sent = True
+                self._handle_worktree_create(event)
+                # _handle_worktree_create always calls sys.exit(); this line is
+                # unreachable but satisfies static analysis.
+                return
+
             # Route event to appropriate handler
             # Returns modified_input for PreToolUse, or decision dict for Stop hooks
             handler_result = self._route_event(event)
@@ -762,6 +779,165 @@ class ClaudeHookHandler:
             )
         else:
             print(json.dumps({"continue": True}), flush=True)
+
+    def _handle_worktree_create(self, event: dict) -> None:
+        """Implement the WorktreeCreate hook contract for the Python entry point.
+
+        WHAT: Creates a git worktree for Claude Code's ``isolation:"worktree"``
+              feature, prints the absolute path to stdout, and exits.
+        WHY: Claude Code inspects stdout from the WorktreeCreate hook handler
+             expecting an absolute directory path.  The generic
+             ``_continue_execution`` helper emits ``{"continue": true}`` JSON
+             which Claude Code rejects with
+             "WorktreeCreate hook returned a path that is not a directory".
+             This method mirrors the logic in ``claude-hook-fast.sh`` lines
+             ~102-175 so the Python binary and bash script behave identically.
+
+        Contract (Claude Code spec):
+        - stdin JSON contains ``name`` (suggested slug) and ``cwd`` (repo root)
+        - Hook must run ``git worktree add`` and print the ABSOLUTE PATH to stdout
+        - Exit 0 on success, non-zero (sys.exit(1)) on failure
+        - No other bytes may appear on stdout
+
+        The dashboard socketio event is emitted best-effort BEFORE printing the
+        path so that no extra bytes leak onto stdout.
+
+        :spec: SPEC-HOOKS-03~1
+        """
+        name: str = event.get("name", "")
+        cwd: str = event.get("cwd", "")
+
+        # ------------------------------------------------------------------
+        # Sanitise the suggested slug (mirrors bash: lowercase, non-alnum → '-')
+        # ------------------------------------------------------------------
+        safe_name: str = ""
+        if name:
+            safe_name = name.lower()
+            safe_name = re.sub(r"[^a-z0-9-]+", "-", safe_name)
+            safe_name = re.sub(r"-+", "-", safe_name).strip("-")
+
+        if not safe_name:
+            import time as _time
+
+            safe_name = f"worktree-{int(_time.time()) % 1_000_000:06d}"
+
+        # ------------------------------------------------------------------
+        # Resolve repo root
+        # ------------------------------------------------------------------
+        repo_root: str = cwd or ""
+        if not repo_root:
+            try:
+                repo_root = subprocess.check_output(  # nosec B603 B607
+                    ["git", "rev-parse", "--show-toplevel"],
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                ).strip()
+            except Exception:
+                repo_root = str(Path.cwd())
+
+        # Canonicalize (resolve symlinks / trailing slashes)
+        try:
+            repo_root = str(Path(repo_root).resolve())
+        except Exception:
+            pass
+
+        # ------------------------------------------------------------------
+        # Determine worktree location:
+        # <parent_of_repo>/<repo-basename>-worktrees/<safe_name>
+        # This matches claude-hook-fast.sh exactly.
+        # ------------------------------------------------------------------
+        repo_path = Path(repo_root)
+        parent_dir = repo_path.parent
+        repo_basename = repo_path.name
+        worktree_dir = parent_dir / f"{repo_basename}-worktrees"
+        worktree_path = worktree_dir / safe_name
+
+        # Ensure the parent directory for worktrees exists
+        try:
+            worktree_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:
+            _log(f"WorktreeCreate: failed to create worktree dir: {exc}")
+            sys.exit(1)
+
+        worktree_path_str = str(worktree_path)
+
+        # ------------------------------------------------------------------
+        # Emit dashboard event (best-effort, must happen BEFORE any stdout)
+        # ------------------------------------------------------------------
+        try:
+            self.event_handlers.handle_worktree_create_fast(event)
+        except Exception as exc:
+            _log(f"WorktreeCreate: dashboard emit failed (non-fatal): {exc}")
+
+        # ------------------------------------------------------------------
+        # Attempt 1: create worktree + new branch named safe_name
+        # All git output is suppressed so only the path goes to stdout.
+        # ------------------------------------------------------------------
+        try:
+            result = subprocess.run(  # nosec B603 B607
+                [
+                    "git",
+                    "-C",
+                    repo_root,
+                    "worktree",
+                    "add",
+                    worktree_path_str,
+                    "-b",
+                    safe_name,
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            if result.returncode == 0:
+                print(worktree_path_str, flush=True)
+                sys.exit(0)
+        except Exception as exc:
+            _log(f"WorktreeCreate: attempt 1 exception: {exc}")
+
+        # ------------------------------------------------------------------
+        # Attempt 2: create worktree without specifying a branch
+        # (branch already exists, detached HEAD, etc.)
+        # ------------------------------------------------------------------
+        try:
+            result = subprocess.run(  # nosec B603 B607
+                ["git", "-C", repo_root, "worktree", "add", worktree_path_str],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            if result.returncode == 0:
+                print(worktree_path_str, flush=True)
+                sys.exit(0)
+        except Exception as exc:
+            _log(f"WorktreeCreate: attempt 2 exception: {exc}")
+
+        # ------------------------------------------------------------------
+        # Attempt 3: path already registered as a worktree — re-use it
+        # ------------------------------------------------------------------
+        try:
+            if worktree_path.is_dir():
+                list_result = subprocess.run(  # nosec B603 B607
+                    ["git", "-C", repo_root, "worktree", "list"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    check=False,
+                )
+                if (
+                    list_result.returncode == 0
+                    and worktree_path_str in list_result.stdout
+                ):
+                    print(worktree_path_str, flush=True)
+                    sys.exit(0)
+        except Exception as exc:
+            _log(f"WorktreeCreate: attempt 3 exception: {exc}")
+
+        # ------------------------------------------------------------------
+        # All attempts failed — signal failure to Claude Code
+        # ------------------------------------------------------------------
+        _log(f"WorktreeCreate: all attempts failed for path '{worktree_path_str}'")
+        sys.exit(1)
 
     # Delegation methods for compatibility with event_handlers
     def _track_delegation(self, session_id: str, agent_type: str, request_data=None):
