@@ -606,6 +606,7 @@ class TestInteractiveSession:
         mock_env = {
             "PATH": "/usr/bin",
             "CLAUDE_CODE_ENTRYPOINT": "test",
+            "CLAUDE_CODE_CHILD_SESSION": "1",
             "CLAUDECODE": "test",
             "CLAUDE_CONFIG_DIR": "test",
             "CLAUDE_MAX_PARALLEL_SUBAGENTS": "test",
@@ -618,6 +619,7 @@ class TestInteractiveSession:
 
             # Should remove Claude-specific variables
             assert "CLAUDE_CODE_ENTRYPOINT" not in result
+            assert "CLAUDE_CODE_CHILD_SESSION" not in result
             assert "CLAUDECODE" not in result
             assert "CLAUDE_CONFIG_DIR" not in result
             assert "CLAUDE_MAX_PARALLEL_SUBAGENTS" not in result
@@ -626,6 +628,25 @@ class TestInteractiveSession:
             # Should keep other variables
             assert result["PATH"] == "/usr/bin"
             assert result["OTHER_VAR"] == "keep"
+
+    def test_prepare_environment_strips_child_session_var(self, interactive_session):
+        """CLAUDE_CODE_CHILD_SESSION must be absent from child env even when set.
+
+        Regression guard for issue #905: when MPM is itself launched inside a
+        Claude Code session the parent sets CLAUDE_CODE_CHILD_SESSION, which
+        propagates into the PM subprocess and hides the /remote slash command.
+        """
+        mock_env = {
+            "PATH": "/usr/bin",
+            "CLAUDE_CODE_CHILD_SESSION": "some-session-id",
+        }
+
+        with patch("os.environ.copy", return_value=mock_env):
+            result = interactive_session._prepare_environment()
+
+        assert "CLAUDE_CODE_CHILD_SESSION" not in result
+        # Sanity: unrelated vars survive
+        assert result["PATH"] == "/usr/bin"
 
     def test_change_to_user_directory_success(self, interactive_session, tmp_path):
         """Test changing to user directory successfully."""

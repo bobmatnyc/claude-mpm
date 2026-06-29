@@ -578,6 +578,29 @@ class TestOneshotSession:
                 "CLAUDE_MPM_IS_PM": "1",
             }
 
+    def test_prepare_environment_strips_child_session_var(self, oneshot_session):
+        """CLAUDE_CODE_CHILD_SESSION must be absent from child env even when set.
+
+        Regression guard for issue #905: when MPM is itself launched inside a
+        Claude Code session the parent sets CLAUDE_CODE_CHILD_SESSION, which
+        propagates into the PM subprocess and hides the /remote slash command.
+        """
+        mock_env = {
+            "PATH": "/usr/bin",
+            "CLAUDE_CODE_CHILD_SESSION": "some-session-id",
+            "CLAUDE_CODE_ENTRYPOINT": "vscode",
+            "CLAUDECODE": "1",
+        }
+
+        with patch("os.environ.copy", return_value=mock_env):
+            result = oneshot_session._prepare_environment()
+
+        assert "CLAUDE_CODE_CHILD_SESSION" not in result
+        assert "CLAUDE_CODE_ENTRYPOINT" not in result
+        assert "CLAUDECODE" not in result
+        # Unrelated vars survive
+        assert result["PATH"] == "/usr/bin"
+
     def test_prepare_environment_telemetry_opt_in(self, oneshot_session, monkeypatch):
         """When DISABLE_TELEMETRY=0 in shell, var must be absent from subprocess env.
 

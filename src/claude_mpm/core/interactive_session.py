@@ -593,6 +593,7 @@ class InteractiveSession:
         # Remove Claude-specific variables that might interfere
         claude_vars_to_remove = [
             "CLAUDE_CODE_ENTRYPOINT",
+            "CLAUDE_CODE_CHILD_SESSION",
             "CLAUDECODE",
             "CLAUDE_CONFIG_DIR",
             "CLAUDE_MAX_PARALLEL_SUBAGENTS",

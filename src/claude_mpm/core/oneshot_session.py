@@ -366,6 +366,17 @@ class OneshotSession:
         """Prepare the execution environment."""
         env = os.environ.copy()
 
+        # Remove Claude-specific variables inherited from a parent Claude session
+        # that would interfere with the spawned subprocess (e.g. CLAUDE_CODE_CHILD_SESSION
+        # hides the /remote slash command inside MPM-launched Claude sessions).
+        claude_vars_to_remove = [
+            "CLAUDE_CODE_CHILD_SESSION",
+            "CLAUDE_CODE_ENTRYPOINT",
+            "CLAUDECODE",
+        ]
+        for var in claude_vars_to_remove:
+            env.pop(var, None)
+
         # Apply env var defaults (propagates user's DISABLE_TELEMETRY preference)
         apply_subprocess_env_defaults(env)
 
