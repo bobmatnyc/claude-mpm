@@ -502,6 +502,13 @@ class ClaudeHookHandler:
             # success, non-zero on failure.  The generic _continue_execution path
             # would print {"continue": true} which breaks Claude Code's harness.
             if hook_type == "WorktreeCreate":
+                # Disarm the SIGALRM timeout handler BEFORE any git I/O.
+                # If git worktree add runs long (slow FS / NFS / large repo) and
+                # the 10-second alarm fires, the timeout_handler checks
+                # _continue_sent before emitting {"continue": true}.  Setting it
+                # True here ensures the alarm can never emit bogus JSON for this
+                # event type, re-triggering the exact bug this PR fixes (#906).
+                _continue_sent = True
                 self._handle_worktree_create(event)
                 # _handle_worktree_create always calls sys.exit(); this line is
                 # unreachable but satisfies static analysis.
@@ -797,8 +804,6 @@ class ClaudeHookHandler:
 
         :spec: SPEC-HOOKS-03~1
         """
-        import re as _re
-
         name: str = event.get("name", "")
         cwd: str = event.get("cwd", "")
 
@@ -808,8 +813,8 @@ class ClaudeHookHandler:
         safe_name: str = ""
         if name:
             safe_name = name.lower()
-            safe_name = _re.sub(r"[^a-z0-9-]+", "-", safe_name)
-            safe_name = _re.sub(r"-+", "-", safe_name).strip("-")
+            safe_name = re.sub(r"[^a-z0-9-]+", "-", safe_name)
+            safe_name = re.sub(r"-+", "-", safe_name).strip("-")
 
         if not safe_name:
             import time as _time
