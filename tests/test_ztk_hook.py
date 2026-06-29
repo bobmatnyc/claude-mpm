@@ -624,6 +624,15 @@ def test_resolve_ztk_no_auto_install_when_verify_false(tmp_path, monkeypatch):
         "/usr/bin/make build",
         "/usr/local/bin/sam deploy",
         "/opt/homebrew/bin/make -j4",
+        # gradlew (Gradle wrapper) — same large-env risk as gradle
+        "./gradlew build",
+        "gradlew assemble",
+        # env-var prefix bypass (HIGH — #907 finding 1)
+        "FOO=bar make deploy",
+        "ENV=prod VAR=1 sam deploy",
+        # transparent prefix bypass (HIGH — #907 finding 2)
+        "sudo make install",
+        "time make build",
     ],
 )
 def test_orchestrator_commands_passthrough(tmp_path, monkeypatch, command):
@@ -631,6 +640,9 @@ def test_orchestrator_commands_passthrough(tmp_path, monkeypatch, command):
 
     Rationale: these tools exec subprocess chains with large environments;
     ztk's Zig proxy exits code 2 on E2BIG / long-PATH conditions.
+
+    Also covers: env-var assignment prefixes (FOO=bar make ...) and transparent
+    prefix commands (sudo / time) that were previously slipping through.
     """
     ztk = _working_ztk(tmp_path / "ztk")
     _force_candidate(monkeypatch, ztk)
@@ -646,14 +658,26 @@ def test_non_orchestrator_still_wrapped(tmp_path, monkeypatch):
     _force_candidate(monkeypatch, ztk)
     resp = ztk_hook.build_ztk_response(_bash_event("ls -la"))
     assert "hookSpecificOutput" in resp, "ls -la should be rewritten by ztk"
+    # The rewritten command must begin with the resolved ztk binary path.
+    rewritten = resp["hookSpecificOutput"]["updatedInput"]["command"]
+    assert rewritten.startswith(str(ztk)), (
+        f"expected rewritten command to start with ztk path {ztk!r}, got {rewritten!r}"
+    )
 
 
 def test_make_like_prefix_not_excluded(tmp_path, monkeypatch):
-    """A command whose name merely starts with 'make' (e.g. makeinfo) is NOT
-    excluded — the guard compares the full basename, not a prefix.
+    """Commands whose names merely start with 'make' or 'ant' are NOT excluded —
+    the guard compares the full basename, not a prefix.
     """
     ztk = _working_ztk(tmp_path / "ztk")
     _force_candidate(monkeypatch, ztk)
-    resp = ztk_hook.build_ztk_response(_bash_event("makeinfo --version"))
-    # makeinfo is not in _ORCHESTRATOR_EXCLUSIONS so it should be wrapped
-    assert "hookSpecificOutput" in resp, "makeinfo should not be excluded"
+
+    for cmd in ("makeinfo --version", "antlr MyGrammar.g4"):
+        resp = ztk_hook.build_ztk_response(_bash_event(cmd))
+        assert "hookSpecificOutput" in resp, (
+            f"{cmd!r} should not be excluded (full-basename match only)"
+        )
+        rewritten = resp["hookSpecificOutput"]["updatedInput"]["command"]
+        assert rewritten.startswith(str(ztk)), (
+            f"expected rewritten command to start with ztk path; got {rewritten!r}"
+        )
