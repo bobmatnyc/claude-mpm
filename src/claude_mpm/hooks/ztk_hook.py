@@ -46,6 +46,25 @@ _DISABLE_ENV_VAR = "CLAUDE_MPM_DISABLE_ZTK"
 _MPM_LOG_DIR = Path.home() / ".claude-mpm"
 _MPM_ZTK_LOG = _MPM_LOG_DIR / "ztk-savings.log"
 
+# Build/deploy orchestrators that spawn long subprocess chains with large
+# environments.  ztk's Zig proxy exits with code 2 on E2BIG / long-PATH
+# conditions (upstream issue against github.com/codejunkie99/ztk recommended).
+# Because orchestrators often print partial success ("Build Succeeded") before
+# a later stage fails, the exit-2 looks like success while downstream steps
+# silently never run.  We therefore skip ztk wrapping for these commands.
+_ORCHESTRATOR_EXCLUSIONS: frozenset[str] = frozenset(
+    {
+        "make",
+        "sam",
+        "rake",
+        "gradle",
+        "mvn",
+        "ant",
+        "cdk",
+        "terraform",
+    }
+)
+
 # ---------------------------------------------------------------------------
 # Functional verification cache + self-test
 # ---------------------------------------------------------------------------
@@ -717,6 +736,17 @@ def _build_ztk_response_impl(event: dict) -> dict:
     # any compound/piped command through UNCHANGED rather than wrap it.
     if "\n" in command or any(op in command for op in ("&&", "||", ";", "|")):
         _log_debug("command is compound/piped; passing through (avoids partial output)")
+        return {"continue": True}
+
+    # Exclusion: skip build/deploy orchestrators that spawn long subprocess chains
+    # with large environments.  See module-level _ORCHESTRATOR_EXCLUSIONS for
+    # the full list and rationale.
+    first_token = Path(stripped.split()[0]).name if stripped.split() else ""
+    if first_token in _ORCHESTRATOR_EXCLUSIONS:
+        _log_debug(
+            f"command first token {first_token!r} is a build/deploy orchestrator;"
+            " skipping ztk (avoids E2BIG/exit-2 on long PATH+argv chains)"
+        )
         return {"continue": True}
 
     # Graceful degradation: ztk must be resolvable
