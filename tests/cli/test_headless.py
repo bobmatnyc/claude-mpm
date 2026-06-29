@@ -502,6 +502,36 @@ class TestHeadlessIntegration:
 
         assert env.get("CI") == "true"
 
+    def test_environment_strips_child_session_var(self, mock_runner):
+        """CLAUDE_CODE_CHILD_SESSION must be absent from child env even when set.
+
+        Regression guard for issue #905: when MPM is itself launched inside a
+        Claude Code session the parent sets CLAUDE_CODE_CHILD_SESSION, which
+        propagates into the PM subprocess and hides the /remote slash command.
+        """
+        import os
+
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        with patch.dict(
+            os.environ,
+            {
+                "CLAUDE_CODE_CHILD_SESSION": "some-session-id",
+                "CLAUDE_CODE_ENTRYPOINT": "vscode",
+                "CLAUDECODE": "1",
+            },
+        ):
+            env = session._prepare_environment()
+
+        assert "CLAUDE_CODE_CHILD_SESSION" not in env
+        assert "CLAUDE_CODE_ENTRYPOINT" not in env
+        assert "CLAUDECODE" not in env
+
     def test_run_passes_through_custom_claude_args(self, mock_runner):
         """Custom claude_args should be passed to os.execvpe."""
         mock_runner.claude_args = ["--model", "opus"]
