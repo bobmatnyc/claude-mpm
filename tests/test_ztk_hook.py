@@ -602,3 +602,58 @@ def test_resolve_ztk_no_auto_install_when_verify_false(tmp_path, monkeypatch):
 
     ztk_hook._resolve_ztk(verify=False)
     assert install_calls == []
+
+
+# ---------------------------------------------------------------------------
+# #904: build/deploy orchestrator exclusions (E2BIG / long-PATH guard)
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "command",
+    [
+        # Bare orchestrator names
+        "make deploy-agents",
+        "sam deploy",
+        "sam build",
+        "rake test",
+        "gradle build",
+        "mvn package",
+        "ant compile",
+        "cdk deploy",
+        "terraform apply",
+        # Full absolute paths normalise to the basename
+        "/usr/bin/make build",
+        "/usr/local/bin/sam deploy",
+        "/opt/homebrew/bin/make -j4",
+    ],
+)
+def test_orchestrator_commands_passthrough(tmp_path, monkeypatch, command):
+    """Build/deploy orchestrators must NOT be wrapped (passthrough).
+
+    Rationale: these tools exec subprocess chains with large environments;
+    ztk's Zig proxy exits code 2 on E2BIG / long-PATH conditions.
+    """
+    ztk = _working_ztk(tmp_path / "ztk")
+    _force_candidate(monkeypatch, ztk)
+    resp = ztk_hook.build_ztk_response(_bash_event(command))
+    assert resp == {"continue": True}, (
+        f"orchestrator command was incorrectly rewritten: {command!r}"
+    )
+
+
+def test_non_orchestrator_still_wrapped(tmp_path, monkeypatch):
+    """A normal command (ls -la) is still wrapped even after the new guard."""
+    ztk = _working_ztk(tmp_path / "ztk")
+    _force_candidate(monkeypatch, ztk)
+    resp = ztk_hook.build_ztk_response(_bash_event("ls -la"))
+    assert "hookSpecificOutput" in resp, "ls -la should be rewritten by ztk"
+
+
+def test_make_like_prefix_not_excluded(tmp_path, monkeypatch):
+    """A command whose name merely starts with 'make' (e.g. makeinfo) is NOT
+    excluded — the guard compares the full basename, not a prefix.
+    """
+    ztk = _working_ztk(tmp_path / "ztk")
+    _force_candidate(monkeypatch, ztk)
+    resp = ztk_hook.build_ztk_response(_bash_event("makeinfo --version"))
+    # makeinfo is not in _ORCHESTRATOR_EXCLUSIONS so it should be wrapped
+    assert "hookSpecificOutput" in resp, "makeinfo should not be excluded"
