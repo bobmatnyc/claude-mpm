@@ -58,12 +58,20 @@ _ORCHESTRATOR_EXCLUSIONS: frozenset[str] = frozenset(
         "sam",
         "rake",
         "gradle",
+        # gradlew is the Gradle wrapper script — spawns Gradle with the same
+        # large environment as `gradle` itself.
+        "gradlew",
         "mvn",
         "ant",
         "cdk",
         "terraform",
     }
 )
+
+# Transparent prefix commands that are skipped before extracting the effective
+# command basename for orchestrator exclusion.  Only these two well-known,
+# single-token prefixes are stripped — we do NOT recurse arbitrarily.
+_TRANSPARENT_PREFIXES: frozenset[str] = frozenset({"sudo", "time"})
 
 # ---------------------------------------------------------------------------
 # Functional verification cache + self-test
@@ -672,6 +680,40 @@ def _compute_currency(installed: str | None, required: str | None) -> str:
     return "current"
 
 
+def _effective_command_basename(stripped: str) -> str:
+    """Return the effective command basename after skipping env-var assignments
+    and transparent prefix commands.
+
+    WHY: ``FOO=bar make deploy`` and ``sudo make install`` must be treated as
+    orchestrator commands the same way as bare ``make deploy``.  We skip:
+    1. Leading shell env-var assignment tokens (``NAME=value``).
+    2. Up to one transparent prefix from ``_TRANSPARENT_PREFIXES`` (``sudo``,
+       ``time``).
+
+    We do NOT recurse arbitrarily to avoid falsely excluding commands like
+    ``sudo sudo some-other-cmd`` — two prefixes are more likely a mistake than
+    an intended invocation pattern.
+
+    Returns the empty string when no command token remains (edge case: the
+    entire string is env assignments).
+    """
+    _ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+    tokens = stripped.split()
+    # Skip leading VAR=value tokens.
+    while tokens and _ENV_ASSIGN_RE.match(tokens[0]):
+        tokens = tokens[1:]
+
+    if not tokens:
+        return ""
+
+    # Skip at most one transparent prefix (sudo / time).
+    if tokens[0] in _TRANSPARENT_PREFIXES and len(tokens) > 1:
+        tokens = tokens[1:]
+
+    return Path(tokens[0]).name
+
+
 def build_ztk_response(event: dict) -> dict:
     """Build the ztk-rewrite response for a Bash tool call.
 
@@ -741,10 +783,12 @@ def _build_ztk_response_impl(event: dict) -> dict:
     # Exclusion: skip build/deploy orchestrators that spawn long subprocess chains
     # with large environments.  See module-level _ORCHESTRATOR_EXCLUSIONS for
     # the full list and rationale.
-    first_token = Path(stripped.split()[0]).name if stripped.split() else ""
-    if first_token in _ORCHESTRATOR_EXCLUSIONS:
+    # _effective_command_basename strips leading VAR=value assignments and a
+    # single transparent prefix (sudo / time) before comparing the basename.
+    effective_cmd = _effective_command_basename(stripped)
+    if effective_cmd in _ORCHESTRATOR_EXCLUSIONS:
         _log_debug(
-            f"command first token {first_token!r} is a build/deploy orchestrator;"
+            f"effective command {effective_cmd!r} is a build/deploy orchestrator;"
             " skipping ztk (avoids E2BIG/exit-2 on long PATH+argv chains)"
         )
         return {"continue": True}
