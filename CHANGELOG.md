@@ -19,6 +19,14 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.71 (2026-06-30)
+
+### Fix
+
+- strip CLAUDE_CODE_CHILD_SESSION so /remote is available in MPM sessions (#905) (#908)
+- implement WorktreeCreate contract in Python hook path (#906) (#909)
+- exclude make/sam and build orchestrators from ztk wrapping (#904) (#907)
+
 ## v6.5.70 (2026-06-25)
 
 ### Fix
