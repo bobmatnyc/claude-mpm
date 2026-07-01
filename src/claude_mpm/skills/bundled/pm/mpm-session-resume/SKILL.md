@@ -2,7 +2,7 @@
 name: mpm-session-resume
 description: Load context from paused session
 user-invocable: true
-version: "1.4.2"
+version: "1.4.3"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -163,4 +163,6 @@ This skill is fundamentally different from Claude Code's native `claude --resume
 - `claude-mpm session pause` — CLI entry point for pause
 - `claude-mpm session resume --help` — Full CLI usage
 
-See `docs/features/session-auto-resume.md` for auto-pause behavior.
+See the "Context Usage Monitoring" section of the `mpm-session-management` skill for
+how context-usage thresholds and warnings work (session pause is manual-only; there
+is no auto-pause).
