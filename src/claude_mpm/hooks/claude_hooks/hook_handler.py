@@ -514,6 +514,20 @@ class ClaudeHookHandler:
                 # unreachable but satisfies static analysis.
                 return
 
+            # WorktreeRemove: short-circuit BEFORE generic routing.
+            # Contract: stdout must be {"continue": true}; exit 0 always.
+            # The generic _route_event path invokes the passthrough handler
+            # which is observability-only and never runs git worktree remove,
+            # causing worktree directories to accumulate on disk (#912).
+            if hook_type == "WorktreeRemove":
+                # Disarm the SIGALRM timeout handler BEFORE any git I/O so
+                # that a slow removal can never trigger a double-emit.
+                _continue_sent = True
+                self._handle_worktree_remove(event)
+                # _handle_worktree_remove always calls sys.exit(); this line is
+                # unreachable but satisfies static analysis.
+                return
+
             # Route event to appropriate handler
             # Returns modified_input for PreToolUse, or decision dict for Stop hooks
             handler_result = self._route_event(event)
@@ -938,6 +952,94 @@ class ClaudeHookHandler:
         # ------------------------------------------------------------------
         _log(f"WorktreeCreate: all attempts failed for path '{worktree_path_str}'")
         sys.exit(1)
+
+    def _handle_worktree_remove(self, event: dict) -> None:
+        """Implement the WorktreeRemove hook contract for the Python entry point.
+
+        WHAT: Removes the git worktree at the path supplied by Claude Code,
+              prints ``{"continue": true}`` to stdout, and exits 0.
+        WHY: The generic ``_route_event`` path delegates to an observability-only
+             passthrough handler that returns ``None`` and never runs
+             ``git worktree remove``, so worktree directories accumulate on
+             disk after each isolated agent session ends (#912).  This method
+             mirrors ``claude-hook-fast.sh`` lines ~188-212 so the Python
+             binary and the bash script behave identically.
+
+        Contract (Claude Code spec):
+        - stdin JSON contains ``path`` (absolute path of the worktree to remove)
+          and ``cwd`` (repo root hint).
+        - Hook must run ``git worktree remove --force <path>`` and print
+          ``{"continue": true}`` to stdout.
+        - Exit 0 always — removal failures must not block Claude Code.
+        - Stdout must be exactly ``{"continue": true}`` (no extra bytes).
+
+        The dashboard socketio event is emitted best-effort BEFORE printing so
+        that no extra bytes leak onto stdout.
+
+        :spec: SPEC-HOOKS-03~1
+        """
+        path: str = event.get("path", event.get("worktree_path", ""))
+        cwd: str = event.get("cwd", "")
+
+        # ------------------------------------------------------------------
+        # Graceful no-op when path is absent
+        # ------------------------------------------------------------------
+        if not path:
+            _log("WorktreeRemove: no path field in event, skipping git removal")
+            print(json.dumps({"continue": True}), flush=True)
+            sys.exit(0)
+
+        # ------------------------------------------------------------------
+        # Resolve repo root (same logic as _handle_worktree_create)
+        # ------------------------------------------------------------------
+        repo_root: str = cwd or ""
+        if not repo_root:
+            try:
+                repo_root = subprocess.check_output(  # nosec B603 B607
+                    ["git", "rev-parse", "--show-toplevel"],
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                ).strip()
+            except Exception:
+                repo_root = str(Path.cwd())
+
+        try:
+            repo_root = str(Path(repo_root).resolve())
+        except Exception:
+            pass
+
+        # ------------------------------------------------------------------
+        # Emit dashboard event (best-effort, must happen BEFORE any stdout)
+        # ------------------------------------------------------------------
+        try:
+            self.event_handlers.handle_worktree_remove_fast(event)
+        except Exception as exc:
+            _log(f"WorktreeRemove: dashboard emit failed (non-fatal): {exc}")
+
+        # ------------------------------------------------------------------
+        # Run git worktree remove --force; failure is non-fatal (#912 spec)
+        # ------------------------------------------------------------------
+        try:
+            result = subprocess.run(  # nosec B603 B607
+                ["git", "-C", repo_root, "worktree", "remove", "--force", path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                _log(
+                    f"WorktreeRemove: git worktree remove exited {result.returncode} "
+                    f"for path '{path}': {result.stderr.strip()}"
+                )
+        except Exception as exc:
+            _log(f"WorktreeRemove: exception running git worktree remove: {exc}")
+
+        # ------------------------------------------------------------------
+        # Always signal continue — removal failures must not block Claude Code
+        # ------------------------------------------------------------------
+        print(json.dumps({"continue": True}), flush=True)
+        sys.exit(0)
 
     # Delegation methods for compatibility with event_handlers
     def _track_delegation(self, session_id: str, agent_type: str, request_data=None):
