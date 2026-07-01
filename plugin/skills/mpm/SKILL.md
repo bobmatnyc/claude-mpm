@@ -2,7 +2,7 @@
 name: mpm
 description: Access Claude MPM functionality and manage multi-agent orchestration
 user-invocable: true
-version: "2.0.0"
+version: "2.0.1"
 category: mpm-command
 tags: [mpm-command, system, pm-required, framework]
 ---
@@ -32,43 +32,28 @@ Task(description="[what to do]", subagent_type="[agent-type]")
 
 ## Available Agents
 
-### Core Agents (always deployed)
+Claude MPM deploys a diverse set of specialized agents for different types of work. The canonical, always-current agent list is available via:
+- **`/agent-list` skill**: View all available agents
+- **Agent tool's available-agent-types**: Check which agents are active in your environment
+- **Delegation guide**: `src/claude_mpm/agents/AGENT_DELEGATION.md`
 
-| Agent | subagent_type | Role |
-|-------|---------------|------|
-| Engineer | `engineer` | Code implementation, refactoring, debugging |
-| Research | `Research` | Investigation, analysis, codebase exploration |
-| QA | `qa` | Testing, validation, quality assurance |
-| Documentation | `documentation` | Docs generation, API specs, guides |
-| Ops | `ops` | Deployment, infrastructure, operations |
-| Security | `security` | Vulnerability assessment, security review |
-| Ticketing | `ticketing` | Ticket tracking and workflow management |
+### Representative Agent Categories
 
-### Extended Agents (deployed per project)
+**Core Agents** (always deployed): `engineer`, `research`, `qa`, `documentation`, `ops`, `security`, `ticketing`
 
-| Agent | subagent_type | Role |
-|-------|---------------|------|
-| Version Control | `version-control` | Git operations, PR management, tagging |
-| Code Analyzer | `code-analyzer` | Codebase analysis, architecture review |
-| Code Review | `code-review` | PR review, semantic analysis |
-| Data Engineer | `data-engineer` | Database management, API integrations |
-| Product Owner | `product-owner` | Requirements, user stories, prioritization |
+**Extended Agents** (deployed per project): `version-control`, `data-engineer`, `product-owner`, `project-organizer`, `prompt-engineer`, `memory-manager`
 
-### Language-Specific Engineers
+**Language-Specific Engineers**: `python-engineer`, `typescript-engineer`, `javascript-engineer`, `golang-engineer`, `rust-engineer`, `java-engineer`, `ruby-engineer`, `php-engineer`, `dart-engineer`
 
-Deployed automatically based on project toolchain detection:
+**Framework Specialists**: `nextjs-engineer`, `react-engineer`, `svelte-engineer`, `tauri-engineer`, `phoenix-engineer`
 
-`python-engineer`, `typescript-engineer`, `javascript-engineer`, `golang-engineer`, `rust-engineer`, `java-engineer`, `ruby-engineer`, `php-engineer`, `dart-engineer`
+**Platform Operations**: `local-ops`, `vercel-ops`, `gcp-ops`, `aws-ops`, `digitalocean-ops`, `clerk-ops`
 
-**Framework specialists**: `nextjs-engineer`, `react-engineer`, `svelte-engineer`, `tauri-engineer`, `phoenix-engineer`
+**Quality & Testing**: `api-qa`, `web-qa`, `real-user`, `refactoring-engineer`
 
-### Platform Ops
+**Specialized**: `imagemagick`, `content`, `agentic-coder-optimizer`, `data-scientist`
 
-`local-ops` (local dev, PM2, Docker), `vercel-ops`, `gcp-ops`, `digitalocean-ops`, `clerk-ops`, `railway-ops`
-
-### Specialized Agents
-
-`api-qa`, `web-qa`, `code-review`, `code-analyzer`, `refactoring-engineer`, `prompt-engineer`, `content-agent`, `imagemagick`, `memory-manager`
+**Note**: The agent ecosystem evolves as features are added. Rather than listing every agent here (which would grow stale), use `/agent-list` or check your Agent tool's available-agent-types for the complete, current catalog.
 
 ## Skills System
 
