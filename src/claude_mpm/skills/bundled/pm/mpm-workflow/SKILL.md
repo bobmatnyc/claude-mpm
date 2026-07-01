@@ -1,6 +1,6 @@
 ---
 name: mpm-workflow
-version: "1.0.1"
+version: "1.0.2"
 description: Manage and customize MPM workflow configurations with local overrides
 when_to_use: workflow customization, phase configuration, verification gates, agent routing
 category: pm-configuration
@@ -35,7 +35,7 @@ Workflow Configuration Status:
   Source: project (.claude-mpm/WORKFLOW.md)
   Phases: 5
   Verification Gates: Enabled
-  Custom Overrides: Phase 2 (Code Analyzer) skipped
+  Custom Overrides: Phase 2 (Code Analysis) skipped
 ```
 
 ### `init`
@@ -77,8 +77,8 @@ Validating workflow configuration...
 **Output**: Requirements, constraints, success criteria
 **Template**: ...
 
-### Phase 2: Code Analyzer Review
-**Agent**: Code Analyzer
+### Phase 2: Code Analysis Review
+**Agent**: Code Analysis
 **Output**: APPROVED/NEEDS_IMPROVEMENT/BLOCKED
 **Decision**: ...
 
@@ -108,11 +108,11 @@ Validating workflow configuration...
 
 ## Customization Examples
 
-### Skip Code Analyzer for Trusted Projects
+### Skip Code Analysis for Trusted Projects
 
 ```markdown
-### Phase 2: Code Analyzer Review
-**Agent**: Code Analyzer
+### Phase 2: Code Analysis Review
+**Agent**: Code Analysis
 **Status**: OPTIONAL
 **Skip When**: Small fixes, documentation only
 ```
