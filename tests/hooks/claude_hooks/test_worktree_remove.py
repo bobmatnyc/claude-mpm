@@ -391,3 +391,203 @@ class TestHandleIntegrationWorktreeRemove:
             f"_continue_execution was called {len(continue_called)} time(s) for "
             f"WorktreeRemove — must not be called: {continue_called}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: SIGALRM timeout guard for WorktreeRemove
+# ---------------------------------------------------------------------------
+
+
+class TestWorktreeRemoveTimeoutGuard:
+    """Regression tests for the SIGALRM timeout + WorktreeRemove race condition.
+
+    Before the fix, if git worktree remove ran long and the 10-second SIGALRM
+    fired, timeout_handler would emit {"continue": true} to stdout because
+    _continue_sent was still False.
+
+    The fix sets _continue_sent = True immediately when WorktreeRemove is
+    detected, BEFORE any git I/O starts, so the timeout handler is disarmed.
+    """
+
+    def test_continue_sent_set_before_worktree_remove_runs(
+        self, tmp_path: Path
+    ) -> None:
+        """_continue_sent must be True before _handle_worktree_remove is entered.
+
+        Verify the observable consequence: even if _handle_worktree_remove raises
+        SystemExit(0) immediately (simulating an interrupted git operation),
+        _continue_execution must not have been called — the guard prevents
+        double-emit.
+        """
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        handler = ClaudeHookHandler()
+        event = _make_event(path="/some/worktree/path", cwd=str(tmp_path))
+        event_json = json.dumps(event)
+
+        continue_called: list = []
+        original_continue = handler._continue_execution
+
+        def tracking_continue(*args, **kwargs):  # type: ignore[no-untyped-def]
+            continue_called.append((args, kwargs))
+            return original_continue(*args, **kwargs)
+
+        handler._continue_execution = tracking_continue  # type: ignore[method-assign]
+
+        # Make _handle_worktree_remove raise SystemExit(0) immediately,
+        # as if SIGALRM interrupted it mid-git-operation.
+        def fake_handle_worktree_remove(evt: dict) -> None:
+            raise SystemExit(0)
+
+        handler._handle_worktree_remove = fake_handle_worktree_remove  # type: ignore[method-assign]
+
+        captured_stdout = StringIO()
+        with patch("sys.stdout", captured_stdout):
+            with patch("sys.stdin") as mock_stdin:
+                mock_stdin.isatty.return_value = False
+                mock_stdin.read.return_value = event_json
+                with patch("select.select", return_value=([mock_stdin], [], [])):
+                    with pytest.raises(SystemExit):
+                        handler.handle()
+
+        # _continue_execution must NOT have been called — the guard worked.
+        assert len(continue_called) == 0, (
+            f"_continue_execution was called {len(continue_called)} time(s); "
+            f"_continue_sent guard did not protect WorktreeRemove from the timeout handler"
+        )
+        stdout = captured_stdout.getvalue().strip()
+        assert '{"continue":' not in stdout, (
+            f"stdout contains bogus continue JSON — timeout guard failed: {stdout!r}"
+        )
+
+    def test_timeout_handler_cannot_emit_json_for_worktree_remove(
+        self, tmp_path: Path
+    ) -> None:
+        """Simulate SIGALRM firing during WorktreeRemove: stdout must not contain JSON.
+
+        Verify from the outside-in: when _handle_worktree_remove exits immediately,
+        the output on stdout must not contain {"continue": JSON emitted by the
+        fallback path (i.e. the _continue_sent = True guard prevents double-emit).
+        """
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        handler = ClaudeHookHandler()
+        event = _make_event(path="/some/worktree/path", cwd=str(tmp_path))
+        event_json = json.dumps(event)
+
+        def fake_handle_worktree_remove(evt: dict) -> None:
+            raise SystemExit(0)
+
+        handler._handle_worktree_remove = fake_handle_worktree_remove  # type: ignore[method-assign]
+
+        captured_stdout = StringIO()
+        with patch("sys.stdout", captured_stdout):
+            with patch("sys.stdin") as mock_stdin:
+                mock_stdin.isatty.return_value = False
+                mock_stdin.read.return_value = event_json
+                with patch("select.select", return_value=([mock_stdin], [], [])):
+                    with pytest.raises(SystemExit):
+                        handler.handle()
+
+        stdout = captured_stdout.getvalue()
+        assert '{"continue": true}' not in stdout, (
+            f"Timeout guard failed: stdout contains bogus JSON: {stdout!r}"
+        )
+        assert '"continue"' not in stdout, (
+            f"Timeout guard failed: stdout contains JSON fragment: {stdout!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Path-containment guard tests
+# ---------------------------------------------------------------------------
+
+
+class TestWorktreeRemovePathContainmentGuard:
+    """Tests for the path-containment guard added to _handle_worktree_remove.
+
+    A WorktreeRemove event whose path is OUTSIDE the expected worktrees root
+    must be rejected: exit 0, {"continue": true}, NO git worktree remove call.
+    """
+
+    def test_path_outside_worktrees_root_exits_zero(self, tmp_git_repo: Path) -> None:
+        """A path outside <repo-parent>/<repo>-worktrees/ must exit 0."""
+        # Path outside the worktrees root — e.g. /tmp itself
+        outside_path = str(tmp_git_repo.parent / "some-other-directory" / "data")
+        event = _make_event(path=outside_path, cwd=str(tmp_git_repo))
+        _stdout, exit_code = _invoke_handle_worktree_remove(event)
+        assert exit_code == 0, f"Expected exit 0 for out-of-root path, got {exit_code}"
+
+    def test_path_outside_worktrees_root_stdout_is_continue_json(
+        self, tmp_git_repo: Path
+    ) -> None:
+        """A path outside the worktrees root must still emit {"continue": true}."""
+        outside_path = str(tmp_git_repo.parent / "some-other-directory" / "data")
+        event = _make_event(path=outside_path, cwd=str(tmp_git_repo))
+        stdout, exit_code = _invoke_handle_worktree_remove(event)
+        assert exit_code == 0
+        parsed = json.loads(stdout)
+        assert parsed == {"continue": True}, f"Unexpected stdout: {stdout!r}"
+
+    def test_path_outside_worktrees_root_no_git_invocation(
+        self, tmp_git_repo: Path
+    ) -> None:
+        """git worktree remove must NOT be called for a path outside the worktrees root."""
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        handler = ClaudeHookHandler()
+        outside_path = str(tmp_git_repo.parent / "outside" / "escaped-path")
+        event = _make_event(path=outside_path, cwd=str(tmp_git_repo))
+
+        captured_stdout = StringIO()
+        git_remove_calls: list = []
+
+        original_run = subprocess.run
+
+        def tracking_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+            if isinstance(cmd, list) and "worktree" in cmd and "remove" in cmd:
+                git_remove_calls.append(cmd)
+            return original_run(cmd, *args, **kwargs)
+
+        with patch("subprocess.run", side_effect=tracking_run):
+            with patch("sys.stdout", captured_stdout):
+                with pytest.raises(SystemExit):
+                    handler._handle_worktree_remove(event)
+
+        assert len(git_remove_calls) == 0, (
+            f"git worktree remove was called for an out-of-root path: {git_remove_calls}"
+        )
+
+    def test_path_inside_worktrees_root_allows_git_invocation(
+        self, tmp_git_repo: Path
+    ) -> None:
+        """A path correctly inside the worktrees root must reach the git remove call."""
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        handler = ClaudeHookHandler()
+        # Path inside the expected worktrees root (may not exist — that's OK, removal
+        # failure is non-fatal and still exits 0)
+        inside_path = str(
+            tmp_git_repo.parent / f"{tmp_git_repo.name}-worktrees" / "test-agent"
+        )
+        event = _make_event(path=inside_path, cwd=str(tmp_git_repo))
+
+        captured_stdout = StringIO()
+        git_remove_calls: list = []
+
+        original_run = subprocess.run
+
+        def tracking_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+            if isinstance(cmd, list) and "worktree" in cmd and "remove" in cmd:
+                git_remove_calls.append(cmd)
+            return original_run(cmd, *args, **kwargs)
+
+        with patch("subprocess.run", side_effect=tracking_run):
+            with patch("sys.stdout", captured_stdout):
+                with pytest.raises(SystemExit):
+                    handler._handle_worktree_remove(event)
+
+        assert len(git_remove_calls) == 1, (
+            f"Expected git worktree remove to be called once for a valid path, "
+            f"got {len(git_remove_calls)} calls"
+        )
