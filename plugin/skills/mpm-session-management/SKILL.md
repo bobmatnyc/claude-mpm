@@ -10,92 +10,64 @@ alwaysApply: false
 **Applies To**: Project Manager Agent
 **Load Priority**: On-demand (context limit or session resume)
 
+> **Umbrella skill.** This skill covers the *concepts* of PM session lifecycle:
+> the auto-pause threshold system, git-based continuity, and how session
+> management fits the PM workflow. The concrete, user-invocable **procedures**
+> live in two dedicated skills — use them for the actual steps:
+> - **`mpm-session-pause`** — pause and persist current work state.
+> - **`mpm-session-resume`** — load context from a paused session.
+>
+> Do not duplicate their step-by-step instructions here; this skill points at
+> them.
+
 ## Purpose
 
-This skill provides session pause/resume capabilities for the PM when context limits are approaching or when resuming from a previous session. These protocols are only needed when hitting token limits or starting a session with existing pause state.
+This skill provides the conceptual model for PM session pause/resume when
+context limits are approaching or when resuming from a previous session. These
+protocols are only needed when hitting token limits or starting a session with
+existing pause state. For the operational steps, invoke `mpm-session-pause` /
+`mpm-session-resume`.
 
 ## When This Skill Is Loaded
 
-- Context usage reaches 70%+ thresholds
-- Session starts with `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
+- Context usage reaches 70%+ thresholds (informational warnings only)
 - Session starts with `.claude-mpm/sessions/LATEST-SESSION.txt`
 - User runs `/mpm-session-resume`
 
-## Auto-Pause System
+## Context Usage Monitoring
 
-The MPM framework automatically tracks context usage and pauses sessions when approaching limits:
+The MPM framework continuously tracks context usage and provides informational warnings as usage approaches limits. Context-usage auto-pause (which used to abort sessions at 90% usage) was disabled in commit da5166603 (PR #646) to preserve legitimate active work.
 
-### Threshold Levels
+### Threshold Levels and Warnings
 
 | Level | Usage | Behavior |
 |-------|-------|----------|
-| Caution | 70% | Warning displayed |
-| Warning | 85% | Stronger warning |
-| **Auto-Pause** | **90%** | **Session pause activated, actions recorded** |
-| Critical | 95% | Session nearly exhausted |
+| Caution | 70% | Informational warning: "Context usage at 70%. Consider wrapping up current work." |
+| Warning | 85% | Informational warning: "Context usage at 85%. Session nearing capacity." |
+| Auto-Pause Disabled | 90% | Informational warning: "Context usage at 90%. Consider wrapping up or running /compact (auto-pause is disabled)." |
+| Critical | 95% | Informational warning: "Context usage at 95%. Consider wrapping up or running /compact (auto-pause is disabled)." |
 
-### Auto-Pause Behavior (at 90%)
+Crossing these thresholds **only produces informational warnings**. No session pause is triggered, no ACTIVE-PAUSE.jsonl file is created. Sessions continue normally.
 
-When context usage reaches 90%:
+### Manual Session Pause
 
-1. Creates `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
-2. Records all subsequent actions (tool calls, responses) incrementally
-3. Displays warning to user about context limits
-4. On session end, finalizes to full session snapshot
+To save session state before context limits:
 
-The incremental recording ensures all work is captured even if the session hits hard limits.
+1. Use the **`/mpm-session-pause`** skill to explicitly create a session snapshot
+2. This captures git state, todos, task list, and accomplishments into `.claude-mpm/sessions/session-{timestamp}.*` files
+3. Sessions are stored in project-local `.claude-mpm/sessions/` directory (not synced across machines)
 
 ## Session Resume Protocol
 
-### At Session Start, PM Checks For
+> **Procedure.** The step-by-step resume flow now lives in **`mpm-session-resume`**.
+> Invoke that skill to load and display context from a paused session.
 
-**1. Active Incremental Pause**: `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
+When resuming work:
 
-If found:
-- Display warning with action count and context percentage
-- Options:
-  - **Continue**: Resume work from pause state
-  - **Finalize**: Run `/mpm-init pause --finalize` to create snapshot
-  - **Discard**: Start fresh (previous work still in git)
-
-**Example Response**:
-```
-⚠️ Active session pause detected
-
-Actions recorded: 47
-Context usage: ~92%
-
-Options:
-1. Continue working (actions will be recorded)
-2. Finalize pause: /mpm-init pause --finalize
-3. Discard pause: Delete .claude-mpm/sessions/ACTIVE-PAUSE.jsonl
-
-Would you like to continue from the paused session?
-```
-
-**2. Finalized Pause**: `.claude-mpm/sessions/LATEST-SESSION.txt`
-
-If found:
-- Display resume context with accomplishments and next steps
-- Load context from the session snapshot
-- Continue where previous session left off
-
-**Example Response**:
-```
-📋 Resuming from previous session
-
-Last session accomplished:
-- ✅ Implemented OAuth2 authentication (Engineer)
-- ✅ Deployed to staging (Vercel-ops)
-- ⏸️ QA verification in progress
-
-Next steps:
-- Complete QA verification of auth flow
-- Update documentation
-- Deploy to production
-
-Continue with QA verification?
-```
+1. Use **`/mpm-session-resume`** to load the most recent paused session
+2. The skill detects `.claude-mpm/sessions/LATEST-SESSION.txt` and loads the associated snapshot
+3. Session accomplishments, pending tasks, and git context are displayed
+4. PM can continue work with full prior context
 
 ## PM Response to Context Warnings
 
@@ -183,31 +155,32 @@ Context: Implementation complete, middleware updates in progress
 
 ## Session Files Structure
 
+Sessions are stored project-locally in `.claude-mpm/sessions/`:
+
 ```
 .claude-mpm/sessions/
-├── ACTIVE-PAUSE.jsonl      # Incremental actions during auto-pause
-├── LATEST-SESSION.txt      # Pointer to most recent finalized session
-├── session-*.json          # Machine-readable session snapshots
-├── session-*.yaml          # YAML format
-└── session-*.md            # Human-readable markdown
+├── LATEST-SESSION.txt       # Pointer to most recent paused session
+├── session-YYYYMMDD-HHMMSS.json   # Machine-readable session snapshots
+└── session-YYYYMMDD-HHMMSS.md     # Human-readable markdown summary
 ```
 
 ### File Purposes
 
-- **ACTIVE-PAUSE.jsonl**: Real-time action recording during auto-pause
 - **LATEST-SESSION.txt**: Points to most recent finalized session file
-- **session-*.json**: Complete session state (todos, context, agents used)
-- **session-*.yaml**: Same as JSON but YAML format
+- **session-*.json**: Complete session state (todos, git status, accomplishments, next steps)
 - **session-*.md**: Human-readable summary for quick review
+
+Sessions are created manually via `/mpm-session-pause` skill. The ACTIVE-PAUSE.jsonl file (used during auto-pause) is no longer created since auto-pause is disabled.
 
 ## Best Practices
 
 ### When Context Limits Approach
 
-1. **Don't panic**: Auto-pause system will capture your work
+1. **Monitor warnings**: When you see context warnings (70%+), begin wrapping up
 2. **Finish current phase**: Complete the delegation in progress
-3. **Update todos**: Ensure all todos reflect current state
-4. **Create handoff context**: Next PM session needs to understand state
+3. **Update todos**: Ensure all todos reflect current status
+4. **Create session snapshot**: Invoke `/mpm-session-pause` to save state for later resume
+5. **Create handoff context**: Document what's completed and what remains
 
 ### When Resuming Sessions
 
@@ -225,55 +198,12 @@ Context: Implementation complete, middleware updates in progress
 
 ## Common Scenarios
 
-### Scenario 1: Auto-Pause During Implementation
+Session pause/resume scenarios reduce to two procedures:
 
-```
-Context: 90% during Engineer delegation
+- **Approaching context limits / wrapping up** → Follow the "PM Response to Context Warnings" protocol above, then invoke **`/mpm-session-pause`** to create a session snapshot that persists your work state.
+- **Returning to work** → Invoke **`/mpm-session-resume`**, which loads the most recent paused session snapshot and displays prior accomplishments, pending tasks, and git context.
 
-PM Actions:
-1. Wait for Engineer to complete current file
-2. Track files immediately (git add + commit)
-3. Update todo with completion status
-4. Create summary of implementation state
-5. Session pauses, all recorded in ACTIVE-PAUSE.jsonl
-
-Next Session:
-1. PM detects ACTIVE-PAUSE.jsonl
-2. Continues from implementation state
-3. Proceeds to QA verification phase
-```
-
-### Scenario 2: Resume After Finalized Pause
-
-```
-Context: User returns to continue work
-
-PM Actions:
-1. Detects LATEST-SESSION.txt
-2. Loads session-{timestamp}.md for human summary
-3. Loads session-{timestamp}.json for full state
-4. Checks git log for verification
-5. Presents summary to user
-6. Continues workflow from next phase
-```
-
-### Scenario 3: Context Warning During Research
-
-```
-Context: 75% during Research agent investigation
-
-PM Actions:
-1. Allow Research to complete current investigation
-2. Don't start new research tasks
-3. Collect Research findings
-4. Document findings in session state
-5. Prepare for potential pause at 90%
-
-If 90% reached:
-1. Research findings already documented
-2. Implementation can start in next session
-3. Clear handoff context available
-```
+Keep delegations atomic and commit incrementally so either procedure resumes from a clean point.
 
 ## Integration with PM Workflow
 
@@ -286,11 +216,11 @@ User Request
     ↓
 Research (if needed)
     ↓
-[Monitor context usage]
+[Monitor context usage — watch for warnings]
     ↓
 Implementation
     ↓
-[Auto-pause if 90% reached]
+[Approaching limit? → /mpm-session-pause]
     ↓
 Deployment
     ↓
@@ -298,7 +228,7 @@ QA
     ↓
 Documentation
     ↓
-[Final session snapshot if paused]
+[Save session snapshot if context is high]
     ↓
 Report Results
 ```
@@ -313,6 +243,8 @@ Report Results
 
 ## Related Skills
 
+- `mpm-session-pause` - **Procedure**: pause and persist current work state
+- `mpm-session-resume` - **Procedure**: load context from a paused session
 - `mpm-git-file-tracking` - File tracking during pause/resume
 - `mpm-verification-protocols` - Verification state during pause
 - `mpm-delegation-patterns` - Resuming delegations mid-workflow
