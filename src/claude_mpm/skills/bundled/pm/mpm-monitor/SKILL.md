@@ -2,7 +2,7 @@
 name: mpm-monitor
 description: Control monitoring server and dashboard
 user-invocable: true
-version: "1.0.0"
+version: "1.0.1"
 category: mpm-command
 tags: [mpm-command, system, pm-optional]
 effort: low
@@ -28,6 +28,6 @@ Manage Socket.IO monitoring server for real-time dashboard.
 - `--force`: Force kill to reclaim port
 - `--foreground`: Run in foreground (default: background)
 
-Dashboard: http://localhost:8766
+Dashboard: http://localhost:8765
 
 See docs/commands/monitor.md for details.

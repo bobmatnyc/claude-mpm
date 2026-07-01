@@ -1,6 +1,6 @@
 ---
 name: mpm-workflow
-version: "1.0.0"
+version: "1.0.2"
 description: Manage and customize MPM workflow configurations with local overrides
 when_to_use: workflow customization, phase configuration, verification gates, agent routing
 category: pm-configuration
@@ -22,44 +22,38 @@ Workflow files are loaded with the following priority (highest to lowest):
 2. **User-level**: `~/.claude-mpm/WORKFLOW.md` - User preferences across all projects
 3. **System default**: Built-in framework WORKFLOW.md
 
-## Commands
+## Actions
 
-### `/mpm-workflow status`
+These are skill-driven actions, not `claude-mpm workflow` CLI subcommands -- there is no such CLI surface. When this skill is invoked (e.g. via `/mpm-workflow status`), Claude itself reads, writes, or validates the WORKFLOW.md files directly, following the priority order above (project -> user -> system default).
 
-Show current workflow configuration and source:
+### `status`
+
+When invoked with `status`, Claude reports the current workflow configuration and its source. Example of what Claude reports back:
 
 ```
 Workflow Configuration Status:
   Source: project (.claude-mpm/WORKFLOW.md)
   Phases: 5
   Verification Gates: Enabled
-  Custom Overrides: Phase 2 (Code Analyzer) skipped
+  Custom Overrides: Phase 2 (Code Analysis) skipped
 ```
 
-### `/mpm-workflow init`
+### `init`
 
-Initialize a local workflow configuration file:
+When invoked with `init`, Claude creates a local workflow configuration file:
 
-```bash
-# Creates .claude-mpm/WORKFLOW.md with defaults
-/mpm-workflow init
+- `/mpm-workflow init` -- Claude creates `.claude-mpm/WORKFLOW.md` with defaults
+- `/mpm-workflow init --minimal` -- Claude creates it with a minimal template
 
-# Creates with minimal template
-/mpm-workflow init --minimal
-```
+### `reset`
 
-### `/mpm-workflow reset`
+When invoked with `reset`, Claude removes the local override so the system default takes effect:
 
-Reset to default workflow configuration:
+- `/mpm-workflow reset` -- Claude removes the local override, falling back to the system default
 
-```bash
-# Removes local override, uses system default
-/mpm-workflow reset
-```
+### `validate`
 
-### `/mpm-workflow validate`
-
-Validate the current workflow configuration:
+When invoked with `validate`, Claude checks the current workflow configuration for completeness and reports findings. Example of what Claude reports back:
 
 ```
 Validating workflow configuration...
@@ -83,8 +77,8 @@ Validating workflow configuration...
 **Output**: Requirements, constraints, success criteria
 **Template**: ...
 
-### Phase 2: Code Analyzer Review
-**Agent**: Code Analyzer
+### Phase 2: Code Analysis Review
+**Agent**: Code Analysis
 **Output**: APPROVED/NEEDS_IMPROVEMENT/BLOCKED
 **Decision**: ...
 
@@ -114,11 +108,11 @@ Validating workflow configuration...
 
 ## Customization Examples
 
-### Skip Code Analyzer for Trusted Projects
+### Skip Code Analysis for Trusted Projects
 
 ```markdown
-### Phase 2: Code Analyzer Review
-**Agent**: Code Analyzer
+### Phase 2: Code Analysis Review
+**Agent**: Code Analysis
 **Status**: OPTIONAL
 **Skip When**: Small fixes, documentation only
 ```
@@ -175,6 +169,4 @@ The workflow loader automatically injects workflow configuration into PM instruc
 
 ### Reset to defaults
 
-```bash
-/mpm-workflow reset
-```
+Invoke this skill with `/mpm-workflow reset` and Claude will remove the local override directly.

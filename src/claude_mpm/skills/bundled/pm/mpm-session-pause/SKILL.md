@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.5.0"
+version: "1.5.1"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -248,4 +248,4 @@ should not be committed. No git commit is created by the pause operation.
 - Add `.claude-mpm/sessions/` to `.gitignore`
 - No git commit is created — sessions live outside version control
 - LATEST-SESSION.txt always points to most recent session in the current project
-- Session format compatible with auto-pause feature (70% context trigger)
+- Session pause is manual-only; context-usage crossing thresholds (70%+) only prints informational warnings (auto-pause is disabled)
