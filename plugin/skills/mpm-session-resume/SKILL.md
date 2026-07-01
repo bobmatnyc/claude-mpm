@@ -153,8 +153,8 @@ This loads the session summary, accomplishments, next steps, git history, and pe
 
 This skill is fundamentally different from Claude Code's native `claude --resume`/`--continue` and checkpoint-rewind (Esc-Esc / `/rewind`):
 
-- **Native `claude --resume`**: Replays the actual prior conversation transcript and tool-call history within the **same tool session**. State is ephemeral and lost when the tool exits.
-- **`/mpm-session-pause` + `/mpm-session-resume`**: Captures a textual summary (git state, todos, task list, accomplishments) into `.claude-mpm/sessions/*.json` files. A **NEW conversation** in a new tool invocation loads the summary into context. Useful for resuming across multiple Claude Code sessions, long breaks, or context resets.
+- **Native `claude --resume`/`--continue`**: Replays the full raw conversation transcript (persisted to a JSONL file on disk) and continues the **exact same conversation thread**, typically scoped to the same working directory. This is not ephemeral — the transcript survives the tool exiting.
+- **`/mpm-session-pause` + `/mpm-session-resume`**: Captures a condensed textual summary (git state, todos, task list, accomplishments) into `.claude-mpm/sessions/*.json` files, loaded into a **brand-new conversation** rather than replaying the transcript. Useful for cross-project handoff, long-form work spanning many separate conversations, or a fresh context window with just the essential summary instead of the full raw history.
 
 ## Related Commands
 
