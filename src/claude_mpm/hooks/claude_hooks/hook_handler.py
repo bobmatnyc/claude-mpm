@@ -1009,6 +1009,47 @@ class ClaudeHookHandler:
             pass
 
         # ------------------------------------------------------------------
+        # Path-containment guard: resolve path and verify it is inside the
+        # expected worktrees root before force-removing anything.
+        #
+        # WHY: ``git worktree remove --force`` is destructive.  A symlink or
+        # path-traversal payload in the ``path`` field could escape the
+        # worktrees directory and wipe arbitrary on-disk state.  We resolve
+        # both paths to their real, symlink-free absolute forms and reject
+        # any path that does not live inside the worktrees root.
+        #
+        # The expected root matches the convention used by _handle_worktree_create:
+        #   <parent_of_repo>/<repo-basename>-worktrees/
+        # If the incoming path lands outside that root we log the rejection
+        # and exit 0 with {"continue": true} — identical to the no-path case
+        # so that removal safety never blocks Claude Code.
+        # ------------------------------------------------------------------
+        repo_path = Path(repo_root)
+        worktrees_root = repo_path.parent / f"{repo_path.name}-worktrees"
+        try:
+            resolved_path = Path(path).resolve()
+            resolved_root = worktrees_root.resolve()
+        except Exception as exc:
+            _log(
+                f"WorktreeRemove: failed to resolve paths for containment check "
+                f"(path={path!r}, root={worktrees_root!r}): {exc} — skipping git removal"
+            )
+            print(json.dumps({"continue": True}), flush=True)
+            sys.exit(0)
+
+        path_is_contained = (
+            resolved_path == resolved_root or resolved_root in resolved_path.parents
+        )
+        if not path_is_contained:
+            _log(
+                f"WorktreeRemove: REJECTED — resolved path {resolved_path!r} is not "
+                f"contained within worktrees root {resolved_root!r}; "
+                f"skipping git worktree remove to prevent accidental data loss"
+            )
+            print(json.dumps({"continue": True}), flush=True)
+            sys.exit(0)
+
+        # ------------------------------------------------------------------
         # Emit dashboard event (best-effort, must happen BEFORE any stdout)
         # ------------------------------------------------------------------
         try:
