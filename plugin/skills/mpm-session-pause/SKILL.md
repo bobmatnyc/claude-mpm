@@ -2,7 +2,7 @@
 name: mpm-session-pause
 description: Pause session and save current work state for later resume
 user-invocable: true
-version: "1.5.0"
+version: "1.5.1"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 ---
@@ -17,9 +17,8 @@ When invoked, this skill:
 1. Captures current work state (todos, git status, context summary)
 2. Creates session files at `.claude-mpm/sessions/session-{timestamp}.*` (project-local)
 3. Updates `.claude-mpm/sessions/LATEST-SESSION.txt` pointer
-4. **Prunes stale git worktrees** under `<repo>/.claude/worktrees/` (see Worktree
-   Pruning section below)
-5. Shows user the session file path for later resume
+4. **Prunes stale git worktrees** under `<repo>/.claude/worktrees/` (see below)
+5. Shows the session file path for later resume
 
 ## Usage
 
@@ -76,7 +75,8 @@ A strict path-containment guard ensures deletion can never escape
 `.claude/worktrees/` — symlinks that resolve outside the directory are
 rejected and preserved.
 
-**Output** — after the session files are written, the pause command prints:
+**Output** — after the session files are written, the pause command prints a
+concise cleanup summary, e.g.:
 
 ```
 Worktree Cleanup:
@@ -88,8 +88,8 @@ Worktree Cleanup:
     /repo/.claude/worktrees/leftover-xyz: has uncommitted or untracked changes
 ```
 
-**Opt-out** — pass `--no-prune-worktrees` to the CLI to skip all cleanup (both
-registered pruning and orphan sweep):
+**Opt-out** — pass `--no-prune-worktrees` to skip all cleanup (both registered
+pruning and orphan sweep):
 
 ```bash
 claude-mpm session pause --no-prune-worktrees
@@ -97,7 +97,7 @@ claude-mpm session pause --no-prune-worktrees
 
 ## Implementation
 
-Run the console script directly:
+Run the console script directly — no interpreter resolution needed:
 
 ```bash
 # Basic pause (includes worktree pruning)
@@ -113,21 +113,40 @@ claude-mpm session pause --no-prune-worktrees
 claude-mpm session pause --export /tmp/session-backup.json
 ```
 
-Or invoke programmatically:
+If the user provided a message after `/mpm-session-pause`, pass it via `-m`:
 
-```python
-from pathlib import Path
-from claude_mpm.services.cli.session_pause_manager import SessionPauseManager
-
-manager = SessionPauseManager(project_path=Path.cwd())
-
-# Default: pruning enabled
-session_id = manager.create_pause_session(
-    message="End of day",
-    prune_worktrees=True,   # set False to skip pruning
-)
-print(f"Session ID: {session_id}")
+```bash
+claude-mpm session pause -m "<user message here>"
 ```
+
+### If `claude-mpm session pause` fails
+
+If the command exits non-zero, capture the full error and show it verbatim —
+do **not** summarise with a generic "not importable" message:
+
+```bash
+claude-mpm session pause 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    echo ""
+    echo "ERROR: claude-mpm session pause failed (exit $rc)."
+    echo "Full error shown above."
+    echo ""
+    echo "Diagnostic steps:"
+    echo "  1. Verify claude-mpm is on PATH:  command -v claude-mpm"
+    echo "  2. Check the actual import error:  python3 -c 'import claude_mpm' 2>&1"
+    echo "  3. If a transitive dep fails (e.g. shadowed stdlib module), check"
+    echo "     sys.path[0] is not /tmp:  python3 -c 'import sys; print(sys.path[0])'"
+fi
+```
+
+> **Note on misleading ImportError messages (issue #781):** A bare
+> `except ImportError` can fire for transitive failures (e.g. a stray
+> `/tmp/bisect.py` shadowing stdlib `bisect`) unrelated to `claude_mpm`
+> itself. Always inspect the **actual** exception — `e.name` tells you
+> which module failed. If `e.name` does not start with `claude_mpm`, the
+> problem is a shadowed or missing transitive dependency, not a missing
+> `claude_mpm` installation.
 
 ## What Gets Saved
 
@@ -147,7 +166,6 @@ print(f"Session ID: {session_id}")
 **File Formats:**
 - `.md` - Human-readable markdown (for reading)
 - `.json` - Machine-readable (for tooling)
-- `.yaml` - Human-readable config (for editing)
 
 ## Session File Location
 
@@ -156,8 +174,7 @@ All session files are stored in the **project-local** directory:
 <project-root>/.claude-mpm/sessions/
 ├── LATEST-SESSION.txt          # Pointer to most recent session
 ├── session-YYYYMMDD-HHMMSS.md
-├── session-YYYYMMDD-HHMMSS.json
-└── session-YYYYMMDD-HHMMSS.yaml
+└── session-YYYYMMDD-HHMMSS.json
 ```
 
 This ensures sessions are scoped to the project that created them — pausing in
@@ -177,6 +194,11 @@ project A and opening project B will never load project A's session state.
 To resume this session:
 ```
 /mpm-session-resume
+```
+
+Or from the CLI:
+```bash
+claude-mpm session resume
 ```
 
 Or manually:
@@ -215,9 +237,9 @@ should not be committed. No git commit is created by the pause operation.
 
 ## Related Commands
 
-- `/mpm-session-resume` - Resume from most recent paused session
-- `/mpm-init resume` - Alternative resume command
-- See `docs/features/session-auto-resume.md` for auto-pause behavior
+- `/mpm-session-resume` — Resume from most recent paused session
+- `claude-mpm session resume` — CLI entry point for resume
+- `claude-mpm session pause --help` — Full CLI usage
 
 ## Notes
 
@@ -225,4 +247,4 @@ should not be committed. No git commit is created by the pause operation.
 - Add `.claude-mpm/sessions/` to `.gitignore`
 - No git commit is created — sessions live outside version control
 - LATEST-SESSION.txt always points to most recent session in the current project
-- Session format compatible with auto-pause feature (70% context trigger)
+- Session pause is manual-only; context-usage crossing thresholds (70%+) only prints informational warnings (auto-pause is disabled)
