@@ -2,7 +2,7 @@
 name: mpm-session-resume
 description: Load context from paused session
 user-invocable: true
-version: "1.4.1"
+version: "1.4.2"
 category: mpm-command
 tags: [mpm-command, session, pm-recommended]
 effort: medium
@@ -64,6 +64,9 @@ claude-mpm session resume --select 20240101
 
 # Resume by exact session ID
 claude-mpm session resume session-20240101-143022
+
+# Resume from a specific project directory
+claude-mpm session resume --project-path /path/to/project
 ```
 
 > **Permission note (Bug #735):** Do **not** probe for sessions with
@@ -144,8 +147,15 @@ This loads the session summary, accomplishments, next steps, git history, and pe
 ## Notes
 
 - Reads existing sessions only. Does NOT create new files.
-- Auto-pause at 70% context creates sessions automatically; this skill reads them.
+- Session pause is manual-only via `/mpm-session-pause` skill; this skill loads them.
 - Session files are kept after resume (not auto-deleted) so you can resume multiple times.
+
+## Differentiating from Native Claude Code Resume
+
+This skill is fundamentally different from Claude Code's native `claude --resume`/`--continue` and checkpoint-rewind (Esc-Esc / `/rewind`):
+
+- **Native `claude --resume`**: Replays the actual prior conversation transcript and tool-call history within the **same tool session**. State is ephemeral and lost when the tool exits.
+- **`/mpm-session-pause` + `/mpm-session-resume`**: Captures a textual summary (git state, todos, task list, accomplishments) into `.claude-mpm/sessions/*.json` files. A **NEW conversation** in a new tool invocation loads the summary into context. Useful for resuming across multiple Claude Code sessions, long breaks, or context resets.
 
 ## Related Commands
 
