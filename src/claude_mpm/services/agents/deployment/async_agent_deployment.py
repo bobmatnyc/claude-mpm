@@ -31,6 +31,9 @@ import aiofiles
 from claude_mpm.config.paths import paths
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
+from claude_mpm.services.agents.deployment.user_level_routing import (
+    skip_project_level_user_agent,
+)
 
 from .base_agent_locator import BaseAgentLocator
 
@@ -405,6 +408,16 @@ class AsyncAgentDeploymentService:
             """Deploy a single agent asynchronously."""
             try:
                 agent_name = agent.get("_agent_name", "unknown")
+
+                # Never write CORE (USER_LEVEL_AGENTS) agents into a project-level
+                # .claude/agents/ directory; self-heal any stale project copy.
+                if skip_project_level_user_agent(agent_name, agents_dir, self.logger):
+                    self.logger.debug(
+                        f"Skipped user-level CORE agent for project target: "
+                        f"{agent_name}"
+                    )
+                    return None
+
                 target_file = agents_dir / f"{agent_name}.md"
 
                 # Build markdown content in thread pool (CPU-bound)
