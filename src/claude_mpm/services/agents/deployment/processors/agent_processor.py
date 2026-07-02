@@ -4,6 +4,9 @@ import time
 
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.core.logger import get_logger
+from claude_mpm.services.agents.deployment.user_level_routing import (
+    skip_project_level_user_agent,
+)
 
 from .agent_deployment_context import AgentDeploymentContext
 from .agent_deployment_result import AgentDeploymentResult
@@ -40,6 +43,22 @@ class AgentProcessor:
 
         try:
             self.logger.debug(f"Processing agent: {context.agent_name}")
+
+            # Never write CORE (USER_LEVEL_AGENTS) agents into a project-level
+            # .claude/agents/ directory; self-heal any stale project copy.
+            if skip_project_level_user_agent(
+                context.agent_name, context.target_file.parent, self.logger
+            ):
+                self.logger.debug(
+                    f"Skipped user-level CORE agent for project target: "
+                    f"{context.agent_name}"
+                )
+                return AgentDeploymentResult.skipped(
+                    context.agent_name,
+                    context.template_file,
+                    context.target_file,
+                    reason="CORE agent belongs at user level (~/.claude/agents)",
+                )
 
             # Check if agent needs update
             needs_update, is_migration, reason = self._check_update_status(context)
