@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from claude_mpm.core.exceptions import AgentDeploymentError
+from claude_mpm.services.agents.deployment.user_level_routing import (
+    skip_project_level_user_agent,
+)
 from claude_mpm.services.agents.deployment_utils import (
     get_underscore_variant_filename,
     normalize_deployment_filename,
@@ -70,6 +73,16 @@ class SingleAgentDeployer:
             agent_start_time = time.time()
 
             agent_name = template_file.stem
+
+            # Never write CORE (USER_LEVEL_AGENTS) agents into a project-level
+            # .claude/agents/ directory; self-heal any stale project copy.
+            if skip_project_level_user_agent(agent_name, agents_dir, self.logger):
+                results["skipped"].append(agent_name)
+                self.logger.debug(
+                    f"Skipped user-level CORE agent for project target: {agent_name}"
+                )
+                return
+
             normalized_filename = normalize_deployment_filename(f"{agent_name}.md")
             target_file = agents_dir / normalized_filename
 
@@ -222,6 +235,14 @@ class SingleAgentDeployer:
                     f"Agent template not found in any source: {agent_name}"
                 )
                 return False
+
+            # Never write CORE (USER_LEVEL_AGENTS) agents into a project-level
+            # .claude/agents/ directory; self-heal any stale project copy.
+            if skip_project_level_user_agent(agent_name, target_dir, self.logger):
+                self.logger.debug(
+                    f"Skipped user-level CORE agent for project target: {agent_name}"
+                )
+                return True
 
             # Ensure target directory exists
             target_dir.mkdir(parents=True, exist_ok=True)
