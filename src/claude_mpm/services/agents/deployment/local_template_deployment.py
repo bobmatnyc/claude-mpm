@@ -11,6 +11,9 @@ from typing import Any
 import yaml
 
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.agents.deployment.user_level_routing import (
+    skip_project_level_user_agent,
+)
 from claude_mpm.services.agents.local_template_manager import (
     LocalAgentTemplate,
     LocalAgentTemplateManager,
@@ -110,6 +113,14 @@ class LocalTemplateDeploymentService:
         Returns:
             'deployed', 'updated', or 'skipped'
         """
+        # Never write CORE (USER_LEVEL_AGENTS) agents into a project-level
+        # .claude/agents/ directory; self-heal any stale project copy.
+        if skip_project_level_user_agent(template.agent_id, self.target_dir, logger):
+            logger.debug(
+                f"Skipped user-level CORE agent for project target: {template.agent_id}"
+            )
+            return "skipped"
+
         target_file = self.target_dir / f"{template.agent_id}.md"
 
         # Check if needs update
