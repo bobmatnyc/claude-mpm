@@ -46,6 +46,11 @@ claude-mpm session resume session-20240101-143022
 
 **Token usage:** ~20-40k tokens (10-20% of context budget)
 
-**Note:** Reads existing sessions (created automatically at 70% context). Does NOT create new files.
+**Note:** Reads existing sessions only. Does NOT create new files. Sessions are
+created manually via `/mpm-session-pause`; context-usage auto-pause (the old
+"auto-pause at 70% context" behavior) is disabled and no longer writes an
+`ACTIVE-PAUSE.jsonl` artifact automatically — the 70%/90%/95% thresholds now emit
+informational warnings only.
 
-See docs/features/session-auto-resume.md for details.
+For details, see the `mpm-session-resume` / `mpm-session-pause` skills and the
+`mpm-session-management` skill (`src/claude_mpm/skills/bundled/pm/mpm-session-management/SKILL.md`).
