@@ -31,6 +31,10 @@ from claude_mpm.services.agents.agent_manifest import (
     read_agent_manifest,
     write_agent_manifest,
 )
+from claude_mpm.services.core.service_container import (
+    ServiceContainer,
+    get_global_container,
+)
 
 _AGENT_MD_TEMPLATE = """---
 name: {agent_id}
@@ -55,7 +59,35 @@ def _write_agent_md(agents_dir: Path, agent_id: str) -> None:
 def _make_loader():
     """Build a FrameworkLoader with capability/metadata caching disabled so
     each call regenerates from disk instead of returning a stale cached
-    string (mirrors the pattern used in test_local_agent_templates.py)."""
+    string (mirrors the pattern used in test_local_agent_templates.py).
+
+    CRITICAL: passes a brand-new ``ServiceContainer()`` instead of relying
+    on ``FrameworkLoader``'s default (``get_global_container()``).
+
+    ``FrameworkLoader._register_services`` only registers
+    ``ICacheManager``/``IPathResolver``/``IMemoryManager`` the FIRST time
+    they're requested from a given container, and the global container is a
+    process-wide singleton (``claude_mpm.services.core.service_container.
+    _global_container``) that lives for the lifetime of the pytest worker
+    process. If some OTHER test in this worker builds a real, unmocked
+    ``FrameworkLoader()`` first, ``ICacheManager`` gets permanently bound to
+    the REAL ``CacheManager`` class in the global container; every later
+    call to ``patch("claude_mpm.core.framework_loader.CacheManager")``
+    becomes a no-op (``is_registered(ICacheManager)`` is already True), and
+    every subsequent loader -- including this one -- silently inherits that
+    first real ``CacheManager`` singleton and whatever it has cached
+    (typically the real repo's full ~30-agent catalog, cached for up to 60s).
+
+    This is exactly what broke PR #926 in CI: it passed locally when only
+    this narrow test file ran first in the process, and failed under the
+    full/parallel (``pytest -n auto``) suite where other test files had
+    already primed the global container before this module's tests ran.
+    An isolated ``ServiceContainer`` per loader sidesteps the whole problem:
+    ``is_registered(ICacheManager)`` is always False on a fresh container,
+    so the ``patch(...)`` below is honored every time, regardless of what
+    ran before it in this process. See also TestFrameworkLoaderContainerIsolation
+    below, which asserts this directly.
+    """
     from claude_mpm.core.framework_loader import FrameworkLoader
 
     with patch("claude_mpm.core.framework_loader.CacheManager") as mock_cache_cls:
@@ -64,7 +96,7 @@ def _make_loader():
         mock_cache.get_agent_metadata.return_value = None
         mock_cache_cls.return_value = mock_cache
         mock_cache_cls.__name__ = "CacheManager"  # avoid MagicMock repr leaking
-        return FrameworkLoader()
+        return FrameworkLoader(service_container=ServiceContainer())
 
 
 @pytest.fixture
@@ -256,6 +288,114 @@ class TestProjectRootResolution:
         result = loader._filter_agents_by_manifest(deployed, real_project)
 
         assert result == [{"id": "engineer"}]
+
+
+class TestFrameworkLoaderContainerIsolation:
+    """Regression guard for a CI-only failure on PR #926.
+
+    WHAT: Asserts that ``_make_loader()`` (this module's test helper) gives
+    every loader an isolated ``ServiceContainer`` instead of the
+    process-global one, and that two loaders built via ``_make_loader()``
+    never end up sharing the same ``ICacheManager`` instance.
+
+    WHY: ``ServiceContainer`` registers ``ICacheManager``/``IPathResolver``/
+    ``IMemoryManager`` as SINGLETONs the first time they're resolved, and
+    ``get_global_container()`` is a module-level singleton that lives for
+    the whole pytest worker process. Under ``pytest -n auto`` (this repo's
+    CI/`make test` mode), some OTHER test file in the same worker may build
+    a real, unmocked ``FrameworkLoader()`` before this module's tests run.
+    If ``_make_loader()`` ever goes back to using the default/global
+    container, ``patch("claude_mpm.core.framework_loader.CacheManager")``
+    becomes a silent no-op for every loader after that first real one, and
+    every capabilities lookup in this file starts returning whatever the
+    real ``CacheManager`` singleton has cached -- in practice, the real
+    repo's full agent catalog. This exact failure mode is what broke CI on
+    PR #926: narrow local runs passed (nothing had primed the global
+    container yet), the full parallel suite failed (something already had).
+
+    These tests fail loudly if that isolation is ever accidentally removed.
+    """
+
+    def test_make_loader_does_not_use_the_global_container(self, isolated_project):
+        loader = _make_loader()
+
+        assert loader.container is not get_global_container(), (
+            "_make_loader() must construct FrameworkLoader with its own "
+            "ServiceContainer(), not the process-global one -- otherwise "
+            "the CacheManager patch above can be silently bypassed by "
+            "whatever registered ICacheManager first in this process "
+            "(see PR #926 CI failure: real repo's agent catalog leaking "
+            "into these tests)."
+        )
+
+    def test_two_loaders_do_not_share_a_cache_manager_instance(self, isolated_project):
+        loader_a = _make_loader()
+        loader_b = _make_loader()
+
+        assert loader_a._cache_manager is not loader_b._cache_manager, (
+            "Each _make_loader() call must get its own mocked CacheManager "
+            "instance. Two loaders sharing one means the global container's "
+            "SINGLETON caching is leaking across loaders -- exactly the "
+            "mechanism that let the real repo's cached capabilities string "
+            "leak into this module's tests in CI."
+        )
+
+    def test_capabilities_correct_even_when_a_real_loader_ran_first_in_process(
+        self, tmp_path, monkeypatch
+    ):
+        """Directly reproduces the CI failure mode.
+
+        Ordering matters here and mirrors what actually happened in CI: a
+        real, unmocked ``FrameworkLoader`` (as any other test file in the
+        full suite might build) runs FIRST -- while cwd is still wherever
+        the test process started, e.g. the real repo root -- and its real
+        ``CacheManager`` caches the real repo's capabilities string on the
+        process-global container's singleton. THEN this test's isolated
+        fixture project is created and chdir'd into. A properly-isolated
+        ``_make_loader()`` call must see this test's own fixture agent (via
+        the "Test agent engineer" description unique to ``_write_agent_md``),
+        not whatever the real loader cached beforehand -- the cache doesn't
+        care about cwd, so if the two loaders shared a ``CacheManager``, the
+        stale real string would win regardless of any project-root fix.
+        """
+        import claude_mpm.services.core.service_container as service_container_module
+        from claude_mpm.core.framework_loader import FrameworkLoader
+
+        # Reset the global container around this test only, so priming it
+        # here can't leak into unrelated tests that happen to run after
+        # this one in the same worker.
+        monkeypatch.setattr(service_container_module, "_global_container", None)
+
+        # Simulate "some other test built a real FrameworkLoader first" by
+        # constructing one against the (now-fresh) global container BEFORE
+        # this test's own project directory/chdir exist, and priming its
+        # capabilities cache.
+        real_loader = FrameworkLoader()
+        real_loader._generate_agent_capabilities_section()
+
+        # Now set up this test's isolated fixture project and chdir into it.
+        project_dir = tmp_path / "project"
+        fake_home = tmp_path / "fake_home"
+        project_dir.mkdir()
+        fake_home.mkdir()
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+        monkeypatch.delenv("CLAUDE_MPM_USER_PWD", raising=False)
+
+        agents_dir = project_dir / ".claude" / "agents"
+        _write_agent_md(agents_dir, "engineer")
+        write_agent_manifest(project_dir, ["engineer"])
+
+        # A properly-isolated loader must be unaffected by the cache primed
+        # above -- it must see THIS test's fixture agent, not the real
+        # repo's cached catalog.
+        capabilities = _make_loader()._generate_agent_capabilities_section()
+
+        assert "Test agent engineer" in capabilities, (
+            "capabilities must reflect THIS test's fixture agent, not a "
+            "stale capabilities string cached by an earlier, unmocked "
+            "FrameworkLoader sharing the process-global container"
+        )
 
 
 class TestAgentManifestReadWrite:
