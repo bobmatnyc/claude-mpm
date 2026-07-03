@@ -72,7 +72,14 @@ def isolated_project(tmp_path, monkeypatch):
     """Chdir into an isolated project directory and neutralize
     ``Path.home()`` so the real ``~/.claude/agents`` catalog on the
     developer/CI machine can't leak into assertions about the project's
-    deployed-agent set."""
+    deployed-agent set.
+
+    Also clears ``CLAUDE_MPM_USER_PWD``: when set (e.g. this very repo's dev
+    environment), ``PathResolver._get_working_dir()``/``find_project_root()``
+    prefer it over ``Path.cwd()``, which would otherwise silently point
+    project-root resolution back at the real repo instead of ``project_dir``
+    and break every test in this module.
+    """
     project_dir = tmp_path / "project"
     fake_home = tmp_path / "fake_home"
     project_dir.mkdir()
@@ -80,6 +87,7 @@ def isolated_project(tmp_path, monkeypatch):
 
     monkeypatch.chdir(project_dir)
     monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+    monkeypatch.delenv("CLAUDE_MPM_USER_PWD", raising=False)
 
     return project_dir
 
@@ -159,7 +167,7 @@ class TestFilterAgentsByManifestUnit:
         loader = _make_loader()
         deployed = [{"id": "engineer"}, {"id": "qa"}]
 
-        result = loader._filter_agents_by_manifest(deployed)
+        result = loader._filter_agents_by_manifest(deployed, isolated_project)
 
         assert result == deployed
 
@@ -168,7 +176,7 @@ class TestFilterAgentsByManifestUnit:
         loader = _make_loader()
         deployed = [{"id": "engineer"}, {"id": "qa"}]
 
-        result = loader._filter_agents_by_manifest(deployed)
+        result = loader._filter_agents_by_manifest(deployed, isolated_project)
 
         assert result == [{"id": "engineer"}]
 
@@ -187,9 +195,67 @@ class TestFilterAgentsByManifestUnit:
         loader = _make_loader()
         deployed = [{"id": "engineer"}, {"id": "qa"}]
 
-        result = loader._filter_agents_by_manifest(deployed)
+        result = loader._filter_agents_by_manifest(deployed, isolated_project)
 
         assert result == deployed
+
+
+class TestProjectRootResolution:
+    """Regression coverage: the manifest lookup must use the resolved
+    project root threaded in by ``_generate_agent_capabilities_section``,
+    not an independently-derived ``Path.cwd()``, so the two can't silently
+    disagree about which project they're looking at."""
+
+    def test_manifest_and_agents_found_from_a_subdirectory(self, tmp_path, monkeypatch):
+        """cwd inside a nested subdirectory of the project must still
+        resolve to the real project root (via a ``.git`` marker), so both
+        the deployed-agent glob and the manifest lookup find the right
+        files -- even though a bare ``Path.cwd()`` would look in
+        ``nested_cwd/.claude/agents`` (nonexistent) instead."""
+        project_dir = tmp_path / "project"
+        fake_home = tmp_path / "fake_home"
+        nested_cwd = project_dir / "subdir" / "nested"
+        project_dir.mkdir()
+        fake_home.mkdir()
+        nested_cwd.mkdir(parents=True)
+        (project_dir / ".git").mkdir()  # project-root marker for find_project_root
+
+        agents_dir = project_dir / ".claude" / "agents"
+        _write_agent_md(agents_dir, "engineer")
+        _write_agent_md(agents_dir, "python-engineer")
+        write_agent_manifest(project_dir, ["engineer"])
+
+        monkeypatch.chdir(nested_cwd)
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+        monkeypatch.delenv("CLAUDE_MPM_USER_PWD", raising=False)
+
+        capabilities = _make_loader()._generate_agent_capabilities_section()
+
+        assert "`engineer`" in capabilities
+        assert "`python-engineer`" not in capabilities
+
+    def test_filter_uses_passed_project_root_not_cwd(self, tmp_path, monkeypatch):
+        """_filter_agents_by_manifest must read the manifest from the
+        explicitly-passed project_root, not from Path.cwd()."""
+        real_project = tmp_path / "real_project"
+        elsewhere_cwd = tmp_path / "elsewhere"
+        real_project.mkdir()
+        elsewhere_cwd.mkdir()
+
+        write_agent_manifest(real_project, ["engineer"])
+
+        # cwd points somewhere else entirely -- a manifest lookup that
+        # incorrectly used Path.cwd() would find no manifest here and fail
+        # open (return the unfiltered list) instead of filtering.
+        monkeypatch.chdir(elsewhere_cwd)
+        monkeypatch.delenv("CLAUDE_MPM_USER_PWD", raising=False)
+
+        loader = _make_loader()
+        deployed = [{"id": "engineer"}, {"id": "qa"}]
+
+        result = loader._filter_agents_by_manifest(deployed, real_project)
+
+        assert result == [{"id": "engineer"}]
 
 
 class TestAgentManifestReadWrite:
