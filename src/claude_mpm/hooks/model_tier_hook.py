@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
 """PreToolUse + PermissionRequest hook dispatcher.
 
+WHAT: Injects model tiers into Agent tool calls, blocks dispatch of agents
+whose frontmatter declares ``deprecated: true``, and renders PermissionRequest
+allow/deny decisions.
+WHY: Claude Code ignores agent frontmatter ``model:`` fields (upstream issue
+anthropics/claude-code#44385) and previously enforced deprecation only via a
+hand-written prose sentence in ``AGENT_DELEGATION.md`` -- nothing stopped an
+actual dispatch of a deprecated agent (issue #922). Centralizing both concerns
+in the same PreToolUse entrypoint means every existing call site
+(``ToolHandler.handle_pre_tool_fast`` and ``pretooluse_dispatcher.dispatch``)
+gets the deprecation guard for free, without adding new hook registrations.
+
 This module is referenced from ``.claude/settings.json`` for two distinct
 events:
 
-* ``PreToolUse`` (matcher ``Agent``) — injects a default model into Agent
-  tool calls because Claude Code ignores agent frontmatter ``model:`` fields
-  (upstream issue anthropics/claude-code#44385).
+* ``PreToolUse`` (matcher ``Agent``) — blocks dispatch of ``deprecated: true``
+  agents (issue #922) and injects a default model into Agent tool calls
+  because Claude Code ignores agent frontmatter ``model:`` fields (upstream
+  issue anthropics/claude-code#44385).
 * ``PermissionRequest`` (matcher ``*``) — runs the policy engine in
   :mod:`claude_mpm.hooks.permission_policy` and emits a real allow/deny
   decision instead of the previous unconditional approve (issue #421).
@@ -23,6 +35,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 from claude_mpm.hooks import permission_policy
 from claude_mpm.utils.agent_filters import normalize_agent_id
@@ -200,6 +213,161 @@ def _read_model_from_config(agent_name: str, cwd: str) -> str | None:
     return _resolve_tier_alias(value)
 
 
+# Module-level cache mapping cwd -> {normalized identifier: description} for
+# agents whose frontmatter declares ``deprecated: true``. Keyed by cwd (rather
+# than a single flat value like ``_AGENT_MODEL_CONFIG``) so tests and
+# multi-project sessions that vary ``cwd`` within one process do not read
+# stale results from a different project's ``.claude/agents/`` directory.
+_DEPRECATED_AGENTS_CACHE: dict[str, dict[str, str]] = {}
+
+# Mirrors the literal placeholder ``MetadataProcessor.parse_agent_metadata``
+# fills into ``agent_data["description"]`` before frontmatter is merged in
+# (see ``core/framework/processors/metadata_processor.py``). Frontmatter that
+# omits ``description:`` entirely leaves this placeholder in place, which is
+# indistinguishable from a "real" description by content alone -- so we treat
+# an exact match against this sentinel as "no real description" and fall back
+# to a generic reason rather than denying with an unhelpful, uninformative
+# message.
+_DEFAULT_AGENT_DESCRIPTION = "Specialized agent"
+
+
+def _scan_deprecated_agents(cwd: str) -> dict[str, str]:
+    """Build a map of normalized agent identifiers to their description text.
+
+    WHAT: Scans every ``.md`` file in ``<cwd>/.claude/agents/``, parses each
+    one's frontmatter via ``MetadataProcessor.parse_agent_metadata``, and
+    returns a dict of normalized identifier -> deny-reason text for every
+    agent whose frontmatter sets ``deprecated: true``.
+    WHY: A boolean ``deprecated: true`` field existed in agent frontmatter
+    but nothing downstream ever enforced it -- the only prior guard was a
+    hand-written prose sentence in ``AGENT_DELEGATION.md`` (issue #922).
+    Scanning live frontmatter here (rather than hardcoding agent names) means
+    the guard tracks whatever agent authors actually mark deprecated, and
+    registering three identifier forms per agent covers this repo's two
+    divergent agent-identity schemes without guessing which one a given
+    caller's ``subagent_type`` uses.
+
+    Scans every ``.md`` file in ``<cwd>/.claude/agents/`` -- the same deployed
+    agent directory ``_read_model_from_frontmatter`` already reads from, and
+    the directory Claude Code actually resolves ``subagent_type`` against at
+    runtime -- for frontmatter with ``deprecated: true``. Parsing goes through
+    :meth:`MetadataProcessor.parse_agent_metadata`, the single parsing path
+    already used to turn agent frontmatter into ``agent_data`` (see
+    ``core/framework/processors/metadata_processor.py``), so this function
+    never hardcodes a list of deprecated agent names or re-implements
+    frontmatter extraction.
+
+    A prior audit found this repo uses two different agent-identity schemes
+    (name-based in ``capability_generator.py`` vs. filename-stem-based
+    ``normalize_agent_id()`` in ``unified_agent_registry.py``). To match
+    defensively regardless of which scheme a caller's ``subagent_type`` uses,
+    every deprecated agent is registered under all of: its filename stem, its
+    parsed ``id`` (the frontmatter ``name:`` field, or the stem when absent),
+    and an explicit frontmatter ``agent_id:`` field when present -- each
+    normalized via :func:`normalize_agent_id` so comparisons are
+    case-insensitive and separator-insensitive (e.g. "ops", "Ops", "Ops Agent"
+    all resolve to the same key).
+
+    Result is cached per-cwd at module level for the lifetime of the hook
+    process. Never raises: a missing directory, unreadable file, or malformed
+    frontmatter is skipped rather than propagated, so a single bad agent file
+    cannot block dispatch of every other agent.
+
+    :spec: SPEC-HOOKS-12~1
+    """
+    if cwd in _DEPRECATED_AGENTS_CACHE:
+        return _DEPRECATED_AGENTS_CACHE[cwd]
+
+    result: dict[str, str] = {}
+    if cwd:
+        agents_dir = Path(cwd) / ".claude" / "agents"
+        if agents_dir.is_dir():
+            try:
+                from claude_mpm.core.framework.processors.metadata_processor import (
+                    MetadataProcessor,
+                )
+
+                processor: Any = MetadataProcessor()
+            except Exception:
+                processor = None
+
+            if processor is not None:
+                for agent_file in sorted(agents_dir.glob("*.md")):
+                    agent_data = processor.parse_agent_metadata(agent_file)
+                    if not agent_data or not agent_data.get("deprecated"):
+                        continue
+
+                    # Prefer the agent's own description text (agent authors
+                    # already write replacement guidance there, e.g. the
+                    # "[DEPRECATED] Use platform-specific ops agents..." text
+                    # on ops.md). A missing/placeholder description must
+                    # never be treated as "not deprecated" though: blocking
+                    # dispatch is the safe failure mode for anything
+                    # explicitly flagged ``deprecated: true``, so we fall
+                    # back to a generic reason instead of skipping the agent.
+                    description = agent_data.get("description")
+                    has_real_description = (
+                        isinstance(description, str)
+                        and bool(description.strip())
+                        and description.strip() != _DEFAULT_AGENT_DESCRIPTION
+                    )
+                    reason = (
+                        description.strip()
+                        if has_real_description
+                        else (
+                            f"Agent '{agent_file.stem}' is marked "
+                            "deprecated: true in its frontmatter."
+                        )
+                    )
+
+                    keys = {
+                        normalize_agent_id(agent_file.stem),
+                        normalize_agent_id(str(agent_data.get("id", ""))),
+                    }
+                    agent_id_field = agent_data.get("agent_id")
+                    if isinstance(agent_id_field, str) and agent_id_field.strip():
+                        keys.add(normalize_agent_id(agent_id_field))
+
+                    for key in keys:
+                        if key:
+                            result[key] = reason
+
+    _DEPRECATED_AGENTS_CACHE[cwd] = result
+    return result
+
+
+def _deprecated_agent_response(agent_type: str, cwd: str) -> dict | None:
+    """Return a PreToolUse deny envelope if ``agent_type`` is deprecated.
+
+    Surfaces the deprecated agent's own ``description:`` frontmatter text
+    (which agent authors already write with replacement guidance, e.g.
+    "[DEPRECATED] Use platform-specific ops agents...") as the deny reason,
+    rather than inventing a new message format -- so the enforcement message
+    stays in sync with whatever agent authors write (issue #922).
+
+    Returns ``None`` (no opinion) when ``agent_type`` is empty or does not
+    match any deprecated agent, so the caller can fall through to normal
+    model-tier resolution.
+
+    :spec: SPEC-HOOKS-12~1
+    """
+    normalized = normalize_agent_id(agent_type)
+    if not normalized:
+        return None
+
+    description = _scan_deprecated_agents(cwd).get(normalized)
+    if description is None:
+        return None
+
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": description,
+        }
+    }
+
+
 def _read_model_from_frontmatter(agent_name: str, cwd: str) -> str | None:
     """Try to read model: from agent .md frontmatter."""
     agents_dir = Path(cwd) / ".claude" / "agents"
@@ -243,7 +411,7 @@ def _handle_permission_request(event: dict) -> None:
 
 
 def build_model_tier_response(event: dict) -> dict:
-    """Resolve and inject the model tier for an Agent tool call.
+    """Block deprecated agents, else resolve and inject the model tier.
 
     Returns the full ``hookSpecificOutput``-wrapped payload dict, or
     ``{"continue": True}`` when the event is not an Agent call, already has a
@@ -252,6 +420,16 @@ def build_model_tier_response(event: dict) -> dict:
 
     Exposed as an importable function so ``pretooluse_dispatcher`` can call it
     directly without spawning a subprocess.
+
+    Deprecated-agent guard (issue #922)
+    ------------------------------------
+    Checked first, unconditionally -- even when the caller already set an
+    explicit ``model`` in ``tool_input``, and regardless of the version gate
+    below. The goal is to block dispatch of the agent entirely, not just its
+    model-tier routing, so this check cannot be bypassed by pre-setting
+    ``model`` and it does not depend on ``updatedInput`` support (a plain
+    ``permissionDecision: "deny"`` works on every supported Claude Code
+    version). See :func:`_deprecated_agent_response`.
 
     Model injection is version-gated
     ---------------------------------
@@ -273,17 +451,24 @@ def build_model_tier_response(event: dict) -> dict:
     tool_name = event.get("tool_name", "")
     tool_input = event.get("tool_input", {})
 
+    if tool_name != "Agent":
+        return {"continue": True}
+
+    agent_type = tool_input.get("subagent_type", "")
+    cwd = event.get("cwd", "")
+
+    deprecated_response = _deprecated_agent_response(agent_type, cwd)
+    if deprecated_response is not None:
+        return deprecated_response
+
     # Only intercept Agent tool calls that don't already have a model
-    if tool_name != "Agent" or "model" in tool_input:
+    if "model" in tool_input:
         return {"continue": True}
 
     # Version gate: skip injection when PreToolUse input modification is
     # unsupported (pre-v2.0.30).  Fail open so Claude Code is never blocked.
     if not _check_pretool_modify_supported():
         return {"continue": True}
-
-    agent_type = tool_input.get("subagent_type", "")
-    cwd = event.get("cwd", "")
 
     # Resolution priority (highest -> lowest):
     #   1. Explicit ``model`` in the Agent tool call (handled above).
