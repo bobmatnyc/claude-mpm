@@ -1218,15 +1218,24 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         # config above) so framework_loader can filter the "Available Agent
         # Capabilities" section down to agents relevant to this project
         # instead of the full catalog. See issue #923.
-        try:
-            write_agent_manifest(
-                project_path,
-                (rec.agent_id for rec in recommendations),
-                toolchain_summary={
-                    "primary_language": toolchain.primary_language,
-                    "frameworks": [fw.name for fw in toolchain.frameworks],
-                },
-            )
-        except Exception as e:
-            self.logger.warning(f"Failed to write agent manifest: {e}")
-            # Don't raise - manifest write is non-critical (best-effort)
+        #
+        # Guard on non-empty recommendations: an empty manifest is NOT the
+        # same as no manifest at all. No manifest -> framework_loader falls
+        # back to the full catalog; an empty manifest would actively hide
+        # every agent from the PM's capabilities section, which is never
+        # the intent here (this method only runs after a successful
+        # deployment, so an empty `recommendations` means there was nothing
+        # to persist, not that zero agents should be shown).
+        if recommendations:
+            try:
+                write_agent_manifest(
+                    project_path,
+                    (rec.agent_id for rec in recommendations),
+                    toolchain_summary={
+                        "primary_language": toolchain.primary_language,
+                        "frameworks": [fw.name for fw in toolchain.frameworks],
+                    },
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to write agent manifest: {e}")
+                # Don't raise - manifest write is non-critical (best-effort)
