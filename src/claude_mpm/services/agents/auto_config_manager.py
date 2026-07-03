@@ -34,6 +34,7 @@ from ..core.models.agent_config import (
     ValidationResult,
 )
 from ..core.models.toolchain import ToolchainAnalysis
+from .agent_manifest import write_agent_manifest
 from .observers import IDeploymentObserver, NullObserver
 from .recommender import AgentRecommenderService
 
@@ -1212,3 +1213,20 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         except Exception as e:
             self.logger.error(f"Failed to save configuration: {e}", exc_info=True)
             # Don't raise - configuration save is non-critical
+
+        # Persist a lightweight agent-id manifest (separate from the YAML
+        # config above) so framework_loader can filter the "Available Agent
+        # Capabilities" section down to agents relevant to this project
+        # instead of the full catalog. See issue #923.
+        try:
+            write_agent_manifest(
+                project_path,
+                (rec.agent_id for rec in recommendations),
+                toolchain_summary={
+                    "primary_language": toolchain.primary_language,
+                    "frameworks": [fw.name for fw in toolchain.frameworks],
+                },
+            )
+        except Exception as e:
+            self.logger.warning(f"Failed to write agent manifest: {e}")
+            # Don't raise - manifest write is non-critical (best-effort)
