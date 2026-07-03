@@ -697,6 +697,22 @@ the harness can surface the warning to the user while still proceeding.
 
 - **Inputs:** A `PreToolUse` event dict where `tool_name == "Agent"`.
 
+- **Deprecated-agent guard (issue #922):** Checked first, unconditionally — even
+  when `tool_input` already has a `"model"` field, and regardless of the version
+  gate below. `_scan_deprecated_agents(cwd)` scans every `.md` file in
+  `<cwd>/.claude/agents/` via `MetadataProcessor.parse_agent_metadata` (the same
+  parsing path used elsewhere for agent frontmatter) and builds a set of
+  normalized identifiers for every agent with `deprecated: true`. Each deprecated
+  agent is registered under three identifier forms — filename stem, parsed `id`
+  (the `name:` field, or the stem when absent), and an explicit `agent_id:` field
+  when present — each normalized via `normalize_agent_id()`, so a `subagent_type`
+  matches regardless of which of this repo's two agent-identity schemes the
+  caller used. If `tool_input["subagent_type"]` matches, returns a `deny`
+  decision immediately with `permissionDecisionReason` set to the agent's own
+  `description:` frontmatter text (falling back to a generic message if the
+  description is missing or is the `MetadataProcessor` placeholder
+  `"Specialized agent"`). Result is cached per-`cwd` at module level.
+
 - **Precondition:** Only injects a model if the `tool_input` dict does not already
   contain a `"model"` field. If a model is already specified, returns immediately with
   no modification.
@@ -740,12 +756,28 @@ without modifying code. The `CLAUDE_MPM_SUB_AGENT` injection is the mechanism th
 enables `claude-hook-fast.sh` to skip recursive hook processing for sub-agent
 invocations.
 
+Prior to #922, an agent's `deprecated: true` frontmatter field was parsed into
+`agent_data` but nothing downstream ever read it — the only enforcement was a
+hand-written "[DEPRECATED]" sentence in `AGENT_DELEGATION.md`, which depended on
+every agent author remembering to write it and did nothing to stop an actual
+dispatch. Enforcing the guard inside `build_model_tier_response` (rather than
+adding a new hook registration) means every existing PreToolUse call site —
+`ToolHandler.handle_pre_tool_fast` and `pretooluse_dispatcher.dispatch`, both of
+which already call this function for `Agent` tool calls — gets the guard for
+free. Registering three identifier forms per deprecated agent addresses a prior
+audit finding that this repo uses two different agent-identity schemes
+(name-based in `capability_generator.py` vs. filename-stem-based
+`normalize_agent_id()` in `unified_agent_registry.py`), so the guard cannot be
+bypassed simply by passing a differently-shaped `subagent_type` string.
+
 ### Implementing Modules
 
 | Module path | Qualname | Role |
 |-------------|----------|------|
-| `src/claude_mpm/hooks/model_tier_hook.py` | `build_model_tier_response` | PreToolUse model injection |
+| `src/claude_mpm/hooks/model_tier_hook.py` | `build_model_tier_response` | PreToolUse model injection + deprecated-agent guard |
 | `src/claude_mpm/hooks/model_tier_hook.py` | `build_permission_request_response` | PermissionRequest routing |
+| `src/claude_mpm/hooks/model_tier_hook.py` | `_scan_deprecated_agents` | Builds normalized deprecated-agent identifier map (issue #922) |
+| `src/claude_mpm/hooks/model_tier_hook.py` | `_deprecated_agent_response` | Renders the PreToolUse deny envelope for a matched deprecated agent |
 
 ---
 
