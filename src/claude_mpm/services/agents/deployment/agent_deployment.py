@@ -574,7 +574,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
     def deploy_agent(
         self, agent_name: str, target_dir: Path, force_rebuild: bool = False
-    ) -> bool:
+    ) -> bool | None:
         """
         Deploy a single agent to the specified directory.
 
@@ -584,7 +584,10 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             force_rebuild: Whether to force rebuild even if version is current
 
         Returns:
-            True if deployment was successful, False otherwise
+            True if deployment was successful, False if it failed, or None if the
+            agent was intentionally skipped (a CORE/USER_LEVEL agent targeting a
+            project-level directory). Callers must treat ``None`` as "skipped",
+            not as a success or failure, to avoid inflating counts (see #919).
 
         WHY: Single agent deployment because:
         - Users may want to deploy specific agents only

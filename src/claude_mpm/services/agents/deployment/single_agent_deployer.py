@@ -206,7 +206,7 @@ class SingleAgentDeployer:
         base_agent_path: Path,
         force_rebuild: bool = False,
         working_directory: Path | None = None,
-    ) -> bool:
+    ) -> bool | None:
         """Deploy a single agent to the specified directory.
 
         Args:
@@ -218,7 +218,10 @@ class SingleAgentDeployer:
             working_directory: Working directory for determining agent source
 
         Returns:
-            True if deployment was successful, False otherwise
+            True if deployment was successful, False if it failed, or None if the
+            agent was intentionally skipped (a CORE/USER_LEVEL agent targeting a
+            project-level directory). ``None`` lets callers distinguish a skip
+            from a real deployment so success counts are not inflated (see #919).
 
         WHY: Single agent deployment because:
         - Users may want to deploy specific agents only
@@ -242,7 +245,9 @@ class SingleAgentDeployer:
                 self.logger.debug(
                     f"Skipped user-level CORE agent for project target: {agent_name}"
                 )
-                return True
+                # Return None (not True) so callers can distinguish a skip from a
+                # real deployment and avoid inflating success counts (see #919).
+                return None
 
             # Ensure target directory exists
             target_dir.mkdir(parents=True, exist_ok=True)

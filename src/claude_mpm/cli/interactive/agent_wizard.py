@@ -1243,7 +1243,9 @@ class AgentWizard:
             base_agent_path = self._resolve_base_agent_path()
 
             # Deploy the agent
-            success = deployer.deploy_agent(
+            # deploy_agent returns None when a CORE/user-level agent is skipped
+            # for a project-level target (see #919); treat that distinctly.
+            result = deployer.deploy_agent(
                 agent_name=agent["agent_id"],
                 templates_dir=template_path.parent,
                 target_dir=target_dir,
@@ -1252,7 +1254,12 @@ class AgentWizard:
                 working_directory=Path.cwd(),
             )
 
-            if success:
+            if result is None:
+                print(
+                    f"\n⏭️  Skipped {agent['agent_id']} "
+                    "(CORE agent belongs at user level, not this project)"
+                )
+            elif result:
                 print(f"\n✅ Successfully deployed {agent['agent_id']}")
             else:
                 print(f"\n❌ Failed to deploy {agent['agent_id']}")
@@ -1546,7 +1553,9 @@ class AgentWizard:
                 base_agent_path = self._resolve_base_agent_path()
 
                 # Deploy the agent
-                success = deployer.deploy_agent(
+                # deploy_agent returns None when a CORE/user-level agent is
+                # skipped for a project-level target (see #919).
+                result = deployer.deploy_agent(
                     agent_name=agent["agent_id"],
                     templates_dir=template_path.parent,
                     target_dir=target_dir,
@@ -1555,7 +1564,12 @@ class AgentWizard:
                     working_directory=Path.cwd(),
                 )
 
-                if success:
+                if result is None:
+                    print(
+                        f"[yellow]⏭ Skipped {agent['agent_id']} "
+                        "(CORE agent belongs at user level)[/yellow]"
+                    )
+                elif result:
                     print(f"[green]✓ Successfully deployed {agent['agent_id']}[/green]")
                 else:
                     print(f"[red]✗ Failed to deploy {agent['agent_id']}[/red]")
@@ -1732,6 +1746,7 @@ class AgentWizard:
 
                     deployed = 0
                     failed = 0
+                    skipped = 0
 
                     for agent in agents:
                         agent_id = agent["agent_id"]
@@ -1749,7 +1764,10 @@ class AgentWizard:
 
                         try:
                             template_path = Path(agent_path)
-                            success = deployer.deploy_agent(
+                            # deploy_agent returns None when a CORE/user-level
+                            # agent is skipped for a project target (see #919);
+                            # a skip must NOT be counted as a deployment.
+                            result = deployer.deploy_agent(
                                 agent_name=agent_id,
                                 templates_dir=template_path.parent,
                                 target_dir=target_dir,
@@ -1758,7 +1776,10 @@ class AgentWizard:
                                 working_directory=Path.cwd(),
                             )
 
-                            if success:
+                            if result is None:
+                                print("[yellow]⏭ (user-level)[/yellow]")
+                                skipped += 1
+                            elif result:
                                 print("[green]✓[/green]")
                                 deployed += 1
                             else:
@@ -1773,16 +1794,28 @@ class AgentWizard:
 
                     print("\n[bold]Summary:[/bold]")
                     print(f"  • Deployed: {deployed}")
+                    if skipped:
+                        print(
+                            f"  • Skipped: {skipped} (CORE agents belong at user level)"
+                        )
                     print(f"  • Failed: {failed}")
                     print(f"  • Total: {len(agents)}")
 
-                    if failed == 0:
-                        print(
-                            f"\n[green]✓ Preset '{preset_name}' deployed successfully![/green]"
-                        )
-                    else:
+                    if failed:
                         print(
                             f"\n[yellow]⚠ Preset deployed with {failed} failures[/yellow]"
+                        )
+                    elif deployed:
+                        suffix = f" ({skipped} skipped)" if skipped else ""
+                        print(
+                            f"\n[green]✓ Preset '{preset_name}' "
+                            f"deployed successfully!{suffix}[/green]"
+                        )
+                    else:
+                        # No failures, but nothing was actually deployed either.
+                        print(
+                            f"\n[yellow]⚠ Preset '{preset_name}': no agents "
+                            f"deployed ({skipped} skipped)[/yellow]"
                         )
 
                 input("\nPress Enter to continue...")

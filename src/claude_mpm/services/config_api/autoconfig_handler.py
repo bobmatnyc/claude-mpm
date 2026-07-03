@@ -567,6 +567,7 @@ async def _run_auto_configure(
                     "job_id": job_id,
                     "deployed_agents": [],
                     "failed_agents": [],
+                    "skipped_agents": [],
                     "deployed_skills": [],
                     "skill_errors": [],
                     "needs_restart": False,
@@ -622,6 +623,7 @@ async def _run_auto_configure(
         # Phase 4: Deploying
         deployed_agents = []
         failed_agents = []
+        skipped_agents = []
 
         for idx, agent_id in enumerate(would_deploy):
             await _emit_progress(
@@ -657,10 +659,17 @@ async def _run_auto_configure(
                     return svc.deploy_agent(name, agents_dir, force_rebuild=False)
 
                 success = await asyncio.to_thread(_deploy_one)
-                if success:
-                    deployed_agents.append(agent_id)
-                else:
+                # deploy_agent is tri-state (see #919): False is a real failure,
+                # None means the CORE agent was intentionally skipped for a
+                # project target (not a deployment), and any truthy value is a
+                # genuine deploy. A skip must be excluded from BOTH deployed and
+                # failed counts so it is not over-reported as a success.
+                if success is False:
                     failed_agents.append(agent_id)
+                elif success is None:
+                    skipped_agents.append(agent_id)
+                else:
+                    deployed_agents.append(agent_id)
 
             except Exception as e:
                 logger.warning("Auto-configure: failed to deploy '%s': %s", agent_id, e)
@@ -765,6 +774,7 @@ async def _run_auto_configure(
                 "job_id": job_id,
                 "deployed_agents": deployed_agents,
                 "failed_agents": failed_agents,
+                "skipped_agents": skipped_agents,
                 "deployed_skills": deployed_skills,
                 "skill_errors": skill_errors,
                 "needs_restart": bool(deployed_agents or deployed_skills),
@@ -776,10 +786,11 @@ async def _run_auto_configure(
 
         logger.info(
             "Auto-configure %s completed: %d agents deployed, %d failed, "
-            "%d skills deployed, %d skill errors (%dms)",
+            "%d skipped, %d skills deployed, %d skill errors (%dms)",
             job_id,
             len(deployed_agents),
             len(failed_agents),
+            len(skipped_agents),
             len(deployed_skills),
             len(skill_errors),
             duration_ms,

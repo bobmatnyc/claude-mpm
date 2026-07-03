@@ -215,7 +215,9 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
                         agent_name, agents_dir, force_rebuild=force
                     )
 
-                    if not success:
+                    # None means the agent was intentionally skipped (CORE agent
+                    # for a project target, see #919) — that is not a failure.
+                    if success is False:
                         raise RuntimeError(
                             f"AgentDeploymentService.deploy_agent returned False for '{agent_name}'"
                         )
@@ -456,7 +458,9 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
                         success = svc.deploy_agent(
                             name, agents_dir, force_rebuild=force
                         )
-                        if not success:
+                        # None means the agent was intentionally skipped (CORE
+                        # agent for a project target, see #919), not a failure.
+                        if success is False:
                             raise RuntimeError(
                                 f"deploy_agent returned False for '{name}'"
                             )
