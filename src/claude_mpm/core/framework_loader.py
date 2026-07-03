@@ -686,7 +686,26 @@ class FrameworkLoader:
         return self.content_formatter.format_minimal_framework(self.framework_content)
 
     def _generate_agent_capabilities_section(self) -> str:
-        """Generate agent capabilities section with caching."""
+        """Generate agent capabilities section with caching.
+
+        WHAT: Builds the "## Available Agent Capabilities" Markdown block for
+        the PM system prompt by combining locally-defined JSON agent
+        templates with agents deployed to ``.claude/agents/`` (project) and
+        ``~/.claude/agents`` (user), then narrowing the deployed set down to
+        the project's ``.claude-mpm/agent_manifest.json`` allow-list when one
+        exists (see :meth:`_filter_agents_by_manifest`). Falls back to a
+        generic hardcoded section on any error or when no agents are found.
+        Result is cached via ``self._cache_manager`` to avoid re-globbing and
+        re-parsing every deployed agent file on each call.
+
+        WHY: Issue #923 -- resolving the project root once here (instead of
+        letting the manifest filter independently call ``Path.cwd()``) keeps
+        the ``.claude/agents/`` glob and the manifest lookup pointed at the
+        exact same directory, even when the process cwd is a subdirectory of
+        the real project root or ``CLAUDE_MPM_USER_PWD`` is set.
+
+        :spec: none
+        """
         # Try cache first
         cached_capabilities = self._cache_manager.get_capabilities()
         if cached_capabilities is not None:
@@ -698,10 +717,22 @@ class FrameworkLoader:
             # Discover local JSON templates
             local_agents = self._discover_local_json_templates()
 
+            # Resolve the project root ONCE and reuse it for both the
+            # .claude/agents/ glob below and the manifest lookup in
+            # _filter_agents_by_manifest, so the two can never disagree
+            # about which project they're looking at (issue #923 review).
+            # self._path_resolver.find_project_root() walks up from cwd
+            # looking for project markers (.git, pyproject.toml,
+            # .claude-mpm, etc.) and honors CLAUDE_MPM_USER_PWD, which is
+            # more robust than a bare Path.cwd() when claude-mpm runs from
+            # a global install or a subdirectory. Falls back to Path.cwd()
+            # if no marker is found (preserves prior behavior).
+            project_root = self._path_resolver.find_project_root() or Path.cwd()
+
             # Get deployed agents from .claude/agents/
             deployed_agents = []
             agents_dirs = [
-                Path.cwd() / ".claude" / "agents",
+                project_root / ".claude" / "agents",
                 Path.home() / ".claude" / "agents",
             ]
 
@@ -715,7 +746,9 @@ class FrameworkLoader:
 
             # Filter down to the project's agent manifest, if one exists
             # (issue #923). Absent a manifest, all deployed agents are kept.
-            deployed_agents = self._filter_agents_by_manifest(deployed_agents)
+            deployed_agents = self._filter_agents_by_manifest(
+                deployed_agents, project_root
+            )
 
             # Generate capabilities section
             section = self.capability_generator.generate_capabilities_section(
@@ -735,14 +768,14 @@ class FrameworkLoader:
             return fallback
 
     def _filter_agents_by_manifest(
-        self, deployed_agents: list[dict[str, Any]]
+        self, deployed_agents: list[dict[str, Any]], project_root: Path
     ) -> list[dict[str, Any]]:
         """Filter deployed agents down to the project's agent manifest, if any.
 
-        WHAT: Reads ``.claude-mpm/agent_manifest.json`` at the current project
-        root (via ``agent_manifest.read_agent_manifest``) and, when present,
-        keeps only the entries in ``deployed_agents`` whose ``id`` appears in
-        the manifest. Manifest IDs with no matching deployed agent (e.g. the
+        WHAT: Reads ``.claude-mpm/agent_manifest.json`` at ``project_root``
+        (via ``agent_manifest.read_agent_manifest``) and, when present, keeps
+        only the entries in ``deployed_agents`` whose ``id`` appears in the
+        manifest. Manifest IDs with no matching deployed agent (e.g. the
         agent was later removed or renamed) are silently skipped rather than
         raising.
 
@@ -755,8 +788,15 @@ class FrameworkLoader:
         to returning ``deployed_agents`` unchanged, preserving prior
         behavior.
 
+        ``project_root`` is passed in by the caller (rather than this method
+        re-deriving it via ``Path.cwd()``) so the manifest lookup always uses
+        the exact same root ``_generate_agent_capabilities_section`` used to
+        find ``.claude/agents/`` -- avoiding a mismatch if cwd were to differ
+        from the resolved project root or change between the two lookups.
+
         Args:
             deployed_agents: Parsed agent metadata dicts, each with an "id" key.
+            project_root: The project root to look for the manifest under.
 
         Returns:
             The filtered list, or ``deployed_agents`` unchanged if no valid
@@ -769,7 +809,7 @@ class FrameworkLoader:
                 read_agent_manifest,
             )
 
-            manifest_agent_ids = read_agent_manifest(Path.cwd())
+            manifest_agent_ids = read_agent_manifest(project_root)
         except Exception as e:
             self.logger.debug(f"Agent manifest lookup skipped: {e}")
             return deployed_agents
