@@ -1052,14 +1052,17 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         agents_dir = self._resolve_agents_dir(project_path)
         agents_dir.mkdir(parents=True, exist_ok=True)
 
-        def _do_deploy() -> bool:
-            return bool(service.deploy_agent(agent_id, agents_dir, force_rebuild=False))
+        def _do_deploy() -> bool | None:
+            # Preserve the tri-state result: True=deployed, False=failed,
+            # None=intentionally skipped (CORE agent for a project target, #919).
+            return service.deploy_agent(agent_id, agents_dir, force_rebuild=False)
 
         success = await asyncio.to_thread(_do_deploy)
-        if not success:
+        if success is False:
             # AgentDeploymentService returns False (rather than raising) for
             # certain non-exceptional failures; surface that as an error so
-            # the caller treats this agent as failed.
+            # the caller treats this agent as failed. A None result means the
+            # agent was intentionally skipped, which is not a failure.
             raise RuntimeError(
                 f"AgentDeploymentService reported failure for agent '{agent_id}'"
             )
