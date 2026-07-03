@@ -657,10 +657,13 @@ async def _run_auto_configure(
                     return svc.deploy_agent(name, agents_dir, force_rebuild=False)
 
                 success = await asyncio.to_thread(_deploy_one)
-                if success:
-                    deployed_agents.append(agent_id)
-                else:
+                # deploy_agent returns None when a CORE agent is intentionally
+                # skipped for a project target (see #919): that is not a failure,
+                # so only an explicit False counts as a failed deployment.
+                if success is False:
                     failed_agents.append(agent_id)
+                else:
+                    deployed_agents.append(agent_id)
 
             except Exception as e:
                 logger.warning("Auto-configure: failed to deploy '%s': %s", agent_id, e)
