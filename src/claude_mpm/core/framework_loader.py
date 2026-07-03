@@ -713,6 +713,10 @@ class FrameworkLoader:
                             if agent_data:
                                 deployed_agents.append(agent_data)
 
+            # Filter down to the project's agent manifest, if one exists
+            # (issue #923). Absent a manifest, all deployed agents are kept.
+            deployed_agents = self._filter_agents_by_manifest(deployed_agents)
+
             # Generate capabilities section
             section = self.capability_generator.generate_capabilities_section(
                 deployed_agents, local_agents
@@ -729,6 +733,60 @@ class FrameworkLoader:
             fallback = self.content_formatter.get_fallback_capabilities()
             self._cache_manager.set_capabilities(fallback)
             return fallback
+
+    def _filter_agents_by_manifest(
+        self, deployed_agents: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Filter deployed agents down to the project's agent manifest, if any.
+
+        WHAT: Reads ``.claude-mpm/agent_manifest.json`` at the current project
+        root (via ``agent_manifest.read_agent_manifest``) and, when present,
+        keeps only the entries in ``deployed_agents`` whose ``id`` appears in
+        the manifest. Manifest IDs with no matching deployed agent (e.g. the
+        agent was later removed or renamed) are silently skipped rather than
+        raising.
+
+        WHY: Closes #923 -- exposing the full ~50-agent catalog to every
+        project regardless of relevance clutters the PM's system prompt.
+        Projects that ran ``claude-mpm agents auto-configure`` (or
+        ``deploy-auto``) already persisted the set of agents relevant to
+        their toolchain; this filters the capabilities section down to that
+        set. Projects without a manifest (the common case today) fall back
+        to returning ``deployed_agents`` unchanged, preserving prior
+        behavior.
+
+        Args:
+            deployed_agents: Parsed agent metadata dicts, each with an "id" key.
+
+        Returns:
+            The filtered list, or ``deployed_agents`` unchanged if no valid
+            manifest is found.
+
+        :spec: none
+        """
+        try:
+            from claude_mpm.services.agents.agent_manifest import (
+                read_agent_manifest,
+            )
+
+            manifest_agent_ids = read_agent_manifest(Path.cwd())
+        except Exception as e:
+            self.logger.debug(f"Agent manifest lookup skipped: {e}")
+            return deployed_agents
+
+        if manifest_agent_ids is None:
+            return deployed_agents
+
+        allowed_ids = set(manifest_agent_ids)
+        filtered = [
+            agent for agent in deployed_agents if agent.get("id") in allowed_ids
+        ]
+
+        self.logger.debug(
+            f"Filtered deployed agents by project manifest: "
+            f"{len(filtered)}/{len(deployed_agents)} kept"
+        )
+        return filtered
 
     # === Output Style Management ===
 
