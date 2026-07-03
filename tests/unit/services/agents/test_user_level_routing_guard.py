@@ -155,6 +155,40 @@ class TestDeploymentPathsHonorGuard:
         assert not stale.exists(), "Stale project-level CORE agent must be pruned"
         assert not (project_agents_dir / f"{CORE_AGENT}.md").exists()
 
+    def test_deploy_agent_returns_none_on_skip(self, temp_dirs):
+        """SingleAgentDeployer.deploy_agent returns None (not True) on skip.
+
+        Why: Regression guard for #919 — a bare ``True`` on a skipped CORE agent
+        was indistinguishable from a real deployment and inflated success counts.
+        The skip path must return ``None`` so callers can tell them apart.
+        Test: Deploy a CORE agent to a project-level dir and assert the return is
+        exactly ``None`` (not ``True``), and that no file is written.
+        """
+        from claude_mpm.services.agents.deployment.single_agent_deployer import (
+            SingleAgentDeployer,
+        )
+
+        fake_home, project_agents_dir, _ = temp_dirs
+        template_dir = project_agents_dir.parent
+        template_file = self._template(template_dir, CORE_AGENT)
+
+        deployer = SingleAgentDeployer(
+            template_builder=None, version_manager=None, results_manager=None
+        )
+
+        with patch("pathlib.Path.home", return_value=fake_home):
+            result = deployer.deploy_agent(
+                agent_name=CORE_AGENT,
+                templates_dir=template_dir,
+                target_dir=project_agents_dir,
+                base_agent_path=template_dir / "BASE_AGENT.md",
+                force_rebuild=True,
+                working_directory=template_dir,
+            )
+
+        assert result is None, "Skip must return None, not True (see #919)"
+        assert not (project_agents_dir / f"{CORE_AGENT}.md").exists()
+
     def test_agent_processor_skips_core_agent(self, temp_dirs):
         """AgentProcessor.process_agent skips + prunes CORE agents."""
         from claude_mpm.services.agents.deployment.processors import (
