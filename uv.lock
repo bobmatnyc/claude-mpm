@@ -648,7 +648,7 @@ wheels = [
 
 [[package]]
 name = "claude-mpm"
-version = "6.5.75"
+version = "6.5.76"
 source = { editable = "." }
 dependencies = [
     { name = "ai-trackdown-pytools" },
