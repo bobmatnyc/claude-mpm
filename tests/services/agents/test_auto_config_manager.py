@@ -666,6 +666,42 @@ async def test_save_configuration(service, temp_project_dir):
     )
     assert len(config_data["auto_config"]["deployed_agents"]) == 1
 
+    # Issue #923: a lightweight agent-id manifest is written alongside the
+    # YAML config so framework_loader can filter its capabilities section.
+    from claude_mpm.services.agents.agent_manifest import read_agent_manifest
+
+    assert read_agent_manifest(temp_project_dir) == ["python-engineer"]
+
+
+@pytest.mark.asyncio
+async def test_save_configuration_skips_agent_manifest_when_recommendations_empty(
+    service, temp_project_dir
+):
+    """Regression guard (trusty-review finding, PR #926): an empty
+    ``recommendations`` list must NOT write an empty agent manifest.
+
+    A missing manifest means "no opinion, show the full catalog"; an empty
+    manifest means "show nothing" -- those are not the same thing, and
+    ``_save_configuration`` only runs after a successful (possibly
+    zero-agent) deployment, so writing an empty manifest here would be
+    unintentional.
+    """
+    toolchain = ToolchainAnalysis(
+        project_path=temp_project_dir,
+        language_detection=LanguageDetection(
+            primary_language="Python",
+            language_percentages={"Python": 100.0},
+        ),
+        frameworks=[],
+        deployment_target=None,
+    )
+
+    await service._save_configuration(temp_project_dir, toolchain, [])
+
+    from claude_mpm.services.agents.agent_manifest import get_manifest_path
+
+    assert not get_manifest_path(temp_project_dir).exists()
+
 
 # ============================================================================
 # Test: Error Handling

@@ -39,6 +39,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from claude_mpm.services.agents.agent_manifest import write_agent_manifest
 from claude_mpm.services.agents.single_tier_deployment_service import (
     SingleTierDeploymentService,
 )
@@ -406,6 +407,20 @@ class AgentSelectionService:
             f"{deployed_count} deployed, {failed_count} failed, "
             f"{missing_count} missing (status: {status})"
         )
+
+        # Persist a per-project agent manifest so framework_loader can filter
+        # the "Available Agent Capabilities" section to what's actually
+        # relevant here instead of the full catalog (#923). Skip on dry-run
+        # since nothing was actually deployed.
+        if not dry_run and deployed_agents:
+            try:
+                write_agent_manifest(
+                    project_path,
+                    deployed_agents,
+                    toolchain_summary=toolchain,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to write agent manifest: {e}")
 
         return report
 
