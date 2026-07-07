@@ -104,6 +104,16 @@ class PassthroughHandlers:
             f"Hook handler: Processing SessionStart - session: '{session_id}', pending_tasks: {session_start_data.get('pending_task_count', 0)}"
         )
 
+        # Capture live stdio MCP server PIDs for this session so `session pause`
+        # can terminate them cleanly (issue #927). Fail-open: the helper never
+        # raises, but wrap defensively so SessionStart handling is never blocked.
+        try:
+            from .session_start_mcp_handler import capture_session_mcp_pids
+
+            capture_session_mcp_pids(event)
+        except Exception as exc:  # nosec B110 - non-fatal MCP PID capture
+            _log(f"SessionStart MCP PID capture failed (non-fatal): {exc}")
+
         # Emit normalized event
         self.hook_handler._emit_socketio_event("", "session_start", session_start_data)
 
