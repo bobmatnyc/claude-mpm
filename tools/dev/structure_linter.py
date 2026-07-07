@@ -200,6 +200,8 @@ class StructureLinter:
         """Check if file should be ignored during linting."""
         ignore_patterns = [
             r"\.git/.*",
+            r"\.worktrees/.*",  # Nested git worktrees (CLAUDE.md standard location)
+            r"\.trusty-mpm-worktree(/.*)?$",  # trusty-mpm worktree marker/dir
             r"\.claude/worktrees/.*",  # Git worktrees — separate working trees
             r"\.venv/.*",
             r"\.venv-.*/.*",  # Additional venv patterns
