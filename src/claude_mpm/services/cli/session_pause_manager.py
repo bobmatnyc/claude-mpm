@@ -34,7 +34,9 @@ DESIGN DECISIONS:
 """
 
 import json
+import os
 import shutil
+import signal
 import subprocess  # nosec B404 - required for git operations
 from datetime import UTC, datetime
 from pathlib import Path
@@ -151,8 +153,139 @@ class SessionPauseManager:
             except Exception as exc:  # nosec B110 - intentional non-fatal wrapper
                 logger.warning("Worktree pruning failed (non-fatal): %s", exc)
 
+        # Terminate tracked stdio MCP servers spawned by Claude Code for this
+        # project (issue #927).  Failures are non-fatal — pause must never fail
+        # because of MCP cleanup — mirroring the worktree-prune wrapper above.
+        try:
+            term_summary = self._terminate_mcp_servers()
+            logger.info(
+                "MCP server cleanup: terminated=%d skipped=%d files=%d",
+                term_summary["terminated"],
+                term_summary["skipped"],
+                term_summary["files_processed"],
+            )
+            state["mcp_termination_summary"] = term_summary
+        except Exception as exc:  # nosec B110 - intentional non-fatal wrapper
+            logger.warning("MCP server cleanup failed (non-fatal): %s", exc)
+
         logger.info(f"Pause session created: {session_id}")
         return session_id
+
+    # ------------------------------------------------------------------
+    # MCP stdio-server cleanup (issue #927)
+    # ------------------------------------------------------------------
+
+    def _terminate_mcp_servers(self) -> dict[str, Any]:
+        """Terminate stdio MCP servers recorded for this project at pause time.
+
+        WHAT: Reads every ``.claude-mpm/mcp-pids-*.json`` record written by the
+        SessionStart hook for this project.  For each recorded process it
+        (1) verifies the PID is still alive, (2) re-reads the live command line
+        and confirms the recorded signature is still present (guards against a
+        recycled PID now belonging to an unrelated process), and only then
+        (3) sends ``SIGTERM``.  Consumed record files are deleted afterwards so
+        stale entries do not accumulate.
+
+        WHY: ``session pause`` is a standalone CLI invocation with no Claude
+        Code hooks; the stdio MCP subprocesses are Claude Code's children and
+        are otherwise never reaped, piling up over time (issue #927).  Only
+        PIDs explicitly recorded for this project are ever signaled, and only
+        after the live cmdline is re-validated — we never kill by process name.
+        SIGTERM (not SIGKILL) lets these cooperating stdio servers exit cleanly;
+        Claude Code is free to respawn any it still needs on the current binary.
+
+        Returns:
+            Summary dict with keys ``terminated`` (int), ``skipped`` (int),
+            ``files_processed`` (int), and ``processes`` (list of per-process
+            decision records).
+        """
+        from claude_mpm.services.cli import mcp_process_tracker as tracker
+
+        summary: dict[str, Any] = {
+            "terminated": 0,
+            "skipped": 0,
+            "files_processed": 0,
+            "processes": [],
+        }
+
+        pid_files = tracker.iter_pid_files(self.project_path)
+        for pid_file in pid_files:
+            summary["files_processed"] += 1
+            try:
+                record = json.loads(pid_file.read_text())
+            except (OSError, json.JSONDecodeError, ValueError) as exc:
+                logger.warning(
+                    "MCP cleanup: could not read %s (non-fatal): %s", pid_file, exc
+                )
+                # Remove unreadable/corrupt record so it does not accumulate.
+                self._delete_pid_file(pid_file)
+                continue
+
+            for entry in record.get("processes", []):
+                decision = self._terminate_one_mcp_process(entry, tracker)
+                summary["processes"].append(decision)
+                if decision["action"] == "terminated":
+                    summary["terminated"] += 1
+                else:
+                    summary["skipped"] += 1
+
+            # The record has been consumed — clean it up regardless of outcome.
+            self._delete_pid_file(pid_file)
+
+        return summary
+
+    def _terminate_one_mcp_process(
+        self, entry: dict[str, Any], tracker: Any
+    ) -> dict[str, Any]:
+        """Validate and SIGTERM a single recorded MCP process entry.
+
+        Returns a decision record with ``pid``, ``action``
+        (``"terminated"`` | ``"skipped"``), and ``reason``.
+        """
+        pid = entry.get("pid")
+        signature = entry.get("signature") or entry.get("cmdline") or ""
+
+        if not isinstance(pid, int) or pid <= 0:
+            return {"pid": pid, "action": "skipped", "reason": "invalid pid"}
+
+        # Rule 1: process must still be alive.
+        if not tracker.process_is_alive(pid):
+            return {"pid": pid, "action": "skipped", "reason": "process not running"}
+
+        # Rule 2: live cmdline must still match the recorded signature — this is
+        # the recycled-PID guard.  If the PID now belongs to an unrelated
+        # process, the signature will not be present and we must NOT signal it.
+        live_cmdline = tracker.get_process_cmdline(pid)
+        if live_cmdline is None:
+            return {
+                "pid": pid,
+                "action": "skipped",
+                "reason": "could not read live cmdline",
+            }
+        if signature and signature not in live_cmdline:
+            return {
+                "pid": pid,
+                "action": "skipped",
+                "reason": "live cmdline no longer matches (recycled pid)",
+            }
+
+        # Rule 3: SIGTERM only — cooperating stdio servers exit cleanly.
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return {"pid": pid, "action": "skipped", "reason": "process exited"}
+        except OSError as exc:
+            return {"pid": pid, "action": "skipped", "reason": f"kill failed: {exc}"}
+
+        logger.info("MCP cleanup: sent SIGTERM to pid %d (%s)", pid, signature)
+        return {"pid": pid, "action": "terminated", "reason": "SIGTERM sent"}
+
+    def _delete_pid_file(self, pid_file: Path) -> None:
+        """Delete a consumed MCP PID record file (non-fatal on error)."""
+        try:
+            pid_file.unlink()
+        except OSError as exc:
+            logger.debug("MCP cleanup: could not remove %s: %s", pid_file, exc)
 
     # ------------------------------------------------------------------
     # Worktree pruning
