@@ -99,10 +99,10 @@ Using PyPI, not these platforms:
 - toolchains-ai-frameworks-dspy
 - toolchains-ai-frameworks-langchain
 - toolchains-ai-frameworks-langgraph
-- toolchains-ai-protocols-mcp
+- toolchains-ai-protocols-model-context
 - toolchains-ai-sdks-anthropic
 - toolchains-ai-techniques-session-compression
-- universal-main-mcp-builder
+- universal-main-model-context-builder
 
 #### Python Stack (10 skills)
 - toolchains-python-async-asyncio

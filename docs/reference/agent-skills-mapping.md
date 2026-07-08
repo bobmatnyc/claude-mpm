@@ -334,19 +334,19 @@ toolchains-python-frameworks-fastapi-local-dev
 
 ### prompt-engineer
 ```
-toolchains-ai-protocols-mcp
+toolchains-ai-protocols-model-context
 toolchains-ai-frameworks-langchain
 toolchains-ai-frameworks-langgraph
 toolchains-ai-frameworks-dspy
 toolchains-ai-sdks-anthropic
 toolchains-ai-services-openrouter
 toolchains-ai-techniques-session-compression
-universal-main-mcp-builder
+universal-main-model-context-builder
 ```
 
 ### agentic-coder-optimizer
 ```
-toolchains-ai-protocols-mcp
+toolchains-ai-protocols-model-context
 universal-main-skill-creator
 universal-collaboration-dispatching-parallel-agents
 ```
@@ -463,7 +463,7 @@ universal-main-skill-creator
 - `universal-observability-opentelemetry` - OpenTelemetry observability
 
 ### AI & Collaboration Skills
-- `toolchains-ai-protocols-mcp` - Model Context Protocol
+- `toolchains-ai-protocols-model-context` - Model Context Protocol
 - `toolchains-ai-frameworks-langchain` - LangChain framework
 - `toolchains-ai-frameworks-langgraph` - LangGraph for agents
 - `universal-main-skill-creator` - Creating new skills
