@@ -236,7 +236,7 @@ PRESETS: dict[str, dict[str, Any]] = {
         "description": "AI essentials (2 skills)",
         "skills": CORE_SKILLS
         + [
-            "toolchains-ai-protocols-mcp",
+            "toolchains-ai-protocols-model-context",
         ],
         "use_cases": ["MCP servers", "Claude integrations", "AI tools"],
     },
@@ -244,7 +244,7 @@ PRESETS: dict[str, dict[str, Any]] = {
         "description": "Full AI skill stack (3+ skills)",
         "skills": CORE_SKILLS
         + [
-            "toolchains-ai-protocols-mcp",
+            "toolchains-ai-protocols-model-context",
             "toolchains-ai-services-openrouter",
             "universal-main-artifacts-builder",
         ],

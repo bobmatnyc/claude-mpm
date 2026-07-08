@@ -614,7 +614,7 @@ async def handle_skills_available(request: web.Request) -> web.Response:
                 """Check if a skill is deployed, accounting for path-normalization.
 
                 Deployed directory names are path-normalized (e.g.,
-                'universal-main-mcp-builder') while available skill names are
+                'universal-main-model-context-builder') while available skill names are
                 short manifest names (e.g., 'mcp-builder'). This function
                 checks for exact match first, then suffix-based matching.
                 """
