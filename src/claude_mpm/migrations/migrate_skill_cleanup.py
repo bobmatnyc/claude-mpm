@@ -9,14 +9,17 @@ WHY:
    - ~/.claude/skills/mcp-vector-search-pr-mr-skill → vector-search-pr-mr-skill
      (renamed copy already exists at user level; old name can be removed)
    - Plugin cache skills containing "mcp" in their name should be renamed.
-3. toolchains-ai-protocols-model-context in project skills should match the
-   plugin directory name toolchains-ai-protocols.
+3. Legacy skill names ("toolchains-ai-protocols", "toolchains-ai-protocols-mcp",
+   "universal-main-mcp-builder", "universal-main-protocol-builder") should
+   converge forward onto the canonical, collision-free names
+   "toolchains-ai-protocols-model-context" and
+   "universal-main-model-context-builder".
 
 WHAT THIS MIGRATION DOES:
 1. Removes mpm-* skill directories from .claude/skills/ (project level) when
    confirmed present at ~/.claude/skills/.
-2. In .claude/skills/: renames toolchains-ai-protocols-model-context →
-   toolchains-ai-protocols if the target doesn't already exist.
+2. In .claude/skills/: renames legacy skill names forward to their canonical
+   "-model-context" equivalents if the target doesn't already exist.
 3. In ~/.claude/skills/: removes mcp-vector-search-pr-mr-skill when
    vector-search-pr-mr-skill already exists at the same level.
 4. In ~/.claude/plugins/cache/*/claude-mpm/*/skills/: removes mpm-* directories
@@ -52,16 +55,19 @@ MCP_SKILL_RENAME: dict[str, str] = {
     "mcp-vector-search-pr-mr-skill": "vector-search-pr-mr-skill",
 }
 
-# Project-level rename: old name → new name (must match plugin directory)
+# Project-level rename: legacy name → canonical name
 PROJECT_SKILL_RENAME: dict[str, str] = {
-    "toolchains-ai-protocols-model-context": "toolchains-ai-protocols",
+    "toolchains-ai-protocols": "toolchains-ai-protocols-model-context",
+    "universal-main-protocol-builder": "universal-main-model-context-builder",
 }
 
-# Plugin-cache skill renames: skill dirs containing "mcp" in the name.
-# Maps old directory name → new directory name for any plugin cache entry.
+# Plugin-cache skill renames: skill dirs using legacy/mcp names.
+# Maps legacy directory name → canonical directory name for any plugin cache entry.
 PLUGIN_CACHE_SKILL_RENAME: dict[str, str] = {
-    "toolchains-ai-protocols-mcp": "toolchains-ai-protocols",
-    "universal-main-mcp-builder": "universal-main-protocol-builder",
+    "toolchains-ai-protocols": "toolchains-ai-protocols-model-context",
+    "toolchains-ai-protocols-mcp": "toolchains-ai-protocols-model-context",
+    "universal-main-mcp-builder": "universal-main-model-context-builder",
+    "universal-main-protocol-builder": "universal-main-model-context-builder",
 }
 
 
@@ -158,7 +164,7 @@ def _remove_project_level_mpm_skills(
 
 
 # ---------------------------------------------------------------------------
-# Step 2 — Rename project-level skills to match plugin directory names
+# Step 2 — Rename project-level legacy skills forward to canonical names
 # ---------------------------------------------------------------------------
 
 
