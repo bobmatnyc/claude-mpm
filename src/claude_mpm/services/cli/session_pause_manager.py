@@ -239,6 +239,25 @@ class SessionPauseManager:
     ) -> dict[str, Any]:
         """Validate and SIGTERM a single recorded MCP process entry.
 
+        WHAT: Given one recorded MCP stdio process entry, runs three
+        sequential safety checks — the PID is a valid positive int, the
+        process is still alive, and its live cmdline still contains the
+        recorded signature — before sending SIGTERM. Each check returns
+        early with a "skipped" decision on failure; a successful SIGTERM
+        (or a benign ``ProcessLookupError``/``OSError`` while sending it)
+        produces the final decision record.
+
+        WHY: A recorded PID can go stale between session start and pause:
+        the process may have already exited, or — on most OSes — the PID
+        may have been recycled by an unrelated process. Blindly signalling
+        the recorded PID risks killing a wrong, unrelated process, so the
+        cmdline-signature comparison acts as a recycled-PID guard. SIGTERM
+        (never SIGKILL) is used so a cooperating stdio server can shut down
+        cleanly. The branching needed for these guards pushes this method
+        over the LOC/CC thresholds; the branches are all safety checks and
+        splitting them into more helpers would not simplify the control
+        flow, so the complexity is intentional and documented here instead.
+
         Returns a decision record with ``pid``, ``action``
         (``"terminated"`` | ``"skipped"``), and ``reason``.
         """
