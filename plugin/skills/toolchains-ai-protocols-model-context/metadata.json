@@ -34,7 +34,7 @@
   "sub_skills": [],
   "created": "2025-11-30",
   "updated": "2025-12-31",
-  "source_path": "toolchains/ai/protocols/mcp/SKILL.md",
+  "source_path": "toolchains/ai/protocols/model-context/SKILL.md",
   "repository": "https://github.com/bobmatnyc/claude-mpm-skills",
   "description": "MCP (Model Context Protocol) - Build AI-native servers with tools, resources, and prompts. TypeScript/Python SDKs for Claude Desktop integration."
 }

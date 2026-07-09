@@ -1691,7 +1691,7 @@ _MCP_SKILL_RENAME_MAP: dict[str, str] = {
     "mcp-vector-search": "vector-search",
     "mcp-vector-search-pr-mr-skill": "vector-search-pr-mr-skill",
     "toolchains-ai-protocols-mcp": "toolchains-ai-protocols-model-context",
-    "universal-main-mcp-builder": "universal-main-protocol-builder",
+    "universal-main-mcp-builder": "universal-main-model-context-builder",
     "mcp-security-review": "security-review",  # issue #736: shadows native /mcp command
 }
 
