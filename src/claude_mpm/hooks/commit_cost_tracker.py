@@ -471,7 +471,7 @@ def _format_models_trailer(model_delta: dict[str, dict[str, int]]) -> str | None
     documenting.
 
     WHAT: Returns a semicolon-separated string such as
-    ``claude-opus-4-8 (in=8954,out=572998); claude-sonnet-4-6 (in=100,out=50)``
+    ``claude-opus-4-8 (in=8954,out=572998); claude-sonnet-5 (in=100,out=50)``
     sorted by descending output tokens, including only models with non-zero
     tokens.  Returns None when fewer than two such models exist (caller emits
     only X-AI-Model in that case).

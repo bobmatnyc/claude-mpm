@@ -45,7 +45,7 @@ CANONICAL_MARKDOWN = textwrap.dedent(
       cache_read: 8737196
       cost_usd: 57.7213
       turns: 81
-    - model: claude-sonnet-4-6
+    - model: claude-sonnet-5
       input: 56799
       output: 98105
       cache_write: 1358323
@@ -103,7 +103,7 @@ CANONICAL_MARKDOWN = textwrap.dedent(
 
     **Calls:**
 
-    - `Agent` → **Python Engineer** (claude-sonnet-4-6) — _Fixed the off-by-one in the regex._
+    - `Agent` → **Python Engineer** (claude-sonnet-5) — _Fixed the off-by-one in the regex._
     - `Skill` → **verification-before-completion** — _All tests pass._
 
     **Outcome:** Fixed the regex on line 42. The last timeline entry is now captured correctly.
@@ -136,7 +136,7 @@ class TestParseMarkdown:
         result = self._parse(tmp_path)
         models = [m["model"] for m in result["frontmatter"]["model_breakdown"]]
         assert "claude-opus-4-8" in models
-        assert "claude-sonnet-4-6" in models
+        assert "claude-sonnet-5" in models
 
     def test_frontmatter_grand_total(self, tmp_path: Path):
         result = self._parse(tmp_path)
@@ -206,7 +206,7 @@ class TestGenerateJsx:
     def test_both_model_names_present(self, tmp_path: Path):
         jsx = self._jsx(tmp_path)
         assert "claude-opus-4-8" in jsx or "opus-4-8" in jsx
-        assert "claude-sonnet-4-6" in jsx or "sonnet-4-6" in jsx
+        assert "claude-sonnet-5" in jsx or "sonnet-4-6" in jsx
 
     def test_entry_title_present(self, tmp_path: Path):
         jsx = self._jsx(tmp_path)

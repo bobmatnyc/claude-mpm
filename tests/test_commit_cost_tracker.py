@@ -321,7 +321,7 @@ class TestGetTokenDeltaFromTranscript:
             cwd,
             input_tokens=18_000,  # 8000 new tokens since baseline
             output_tokens=1_800,  # 800 new tokens
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
         )
 
         with self._patch_home(fake_home):
@@ -1117,7 +1117,7 @@ class TestGetTokenDeltaWorktreeFallback:
             main_tree,
             input_tokens=20_000,
             output_tokens=4_500,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
         )
         # No transcript for worktree_cwd (nothing created there).
 

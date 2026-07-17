@@ -437,7 +437,7 @@ class TestClaudeRunnerSetup:
         # resolution path is deterministic regardless of host config.
         # When no CLAUDE_MPM_PM_MODEL env var is set and the user has no
         # model preference in ~/.claude/settings.json, the runner should
-        # default to "claude-sonnet-4-6".
+        # default to "claude-sonnet-5".
         with patch.dict(os.environ, {}, clear=False) as env:
             env.pop("CLAUDE_MPM_PM_MODEL", None)
             env.pop("CLAUDE_MPM_RUNTIME", None)
@@ -451,7 +451,7 @@ class TestClaudeRunnerSetup:
         mock_runner_class.assert_called_once_with(
             enable_tickets=False,
             log_level=LogLevel.DEBUG.value,
-            claude_args=["--model", "claude-sonnet-4-6"],
+            claude_args=["--model", "claude-sonnet-5"],
             launch_method="subprocess",
             enable_websocket=True,
             websocket_port=9090,

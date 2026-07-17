@@ -44,10 +44,12 @@ class UninstallCommand(BaseCommand):
         """
         try:
             # Check what component to uninstall
-            if args.component == "hooks" or args.all:
-                return self._uninstall_hooks(args)
-            if args.component == "all":
+            if args.component == "all" or args.all:
                 return self._uninstall_all(args)
+            if args.component == "global":
+                return self._uninstall_global(args)
+            if args.component == "hooks":
+                return self._uninstall_hooks(args)
             # Default to hooks if no component specified
             return self._uninstall_hooks(args)
 
@@ -115,8 +117,76 @@ class UninstallCommand(BaseCommand):
         except Exception as e:
             return CommandResult.error_result(f"Error uninstalling hooks: {e}")
 
+    def _uninstall_global(self, args) -> CommandResult:
+        """Remove MPM-owned artifacts from the global ``~/.claude/`` directory.
+
+        WHAT: Runs a dry-run pass to build a preview, prints it, and — unless
+        ``--dry-run`` was given — confirms (respecting ``--yes``) before running
+        the real cleanup of agent templates, output-styles, the statusline
+        script, and MPM-owned ``settings.json`` keys.
+
+        WHY: claude-mpm historically wrote these into the shared, cross-project
+        ``~/.claude/`` namespace, breaking other harnesses (issue #924); users
+        need a safe, previewable removal path that never touches non-MPM files.
+
+        Args:
+            args: Parsed command line arguments. Honours ``--dry-run`` (preview
+                only) and ``--yes`` (skip the confirmation prompt).
+
+        Returns:
+            CommandResult indicating success or failure.
+        """
+        from .uninstall_global import run_global_cleanup
+
+        dry_run = bool(getattr(args, "dry_run", False))
+
+        # First pass is always a dry run so we can show a preview and confirm.
+        preview = run_global_cleanup(dry_run=True)
+
+        if preview.total == 0:
+            self.console.print(
+                "[green]No global claude-mpm artifacts found in ~/.claude/.[/green]"
+            )
+            return CommandResult.success_result("Nothing to clean")
+
+        verb = "Would remove" if dry_run else "Will remove"
+        self.console.print(
+            f"\n[cyan]{verb} the following global claude-mpm artifacts:[/cyan]"
+        )
+        for path in preview.removed_files:
+            self.console.print(f"  • {path}")
+        for key in preview.settings_keys:
+            self.console.print(f"  • ~/.claude/settings.json → {key}")
+
+        if dry_run:
+            self.console.print("\n[yellow]Dry run — no changes were made.[/yellow]")
+            return CommandResult.success_result(
+                f"Dry run: {preview.total} artifact(s) would be removed"
+            )
+
+        if not getattr(args, "yes", False):
+            if not Confirm.ask(
+                "\n[yellow]Remove these global claude-mpm artifacts?[/yellow]"
+            ):
+                self.console.print("[yellow]Uninstallation cancelled.[/yellow]")
+                return CommandResult.success_result("Uninstallation cancelled by user")
+
+        summary = run_global_cleanup(dry_run=False)
+        self.console.print(
+            Panel(
+                f"[green]✓ Removed {len(summary.removed_files)} file(s) and "
+                f"{len(summary.settings_keys)} settings key(s) from ~/.claude/.[/green]\n\n"
+                "Other Claude settings and non-MPM files were preserved.",
+                title="Global Cleanup Complete",
+                border_style="green",
+            )
+        )
+        return CommandResult.success_result(
+            f"Removed {summary.total} global artifact(s)"
+        )
+
     def _uninstall_all(self, args) -> CommandResult:
-        """Uninstall all Claude MPM components.
+        """Uninstall all Claude MPM components (hooks + global artifacts).
 
         Args:
             args: Parsed command line arguments.
@@ -124,16 +194,25 @@ class UninstallCommand(BaseCommand):
         Returns:
             CommandResult indicating success or failure.
         """
-        # For now, we only have hooks to uninstall
-        # This method can be extended in the future for other components
-        return self._uninstall_hooks(args)
+        hooks_result = self._uninstall_hooks(args)
+        global_result = self._uninstall_global(args)
 
-        # Additional cleanup can be added here
-        # For example: removing agent configurations, cache, etc.
+        if not hooks_result.success:
+            return hooks_result
+        if not global_result.success:
+            return global_result
+        return CommandResult.success_result("All Claude MPM components uninstalled")
 
 
 def add_uninstall_parser(subparsers):
     """Add the uninstall subparser.
+
+    WHAT: Registers the ``uninstall`` subcommand with its component argument
+    (``hooks`` / ``global`` / ``all``) and the ``--yes``, ``--force``, ``--all``,
+    and ``--dry-run`` options.
+
+    WHY: Centralising argument registration keeps the CLI surface for uninstall
+    in one place and lets ``--dry-run`` preview the global cleanup (issue #924).
 
     Args:
         subparsers: The subparsers object from the main parser.
@@ -151,9 +230,13 @@ def add_uninstall_parser(subparsers):
     parser.add_argument(
         "component",
         nargs="?",
-        choices=["hooks", "all"],
+        choices=["hooks", "global", "all"],
         default="hooks",
-        help="Component to uninstall (default: hooks)",
+        help=(
+            "Component to uninstall: 'hooks' (default), 'global' (MPM-owned "
+            "artifacts in ~/.claude/: agents, output-styles, statusline.sh, "
+            "settings keys), or 'all'"
+        ),
     )
 
     # Confirmation bypass
@@ -169,6 +252,13 @@ def add_uninstall_parser(subparsers):
     # All components
     parser.add_argument(
         "--all", action="store_true", help="Uninstall all Claude MPM components"
+    )
+
+    # Preview mode (applies to the 'global' component)
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview what would be removed without making changes",
     )
 
     return parser

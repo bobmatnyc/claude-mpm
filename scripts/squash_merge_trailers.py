@@ -126,7 +126,7 @@ def parse_commit_trailers(message: str, agg: AggregatedTrailers) -> None:
         agg.add_model(m.group(1))
 
     # X-AI-Models holds a summary like
-    #   "claude-opus-4-8 (in=8954,out=572998); claude-sonnet-4-6 (in=100,out=50)"
+    #   "claude-opus-4-8 (in=8954,out=572998); claude-sonnet-5 (in=100,out=50)"
     # Union just the bare model names (strip the "(...)" detail).
     for m in _MODELS_RE.finditer(message):
         for part in m.group(1).split(";"):

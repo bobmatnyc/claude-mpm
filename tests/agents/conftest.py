@@ -23,7 +23,7 @@ def mock_agent_data() -> dict[str, Any]:
             "updated_at": "2024-01-01T00:00:00Z",
         },
         "capabilities": {
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
             "resource_tier": "standard",
             "tools": ["Read", "Grep"],
             "features": ["caching", "validation"],

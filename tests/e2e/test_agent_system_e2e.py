@@ -190,7 +190,7 @@ class TestAgentSystemE2E:
                 "status": "stable",
             },
             "capabilities": {
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-sonnet-5",
                 "resource_tier": "standard",
                 "tools": ["Read", "Write", "Grep"],
                 "output_formats": ["markdown", "json"],
@@ -968,7 +968,7 @@ def test_hook_system_integration(tmp_path):
             "category": "test",
         },
         "capabilities": {
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
             "resource_tier": "standard",
             "tools": ["code_analysis"],
         },

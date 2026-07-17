@@ -2,7 +2,7 @@
   "version": "1.0",
   "agents": {
     "engineer": {
-      "model": "claude-sonnet-4-5",
+      "model": "claude-sonnet-5",
       "resource_tier": "tier2",
       "max_tokens": 8192
     },
@@ -12,7 +12,7 @@
       "max_tokens": 4096
     },
     "planner": {
-      "model": "claude-sonnet-4-5",
+      "model": "claude-sonnet-5",
       "resource_tier": "tier2",
       "max_tokens": 8192
     }

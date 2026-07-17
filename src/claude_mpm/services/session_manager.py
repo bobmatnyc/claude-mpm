@@ -89,7 +89,7 @@ class SessionManager:
                 "remaining_tokens": self._total_budget,
                 "percentage_used": 0.0,
                 "stop_reason": None,
-                "model": "claude-sonnet-4.5",
+                "model": "claude-sonnet-5",
             }
 
             # Resume log reference (loaded on startup if exists)
@@ -205,7 +205,7 @@ class SessionManager:
                 "remaining_tokens": remaining,
                 "percentage_used": percentage,
                 "stop_reason": self._last_stop_reason,
-                "model": "claude-sonnet-4.5",
+                "model": "claude-sonnet-5",
             }
 
             logger.debug(

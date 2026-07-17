@@ -214,6 +214,8 @@ def _get_active_model_display_name() -> str:
         "sonnet": "Sonnet",
         "haiku": "Haiku",
         # Specific versioned models (most recent first — ordering matters for prefix matching)
+        "claude-opus-4-8": "Opus 4.8",
+        "claude-sonnet-5": "Sonnet 5",
         "claude-opus-4-6": "Opus 4.6",
         "claude-sonnet-4-6": "Sonnet 4.6",
         "claude-haiku-4-6": "Haiku 4.6",

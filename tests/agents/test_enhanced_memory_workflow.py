@@ -69,7 +69,7 @@ INSTRUCTIONS: Review your project memory above before proceeding. Apply learned 
             "memory_lines": initial_lines,
             "memory_size_kb": round(len(initial_memory.encode("utf-8")) / 1024, 2),
         },
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-5",
     }
 
     print(f"   ✓ Agent created with {initial_lines} memory lines")

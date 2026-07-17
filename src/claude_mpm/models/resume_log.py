@@ -29,7 +29,7 @@ class ContextMetrics:
     remaining_tokens: int = 0
     percentage_used: float = 0.0
     stop_reason: str | None = None
-    model: str = "claude-sonnet-4.5"
+    model: str = "claude-sonnet-5"
     session_id: str = ""
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
@@ -55,7 +55,7 @@ class ContextMetrics:
             remaining_tokens=data.get("remaining_tokens", 0),
             percentage_used=data.get("percentage_used", 0.0),
             stop_reason=data.get("stop_reason"),
-            model=data.get("model", "claude-sonnet-4.5"),
+            model=data.get("model", "claude-sonnet-5"),
             session_id=data.get("session_id", ""),
             timestamp=data.get("timestamp", datetime.now(UTC).isoformat()),
         )

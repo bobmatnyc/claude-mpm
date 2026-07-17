@@ -32,7 +32,7 @@ class TestContextMetrics:
             remaining_tokens=60000,
             percentage_used=70.0,
             stop_reason="end_turn",
-            model="claude-sonnet-4.5",
+            model="claude-sonnet-5",
             session_id="test-session-001",
         )
 
@@ -230,7 +230,7 @@ class TestResumeLogGenerator:
                     "used_tokens": 170000,
                     "remaining_tokens": 30000,
                     "percentage_used": 85.0,
-                    "model": "claude-sonnet-4.5",
+                    "model": "claude-sonnet-5",
                 },
                 "mission_summary": "Test mission from state",
                 "accomplishments": ["Completed task A", "Completed task B"],

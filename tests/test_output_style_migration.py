@@ -15,10 +15,16 @@ from claude_mpm.core.output_style_manager import OutputStyleManager
 
 @pytest.fixture
 def temp_home(monkeypatch):
-    """Create temporary home directory for testing."""
+    """Create temporary home directory for testing.
+
+    Also chdir into it so the project-local ``.claude/settings.json`` that the
+    output-style activation now writes (issue #924) resolves under the same
+    temp tree as the HOME-based output-styles directory.
+    """
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_path = Path(tmpdir)
         monkeypatch.setenv("HOME", str(temp_path))
+        monkeypatch.chdir(temp_path)
         yield temp_path
 
 

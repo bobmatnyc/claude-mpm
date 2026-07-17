@@ -49,7 +49,7 @@ class FakeToolResultBlock:
 @dataclass
 class FakeAssistantMessage:
     content: list[Any]
-    model: str = "claude-sonnet-4-6-20260124"
+    model: str = "claude-sonnet-5"
     usage: Any = None
     error: Any = None
 
@@ -731,7 +731,7 @@ class TestFromConfig:
         )
         runner = SDKAgentRunner.from_config(config)
         assert runner.system_prompt == "You are helpful."
-        assert runner.model == "claude-sonnet-4-6-20260124"
+        assert runner.model == "claude-sonnet-5"
         assert runner.max_turns == 10
 
     def test_resolves_mpm_model_names(self) -> None:
@@ -739,7 +739,7 @@ class TestFromConfig:
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
         for short, full in [
-            ("sonnet", "claude-sonnet-4-6-20260124"),
+            ("sonnet", "claude-sonnet-5"),
             ("opus", "claude-opus-4-20250514"),
             ("haiku", "claude-haiku-3-20250307"),
         ]:
@@ -750,10 +750,8 @@ class TestFromConfig:
         from claude_mpm.services.agents.agent_runtime import AgentConfig
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        runner = SDKAgentRunner.from_config(
-            AgentConfig(model="claude-sonnet-4-6-20260124")
-        )
-        assert runner.model == "claude-sonnet-4-6-20260124"
+        runner = SDKAgentRunner.from_config(AgentConfig(model="claude-sonnet-5"))
+        assert runner.model == "claude-sonnet-5"
 
     def test_none_model_stays_none(self) -> None:
         from claude_mpm.services.agents.agent_runtime import AgentConfig
@@ -799,7 +797,7 @@ class TestFromAgentTemplate:
 
         runner = SDKAgentRunner.from_agent_template(path)
         assert runner.system_prompt == "You are a test agent."
-        assert runner.model == "claude-sonnet-4-6-20260124"
+        assert runner.model == "claude-sonnet-5"
         assert runner.allowed_tools == ["Bash", "Read"]
         assert runner.max_turns == 120  # fallback from timeout
         assert runner.max_budget_usd == 0.50
@@ -961,20 +959,20 @@ class TestModelMapping:
     def test_resolve_short_to_sdk(self) -> None:
         from claude_mpm.services.agents.agent_runtime import resolve_model_to_sdk
 
-        assert resolve_model_to_sdk("sonnet") == "claude-sonnet-4-6-20260124"
+        assert resolve_model_to_sdk("sonnet") == "claude-sonnet-5"
         assert resolve_model_to_sdk("opus") == "claude-opus-4-20250514"
         assert resolve_model_to_sdk("haiku") == "claude-haiku-3-20250307"
 
     def test_resolve_full_passthrough(self) -> None:
         from claude_mpm.services.agents.agent_runtime import resolve_model_to_sdk
 
-        full = "claude-sonnet-4-6-20260124"
+        full = "claude-sonnet-5"
         assert resolve_model_to_sdk(full) == full
 
     def test_resolve_sdk_to_mpm(self) -> None:
         from claude_mpm.services.agents.agent_runtime import resolve_model_to_mpm
 
-        assert resolve_model_to_mpm("claude-sonnet-4-6-20260124") == "sonnet"
+        assert resolve_model_to_mpm("claude-sonnet-5") == "sonnet"
         assert resolve_model_to_mpm("claude-opus-4-20250514") == "opus"
 
     def test_resolve_mpm_fallback_extraction(self) -> None:

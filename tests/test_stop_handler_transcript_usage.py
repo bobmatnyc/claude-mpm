@@ -626,14 +626,14 @@ class TestParseTranscriptUsagePerModel:
                     output_tokens=400,
                     cache_creation=0,
                     cache_read=3_000,
-                    model="claude-sonnet-4-6",
+                    model="claude-sonnet-5",
                 ),
                 _make_assistant_record(
                     input_tokens=500,
                     output_tokens=150,
                     cache_creation=0,
                     cache_read=1_000,
-                    model="claude-sonnet-4-6",
+                    model="claude-sonnet-5",
                 ),
             ],
         )
@@ -650,7 +650,7 @@ class TestParseTranscriptUsagePerModel:
 
         # --- per-model breakdown ---
         models = result["models"]
-        assert set(models.keys()) == {"claude-opus-4-8", "claude-sonnet-4-6"}, (
+        assert set(models.keys()) == {"claude-opus-4-8", "claude-sonnet-5"}, (
             "Both models must appear in the models dict — this test MUST FAIL "
             "without model-tracking logic."
         )
@@ -661,7 +661,7 @@ class TestParseTranscriptUsagePerModel:
         assert opus["cache_creation_input_tokens"] == 700
         assert opus["cache_read_input_tokens"] == 25_000  # 20k+5k
 
-        sonnet = models["claude-sonnet-4-6"]
+        sonnet = models["claude-sonnet-5"]
         assert sonnet["input_tokens"] == 2_000  # 1.5k+0.5k
         assert sonnet["output_tokens"] == 550  # 400+150
         assert sonnet["cache_creation_input_tokens"] == 0
@@ -694,7 +694,7 @@ class TestParseTranscriptUsagePerModel:
                     input_tokens=4_000, output_tokens=1_000, model="claude-opus-4-8"
                 ),
                 _make_assistant_record(
-                    input_tokens=1_000, output_tokens=500, model="claude-sonnet-4-6"
+                    input_tokens=1_000, output_tokens=500, model="claude-sonnet-5"
                 ),
             ],
         )
@@ -727,7 +727,7 @@ class TestPrimaryModelAndTrailerFormat:
         """Model with most output tokens is selected as primary."""
         delta = {
             "claude-opus-4-8": {"output_tokens": 50_000},
-            "claude-sonnet-4-6": {"output_tokens": 500},
+            "claude-sonnet-5": {"output_tokens": 500},
         }
         assert _primary_model(delta) == "claude-opus-4-8"
 
@@ -738,12 +738,12 @@ class TestPrimaryModelAndTrailerFormat:
         this test would fail because dict insertion order puts sonnet first.
         """
         delta = {
-            "claude-sonnet-4-6": {"output_tokens": 10},  # inserted first
+            "claude-sonnet-5": {"output_tokens": 10},  # inserted first
             "claude-opus-4-8": {"output_tokens": 999},  # should win
         }
         # A naive implementation that returns the first key would return sonnet.
         naive_result = next(iter(delta))
-        assert naive_result == "claude-sonnet-4-6"  # confirms the naive trap
+        assert naive_result == "claude-sonnet-5"  # confirms the naive trap
         # Correct implementation must return opus.
         assert _primary_model(delta) == "claude-opus-4-8", (
             "MUST FAIL without the max(output_tokens) logic in _primary_model()"
@@ -758,7 +758,7 @@ class TestPrimaryModelAndTrailerFormat:
         """Two models → semicolon-separated string with in=,out= format."""
         delta = {
             "claude-opus-4-8": {"input_tokens": 8_954, "output_tokens": 572_998},
-            "claude-sonnet-4-6": {"input_tokens": 1_000, "output_tokens": 200},
+            "claude-sonnet-5": {"input_tokens": 1_000, "output_tokens": 200},
         }
         result = _format_models_trailer(delta)
 
@@ -767,7 +767,7 @@ class TestPrimaryModelAndTrailerFormat:
         assert "\n" not in result
         # Opus appears first (highest output tokens)
         assert result.startswith("claude-opus-4-8")
-        assert "claude-sonnet-4-6" in result
+        assert "claude-sonnet-5" in result
         # Contains in= and out= for each model
         assert "in=8954,out=572998" in result
         assert "in=1000,out=200" in result
@@ -813,7 +813,7 @@ class TestAmendCommitMessageModelTrailers:
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
             },
-            "claude-sonnet-4-6": {
+            "claude-sonnet-5": {
                 "input_tokens": 500,
                 "output_tokens": 200,
                 "cache_creation_input_tokens": 0,
@@ -870,7 +870,7 @@ class TestAmendCommitMessageModelTrailers:
         assert "X-AI-Models:" in msg, (
             "MUST FAIL without multi-model logic — X-AI-Models missing"
         )
-        assert "claude-sonnet-4-6" in msg
+        assert "claude-sonnet-5" in msg
 
     def test_model_trailers_stripped_on_re_amend(self) -> None:
         """Re-amending a commit that already has X-AI-Model trailers doesn't duplicate them.
@@ -995,7 +995,7 @@ class TestGetTokenDeltaPerModel:
                 "cache_creation_input_tokens": 500,
                 "cache_read_input_tokens": 20_000,
             },
-            "claude-sonnet-4-6": {
+            "claude-sonnet-5": {
                 "input_tokens": 2_000,
                 "output_tokens": 800,
                 "cache_creation_input_tokens": 0,
@@ -1040,7 +1040,7 @@ class TestGetTokenDeltaPerModel:
         assert "claude-opus-4-8" in m, (
             "MUST FAIL without per-model delta logic in get_token_delta()"
         )
-        assert "claude-sonnet-4-6" in m, (
+        assert "claude-sonnet-5" in m, (
             "MUST FAIL without per-model delta logic in get_token_delta()"
         )
 
@@ -1048,7 +1048,7 @@ class TestGetTokenDeltaPerModel:
         assert opus["input_tokens"] == 2_000  # 10k - 8k
         assert opus["output_tokens"] == 1_000  # 5k - 4k
 
-        sonnet = m["claude-sonnet-4-6"]
+        sonnet = m["claude-sonnet-5"]
         assert sonnet["input_tokens"] == 2_000  # 2k - 0 (not in baseline)
         assert sonnet["output_tokens"] == 800  # 800 - 0
 
