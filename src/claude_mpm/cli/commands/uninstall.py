@@ -120,9 +120,14 @@ class UninstallCommand(BaseCommand):
     def _uninstall_global(self, args) -> CommandResult:
         """Remove MPM-owned artifacts from the global ``~/.claude/`` directory.
 
-        Cleans up agent templates, output-styles, the statusline script, and
-        MPM-owned ``settings.json`` keys that claude-mpm historically wrote into
-        the shared, cross-project ``~/.claude/`` namespace (issue #924).
+        WHAT: Runs a dry-run pass to build a preview, prints it, and — unless
+        ``--dry-run`` was given — confirms (respecting ``--yes``) before running
+        the real cleanup of agent templates, output-styles, the statusline
+        script, and MPM-owned ``settings.json`` keys.
+
+        WHY: claude-mpm historically wrote these into the shared, cross-project
+        ``~/.claude/`` namespace, breaking other harnesses (issue #924); users
+        need a safe, previewable removal path that never touches non-MPM files.
 
         Args:
             args: Parsed command line arguments. Honours ``--dry-run`` (preview
@@ -201,6 +206,13 @@ class UninstallCommand(BaseCommand):
 
 def add_uninstall_parser(subparsers):
     """Add the uninstall subparser.
+
+    WHAT: Registers the ``uninstall`` subcommand with its component argument
+    (``hooks`` / ``global`` / ``all``) and the ``--yes``, ``--force``, ``--all``,
+    and ``--dry-run`` options.
+
+    WHY: Centralising argument registration keeps the CLI surface for uninstall
+    in one place and lets ``--dry-run`` preview the global cleanup (issue #924).
 
     Args:
         subparsers: The subparsers object from the main parser.
