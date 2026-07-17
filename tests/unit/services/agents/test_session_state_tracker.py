@@ -82,8 +82,8 @@ class TestSessionStateTracker:
 
     def test_set_model(self) -> None:
         tracker = SessionStateTracker()
-        tracker.set_model("claude-sonnet-4-20250514")
-        assert tracker.get_session_state()["model"] == "claude-sonnet-4-20250514"
+        tracker.set_model("claude-sonnet-5")
+        assert tracker.get_session_state()["model"] == "claude-sonnet-5"
 
     def test_record_user_input_transitions_to_processing(self) -> None:
         tracker = SessionStateTracker()
@@ -301,7 +301,7 @@ class TestFullLifecycle:
         assert tracker.get_session_state()["state"] == "processing"
 
         # Model set from first response
-        tracker.set_model("claude-sonnet-4-20250514")
+        tracker.set_model("claude-sonnet-5")
 
         # Assistant calls a tool
         tracker.record_tool_call("Read")
