@@ -470,7 +470,7 @@ class TestDeploySpinnerGlobalMigration:
         user_settings.write_text(
             "{\n"
             '  "theme": "dark",\n'
-            '  "model": "claude-opus-4-7",\n'
+            '  "model": "claude-opus-4-8",\n'
             '  "permissions": {"allow": ["Read"]}\n'
             "}\n"
         )
@@ -481,7 +481,7 @@ class TestDeploySpinnerGlobalMigration:
         data = json.loads(user_settings.read_text())
         # Unrelated keys preserved
         assert data["theme"] == "dark"
-        assert data["model"] == "claude-opus-4-7"
+        assert data["model"] == "claude-opus-4-8"
         assert data["permissions"] == {"allow": ["Read"]}
         # Spinner keys added
         assert "spinnerVerbs" in data
