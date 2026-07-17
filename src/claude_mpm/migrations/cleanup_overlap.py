@@ -7,14 +7,16 @@ redundant "-agent" suffix (e.g. "research-agent" instead of "research") which
 should be cleaned up at the user level.
 
 WHAT THIS MODULE DOES:
-1. cleanup_agent_overlap: Archives project-level copies of USER_LEVEL_AGENTS
-   when the user-level copy already exists.
-2. cleanup_skill_overlap: Same for USER_LEVEL_SKILLS (directories, not files).
-3. cleanup_stale_agent_names: Archives user-level agents that have a redundant
-   "-agent" suffix when the correct (non-suffixed) name already exists.
+1. cleanup_agent_overlap: **No-op** since Fix A for #924 removed user-level
+   agent routing (agents are project-local everywhere now).
+2. cleanup_skill_overlap: Archives project-level copies of USER_LEVEL_SKILLS
+   (directories, not files) when the user-level copy already exists.  Skills are
+   a separate concern and remain user-level, so this is unchanged.
+3. cleanup_stale_agent_names: **No-op** since Fix A for #924; removal of stale
+   user-level agent copies is handled by the v6.5.81 migration instead.
 
-All operations are non-destructive: files are archived before removal, and a
-manifest is written to each archive directory documenting what happened.
+All skill operations are non-destructive: files are archived before removal, and
+a manifest is written to each archive directory documenting what happened.
 
 IDEMPOTENCY: Running this multiple times is safe -- if the archive already
 contains the file, the item is skipped.
@@ -112,7 +114,15 @@ def cleanup_agent_overlap(
 
     Returns:
         Dict with keys "archived", "skipped", "errors" (lists of agent names).
+
+    .. deprecated::
+        No-op since Fix A for #924 removed user-level agent routing.  Agents are
+        project-local everywhere now, so there is no user-level copy to
+        supersede a project copy; this function returns empty results without
+        touching any files.
     """
+    return {"archived": [], "skipped": [], "errors": []}
+
     user_level_agents = _get_user_level_agents()
     user_agents_base = Path.home() / ".claude" / "agents"
     project_agents_base = project_dir / ".claude" / "agents"
@@ -293,7 +303,15 @@ def cleanup_stale_agent_names(dry_run: bool = False) -> dict:
 
     Returns:
         Dict with keys "archived", "skipped", "errors" (lists of stale names).
+
+    .. deprecated::
+        No-op since Fix A for #924 removed user-level agent routing.  MPM no
+        longer maintains agents under ``~/.claude/agents/``, so there is nothing
+        to prune here; the removal of stale user-level copies is handled by the
+        v6.5.81 migration instead.
     """
+    return {"archived": [], "skipped": [], "errors": []}
+
     user_agents_base = Path.home() / ".claude" / "agents"
 
     date_str = datetime.now(tz=UTC).strftime("%Y-%m-%d")
