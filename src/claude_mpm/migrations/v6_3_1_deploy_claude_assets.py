@@ -142,16 +142,22 @@ def _deploy_settings(claude_dir: Path) -> None:
     """Deploy settings.json only if it does not already exist.
 
     The bundled template ships with ``statusLine.command`` set to the legacy
-    project-relative path ``.claude/hooks/scripts/statusline.sh``.  When we
-    write the template into ``~/.claude/`` we patch that field to the
-    absolute user-level path so Claude Code can locate the script regardless
-    of the current working directory.
+    project-relative path ``.claude/hooks/scripts/statusline.sh``.  We patch
+    that field to the absolute user-level script path so Claude Code can locate
+    the script regardless of the current working directory.
+
+    The settings file itself is written to the PROJECT-LOCAL ``.claude/`` rather
+    than the shared ``~/.claude/`` (``claude_dir``) so the statusLine config
+    does not leak into every Claude Code session on the machine (issue #924).
     """
-    target = claude_dir / "settings.json"
+    _ = claude_dir  # kept for signature/back-compat; target is now project-local
+    target = Path.cwd() / ".claude" / "settings.json"
 
     if target.exists():
         logger.debug("Skipping settings.json: already exists at %s", target)
         return
+
+    target.parent.mkdir(parents=True, exist_ok=True)
 
     raw = (files("claude_mpm") / "templates" / "claude" / "settings.json").read_text(
         encoding="utf-8"
