@@ -750,9 +750,7 @@ class TestFromConfig:
         from claude_mpm.services.agents.agent_runtime import AgentConfig
         from claude_mpm.services.agents.sdk_runtime import SDKAgentRunner
 
-        runner = SDKAgentRunner.from_config(
-            AgentConfig(model="claude-sonnet-5")
-        )
+        runner = SDKAgentRunner.from_config(AgentConfig(model="claude-sonnet-5"))
         assert runner.model == "claude-sonnet-5"
 
     def test_none_model_stays_none(self) -> None:
