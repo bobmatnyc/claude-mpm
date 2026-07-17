@@ -83,10 +83,12 @@ class AgentValidator:
         "claude-sonnet-4-20250514": "sonnet",
         "claude-4-sonnet-20250514": "sonnet",
         "claude-3-sonnet-20240229": "sonnet",
+        "claude-sonnet-5": "sonnet",
         # Opus variations
         "claude-3-opus-20240229": "opus",
         "claude-opus-4-20250514": "opus",
         "claude-4-opus-20250514": "opus",
+        "claude-opus-4-8": "opus",
         # Haiku variations
         "claude-3-haiku-20240307": "haiku",
         "claude-3-5-haiku-20241022": "haiku",
