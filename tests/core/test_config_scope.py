@@ -347,13 +347,13 @@ class TestModelConfigLayeredMerge:
                 "review": "claude-haiku-4",
             }
         }
-        overlay = {"models": {"planning": "claude-opus-4-7"}}
+        overlay = {"models": {"planning": "claude-opus-4-8"}}
 
         result = ModelConfigManager._deep_merge(base, overlay)
 
         assert result == {
             "models": {
-                "planning": "claude-opus-4-7",  # Overridden
+                "planning": "claude-opus-4-8",  # Overridden
                 "coding": "claude-sonnet-4",  # Preserved
                 "review": "claude-haiku-4",  # Preserved
             }
