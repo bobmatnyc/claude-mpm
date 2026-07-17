@@ -156,7 +156,7 @@ def test_normalized_body_is_parseable() -> None:
             "feat: second",
             tokens_in=500,
             tokens_out=100,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             version="6.5.45",
         ),
     ]
@@ -166,7 +166,7 @@ def test_normalized_body_is_parseable() -> None:
 
     assert parsed.get("X-AI-Tokens-In") == ["1500"], parsed
     assert parsed.get("X-AI-Tokens-Out") == ["300"], parsed
-    assert parsed.get("X-AI-Models") == ["claude-opus-4-8, claude-sonnet-4-6"], parsed
+    assert parsed.get("X-AI-Models") == ["claude-opus-4-8, claude-sonnet-5"], parsed
     assert parsed.get("X-MPM-Version") == ["6.5.45"], parsed
     assert parsed.get("Co-Authored-By") == [
         "Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
@@ -192,7 +192,7 @@ def test_aggregation_sums_tokens_and_unions_models() -> None:
             "feat: b",
             tokens_in=200,
             tokens_out=20,
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             version="6.5.42",
         ),
         _commit_with_trailers(
@@ -207,7 +207,7 @@ def test_aggregation_sums_tokens_and_unions_models() -> None:
 
     assert agg.tokens_in == 600
     assert agg.tokens_out == 60
-    assert agg.models == ["claude-opus-4-8", "claude-sonnet-4-6"]
+    assert agg.models == ["claude-opus-4-8", "claude-sonnet-5"]
     assert agg.version == "6.5.45"
 
 
