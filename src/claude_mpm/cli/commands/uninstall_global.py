@@ -1,5 +1,10 @@
 """Global ``~/.claude/`` artifact cleanup for ``claude-mpm uninstall``.
 
+WHAT: Scans the shared ``~/.claude/`` directory for MPM-owned artifacts —
+agent templates (frontmatter marker), ``claude-mpm*`` output-styles, an
+MPM-managed ``statusline.sh``, and MPM-owned ``settings.json`` keys — and
+removes them (or previews the removal in dry-run mode).
+
 WHY: claude-mpm historically wrote agent templates, output-styles, a statusline
 script, and several ``settings.json`` keys into the shared, cross-project
 ``~/.claude/`` namespace. Those artifacts leak into every Claude Code session on
@@ -120,7 +125,16 @@ def _remove_statusline_script(claude_dir: Path, summary: CleanupSummary) -> None
 
 
 def _clean_settings(claude_dir: Path, summary: CleanupSummary) -> None:
-    """Strip MPM-owned keys from ``~/.claude/settings.json``."""
+    """Strip MPM-owned keys from ``~/.claude/settings.json``.
+
+    WHAT: Removes the ``outputStyle`` (when ``claude_mpm*``), ``statusLine``
+    (when it points at ``statusline.sh``), the spinner keys and version stamp,
+    and any ``hooks.Stop`` entry invoking ``statusline.sh`` — pruning emptied
+    hook groups — then rewrites the file (unless ``dry_run``).
+
+    WHY: Ownership must be established per-key so user-authored settings survive;
+    a blanket delete would destroy unrelated configuration in the shared file.
+    """
     settings_path = claude_dir / "settings.json"
     if not settings_path.is_file():
         return
