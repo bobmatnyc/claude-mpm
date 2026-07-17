@@ -25,7 +25,7 @@ def mock_tracker() -> MagicMock:
     """Mock SessionStateTracker."""
     tracker = MagicMock()
     tracker.get_session_state.return_value = {
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-5",
         "total_cost_usd": 0.0042,
         "turn_count": 7,
     }
@@ -154,7 +154,7 @@ class TestModelCommand:
     ) -> None:
         result = router.route("/model")
         assert result.handled is True
-        assert "claude-sonnet-4-20250514" in (result.output or "")
+        assert "claude-sonnet-5" in (result.output or "")
 
     def test_model_set(self, router: SDKCommandRouter, mock_client: MagicMock) -> None:
         result = router.route("/model sonnet")
