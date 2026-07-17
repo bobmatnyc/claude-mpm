@@ -19,6 +19,13 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.80 (2026-07-17)
+
+### Fix
+
+- rename mcp-token skills to model-context to stop /mcp slash-command shadowing (#932)
+- add WWL doc-comment to SessionPauseManager._terminate_one_mcp_process (#933)
+
 ## v6.5.79 (2026-07-06)
 
 ## v6.5.78 (2026-07-06)
