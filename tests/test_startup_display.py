@@ -238,7 +238,7 @@ class TestGetActiveModelDisplayName:
         local_settings.write_text('{"model": "claude-opus-4-6"}')
 
         project_settings = tmp_path / ".claude" / "settings.json"
-        project_settings.write_text('{"model": "claude-sonnet-4-6"}')
+        project_settings.write_text('{"model": "claude-sonnet-5"}')
 
         monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
