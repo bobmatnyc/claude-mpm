@@ -1090,36 +1090,63 @@ _SPINNER_GLOBAL_KEYS: tuple[str, ...] = (
 _SPINNER_GLOBAL_VERSION_KEY = "_mpm_spinner_version"
 
 
+def _global_settings_has_spinner_keys() -> bool:
+    """Return True if the shared ~/.claude/settings.json still holds MPM spinner keys.
+
+    Used to trigger a self-healing cleanup pass for existing installs that had
+    spinner config written to the global file before it moved project-local
+    (issue #924).
+    """
+    global_settings = Path.home() / ".claude" / "settings.json"
+    if not global_settings.exists():
+        return False
+    try:
+        existing = json.loads(global_settings.read_text())
+    except Exception:
+        return False
+    if not isinstance(existing, dict):
+        return False
+    return _SPINNER_GLOBAL_VERSION_KEY in existing or any(
+        k in existing for k in _SPINNER_GLOBAL_KEYS
+    )
+
+
 def _check_spinner_global_needed() -> bool:
-    """Check if spinner config needs to be deployed/updated in ~/.claude/settings.json.
+    """Check if spinner config needs to be deployed/updated in the project settings.
 
     Returns:
-        True if spinner keys are missing from ~/.claude/settings.json or if
-        the deployed spinner template version is older than the bundled
-        template version.
+        True if spinner keys are missing from the project-local
+        ``.claude/settings.json`` (or its recorded template version is older
+        than the bundled template), OR if the shared ``~/.claude/settings.json``
+        still holds stale MPM spinner keys that need to be cleaned up.
     """
     templates = _get_claude_assets_templates_dir()
     settings_template = templates / "settings.json"
     if not settings_template.exists():
-        return False
+        # Still worth running if we only need to clean up the global file.
+        return _global_settings_has_spinner_keys()
 
     try:
         template_data = json.loads(settings_template.read_text())
     except Exception as exc:
         logger.debug("Failed to read settings template for spinner check: %s", exc)
-        return False
+        return _global_settings_has_spinner_keys()
 
     template_version = str(template_data.get("_mpm_version", "0.0.0"))
 
-    user_settings = Path.home() / ".claude" / "settings.json"
-    if not user_settings.exists():
+    # A leftover global copy is always a reason to run (to clean it up).
+    if _global_settings_has_spinner_keys():
+        return True
+
+    project_settings = Path.cwd() / ".claude" / "settings.json"
+    if not project_settings.exists():
         # Will be created during migration if any spinner keys exist in template
         return any(k in template_data for k in _SPINNER_GLOBAL_KEYS)
 
     try:
-        existing = json.loads(user_settings.read_text())
+        existing = json.loads(project_settings.read_text())
     except Exception as exc:
-        logger.debug("Failed to read user settings.json: %s", exc)
+        logger.debug("Failed to read project settings.json: %s", exc)
         # Be conservative: if we can't parse it, don't try to merge into it
         return False
 
@@ -1135,6 +1162,54 @@ def _check_spinner_global_needed() -> bool:
         return any(k in template_data for k in _SPINNER_GLOBAL_KEYS)
 
     return False
+
+
+def _cleanup_global_spinner_keys() -> None:
+    """Remove MPM-owned spinner keys from the shared ~/.claude/settings.json.
+
+    claude-mpm used to merge spinner display keys into the global settings file
+    (issue #924), applying MPM spinner verbs/tips to every Claude Code session
+    on the machine. Those keys now live in the project-local
+    ``.claude/settings.json``; this strips the stale global copies. Only the
+    keys MPM itself wrote (``_SPINNER_GLOBAL_KEYS`` plus the
+    ``_mpm_spinner_version`` stamp) are removed.
+    """
+    global_settings = Path.home() / ".claude" / "settings.json"
+    if not global_settings.exists():
+        return
+    try:
+        existing = json.loads(global_settings.read_text())
+    except Exception:
+        return
+    if not isinstance(existing, dict):
+        return
+
+    removed = [
+        key
+        for key in (*_SPINNER_GLOBAL_KEYS, _SPINNER_GLOBAL_VERSION_KEY)
+        if key in existing
+    ]
+    if not removed:
+        return
+
+    for key in removed:
+        del existing[key]
+
+    try:
+        global_settings.write_text(json.dumps(existing, indent=2) + "\n")
+        logger.info(
+            "Removed %d MPM spinner key(s) from global %s (issue #924)",
+            len(removed),
+            global_settings,
+        )
+        print(
+            f"   Cleaned {len(removed)} stale spinner key(s) from "
+            "~/.claude/settings.json"
+        )
+    except OSError as exc:
+        logger.warning(
+            "Failed to clean global spinner keys from %s: %s", global_settings, exc
+        )
 
 
 def _deploy_spinner_global() -> bool:
@@ -1170,6 +1245,10 @@ def _deploy_spinner_global() -> bool:
         print(f"   Failed to parse settings template: {exc}")
         return False
 
+    # Self-heal: remove any stale spinner keys from the shared global settings
+    # before writing the project-local copy (issue #924).
+    _cleanup_global_spinner_keys()
+
     template_version = str(template_data.get("_mpm_version", "0.0.0"))
     spinner_payload: dict = {
         key: template_data[key] for key in _SPINNER_GLOBAL_KEYS if key in template_data
@@ -1179,7 +1258,10 @@ def _deploy_spinner_global() -> bool:
         print("   Template has no spinner keys — nothing to deploy")
         return True
 
-    user_settings = Path.home() / ".claude" / "settings.json"
+    # Write spinner config to the PROJECT-LOCAL .claude/settings.json instead of
+    # the shared ~/.claude/settings.json so MPM spinner verbs/tips no longer
+    # apply to every Claude Code session on the machine (issue #924).
+    user_settings = Path.cwd() / ".claude" / "settings.json"
     existing: dict = {}
     if user_settings.exists():
         try:
@@ -1198,7 +1280,7 @@ def _deploy_spinner_global() -> bool:
         logger.warning(
             "User settings is not a JSON object (got %s) — aborting", type(existing)
         )
-        print("   ~/.claude/settings.json is not a JSON object — skipping")
+        print("   .claude/settings.json is not a JSON object — skipping")
         return False
 
     existing_version = str(existing.get(_SPINNER_GLOBAL_VERSION_KEY, "0.0.0"))
@@ -1212,7 +1294,7 @@ def _deploy_spinner_global() -> bool:
             changed_keys.append(key)
 
     if not changed_keys and existing_version == template_version:
-        print("   Spinner config already up-to-date in ~/.claude/settings.json")
+        print("   Spinner config already up-to-date in .claude/settings.json")
         return True
 
     # Always stamp the version when we touch the file so subsequent runs are
@@ -1230,10 +1312,10 @@ def _deploy_spinner_global() -> bool:
     if changed_keys:
         print(
             f"   Deployed {len(changed_keys)} spinner key(s) to "
-            f"~/.claude/settings.json: {', '.join(sorted(changed_keys))}"
+            f".claude/settings.json: {', '.join(sorted(changed_keys))}"
         )
     else:
-        print("   Refreshed spinner version stamp in ~/.claude/settings.json")
+        print("   Refreshed spinner version stamp in .claude/settings.json")
     print("   ✓ Migration complete")
     return True
 
@@ -2026,7 +2108,7 @@ MIGRATIONS: list[Migration] = [
     ),
     Migration(
         id="v6.3.2-deploy-spinner-global",
-        description="Deploy MPM spinner verbs/tips into ~/.claude/settings.json so they apply outside MPM projects",
+        description="Deploy MPM spinner verbs/tips into project-local .claude/settings.json and clean up any stale global copies",
         check=_check_spinner_global_needed,
         migrate=_deploy_spinner_global,
     ),
