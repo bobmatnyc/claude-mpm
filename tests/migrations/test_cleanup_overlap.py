@@ -1,6 +1,10 @@
 """Tests for the startup overlap cleanup system.
 
 Tests use tmp_path and monkeypatch to avoid touching real ~/.claude/ directories.
+
+Fix A for issue #924 removed user-level agent routing: ``cleanup_agent_overlap``
+and ``cleanup_stale_agent_names`` are now no-ops (they return empty results and
+touch no files).  Skill overlap cleanup is a separate concern and remains active.
 """
 
 import json
@@ -54,20 +58,22 @@ def fake_project(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# Agent overlap tests
+# Agent overlap tests (now a no-op)
 # ---------------------------------------------------------------------------
 
 
-class TestCleanupAgentOverlap:
-    """Tests for cleanup_agent_overlap."""
+class TestCleanupAgentOverlapIsNoOp:
+    """cleanup_agent_overlap is a no-op after Fix A for #924."""
 
-    def test_archives_duplicates(self, fake_home: Path, fake_project: Path):
-        """When both user and project copies exist, project copy is archived."""
+    def test_does_not_archive_duplicates(self, fake_home: Path, fake_project: Path):
+        """Even when both user and project copies exist, nothing is archived."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_agent_overlap
 
         user_claude = fake_home / ".claude"
         _setup_agent_file(user_claude, "pm", content="# user pm")
-        _setup_agent_file(fake_project / ".claude", "pm", content="# project pm")
+        project_file = _setup_agent_file(
+            fake_project / ".claude", "pm", content="# project pm"
+        )
 
         with patch(
             "claude_mpm.migrations.cleanup_overlap._get_user_level_agents",
@@ -75,42 +81,30 @@ class TestCleanupAgentOverlap:
         ):
             result = cleanup_agent_overlap(fake_project)
 
-        assert "pm" in result["archived"]
-        # Project file removed
-        assert not (fake_project / ".claude" / "agents" / "pm.md").exists()
-        # Archived copy exists
-        archived_files = list(
-            (fake_project / ".claude" / "agents" / "archived").rglob("pm.md")
-        )
-        assert len(archived_files) == 1
+        assert result == {"archived": [], "skipped": [], "errors": []}
+        # Project file left intact — no archiving.
+        assert project_file.exists()
+        assert not (fake_project / ".claude" / "agents" / "archived").exists()
 
     @pytest.mark.usefixtures("fake_home")
-    def test_skips_non_duplicates(self, fake_project: Path):
-        """Agent only at project level should NOT be archived (no user copy)."""
+    def test_returns_empty_result(self, fake_project: Path):
+        """The no-op returns empty result lists regardless of inputs."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_agent_overlap
 
-        # Only project copy, no user copy
         _setup_agent_file(fake_project / ".claude", "pm", content="# project pm")
 
-        with patch(
-            "claude_mpm.migrations.cleanup_overlap._get_user_level_agents",
-            return_value=frozenset({"pm"}),
-        ):
-            result = cleanup_agent_overlap(fake_project)
+        result = cleanup_agent_overlap(fake_project)
 
-        assert "pm" in result["skipped"]
-        assert result["archived"] == []
-        # Project file still there
-        assert (fake_project / ".claude" / "agents" / "pm.md").exists()
+        assert result == {"archived": [], "skipped": [], "errors": []}
 
 
 # ---------------------------------------------------------------------------
-# Skill overlap tests
+# Skill overlap tests (unchanged behavior)
 # ---------------------------------------------------------------------------
 
 
 class TestCleanupSkillOverlap:
-    """Tests for cleanup_skill_overlap."""
+    """Tests for cleanup_skill_overlap (still active)."""
 
     def test_archives_duplicates(self, fake_home: Path, fake_project: Path):
         """When both user and project copies exist, project copy is archived."""
@@ -137,54 +131,40 @@ class TestCleanupSkillOverlap:
 
 
 # ---------------------------------------------------------------------------
-# Stale agent names tests
+# Stale agent names tests (now a no-op)
 # ---------------------------------------------------------------------------
 
 
-class TestCleanupStaleAgentNames:
-    """Tests for cleanup_stale_agent_names."""
+class TestCleanupStaleAgentNamesIsNoOp:
+    """cleanup_stale_agent_names is a no-op after Fix A for #924."""
 
-    def test_archives_stale_suffix(self, fake_home: Path):
-        """Stale '-agent' suffixed file gets archived when correct name exists."""
+    def test_does_not_archive_stale_suffix(self, fake_home: Path):
+        """A stale '-agent' suffixed file is left untouched."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_stale_agent_names
 
         user_claude = fake_home / ".claude"
-        _setup_agent_file(user_claude, "research-agent", content="# stale")
+        stale_file = _setup_agent_file(user_claude, "research-agent", content="# stale")
         _setup_agent_file(user_claude, "research", content="# correct")
 
         result = cleanup_stale_agent_names()
 
-        assert "research-agent" in result["archived"]
-        # Stale file removed
-        assert not (user_claude / "agents" / "research-agent.md").exists()
-        # Correct file untouched
+        assert result == {"archived": [], "skipped": [], "errors": []}
+        # Both files remain — nothing archived.
+        assert stale_file.exists()
         assert (user_claude / "agents" / "research.md").exists()
-
-    def test_skips_when_no_correct_replacement(self, fake_home: Path):
-        """Stale file should NOT be archived if the correct name is missing."""
-        from claude_mpm.migrations.cleanup_overlap import cleanup_stale_agent_names
-
-        user_claude = fake_home / ".claude"
-        _setup_agent_file(user_claude, "research-agent", content="# stale")
-        # No "research.md" exists
-
-        result = cleanup_stale_agent_names()
-
-        assert "research-agent" in result["skipped"]
-        # Stale file still there
-        assert (user_claude / "agents" / "research-agent.md").exists()
+        assert not (user_claude / "agents" / "archived").exists()
 
 
 # ---------------------------------------------------------------------------
-# Dry-run tests
+# Dry-run tests (no-op functions ignore dry_run and archive nothing)
 # ---------------------------------------------------------------------------
 
 
 class TestDryRun:
-    """Tests for dry_run=True mode."""
+    """Tests for dry_run=True mode against the no-op agent functions."""
 
     def test_does_not_modify_agents(self, fake_home: Path, fake_project: Path):
-        """dry_run=True leaves all files in place."""
+        """dry_run=True on the no-op still leaves all files in place."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_agent_overlap
 
         user_claude = fake_home / ".claude"
@@ -199,13 +179,12 @@ class TestDryRun:
         ):
             result = cleanup_agent_overlap(fake_project, dry_run=True)
 
-        assert "pm" in result["archived"]  # Reported as would-archive
-        assert project_file.exists()  # But file still there
-        # No archive directory created
+        assert result["archived"] == []
+        assert project_file.exists()
         assert not (fake_project / ".claude" / "agents" / "archived").exists()
 
     def test_does_not_modify_stale_agents(self, fake_home: Path):
-        """dry_run=True leaves stale agent files in place."""
+        """dry_run=True on the no-op leaves stale agent files in place."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_stale_agent_names
 
         user_claude = fake_home / ".claude"
@@ -214,7 +193,7 @@ class TestDryRun:
 
         result = cleanup_stale_agent_names(dry_run=True)
 
-        assert "research-agent" in result["archived"]
+        assert result["archived"] == []
         assert stale_file.exists()
 
 
@@ -227,7 +206,7 @@ class TestIdempotency:
     """Tests that running cleanup twice does not error or double-archive."""
 
     def test_second_run_agent_overlap(self, fake_home: Path, fake_project: Path):
-        """Running agent overlap cleanup twice doesn't error."""
+        """Running agent overlap cleanup twice doesn't error (no-op)."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_agent_overlap
 
         user_claude = fake_home / ".claude"
@@ -241,13 +220,11 @@ class TestIdempotency:
             result1 = cleanup_agent_overlap(fake_project)
             result2 = cleanup_agent_overlap(fake_project)
 
-        assert "pm" in result1["archived"]
-        # Second run: project file gone, so it's skipped
-        assert "pm" in result2["skipped"]
-        assert result2["errors"] == []
+        assert result1 == {"archived": [], "skipped": [], "errors": []}
+        assert result2 == {"archived": [], "skipped": [], "errors": []}
 
     def test_second_run_stale_agents(self, fake_home: Path):
-        """Running stale cleanup twice doesn't error."""
+        """Running stale cleanup twice doesn't error (no-op)."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_stale_agent_names
 
         user_claude = fake_home / ".claude"
@@ -257,9 +234,8 @@ class TestIdempotency:
         result1 = cleanup_stale_agent_names()
         result2 = cleanup_stale_agent_names()
 
-        assert "research-agent" in result1["archived"]
-        assert "research-agent" in result2["skipped"]
-        assert result2["errors"] == []
+        assert result1 == {"archived": [], "skipped": [], "errors": []}
+        assert result2 == {"archived": [], "skipped": [], "errors": []}
 
 
 # ---------------------------------------------------------------------------
@@ -268,12 +244,15 @@ class TestIdempotency:
 
 
 class TestManifest:
-    """Tests for _cleanup_manifest.json creation."""
+    """The no-op agent/stale functions never write a manifest.
 
-    def test_manifest_written_for_agent_overlap(
+    Skill overlap still writes a manifest, so that path is covered here.
+    """
+
+    def test_no_manifest_written_for_agent_overlap(
         self, fake_home: Path, fake_project: Path
     ):
-        """Verify _cleanup_manifest.json exists and has correct structure."""
+        """No _cleanup_manifest.json is created by the no-op agent cleanup."""
         from claude_mpm.migrations.cleanup_overlap import cleanup_agent_overlap
 
         user_claude = fake_home / ".claude"
@@ -286,9 +265,29 @@ class TestManifest:
         ):
             cleanup_agent_overlap(fake_project)
 
-        # Find manifest
         manifests = list(
-            (fake_project / ".claude" / "agents" / "archived").rglob(
+            (fake_project / ".claude" / "agents").rglob("_cleanup_manifest.json")
+        )
+        assert manifests == []
+
+    def test_manifest_written_for_skill_overlap(
+        self, fake_home: Path, fake_project: Path
+    ):
+        """Skill overlap cleanup still writes a manifest with correct structure."""
+        from claude_mpm.migrations.cleanup_overlap import cleanup_skill_overlap
+
+        user_claude = fake_home / ".claude"
+        _setup_skill_dir(user_claude, "mpm-help")
+        _setup_skill_dir(fake_project / ".claude", "mpm-help")
+
+        with patch(
+            "claude_mpm.migrations.cleanup_overlap._get_user_level_skills",
+            return_value=frozenset({"mpm-help"}),
+        ):
+            cleanup_skill_overlap(fake_project)
+
+        manifests = list(
+            (fake_project / ".claude" / "skills" / "archived").rglob(
                 "_cleanup_manifest.json"
             )
         )
@@ -296,31 +295,8 @@ class TestManifest:
 
         manifest = json.loads(manifests[0].read_text())
         assert "cleanup_date" in manifest
-        assert "reason" in manifest
-        assert "source_level" in manifest
         assert manifest["source_level"] == "project"
-        assert "superseded_by" in manifest
-        assert "archived_files" in manifest
-        assert "pm.md" in manifest["archived_files"]
-
-    def test_manifest_written_for_stale_agents(self, fake_home: Path):
-        """Verify manifest is written when stale agents are archived."""
-        from claude_mpm.migrations.cleanup_overlap import cleanup_stale_agent_names
-
-        user_claude = fake_home / ".claude"
-        _setup_agent_file(user_claude, "research-agent")
-        _setup_agent_file(user_claude, "research")
-
-        cleanup_stale_agent_names()
-
-        manifests = list(
-            (user_claude / "agents" / "archived").rglob("_cleanup_manifest.json")
-        )
-        assert len(manifests) == 1
-
-        manifest = json.loads(manifests[0].read_text())
-        assert manifest["source_level"] == "user"
-        assert "research-agent.md" in manifest["archived_files"]
+        assert "mpm-help" in manifest["archived_files"]
 
 
 # ---------------------------------------------------------------------------
