@@ -48,7 +48,7 @@ class TestAgentRegistryMemoryIntegration:
                 "category": "testing",
             },
             "instructions": "You are a test agent.",
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
         }
 
         agent_file = agent_dir / "test_agent.json"
@@ -153,7 +153,7 @@ class TestAgentRegistryMemoryIntegration:
                 "category": "research",
             },
             "instructions": "You are a research specialist.",
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
         }
 
         agent_file = agent_dir / "research_agent.json"
