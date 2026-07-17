@@ -385,6 +385,44 @@ class OutputStyleManager:
         "Claude MPM Research": "claude_mpm_research",
     }
 
+    def _cleanup_global_output_style(self) -> None:
+        """Remove any MPM-owned ``outputStyle`` from the shared global settings.
+
+        Historically claude-mpm wrote ``"outputStyle": "claude_mpm"`` into the
+        shared ``~/.claude/settings.json``, which forced the MPM output style on
+        every Claude Code session on the machine regardless of project (issue
+        #924). We now write to the project-local ``.claude/settings.json``
+        instead. This helper self-heals existing installs by stripping any
+        ``claude_mpm*`` outputStyle value from the global file. User-chosen
+        styles (anything not starting with ``claude_mpm``) are left untouched.
+        """
+        try:
+            if not self.settings_file.exists():
+                return
+
+            try:
+                settings = json.loads(self.settings_file.read_text())
+            except (json.JSONDecodeError, OSError):
+                # Don't touch a file we can't parse.
+                return
+
+            if not isinstance(settings, dict):
+                return
+
+            value = settings.get("outputStyle")
+            if isinstance(value, str) and value.startswith("claude_mpm"):
+                del settings["outputStyle"]
+                self.settings_file.write_text(
+                    json.dumps(settings, indent=2), encoding="utf-8"
+                )
+                self.logger.info(
+                    "Removed MPM-owned outputStyle '%s' from global %s (issue #924)",
+                    value,
+                    self.settings_file,
+                )
+        except Exception as e:  # pragma: no cover - defensive
+            self.logger.debug("Global outputStyle cleanup skipped: %s", e)
+
     def _activate_output_style(
         self, style_name: str = "Claude MPM", is_fresh_install: bool = False
     ) -> bool:
@@ -415,11 +453,20 @@ class OutputStyleManager:
                 style_name, style_name.lower().replace(" ", "_")
             )
 
+            # Self-heal: strip any MPM-owned outputStyle from the shared global
+            # ~/.claude/settings.json so we stop forcing the MPM style on every
+            # Claude Code session on the machine (issue #924).
+            self._cleanup_global_output_style()
+
+            # Write the activation to the PROJECT-LOCAL .claude/settings.json so
+            # the outputStyle only applies to this project, not globally.
+            settings_path = Path.cwd() / ".claude" / "settings.json"
+
             # Load existing settings or create new
             settings = {}
-            if self.settings_file.exists():
+            if settings_path.exists():
                 try:
-                    settings = json.loads(self.settings_file.read_text())
+                    settings = json.loads(settings_path.read_text())
                 except json.JSONDecodeError:
                     self.logger.warning(
                         "Could not parse existing settings.json, using defaults"
@@ -467,10 +514,10 @@ class OutputStyleManager:
                 )
 
                 # Ensure settings directory exists
-                self.settings_file.parent.mkdir(parents=True, exist_ok=True)
+                settings_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Write updated settings
-                self.settings_file.write_text(
+                settings_path.write_text(
                     json.dumps(settings, indent=2), encoding="utf-8"
                 )
 
@@ -489,10 +536,10 @@ class OutputStyleManager:
                     )
 
                 # Ensure settings directory exists
-                self.settings_file.parent.mkdir(parents=True, exist_ok=True)
+                settings_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Write updated settings
-                self.settings_file.write_text(
+                settings_path.write_text(
                     json.dumps(settings, indent=2), encoding="utf-8"
                 )
 
@@ -503,7 +550,8 @@ class OutputStyleManager:
                 # Even if we're not changing the active style, clean up legacy key if present
                 if "activeOutputStyle" in settings:
                     del settings["activeOutputStyle"]
-                    self.settings_file.write_text(
+                    settings_path.parent.mkdir(parents=True, exist_ok=True)
+                    settings_path.write_text(
                         json.dumps(settings, indent=2), encoding="utf-8"
                     )
                     self.logger.debug("Cleaned up legacy activeOutputStyle key")
