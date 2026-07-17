@@ -73,8 +73,13 @@ def test_deployment_function():
         output_styles_dir = temp_home / ".claude" / "output-styles"
         settings_file = temp_home / ".claude" / "settings.json"
 
-        # Mock Path.home() to return temp directory
-        with patch("pathlib.Path.home", return_value=temp_home):
+        # Mock Path.home() and Path.cwd() to the temp directory so both the
+        # HOME-based output-styles dir and the project-local (cwd) settings.json
+        # (issue #924) resolve under the temp tree.
+        with (
+            patch("pathlib.Path.home", return_value=temp_home),
+            patch("pathlib.Path.cwd", return_value=temp_home),
+        ):
             # Mock OutputStyleManager.supports_output_styles to return True
             from claude_mpm.cli.startup import deploy_output_style_on_startup
 
