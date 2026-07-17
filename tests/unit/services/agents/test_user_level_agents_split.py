@@ -1,19 +1,23 @@
-"""Tests verifying USER_LEVEL_AGENTS split: CORE agents go to ~/.claude/agents/,
-project-specific agents go to <project>/.claude/agents/.
+"""Tests verifying project-local agent routing after Fix A for issue #924.
 
-Issue #412: Split core agents into user-level vs project-level storage.
+User-level agent routing has been removed: ALL agents (CORE and project-specific)
+now deploy to ``<project>/.claude/agents/`` instead of ``~/.claude/agents/``.  The
+``USER_LEVEL_AGENTS`` frozenset is retained (migration/cleanup code still imports
+it) but no longer influences deployment targets.
+
+Historical context: Issue #412 originally split core agents into user-level
+storage; #924 reverted that split.
 """
 
-import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 
 class TestUserLevelAgentsConstant:
-    """Verify the USER_LEVEL_AGENTS frozenset is correctly defined."""
+    """Verify the USER_LEVEL_AGENTS frozenset is still defined (retained for migrations)."""
 
     def test_user_level_agents_is_frozenset(self):
         """USER_LEVEL_AGENTS must be a frozenset for immutability."""
@@ -89,7 +93,7 @@ class TestUserLevelAgentsConstant:
 
 
 class TestDeployAgentsRouting:
-    """Verify deploy_agents() routes agents to correct directories."""
+    """Verify deploy_agents() routes ALL agents to project-local .claude/agents/."""
 
     def _make_template_file(self, tmp_dir: Path, agent_name: str) -> Path:
         """Create a minimal agent template .md file."""
@@ -110,91 +114,66 @@ class TestDeployAgentsRouting:
             fake_project.mkdir()
             yield fake_home, fake_project
 
-    def test_user_level_agent_deployed_to_home_claude_agents(self, temp_dirs):
-        """An agent in USER_LEVEL_AGENTS must be deployed to ~/.claude/agents/."""
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            USER_LEVEL_AGENTS,
+    def test_core_agent_deployed_to_project_agents(self, temp_dirs):
+        """A CORE (USER_LEVEL_AGENTS) agent must now deploy to project-local dir."""
+        from claude_mpm.services.agents.deployment.user_level_routing import (
+            skip_project_level_user_agent,
         )
 
         fake_home, fake_project = temp_dirs
-        # Pick any member of USER_LEVEL_AGENTS
-        sample_agent = next(iter(sorted(USER_LEVEL_AGENTS)))
-
-        user_agents_dir = fake_home / ".claude" / "agents"
         project_agents_dir = fake_project / ".claude" / "agents"
 
-        # Simulate what deploy_agents does: route based on USER_LEVEL_AGENTS
-        from claude_mpm.utils.agent_filters import normalize_agent_id
+        core_agent = "engineer"
 
-        normalized = normalize_agent_id(sample_agent)
-        if normalized in USER_LEVEL_AGENTS:
-            deploy_target = user_agents_dir
-        else:
-            deploy_target = project_agents_dir
-
-        assert deploy_target == user_agents_dir, (
-            f"Agent '{sample_agent}' (normalized: '{normalized}') should deploy to "
-            f"user-level {user_agents_dir} but routing chose {deploy_target}"
-        )
+        # The routing guard is now a no-op, so CORE agents are never skipped for
+        # a project-level target and therefore deploy to project-local scope.
+        with patch("pathlib.Path.home", return_value=fake_home):
+            assert (
+                skip_project_level_user_agent(core_agent, project_agents_dir) is False
+            )
 
     def test_non_user_level_agent_deployed_to_project_agents(self, temp_dirs):
-        """An agent NOT in USER_LEVEL_AGENTS must deploy to project-level .claude/agents/."""
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            USER_LEVEL_AGENTS,
+        """A project-specific agent still deploys to project-level .claude/agents/."""
+        from claude_mpm.services.agents.deployment.user_level_routing import (
+            skip_project_level_user_agent,
         )
 
         fake_home, fake_project = temp_dirs
-        # Use a clearly project-specific name
+        project_agents_dir = fake_project / ".claude" / "agents"
+
         project_only_agent = "my-custom-project-agent-xyz"
 
-        user_agents_dir = fake_home / ".claude" / "agents"
-        project_agents_dir = fake_project / ".claude" / "agents"
+        with patch("pathlib.Path.home", return_value=fake_home):
+            assert (
+                skip_project_level_user_agent(project_only_agent, project_agents_dir)
+                is False
+            )
 
-        assert project_only_agent not in USER_LEVEL_AGENTS
-
-        from claude_mpm.utils.agent_filters import normalize_agent_id
-
-        normalized = normalize_agent_id(project_only_agent)
-        if normalized in USER_LEVEL_AGENTS:
-            deploy_target = user_agents_dir
-        else:
-            deploy_target = project_agents_dir
-
-        assert deploy_target == project_agents_dir, (
-            f"Agent '{project_only_agent}' should deploy to project-level "
-            f"{project_agents_dir} but routing chose {deploy_target}"
-        )
-
-    def test_all_user_level_agents_route_to_home(self, temp_dirs):
-        """Every member of USER_LEVEL_AGENTS must route to ~/.claude/agents/."""
+    def test_all_user_level_agents_route_to_project(self, temp_dirs):
+        """Every member of USER_LEVEL_AGENTS must route to project-local scope."""
         from claude_mpm.services.agents.deployment.agent_deployment import (
             USER_LEVEL_AGENTS,
         )
+        from claude_mpm.services.agents.deployment.user_level_routing import (
+            skip_project_level_user_agent,
+        )
 
         fake_home, fake_project = temp_dirs
-        user_agents_dir = fake_home / ".claude" / "agents"
         project_agents_dir = fake_project / ".claude" / "agents"
 
-        from claude_mpm.utils.agent_filters import normalize_agent_id
+        skipped = []
+        with patch("pathlib.Path.home", return_value=fake_home):
+            for agent_name in USER_LEVEL_AGENTS:
+                if skip_project_level_user_agent(agent_name, project_agents_dir):
+                    skipped.append(agent_name)
 
-        wrong_targets = []
-        for agent_name in USER_LEVEL_AGENTS:
-            normalized = normalize_agent_id(agent_name)
-            if normalized in USER_LEVEL_AGENTS:
-                deploy_target = user_agents_dir
-            else:
-                deploy_target = project_agents_dir
-
-            if deploy_target != user_agents_dir:
-                wrong_targets.append(agent_name)
-
-        assert not wrong_targets, (
-            f"These USER_LEVEL_AGENTS did not route to user level: {wrong_targets}"
+        assert not skipped, (
+            f"These agents were wrongly skipped for project-level deploy: {skipped}"
         )
 
 
-class TestMigrationCoreAgentsToUserLevel:
-    """Verify the 6.2.0 migration removes project-level duplicates safely."""
+class TestMigrationCoreAgentsToUserLevelIsNoOp:
+    """Verify the 6.2.0 migration is now a no-op (Fix A for #924)."""
 
     @pytest.fixture()
     def temp_dirs(self):
@@ -215,81 +194,18 @@ class TestMigrationCoreAgentsToUserLevel:
         )
         return path
 
-    def test_migration_removes_project_copy_when_user_copy_exists(self, temp_dirs):
-        """Migration removes project-level file when user-level copy is confirmed."""
+    def test_run_migration_returns_true(self):
+        """run_migration() is a no-op that always succeeds."""
         from claude_mpm.migrations.migrate_core_agents_to_user_level import (
-            migrate_core_agents_to_user_level,
-        )
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            USER_LEVEL_AGENTS,
+            run_migration,
         )
 
-        fake_home, fake_project = temp_dirs
-        # Pick a USER_LEVEL_AGENTS member
-        agent = next(iter(sorted(USER_LEVEL_AGENTS)))
+        assert run_migration() is True
 
-        user_agents_dir = fake_home / ".claude" / "agents"
-        project_agents_dir = fake_project / ".claude" / "agents"
-
-        # Both copies exist initially
-        self._write_agent(user_agents_dir, agent)
-        project_file = self._write_agent(project_agents_dir, agent)
-
-        assert project_file.exists()
-
-        # Run migration with patched home and cwd pointing to fake_project
-        with (
-            patch("pathlib.Path.home", return_value=fake_home),
-            patch(
-                "claude_mpm.migrations.migrate_core_agents_to_user_level._find_project_roots",
-                return_value=[fake_project],
-            ),
-        ):
-            success = migrate_core_agents_to_user_level()
-
-        assert success, "Migration should succeed"
-        assert not project_file.exists(), (
-            f"Project-level {agent}.md should be removed after migration"
-        )
-        # User-level copy must be preserved
-        assert (user_agents_dir / f"{agent}.md").exists(), (
-            f"User-level {agent}.md must be preserved after migration"
-        )
-
-    def test_migration_skips_removal_when_no_user_copy(self, temp_dirs):
-        """Migration does NOT remove project copy when user-level copy is absent."""
+    def test_run_migration_does_not_touch_project_files(self, temp_dirs):
+        """The no-op migration must not remove any project-level agent file."""
         from claude_mpm.migrations.migrate_core_agents_to_user_level import (
-            migrate_core_agents_to_user_level,
-        )
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            USER_LEVEL_AGENTS,
-        )
-
-        fake_home, fake_project = temp_dirs
-        agent = next(iter(sorted(USER_LEVEL_AGENTS)))
-
-        project_agents_dir = fake_project / ".claude" / "agents"
-        project_file = self._write_agent(project_agents_dir, agent)
-        # No user-level copy
-
-        with (
-            patch("pathlib.Path.home", return_value=fake_home),
-            patch(
-                "claude_mpm.migrations.migrate_core_agents_to_user_level._find_project_roots",
-                return_value=[fake_project],
-            ),
-        ):
-            success = migrate_core_agents_to_user_level()
-
-        assert success, "Migration should succeed even when user copy is absent"
-        assert project_file.exists(), (
-            "Project-level file must NOT be removed when user-level copy is missing"
-        )
-
-    def test_migration_is_idempotent(self, temp_dirs):
-        """Running migration twice is safe — second run is a no-op."""
-        from claude_mpm.migrations.migrate_core_agents_to_user_level import (
-            migrate_core_agents_to_user_level,
+            run_migration,
         )
         from claude_mpm.services.agents.deployment.agent_deployment import (
             USER_LEVEL_AGENTS,
@@ -300,57 +216,20 @@ class TestMigrationCoreAgentsToUserLevel:
 
         user_agents_dir = fake_home / ".claude" / "agents"
         project_agents_dir = fake_project / ".claude" / "agents"
-
         self._write_agent(user_agents_dir, agent)
-        self._write_agent(project_agents_dir, agent)
+        project_file = self._write_agent(project_agents_dir, agent)
 
-        with (
-            patch("pathlib.Path.home", return_value=fake_home),
-            patch(
-                "claude_mpm.migrations.migrate_core_agents_to_user_level._find_project_roots",
-                return_value=[fake_project],
-            ),
-        ):
-            success1 = migrate_core_agents_to_user_level()
-            # Run again — project file is already gone
-            success2 = migrate_core_agents_to_user_level()
+        with patch("pathlib.Path.home", return_value=fake_home):
+            success = run_migration()
 
-        assert success1
-        assert success2, "Second migration run must succeed (idempotent)"
-
-    def test_migration_skips_non_user_level_project_agents(self, temp_dirs):
-        """Migration must not touch project-specific agents not in USER_LEVEL_AGENTS."""
-        from claude_mpm.migrations.migrate_core_agents_to_user_level import (
-            migrate_core_agents_to_user_level,
-        )
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            USER_LEVEL_AGENTS,
-        )
-
-        fake_home, fake_project = temp_dirs
-        project_agents_dir = fake_project / ".claude" / "agents"
-
-        custom_agent = "my-project-specific-agent"
-        assert custom_agent not in USER_LEVEL_AGENTS
-        project_file = self._write_agent(project_agents_dir, custom_agent)
-
-        with (
-            patch("pathlib.Path.home", return_value=fake_home),
-            patch(
-                "claude_mpm.migrations.migrate_core_agents_to_user_level._find_project_roots",
-                return_value=[fake_project],
-            ),
-        ):
-            success = migrate_core_agents_to_user_level()
-
-        assert success
+        assert success is True
         assert project_file.exists(), (
-            "Project-specific agent must NOT be touched by the migration"
+            "No-op migration must not remove the project-level agent file"
         )
 
 
 class TestMigrationRegistry:
-    """Verify 6.2.0 migration is registered in the migration registry."""
+    """Verify 6.2.0 migration is still registered (now a no-op)."""
 
     def test_migration_registered(self):
         """6.2.0_core_agents_to_user_level must be in the migration registry."""
