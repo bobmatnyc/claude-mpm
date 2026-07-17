@@ -173,7 +173,7 @@ def resolve_model_rates(model: str) -> Rates:
     Parameters
     ----------
     model:
-        Model identifier string, e.g. ``"claude-sonnet-4-6"``.
+        Model identifier string, e.g. ``"claude-sonnet-5"``.
 
     Returns
     -------
