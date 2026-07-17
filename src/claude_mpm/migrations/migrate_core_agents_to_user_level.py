@@ -1,19 +1,12 @@
-"""Migration 6.2.0: Move CORE agents to user level, remove project-level duplicates.
+"""Migration 6.2.0 (historical no-op): Move CORE agents to user level.
 
-WHY: Agents in USER_LEVEL_AGENTS (CORE engineering specialists, PM, QA, ops, etc.)
-should live at ~/.claude/agents/ and be shared across all projects.
-Having copies in .claude/agents/ (project level) creates duplicates and confusion.
-
-WHAT THIS MIGRATION DOES:
-1. Iterates over every agent in USER_LEVEL_AGENTS.
-2. For each agent, verifies it exists at ~/.claude/agents/{agent}.md.
-3. Only if the user-level copy is confirmed present, removes the project-level
-   copy at .claude/agents/{agent}.md.
-4. Skips agents that are absent from user level (safe: never deletes blindly).
-5. Records the list of removed agents in the return value for reporting.
-
-IDEMPOTENCY: Running this migration multiple times is safe — if the project-level
-file no longer exists the migration simply skips it.
+.. deprecated::
+    Fix A for issue #924 removed user-level agent routing.  This migration
+    previously moved project-level copies of ``USER_LEVEL_AGENTS`` agents up to
+    the shared ``~/.claude/agents/``.  Since agents now deploy to project-local
+    scope only, the migration is a no-op: :func:`run_migration` returns ``True``
+    immediately so it never re-runs for users who had not executed it yet.  The
+    helper functions below are retained for reference but are unreachable.
 """
 
 import logging
@@ -146,13 +139,5 @@ def migrate_core_agents_to_user_level() -> bool:
 
 
 def run_migration() -> bool:
-    """Entry point called by the migration runner.
-
-    Returns:
-        True if migration completed without errors, False otherwise.
-    """
-    try:
-        return migrate_core_agents_to_user_level()
-    except Exception as exc:
-        logger.error("Unexpected error in migrate_core_agents_to_user_level: %s", exc)
-        return False
+    """No-op: user-level agent routing has been removed (see Fix A for #924)."""
+    return True
