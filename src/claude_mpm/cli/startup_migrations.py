@@ -1114,6 +1114,14 @@ def _global_settings_has_spinner_keys() -> bool:
 def _check_spinner_global_needed() -> bool:
     """Check if spinner config needs to be deployed/updated in the project settings.
 
+    WHAT: Compares the bundled template's spinner keys/version against the
+    project-local ``.claude/settings.json`` and also checks whether the shared
+    ``~/.claude/settings.json`` still holds stale MPM spinner keys to clean up.
+
+    WHY: The deploy target moved from global to project-local (issue #924), so
+    the check must read the project file for freshness while still triggering a
+    run whenever a stale global copy remains to be removed.
+
     Returns:
         True if spinner keys are missing from the project-local
         ``.claude/settings.json`` (or its recorded template version is older
