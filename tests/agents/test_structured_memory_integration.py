@@ -231,7 +231,7 @@ def test_frontmatter_generation():
         frontmatter = {
             "name": metadata.get("name", "Unknown Agent"),
             "description": metadata.get("description", ""),
-            "model": agent_data.get("model", "claude-sonnet-4-20250514"),
+            "model": agent_data.get("model", "claude-sonnet-5"),
             "memories": metadata.get("memories", 0),
         }
 
@@ -251,7 +251,7 @@ def test_frontmatter_generation():
             "version": "1.0.0",
             "memories": 15,
         },
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-5",
     }
 
     frontmatter_yaml = generate_agent_frontmatter(agent_data)
@@ -262,7 +262,7 @@ def test_frontmatter_generation():
     assert frontmatter_data["name"] == "Engineer Agent"
     assert frontmatter_data["memories"] == 15
     assert frontmatter_data["category"] == "project"
-    assert frontmatter_data["model"] == "claude-sonnet-4-20250514"
+    assert frontmatter_data["model"] == "claude-sonnet-5"
 
     print("✓ Frontmatter generation with memory count works")
 
