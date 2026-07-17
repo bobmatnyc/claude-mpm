@@ -90,10 +90,10 @@ Your role is to assist with {agent_name}-related tasks while leveraging the accu
             "has_project_memory": True,
             "memory_file": str(memory_file),
             "memory_size_kb": round(len(memory_content.encode("utf-8")) / 1024, 2),
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
             "resource_tier": "standard",
         },
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-5",
         "resource_tier": "standard",
         "_tier": "project",
         "_source_file": str(memory_file),
@@ -124,7 +124,7 @@ def test_enhance_existing_agent():
             "category": "research",
         },
         "instructions": "You are a research specialist.",
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-5",
     }
 
     memory_content = """# Research Agent Memory
@@ -186,7 +186,7 @@ def test_agent_list_with_memory_info():
                 "memory_size_kb": 1.2,
                 "memory_file": "/project/memories/engineer.md",
             },
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
         },
         "qa_agent": {
             "agent_id": "qa_agent",
@@ -195,7 +195,7 @@ def test_agent_list_with_memory_info():
                 "description": "Quality assurance specialist",
                 "category": "testing",
             },
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-5",
         },
     }
 
@@ -217,7 +217,7 @@ def test_agent_list_with_memory_info():
             "description": metadata.get("description", ""),
             "category": metadata.get("category", "general"),
             "version": metadata.get("version", "1.0.0"),
-            "model": agent_data.get("model", "claude-sonnet-4-20250514"),
+            "model": agent_data.get("model", "claude-sonnet-5"),
             "resource_tier": agent_data.get("resource_tier", "standard"),
             "tier": agent_tiers.get(agent_id, "system"),
             "has_project_memory": has_memory,
