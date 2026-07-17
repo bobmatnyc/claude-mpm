@@ -1,17 +1,25 @@
-"""Project-level deployment guard for USER_LEVEL_AGENTS (CORE agents).
+"""User-level agent routing predicates (deprecated).
 
-WHAT: Single chokepoint predicate that stops CORE agents (members of
-``USER_LEVEL_AGENTS``) from being written into a project's ``.claude/agents/``
-directory, and self-heals by pruning any stale project-level duplicate left
-over from an earlier routing bug.
+WHAT: Predicates and guards that previously routed CORE MPM agents to the
+shared ~/.claude/agents/ directory instead of the project-local one.
 
-WHY: Several deployment code paths write agent files, but historically only the
-canonical :meth:`AgentDeploymentService.deploy_agents` applied USER_LEVEL_AGENTS
-routing.  The other paths silently re-created project-level copies of CORE
-agents, which shadow the shared ``~/.claude/agents/`` copies (project always
-wins over user in resolution order) and bloat every session's context with
-duplicate definitions that will never be selected.  Centralising the decision
-here guarantees every write path behaves identically.
+WHY: This module is now deprecated. With Fix A for issue #924, all agents
+deploy to project-local scope. skip_project_level_user_agent() is a no-op
+that always returns False. The predicates are retained for backward
+compatibility with any code that imports them.
+
+.. deprecated::
+    Fix A for issue #924 removed user-level agent routing.  All agents now
+    deploy to project-local ``.claude/agents/``.  This module is retained only
+    because migration and cleanup code still imports the predicate helpers
+    below; :func:`skip_project_level_user_agent` is now a no-op that always
+    returns ``False``.
+
+Historically this module was the single chokepoint that stopped CORE agents
+(members of ``USER_LEVEL_AGENTS``) from being written into a project's
+``.claude/agents/`` directory and pruned stale project-level duplicates so the
+shared ``~/.claude/agents/`` copies would win resolution.  That behaviour is
+gone; agents are project-local everywhere now.
 
 References
 ----------
@@ -23,7 +31,6 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from claude_mpm.services.agents.deployment_utils import normalize_deployment_filename
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
 _logger = logging.getLogger(__name__)
@@ -44,17 +51,31 @@ def _user_level_agents() -> frozenset[str]:
 
 
 def is_user_level_agent(agent_name: str) -> bool:
-    """Return True when *agent_name* is a CORE agent that belongs at user level."""
+    """Return True when *agent_name* is a CORE agent that belongs at user level.
+
+    .. deprecated::
+        User-level agent routing was removed by Fix A for #924; this helper is
+        retained only because migration/cleanup code still imports it.
+    """
     return normalize_agent_id(agent_name) in _user_level_agents()
 
 
 def user_level_agents_dir() -> Path:
-    """Return the shared user-level agents directory (``~/.claude/agents``)."""
+    """Return the shared user-level agents directory (``~/.claude/agents``).
+
+    .. deprecated::
+        Legacy helper retained for migration/cleanup code; agents no longer
+        deploy here (Fix A for #924).
+    """
     return Path.home() / ".claude" / "agents"
 
 
 def is_user_level_agents_dir(target_dir: Path) -> bool:
-    """Return True when *target_dir* is the shared ``~/.claude/agents`` directory."""
+    """Return True when *target_dir* is the shared ``~/.claude/agents`` directory.
+
+    .. deprecated::
+        Legacy helper retained for migration/cleanup code (Fix A for #924).
+    """
     try:
         return Path(target_dir).resolve() == user_level_agents_dir().resolve()
     except OSError:
@@ -66,49 +87,15 @@ def skip_project_level_user_agent(
     target_dir: Path,
     logger: logging.Logger | None = None,
 ) -> bool:
-    """Guard a project-level write of a CORE agent and self-heal stale copies.
+    """Deprecated no-op guard; always returns ``False``.
 
-    WHAT: Returns ``True`` when *agent_name* is a ``USER_LEVEL_AGENTS`` member and
-    *target_dir* is a project-level ``.claude/agents/`` directory (i.e. NOT the
-    shared ``~/.claude/agents``); in that case any stale project-level file for
-    the agent is deleted before returning so callers skip the write.  Returns
-    ``False`` for non-CORE agents and for writes targeting the shared user-level
-    directory, which are always allowed.
+    .. deprecated::
+        User-level agent routing was removed by Fix A for #924.  This guard
+        previously blocked CORE agents (``USER_LEVEL_AGENTS`` members) from being
+        written into a project's ``.claude/agents/`` directory and pruned stale
+        project-level duplicates.  All agents now deploy to project-local scope,
+        so the guard never skips anything and always returns ``False``.
 
-    WHY: CORE agents must live only at ``~/.claude/agents``.  Every deployment
-    path calls this before writing so no path can re-introduce a project-level
-    duplicate, and existing leftovers are cleaned up automatically on next deploy.
-    The shared ``~/.claude/agents`` directory is never modified here.
-
-    :spec: SPEC-AGENTS-10~1
+        The signature is preserved so existing call sites continue to work.
     """
-    if not is_user_level_agent(agent_name):
-        return False
-
-    target_dir = Path(target_dir)
-    if is_user_level_agents_dir(target_dir):
-        return False
-
-    log = logger or _logger
-
-    # Self-heal: prune leftover project-level duplicate(s).  Cover the normalized
-    # dash-based filename plus the raw stem so historical variants are removed.
-    candidates = {
-        normalize_deployment_filename(f"{agent_name}.md"),
-        f"{normalize_agent_id(agent_name)}.md",
-        f"{agent_name}.md",
-    }
-    for filename in candidates:
-        stale = target_dir / filename
-        try:
-            if stale.is_file():
-                stale.unlink()
-                log.info(
-                    "Removed stale project-level CORE agent %s (belongs at %s)",
-                    stale,
-                    user_level_agents_dir(),
-                )
-        except OSError as exc:  # pragma: no cover - defensive
-            log.debug("Could not remove stale project agent %s: %s", stale, exc)
-
-    return True
+    return False

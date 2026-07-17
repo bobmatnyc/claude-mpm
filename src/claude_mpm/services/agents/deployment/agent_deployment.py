@@ -410,11 +410,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             source_tier = self.base_agent_locator.determine_source_tier(
                 self.templates_dir
             )
-            user_agents_dir_preview = Path.home() / ".claude" / "agents"
             self.logger.info(
                 f"Building and deploying {source_tier} agents: "
-                f"CORE agents → {user_agents_dir_preview}, "
-                f"project agents → {agents_dir}"
+                f"all agents → {agents_dir}"
             )
 
             # Note: System instructions are now loaded directly by SimpleClaudeRunner
@@ -463,12 +461,6 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 results["total"] = len(template_files)
                 agent_sources = {}
 
-            # Determine user-level agents directory for CORE agents.
-            # USER_LEVEL_AGENTS are deployed to ~/.claude/agents/ so they are
-            # shared across all projects.  All other agents go to the project-
-            # level agents_dir (already resolved above).
-            user_agents_dir = Path.home() / ".claude" / "agents"
-
             # Deploy each agent template
             for template_file in template_files:
                 template_file_path = (
@@ -491,17 +483,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 # but then all get skipped due to redundant version checks.
                 skip_version_check = use_multi_source and not force_rebuild
 
-                # Route agent to correct deployment target:
-                # - USER_LEVEL_AGENTS → ~/.claude/agents/ (shared across projects)
-                # - all others       → <project>/.claude/agents/ (project-specific)
-                from claude_mpm.utils.agent_filters import normalize_agent_id
-
-                normalized_name = normalize_agent_id(agent_name)
-                if normalized_name in USER_LEVEL_AGENTS:
-                    deploy_target = user_agents_dir
-                    deploy_target.mkdir(parents=True, exist_ok=True)
-                else:
-                    deploy_target = agents_dir
+                # All agents deploy to the project-local .claude/agents/
+                # directory (Fix A for #924).  User-level routing to
+                # ~/.claude/agents/ has been removed because it caused MPM
+                # agents to appear in ALL Claude Code sessions on the machine.
+                deploy_target = agents_dir
 
                 self.single_agent_deployer.deploy_single_agent(
                     template_file=template_file_path,
