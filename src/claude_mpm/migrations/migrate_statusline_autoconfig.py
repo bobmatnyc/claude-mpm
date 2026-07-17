@@ -549,6 +549,103 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
     return True
 
 
+def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
+    """Strip MPM-owned statusLine and Stop-hook entries from global settings.
+
+    claude-mpm used to write ``statusLine`` and a ``statusline.sh --clear`` Stop
+    hook into the shared ``~/.claude/settings.json`` (issue #924), so the bar
+    appeared in every Claude Code session on the machine. Those entries now live
+    in the project-local ``.claude/settings.json``; this helper removes the
+    stale global copies so existing installs self-heal.
+
+    Only MPM-owned entries are touched:
+    - ``statusLine`` is removed only when its ``command`` contains
+      ``statusline.sh``.
+    - Stop-hook entries are removed only when their ``command`` contains
+      ``statusline.sh --clear``; empty hook groups left behind are pruned.
+
+    Returns True on success (including no-op), False on error.
+    """
+    if not settings_path.exists():
+        return True
+
+    try:
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    except Exception:
+        logger.exception("Failed to parse global settings.json at %s", settings_path)
+        return False
+
+    if not isinstance(settings, dict):
+        return True
+
+    changed = False
+
+    # Remove MPM-owned statusLine entry.
+    existing = settings.get("statusLine")
+    if isinstance(existing, dict):
+        cmd = existing.get("command", "")
+        if isinstance(cmd, str) and _STATUSLINE_COMMAND_MATCH in cmd:
+            del settings["statusLine"]
+            changed = True
+
+    # Remove MPM-owned Stop hooks (and prune emptied groups).
+    hooks = settings.get("hooks")
+    if isinstance(hooks, dict):
+        stop_groups = hooks.get("Stop")
+        if isinstance(stop_groups, list):
+            surviving_groups = []
+            for group in stop_groups:
+                if not isinstance(group, dict):
+                    surviving_groups.append(group)
+                    continue
+                group_hooks = group.get("hooks")
+                if isinstance(group_hooks, list):
+                    kept = [
+                        hook
+                        for hook in group_hooks
+                        if not (
+                            isinstance(hook, dict)
+                            and isinstance(hook.get("command"), str)
+                            and _STOP_HOOK_MATCH in hook["command"]
+                        )
+                    ]
+                    if len(kept) != len(group_hooks):
+                        changed = True
+                        group["hooks"] = kept
+                    # Drop groups that are now empty.
+                    if not kept:
+                        continue
+                surviving_groups.append(group)
+            if len(surviving_groups) != len(stop_groups):
+                changed = True
+            if surviving_groups:
+                hooks["Stop"] = surviving_groups
+            else:
+                del hooks["Stop"]
+                changed = True
+            # Remove an emptied hooks dict entirely.
+            if not hooks:
+                del settings["hooks"]
+
+    if not changed:
+        return True
+
+    try:
+        settings_path.write_text(
+            json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        logger.info(
+            "Removed MPM-owned statusLine/Stop-hook entries from global %s (issue #924)",
+            settings_path,
+        )
+    except Exception:
+        logger.exception("Failed to write global settings.json at %s", settings_path)
+        return False
+
+    return True
+
+
 def run_migration(installation_dir: Path | None = None, force: bool = False) -> bool:
     """Auto-configure the MPM statusline at the user level (~/.claude/).
 
@@ -571,8 +668,19 @@ def run_migration(installation_dir: Path | None = None, force: bool = False) -> 
     # project.
     _ = installation_dir
     user_claude_dir = Path.home() / ".claude"
+    # The statusline script itself stays at the user level so a single copy is
+    # shared across projects; only the settings.json *entries* move project-local.
     script_path = user_claude_dir / "hooks" / "scripts" / "statusline.sh"
-    settings_path = user_claude_dir / "settings.json"
+
+    # Write statusLine and Stop-hook entries into the PROJECT-LOCAL
+    # .claude/settings.json instead of the shared ~/.claude/settings.json, which
+    # previously caused the statusline to appear in every Claude Code session on
+    # the machine (issue #924).
+    settings_path = Path.cwd() / ".claude" / "settings.json"
+
+    # Self-heal existing installs: strip MPM-owned statusLine / Stop-hook entries
+    # from the global ~/.claude/settings.json.
+    _cleanup_global_statusline_settings(user_claude_dir / "settings.json")
 
     script_ok = _ensure_script(script_path, force=force)
     settings_ok = _ensure_settings_entry(settings_path)
