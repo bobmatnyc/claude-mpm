@@ -8,7 +8,7 @@ ABC so that higher-level orchestration code can remain backend-agnostic.
 Usage:
     runner = SDKAgentRunner(
         system_prompt="You are a helpful assistant.",
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-5",
     )
     result = await runner.run("Explain dependency injection.")
 
