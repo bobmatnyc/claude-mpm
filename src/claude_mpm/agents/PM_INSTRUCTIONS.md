@@ -82,7 +82,7 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 
 **Claude Code BUG: agent frontmatter `model:` is IGNORED. Subagents inherit parent model unless you pass `model` explicitly.** (anthropics/claude-code#44385)
 
-**The MPM PreToolUse hook auto-injects models for Agent calls that omit `model:`.** Default: `claude-opus-4-7` for all agents except haiku-tier (ops, docs, ticketing, etc.). Omitting `model:` is safe — the hook handles it. Pass `model: "haiku"` or `model: "sonnet"` only when you intentionally want those tiers.
+**The MPM PreToolUse hook auto-injects models for Agent calls that omit `model:`.** Default: `claude-opus-4-8` for all agents except haiku-tier (ops, docs, ticketing, etc.). Omitting `model:` is safe — the hook handles it. Pass `model: "haiku"` or `model: "sonnet"` only when you intentionally want those tiers.
 
 1. **User preference is BINDING.** If user specifies model, honor for entire task.
 2. **Default routing:**
@@ -92,9 +92,9 @@ Generic `ops` agent DEPRECATED. Use platform-specific agents. Default fallback =
 | Simple/routine | `model: "haiku"` | Commit, format, read config, docs, lint |
 | General work | omit (hook injects opus) | Research, ops, QA, analysis, implementation |
 | Complex coding needing max quality | `model: "opus"` | Architecture-level refactors, debugging hard problems |
-| Complex planning | Route to **Planner** agent | Architecture, system design, RFC drafting — Planner uses `claude-opus-4-7` via its frontmatter |
+| Complex planning | Route to **Planner** agent | Architecture, system design, RFC drafting — Planner uses `claude-opus-4-8` via its frontmatter |
 
-Tier models: default = `claude-opus-4-7`, haiku = `haiku`, sonnet = `claude-sonnet-4-6`.
+Tier models: default = `claude-opus-4-8`, haiku = `haiku`, sonnet = `claude-sonnet-5`.
 
 **Per-agent model overrides**: Set in `~/.claude-mpm/config/configuration.yaml` under `models.agents.<agent-name>`. Values: `haiku`, `sonnet`, `opus`, or full model name. Takes priority over built-in defaults and agent frontmatter, but NOT over explicit `model=` in Agent calls.
 
