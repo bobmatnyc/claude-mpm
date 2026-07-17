@@ -96,37 +96,40 @@ _HAIKU_AGENTS: frozenset[str] = frozenset(
 
 # Explicit model IDs so Claude Code routes to the intended tier rather than
 # resolving bare "sonnet"/"opus" aliases that can drift over time.
-_DEFAULT_MODEL = "claude-opus-4-7"
-# claude-opus-4-7 is the default opus model as of Claude Code v2.1.142, which
-# changed fast mode to default to opus-4-7 instead of opus-4-6.  Both versions
-# belong to the same tier and are used interchangeably for coding tasks.
-_OPUS_MODEL = "claude-opus-4-7"
+_DEFAULT_MODEL = "claude-opus-4-8"
+# claude-opus-4-8 is the current default opus model. Prior generations
+# (opus-4-7, opus-4-6) belong to the same tier and are still routed here via
+# the legacy aliases below so existing configs resolve gracefully.
+_OPUS_MODEL = "claude-opus-4-8"
 _HAIKU_MODEL = "haiku"
 
 # Tier alias -> concrete model ID. Users may also pass full model names
-# (e.g. "claude-opus-4-7"), which are passed through unchanged.
-_SONNET_MODEL = "claude-sonnet-4-6"
+# (e.g. "claude-opus-4-8"), which are passed through unchanged.
+_SONNET_MODEL = "claude-sonnet-5"
 _TIER_ALIASES: dict[str, str] = {
     "haiku": _HAIKU_MODEL,
     "sonnet": _SONNET_MODEL,
     "opus": _OPUS_MODEL,
-    # Explicit versioned opus names — both map to the opus tier model so that
-    # callers referencing either generation get consistent routing.
+    # Explicit versioned opus names — legacy generations map to the opus tier
+    # model so callers referencing any generation get consistent routing.
     "claude-opus-4-6": _OPUS_MODEL,
     "claude-opus-4-7": _OPUS_MODEL,
+    "claude-opus-4-8": _OPUS_MODEL,
 }
 
 # When injecting into the Agent tool's ``model`` field, some Claude Code
 # versions only accept the short alias forms (sonnet|opus|haiku).  Using
-# a dated ID such as "claude-opus-4-7" causes "expected one of sonnet|opus|haiku"
+# a dated ID such as "claude-opus-4-8" causes "expected one of sonnet|opus|haiku"
 # errors in those versions.  This map converts a resolved model value to its
 # safe short alias for injection so Claude Code always accepts it.
 _INJECT_SHORT_ALIAS: dict[str, str] = {
     # opus tier — all dated opus IDs → "opus"
     _OPUS_MODEL: "opus",
+    "claude-opus-4-7": "opus",
     "claude-opus-4-6": "opus",
     # sonnet tier
     _SONNET_MODEL: "sonnet",
+    "claude-sonnet-4-6": "sonnet",
     "claude-sonnet-4-5": "sonnet",
     "claude-sonnet-4": "sonnet",
     # haiku tier
