@@ -108,7 +108,7 @@ class TestParseTranscriptUsageShared:
                     input_tokens=3_000, output_tokens=600, model="claude-opus-4-8"
                 ),
                 _make_assistant_record(
-                    input_tokens=500, output_tokens=80, model="claude-sonnet-4-6"
+                    input_tokens=500, output_tokens=80, model="claude-sonnet-5"
                 ),
             ],
         )
@@ -117,9 +117,9 @@ class TestParseTranscriptUsageShared:
         assert result is not None
 
         models = result["models"]
-        assert set(models.keys()) == {"claude-opus-4-8", "claude-sonnet-4-6"}
+        assert set(models.keys()) == {"claude-opus-4-8", "claude-sonnet-5"}
         assert models["claude-opus-4-8"]["input_tokens"] == 3_000
-        assert models["claude-sonnet-4-6"]["output_tokens"] == 80
+        assert models["claude-sonnet-5"]["output_tokens"] == 80
 
     def test_missing_file_returns_none(self, tmp_path: Path) -> None:
         result = parse_transcript_usage(tmp_path / "nosuchfile.jsonl")
