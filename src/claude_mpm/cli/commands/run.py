@@ -528,7 +528,7 @@ class RunCommand(BaseCommand):
         #   1. CLAUDE_MPM_PM_MODEL env var (explicit user override) -> inject --model
         #   2. User's ~/.claude/settings.json has "model" key -> do NOT inject --model
         #      (let Claude Code use the user's configured/versioned model)
-        #   3. No env var, no user preference -> default to "claude-sonnet-4-6"
+        #   3. No env var, no user preference -> default to "claude-sonnet-5"
         #      (explicit versioned ID avoids ambiguous "sonnet" alias that Claude Code
         #      would persist back to settings.json, overwriting the user's preference)
         if "--model" not in claude_args:
@@ -550,7 +550,7 @@ class RunCommand(BaseCommand):
             if env_pm_model:
                 claude_args.extend(["--model", env_pm_model])
             elif not user_has_model_pref:
-                claude_args.extend(["--model", "claude-sonnet-4-6"])
+                claude_args.extend(["--model", "claude-sonnet-5"])
             # else: user has a model set in ~/.claude/settings.json -> inject nothing
 
         # Add --resume if flag is set
