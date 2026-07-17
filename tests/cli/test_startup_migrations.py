@@ -384,15 +384,25 @@ class TestDeploySpinnerGlobalMigration:
 
     @pytest.fixture
     def patched_env(self, tmp_path, fake_template_dir):
-        """Patch Path.home() and the bundled template lookup."""
+        """Patch Path.home(), Path.cwd() and the bundled template lookup.
+
+        Spinner config now deploys to the PROJECT-LOCAL ``.claude/settings.json``
+        (cwd) rather than the shared ``~/.claude/settings.json`` (issue #924), so
+        home and cwd point at distinct directories. The fixture yields the
+        project (cwd) directory — the target the migration writes to — while the
+        home directory stays separate and empty (no stale global spinner keys).
+        """
         home = tmp_path / "home"
         home.mkdir()
+        project = tmp_path / "project"
+        project.mkdir()
         with patch.object(Path, "home", return_value=home):
-            with patch(
-                "claude_mpm.cli.startup_migrations._get_claude_assets_templates_dir",
-                return_value=fake_template_dir,
-            ):
-                yield home
+            with patch.object(Path, "cwd", return_value=project):
+                with patch(
+                    "claude_mpm.cli.startup_migrations._get_claude_assets_templates_dir",
+                    return_value=fake_template_dir,
+                ):
+                    yield project
 
     def test_check_returns_true_when_user_settings_missing(self, patched_env):
         """If ~/.claude/settings.json doesn't exist, migration is needed."""
