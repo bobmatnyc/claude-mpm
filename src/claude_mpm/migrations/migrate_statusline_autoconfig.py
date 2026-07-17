@@ -552,7 +552,11 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
 def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
     """Strip MPM-owned statusLine and Stop-hook entries from global settings.
 
-    claude-mpm used to write ``statusLine`` and a ``statusline.sh --clear`` Stop
+    WHAT: Reads the global ``~/.claude/settings.json`` and removes the MPM-owned
+    ``statusLine`` entry and any ``statusline.sh --clear`` Stop hooks (pruning
+    emptied hook groups), leaving user-authored entries intact.
+
+    WHY: claude-mpm used to write ``statusLine`` and a ``statusline.sh --clear`` Stop
     hook into the shared ``~/.claude/settings.json`` (issue #924), so the bar
     appeared in every Claude Code session on the machine. Those entries now live
     in the project-local ``.claude/settings.json``; this helper removes the
