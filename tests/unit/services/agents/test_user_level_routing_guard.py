@@ -1,12 +1,13 @@
-"""Tests for the project-level deployment guard for USER_LEVEL_AGENTS.
+"""Tests for the deprecated project-level deployment guard.
 
-These tests verify that no deployment code path writes a CORE
-(``USER_LEVEL_AGENTS``) agent into a project's ``.claude/agents/`` directory,
-and that a stale project-level copy left over from the earlier routing bug is
-cleaned up automatically on the next deploy.
+Fix A for issue #924 removed user-level agent routing.  All agents now deploy to
+project-local ``.claude/agents/``.  :func:`skip_project_level_user_agent` is now
+a no-op that always returns ``False`` and never prunes anything, and every
+deployment path writes CORE (``USER_LEVEL_AGENTS``) agents into the project-level
+directory just like any other agent.
 
-The shared user-level directory (``~/.claude/agents``) must never be modified by
-the guard.
+The predicate helpers (:func:`is_user_level_agent`, :func:`is_user_level_agents_dir`)
+are retained for migration/cleanup code and are still exercised here.
 """
 
 import tempfile
@@ -40,7 +41,7 @@ def temp_dirs():
 
 
 class TestGuardPredicates:
-    """Basic predicate behavior."""
+    """Basic predicate behavior (retained legacy helpers)."""
 
     def test_core_agent_recognized(self):
         assert is_user_level_agent(CORE_AGENT) is True
@@ -58,17 +59,19 @@ class TestGuardPredicates:
             assert is_user_level_agents_dir(project_agents_dir) is False
 
 
-class TestProjectLevelGuard:
-    """skip_project_level_user_agent decision + self-heal behavior."""
+class TestDeprecatedGuardIsNoOp:
+    """skip_project_level_user_agent() always returns False (Fix A for #924)."""
 
-    def test_core_agent_skipped_for_project_target(self, temp_dirs):
-        """A CORE agent must be skipped when the target is project-level."""
+    def test_core_agent_not_skipped_for_project_target(self, temp_dirs):
+        """A CORE agent is no longer skipped for a project-level target."""
         fake_home, project_agents_dir, _ = temp_dirs
         with patch("pathlib.Path.home", return_value=fake_home):
-            assert skip_project_level_user_agent(CORE_AGENT, project_agents_dir) is True
+            assert (
+                skip_project_level_user_agent(CORE_AGENT, project_agents_dir) is False
+            )
 
     def test_project_agent_not_skipped(self, temp_dirs):
-        """A non-CORE agent must NOT be skipped (it belongs at project level)."""
+        """A non-CORE agent is not skipped either."""
         fake_home, project_agents_dir, _ = temp_dirs
         with patch("pathlib.Path.home", return_value=fake_home):
             assert (
@@ -76,24 +79,24 @@ class TestProjectLevelGuard:
                 is False
             )
 
-    def test_core_agent_allowed_for_user_level_target(self, temp_dirs):
-        """Writing a CORE agent to the shared user-level dir is allowed."""
+    def test_core_agent_not_skipped_for_user_level_target(self, temp_dirs):
+        """Always False, regardless of whether the target is the user-level dir."""
         fake_home, _, user_agents_dir = temp_dirs
         with patch("pathlib.Path.home", return_value=fake_home):
             assert skip_project_level_user_agent(CORE_AGENT, user_agents_dir) is False
 
-    def test_stale_project_copy_is_pruned(self, temp_dirs):
-        """A leftover project-level CORE agent file is removed on next deploy."""
+    def test_stale_project_copy_is_not_pruned(self, temp_dirs):
+        """The self-heal pruning was removed: a project-level file is left intact."""
         fake_home, project_agents_dir, _ = temp_dirs
-        stale = project_agents_dir / f"{CORE_AGENT}.md"
-        stale.write_text("---\nname: engineer\n---\n\n# stale duplicate\n")
-        assert stale.exists()
+        existing = project_agents_dir / f"{CORE_AGENT}.md"
+        existing.write_text("---\nname: engineer\n---\n\n# project copy\n")
+        assert existing.exists()
 
         with patch("pathlib.Path.home", return_value=fake_home):
             skipped = skip_project_level_user_agent(CORE_AGENT, project_agents_dir)
 
-        assert skipped is True
-        assert not stale.exists(), "Stale project-level CORE agent must be pruned"
+        assert skipped is False
+        assert existing.exists(), "Guard must no longer prune project-level files"
 
     def test_user_level_copy_never_touched(self, temp_dirs):
         """The shared ~/.claude/agents copy must never be removed by the guard."""
@@ -107,90 +110,15 @@ class TestProjectLevelGuard:
         assert user_copy.exists(), "User-level copy must be preserved"
 
 
-class TestDeploymentPathsHonorGuard:
-    """Every write path must skip CORE agents for project targets."""
+class TestDeploymentPathsDeployCoreAgents:
+    """Every write path now deploys CORE agents to the project-level directory."""
 
     def _template(self, tmp_dir: Path, name: str) -> Path:
         template = tmp_dir / f"{name}.md"
         template.write_text(f"---\nname: {name}\nversion: 1.0.0\n---\n\n# {name}\n")
         return template
 
-    def test_single_agent_deployer_skips_core_agent(self, temp_dirs):
-        """SingleAgentDeployer.deploy_single_agent skips + prunes CORE agents."""
-        from claude_mpm.services.agents.deployment.single_agent_deployer import (
-            SingleAgentDeployer,
-        )
-
-        fake_home, project_agents_dir, _ = temp_dirs
-        template_dir = project_agents_dir.parent
-        template_file = self._template(template_dir, CORE_AGENT)
-
-        # Seed a stale project-level duplicate to prove self-heal.
-        stale = project_agents_dir / f"{CORE_AGENT}.md"
-        stale.write_text("stale")
-
-        deployer = SingleAgentDeployer(
-            template_builder=None, version_manager=None, results_manager=None
-        )
-        results = {
-            "deployed": [],
-            "updated": [],
-            "migrated": [],
-            "skipped": [],
-            "errors": [],
-        }
-
-        with patch("pathlib.Path.home", return_value=fake_home):
-            deployer.deploy_single_agent(
-                template_file=template_file,
-                agents_dir=project_agents_dir,
-                base_agent_data={},
-                base_agent_version=(1, 0, 0),
-                force_rebuild=True,
-                deployment_mode="project",
-                results=results,
-            )
-
-        assert CORE_AGENT in results["skipped"]
-        assert not stale.exists(), "Stale project-level CORE agent must be pruned"
-        assert not (project_agents_dir / f"{CORE_AGENT}.md").exists()
-
-    def test_deploy_agent_returns_none_on_skip(self, temp_dirs):
-        """SingleAgentDeployer.deploy_agent returns None (not True) on skip.
-
-        Why: Regression guard for #919 — a bare ``True`` on a skipped CORE agent
-        was indistinguishable from a real deployment and inflated success counts.
-        The skip path must return ``None`` so callers can tell them apart.
-        Test: Deploy a CORE agent to a project-level dir and assert the return is
-        exactly ``None`` (not ``True``), and that no file is written.
-        """
-        from claude_mpm.services.agents.deployment.single_agent_deployer import (
-            SingleAgentDeployer,
-        )
-
-        fake_home, project_agents_dir, _ = temp_dirs
-        template_dir = project_agents_dir.parent
-        template_file = self._template(template_dir, CORE_AGENT)
-
-        deployer = SingleAgentDeployer(
-            template_builder=None, version_manager=None, results_manager=None
-        )
-
-        with patch("pathlib.Path.home", return_value=fake_home):
-            result = deployer.deploy_agent(
-                agent_name=CORE_AGENT,
-                templates_dir=template_dir,
-                target_dir=project_agents_dir,
-                base_agent_path=template_dir / "BASE_AGENT.md",
-                force_rebuild=True,
-                working_directory=template_dir,
-            )
-
-        assert result is None, "Skip must return None, not True (see #919)"
-        assert not (project_agents_dir / f"{CORE_AGENT}.md").exists()
-
-    def test_agent_processor_skips_core_agent(self, temp_dirs):
-        """AgentProcessor.process_agent skips + prunes CORE agents."""
+    def _deploy_via_processor(self, temp_dirs, agent_name: str):
         from claude_mpm.services.agents.deployment.processors import (
             AgentDeploymentContext,
             AgentProcessor,
@@ -198,10 +126,7 @@ class TestDeploymentPathsHonorGuard:
 
         fake_home, project_agents_dir, _ = temp_dirs
         template_dir = project_agents_dir.parent
-        template_file = self._template(template_dir, CORE_AGENT)
-
-        stale = project_agents_dir / f"{CORE_AGENT}.md"
-        stale.write_text("stale")
+        template_file = self._template(template_dir, agent_name)
 
         context = AgentDeploymentContext.from_template_file(
             template_file=template_file,
@@ -212,38 +137,10 @@ class TestDeploymentPathsHonorGuard:
             deployment_mode="project",
             source_info="system",
         )
-        processor = AgentProcessor(template_builder=None, version_manager=None)
-
-        with patch("pathlib.Path.home", return_value=fake_home):
-            result = processor.process_agent(context)
-
-        assert result.status.value == "skipped"
-        assert not stale.exists(), "Stale project-level CORE agent must be pruned"
-
-    def test_project_agent_still_deploys_via_single_deployer(self, temp_dirs):
-        """A non-CORE agent is still written to the project-level directory."""
-        from claude_mpm.services.agents.deployment.processors import (
-            AgentDeploymentContext,
-            AgentProcessor,
-        )
-
-        fake_home, project_agents_dir, _ = temp_dirs
-        template_dir = project_agents_dir.parent
-        template_file = self._template(template_dir, PROJECT_AGENT)
-
-        context = AgentDeploymentContext.from_template_file(
-            template_file=template_file,
-            agents_dir=project_agents_dir,
-            base_agent_data={},
-            base_agent_version=(1, 0, 0),
-            force_rebuild=True,
-            deployment_mode="project",
-            source_info="project",
-        )
 
         class _StubBuilder:
             def build_agent_markdown(self, *args, **kwargs):
-                return "---\nname: my-custom-project-agent-xyz\n---\n\n# body\n"
+                return f"---\nname: {agent_name}\n---\n\n# body\n"
 
         processor = AgentProcessor(
             template_builder=_StubBuilder(), version_manager=None
@@ -251,6 +148,20 @@ class TestDeploymentPathsHonorGuard:
 
         with patch("pathlib.Path.home", return_value=fake_home):
             result = processor.process_agent(context)
+        return result, project_agents_dir
+
+    def test_core_agent_deploys_to_project_level(self, temp_dirs):
+        """A CORE agent is now written to project-level (not skipped)."""
+        result, project_agents_dir = self._deploy_via_processor(temp_dirs, CORE_AGENT)
+
+        assert result.status.value != "skipped"
+        assert (project_agents_dir / f"{CORE_AGENT}.md").exists()
+
+    def test_project_agent_still_deploys_via_processor(self, temp_dirs):
+        """A non-CORE agent is still written to the project-level directory."""
+        result, project_agents_dir = self._deploy_via_processor(
+            temp_dirs, PROJECT_AGENT
+        )
 
         assert result.status.value != "skipped"
         assert (project_agents_dir / f"{PROJECT_AGENT}.md").exists()
