@@ -83,12 +83,12 @@ class TestEncodeCwd:
 
 class TestResolveModelRates:
     def test_opus_prefix_matched(self) -> None:
-        rates = resolve_model_rates("claude-opus-4-7")
+        rates = resolve_model_rates("claude-opus-4-8")
         assert rates.model_family == "opus"
         assert not rates.is_fallback
 
     def test_sonnet_prefix_matched(self) -> None:
-        rates = resolve_model_rates("claude-sonnet-4-6")
+        rates = resolve_model_rates("claude-sonnet-5")
         assert rates.model_family == "sonnet"
         assert not rates.is_fallback
         assert rates.input == 3.00
@@ -121,13 +121,13 @@ class TestResolveModelRates:
 
 class TestComputeCost:
     def test_zero_usage_returns_zero(self) -> None:
-        cost = compute_cost("claude-sonnet-4-6", {})
+        cost = compute_cost("claude-sonnet-5", {})
         assert cost == 0.0
 
     def test_sonnet_input_output_only(self) -> None:
         # 1M input tokens at $3.00 + 1M output at $15.00 = $18.00
         cost = compute_cost(
-            "claude-sonnet-4-6",
+            "claude-sonnet-5",
             {"input_tokens": 1_000_000, "output_tokens": 1_000_000},
         )
         assert abs(cost - 18.0) < 1e-9
@@ -154,7 +154,7 @@ class TestComputeCost:
     def test_none_values_treated_as_zero(self) -> None:
         # Some JSONL lines have null values for token counts
         cost = compute_cost(
-            "claude-sonnet-4-6",
+            "claude-sonnet-5",
             {"input_tokens": None, "output_tokens": None},  # type: ignore[arg-type]
         )
         assert cost == 0.0
@@ -201,7 +201,7 @@ class TestPricingRetrievedDate:
     ) -> None:
         """A non-existent CLAUDE_MPM_PRICING_FILE silently falls back to built-in table."""
         monkeypatch.setenv("CLAUDE_MPM_PRICING_FILE", "/nonexistent/path/pricing.json")
-        rates = resolve_model_rates("claude-sonnet-4-6")
+        rates = resolve_model_rates("claude-sonnet-5")
         assert rates.model_family == "sonnet"
         assert not rates.is_fallback
 
@@ -283,7 +283,7 @@ class TestCorrelateSubagents:
             first_user_timestamp=ts,
             prompt_text="do stuff",
             response_text="done",
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             usage={
                 "input_tokens": 100,
                 "output_tokens": 50,
@@ -431,7 +431,7 @@ class TestParseSessionFixture:
         report = parse_session(session_id, cwd)
         assert len(report.model_totals) > 0
         # PM model present
-        assert "claude-sonnet-4-6" in report.model_totals
+        assert "claude-sonnet-5" in report.model_totals
 
     def test_missing_transcript_returns_empty_report(
         self, tmp_path: Path, monkeypatch
@@ -449,12 +449,12 @@ class TestModelTotalsNoDoubleCount:
         grand_total_cost_usd == pm_cost_usd + subagent_cost_usd
         grand_total_cost_usd == sum(mt.total_cost_usd for mt in model_totals.values())
 
-    A shared model (claude-sonnet-4-6 in both the PM transcript and the subagent
+    A shared model (claude-sonnet-5 in both the PM transcript and the subagent
     transcript) must have its cost counted EXACTLY ONCE — PM turns counted from the
     PM transcript, subagent turns counted from the subagent transcript aggregate.
     """
 
-    # Subagent fixture that uses the SAME model as the PM (claude-sonnet-4-6)
+    # Subagent fixture that uses the SAME model as the PM (claude-sonnet-5)
     _SAME_MODEL_SUBAGENT = (
         Path(__file__).parent.parent.parent
         / "fixtures"
@@ -514,15 +514,15 @@ class TestModelTotalsNoDoubleCount:
     def test_shared_model_cost_not_double_counted(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        """When PM and subagent share claude-sonnet-4-6, the model total must equal
+        """When PM and subagent share claude-sonnet-5, the model total must equal
         (PM turns cost) + (subagent aggregate cost), NOT 2x either."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         session_id, cwd = self._build_session_tree_same_model(tmp_path)
         report = parse_session(session_id, cwd)
 
-        # Both PM and the subagent use claude-sonnet-4-6
-        assert "claude-sonnet-4-6" in report.model_totals
-        mt = report.model_totals["claude-sonnet-4-6"]
+        # Both PM and the subagent use claude-sonnet-5
+        assert "claude-sonnet-5" in report.model_totals
+        mt = report.model_totals["claude-sonnet-5"]
 
         # The model total must equal the grand total (only one model in this session)
         assert abs(mt.total_cost_usd - report.grand_total_cost_usd) < 1e-9, (
@@ -949,7 +949,7 @@ def _build_minimal_report() -> SessionReport:
                 subagent_model="claude-haiku-3",
             )
         ],
-        model="claude-sonnet-4-6",
+        model="claude-sonnet-5",
         usage={
             "input_tokens": 1500,
             "output_tokens": 120,
@@ -991,8 +991,8 @@ def _build_minimal_report() -> SessionReport:
         subagent_cost_usd=0.003,
         grand_total_cost_usd=0.009,
         model_totals={
-            "claude-sonnet-4-6": ModelTotals(
-                model="claude-sonnet-4-6",
+            "claude-sonnet-5": ModelTotals(
+                model="claude-sonnet-5",
                 input_tokens=1500,
                 output_tokens=120,
                 cache_creation_input_tokens=0,
@@ -1409,8 +1409,8 @@ class TestAgentCallTitle:
             events=[agent_event],
             title="Agent → " + subagent_type,
             model_totals={
-                "claude-sonnet-4-6": ModelTotals(
-                    model="claude-sonnet-4-6",
+                "claude-sonnet-5": ModelTotals(
+                    model="claude-sonnet-5",
                     input_tokens=100,
                     output_tokens=20,
                     total_cost_usd=0.001,
@@ -1461,7 +1461,7 @@ class TestAgentCallTitle:
             "timestamp": "2025-06-10T10:00:05.000Z",
             "message": {
                 "role": "assistant",
-                "model": "claude-sonnet-4-6",
+                "model": "claude-sonnet-5",
                 "content": [
                     {
                         "type": "tool_use",
@@ -1522,7 +1522,7 @@ class TestAgentCallTitle:
                     subagent_model="claude-haiku-3",
                 )
             ],
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             usage={
                 "input_tokens": 100,
                 "output_tokens": 10,
@@ -1538,8 +1538,8 @@ class TestAgentCallTitle:
             events=[agent_event],
             title="Agent → Python Engineer",
             model_totals={
-                "claude-sonnet-4-6": ModelTotals(
-                    model="claude-sonnet-4-6",
+                "claude-sonnet-5": ModelTotals(
+                    model="claude-sonnet-5",
                     input_tokens=100,
                     output_tokens=10,
                     total_cost_usd=0.001,
@@ -2162,7 +2162,7 @@ class TestSkillCallTitle:
             "timestamp": "2025-06-10T10:00:05.000Z",
             "message": {
                 "role": "assistant",
-                "model": "claude-sonnet-4-6",
+                "model": "claude-sonnet-5",
                 "content": [
                     {
                         "type": "tool_use",
@@ -2209,7 +2209,7 @@ class TestSkillCallTitle:
             "timestamp": "2025-06-10T10:00:05.000Z",
             "message": {
                 "role": "assistant",
-                "model": "claude-sonnet-4-6",
+                "model": "claude-sonnet-5",
                 "content": [
                     {
                         "type": "tool_use",
@@ -2259,7 +2259,7 @@ class TestSkillCallTitle:
             "timestamp": "2025-06-10T10:00:05.000Z",
             "message": {
                 "role": "assistant",
-                "model": "claude-sonnet-4-6",
+                "model": "claude-sonnet-5",
                 "content": [
                     {"type": "text", "text": "Let me run diagnostics on the system."},
                     {
@@ -2316,7 +2316,7 @@ class TestSkillCallTitle:
                     skill_args="",
                 )
             ],
-            model="claude-sonnet-4-6",
+            model="claude-sonnet-5",
             usage={
                 "input_tokens": 100,
                 "output_tokens": 10,
@@ -2332,8 +2332,8 @@ class TestSkillCallTitle:
             events=[skill_event],
             title="Skill → mpm-doctor",
             model_totals={
-                "claude-sonnet-4-6": ModelTotals(
-                    model="claude-sonnet-4-6",
+                "claude-sonnet-5": ModelTotals(
+                    model="claude-sonnet-5",
                     input_tokens=100,
                     output_tokens=10,
                     total_cost_usd=0.001,
