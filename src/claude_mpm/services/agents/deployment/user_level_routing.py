@@ -1,4 +1,12 @@
-"""Deprecated user-level agent routing helpers (legacy).
+"""User-level agent routing predicates (deprecated).
+
+WHAT: Predicates and guards that previously routed CORE MPM agents to the
+shared ~/.claude/agents/ directory instead of the project-local one.
+
+WHY: This module is now deprecated. With Fix A for issue #924, all agents
+deploy to project-local scope. skip_project_level_user_agent() is a no-op
+that always returns False. The predicates are retained for backward
+compatibility with any code that imports them.
 
 .. deprecated::
     Fix A for issue #924 removed user-level agent routing.  All agents now
