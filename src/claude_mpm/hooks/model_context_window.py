@@ -58,8 +58,9 @@ CONTEXT_WINDOW_MAP: dict[str, int] = {
     # -----------------------------------------------------------------------
     "claude-opus-4": _1M,
     # -----------------------------------------------------------------------
-    # Sonnet 4.x — 1 M context window for 4.5+ variants
+    # Sonnet 5 / 4.x — 1 M context window for 4.5+ variants
     # -----------------------------------------------------------------------
+    "claude-sonnet-5": _1M,
     "claude-sonnet-4-5": _1M,
     "claude-sonnet-4-6": _1M,
     "claude-sonnet-4-7": _1M,
