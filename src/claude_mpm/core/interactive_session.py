@@ -808,7 +808,7 @@ class InteractiveSession:
             #   1. CLAUDE_MPM_PM_MODEL env var -> use it
             #   2. User's ~/.claude/settings.json has "model" -> don't pass model=
             #      (respect Claude Code's user-configured model, e.g. claude-sonnet-4.6)
-            #   3. Otherwise -> default to "claude-sonnet-4-6" (explicit versioned ID;
+            #   3. Otherwise -> default to "claude-sonnet-5" (explicit versioned ID;
             #      avoids the generic "sonnet" alias overwriting user preferences).
             env_pm_model = os.environ.get("CLAUDE_MPM_PM_MODEL")
             user_has_model_pref = False
@@ -829,11 +829,11 @@ class InteractiveSession:
             elif user_has_model_pref:
                 pm_model = None  # Defer to user's settings.json
             else:
-                pm_model = "claude-sonnet-4-6"
+                pm_model = "claude-sonnet-5"
 
             # Default subagents to Sonnet too unless user has already set a preference.
             if "CLAUDE_CODE_SUBAGENT_MODEL" not in os.environ:
-                os.environ["CLAUDE_CODE_SUBAGENT_MODEL"] = "claude-sonnet-4-6"
+                os.environ["CLAUDE_CODE_SUBAGENT_MODEL"] = "claude-sonnet-5"
 
             options_kwargs: dict[str, Any] = {
                 "system_prompt": system_prompt,
