@@ -43,6 +43,9 @@ def _fake_home_and_run(
     test without touching the real developer environment.
     """
     monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    # settings.json now deploys to the project-local .claude/ (cwd), so chdir
+    # into tmp_path — with home==cwd==tmp_path both assets land under tmp_path.
+    monkeypatch.chdir(tmp_path)
     # Also patch the module-level constant that pre-calculates the user path.
     monkeypatch.setattr(
         mod,
@@ -226,6 +229,7 @@ def test_second_run_is_noop_for_settings(
     Test: Run twice; compare content (mtime may differ due to OS resolution).
     """
     monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
         mod,
         "_USER_SCRIPT_PATH",
