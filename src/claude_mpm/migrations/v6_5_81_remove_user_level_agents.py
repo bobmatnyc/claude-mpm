@@ -1,10 +1,15 @@
 """Migration v6.5.81: Remove MPM-owned agents from ~/.claude/agents/.
 
-With Fix A for issue #924, all MPM agents now deploy to project-local
-.claude/agents/ instead of the shared ~/.claude/agents/. This migration
-self-heals existing installs by removing the stale user-level copies.
+WHAT: One-time self-heal migration that removes claude-mpm-owned agent files
+from the shared user-level ~/.claude/agents/ directory.
 
-An agent file is considered MPM-owned if its YAML frontmatter contains any of:
+WHY: With Fix A for issue #924, MPM agents now deploy to project-local
+.claude/agents/ instead of the shared ~/.claude/agents/. This migration
+cleans up stale user-level copies left by prior releases so they no longer
+appear in non-MPM Claude Code sessions on the same machine.
+
+Detection: An agent file is considered MPM-owned if its YAML frontmatter
+contains any of:
   - author: claude-mpm
   - category: claude-mpm
   - source: external
