@@ -86,7 +86,7 @@ class TestGenerateResumeLogOnStop:
             "used_tokens": 15_000,
             "remaining_tokens": 185_000,
             "percentage_used": 0.075,
-            "model": "claude-sonnet-4.5",
+            "model": "claude-sonnet-5",
         }
         manager.generate_resume_log.return_value = "/tmp/resume.md"
 
