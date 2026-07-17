@@ -502,7 +502,9 @@ class AsyncAgentDeploymentService:
             model_map = {
                 "claude-4-sonnet-20250514": "sonnet",
                 "claude-sonnet-4-20250514": "sonnet",
+                "claude-sonnet-5": "sonnet",
                 "claude-opus-4-20250514": "opus",
+                "claude-opus-4-8": "opus",
                 "claude-3-opus-20240229": "opus",
                 "claude-3-haiku-20240307": "haiku",
                 "claude-3.5-sonnet": "sonnet",
