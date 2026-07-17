@@ -160,7 +160,7 @@ class ResumeLogGenerator:
                 remaining_tokens=context_data.get("remaining_tokens", 0),
                 percentage_used=context_data.get("percentage_used", 0.0),
                 stop_reason=stop_reason or context_data.get("stop_reason"),
-                model=context_data.get("model", "claude-sonnet-4.5"),
+                model=context_data.get("model", "claude-sonnet-5"),
                 session_id=session_id,
             )
 
