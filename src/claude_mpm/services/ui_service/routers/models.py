@@ -17,7 +17,7 @@ router = APIRouter(prefix="/models", tags=["Models"])
 # Known Anthropic models used as fallback when API is unavailable
 _KNOWN_MODELS = [
     {"id": "claude-opus-4-5", "name": "Claude Opus 4.5", "context_window": 200000},
-    {"id": "claude-sonnet-4-5", "name": "Claude Sonnet 4.5", "context_window": 200000},
+    {"id": "claude-sonnet-5", "name": "Claude Sonnet 5", "context_window": 1000000},
     {"id": "claude-haiku-3-5", "name": "Claude Haiku 3.5", "context_window": 200000},
     {"id": "claude-opus-4-0", "name": "Claude Opus 4", "context_window": 200000},
     {"id": "claude-sonnet-4-0", "name": "Claude Sonnet 4", "context_window": 200000},
