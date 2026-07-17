@@ -70,6 +70,20 @@ PLUGIN_CACHE_SKILL_RENAME: dict[str, str] = {
     "universal-main-protocol-builder": "universal-main-model-context-builder",
 }
 
+# Fallback set of Claude Code native slash commands that a SKILL.md ``name:``
+# must not shadow. Used only if the canonical set cannot be imported from
+# selective_skill_deployer (e.g. during early startup / import errors).
+_FALLBACK_RESERVED_COMMANDS: frozenset[str] = frozenset(
+    {"mcp", "help", "exit", "clear", "quit"}
+)
+
+# Explicit safe replacements for a SKILL.md name: that exactly equals a reserved
+# command. Names not covered here fall back to an "mpm-" prefix, which cannot
+# prefix-match a reserved command.
+RESERVED_SKILL_NAME_PATCH: dict[str, str] = {
+    "mcp": "model-context",
+}
+
 
 def _get_user_level_skills() -> frozenset[str]:
     """Return USER_LEVEL_SKILLS, importing lazily to avoid circular imports."""
@@ -211,6 +225,9 @@ def _rename_project_level_skills(
                 renamed += 1
                 logger.info("Renamed project-level skill: %s → %s", old_name, new_name)
                 print(f"Renamed project-level skill: {old_name} → {new_name}")
+                # Also patch the SKILL.md name: field so it matches the new dir
+                # name (mirrors the plugin-cache rename in Step 5).
+                _update_skill_md_name(new_dir, new_name, dry_run=False)
             except OSError as exc:
                 logger.error("Failed to rename %s → %s: %s", old_name, new_name, exc)
 
@@ -463,6 +480,92 @@ def _rename_plugin_cache_mcp_skills(
 
 
 # ---------------------------------------------------------------------------
+# Step 6 — Patch user-level SKILL.md names that collide with reserved commands
+# ---------------------------------------------------------------------------
+
+
+def _get_reserved_commands() -> frozenset[str]:
+    """Return the canonical reserved-command set, importing lazily.
+
+    Falls back to ``_FALLBACK_RESERVED_COMMANDS`` if the import fails.
+    """
+    try:
+        from claude_mpm.services.skills.selective_skill_deployer import (
+            CLAUDE_CODE_RESERVED_COMMANDS,
+        )
+
+        return frozenset(CLAUDE_CODE_RESERVED_COMMANDS)
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Could not import CLAUDE_CODE_RESERVED_COMMANDS: %s", exc)
+        return _FALLBACK_RESERVED_COMMANDS
+
+
+def _read_skill_md_name(skill_md: Path) -> str | None:
+    """Return the frontmatter ``name:`` value from *skill_md*, or None if absent."""
+    try:
+        content = skill_md.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = re.search(r"^name:\s*(.+)$", content, re.MULTILINE)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+def _safe_name_for(reserved_name: str) -> str:
+    """Return a safe replacement for a name that equals a reserved command."""
+    return RESERVED_SKILL_NAME_PATCH.get(reserved_name, f"mpm-{reserved_name}")
+
+
+def _patch_user_level_skill_names(dry_run: bool) -> int:
+    """Patch SKILL.md ``name:`` fields under ~/.claude/skills/ that still collide
+    with a reserved Claude Code slash command.
+
+    Scans ``~/.claude/skills/*/SKILL.md``, reads each frontmatter ``name:`` value,
+    and — when the value exactly matches a reserved command — rewrites it to a
+    safe replacement (``RESERVED_SKILL_NAME_PATCH`` mapping, else an ``mpm-``
+    prefix).
+
+    Returns:
+        Number of SKILL.md files patched (or that would be patched in dry-run).
+    """
+    user_skills_base = Path.home() / ".claude" / "skills"
+    if not user_skills_base.is_dir():
+        return 0
+
+    reserved = _get_reserved_commands()
+    patched = 0
+
+    for skill_md in sorted(user_skills_base.glob("*/SKILL.md")):
+        name = _read_skill_md_name(skill_md)
+        if name is None or name not in reserved:
+            continue
+
+        safe_name = _safe_name_for(name)
+        skill_dir = skill_md.parent
+
+        if dry_run:
+            print(
+                f"[DRY-RUN] Would patch reserved SKILL.md name: {name} → {safe_name} "
+                f"in {skill_dir}"
+            )
+            patched += 1
+            continue
+
+        _update_skill_md_name(skill_dir, safe_name, dry_run=False)
+        patched += 1
+        logger.info(
+            "Patched reserved SKILL.md name: %s → %s in %s",
+            name,
+            safe_name,
+            skill_dir,
+        )
+        print(f"Patched reserved SKILL.md name: {name} → {safe_name} in {skill_dir}")
+
+    return patched
+
+
+# ---------------------------------------------------------------------------
 # Main entry points
 # ---------------------------------------------------------------------------
 
@@ -510,6 +613,10 @@ def migrate_skill_cleanup(dry_run: bool = False) -> bool:
     print("\n--- Step 5: Rename mcp-containing skills in plugin caches ---")
     cache_renamed = _rename_plugin_cache_mcp_skills(plugin_base, dry_run)
     print(f"  renamed={cache_renamed}")
+
+    print("\n--- Step 6: Patch reserved SKILL.md name: fields at user level ---")
+    name_patched = _patch_user_level_skill_names(dry_run)
+    print(f"  patched={name_patched}")
 
     print("\nMigration complete.")
     return True
