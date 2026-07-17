@@ -169,7 +169,13 @@ class TestOutputStyleManager:
     def test_deploy_output_style_success(self, tmp_path):
         """Test successful deployment to Claude Code."""
         tmpdir = tmp_path
-        with patch("subprocess.run") as mock_run:
+        # outputStyle activation now writes to the PROJECT-LOCAL
+        # .claude/settings.json (cwd) rather than manager.settings_file
+        # (issue #924), so redirect cwd to the temp dir.
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("pathlib.Path.cwd", return_value=tmp_path),
+        ):
             mock_result = MagicMock()
             mock_result.returncode = 0
             mock_result.stdout = "Claude 1.0.83"
@@ -194,9 +200,10 @@ class TestOutputStyleManager:
             assert target_path.exists()
             assert target_path.read_text() == content
 
-            # Check settings were updated
-            assert settings_file.exists()
-            settings = json.loads(settings_file.read_text())
+            # Check settings were updated in the project-local .claude/settings.json
+            project_settings = tmp_path / ".claude" / "settings.json"
+            assert project_settings.exists()
+            settings = json.loads(project_settings.read_text())
             # _activate_output_style now uses the style ID "claude_mpm" (native outputStyle key)
             assert settings["outputStyle"] == "claude_mpm"
 
