@@ -33,10 +33,162 @@ no cursor positioning is needed or desired.
 
 import json
 import logging
+import os
 import stat
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Opt-out / override knob
+#
+# WHY: Injecting a statusLine entry on every ``claude-mpm run`` is convenient
+# for users who want the MPM statusline, but it silently overrides a user's
+# own global or custom statusLine configuration the first time claude-mpm
+# runs in a brand-new project, with no supported way to say "don't touch my
+# statusline". This section adds three ways (env var, user config, project
+# config; env wins, then user/project config, then default) to either
+# disable management entirely or point it at a custom command instead of the
+# bundled script.
+# ---------------------------------------------------------------------------
+
+# Environment variable that overrides the config-file based policy below.
+# Highest precedence: if set and non-empty, it wins over configuration.yaml.
+STATUSLINE_ENV_VAR = "CLAUDE_MPM_STATUSLINE"
+
+# Case-insensitive values (after stripping whitespace) that mean "do not
+# manage the statusline at all" when found in CLAUDE_MPM_STATUSLINE.
+_DISABLE_ENV_VALUES = {"off", "false", "0", "disabled", "none"}
+
+
+class StatuslinePolicyKind(Enum):
+    """The three ways ``run_migration`` can be told to behave."""
+
+    #: Default behavior: manage the bundled script + settings entry as before.
+    MANAGED = "managed"
+    #: User opted out entirely: touch nothing (script or settings).
+    DISABLED = "disabled"
+    #: User supplied a custom command to write into ``statusLine.command``
+    #: instead of the bundled script path.
+    CUSTOM = "custom"
+
+
+@dataclass(frozen=True)
+class StatuslinePolicy:
+    """Resolved statusline management policy for a single ``run_migration`` call.
+
+    Why: Centralizes the env-var / config-file precedence logic in one small,
+    unit-testable value object instead of scattering conditionals across
+    ``run_migration`` and its call sites (``cli/commands/run.py``'s direct
+    call and ``update-statusline``'s force=True call both go through
+    ``run_migration``, so resolving the policy in one place keeps behavior
+    consistent everywhere).
+    What: Holds the resolved ``kind`` plus, for ``CUSTOM``, the command string
+    to write. ``source`` records where the policy came from (for debug logs).
+    Test: Assert ``_resolve_statusline_policy`` returns the expected kind and
+    command for each combination of env var / config file inputs.
+    """
+
+    kind: StatuslinePolicyKind
+    command: str | None = None
+    source: str = "default"
+
+
+def _load_yaml_statusline_section(path: Path) -> dict:
+    """Read the ``statusline`` mapping from a ``configuration.yaml`` file.
+
+    Why: Reuses claude-mpm's existing YAML config file convention
+    (``~/.claude-mpm/config/configuration.yaml`` and project-level
+    ``<cwd>/.claude-mpm/configuration.yaml`` — see ``hooks/model_tier_hook.py``
+    for the sibling per-agent-model overlay that established this pattern)
+    rather than inventing a new bespoke config format for this one knob.
+    What: Returns ``{}`` if the file is missing, unreadable, not a mapping, or
+    has no ``statusline`` section; otherwise returns that section's dict.
+    Test: Point at a YAML file with a ``statusline: {enabled: false}`` block
+    and assert the returned dict is ``{"enabled": False}``.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        import yaml  # type: ignore[import-untyped]
+    except ImportError:
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    section = data.get("statusline")
+    if not isinstance(section, dict):
+        return {}
+    return section
+
+
+def _load_statusline_config(project_dir: Path | None) -> dict:
+    """Merge user-level and project-level ``statusline`` config sections.
+
+    Why: Mirrors the overlay pattern already used for per-agent model config:
+    user config first, project config overlaid on top so project-level
+    settings win for duplicate keys.
+    What: Returns the merged dict (e.g. ``{"enabled": False}`` or
+    ``{"command": "..."}``).
+    Test: Seed a user config with ``enabled: false`` and a project config with
+    ``command: "foo"``; assert the merged dict has both keys.
+    """
+    merged: dict = {}
+    user_config = Path.home() / ".claude-mpm" / "config" / "configuration.yaml"
+    merged.update(_load_yaml_statusline_section(user_config))
+    if project_dir is not None:
+        project_config = Path(project_dir) / ".claude-mpm" / "configuration.yaml"
+        merged.update(_load_yaml_statusline_section(project_config))
+    return merged
+
+
+def _resolve_statusline_policy(project_dir: Path | None = None) -> StatuslinePolicy:
+    """Resolve the effective statusline policy from env var then config file.
+
+    Why: Single source of truth for the opt-out/override knob, used
+    consistently by ``run_migration`` (and therefore by every call site,
+    since both ``cli/commands/run.py``'s direct call and ``update-statusline``
+    go through it) so behavior is unit-testable in isolation and can't drift
+    between call sites.
+    What: Checks ``CLAUDE_MPM_STATUSLINE`` first (highest precedence): values
+    in {off, false, 0, disabled, none} (case-insensitive) resolve to
+    DISABLED; any other non-empty value resolves to CUSTOM with that value as
+    the command. If the env var is unset/empty, falls back to the merged
+    ``statusline`` section of ``configuration.yaml`` (user then project
+    overlay): ``enabled: false`` resolves to DISABLED, else a non-empty
+    ``command`` string resolves to CUSTOM. Otherwise resolves to MANAGED
+    (today's default, unchanged behavior).
+    Test: Set ``CLAUDE_MPM_STATUSLINE=off`` and assert DISABLED; set it to a
+    command string and assert CUSTOM with that command; clear it and set
+    config ``enabled: false`` and assert DISABLED; assert env value wins over
+    a conflicting config value; assert MANAGED when nothing is set.
+    """
+    env_value = os.environ.get(STATUSLINE_ENV_VAR, "").strip()
+    if env_value:
+        if env_value.lower() in _DISABLE_ENV_VALUES:
+            return StatuslinePolicy(StatuslinePolicyKind.DISABLED, source="env")
+        return StatuslinePolicy(
+            StatuslinePolicyKind.CUSTOM, command=env_value, source="env"
+        )
+
+    config = _load_statusline_config(project_dir)
+    if config.get("enabled") is False:
+        return StatuslinePolicy(StatuslinePolicyKind.DISABLED, source="config")
+
+    command = config.get("command")
+    if isinstance(command, str) and command.strip():
+        return StatuslinePolicy(
+            StatuslinePolicyKind.CUSTOM, command=command.strip(), source="config"
+        )
+
+    return StatuslinePolicy(StatuslinePolicyKind.MANAGED, source="default")
+
 
 # Marker line that identifies an MPM-managed statusline.sh.
 # Any file containing this string will be treated as an official MPM-owned
@@ -336,32 +488,37 @@ def _ensure_script(script_path: Path, force: bool = False) -> bool:
     return True
 
 
-def _ensure_settings_entry(settings_path: Path) -> bool:
+def _ensure_settings_entry(
+    settings_path: Path, desired_entry: dict | None = None
+) -> bool:
     """Ensure the statusLine entry is present and current in settings.json.
 
     Ownership rules:
-    - File absent → create with default statusLine entry.
-    - No ``statusLine`` key → add default entry.
+    - File absent → create with the desired statusLine entry.
+    - No ``statusLine`` key → add the desired entry.
     - Existing ``statusLine.command`` contains ``statusline.sh`` (MPM-owned,
-      legacy or current) → update the entry to the current default (absolute
-      user-level path).
+      legacy or current) → update the entry to the desired one.
     - Existing ``statusLine.command`` is something else (user-owned) → leave
       it alone.
 
     Args:
-        settings_path: Path to ``~/.claude/settings.json``.
+        settings_path: Path to the ``settings.json`` to update.
+        desired_entry: The statusLine block to write when we own the entry.
+            Defaults to ``_DEFAULT_STATUS_LINE`` (the bundled script path).
+            Callers under a CUSTOM statusline policy pass a block pointing at
+            the user's custom command instead.
 
     Returns:
         True on success, False on error.
     """
+    desired_entry = desired_entry if desired_entry is not None else _DEFAULT_STATUS_LINE
+
     if not settings_path.exists():
         # Create a minimal settings.json with the statusLine entry.
         try:
             settings_path.parent.mkdir(parents=True, exist_ok=True)
             settings_path.write_text(
-                json.dumps(
-                    {"statusLine": _DEFAULT_STATUS_LINE}, indent=2, ensure_ascii=False
-                )
+                json.dumps({"statusLine": desired_entry}, indent=2, ensure_ascii=False)
                 + "\n",
                 encoding="utf-8",
             )
@@ -390,11 +547,11 @@ def _ensure_settings_entry(settings_path: Path) -> bool:
     existing = settings.get("statusLine")
     if existing is None:
         # No statusLine entry at all → add ours.
-        settings["statusLine"] = _DEFAULT_STATUS_LINE
+        settings["statusLine"] = desired_entry
         action = "Added statusLine entry to %s"
     else:
         # Inspect the existing entry's command.  If it's MPM-owned (matches
-        # our substring), update it to the current default; otherwise leave it.
+        # our substring), update it to the desired entry; otherwise leave it.
         cmd = ""
         if isinstance(existing, dict):
             raw_cmd = existing.get("command", "")
@@ -402,16 +559,14 @@ def _ensure_settings_entry(settings_path: Path) -> bool:
                 cmd = raw_cmd
 
         if _STATUSLINE_COMMAND_MATCH in cmd:
-            if existing == _DEFAULT_STATUS_LINE:
+            if existing == desired_entry:
                 logger.debug(
-                    "statusLine in %s already matches default — skipping",
+                    "statusLine in %s already matches desired entry — skipping",
                     settings_path,
                 )
                 return True
-            settings["statusLine"] = _DEFAULT_STATUS_LINE
-            action = (
-                "Updated MPM-managed statusLine entry in %s to absolute user-level path"
-            )
+            settings["statusLine"] = desired_entry
+            action = "Updated MPM-managed statusLine entry in %s"
         else:
             logger.debug(
                 "statusLine in %s points elsewhere (user-customised) — leaving alone",
@@ -654,23 +809,42 @@ def run_migration(installation_dir: Path | None = None, force: bool = False) -> 
     """Auto-configure the MPM statusline at the user level (~/.claude/).
 
     Args:
-        installation_dir: Accepted for backwards compatibility but ignored —
-            this migration always targets ``~/.claude/`` regardless of the
-            project from which it is invoked.  The user-level statusline is
-            shared across all projects.
+        installation_dir: Accepted for backwards compatibility but ignored for
+            the purpose of *where the script/settings live* — this migration
+            always targets ``~/.claude/`` regardless of the project from which
+            it is invoked (the user-level statusline is shared across all
+            projects). It IS still consulted, alongside ``Path.cwd()``, as the
+            project directory when resolving a project-level ``statusline``
+            override in ``.claude-mpm/configuration.yaml`` (see
+            ``_resolve_statusline_policy``).
         force: If True, overwrite an existing ``statusline.sh`` even when it
             lacks the MPM marker (i.e. user-customised).  When False (default),
             user-customised scripts are preserved; MPM-managed scripts are
-            still upgraded if the bundled content has changed.
+            still upgraded if the bundled content has changed.  Ignored
+            entirely when the resolved policy is DISABLED or CUSTOM — an
+            explicit user opt-out or override always wins over ``force``,
+            including when invoked via ``claude-mpm update-statusline --force``.
 
     Returns:
-        True if migration completed successfully (including no-op), False on error.
+        True if migration completed successfully (including no-op, and
+        including the DISABLED early-return below), False on error.
     """
-    # Note: ``installation_dir`` is intentionally ignored.  Earlier versions of
-    # this migration wrote to ``<project>/.claude/``; we now operate at the
-    # user level so that one statusline configuration applies to every
-    # project.
-    _ = installation_dir
+    project_dir = installation_dir if installation_dir is not None else Path.cwd()
+    policy = _resolve_statusline_policy(project_dir)
+
+    if policy.kind is StatuslinePolicyKind.DISABLED:
+        # Pure no-op: do not create/upgrade the managed script, do not
+        # add/modify any statusLine or Stop-hook entry, and do not run the
+        # global-settings self-heal cleanup below (which itself mutates
+        # ~/.claude/settings.json). We also must NOT delete a user's existing
+        # statusLine entry — simply doing nothing satisfies that too.
+        logger.debug(
+            "Statusline management disabled via %s (CLAUDE_MPM_STATUSLINE or "
+            "statusline.enabled: false) — skipping autoconfig entirely",
+            policy.source,
+        )
+        return True
+
     user_claude_dir = Path.home() / ".claude"
     # The statusline script itself stays at the user level so a single copy is
     # shared across projects; only the settings.json *entries* move project-local.
@@ -680,11 +854,25 @@ def run_migration(installation_dir: Path | None = None, force: bool = False) -> 
     # .claude/settings.json instead of the shared ~/.claude/settings.json, which
     # previously caused the statusline to appear in every Claude Code session on
     # the machine (issue #924).
-    settings_path = Path.cwd() / ".claude" / "settings.json"
+    settings_path = project_dir / ".claude" / "settings.json"
 
     # Self-heal existing installs: strip MPM-owned statusLine / Stop-hook entries
     # from the global ~/.claude/settings.json.
     _cleanup_global_statusline_settings(user_claude_dir / "settings.json")
+
+    if policy.kind is StatuslinePolicyKind.CUSTOM:
+        # Write the user's custom command instead of the bundled script path,
+        # and don't touch the bundled script or the --clear Stop hook at all
+        # (a custom command is not guaranteed to support --clear).  The
+        # "leave user-customised alone" ownership check inside
+        # _ensure_settings_entry still applies: an entry that already points
+        # somewhere else entirely (neither statusline.sh nor a *previous*
+        # custom command written by us) is left untouched.
+        logger.debug(
+            "Statusline command overridden via %s to: %s", policy.source, policy.command
+        )
+        desired_entry = {**_DEFAULT_STATUS_LINE, "command": policy.command}
+        return _ensure_settings_entry(settings_path, desired_entry=desired_entry)
 
     script_ok = _ensure_script(script_path, force=force)
     settings_ok = _ensure_settings_entry(settings_path)
