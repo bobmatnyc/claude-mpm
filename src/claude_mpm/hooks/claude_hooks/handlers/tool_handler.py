@@ -278,6 +278,12 @@ class ToolHandler:
             # ztk does NOT fire (ztk passes through on compound/piped commands
             # and when the ztk binary is absent).
             _footer_rewrote: dict | None = None
+            # gh_footer_hook may instead return an advisory (additionalContext)
+            # with NO updatedInput — that happens on the --body-file path,
+            # where the hook is deliberately read-only and asks the agent to
+            # fix the file itself.  Track it separately so the advice survives
+            # even when ztk rewrites the command and returns its own response.
+            _footer_advisory: str | None = None
             _ztk_event = event  # default: ztk sees the original event
             try:
                 if _build_gh_footer_response is not None:
@@ -290,6 +296,11 @@ class ToolHandler:
                             # command without mutating the caller's event in-place.
                             _ztk_event = {**event, "tool_input": _updated_input}
                             _footer_rewrote = _footer_response
+                        _advisory = _footer_hso.get("additionalContext")
+                        if isinstance(_advisory, str) and _advisory:
+                            _footer_advisory = _advisory
+                            if _footer_rewrote is None:
+                                _footer_rewrote = _footer_response
             except Exception as _e:
                 if DEBUG:
                     _log(f"gh_footer_hook failed (fail-open): {_e}")
@@ -305,20 +316,27 @@ class ToolHandler:
                             "permissionDecisionReason"
                         ):
                             _hso["permissionDecisionReason"] = _cb_warning_reason
+                    # ztk's response replaces the footer hook's, so carry the
+                    # body-file advisory across or it would be dropped.
+                    if _footer_advisory:
+                        _hso = _ztk_response["hookSpecificOutput"]
+                        if isinstance(_hso, dict) and not _hso.get("additionalContext"):
+                            _hso["additionalContext"] = _footer_advisory
                     return _ztk_response
             except Exception as _e:
                 if DEBUG:
                     _log(f"ztk_hook failed (fail-open): {_e}")
-            # If gh_footer_hook rewrote the command but ztk did not fire
-            # (ztk absent, or ztk skipped compound/piped command), surface the
-            # footer-fixed tool_input now.
+            # If gh_footer_hook produced anything (a rewritten command or a
+            # body-file advisory) but ztk did not fire (ztk absent, or ztk
+            # skipped a compound/piped command), surface it now.
             #
             # Invariant: _footer_rewrote is a complete hookSpecificOutput
-            # response (updatedInput already set).  We return it here
-            # regardless of ztk's hookSpecificOutput presence because ztk
-            # returned a no-op ({"continue": True}) — meaning ztk either
-            # chose not to rewrite or is not available.  The footer rewrite
-            # must still reach the harness so the corrected command is used.
+            # response (updatedInput and/or additionalContext already set).
+            # We return it here regardless of ztk's hookSpecificOutput presence
+            # because ztk returned a no-op ({"continue": True}) — meaning ztk
+            # either chose not to rewrite or is not available.  The footer
+            # rewrite must still reach the harness so the corrected command is
+            # used.
             if _footer_rewrote is not None:
                 if _cb_warning_reason:
                     _hso = _footer_rewrote.get("hookSpecificOutput", {})
