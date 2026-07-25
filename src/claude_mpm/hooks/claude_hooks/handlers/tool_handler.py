@@ -318,10 +318,19 @@ class ToolHandler:
                             _hso["permissionDecisionReason"] = _cb_warning_reason
                     # ztk's response replaces the footer hook's, so carry the
                     # body-file advisory across or it would be dropped.
+                    # ztk may itself set additionalContext; APPEND rather than
+                    # overwrite-or-skip so neither message is lost.  (Skipping
+                    # when ztk claimed the field silently dropped the advisory,
+                    # which is the exact failure this block exists to prevent.)
                     if _footer_advisory:
                         _hso = _ztk_response["hookSpecificOutput"]
-                        if isinstance(_hso, dict) and not _hso.get("additionalContext"):
-                            _hso["additionalContext"] = _footer_advisory
+                        if isinstance(_hso, dict):
+                            _existing = _hso.get("additionalContext")
+                            _hso["additionalContext"] = (
+                                f"{_existing}\n\n{_footer_advisory}"
+                                if _existing
+                                else _footer_advisory
+                            )
                     return _ztk_response
             except Exception as _e:
                 if DEBUG:
