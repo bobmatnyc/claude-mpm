@@ -559,11 +559,50 @@ def test_restore_target_skips_checkout_when_clean(tmp_path, monkeypatch):
 # Integration test: real mutmut against the pilot module (on demand only).
 # ---------------------------------------------------------------------------
 
+# OPT-IN GATE (issue #937 CI flake). This test drives REAL mutmut, which mutates
+# src/claude_mpm/services/trusty_search_allowlist.py IN PLACE in the working
+# tree for the several minutes it runs. The default suite runs under
+# `pytest -n auto`, so while this test holds a mutant on disk every other xdist
+# worker sees the mutated source. Any concurrently-starting test that imports
+# that module — notably tests/test_e2e.py, which subprocesses
+# `scripts/claude-mpm --version` and reaches it via
+# cli/parsers/base_parser.create_parser -> cli/commands/search_index — crashes
+# with a spurious TypeError (e.g. "can't multiply sequence by non-int of type
+# 'PosixPath'" from a `/` -> `*` mutant). That failure is a pure race: it points
+# at innocent code, reproduces only under parallelism, and is invisible in the
+# committed source, so it costs a full CI cycle to even locate.
+#
+# The runner's finally-block restore cannot fix this — the mutant is *supposed*
+# to be on disk while mutmut evaluates it. In-place mutation testing is simply
+# incompatible with a parallel suite sharing the same working tree, so the only
+# correct fix is to keep mutmut out of the default run.
+#
+# This matches the already-documented intent everywhere else: the section header
+# above says "on demand only", the Makefile `mutation-test` target is described
+# as "advisory, on-demand only", and .github/workflows/test.yml states "CI does
+# NOT currently run mutmut in any workflow". Nothing actually enforced that, so
+# the test ran on every PR. This env gate enforces it.
+#
+# Run it deliberately with:
+#     MPM_RUN_MUTATION_INTEGRATION=1 uv run pytest \
+#         tests/services/mutation/test_runner.py -p no:xdist -k real_mutmut
+_MUTATION_INTEGRATION_ENABLED = (
+    os.environ.get("MPM_RUN_MUTATION_INTEGRATION", "") == "1"
+)
+
 
 @pytest.mark.integration
 @pytest.mark.timeout(0)  # real mutmut over the full module takes minutes; the
 # default 120s pytest-timeout would SIGALRM-kill the process mid-run, bypassing
 # the runner's finally-block restore and leaving a mutant on disk.
+@pytest.mark.skipif(
+    not _MUTATION_INTEGRATION_ENABLED,
+    reason=(
+        "real-mutmut integration test is opt-in: it mutates the pilot module "
+        "in place and corrupts concurrent xdist workers. "
+        "Set MPM_RUN_MUTATION_INTEGRATION=1 (and use -p no:xdist) to run it."
+    ),
+)
 @pytest.mark.skipif(
     not Path("src/claude_mpm/services/trusty_search_allowlist.py").exists(),
     reason="pilot module not present (run from repo root)",
@@ -575,6 +614,9 @@ def test_integration_real_mutmut_against_pilot():
           healthy kill rate, non-empty parsed survivors, and a clean error.
     WHY:  This is the go/no-go evidence that the runner works end to end with
           real mutmut 2.5.1 on Python 3.13 before we build the CLI/agent slices.
+
+    Opt-in via MPM_RUN_MUTATION_INTEGRATION=1 — see the gate comment above for
+    why this must never run inside the default parallel suite.
     """
     target = Path("src/claude_mpm/services/trusty_search_allowlist.py").resolve()
     tests_file = Path("tests/services/test_trusty_search_allowlist.py").resolve()

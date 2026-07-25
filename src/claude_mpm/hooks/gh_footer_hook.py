@@ -15,8 +15,13 @@ Behaviour contract
   ``gh issue edit`` Bash commands, plus MCP tool calls
   ``mcp__github__create_pull_request`` and ``mcp__github__create_issue``.
 - Inline body (``--body``/``-b``): rewrites in the parsed argument value.
-- File body (``--body-file``/``-F``): reads the file, rewrites, writes back.
-- Idempotent: already-canonical MPM footer → no change, no spurious write.
+- File body (``--body-file``/``-F``): **read-only**.  The hook NEVER writes to
+  a caller-owned file; it emits an ``additionalContext`` advisory naming the
+  file and the canonical footer so the agent can fix it with its own
+  Edit/Write tools (which keeps the harness' file bookkeeping consistent).
+- Idempotent: already-canonical MPM footer → no change, no advisory.
+- Opt-out: ``{"gh_footer_hook": {"disabled": true}}`` in the settings cascade,
+  or the ``CLAUDE_MPM_DISABLE_GH_FOOTER`` environment variable.
 - Fail-safe: any parse error, I/O error, or unexpected exception → degrade
   gracefully to ``{"continue": True}`` (NEVER blocks the gh command).
 - Only rewrites the single footer line; never touches other body content.
@@ -28,9 +33,10 @@ LINK: none
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import re
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +47,76 @@ from claude_mpm.hooks.footer_constants import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Opt-out switch (mirrors context_circuit_breaker's settings cascade)
+# ---------------------------------------------------------------------------
+
+# Environment variable name for the disable switch (secondary).
+_DISABLE_ENV_VAR = "CLAUDE_MPM_DISABLE_GH_FOOTER"
+
+# Config key path inside .claude/settings.json (primary).
+# JSON path: {"gh_footer_hook": {"disabled": true}}
+_CONFIG_KEY = "gh_footer_hook"
+_CONFIG_DISABLED_FIELD = "disabled"
+
+# Values accepted as "truthy" for both the env var and the settings field.
+_TRUTHY = ("1", "true", "yes", "on")
+
+
+def _settings_candidates(cwd: str) -> list[Path]:
+    """Return ordered list of settings files to check (highest-priority first)."""
+    candidates: list[Path] = []
+    if cwd:
+        candidates.extend(
+            [
+                Path(cwd) / ".claude" / "settings.local.json",
+                Path(cwd) / ".claude" / "settings.json",
+            ]
+        )
+    candidates.append(Path.home() / ".claude" / "settings.json")
+    return candidates
+
+
+def _is_disabled(cwd: str) -> bool:
+    """Return True if the gh footer hook has been explicitly disabled.
+
+    WHAT: Resolves the opt-out switch by consulting the
+          ``CLAUDE_MPM_DISABLE_GH_FOOTER`` env var followed by the
+          ``gh_footer_hook.disabled`` field in the standard settings cascade
+          (.claude/settings.local.json → .claude/settings.json →
+          ~/.claude/settings.json).
+    WHY:  gh_footer_hook silently rewrites agent-authored PR/issue bodies.
+          Every other hook in the live PreToolUse chain has an off-switch;
+          without one, a project that legitimately wants Claude Code
+          attribution has no way to keep it.
+
+    Checks, in order:
+    1. ``CLAUDE_MPM_DISABLE_GH_FOOTER`` env var (any truthy value).
+    2. ``gh_footer_hook.disabled`` in .claude/settings.local.json.
+    3. ``gh_footer_hook.disabled`` in .claude/settings.json.
+    4. ``gh_footer_hook.disabled`` in ~/.claude/settings.json.
+    """
+    env_val = os.environ.get(_DISABLE_ENV_VAR, "").strip().lower()
+    if env_val in _TRUTHY:
+        return True
+
+    for settings_path in _settings_candidates(cwd):
+        try:
+            if not settings_path.is_file():
+                continue
+            with settings_path.open(encoding="utf-8") as fh:
+                data = json.load(fh)
+            hook_config = data.get(_CONFIG_KEY)
+            if isinstance(hook_config, dict):
+                disabled_val = hook_config.get(_CONFIG_DISABLED_FIELD, False)
+                if disabled_val is True or str(disabled_val).lower() in _TRUTHY:
+                    return True
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+
+    return False
+
 
 # ---------------------------------------------------------------------------
 # Footer rewrite helpers
@@ -54,11 +130,41 @@ _OLD_FOOTER_BARE = [
     CLAUDE_CODE_FOOTER_OLD_ALT,
 ]
 
-# Compiled pattern that matches either old footer, optionally preceded by
-# the Claude Code robot emoji and arbitrary surrounding whitespace.
-# Group 0 = the full match (emoji + text), stripped and replaced wholesale.
+# Attribution emoji that may decorate a footer.  ``🤖`` is what Claude Code
+# emits; ``👥`` appears in the MPM canonical footer and therefore shows up in
+# half-migrated bodies (e.g. someone hand-edited the emoji but not the text).
+_ATTRIBUTION_EMOJI = "🤖👥"
+
+# A "run" of attribution emoji: one or more of them in any order/repetition,
+# with optional horizontal whitespace between/after them.  ``[^\S\r\n]``
+# deliberately excludes newlines so a run can never span a line break.
+_EMOJI_RUN = r"(?:[" + _ATTRIBUTION_EMOJI + r"][^\S\r\n]*)+"
+
+# Compiled pattern that matches either old footer together with any stale
+# attribution emoji attached to it.
+#
+# Two — and ONLY two — emoji placements are consumed:
+#   (a) an emoji run immediately preceding the footer text on the SAME line
+#       (``🤖👥 Generated with ...``, ``👥 Generated with ...``);
+#   (b) a whole preceding line whose entire non-newline content is an emoji
+#       run (``🤖\nGenerated with ...``, ``🤖👥\nGenerated with ...``).
+#
+# Why the shape is this narrow
+# ----------------------------
+# The previous pattern only consumed a bare adjacent ``🤖``.  Anything else —
+# ``👥``, ``🤖👥``, or an emoji on the preceding line — was left behind, so the
+# canonical replacement (which starts with ``🤖👥``) produced a DUPLICATED
+# prefix such as ``🤖👥🤖👥 Generated with [Claude MPM](...)``.
+#
+# The obvious "just strip across the preceding line break" fix is WRONG: a body
+# containing prose such as ``🤖 indicates an automated build step\nGenerated
+# with [Claude Code](...)`` would lose the entire sentence.  Requiring the
+# preceding line to consist *solely* of an emoji run (anchored with ``^`` under
+# re.MULTILINE and terminated by ``\r?\n``) keeps that prose intact.
 _FOOTER_LINE_RE = re.compile(
-    r"[^\S\r\n]*(?:🤖[^\S\r\n]*)?"  # optional leading whitespace + robot emoji
+    r"(?:^[^\S\r\n]*" + _EMOJI_RUN + r"\r?\n)?"  # (b) emoji-only preceding line
+    r"[^\S\r\n]*"  # leading whitespace on the footer line
+    r"(?:" + _EMOJI_RUN + r")?"  # (a) same-line emoji run
     r"(?:" + "|".join(re.escape(f) for f in _OLD_FOOTER_BARE) + r")"
     r"[^\S\r\n]*",  # trailing whitespace on the line
     re.MULTILINE,
@@ -161,6 +267,17 @@ _GH_BODY_CMD_RE = re.compile(
 # re-matching after the first substitution.  A shlex-based path would be
 # safer in pathological edge cases but would regress on the quoting
 # round-trip tests (``TestRewriteBashCommandFix3``).  Tradeoff accepted.
+#
+# Flag-form coverage (fix 3B)
+# ---------------------------
+# ``--body VALUE``, ``--body=VALUE``, ``-b VALUE`` and ``-b=VALUE`` are all
+# matched via the ``(\s*=\s*|\s+)`` separator group.
+#
+# The GLUED short form ``-bVALUE`` is deliberately NOT supported.  ``gh pr
+# create`` accepts single-dash long-ish tokens in the wild (e.g. a user typing
+# ``-base main``), and allowing a glued ``-b`` would parse ``-base`` as
+# ``-b`` + ``ase`` and corrupt the command.  The false-positive risk outweighs
+# the coverage gain, so ``-b`` keeps its ``(?=[\s=]|$)`` boundary assertion.
 _BODY_FLAG_RE = re.compile(
     r"""((?:--body(?!-file)|(?:(?:^|\s))-b(?=[\s=]|$)))"""  # group 1: flag token
     r"""(\s*=\s*|\s+)"""  # group 2: separator
@@ -169,9 +286,30 @@ _BODY_FLAG_RE = re.compile(
 )
 
 # Regex to extract the value of --body-file / -F.
+#
+# Flag-form coverage (fix 3B)
+# ---------------------------
+# Previously this required ``\s+`` between the flag and its value, so
+# ``--body-file=path``, ``-F=path`` and ``-Fpath`` bypassed the hook entirely
+# even though ``gh`` (pflag) accepts all three.  The separator is now
+# ``(?:\s*=\s*|\s+)`` for the long form and ``(?:\s*=\s*|\s*)`` for ``-F``,
+# the trailing ``\s*`` branch covering the glued ``-Fpath`` spelling.
+#
+# Unlike ``-b`` (see above) the glued ``-F`` form is safe to support: ``gh``
+# has no other single-dash flag beginning with ``F``, so ``-Fxxx`` is
+# unambiguous.  The leading ``(?:^|\s)`` keeps ``-F`` from matching inside a
+# longer token such as ``--body-file``.
 _BODY_FILE_FLAG_RE = re.compile(
-    r"""(?:--body-file|-F)\s+(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+))"""
+    r"""(?:^|\s)"""
+    r"""(?:--body-file(?:\s*=\s*|\s+)|-F(?:\s*=\s*|\s*))"""
+    r"""(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+))"""
 )
+
+# ``--body-file -`` / ``-F -`` means "read the body from stdin".  There is no
+# file on disk to inspect, and treating it as a path is actively dangerous:
+# ``Path('-')`` resolves to a real file named ``-`` if one happens to exist in
+# the working directory.  Recognised and skipped explicitly, before any read.
+_STDIN_BODY_FILE = "-"
 
 
 def _is_gh_body_command(command: str) -> bool:
@@ -210,11 +348,41 @@ def _extract_body_inline(
 
 
 def _extract_body_file(command: str) -> str | None:
-    """Extract the file path from a ``--body-file``/``-F`` flag, or None."""
+    """Extract the file path from a ``--body-file``/``-F`` flag, or None.
+
+    Returns None when the flag is absent, when no value could be parsed, or
+    when the value is ``-`` (stdin) — see ``_STDIN_BODY_FILE``.
+    """
     m = _BODY_FILE_FLAG_RE.search(command)
     if not m:
         return None
-    return m.group(1) or m.group(2) or m.group(3) or None
+    value = m.group(1) or m.group(2) or m.group(3) or None
+    if value is None:
+        return None
+    if value == _STDIN_BODY_FILE:
+        # "read the body from stdin" — not a path.  Bail out BEFORE any
+        # filesystem access so a stray file literally named "-" in the working
+        # directory can never be read or reported on.
+        logger.debug("gh_footer_hook: --body-file - (stdin) — skipping")
+        return None
+    return value
+
+
+# Characters that are safe to leave completely unquoted in a POSIX shell word.
+# Mirrors the conservative set used by shlex.quote.
+_BARE_SAFE_RE = re.compile(r"^[\w@%+=:,./-]+$", re.ASCII)
+
+
+def _single_quote(value: str) -> str:
+    r"""Wrap *value* in single quotes using the POSIX ``'\''`` splice idiom.
+
+    Inside single quotes the shell performs NO expansion at all, so ``$``,
+    backticks, ``\``, ``"`` and newlines are all inert.  A literal single quote
+    cannot appear inside single quotes, so it is spliced out and back in as
+    ``'\''`` (close quote, escaped quote, reopen quote) — the standard,
+    universally portable idiom.
+    """
+    return "'" + value.replace("'", r"'\''") + "'"
 
 
 def _requote(value: str, quote_char: str) -> str:
@@ -228,37 +396,38 @@ def _requote(value: str, quote_char: str) -> str:
 
     Rules:
     - Double-quoted → keep double-quoted, escaping backslashes and embedded ``"``.
-    - Single-quoted → keep single-quoted (shell semantics: no escaping inside
-      single quotes, but we must ensure the value contains no literal ``'``; if
-      it does, fall back to double-quoting to avoid shell syntax breakage).
-    - Bare / unquoted → stay bare if safe (no spaces, newlines, or ``"``);
-      otherwise wrap in double quotes.
+      ``$`` and backticks are deliberately NOT escaped here: they were already
+      live in the caller's original double-quoted argument, so escaping them
+      would silently change the command's meaning.
+    - Single-quoted → STAY single-quoted, always, using the ``'\\''`` splice
+      idiom (fix 3C).  The previous implementation downgraded values containing
+      a literal ``'`` to double quotes, which turned inert ``$VAR`` and
+      ``` `cmd` ``` text inside the body into live shell expansion/command
+      substitution.  Single quotes never expand anything, so no shell
+      metacharacter can ever escape.
+    - Bare / unquoted → stay bare only when every character is in the
+      conservative shell-safe set; otherwise single-quote it (again, never
+      double quotes, so ``$``/backticks stay inert).
     """
     if quote_char == '"':
         escaped = value.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
     if quote_char == "'":
-        if "'" not in value:
-            return f"'{value}'"
-        # Value contains a single quote — cannot stay single-quoted safely;
-        # fall back to double quotes with proper escaping.
-        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
-    # Bare / no quote char — add double quotes only if value requires them.
-    if " " in value or "\n" in value or '"' in value or "'" in value:
-        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
-    return value
+        return _single_quote(value)
+    # Bare / no quote char — stay bare only when unambiguously safe.
+    if value and _BARE_SAFE_RE.match(value):
+        return value
+    return _single_quote(value)
 
 
 def rewrite_bash_command(command: str) -> str | None:
     """Rewrite a Bash command string so any old footer in the body is canonical.
 
-    WHAT: Parses ``--body``/``-b`` (inline) and ``--body-file``/``-F`` (file)
-          flags from a ``gh pr/issue create/edit`` command, rewrites any old
-          Claude Code footer in the body to the MPM canonical footer, and
-          returns the modified command string.  For file-based bodies, the file
-          is rewritten in place and the command string is returned unchanged.
+    WHAT: Parses the ``--body``/``-b`` (inline) flag from a ``gh pr/issue
+          create/edit`` command, rewrites any old Claude Code footer in the
+          body to the MPM canonical footer, and returns the modified command
+          string.  File-based bodies (``--body-file``/``-F``) are NOT handled
+          here — see ``build_body_file_advisory``.
     WHY:  This function is the single point where Bash-command bodies are
           normalised; it must be robust against edge cases (empty values,
           multi-line bodies, the old footer text appearing in other flags such
@@ -267,7 +436,8 @@ def rewrite_bash_command(command: str) -> str | None:
           search on the old value — to avoid false matches.
 
     Returns the rewritten command string, or None if no rewrite was needed
-    (already canonical, no footer found, or not a gh body command).
+    (already canonical, no footer found, not a gh body command, or the
+    quoting could not be parsed with confidence).
     Fail-safe: any unexpected exception is caught; None is returned so the
     original command is used unmodified.
     """
@@ -275,10 +445,41 @@ def rewrite_bash_command(command: str) -> str | None:
         if not _is_gh_body_command(command):
             return None
 
-        # Try inline --body / -b first.
+        # Try inline --body / -b.
         extracted = _extract_body_inline(command)
         if extracted is not None:
             body_value, match = extracted
+
+            # Parser-confidence guard (fix 3C, related gap).
+            #
+            # ``_BODY_FLAG_RE`` models a quoted value as a single balanced
+            # quote pair.  A shell word may instead be a CONCATENATION of
+            # adjacent quoted/bare chunks — most commonly the POSIX splice
+            # idiom ``'It'\''s'`` used to embed a literal apostrophe inside a
+            # single-quoted string.  In that case the regex stops at the first
+            # closing quote and captures only a PREFIX of the real body.
+            #
+            # Rewriting from a prefix would splice the canonical footer into
+            # the middle of a shell word and leave the tail (``\''s'``)
+            # dangling — a corrupted command.  We cannot parse the full word
+            # without replacing the whole regex approach with a shell
+            # tokeniser (see "Why not shlex.split" above), so instead we detect
+            # the situation and stand down: if the value token is not followed
+            # by whitespace or end-of-string, the parse is untrustworthy and we
+            # return None, leaving the command exactly as the agent wrote it.
+            #
+            # KNOWN LIMITATION: a body that uses the ``'\''`` idiom AND carries
+            # a stale Claude Code footer is therefore left un-normalised rather
+            # than corrupted.  This is a deliberate correctness-over-coverage
+            # tradeoff; see ``test_splice_quoted_body_is_left_alone``.
+            trailing = command[match.end() : match.end() + 1]
+            if trailing and not trailing.isspace():
+                logger.debug(
+                    "gh_footer_hook: body value token not followed by whitespace "
+                    "(concatenated shell word?) — standing down"
+                )
+                return None
+
             new_body = rewrite_footer(body_value)
             if new_body == body_value:
                 return None  # already canonical or no footer
@@ -305,58 +506,63 @@ def rewrite_bash_command(command: str) -> str | None:
             # text that may appear elsewhere in the command (e.g. in --title).
             return _BODY_FLAG_RE.sub(replacement, command, count=1)
 
-        # Try --body-file / -F.
-        file_path_str = _extract_body_file(command)
-        if file_path_str is not None:
-            file_path = Path(file_path_str)
-            try:
-                original_body = file_path.read_text(encoding="utf-8")
-            except OSError as exc:
-                logger.debug(
-                    "gh_footer_hook: cannot read body file %s: %s", file_path, exc
-                )
-                return None
-            new_body = rewrite_footer(original_body)
-            if new_body == original_body:
-                return None
-            try:
-                # Write atomically: write to a temp file in the same directory
-                # (guarantees same filesystem so Path.replace is atomic), then
-                # rename over the target.  Path.write_text is not atomic —
-                # a crash mid-write would corrupt the body file.
-                #
-                # Leak-safety: tmp_path is tracked from the moment the file is
-                # created.  A try/finally ensures the temp file is unlinked on
-                # any failure path (write error or rename error), so orphaned
-                # temp files cannot accumulate.
-                dir_path = file_path.parent
-                tmp_path: str | None = None
-                try:
-                    with tempfile.NamedTemporaryFile(
-                        mode="w",
-                        encoding="utf-8",
-                        dir=dir_path,
-                        delete=False,
-                        suffix=".tmp",
-                    ) as tmp:
-                        tmp_path = tmp.name
-                        tmp.write(new_body)
-                    Path(tmp_path).replace(file_path)
-                    tmp_path = None  # rename succeeded; nothing to clean up
-                finally:
-                    if tmp_path is not None:
-                        Path(tmp_path).unlink(missing_ok=True)
-            except OSError as exc:
-                logger.debug(
-                    "gh_footer_hook: cannot write body file %s: %s", file_path, exc
-                )
-                return None
-            # Command string itself is unchanged (file path is the same).
-            return command
-
-        return None  # no --body or --body-file flag found
+        # --body-file / -F is intentionally NOT handled here: the hook must
+        # never mutate a caller-owned file.  See build_body_file_advisory.
+        return None  # no inline --body flag found
     except Exception as exc:
         logger.debug("gh_footer_hook: rewrite_bash_command error (degrading): %s", exc)
+        return None
+
+
+# Template for the advisory surfaced to the agent when a ``--body-file``
+# target still carries a stale Claude Code footer.
+_BODY_FILE_ADVISORY = (
+    "[claude-mpm] The body file '{path}' passed to this gh command still "
+    "contains a Claude Code attribution footer. claude-mpm does not edit "
+    "agent-owned files, so please update it yourself with Edit/Write before "
+    "(re-)running the command, replacing the footer line with exactly:\n"
+    "{footer}"
+)
+
+
+def build_body_file_advisory(command: str) -> str | None:
+    """Return an advisory message if a ``--body-file`` target has a stale footer.
+
+    WHAT: Reads (read-only!) the file named by ``--body-file``/``-F`` and, if
+          its contents would be changed by ``rewrite_footer``, returns a
+          human-readable advisory naming the file and the canonical footer.
+          Returns None in every other case.
+    WHY:  The previous implementation rewrote the body file IN PLACE from
+          inside a PreToolUse hook.  That silently mutated a file the calling
+          agent owns, outside all Edit/Write tool bookkeeping — the agent's
+          view of the file diverged from disk, and the change was invisible in
+          the transcript.  Surfacing an advisory instead keeps the hook
+          side-effect-free and lets the agent make the edit through its own
+          tools, so the mutation stays visible and attributable.
+
+    Fail-safe: any I/O error or unexpected exception yields None.
+    """
+    try:
+        if not _is_gh_body_command(command):
+            return None
+        file_path_str = _extract_body_file(command)
+        if file_path_str is None:
+            return None
+        file_path = Path(file_path_str)
+        try:
+            original_body = file_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            logger.debug("gh_footer_hook: cannot read body file %s: %s", file_path, exc)
+            return None
+        if rewrite_footer(original_body) == original_body:
+            return None
+        return _BODY_FILE_ADVISORY.format(
+            path=file_path_str, footer=MPM_FOOTER_CANONICAL
+        )
+    except Exception as exc:
+        logger.debug(
+            "gh_footer_hook: build_body_file_advisory error (degrading): %s", exc
+        )
         return None
 
 
@@ -409,18 +615,27 @@ def rewrite_mcp_body(
 def build_gh_footer_response(event: dict[str, Any]) -> dict[str, Any]:
     """Build a PreToolUse hook response that normalises PR/issue body footers.
 
-    WHAT: Wraps rewrite_bash_command / rewrite_mcp_body and formats the result
-          as a Claude Code PreToolUse wire-format response dict.
+    WHAT: Wraps rewrite_bash_command / build_body_file_advisory /
+          rewrite_mcp_body and formats the result as a Claude Code PreToolUse
+          wire-format response dict.
     WHY:  Single callable that the pretooluse_dispatcher and tool_handler can
-          both call without duplicating the response-envelope logic.
+          both call without duplicating the response-envelope logic.  It is
+          also the single choke point for the opt-out switch, so disabling the
+          hook is guaranteed to short-circuit EVERY tool path.
 
     Returns:
         ``{"hookSpecificOutput": {"hookEventName": "PreToolUse",
             "updatedInput": <modified tool_input>}}``  when a rewrite occurs.
+        ``{"hookSpecificOutput": {"hookEventName": "PreToolUse",
+            "additionalContext": <advisory>}}``  when a ``--body-file`` target
+            carries a stale footer (advisory only — nothing is written).
         ``{"continue": True}``  when no rewrite is needed.
         ``{"continue": True}``  on any error (fail-safe).
     """
     try:
+        if _is_disabled(event.get("cwd", "") or ""):
+            return {"continue": True}
+
         tool_name: str = event.get("tool_name", "")
         tool_input: dict[str, Any] = event.get("tool_input", {}) or {}
 
@@ -429,17 +644,32 @@ def build_gh_footer_response(event: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(command, str) or not command.strip():
                 return {"continue": True}
             new_command = rewrite_bash_command(command)
-            if new_command is None:
-                return {"continue": True}
-            updated_input = dict(tool_input)
-            updated_input["command"] = new_command
-            return {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow",
-                    "updatedInput": updated_input,
+            # Only emit updatedInput when the command text ACTUALLY changed —
+            # a byte-identical "update" is pure bookkeeping noise for the
+            # harness and misrepresents the hook as having rewritten something.
+            if new_command is not None and new_command != command:
+                updated_input = dict(tool_input)
+                updated_input["command"] = new_command
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "allow",
+                        "updatedInput": updated_input,
+                    }
                 }
-            }
+            # No inline rewrite — check for a stale footer in a --body-file
+            # target and surface it as advice.  Read-only: the hook never
+            # touches a file the calling agent owns.
+            advisory = build_body_file_advisory(command)
+            if advisory is not None:
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "allow",
+                        "additionalContext": advisory,
+                    }
+                }
+            return {"continue": True}
 
         # MCP GitHub tool path
         updated_input = rewrite_mcp_body(tool_name, tool_input)

@@ -162,17 +162,39 @@ def dispatch(event: dict[str, Any]) -> dict[str, Any]:
             # wraps the command.  If ztk does not fire (absent binary or
             # compound command), the footer-fixed response is returned directly.
             _footer_rewrite: dict | None = None
+            _footer_advisory = ""
             _footer_resp = gh_footer_hook.build_gh_footer_response(event)
             ztk_event = event  # default: ztk sees the original event
-            if _footer_resp.get("hookSpecificOutput"):
-                _updated = _footer_resp["hookSpecificOutput"].get("updatedInput")
-                if isinstance(_updated, dict):
-                    # Use a shallow copy so ztk sees the footer-fixed command
-                    # without mutating the caller's event dict in-place.
-                    ztk_event = {**event, "tool_input": _updated}
+            # ``or {}`` keeps every downstream read total: the fail-safe
+            # response is ``{"continue": True}`` with no hookSpecificOutput key.
+            _footer_hso = _footer_resp.get("hookSpecificOutput") or {}
+            _updated = _footer_hso.get("updatedInput")
+            if isinstance(_updated, dict):
+                # Use a shallow copy so ztk sees the footer-fixed command
+                # without mutating the caller's event dict in-place.
+                ztk_event = {**event, "tool_input": _updated}
+                _footer_rewrite = _footer_resp
+            _advisory = _footer_hso.get("additionalContext")
+            if isinstance(_advisory, str) and _advisory:
+                # --body-file advisory: no command rewrite, but the advice
+                # must still reach the agent whether or not ztk fires.
+                _footer_advisory = _advisory
+                if _footer_rewrite is None:
                     _footer_rewrite = _footer_resp
             response = ztk_hook.build_ztk_response(ztk_event)
-            if response.get("hookSpecificOutput"):
+            _ztk_hso = response.get("hookSpecificOutput")
+            if _ztk_hso:
+                # ztk's response replaces the footer hook's, so carry the
+                # body-file advisory across or it would be dropped.  Append
+                # rather than overwrite so ztk's own context survives too.
+                # Mirrors ToolHandler.handle_pre_tool_fast, the live path.
+                if _footer_advisory and isinstance(_ztk_hso, dict):
+                    _existing = _ztk_hso.get("additionalContext")
+                    _ztk_hso["additionalContext"] = (
+                        f"{_existing}\n\n{_footer_advisory}"
+                        if _existing
+                        else _footer_advisory
+                    )
                 return _merge_warning_into_response(response, warning_reason)
             if _footer_rewrite is not None:
                 return _merge_warning_into_response(_footer_rewrite, warning_reason)

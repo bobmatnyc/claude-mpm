@@ -19,12 +19,23 @@ from claude_mpm.hooks.footer_constants import (
     MPM_FOOTER_CANONICAL,
 )
 from claude_mpm.hooks.gh_footer_hook import (
+    _DISABLE_ENV_VAR,
+    _extract_body_file,
     _is_gh_body_command,
+    _requote,
+    build_body_file_advisory,
     build_gh_footer_response,
     rewrite_bash_command,
     rewrite_footer,
     rewrite_mcp_body,
 )
+
+
+@pytest.fixture(autouse=True)
+def _clear_disable_env(monkeypatch):
+    """Ensure a developer's exported opt-out cannot silently pass the suite."""
+    monkeypatch.delenv(_DISABLE_ENV_VAR, raising=False)
+
 
 # ---------------------------------------------------------------------------
 # rewrite_footer — pure string transformation
@@ -196,25 +207,24 @@ class TestRewriteBashCommand:
     def test_pr_view_returns_none(self):
         assert rewrite_bash_command("gh pr view 42") is None
 
-    def test_body_file_flag(self, tmp_path):
+    def test_body_file_flag_never_rewrites_command_or_file(self, tmp_path):
+        """Regression (defect 1): --body-file is advisory-only, never mutating."""
         body_file = tmp_path / "body.md"
-        body_file.write_text(f"Content\n\n{CLAUDE_CODE_FOOTER_OLD}")
+        original = f"Content\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        body_file.write_text(original)
         cmd = f"gh pr create --body-file {body_file}"
-        result = rewrite_bash_command(cmd)
-        # Command string is unchanged (same file path)
-        assert result == cmd
-        # But file content was rewritten
-        new_content = body_file.read_text()
-        assert MPM_FOOTER_CANONICAL in new_content
-        assert CLAUDE_CODE_FOOTER_OLD not in new_content
+        # No command rewrite is possible for a file body.
+        assert rewrite_bash_command(cmd) is None
+        # And the file on disk must be byte-identical.
+        assert body_file.read_text() == original
 
-    def test_body_file_short_flag(self, tmp_path):
+    def test_body_file_short_flag_never_mutates(self, tmp_path):
         body_file = tmp_path / "body.md"
-        body_file.write_text(f"{CLAUDE_CODE_FOOTER_OLD_ALT}")
+        original = f"{CLAUDE_CODE_FOOTER_OLD_ALT}"
+        body_file.write_text(original)
         cmd = f"gh issue create -F {body_file}"
-        result = rewrite_bash_command(cmd)
-        assert result == cmd
-        assert MPM_FOOTER_CANONICAL in body_file.read_text()
+        assert rewrite_bash_command(cmd) is None
+        assert body_file.read_text() == original
 
     def test_body_file_already_canonical_returns_none(self, tmp_path):
         body_file = tmp_path / "body.md"
@@ -681,3 +691,793 @@ class TestCbWarningReasonToolHandlerMcpBranch:
         assert not hso.get("permissionDecisionReason"), (
             "Expected no permissionDecisionReason when circuit breaker was silent"
         )
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 — Defect 2: first-pass footer duplication on dirty input
+# ---------------------------------------------------------------------------
+
+ROBOT = "\U0001f916"  # 🤖
+PEOPLE = "\U0001f465"  # 👥
+
+
+class TestFooterEmojiDuplication:
+    """Regression (#937 defect 2): stale attribution emoji must be consumed.
+
+    Before the fix ``_FOOTER_LINE_RE`` only swallowed a bare adjacent ``🤖``,
+    so every shape below gained a duplicated ``🤖👥`` prefix on the FIRST
+    rewrite pass (and only stabilised on the second).
+    """
+
+    @pytest.mark.parametrize(
+        "dirty",
+        [
+            pytest.param(
+                f"{ROBOT}{PEOPLE} {CLAUDE_CODE_FOOTER_OLD}", id="robot+people-same-line"
+            ),
+            pytest.param(f"{ROBOT}\n{CLAUDE_CODE_FOOTER_OLD}", id="robot-own-line"),
+            pytest.param(
+                f"{ROBOT}{PEOPLE}\n{CLAUDE_CODE_FOOTER_OLD}", id="robot+people-own-line"
+            ),
+            pytest.param(
+                f"{PEOPLE} {CLAUDE_CODE_FOOTER_OLD}", id="people-only-same-line"
+            ),
+        ],
+    )
+    def test_no_duplicate_emoji_prefix(self, dirty):
+        result = rewrite_footer(dirty)
+        assert result == MPM_FOOTER_CANONICAL, (
+            f"Expected exactly the canonical footer, got {result!r}"
+        )
+        # Belt and braces: the emoji run must appear exactly once.
+        assert result.count(ROBOT) == 1
+        assert result.count(PEOPLE) == 1
+        assert f"{ROBOT}{PEOPLE}{ROBOT}{PEOPLE}" not in result
+
+    @pytest.mark.parametrize(
+        "dirty",
+        [
+            f"{ROBOT}{PEOPLE} {CLAUDE_CODE_FOOTER_OLD}",
+            f"{ROBOT}\n{CLAUDE_CODE_FOOTER_OLD}",
+            f"{ROBOT}{PEOPLE}\n{CLAUDE_CODE_FOOTER_OLD}",
+            f"{PEOPLE} {CLAUDE_CODE_FOOTER_OLD}",
+            f"{ROBOT} {CLAUDE_CODE_FOOTER_OLD_ALT}",
+        ],
+    )
+    def test_first_pass_equals_second_pass(self, dirty):
+        """The very first pass must already be a fixed point."""
+        once = rewrite_footer(dirty)
+        twice = rewrite_footer(once)
+        assert once == twice
+
+    def test_dirty_footer_in_larger_body(self):
+        body = f"## Summary\n\nSome text.\n\n{ROBOT}{PEOPLE} {CLAUDE_CODE_FOOTER_OLD}\n"
+        result = rewrite_footer(body)
+        assert result.count(MPM_FOOTER_CANONICAL) == 1
+        assert f"{ROBOT}{PEOPLE}{ROBOT}{PEOPLE}" not in result
+        assert "## Summary" in result
+        assert "Some text." in result
+
+    # --- the over-strip guard ------------------------------------------------
+
+    def test_emoji_prose_on_preceding_line_is_not_eaten(self):
+        """CRITICAL negative case: a naive 'strip across the newline' fix
+        destroys legitimate prose.  The sentence must survive intact."""
+        prose = f"{ROBOT} indicates an automated build step"
+        body = f"{prose}\n{CLAUDE_CODE_FOOTER_OLD}"
+        result = rewrite_footer(body)
+        assert prose in result, f"Prose was destroyed: {result!r}"
+        assert result == f"{prose}\n{MPM_FOOTER_CANONICAL}"
+
+    def test_emoji_prose_with_trailing_words_same_line_not_eaten(self):
+        body = f"Use {ROBOT} for bots and {PEOPLE} for teams.\n{CLAUDE_CODE_FOOTER_OLD}"
+        result = rewrite_footer(body)
+        assert f"Use {ROBOT} for bots and {PEOPLE} for teams." in result
+        assert MPM_FOOTER_CANONICAL in result
+
+    def test_emoji_only_line_two_lines_above_is_not_eaten(self):
+        """Only the IMMEDIATELY preceding emoji-only line is consumed."""
+        body = f"{ROBOT}\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        result = rewrite_footer(body)
+        assert result.startswith(f"{ROBOT}\n")
+        assert MPM_FOOTER_CANONICAL in result
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 — Defect 1: --body-file is advisory-only, never mutating
+# ---------------------------------------------------------------------------
+
+
+class TestBodyFileAdvisory:
+    """The hook must never write to a file the calling agent owns."""
+
+    def test_advisory_returned_and_file_untouched(self, tmp_path):
+        body_file = tmp_path / "body.md"
+        original = f"## Summary\n\nStuff\n\n{CLAUDE_CODE_FOOTER_OLD}\n"
+        body_file.write_text(original)
+        before_mtime = body_file.stat().st_mtime_ns
+
+        advisory = build_body_file_advisory(f"gh pr create --body-file {body_file}")
+
+        assert advisory is not None
+        assert str(body_file) in advisory
+        assert MPM_FOOTER_CANONICAL in advisory
+        assert body_file.read_text() == original
+        assert body_file.stat().st_mtime_ns == before_mtime
+
+    def test_no_advisory_when_already_canonical(self, tmp_path):
+        body_file = tmp_path / "body.md"
+        body_file.write_text(f"Content\n\n{MPM_FOOTER_CANONICAL}")
+        assert build_body_file_advisory(f"gh pr create -F {body_file}") is None
+
+    def test_no_advisory_for_missing_file(self):
+        cmd = "gh pr create --body-file /nonexistent/path/body.md"
+        assert build_body_file_advisory(cmd) is None
+
+    def test_no_advisory_for_unrelated_command(self, tmp_path):
+        body_file = tmp_path / "body.md"
+        body_file.write_text(CLAUDE_CODE_FOOTER_OLD)
+        assert build_body_file_advisory(f"cat {body_file}") is None
+
+    def test_no_temp_files_left_behind(self, tmp_path):
+        body_file = tmp_path / "body.md"
+        body_file.write_text(f"x\n\n{CLAUDE_CODE_FOOTER_OLD}")
+        build_body_file_advisory(f"gh pr create --body-file {body_file}")
+        assert sorted(p.name for p in tmp_path.iterdir()) == ["body.md"]
+
+    def test_response_has_additional_context_and_no_updated_input(self, tmp_path):
+        body_file = tmp_path / "body.md"
+        original = f"Body\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        body_file.write_text(original)
+        event = {
+            "tool_name": "Bash",
+            "tool_input": {"command": f"gh pr create --body-file {body_file}"},
+        }
+        response = build_gh_footer_response(event)
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, f"Expected an advisory response, got {response!r}"
+        assert "updatedInput" not in hso, (
+            "No command text changed — updatedInput must be omitted"
+        )
+        assert MPM_FOOTER_CANONICAL in hso["additionalContext"]
+        assert str(body_file) in hso["additionalContext"]
+        # Still no mutation.
+        assert body_file.read_text() == original
+
+    def test_no_response_when_body_file_already_canonical(self, tmp_path):
+        body_file = tmp_path / "body.md"
+        body_file.write_text(f"Body\n\n{MPM_FOOTER_CANONICAL}")
+        event = {
+            "tool_name": "Bash",
+            "tool_input": {"command": f"gh pr create --body-file {body_file}"},
+        }
+        assert build_gh_footer_response(event) == {"continue": True}
+
+
+class TestBodyFileStdin:
+    """``--body-file -`` means stdin, NOT a file named ``-``."""
+
+    def test_extract_returns_none_for_stdin(self):
+        assert _extract_body_file("gh pr create --body-file -") is None
+        assert _extract_body_file("gh issue create -F -") is None
+
+    def test_real_file_named_dash_is_never_touched(self, tmp_path, monkeypatch):
+        """Proven-dangerous case: a real file literally named ``-`` in cwd."""
+        monkeypatch.chdir(tmp_path)
+        dash = tmp_path / "-"
+        original = f"Body\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        dash.write_text(original)
+        before_mtime = dash.stat().st_mtime_ns
+
+        cmd = "gh pr create --title T --body-file -"
+        assert rewrite_bash_command(cmd) is None
+        assert build_body_file_advisory(cmd) is None
+        assert build_gh_footer_response(
+            {"tool_name": "Bash", "tool_input": {"command": cmd}, "cwd": str(tmp_path)}
+        ) == {"continue": True}
+
+        # The file must be untouched: same bytes, same mtime, no temp siblings.
+        assert dash.read_text() == original
+        assert dash.stat().st_mtime_ns == before_mtime
+        assert sorted(p.name for p in tmp_path.iterdir()) == ["-"]
+
+    def test_short_flag_dash_stdin_file_untouched(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        dash = tmp_path / "-"
+        original = f"{CLAUDE_CODE_FOOTER_OLD_ALT}"
+        dash.write_text(original)
+        assert build_body_file_advisory("gh issue create -F -") is None
+        assert dash.read_text() == original
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 — Defect 3B: flag-form coverage matrix
+# ---------------------------------------------------------------------------
+
+
+class TestBodyFileFlagForms:
+    """``--body-file=p``, ``-F=p`` and ``-Fp`` used to bypass the hook."""
+
+    @pytest.mark.parametrize(
+        "template",
+        [
+            pytest.param("gh pr create --body-file {p}", id="long-space"),
+            pytest.param("gh pr create --body-file={p}", id="long-equals"),
+            pytest.param("gh pr create -F {p}", id="short-space"),
+            pytest.param("gh pr create -F={p}", id="short-equals"),
+            pytest.param("gh pr create -F{p}", id="short-glued"),
+            pytest.param('gh pr create --body-file "{p}"', id="long-space-dquoted"),
+            pytest.param("gh pr create --body-file='{p}'", id="long-equals-squoted"),
+        ],
+    )
+    def test_every_flag_form_is_detected(self, tmp_path, template):
+        body_file = tmp_path / "body.md"
+        original = f"Body\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        body_file.write_text(original)
+        cmd = template.format(p=body_file)
+
+        assert _extract_body_file(cmd) == str(body_file), (
+            f"Flag form not parsed: {cmd!r}"
+        )
+        advisory = build_body_file_advisory(cmd)
+        assert advisory is not None, f"Flag form bypassed the hook: {cmd!r}"
+        assert str(body_file) in advisory
+        # Advisory-only: still no mutation for any flag form.
+        assert body_file.read_text() == original
+
+    def test_body_file_not_matched_inside_longer_token(self):
+        # -F must not match mid-token.
+        assert _extract_body_file("gh pr create --draft") is None
+        assert _extract_body_file("gh pr create --title xxx-Fyyy") is None
+
+
+class TestInlineBodyFlagForms:
+    """Inline ``--body``/``-b`` separator matrix.
+
+    The equals form already worked before #937; recorded here so a
+    regression is caught.
+    """
+
+    @pytest.mark.parametrize(
+        "template",
+        [
+            pytest.param('gh pr create --body "{b}"', id="long-space"),
+            pytest.param('gh pr create --body="{b}"', id="long-equals"),
+            pytest.param('gh pr create -b "{b}"', id="short-space"),
+            pytest.param('gh pr create -b="{b}"', id="short-equals"),
+        ],
+    )
+    def test_every_inline_form_rewrites(self, template):
+        cmd = template.format(b=CLAUDE_CODE_FOOTER_OLD)
+        result = rewrite_bash_command(cmd)
+        assert result is not None, f"Inline form bypassed the hook: {cmd!r}"
+        assert MPM_FOOTER_CANONICAL in result
+        assert CLAUDE_CODE_FOOTER_OLD not in result
+
+    def test_glued_short_b_is_deliberately_unsupported(self):
+        """``-bVALUE`` is NOT supported on purpose.
+
+        Supporting it would make ``-base main`` parse as ``-b`` + ``ase``,
+        corrupting a legitimate command.  The false-positive risk outweighs
+        the coverage gain, so the glued short form is left alone.
+        """
+        cmd = f'gh pr create -b"{CLAUDE_CODE_FOOTER_OLD}"'
+        assert rewrite_bash_command(cmd) is None
+        # And the reason it stays that way:
+        cmd2 = f'gh pr create -base main --body "{CLAUDE_CODE_FOOTER_OLD}"'
+        result = rewrite_bash_command(cmd2)
+        assert result is not None
+        assert "-base main" in result
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 — Defect 3C: _requote must never expose shell metacharacters
+# ---------------------------------------------------------------------------
+
+
+class TestRequoteShellSafety:
+    def test_single_quoted_body_with_apostrophe_stays_single_quoted(self):
+        value = "Fixes it's the bug. $USER ran `whoami` here."
+        quoted = _requote(value, "'")
+        assert quoted.startswith("'") and quoted.endswith("'")
+        # $ and ` must remain inside single quotes (inert), never bare in a
+        # double-quoted string.
+        assert not quoted.startswith('"')
+        assert quoted == "'Fixes it'\\''s the bug. $USER ran `whoami` here.'"
+
+    def test_single_quoted_roundtrips_through_a_real_shell(self):
+        """The re-quoted token must survive an actual POSIX shell verbatim."""
+        import subprocess
+
+        value = "Fixes it's the bug. $USER ran `whoami` here. 50% \\ done"
+        quoted = _requote(value, "'")
+        out = subprocess.run(  # noqa: S603
+            ["/bin/sh", "-c", f"printf %s {quoted}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert out.stdout == value, f"Shell mangled the value: {out.stdout!r}"
+
+    def test_bare_value_with_metacharacters_is_single_quoted(self):
+        quoted = _requote("has space $x and `y`", "")
+        assert quoted.startswith("'") and quoted.endswith("'")
+        assert "$x" in quoted and "`y`" in quoted
+
+    def test_bare_safe_value_stays_bare(self):
+        assert _requote("simple-value_1.txt", "") == "simple-value_1.txt"
+
+    def test_end_to_end_single_quoted_body_with_dollar_and_backtick(self):
+        """Full command rewrite: $ and ` must stay inert after the rewrite."""
+        body = f"Fixes $USER bug; ran `whoami`.\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        cmd = f"gh pr create --title T --body '{body}'"
+        result = rewrite_bash_command(cmd)
+        assert result is not None
+        assert MPM_FOOTER_CANONICAL in result
+        # Must still be single-quoted — never downgraded to double quotes.
+        assert "--body '" in result
+        assert '--body "' not in result
+        assert "$USER" in result
+        assert "`whoami`" in result
+
+
+class TestSpliceQuotedBodyLimitation:
+    r"""Documented limitation: bodies using the POSIX ``'\''`` splice idiom.
+
+    ``_BODY_FLAG_RE`` models a quoted value as ONE balanced quote pair, but a
+    shell word may be a concatenation of adjacent chunks.  We cannot parse the
+    full word without replacing the regex with a shell tokeniser, so the hook
+    detects the situation and stands down.  Correctness over coverage: the
+    footer is left stale rather than the command being corrupted.
+    """
+
+    def test_splice_quoted_body_is_left_alone(self):
+        # Body: "Generated with [Claude Code](...) it's here"
+        cmd = "gh pr create --body '" + CLAUDE_CODE_FOOTER_OLD + " it'\\''s here'"
+        # No rewrite — and crucially, no corrupted half-rewrite either.
+        assert rewrite_bash_command(cmd) is None
+
+    def test_splice_quoted_body_response_is_passthrough(self):
+        cmd = "gh pr create --body 'It'\\''s " + CLAUDE_CODE_FOOTER_OLD + "'"
+        event = {"tool_name": "Bash", "tool_input": {"command": cmd}}
+        assert build_gh_footer_response(event) == {"continue": True}
+
+    @pytest.mark.xfail(
+        reason=(
+            "Known limitation (#937 defect 3C): a body built with the POSIX "
+            "'\\'' splice idiom cannot be parsed by the regex-based flag "
+            "parser, so its stale footer is left un-normalised. Fixing this "
+            "requires a real shell tokeniser; the hook deliberately stands "
+            "down instead of corrupting the command."
+        ),
+        strict=True,
+    )
+    def test_splice_quoted_body_would_ideally_be_normalised(self):
+        cmd = "gh pr create --body 'It'\\''s " + CLAUDE_CODE_FOOTER_OLD + "'"
+        result = rewrite_bash_command(cmd)
+        assert result is not None
+        assert MPM_FOOTER_CANONICAL in result
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 — Defect 3A: opt-out switch
+# ---------------------------------------------------------------------------
+
+
+class TestOptOut:
+    def _bash_event(self, cwd: str = "") -> dict:
+        return {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": f'gh pr create --body "{CLAUDE_CODE_FOOTER_OLD}"'
+            },
+            "cwd": cwd,
+        }
+
+    def _mcp_event(self, cwd: str = "") -> dict:
+        return {
+            "tool_name": "mcp__github__create_pull_request",
+            "tool_input": {"title": "T", "body": f"x\n\n{CLAUDE_CODE_FOOTER_OLD}"},
+            "cwd": cwd,
+        }
+
+    def _write_settings(self, tmp_path, filename: str, payload: dict) -> None:
+        import json
+
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir(exist_ok=True)
+        (claude_dir / filename).write_text(json.dumps(payload))
+
+    # --- baseline: hook is ON by default -------------------------------------
+
+    def test_enabled_by_default_bash(self, tmp_path):
+        response = build_gh_footer_response(self._bash_event(str(tmp_path)))
+        assert "hookSpecificOutput" in response
+
+    # --- env var -------------------------------------------------------------
+
+    @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on", " On "])
+    def test_env_var_disables_bash_path(self, monkeypatch, value):
+        monkeypatch.setenv(_DISABLE_ENV_VAR, value)
+        assert build_gh_footer_response(self._bash_event()) == {"continue": True}
+
+    def test_env_var_disables_mcp_path(self, monkeypatch):
+        monkeypatch.setenv(_DISABLE_ENV_VAR, "true")
+        assert build_gh_footer_response(self._mcp_event()) == {"continue": True}
+
+    def test_env_var_disables_body_file_advisory(self, monkeypatch, tmp_path):
+        monkeypatch.setenv(_DISABLE_ENV_VAR, "1")
+        body_file = tmp_path / "body.md"
+        body_file.write_text(f"x\n\n{CLAUDE_CODE_FOOTER_OLD}")
+        event = {
+            "tool_name": "Bash",
+            "tool_input": {"command": f"gh pr create --body-file {body_file}"},
+        }
+        assert build_gh_footer_response(event) == {"continue": True}
+
+    @pytest.mark.parametrize("value", ["0", "false", "no", "off", ""])
+    def test_falsy_env_values_do_not_disable(self, monkeypatch, value):
+        monkeypatch.setenv(_DISABLE_ENV_VAR, value)
+        response = build_gh_footer_response(self._bash_event())
+        assert "hookSpecificOutput" in response
+
+    # --- settings key --------------------------------------------------------
+
+    @pytest.mark.parametrize("filename", ["settings.local.json", "settings.json"])
+    def test_settings_key_disables_bash_path(self, tmp_path, filename):
+        self._write_settings(tmp_path, filename, {"gh_footer_hook": {"disabled": True}})
+        assert build_gh_footer_response(self._bash_event(str(tmp_path))) == {
+            "continue": True
+        }
+
+    def test_settings_key_disables_mcp_path(self, tmp_path):
+        self._write_settings(
+            tmp_path, "settings.json", {"gh_footer_hook": {"disabled": True}}
+        )
+        assert build_gh_footer_response(self._mcp_event(str(tmp_path))) == {
+            "continue": True
+        }
+
+    def test_settings_key_false_leaves_hook_enabled(self, tmp_path):
+        self._write_settings(
+            tmp_path, "settings.json", {"gh_footer_hook": {"disabled": False}}
+        )
+        response = build_gh_footer_response(self._bash_event(str(tmp_path)))
+        assert "hookSpecificOutput" in response
+
+    def test_unrelated_settings_leave_hook_enabled(self, tmp_path):
+        self._write_settings(tmp_path, "settings.json", {"other_hook": {"x": 1}})
+        response = build_gh_footer_response(self._bash_event(str(tmp_path)))
+        assert "hookSpecificOutput" in response
+
+    def test_malformed_settings_file_leaves_hook_enabled(self, tmp_path):
+        claude_dir = tmp_path / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "settings.json").write_text("{not json")
+        response = build_gh_footer_response(self._bash_event(str(tmp_path)))
+        assert "hookSpecificOutput" in response
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 — the advisory must survive the LIVE dispatch path
+# ---------------------------------------------------------------------------
+
+
+class TestBodyFileAdvisoryThroughToolHandler:
+    """The live PreToolUse dispatch site is ToolHandler.handle_pre_tool_fast.
+
+    Its Bash branch used to look only at ``updatedInput``, so an
+    advisory-only response (no command rewrite) would have been dropped.
+    """
+
+    def _make_tool_handler(self):
+        from unittest.mock import MagicMock
+
+        from claude_mpm.hooks.claude_hooks.handlers.base import BaseEventHandler
+        from claude_mpm.hooks.claude_hooks.handlers.tool_handler import ToolHandler
+
+        mock_hh = MagicMock()
+        mock_hh._emit_socketio_event = MagicMock(return_value=None)
+        mock_hh._get_delegation_agent_type = MagicMock(return_value="unknown")
+
+        base = MagicMock(spec=BaseEventHandler)
+        base.hook_handler = mock_hh
+        base._get_git_branch = MagicMock(return_value="main")
+        base.log_manager = None
+
+        return ToolHandler(base)
+
+    def test_advisory_reaches_the_harness_and_file_is_untouched(
+        self, tmp_path, monkeypatch
+    ):
+        from claude_mpm.hooks import context_circuit_breaker
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _event: {})
+
+        body_file = tmp_path / "body.md"
+        original = f"Body\n\n{CLAUDE_CODE_FOOTER_OLD}"
+        body_file.write_text(original)
+
+        handler = self._make_tool_handler()
+        response = handler.handle_pre_tool_fast(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": f"gh pr create --body-file {body_file}"},
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+            }
+        )
+
+        assert response is not None, "Advisory response was dropped by ToolHandler"
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, f"Expected hookSpecificOutput, got {response!r}"
+        assert str(body_file) in hso.get("additionalContext", "")
+        assert MPM_FOOTER_CANONICAL in hso.get("additionalContext", "")
+        # NOTE: ztk_hook also runs on the Bash branch and may return its own
+        # response carrying an updatedInput.  What matters here is that the
+        # footer advisory is merged into whichever response wins, rather than
+        # being dropped — which is exactly what used to happen.
+        #
+        # The hook must not have written to the agent-owned file.
+        assert body_file.read_text() == original
+
+    def test_inline_rewrite_still_reaches_the_harness(self, monkeypatch):
+        from claude_mpm.hooks import context_circuit_breaker
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _event: {})
+
+        handler = self._make_tool_handler()
+        response = handler.handle_pre_tool_fast(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {
+                    "command": f'gh pr create --body "{CLAUDE_CODE_FOOTER_OLD}"'
+                },
+                "session_id": "test-session",
+                "cwd": "/tmp",
+            }
+        )
+
+        assert response is not None
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None
+        assert MPM_FOOTER_CANONICAL in hso["updatedInput"]["command"]
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 review follow-up — the advisory must MERGE with ztk's own
+# additionalContext, never be silently yielded to it.
+# ---------------------------------------------------------------------------
+
+_ZTK_CONTEXT = "[ztk] command was compressed"
+
+
+def _make_tool_handler():
+    """Build a minimal ToolHandler with mocked observability dependencies."""
+    from unittest.mock import MagicMock
+
+    from claude_mpm.hooks.claude_hooks.handlers.base import BaseEventHandler
+    from claude_mpm.hooks.claude_hooks.handlers.tool_handler import ToolHandler
+
+    mock_hh = MagicMock()
+    mock_hh._emit_socketio_event = MagicMock(return_value=None)
+    mock_hh._get_delegation_agent_type = MagicMock(return_value="unknown")
+
+    base = MagicMock(spec=BaseEventHandler)
+    base.hook_handler = mock_hh
+    base._get_git_branch = MagicMock(return_value="main")
+    base.log_manager = None
+
+    return ToolHandler(base)
+
+
+def _ztk_response_factory(*, additional_context: str | None):
+    """Return a fake ``build_ztk_response`` that always rewrites the command."""
+
+    def _fake(event):
+        hso = {
+            "hookEventName": "PreToolUse",
+            "updatedInput": {"command": "ztk-wrapped-command"},
+        }
+        if additional_context is not None:
+            hso["additionalContext"] = additional_context
+        return {"hookSpecificOutput": hso}
+
+    return _fake
+
+
+class TestAdvisorySurvivesZtkAdditionalContext:
+    """``ztk_hook`` may populate ``additionalContext`` itself.
+
+    Both dispatch sites used to write the gh_footer body-file advisory only
+    when that field was still empty, so a ztk response that claimed the field
+    silently DROPPED the advisory — the exact failure the merge exists to
+    prevent.  Both messages must now survive.
+    """
+
+    @staticmethod
+    def _body_file_event(tmp_path):
+        body_file = tmp_path / "body.md"
+        body_file.write_text(f"Body\n\n{CLAUDE_CODE_FOOTER_OLD}")
+        return body_file, {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": f"gh pr create --body-file {body_file}"},
+            "session_id": "test-session",
+            "cwd": str(tmp_path),
+        }
+
+    # --- live path: ToolHandler.handle_pre_tool_fast -------------------------
+
+    def test_tool_handler_appends_advisory_to_ztk_context(self, tmp_path, monkeypatch):
+        from claude_mpm.hooks import context_circuit_breaker, ztk_hook
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=_ZTK_CONTEXT),
+        )
+
+        body_file, event = self._body_file_event(tmp_path)
+        response = _make_tool_handler().handle_pre_tool_fast(event)
+
+        hso = (response or {}).get("hookSpecificOutput")
+        assert hso is not None, f"Expected hookSpecificOutput, got {response!r}"
+        context = hso.get("additionalContext", "")
+        assert _ZTK_CONTEXT in context, "ztk's own additionalContext was clobbered"
+        assert str(body_file) in context, "footer advisory was dropped by ztk"
+        assert MPM_FOOTER_CANONICAL in context
+        # ztk's rewrite still wins for the command itself.
+        assert hso["updatedInput"]["command"] == "ztk-wrapped-command"
+
+    def test_tool_handler_sets_advisory_when_ztk_context_absent(
+        self, tmp_path, monkeypatch
+    ):
+        from claude_mpm.hooks import context_circuit_breaker, ztk_hook
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=None),
+        )
+
+        body_file, event = self._body_file_event(tmp_path)
+        response = _make_tool_handler().handle_pre_tool_fast(event)
+
+        hso = (response or {}).get("hookSpecificOutput")
+        assert hso is not None
+        context = hso.get("additionalContext", "")
+        assert str(body_file) in context
+        assert MPM_FOOTER_CANONICAL in context
+        # No stray separator when there was nothing to append to.
+        assert not context.startswith("\n")
+
+    # --- legacy path: pretooluse_dispatcher.dispatch -------------------------
+
+    def test_dispatcher_appends_advisory_to_ztk_context(self, tmp_path, monkeypatch):
+        from claude_mpm.hooks import (
+            context_circuit_breaker,
+            pretooluse_dispatcher,
+            ztk_hook,
+        )
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=_ZTK_CONTEXT),
+        )
+
+        body_file, event = self._body_file_event(tmp_path)
+        response = pretooluse_dispatcher.dispatch(event)
+
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, f"Expected hookSpecificOutput, got {response!r}"
+        context = hso.get("additionalContext", "")
+        assert _ZTK_CONTEXT in context, "ztk's own additionalContext was clobbered"
+        assert str(body_file) in context, "footer advisory was dropped by ztk"
+        assert MPM_FOOTER_CANONICAL in context
+
+    def test_dispatcher_failsafe_footer_response_does_not_break_bash_branch(
+        self, monkeypatch
+    ):
+        """A footer response with NO ``hookSpecificOutput`` key must be inert.
+
+        ``build_gh_footer_response`` fails open to ``{"continue": True}``.  The
+        Bash branch reads ``hookSpecificOutput`` several times; every read must
+        be total.  ``dispatch`` swallows exceptions, so the discriminator is
+        that ztk's response still comes back: had the footer block raised,
+        the fail-open handler would have returned a bare pass-through.
+        """
+        from claude_mpm.hooks import (
+            context_circuit_breaker,
+            gh_footer_hook as _gh,
+            pretooluse_dispatcher,
+            ztk_hook,
+        )
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            _gh, "build_gh_footer_response", lambda _e: {"continue": True}
+        )
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=None),
+        )
+
+        response = pretooluse_dispatcher.dispatch(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "gh pr create --body-file body.md"},
+            }
+        )
+
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, (
+            "Bash branch aborted before ztk ran — the footer response with no "
+            f"hookSpecificOutput was not handled totally: {response!r}"
+        )
+        assert hso["updatedInput"]["command"] == "ztk-wrapped-command"
+        assert "additionalContext" not in hso
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 review follow-up — _BODY_FILE_FLAG_RE anchor semantics
+# ---------------------------------------------------------------------------
+
+
+class TestBodyFileFlagAnchor:
+    """``_BODY_FILE_FLAG_RE`` uses ``(?:^|\\s)`` WITHOUT ``re.MULTILINE``.
+
+    That is deliberate and sufficient: ``\\s`` already matches ``\\n``, so a
+    flag on a backslash-continued line is reached through the ``\\s`` branch
+    and never needs ``^`` to match at a line start.  Adding ``re.MULTILINE``
+    would change nothing, so it is not added.
+    """
+
+    def test_flag_at_string_start_matches(self):
+        assert _extract_body_file("--body-file=body.md") == "body.md"
+        assert _extract_body_file("-F body.md") == "body.md"
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "gh pr create \\\n  -F body.md",
+            'gh pr create --title "x" \\\n  --body-file body.md',
+            "gh pr create\n-F body.md",
+        ],
+    )
+    def test_flag_after_newline_matches_without_multiline(self, command):
+        """The ``\\s`` branch consumes the newline — no ``re.MULTILINE`` needed."""
+        assert _extract_body_file(command) == "body.md"
+
+    def test_flag_inside_a_longer_token_is_not_matched_as_dash_f(self):
+        """``(?:^|\\s)`` keeps ``-F`` from matching inside ``--body-file``."""
+        assert _extract_body_file("gh pr create --body-file report.md") == "report.md"
+
+    def test_dash_f_inside_a_quoted_value_is_a_harmless_false_positive(
+        self, tmp_path, monkeypatch
+    ):
+        """KNOWN LIMITATION, pinned deliberately.
+
+        The regex is not shell-aware, so ``-F`` preceded by a space *inside* a
+        quoted argument is matched.  ``re.MULTILINE`` is irrelevant to this —
+        the match comes from the ``\\s`` branch either way.  It is harmless
+        because the extracted token is not a real path: the hook is read-only
+        and ``build_body_file_advisory`` degrades to None on the failed read,
+        so nothing is emitted and no file is ever touched.
+        """
+        monkeypatch.chdir(tmp_path)
+        command = "gh pr create --title \"use -F for files\" --body 'hello'"
+
+        # The raw extractor does match the phantom token...
+        assert _extract_body_file(command) == "for"
+        # ...but the advisory builder emits nothing, because there is no such file.
+        assert build_body_file_advisory(command) is None
+        assert not (tmp_path / "for").exists()
