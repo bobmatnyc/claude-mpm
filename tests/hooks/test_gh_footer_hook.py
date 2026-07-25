@@ -1244,3 +1244,240 @@ class TestBodyFileAdvisoryThroughToolHandler:
         hso = response.get("hookSpecificOutput")
         assert hso is not None
         assert MPM_FOOTER_CANONICAL in hso["updatedInput"]["command"]
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 review follow-up — the advisory must MERGE with ztk's own
+# additionalContext, never be silently yielded to it.
+# ---------------------------------------------------------------------------
+
+_ZTK_CONTEXT = "[ztk] command was compressed"
+
+
+def _make_tool_handler():
+    """Build a minimal ToolHandler with mocked observability dependencies."""
+    from unittest.mock import MagicMock
+
+    from claude_mpm.hooks.claude_hooks.handlers.base import BaseEventHandler
+    from claude_mpm.hooks.claude_hooks.handlers.tool_handler import ToolHandler
+
+    mock_hh = MagicMock()
+    mock_hh._emit_socketio_event = MagicMock(return_value=None)
+    mock_hh._get_delegation_agent_type = MagicMock(return_value="unknown")
+
+    base = MagicMock(spec=BaseEventHandler)
+    base.hook_handler = mock_hh
+    base._get_git_branch = MagicMock(return_value="main")
+    base.log_manager = None
+
+    return ToolHandler(base)
+
+
+def _ztk_response_factory(*, additional_context: str | None):
+    """Return a fake ``build_ztk_response`` that always rewrites the command."""
+
+    def _fake(event):
+        hso = {
+            "hookEventName": "PreToolUse",
+            "updatedInput": {"command": "ztk-wrapped-command"},
+        }
+        if additional_context is not None:
+            hso["additionalContext"] = additional_context
+        return {"hookSpecificOutput": hso}
+
+    return _fake
+
+
+class TestAdvisorySurvivesZtkAdditionalContext:
+    """``ztk_hook`` may populate ``additionalContext`` itself.
+
+    Both dispatch sites used to write the gh_footer body-file advisory only
+    when that field was still empty, so a ztk response that claimed the field
+    silently DROPPED the advisory — the exact failure the merge exists to
+    prevent.  Both messages must now survive.
+    """
+
+    @staticmethod
+    def _body_file_event(tmp_path):
+        body_file = tmp_path / "body.md"
+        body_file.write_text(f"Body\n\n{CLAUDE_CODE_FOOTER_OLD}")
+        return body_file, {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": f"gh pr create --body-file {body_file}"},
+            "session_id": "test-session",
+            "cwd": str(tmp_path),
+        }
+
+    # --- live path: ToolHandler.handle_pre_tool_fast -------------------------
+
+    def test_tool_handler_appends_advisory_to_ztk_context(self, tmp_path, monkeypatch):
+        from claude_mpm.hooks import context_circuit_breaker, ztk_hook
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=_ZTK_CONTEXT),
+        )
+
+        body_file, event = self._body_file_event(tmp_path)
+        response = _make_tool_handler().handle_pre_tool_fast(event)
+
+        hso = (response or {}).get("hookSpecificOutput")
+        assert hso is not None, f"Expected hookSpecificOutput, got {response!r}"
+        context = hso.get("additionalContext", "")
+        assert _ZTK_CONTEXT in context, "ztk's own additionalContext was clobbered"
+        assert str(body_file) in context, "footer advisory was dropped by ztk"
+        assert MPM_FOOTER_CANONICAL in context
+        # ztk's rewrite still wins for the command itself.
+        assert hso["updatedInput"]["command"] == "ztk-wrapped-command"
+
+    def test_tool_handler_sets_advisory_when_ztk_context_absent(
+        self, tmp_path, monkeypatch
+    ):
+        from claude_mpm.hooks import context_circuit_breaker, ztk_hook
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=None),
+        )
+
+        body_file, event = self._body_file_event(tmp_path)
+        response = _make_tool_handler().handle_pre_tool_fast(event)
+
+        hso = (response or {}).get("hookSpecificOutput")
+        assert hso is not None
+        context = hso.get("additionalContext", "")
+        assert str(body_file) in context
+        assert MPM_FOOTER_CANONICAL in context
+        # No stray separator when there was nothing to append to.
+        assert not context.startswith("\n")
+
+    # --- legacy path: pretooluse_dispatcher.dispatch -------------------------
+
+    def test_dispatcher_appends_advisory_to_ztk_context(self, tmp_path, monkeypatch):
+        from claude_mpm.hooks import (
+            context_circuit_breaker,
+            pretooluse_dispatcher,
+            ztk_hook,
+        )
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=_ZTK_CONTEXT),
+        )
+
+        body_file, event = self._body_file_event(tmp_path)
+        response = pretooluse_dispatcher.dispatch(event)
+
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, f"Expected hookSpecificOutput, got {response!r}"
+        context = hso.get("additionalContext", "")
+        assert _ZTK_CONTEXT in context, "ztk's own additionalContext was clobbered"
+        assert str(body_file) in context, "footer advisory was dropped by ztk"
+        assert MPM_FOOTER_CANONICAL in context
+
+    def test_dispatcher_failsafe_footer_response_does_not_break_bash_branch(
+        self, monkeypatch
+    ):
+        """A footer response with NO ``hookSpecificOutput`` key must be inert.
+
+        ``build_gh_footer_response`` fails open to ``{"continue": True}``.  The
+        Bash branch reads ``hookSpecificOutput`` several times; every read must
+        be total.  ``dispatch`` swallows exceptions, so the discriminator is
+        that ztk's response still comes back: had the footer block raised,
+        the fail-open handler would have returned a bare pass-through.
+        """
+        from claude_mpm.hooks import (
+            context_circuit_breaker,
+            gh_footer_hook as _gh,
+            pretooluse_dispatcher,
+            ztk_hook,
+        )
+
+        monkeypatch.setattr(context_circuit_breaker, "evaluate", lambda _e: {})
+        monkeypatch.setattr(
+            _gh, "build_gh_footer_response", lambda _e: {"continue": True}
+        )
+        monkeypatch.setattr(
+            ztk_hook,
+            "build_ztk_response",
+            _ztk_response_factory(additional_context=None),
+        )
+
+        response = pretooluse_dispatcher.dispatch(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "tool_input": {"command": "gh pr create --body-file body.md"},
+            }
+        )
+
+        hso = response.get("hookSpecificOutput")
+        assert hso is not None, (
+            "Bash branch aborted before ztk ran — the footer response with no "
+            f"hookSpecificOutput was not handled totally: {response!r}"
+        )
+        assert hso["updatedInput"]["command"] == "ztk-wrapped-command"
+        assert "additionalContext" not in hso
+
+
+# ---------------------------------------------------------------------------
+# Issue #937 review follow-up — _BODY_FILE_FLAG_RE anchor semantics
+# ---------------------------------------------------------------------------
+
+
+class TestBodyFileFlagAnchor:
+    """``_BODY_FILE_FLAG_RE`` uses ``(?:^|\\s)`` WITHOUT ``re.MULTILINE``.
+
+    That is deliberate and sufficient: ``\\s`` already matches ``\\n``, so a
+    flag on a backslash-continued line is reached through the ``\\s`` branch
+    and never needs ``^`` to match at a line start.  Adding ``re.MULTILINE``
+    would change nothing, so it is not added.
+    """
+
+    def test_flag_at_string_start_matches(self):
+        assert _extract_body_file("--body-file=body.md") == "body.md"
+        assert _extract_body_file("-F body.md") == "body.md"
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "gh pr create \\\n  -F body.md",
+            'gh pr create --title "x" \\\n  --body-file body.md',
+            "gh pr create\n-F body.md",
+        ],
+    )
+    def test_flag_after_newline_matches_without_multiline(self, command):
+        """The ``\\s`` branch consumes the newline — no ``re.MULTILINE`` needed."""
+        assert _extract_body_file(command) == "body.md"
+
+    def test_flag_inside_a_longer_token_is_not_matched_as_dash_f(self):
+        """``(?:^|\\s)`` keeps ``-F`` from matching inside ``--body-file``."""
+        assert _extract_body_file("gh pr create --body-file report.md") == "report.md"
+
+    def test_dash_f_inside_a_quoted_value_is_a_harmless_false_positive(
+        self, tmp_path, monkeypatch
+    ):
+        """KNOWN LIMITATION, pinned deliberately.
+
+        The regex is not shell-aware, so ``-F`` preceded by a space *inside* a
+        quoted argument is matched.  ``re.MULTILINE`` is irrelevant to this —
+        the match comes from the ``\\s`` branch either way.  It is harmless
+        because the extracted token is not a real path: the hook is read-only
+        and ``build_body_file_advisory`` degrades to None on the failed read,
+        so nothing is emitted and no file is ever touched.
+        """
+        monkeypatch.chdir(tmp_path)
+        command = "gh pr create --title \"use -F for files\" --body 'hello'"
+
+        # The raw extractor does match the phantom token...
+        assert _extract_body_file(command) == "for"
+        # ...but the advisory builder emits nothing, because there is no such file.
+        assert build_body_file_advisory(command) is None
+        assert not (tmp_path / "for").exists()
