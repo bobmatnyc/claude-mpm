@@ -8,6 +8,9 @@ Coverage:
    hooks preserved.
 5. ``dry_run=True`` reports without touching the filesystem.
 6. Empty ``~/.claude/`` is a clean no-op.
+7. ``statusLine`` is handled by disposition (issue #939): a bundled-script entry
+   is deleted, a marker-bearing CUSTOM entry keeps its command and loses only the
+   ``_mpm`` marker, and a user-authored entry is left strictly alone.
 """
 
 from __future__ import annotations
@@ -166,3 +169,83 @@ def test_empty_claude_dir_is_noop(tmp_path: Path) -> None:
 
     summary = run_global_cleanup(claude_dir=claude_dir, dry_run=False)
     assert summary.total == 0
+
+
+# ---------------------------------------------------------------------------
+# statusLine disposition (issue #939)
+# ---------------------------------------------------------------------------
+
+
+def _seed_status_line(claude_dir: Path, status_line: dict) -> Path:
+    """Write a ~/.claude/settings.json containing only ``status_line``."""
+    claude_dir.mkdir(parents=True, exist_ok=True)
+    path = claude_dir / "settings.json"
+    path.write_text(json.dumps({"statusLine": status_line, "keepme": True}))
+    return path
+
+
+def test_marked_bundled_status_line_is_removed(tmp_path: Path) -> None:
+    """Regression guard: a marked bundled-script entry is still deleted.
+
+    Why: This is claude-mpm's own MANAGED artifact. The #939 disposition refactor
+    must not weaken the removal that the uninstall command exists to perform.
+    """
+    claude_dir = tmp_path / ".claude"
+    path = _seed_status_line(
+        claude_dir,
+        {"type": "command", "command": "/x/statusline.sh", "_mpm": True},
+    )
+
+    summary = run_global_cleanup(claude_dir=claude_dir, dry_run=False)
+
+    settings = json.loads(path.read_text())
+    assert "statusLine" not in settings
+    assert settings["keepme"] is True
+    assert "statusLine" in summary.settings_keys
+
+
+def test_custom_status_line_keeps_command_and_loses_marker(tmp_path: Path) -> None:
+    """A marker-bearing CUSTOM entry keeps ``command``, drops only ``_mpm``.
+
+    Why: Under the CUSTOM policy claude-mpm stamps its ownership marker onto an
+    entry whose ``command`` is the *user's*. Uninstall must relinquish ownership
+    without discarding the user's statusline configuration (issue #939).
+    """
+    claude_dir = tmp_path / ".claude"
+    path = _seed_status_line(
+        claude_dir,
+        {"type": "command", "command": "/opt/mybar --fancy", "_mpm": True},
+    )
+
+    summary = run_global_cleanup(claude_dir=claude_dir, dry_run=False)
+
+    settings = json.loads(path.read_text())
+    assert settings["statusLine"] == {
+        "type": "command",
+        "command": "/opt/mybar --fancy",
+    }
+    assert summary.settings_keys == ["statusLine._mpm"]
+
+
+def test_custom_status_line_dry_run_reports_without_mutating(tmp_path: Path) -> None:
+    """The disown branch honours ``dry_run``: reported, but nothing written."""
+    claude_dir = tmp_path / ".claude"
+    original = {"type": "command", "command": "/opt/mybar", "_mpm": True}
+    path = _seed_status_line(claude_dir, original)
+
+    summary = run_global_cleanup(claude_dir=claude_dir, dry_run=True)
+
+    assert summary.settings_keys == ["statusLine._mpm"]
+    assert json.loads(path.read_text())["statusLine"] == original
+
+
+def test_user_authored_status_line_is_untouched(tmp_path: Path) -> None:
+    """No marker and a non-bundled command → the entry is not reported or changed."""
+    claude_dir = tmp_path / ".claude"
+    original = {"type": "command", "command": "/opt/mybar"}
+    path = _seed_status_line(claude_dir, original)
+
+    summary = run_global_cleanup(claude_dir=claude_dir, dry_run=False)
+
+    assert json.loads(path.read_text())["statusLine"] == original
+    assert summary.settings_keys == []

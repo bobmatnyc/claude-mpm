@@ -18,9 +18,12 @@ the *current* project so they don't shadow the user-level copy:
    existing user-level script here; that's the autoconfig migration's
    job).  Then remove the project-level file.
 
-2. If ``<cwd>/.claude/settings.json`` has a ``statusLine`` entry whose
-   ``command`` references the MPM-managed script (substring match on
-   ``statusline.sh``), remove the ``statusLine`` key.
+2. The ``statusLine`` entry in ``<cwd>/.claude/settings.json`` is handled
+   according to ``classify_statusline_entry`` (see
+   ``migrate_statusline_autoconfig``, issue #939): an entry whose ``command``
+   references the MPM-managed script is removed outright, while an entry MPM
+   owns via its ``_mpm`` marker but whose ``command`` is the user's own
+   (CUSTOM policy) keeps that command and loses only the marker.
 
 3. Same for the Stop hook: any hook command containing
    ``statusline.sh --clear`` is removed from
@@ -28,8 +31,8 @@ the *current* project so they don't shadow the user-level copy:
    ``Stop`` list are pruned to keep settings tidy.
 
 User-customised scripts (no MPM marker) and user-owned settings entries
-(``statusLine.command`` pointing somewhere else, Stop hooks unrelated to
-statusline) are always left untouched.
+(no ``_mpm`` marker and a ``statusLine.command`` pointing somewhere else,
+Stop hooks unrelated to statusline) are always left untouched.
 
 Idempotent: re-running the migration on an already-cleaned project is a
 no-op.
@@ -41,14 +44,22 @@ import shutil
 import stat
 from pathlib import Path
 
+# #939: the ``statusLine`` ownership/removability vocabulary lives beside the
+# code that stamps the marker, so reader and writer can never drift apart.
+from .migrate_statusline_autoconfig import (
+    StatuslineDisposition,
+    classify_statusline_entry,
+    strip_statusline_marker,
+)
+
 logger = logging.getLogger(__name__)
 
 # Marker line that identifies an MPM-managed statusline.sh.
 _MPM_MARKER = "# claude-mpm-managed:"
 
-# Substring used to identify an MPM-managed statusLine.command or Stop hook
-# command, regardless of whether the path is project-relative or absolute.
-_STATUSLINE_COMMAND_MATCH = "statusline.sh"
+# Substring used to identify an MPM-managed Stop hook command, regardless of
+# whether the path is project-relative or absolute.  The ``statusLine`` entry
+# itself is classified by ``classify_statusline_entry`` instead.
 _STOP_HOOK_MATCH = "statusline.sh --clear"
 
 
@@ -131,15 +142,17 @@ def _clean_settings(project_claude: Path) -> bool:
     """Strip MPM-owned statusLine and Stop hook entries from project settings.
 
     Mutations:
-    - Remove ``settings["statusLine"]`` if its ``command`` substring-matches
-      ``statusline.sh``.
+    - Apply ``classify_statusline_entry`` to ``settings["statusLine"]``:
+      ``REMOVE`` (``command`` points at the bundled ``statusline.sh``) deletes
+      the key, ``DISOWN`` (MPM-owned marker over the user's own command) strips
+      only the marker, and ``LEAVE`` touches nothing.
     - Remove every Stop hook whose ``command`` substring-matches
       ``statusline.sh --clear``.  Empty ``hooks`` lists / empty Stop groups
       are pruned, as is an empty top-level ``Stop`` list and an empty
       ``hooks`` dict.
 
-    User-owned entries (those whose command does not contain the substring)
-    are left in place.
+    User-owned entries (no MPM marker and a command that does not contain the
+    substring) are left in place.
 
     Args:
         project_claude: Path to ``<cwd>/.claude``.
@@ -169,13 +182,23 @@ def _clean_settings(project_claude: Path) -> bool:
     changed = False
 
     # --- statusLine ----------------------------------------------------------
+    # #939: ownership is not removability — a marker-bearing CUSTOM entry holds
+    # the user's own command, so relinquish ownership instead of deleting it.
     existing = settings.get("statusLine")
-    if isinstance(existing, dict):
-        cmd = existing.get("command", "")
-        if isinstance(cmd, str) and _STATUSLINE_COMMAND_MATCH in cmd:
-            del settings["statusLine"]
-            changed = True
-            logger.info("Removed MPM-managed statusLine entry from %s", settings_path)
+    disposition = classify_statusline_entry(existing)
+    if disposition is StatuslineDisposition.REMOVE:
+        del settings["statusLine"]
+        changed = True
+        logger.info("Removed MPM-managed statusLine entry from %s", settings_path)
+    elif disposition is StatuslineDisposition.DISOWN and strip_statusline_marker(
+        existing
+    ):
+        changed = True
+        logger.info(
+            "Relinquished MPM ownership of the user's statusLine command in %s "
+            "(command preserved)",
+            settings_path,
+        )
 
     # --- Stop hooks ----------------------------------------------------------
     hooks = settings.get("hooks")
