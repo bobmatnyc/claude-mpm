@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   test:
-    name: pytest (Python 3.13)
+    name: pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
