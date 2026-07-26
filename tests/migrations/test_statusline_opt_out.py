@@ -25,10 +25,12 @@ if TYPE_CHECKING:
 import claude_mpm.migrations.migrate_statusline_autoconfig as autoconfig_mod
 from claude_mpm.migrations.migrate_statusline_autoconfig import (
     StatuslinePolicyKind,
+    _is_mpm_owned_statusline,
     _resolve_statusline_policy,
 )
 
 ENV_VAR = autoconfig_mod.STATUSLINE_ENV_VAR
+MPM_KEY = autoconfig_mod._MPM_OWNED_KEY
 
 
 def _write_user_config(home: Path, content: str) -> None:
@@ -41,6 +43,31 @@ def _write_project_config(project_dir: Path, content: str) -> None:
     config_path = project_dir / ".claude-mpm" / "configuration.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(content, encoding="utf-8")
+
+
+def _project_settings_path(project_dir: Path) -> Path:
+    return project_dir / ".claude" / "settings.json"
+
+
+def _read_settings(project_dir: Path) -> dict:
+    return json.loads(_project_settings_path(project_dir).read_text(encoding="utf-8"))
+
+
+def _write_settings(project_dir: Path, settings: dict) -> None:
+    path = _project_settings_path(project_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+
+
+def _stop_hook_commands(settings: dict) -> list[str]:
+    """Flatten every Stop hook command string in a settings dict."""
+    commands: list[str] = []
+    for group in settings.get("hooks", {}).get("Stop", []) or []:
+        for hook in group.get("hooks", []) or []:
+            command = hook.get("command")
+            if isinstance(command, str):
+                commands.append(command)
+    return commands
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +391,239 @@ def test_custom_command_written_instead_of_bundled_script(
 
 
 # ---------------------------------------------------------------------------
+# 8. Explicit ownership marker (entries MPM writes stay recognisable to MPM)
+# ---------------------------------------------------------------------------
+
+
+def test_is_mpm_owned_statusline_predicate() -> None:
+    """Ownership is the recorded marker, with the legacy command as a fallback.
+
+    Why: This predicate is the whole ownership model. Marker present means we
+    wrote it whatever the command says; marker absent falls back to the legacy
+    ``statusline.sh`` signal so pre-marker entries are still adopted; neither
+    means the entry is user-authored and must not be touched.
+    Test: One case per branch, including a marker-bearing entry whose command
+    is a completely unrelated path.
+    """
+    assert _is_mpm_owned_statusline(
+        {"type": "command", "command": "/opt/totally/unrelated", MPM_KEY: True}
+    ), "an entry carrying the marker is ours regardless of its command"
+
+    assert _is_mpm_owned_statusline(
+        {"type": "command", "command": ".claude/hooks/scripts/statusline.sh"}
+    ), "a pre-marker entry pointing at the bundled script is still ours"
+
+    assert not _is_mpm_owned_statusline(
+        {"type": "command", "command": "/my/own/bar.sh"}
+    ), "no marker and a non-bundled command means user-authored"
+
+    assert not _is_mpm_owned_statusline(None)
+    assert not _is_mpm_owned_statusline("not-a-dict")
+
+
+def test_custom_command_change_is_applied_on_next_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Changing the custom command must actually change the written entry.
+
+    Why: Regression test for the ownership bug this marker exists to fix.
+    Ownership used to be inferred from the command string containing
+    ``statusline.sh``.  Under CUSTOM, MPM writes the *user's* command, which
+    does not contain that substring — so on the next run MPM looked at an entry
+    it had written itself, failed to recognise it, classified it as
+    user-authored and refused to touch it.  Net effect: the first custom
+    command ever written froze permanently and every later change to
+    ``CLAUDE_MPM_STATUSLINE`` was silently ignored, with no error and no log.
+    Test: Run with custom command A, then again with a different command B;
+    assert the entry ends up as B.
+    """
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    monkeypatch.setenv(ENV_VAR, "/opt/mybar-a")
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+    assert _read_settings(project_dir)["statusLine"]["command"] == "/opt/mybar-a"
+
+    monkeypatch.setenv(ENV_VAR, "/opt/mybar-b")
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    entry = _read_settings(project_dir)["statusLine"]
+    assert entry["command"] == "/opt/mybar-b", (
+        "a changed custom command must be written, not silently ignored"
+    )
+    assert entry[MPM_KEY] is True, "MPM-written entries must carry the marker"
+
+
+def test_legacy_marker_less_entry_is_adopted_and_updated(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """An entry from an older MPM version (no marker) is still MPM-owned.
+
+    Why: Backward compatibility is a hard requirement — installs predating the
+    marker must keep self-healing, so the legacy ``statusline.sh`` command
+    substring is retained as an ownership fallback.
+    Test: Seed a legacy project-relative MPM entry with no marker; run MANAGED;
+    assert the command is upgraded to the absolute bundled path and the marker
+    is now stamped so the next run recognises it directly.
+    """
+    monkeypatch.delenv(ENV_VAR, raising=False)
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    _write_settings(
+        project_dir,
+        {
+            "statusLine": {
+                "type": "command",
+                "command": ".claude/hooks/scripts/statusline.sh",
+            }
+        },
+    )
+
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    entry = _read_settings(project_dir)["statusLine"]
+    assert entry["command"] == str(autoconfig_mod._USER_SCRIPT_PATH)
+    assert entry[MPM_KEY] is True, "adopting a legacy entry must stamp the marker"
+
+
+def test_user_authored_entry_left_untouched_under_managed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A genuinely user-authored statusLine entry is never overwritten.
+
+    Why: Guards against regressing the entire point of this PR — respecting a
+    user's own statusline.  Making ownership explicit must not widen what MPM
+    considers its own.
+    Test: Seed an entry with no marker and a non-bundled command; run MANAGED;
+    assert the entry is unchanged and not retroactively marked as ours.
+    """
+    monkeypatch.delenv(ENV_VAR, raising=False)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path / "home"))
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    user_entry = {"type": "command", "command": "/my/own/bar.sh", "padding": 0}
+    _write_settings(project_dir, {"statusLine": dict(user_entry)})
+
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    assert _read_settings(project_dir)["statusLine"] == user_entry
+
+
+def test_user_authored_entry_left_untouched_under_custom(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The CUSTOM policy also respects a user-authored entry.
+
+    Test: Seed a marker-less, non-bundled entry; run with a custom command
+    configured; assert the seeded entry survives unchanged.
+    """
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path / "home"))
+    monkeypatch.setenv(ENV_VAR, "/opt/mybar")
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    user_entry = {"type": "command", "command": "/my/own/bar.sh"}
+    _write_settings(project_dir, {"statusLine": dict(user_entry)})
+
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    assert _read_settings(project_dir)["statusLine"] == user_entry
+
+
+# ---------------------------------------------------------------------------
+# 9. MANAGED -> CUSTOM retracts the now-stale --clear Stop hook
+# ---------------------------------------------------------------------------
+
+
+def test_managed_to_custom_removes_stale_mpm_stop_hook(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Switching to CUSTOM removes the MPM ``--clear`` hook but keeps user hooks.
+
+    Why: The Stop hook exists only to blank the bar painted by the bundled
+    ``statusline.sh``.  Once ``statusLine.command`` points at a custom command,
+    a hook left over from an earlier MANAGED run is firing ``--clear`` against a
+    script that is no longer the active statusline.  We still never *install* a
+    ``--clear`` hook for a custom command, but we must retract our own.
+    Test: Run MANAGED (installing the hook), add a user-owned Stop hook beside
+    it, then run CUSTOM; assert the ``--clear`` hook is gone, the user hook
+    survives, and statusLine points at the custom command.
+    """
+    monkeypatch.delenv(ENV_VAR, raising=False)
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+    settings = _read_settings(project_dir)
+    assert any("--clear" in cmd for cmd in _stop_hook_commands(settings)), (
+        "precondition: MANAGED must have installed the --clear Stop hook"
+    )
+
+    # Seed a user-owned Stop hook alongside the MPM one.
+    settings["hooks"]["Stop"][0]["hooks"].append(
+        {"type": "command", "command": "/my/own/on-stop.sh"}
+    )
+    _write_settings(project_dir, settings)
+
+    monkeypatch.setenv(ENV_VAR, "/opt/mybar")
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    settings = _read_settings(project_dir)
+    commands = _stop_hook_commands(settings)
+    assert not any("--clear" in cmd for cmd in commands), (
+        f"stale MPM --clear Stop hook must be removed, got {commands}"
+    )
+    assert "/my/own/on-stop.sh" in commands, "user-owned Stop hook must survive"
+    assert settings["statusLine"]["command"] == "/opt/mybar"
+
+
+def test_custom_does_not_remove_user_owned_stop_hooks(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """CUSTOM must not touch Stop hooks MPM never installed.
+
+    Why: The removal path is destructive, so it must be tightly scoped to the
+    hook MPM itself wrote.
+    Test: Seed a project with only user-authored Stop hooks; run CUSTOM; assert
+    every seeded hook survives.
+    """
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path / "home"))
+    monkeypatch.setenv(ENV_VAR, "/opt/mybar")
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    _write_settings(
+        project_dir,
+        {
+            "hooks": {
+                "Stop": [
+                    {
+                        "matcher": "*",
+                        "hooks": [
+                            {"type": "command", "command": "/my/own/on-stop.sh"},
+                            {"type": "command", "command": "/my/own/other.sh --clear"},
+                        ],
+                    }
+                ]
+            }
+        },
+    )
+
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    commands = _stop_hook_commands(_read_settings(project_dir))
+    assert commands == ["/my/own/on-stop.sh", "/my/own/other.sh --clear"]
+
+
+# ---------------------------------------------------------------------------
 # 7. update-statusline --force still respects DISABLED
 # ---------------------------------------------------------------------------
 
@@ -391,3 +651,54 @@ def test_force_true_does_not_override_disabled(
 
     assert not (project_dir / ".claude").exists()
     assert not (home / ".claude" / "hooks" / "scripts" / "statusline.sh").exists()
+
+
+def test_disabled_does_not_touch_global_settings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """DISABLED short-circuits before the global-settings self-heal pass.
+
+    Why: ``_cleanup_global_statusline_settings`` mutates the shared
+    ``~/.claude/settings.json``.  An opt-out must be indistinguishable from
+    claude-mpm never having run, which means the early return has to precede
+    that cleanup — even though the entries it would strip are ones MPM wrote.
+    Test: Seed a global settings.json containing an MPM-owned statusLine and a
+    ``--clear`` Stop hook; run the migration with the knob disabled; assert the
+    global file is byte-for-byte unchanged.
+    """
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    monkeypatch.setenv(ENV_VAR, "off")
+
+    global_settings = home / ".claude" / "settings.json"
+    global_settings.parent.mkdir(parents=True)
+    original = json.dumps(
+        {
+            "statusLine": {
+                "type": "command",
+                "command": "/somewhere/statusline.sh",
+                MPM_KEY: True,
+            },
+            "hooks": {
+                "Stop": [
+                    {
+                        "matcher": "*",
+                        "hooks": [
+                            {"type": "command", "command": "statusline.sh --clear"}
+                        ],
+                    }
+                ]
+            },
+        },
+        indent=2,
+    )
+    global_settings.write_text(original, encoding="utf-8")
+
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    assert global_settings.read_text(encoding="utf-8") == original, (
+        "global settings.json must be byte-for-byte unchanged when disabled"
+    )
