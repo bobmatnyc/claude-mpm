@@ -28,6 +28,14 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# #939: reuse the canonical statusLine ownership/removability classifier rather
+# than re-deriving ownership from a substring here.
+from ...migrations.migrate_statusline_autoconfig import (
+    StatuslineDisposition,
+    classify_statusline_entry,
+    strip_statusline_marker,
+)
+
 # Spinner keys mirror src/claude_mpm/cli/startup_migrations.py::_SPINNER_GLOBAL_KEYS.
 _SPINNER_KEYS: tuple[str, ...] = (
     "spinnerVerbs",
@@ -38,7 +46,8 @@ _SPINNER_VERSION_KEY = "_mpm_spinner_version"
 
 # Marker comment written into MPM-managed statusline.sh scripts.
 _STATUSLINE_MARKER = "# claude-mpm-managed:"
-# Substring that identifies an MPM-owned statusLine command / Stop hook.
+# Substring that identifies an MPM-owned Stop hook command.  The ``statusLine``
+# entry itself is classified by ``classify_statusline_entry`` instead (#939).
 _STATUSLINE_MATCH = "statusline.sh"
 
 # Frontmatter markers identifying an MPM-owned agent .md file. Matched against the
@@ -127,13 +136,19 @@ def _remove_statusline_script(claude_dir: Path, summary: CleanupSummary) -> None
 def _clean_settings(claude_dir: Path, summary: CleanupSummary) -> None:
     """Strip MPM-owned keys from ``~/.claude/settings.json``.
 
-    WHAT: Removes the ``outputStyle`` (when ``claude_mpm*``), ``statusLine``
-    (when it points at ``statusline.sh``), the spinner keys and version stamp,
-    and any ``hooks.Stop`` entry invoking ``statusline.sh`` — pruning emptied
-    hook groups — then rewrites the file (unless ``dry_run``).
+    WHAT: Removes the ``outputStyle`` (when ``claude_mpm*``), the spinner keys and
+    version stamp, and any ``hooks.Stop`` entry invoking ``statusline.sh`` —
+    pruning emptied hook groups.  ``statusLine`` is handled by disposition
+    (``classify_statusline_entry``): deleted when it points at the bundled
+    ``statusline.sh``, otherwise reduced to just dropping the ``_mpm`` marker when
+    MPM owns an entry holding the user's own command.  The file is then rewritten
+    (unless ``dry_run``).
 
     WHY: Ownership must be established per-key so user-authored settings survive;
     a blanket delete would destroy unrelated configuration in the shared file.
+    For ``statusLine`` that is not enough on its own — under the CUSTOM policy MPM
+    stamps its marker onto an entry whose ``command`` is the user's, so deleting
+    every entry MPM owns would discard user configuration (issue #939).
     """
     settings_path = claude_dir / "settings.json"
     if not settings_path.is_file():
@@ -155,15 +170,21 @@ def _clean_settings(claude_dir: Path, summary: CleanupSummary) -> None:
         if not summary.dry_run:
             del data["outputStyle"]
 
-    # statusLine: remove only when it points at statusline.sh.
+    # statusLine: #939 — ownership is not removability.  Delete the entry only
+    # when it points at our bundled script; a marker-bearing entry holding the
+    # user's own command keeps that command and loses only the marker.
     status_line = data.get("statusLine")
-    if isinstance(status_line, dict) and _STATUSLINE_MATCH in str(
-        status_line.get("command", "")
-    ):
+    disposition = classify_statusline_entry(status_line)
+    if disposition is StatuslineDisposition.REMOVE:
         summary.settings_keys.append("statusLine")
         changed = True
         if not summary.dry_run:
             del data["statusLine"]
+    elif disposition is StatuslineDisposition.DISOWN:
+        summary.settings_keys.append("statusLine._mpm")
+        changed = True
+        if not summary.dry_run:
+            strip_statusline_marker(status_line)
 
     # Spinner keys + version stamp.
     for key in (*_SPINNER_KEYS, _SPINNER_VERSION_KEY):
