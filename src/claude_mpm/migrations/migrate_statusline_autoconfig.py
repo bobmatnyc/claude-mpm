@@ -12,10 +12,21 @@ Ensures that:
 3. A Stop hook entry that calls ``statusline.sh --clear`` is present in
    ``~/.claude/settings.json`` so the bar disappears when Claude Code exits.
 
-Ownership detection for settings entries uses a substring heuristic on the
-command field: if the command contains ``statusline.sh`` we treat it as the
-MPM-managed entry (whether it points at the old project-relative path or the
-new user-level absolute path) and update it; otherwise we leave it alone.
+Ownership detection for the ``statusLine`` entry is an explicit recorded fact,
+not an inference from the command string: every entry we write carries
+``"_mpm": True`` (the same authoritative marker convention used for MPM hook
+command entries — see ``v6_3_19_hooks_to_project_level``).  An entry is
+MPM-owned if it carries that marker OR — purely as a backward-compatibility
+fallback for entries written by MPM versions predating the marker — its
+command contains ``statusline.sh``.  Anything else is user-authored and is
+left strictly alone.
+
+This distinction matters because "MPM wrote this entry" and "this entry points
+at MPM's bundled script" are different facts that diverge under the CUSTOM
+policy, where MPM writes the *user's* command into the entry.  Inferring
+ownership from the command alone made MPM fail to recognise its own CUSTOM
+entry on the next run, permanently freezing it (a later change to
+``CLAUDE_MPM_STATUSLINE`` was silently ignored).
 
 Project-level ``.claude/settings.json`` and ``.claude/hooks/scripts/statusline.sh``
 are NEVER written by this migration.  Legacy project-level installs are left
@@ -205,11 +216,50 @@ _USER_SCRIPT_PATH = Path.home() / ".claude" / "hooks" / "scripts" / "statusline.
 _STOP_HOOK_COMMAND = f"{_USER_SCRIPT_PATH} --clear"
 _STOP_HOOK_MATCH = "statusline.sh --clear"
 
-# Substring used to identify an MPM-managed statusLine.command in
-# ``settings.json`` regardless of whether the path is relative
-# (``.claude/hooks/scripts/statusline.sh`` — legacy project-level installs)
-# or absolute (``~/.claude/hooks/scripts/statusline.sh`` — current default).
+# LEGACY ownership signal only.  Substring used to identify a statusLine.command
+# written by an MPM version that predates ``_MPM_OWNED_KEY``, regardless of
+# whether the path is relative (``.claude/hooks/scripts/statusline.sh`` — legacy
+# project-level installs) or absolute (``~/.claude/hooks/scripts/statusline.sh``).
+# New entries are identified by the explicit marker instead; see
+# ``_is_mpm_owned_statusline``.
 _STATUSLINE_COMMAND_MATCH = "statusline.sh"
+
+# Authoritative ownership marker stamped into every ``statusLine`` entry this
+# migration writes.  Mirrors the ``"_mpm": True`` convention already used for
+# MPM hook command entries (``v6_3_19_hooks_to_project_level``,
+# ``migrate_dedup_hook_registrations``), so there is one project-wide way to
+# say "claude-mpm wrote this settings entry".
+_MPM_OWNED_KEY = "_mpm"
+
+
+def _is_mpm_owned_statusline(entry: object) -> bool:
+    """Return True if a ``statusLine`` settings entry was written by claude-mpm.
+
+    Why: Ownership must be a fact we RECORDED, not a fact we infer from the
+    command string.  Under the CUSTOM policy MPM writes the user's own command
+    into the entry, so "the command points at our bundled script" is false for
+    entries we nonetheless own — inferring ownership from the command made MPM
+    disown its own CUSTOM entry on the next run and freeze it forever.
+    What: Returns True when the entry carries the explicit ``_MPM_OWNED_KEY``
+    marker, or — as a backward-compatibility fallback for entries written
+    before the marker existed — when its ``command`` contains
+    ``_STATUSLINE_COMMAND_MATCH``.  A genuinely user-authored entry (no marker,
+    non-bundled command) returns False and must be left untouched.
+    Test: Assert True for a marker-bearing entry with an arbitrary command,
+    True for a marker-less entry pointing at ``statusline.sh`` (legacy), and
+    False for a marker-less entry pointing anywhere else.
+    """
+    if not isinstance(entry, dict):
+        return False
+
+    # Primary: the explicit marker is the certain signal.
+    if entry.get(_MPM_OWNED_KEY) is True:
+        return True
+
+    # Legacy fallback: entries written before the marker was introduced.
+    cmd = entry.get("command", "")
+    return isinstance(cmd, str) and _STATUSLINE_COMMAND_MATCH in cmd
+
 
 # Statusline script content (byte-identical to .claude/hooks/scripts/statusline.sh
 # in this repo so fresh projects receive the same canonical version).
@@ -382,11 +432,17 @@ exit 0
 # Default statusLine settings block to add when missing.  Uses the absolute
 # user-level script path because this entry now lives in ``~/.claude/settings.json``
 # and is not project-relative.
+#
+# Carries ``_MPM_OWNED_KEY`` so that an entry MPM writes today is recognisable
+# as MPM-owned tomorrow.  The CUSTOM policy builds its entry by overriding only
+# ``command`` on this dict, so it inherits the marker too — which is exactly
+# what keeps a custom command updatable across runs.
 _DEFAULT_STATUS_LINE: dict = {
     "type": "command",
     "command": str(_USER_SCRIPT_PATH),
     "padding": 1,
     "refreshInterval": 10,
+    _MPM_OWNED_KEY: True,
 }
 
 # Default Stop hook group (matcher "*") with the --clear command.
@@ -493,13 +549,14 @@ def _ensure_settings_entry(
 ) -> bool:
     """Ensure the statusLine entry is present and current in settings.json.
 
-    Ownership rules:
+    Ownership rules (see ``_is_mpm_owned_statusline``):
     - File absent → create with the desired statusLine entry.
     - No ``statusLine`` key → add the desired entry.
-    - Existing ``statusLine.command`` contains ``statusline.sh`` (MPM-owned,
-      legacy or current) → update the entry to the desired one.
-    - Existing ``statusLine.command`` is something else (user-owned) → leave
-      it alone.
+    - Existing entry carries the ``_MPM_OWNED_KEY`` marker, or (legacy
+      fallback) its ``command`` contains ``statusline.sh`` → MPM-owned, so
+      update the entry to the desired one.  Adopting a legacy marker-less
+      entry also stamps the marker, so the next run recognises it directly.
+    - Anything else is user-authored → leave it alone.
 
     Args:
         settings_path: Path to the ``settings.json`` to update.
@@ -549,30 +606,24 @@ def _ensure_settings_entry(
         # No statusLine entry at all → add ours.
         settings["statusLine"] = desired_entry
         action = "Added statusLine entry to %s"
-    else:
-        # Inspect the existing entry's command.  If it's MPM-owned (matches
-        # our substring), update it to the desired entry; otherwise leave it.
-        cmd = ""
-        if isinstance(existing, dict):
-            raw_cmd = existing.get("command", "")
-            if isinstance(raw_cmd, str):
-                cmd = raw_cmd
-
-        if _STATUSLINE_COMMAND_MATCH in cmd:
-            if existing == desired_entry:
-                logger.debug(
-                    "statusLine in %s already matches desired entry — skipping",
-                    settings_path,
-                )
-                return True
-            settings["statusLine"] = desired_entry
-            action = "Updated MPM-managed statusLine entry in %s"
-        else:
+    # Ownership is read off the entry itself (explicit marker, with the
+    # legacy command substring as a compatibility fallback) rather than
+    # inferred from where the command happens to point.
+    elif _is_mpm_owned_statusline(existing):
+        if existing == desired_entry:
             logger.debug(
-                "statusLine in %s points elsewhere (user-customised) — leaving alone",
+                "statusLine in %s already matches desired entry — skipping",
                 settings_path,
             )
             return True
+        settings["statusLine"] = desired_entry
+        action = "Updated MPM-managed statusLine entry in %s"
+    else:
+        logger.debug(
+            "statusLine in %s points elsewhere (user-customised) — leaving alone",
+            settings_path,
+        )
+        return True
 
     try:
         settings_path.write_text(
@@ -704,6 +755,122 @@ def _ensure_stop_hook(settings_path: Path) -> bool:
     return True
 
 
+def _strip_mpm_stop_hooks(settings: dict) -> bool:
+    """Remove MPM-owned ``statusline.sh --clear`` Stop hooks from ``settings``.
+
+    Why: Two callers need exactly this removal — the global-settings self-heal
+    (``_cleanup_global_statusline_settings``, issue #924) and the CUSTOM-policy
+    staleness fix (``_remove_mpm_stop_hook``) — so the group-pruning logic lives
+    in one place instead of being duplicated.
+    What: Mutates ``settings`` in place, dropping every Stop hook whose
+    ``command`` contains ``_STOP_HOOK_MATCH`` and pruning hook groups (and the
+    ``hooks`` dict) left empty by the removal.  Stop hooks that do not match are
+    preserved untouched.  Returns True if anything was changed.
+    Test: Seed a settings dict with one MPM ``--clear`` hook and one user hook
+    in the same group; assert True is returned, the MPM hook is gone and the
+    user hook remains.
+    """
+    hooks = settings.get("hooks")
+    if not isinstance(hooks, dict):
+        return False
+    stop_groups = hooks.get("Stop")
+    if not isinstance(stop_groups, list):
+        return False
+
+    changed = False
+    surviving_groups: list = []
+    for group in stop_groups:
+        if not isinstance(group, dict):
+            surviving_groups.append(group)
+            continue
+        group_hooks = group.get("hooks")
+        if isinstance(group_hooks, list):
+            kept = [
+                hook
+                for hook in group_hooks
+                if not (
+                    isinstance(hook, dict)
+                    and isinstance(hook.get("command"), str)
+                    and _STOP_HOOK_MATCH in hook["command"]
+                )
+            ]
+            if len(kept) != len(group_hooks):
+                changed = True
+                group["hooks"] = kept
+            # Drop groups that are now empty.
+            if not kept:
+                continue
+        surviving_groups.append(group)
+
+    if len(surviving_groups) != len(stop_groups):
+        changed = True
+    if surviving_groups:
+        hooks["Stop"] = surviving_groups
+    else:
+        del hooks["Stop"]
+        changed = True
+    # Remove an emptied hooks dict entirely.
+    if not hooks:
+        del settings["hooks"]
+
+    return changed
+
+
+def _remove_mpm_stop_hook(settings_path: Path) -> bool:
+    """Remove a stale MPM-owned ``--clear`` Stop hook from ``settings_path``.
+
+    Why: The Stop hook exists solely to blank the bar painted by the *bundled*
+    ``statusline.sh``.  Under the CUSTOM policy ``statusLine.command`` points at
+    the user's own command instead, so a hook installed by an earlier MANAGED
+    run is firing ``--clear`` against a script that is no longer the active
+    statusline.  We must not *install* a ``--clear`` hook for a custom command
+    (it is not guaranteed to support the flag), but we do have to retract the
+    one we previously installed.
+    What: Reads ``settings_path``, strips MPM-owned Stop hooks via
+    ``_strip_mpm_stop_hooks``, and rewrites the file only if something changed.
+    A missing file, or a file with no MPM-owned Stop hook, is a successful
+    no-op.  User-owned Stop hooks are never removed.
+    Test: Run MANAGED then CUSTOM against the same project and assert the
+    ``statusline.sh --clear`` hook is gone while an unrelated user Stop hook
+    seeded alongside it survives.
+
+    Returns:
+        True on success (including no-op), False on error.
+    """
+    if not settings_path.exists():
+        return True
+
+    try:
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    except Exception:
+        logger.exception("Failed to parse settings.json at %s", settings_path)
+        return False
+
+    if not isinstance(settings, dict):
+        # Not something we can safely reason about; leave it to
+        # _ensure_settings_entry to report the problem.
+        return True
+
+    if not _strip_mpm_stop_hooks(settings):
+        return True
+
+    try:
+        settings_path.write_text(
+            json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        logger.info(
+            "Removed stale MPM-owned statusline --clear Stop hook from %s "
+            "(statusLine now points at a custom command)",
+            settings_path,
+        )
+    except Exception:
+        logger.exception("Failed to write settings.json at %s", settings_path)
+        return False
+
+    return True
+
+
 def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
     """Strip MPM-owned statusLine and Stop-hook entries from global settings.
 
@@ -718,8 +885,8 @@ def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
     stale global copies so existing installs self-heal.
 
     Only MPM-owned entries are touched:
-    - ``statusLine`` is removed only when its ``command`` contains
-      ``statusline.sh``.
+    - ``statusLine`` is removed only when ``_is_mpm_owned_statusline`` says we
+      wrote it (explicit marker, or the legacy ``statusline.sh`` command).
     - Stop-hook entries are removed only when their ``command`` contains
       ``statusline.sh --clear``; empty hook groups left behind are pruned.
 
@@ -741,50 +908,13 @@ def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
 
     # Remove MPM-owned statusLine entry.
     existing = settings.get("statusLine")
-    if isinstance(existing, dict):
-        cmd = existing.get("command", "")
-        if isinstance(cmd, str) and _STATUSLINE_COMMAND_MATCH in cmd:
-            del settings["statusLine"]
-            changed = True
+    if _is_mpm_owned_statusline(existing):
+        del settings["statusLine"]
+        changed = True
 
     # Remove MPM-owned Stop hooks (and prune emptied groups).
-    hooks = settings.get("hooks")
-    if isinstance(hooks, dict):
-        stop_groups = hooks.get("Stop")
-        if isinstance(stop_groups, list):
-            surviving_groups = []
-            for group in stop_groups:
-                if not isinstance(group, dict):
-                    surviving_groups.append(group)
-                    continue
-                group_hooks = group.get("hooks")
-                if isinstance(group_hooks, list):
-                    kept = [
-                        hook
-                        for hook in group_hooks
-                        if not (
-                            isinstance(hook, dict)
-                            and isinstance(hook.get("command"), str)
-                            and _STOP_HOOK_MATCH in hook["command"]
-                        )
-                    ]
-                    if len(kept) != len(group_hooks):
-                        changed = True
-                        group["hooks"] = kept
-                    # Drop groups that are now empty.
-                    if not kept:
-                        continue
-                surviving_groups.append(group)
-            if len(surviving_groups) != len(stop_groups):
-                changed = True
-            if surviving_groups:
-                hooks["Stop"] = surviving_groups
-            else:
-                del hooks["Stop"]
-                changed = True
-            # Remove an emptied hooks dict entirely.
-            if not hooks:
-                del settings["hooks"]
+    if _strip_mpm_stop_hooks(settings):
+        changed = True
 
     if not changed:
         return True
@@ -807,6 +937,22 @@ def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
 
 def run_migration(installation_dir: Path | None = None, force: bool = False) -> bool:
     """Auto-configure the MPM statusline at the user level (~/.claude/).
+
+    WHAT: Resolves the statusline policy for ``project_dir``, then branches three
+    ways.  DISABLED returns immediately, touching nothing at all.  CUSTOM writes
+    the user's command into the project-local ``statusLine`` entry and retracts
+    any ``--clear`` Stop hook a previous MANAGED run installed, without ever
+    installing one for the custom command.  MANAGED (the default) ensures the
+    bundled script exists, writes the ``statusLine`` entry pointing at it, and
+    installs the matching ``--clear`` Stop hook.  Every entry written carries
+    ``_MPM_OWNED_KEY`` so later runs can recognise it as ours.
+
+    WHY: This is the single entry point every caller reaches — ``claude-mpm run``
+    calls it directly and ``update-statusline --force`` routes through it — so the
+    policy branch has to live here for the opt-out to be honoured consistently
+    (an explicit opt-out must beat ``force``).  Keeping the three policies in one
+    function also makes their asymmetries reviewable side by side: only DISABLED
+    skips the global-settings self-heal, and only MANAGED installs a Stop hook.
 
     Args:
         installation_dir: Accepted for backwards compatibility but ignored for
@@ -861,18 +1007,26 @@ def run_migration(installation_dir: Path | None = None, force: bool = False) -> 
     _cleanup_global_statusline_settings(user_claude_dir / "settings.json")
 
     if policy.kind is StatuslinePolicyKind.CUSTOM:
-        # Write the user's custom command instead of the bundled script path,
-        # and don't touch the bundled script or the --clear Stop hook at all
-        # (a custom command is not guaranteed to support --clear).  The
-        # "leave user-customised alone" ownership check inside
-        # _ensure_settings_entry still applies: an entry that already points
-        # somewhere else entirely (neither statusline.sh nor a *previous*
-        # custom command written by us) is left untouched.
+        # Write the user's custom command instead of the bundled script path and
+        # never *install* a --clear Stop hook for it (a custom command is not
+        # guaranteed to support the flag).  The entry inherits _MPM_OWNED_KEY
+        # from _DEFAULT_STATUS_LINE, which is what lets a later run recognise it
+        # as ours and update it when the configured command changes.
+        #
+        # We do, however, have to retract a --clear Stop hook installed by an
+        # earlier MANAGED run: statusLine.command no longer points at the
+        # bundled script, so that hook is stale.
+        #
+        # The "leave user-authored entries alone" ownership check inside
+        # _ensure_settings_entry still applies: an entry we never wrote (no
+        # marker, non-bundled command) is left untouched.
         logger.debug(
             "Statusline command overridden via %s to: %s", policy.source, policy.command
         )
         desired_entry = {**_DEFAULT_STATUS_LINE, "command": policy.command}
-        return _ensure_settings_entry(settings_path, desired_entry=desired_entry)
+        settings_ok = _ensure_settings_entry(settings_path, desired_entry=desired_entry)
+        stop_hook_ok = _remove_mpm_stop_hook(settings_path)
+        return settings_ok and stop_hook_ok
 
     script_ok = _ensure_script(script_path, force=force)
     settings_ok = _ensure_settings_entry(settings_path)
