@@ -623,6 +623,71 @@ def test_custom_does_not_remove_user_owned_stop_hooks(
     assert commands == ["/my/own/on-stop.sh", "/my/own/other.sh --clear"]
 
 
+def test_custom_still_runs_global_settings_self_heal(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """CUSTOM runs the issue #924 global self-heal before its early return.
+
+    Why: DISABLED is the *only* policy exempt from the global-settings
+    self-heal.  A CUSTOM policy means the bundled statusline is not the active
+    statusline anywhere, so an MPM-owned entry left in the shared
+    ``~/.claude/settings.json`` by a pre-#924 install is stale by definition and
+    must still be stripped.  The CUSTOM early return sits *after* the cleanup
+    call, so this holds — this test pins that ordering, which is otherwise easy
+    to break by moving the ``if policy.kind is CUSTOM`` branch upward.
+    Test: Seed a pre-#924 global install (MPM-owned statusLine plus a
+    ``--clear`` Stop hook) alongside a user-owned Stop hook, run the migration
+    under CUSTOM, and assert the MPM-owned global entries are gone, the
+    user-owned hook survives, and the project-local entry got the custom
+    command.
+    """
+    home = tmp_path / "home"
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: home))
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    global_settings = home / ".claude" / "settings.json"
+    global_settings.parent.mkdir(parents=True)
+    global_settings.write_text(
+        json.dumps(
+            {
+                "statusLine": {
+                    "type": "command",
+                    "command": "/legacy/statusline.sh",
+                },
+                "hooks": {
+                    "Stop": [
+                        {
+                            "matcher": "*",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "/legacy/statusline.sh --clear",
+                                },
+                                {"type": "command", "command": "/my/own/on-stop.sh"},
+                            ],
+                        }
+                    ]
+                },
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv(ENV_VAR, "/opt/mybar")
+    assert autoconfig_mod.run_migration(installation_dir=project_dir) is True
+
+    global_data = json.loads(global_settings.read_text(encoding="utf-8"))
+    assert "statusLine" not in global_data, (
+        "stale MPM-owned global statusLine must be stripped under CUSTOM too"
+    )
+    assert _stop_hook_commands(global_data) == ["/my/own/on-stop.sh"], (
+        "the global --clear hook must go; the user's own Stop hook must stay"
+    )
+    assert _read_settings(project_dir)["statusLine"]["command"] == "/opt/mybar"
+
+
 # ---------------------------------------------------------------------------
 # 7. update-statusline --force still respects DISABLED
 # ---------------------------------------------------------------------------
