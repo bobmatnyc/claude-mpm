@@ -232,6 +232,82 @@ _STATUSLINE_COMMAND_MATCH = "statusline.sh"
 _MPM_OWNED_KEY = "_mpm"
 
 
+class StatuslineDisposition(Enum):
+    """What a removal path may safely do with an existing ``statusLine`` entry.
+
+    WHY: Every claude-mpm removal path (legacy project cleanup, global uninstall,
+    the issue #924 global self-heal) needs to know more than *who owns* an entry —
+    it needs to know whether the entry is MPM's to delete.  Those diverge under
+    the CUSTOM policy, where MPM stamps its ownership marker onto an entry whose
+    ``command`` is the *user's*, so a single boolean "is it ours?" is not enough
+    to decide safely (issue #939).
+    WHAT: Three mutually exclusive dispositions returned by
+    ``classify_statusline_entry`` and consumed by every removal path.
+    """
+
+    #: Not MPM-owned at all — leave the entry strictly untouched.
+    LEAVE = "leave"
+    #: MPM's own artifact (``command`` points at the bundled ``statusline.sh``)
+    #: — remove the whole entry.
+    REMOVE = "remove"
+    #: MPM-owned via the marker, but ``command`` is the user's (CUSTOM policy)
+    #: — strip only the marker and keep the command.
+    DISOWN = "disown"
+
+
+def classify_statusline_entry(entry: object) -> StatuslineDisposition:
+    """Decide what a removal path may do with a ``statusLine`` settings entry.
+
+    Why: "claude-mpm owns this entry" and "this entry is claude-mpm's to delete"
+    are different facts, and removal paths need the second one.  Under the CUSTOM
+    policy MPM writes the *user's* command into the entry and stamps
+    ``_MPM_OWNED_KEY`` on it, so treating ownership as licence to delete would
+    destroy the user's own statusline configuration on uninstall (issue #939).
+    What: Returns ``REMOVE`` when ``command`` points at the bundled
+    ``statusline.sh`` — MPM's own artifact, true for marker-bearing MANAGED
+    entries and for legacy pre-marker ones alike, which is what preserves the
+    substring fallback.  Returns ``DISOWN`` when the entry carries the marker but
+    its command is not ours.  Returns ``LEAVE`` for everything else, including
+    non-dict values and genuinely user-authored entries.
+    Test: Assert ``REMOVE`` for a bundled-script command with and without the
+    marker, ``DISOWN`` for a marker-bearing custom command, and ``LEAVE`` for a
+    marker-less non-bundled command and for a non-dict value.
+    """
+    if not isinstance(entry, dict):
+        return StatuslineDisposition.LEAVE
+
+    # Checked before the marker: a command pointing at our bundled script is
+    # MPM's own artifact whether or not the entry was ever stamped, which is
+    # also the backward-compatibility fallback for pre-marker entries.
+    cmd = entry.get("command", "")
+    if isinstance(cmd, str) and _STATUSLINE_COMMAND_MATCH in cmd:
+        return StatuslineDisposition.REMOVE
+
+    # Marker present but the command is not ours → a CUSTOM-policy entry.
+    if entry.get(_MPM_OWNED_KEY) is True:
+        return StatuslineDisposition.DISOWN
+
+    return StatuslineDisposition.LEAVE
+
+
+def strip_statusline_marker(entry: dict) -> bool:
+    """Remove claude-mpm's ownership marker from ``entry``, leaving the rest.
+
+    Why: The ``DISOWN`` disposition needs MPM to relinquish ownership of an entry
+    whose ``command`` belongs to the user (issue #939), and every removal path
+    must do that identically without reaching for the private marker constant.
+    What: Deletes ``_MPM_OWNED_KEY`` from ``entry`` in place and returns True if
+    it was present; returns False without mutating anything otherwise.  No other
+    key — ``command`` above all — is touched.
+    Test: Assert True and a marker-free dict with an intact ``command`` for a
+    marker-bearing entry, and False plus an unchanged dict for one without.
+    """
+    if _MPM_OWNED_KEY not in entry:
+        return False
+    del entry[_MPM_OWNED_KEY]
+    return True
+
+
 def _is_mpm_owned_statusline(entry: object) -> bool:
     """Return True if a ``statusLine`` settings entry was written by claude-mpm.
 
@@ -243,22 +319,16 @@ def _is_mpm_owned_statusline(entry: object) -> bool:
     What: Returns True when the entry carries the explicit ``_MPM_OWNED_KEY``
     marker, or — as a backward-compatibility fallback for entries written
     before the marker existed — when its ``command`` contains
-    ``_STATUSLINE_COMMAND_MATCH``.  A genuinely user-authored entry (no marker,
-    non-bundled command) returns False and must be left untouched.
+    ``_STATUSLINE_COMMAND_MATCH``.  Delegates to
+    ``classify_statusline_entry`` so the ownership question and the removability
+    question can never drift apart: "owned" is exactly "not ``LEAVE``".  A
+    genuinely user-authored entry (no marker, non-bundled command) returns False
+    and must be left untouched.
     Test: Assert True for a marker-bearing entry with an arbitrary command,
     True for a marker-less entry pointing at ``statusline.sh`` (legacy), and
     False for a marker-less entry pointing anywhere else.
     """
-    if not isinstance(entry, dict):
-        return False
-
-    # Primary: the explicit marker is the certain signal.
-    if entry.get(_MPM_OWNED_KEY) is True:
-        return True
-
-    # Legacy fallback: entries written before the marker was introduced.
-    cmd = entry.get("command", "")
-    return isinstance(cmd, str) and _STATUSLINE_COMMAND_MATCH in cmd
+    return classify_statusline_entry(entry) is not StatuslineDisposition.LEAVE
 
 
 # Statusline script content (byte-identical to .claude/hooks/scripts/statusline.sh
@@ -884,9 +954,12 @@ def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
     in the project-local ``.claude/settings.json``; this helper removes the
     stale global copies so existing installs self-heal.
 
-    Only MPM-owned entries are touched:
-    - ``statusLine`` is removed only when ``_is_mpm_owned_statusline`` says we
-      wrote it (explicit marker, or the legacy ``statusline.sh`` command).
+    Only MPM-owned entries are touched, and ownership alone does not authorise
+    deletion (issue #939 — see ``classify_statusline_entry``):
+    - ``statusLine`` is removed outright only when its ``command`` points at the
+      bundled ``statusline.sh`` (explicitly marked or legacy pre-marker alike).
+    - A marker-bearing entry holding the user's own command loses only the
+      marker; its ``command`` is preserved.
     - Stop-hook entries are removed only when their ``command`` contains
       ``statusline.sh --clear``; empty hook groups left behind are pruned.
 
@@ -906,10 +979,16 @@ def _cleanup_global_statusline_settings(settings_path: Path) -> bool:
 
     changed = False
 
-    # Remove MPM-owned statusLine entry.
+    # #939: ownership is not removability — a marker-bearing CUSTOM entry holds
+    # the user's own command, so relinquish ownership instead of deleting it.
     existing = settings.get("statusLine")
-    if _is_mpm_owned_statusline(existing):
+    disposition = classify_statusline_entry(existing)
+    if disposition is StatuslineDisposition.REMOVE:
         del settings["statusLine"]
+        changed = True
+    elif disposition is StatuslineDisposition.DISOWN and strip_statusline_marker(
+        existing
+    ):
         changed = True
 
     # Remove MPM-owned Stop hooks (and prune emptied groups).
