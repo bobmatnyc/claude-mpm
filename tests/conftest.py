@@ -278,6 +278,75 @@ def verify_source_agents_untouched():
     )
 
 
+@pytest.fixture(autouse=True)
+def verify_configuration_yaml_untouched():
+    """Detect any test that modifies the real .claude-mpm/configuration.yaml.
+
+    Regression guard for #945: production code in
+    ``sync_remote_skills_on_startup()`` (src/claude_mpm/cli/startup.py) resolves
+    both the agent scan directory and the config write target from bare
+    ``Path.cwd()``. When a test mocks ``get_required_skills_from_agents`` or
+    ``get_skills_to_deploy`` but not the downstream ``save_agent_skills_to_config``
+    writer, the real writer still executes against the developer's actual repo
+    and clobbers the checked-in ``configuration.yaml`` with placeholder skill
+    data (e.g. ``agent_referenced: [skill1]``).
+
+    If a test does corrupt the file, its original content is restored here so
+    the damage doesn't leak into subsequent tests or a developer's working
+    tree, but the test run still fails loudly via the assertion below so the
+    offending test gets fixed.
+
+    Uses Path(__file__) rather than Path.cwd() so the guard is stable in CI
+    environments where the working directory may differ from the repo root.
+    """
+    import hashlib
+
+    repo_root = Path(__file__).resolve().parent.parent
+    config_path = repo_root / ".claude-mpm" / "configuration.yaml"
+
+    def _snapshot() -> dict | None:
+        if not config_path.exists():
+            return None
+        content = config_path.read_bytes()
+        return {
+            "content": content,
+            "hash": hashlib.md5(
+                content
+            ).hexdigest(),  # MD5 is sufficient for detecting accidental overwrites; not used for security
+        }
+
+    before = _snapshot()
+
+    yield
+
+    after = _snapshot()
+
+    if before is None:
+        # File didn't exist before the test; nothing to protect or restore.
+        return
+
+    problem = None
+    if after is None:
+        problem = f"configuration.yaml was DELETED: {config_path}"
+    elif after["hash"] != before["hash"]:
+        problem = (
+            f"configuration.yaml CONTENT MODIFIED: {config_path} "
+            f"(size {len(before['content'])} -> {len(after['content'])})"
+        )
+
+    if problem is not None:
+        # Restore the real file immediately so the corruption doesn't
+        # persist into later tests or a developer's working tree.
+        config_path.write_bytes(before["content"])
+
+    assert problem is None, (
+        "TEST BUG: The real .claude-mpm/configuration.yaml was modified during "
+        "a test (restored automatically). Mock the downstream writer "
+        "(e.g. save_agent_skills_to_config) instead of letting the real "
+        f"function resolve Path.cwd() and write to the repo.\n  - {problem}"
+    )
+
+
 # ===== Mock Objects Fixtures =====
 
 
