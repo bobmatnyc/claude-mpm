@@ -18,7 +18,7 @@ name: Test Suite
 on:
   push:
     branches: [main]
-  pull_request_target:
+  pull_request:
     branches: [main]
 
 permissions:
@@ -34,8 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       # Guard: fail immediately if any tracked source file is dirty at job
       # start (e.g. a mutated file left by mutmut on a prior run).  This turns
