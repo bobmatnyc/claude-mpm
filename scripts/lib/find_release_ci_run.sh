@@ -19,7 +19,12 @@
 #   head_sha matches the given commit appears, then prints its databaseId to
 #   stdout and exits 0. If no matching run appears within the timeout, it
 #   prints a clear error to stderr and exits 1. It never guesses at a run ID
-#   and never silently reports success for the wrong run.
+#   and never silently reports success for the wrong run. A `gh api` call
+#   that itself fails (auth error, 404, rate limit, transient network issue)
+#   is logged as a warning to stderr as soon as it happens, distinct from
+#   the ordinary "no matching run yet" case — so a persistent `gh` failure
+#   is visible immediately instead of only surfacing as an opaque timeout
+#   180 seconds later.
 #
 # Usage:
 #   find_release_ci_run.sh --repo <owner/repo> --workflow <file.yml> --sha <commit-sha> \
@@ -30,9 +35,10 @@
 # Test: tests/test_find_release_ci_run.py exercises this script against a
 #   fake `gh` binary on PATH that returns canned JSON, verifying that (a) a
 #   run matching the requested head_sha is selected even when a newer,
-#   unrelated run exists, (b) polling retries until the run appears, and
-#   (c) the script fails loudly (non-zero exit, stderr message) when no
-#   matching run ever appears before the timeout.
+#   unrelated run exists, (b) polling retries until the run appears, (c) the
+#   script fails loudly (non-zero exit, stderr message) when no matching run
+#   ever appears before the timeout, and (d) a `gh api` failure is logged to
+#   stderr immediately rather than being silently swallowed.
 
 set -euo pipefail
 
@@ -84,6 +90,8 @@ done
 [ -n "$SHA" ] || usage
 
 ELAPSED=0
+GH_STDERR_FILE=$(mktemp)
+trap 'rm -f "$GH_STDERR_FILE"' EXIT
 
 while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
     # Server-side filter by head_sha: only runs actually triggered by this
@@ -91,7 +99,19 @@ while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
     # client-side. Sort defensively in case the API ever returns more than
     # one match (e.g. a manual workflow_dispatch re-run against the same SHA)
     # and pick the most recently created one.
-    RESPONSE=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW}/runs?head_sha=${SHA}" 2>/dev/null || true)
+    #
+    # A `gh api` failure (auth error, 404, rate limit, network blip) is
+    # distinguished from "no matching run yet": the former is surfaced as
+    # a warning on stderr immediately (so it isn't silently swallowed for
+    # the full timeout), while the latter is expected during the first few
+    # polls right after a push and just keeps the loop going.
+    if RESPONSE=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW}/runs?head_sha=${SHA}" 2>"$GH_STDERR_FILE"); then
+        :
+    else
+        GH_EXIT=$?
+        echo "WARNING: gh api call failed (exit ${GH_EXIT}): $(cat "$GH_STDERR_FILE")" >&2
+        RESPONSE=""
+    fi
 
     if [ -n "$RESPONSE" ]; then
         RUN_ID=$(printf '%s' "$RESPONSE" | jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].id // empty')
