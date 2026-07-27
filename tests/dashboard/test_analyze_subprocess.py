@@ -14,6 +14,7 @@ is called via subprocess to analyze codebases.
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -38,10 +39,18 @@ def test_analyze_code_subprocess():
 
     print(f"Running command: {' '.join(cmd)}")
 
-    # Run subprocess
-    result = subprocess.run(
-        cmd, check=False, capture_output=True, text=True, timeout=30
-    )
+    # Run subprocess in an isolated cwd so this test never resolves paths
+    # (e.g. .claude/agents, .claude-mpm/configuration.yaml) against the real
+    # repo root (see #945).
+    with tempfile.TemporaryDirectory() as isolated_cwd:
+        result = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=isolated_cwd,
+        )
 
     print(f"Return code: {result.returncode}")
 
