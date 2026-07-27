@@ -1214,10 +1214,18 @@ def deploy_output_style_on_startup():
             # Styles are ready, but ensure activation is set
             # Check if we need to activate default style
             # Only activate if no style is currently set (preserve user choices)
+            #
+            # Read manager.project_settings_file (the project-scoped, git-ignored
+            # .claude/settings.local.json) here -- it is the same file
+            # manager._activate_output_style() writes to. Previously this read
+            # manager.settings_file (the global ~/.claude/settings.json) while the
+            # write landed in the project-local file, so this guard could never
+            # be satisfied by its own write and re-fired on every startup,
+            # producing permanent tracked-file drift (issue #943).
             settings = {}
-            if manager.settings_file.exists():
+            if manager.project_settings_file.exists():
                 try:
-                    settings = json.loads(manager.settings_file.read_text())
+                    settings = json.loads(manager.project_settings_file.read_text())
                 except json.JSONDecodeError:
                     pass
 

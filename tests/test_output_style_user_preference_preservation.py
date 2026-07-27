@@ -21,9 +21,9 @@ from claude_mpm.core.output_style_manager import OutputStyleManager
 def temp_home(monkeypatch):
     """Create temporary home directory for testing.
 
-    Also chdir into it so the project-local ``.claude/settings.json`` that the
-    output-style activation now writes (issue #924) resolves under the same
-    temp tree as the HOME-based output-styles directory.
+    Also chdir into it so the project-local ``.claude/settings.local.json``
+    that the output-style activation writes (issues #924, #943) resolves
+    under the same temp tree as the HOME-based output-styles directory.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_path = Path(tmpdir)
@@ -46,13 +46,19 @@ def test_first_deployment_sets_active_style(temp_home):
     # Verify deployment succeeded
     assert results.get("professional"), "Professional style should deploy successfully"
 
-    # Verify outputStyle was set
-    settings_path = temp_home / ".claude" / "settings.json"
-    assert settings_path.exists(), "settings.json should be created"
+    # Verify outputStyle was set in the git-ignored, project-scoped file --
+    # never in the tracked .claude/settings.json (issue #943).
+    settings_path = temp_home / ".claude" / "settings.local.json"
+    assert settings_path.exists(), "settings.local.json should be created"
 
     settings = json.loads(settings_path.read_text())
     assert settings.get("outputStyle") == "claude_mpm", (
         "outputStyle should be set to 'claude_mpm' on first deployment"
+    )
+
+    tracked_path = temp_home / ".claude" / "settings.json"
+    assert not tracked_path.exists(), (
+        "the tracked .claude/settings.json should never be written (issue #943)"
     )
 
 
@@ -64,7 +70,7 @@ def test_second_deployment_preserves_user_choice(temp_home):
     manager.deploy_all_styles(activate_default=True)
 
     # User changes their preference to a different style
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings = json.loads(settings_path.read_text())
     settings["outputStyle"] = "my_custom_style"
     settings_path.write_text(json.dumps(settings, indent=2))
@@ -97,7 +103,7 @@ def test_redeployment_after_file_deletion_sets_active_style(temp_home):
     style_file.unlink()
 
     # User had changed their preference
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings = json.loads(settings_path.read_text())
     settings["outputStyle"] = "my_custom_style"
     settings_path.write_text(json.dumps(settings, indent=2))
@@ -117,7 +123,7 @@ def test_redeployment_after_file_deletion_sets_active_style(temp_home):
 def test_no_active_style_set_activates_default(temp_home):
     """Test 4: If no outputStyle is set, deployment should set it."""
     # Create settings without outputStyle
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     settings_path.write_text(json.dumps({"someOtherSetting": "value"}, indent=2))
 
@@ -146,7 +152,7 @@ def test_deploy_output_style_with_activate_false(temp_home):
     assert result, "Deployment should succeed"
 
     # Verify outputStyle was NOT set
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     if settings_path.exists():
         settings = json.loads(settings_path.read_text())
         assert "outputStyle" not in settings or settings.get("outputStyle") is None, (
@@ -164,8 +170,8 @@ def test_deploy_output_style_with_activate_true_on_fresh_install(temp_home):
     assert result, "Deployment should succeed"
 
     # Verify outputStyle was set
-    settings_path = temp_home / ".claude" / "settings.json"
-    assert settings_path.exists(), "settings.json should be created"
+    settings_path = temp_home / ".claude" / "settings.local.json"
+    assert settings_path.exists(), "settings.local.json should be created"
 
     settings = json.loads(settings_path.read_text())
     assert settings.get("outputStyle") == "claude_mpm", (
@@ -182,7 +188,7 @@ def test_deploy_output_style_with_activate_true_preserves_user_choice(temp_home)
     manager.deploy_output_style(style="professional", activate=True)
 
     # User changes preference
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings = json.loads(settings_path.read_text())
     settings["outputStyle"] = "users_preference"
     settings_path.write_text(json.dumps(settings, indent=2))
@@ -200,6 +206,50 @@ def test_deploy_output_style_with_activate_true_preserves_user_choice(temp_home)
     # Verify legacy key was cleaned up
     assert "activeOutputStyle" not in settings_after, (
         "Legacy activeOutputStyle key should be removed"
+    )
+
+
+def test_settings_file_ends_with_single_trailing_newline(temp_home):
+    """Test 8: Regression test for issue #944.
+
+    Every write to ``.claude/settings.local.json`` via ``_activate_output_style``
+    must end with exactly one trailing newline. Writing JSON without a
+    trailing newline deterministically diverges from the POSIX-text-file
+    convention used elsewhere in the repo, which caused ``cz bump`` to see a
+    spurious diff on every release.
+    """
+    manager = OutputStyleManager()
+    manager.claude_version = "1.0.83"
+    manager.deploy_all_styles(activate_default=True)
+
+    settings_path = temp_home / ".claude" / "settings.local.json"
+    raw = settings_path.read_text()
+    assert raw.endswith("\n"), "settings.local.json must end with a trailing newline"
+    assert not raw.endswith("\n\n"), (
+        "settings.local.json must not end with a blank line"
+    )
+
+
+def test_cleanup_global_output_style_writes_trailing_newline(temp_home):
+    """Test 9: Regression test for issue #944.
+
+    ``_cleanup_global_output_style`` (issue #924 self-heal path) writes the
+    shared global settings file directly and must also end with exactly one
+    trailing newline.
+    """
+    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text(json.dumps({"outputStyle": "claude_mpm"}, indent=2))
+
+    manager = OutputStyleManager()
+    manager._cleanup_global_output_style()
+
+    raw = settings_path.read_text()
+    assert raw.endswith("\n"), "settings.json must end with a trailing newline"
+    assert not raw.endswith("\n\n"), "settings.json must not end with a blank line"
+    settings = json.loads(raw)
+    assert "outputStyle" not in settings, (
+        "MPM-owned outputStyle should be stripped from the global settings file"
     )
 
 

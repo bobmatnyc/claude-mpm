@@ -105,13 +105,32 @@ class OutputStyleManager:
     """
 
     def __init__(self) -> None:
-        """Initialize the output style manager."""
+        """Initialize the output style manager.
+
+        WHAT: Sets up logging, detects the running Claude Code version,
+        resolves the on-disk paths used for output-style deployment and
+        activation (global settings, project-scoped git-ignored settings,
+        and the output-style source/target pairs), and builds the
+        ``styles`` registry consumed by the rest of this class.
+
+        WHY: Centralizing path resolution here keeps the global-vs-project
+        settings distinction (see :pyattr:`project_settings_file`) in one
+        place, which is what issue #943 (global-read/project-write
+        mismatch causing tracked-file drift) depends on being correct.
+        """
         self.logger = get_logger("output_style_manager")  # type: ignore[misc]
         self.claude_version = self._detect_claude_version()
 
         # Deploy to ~/.claude/output-styles/ directory (official Claude Code location)
         self.output_style_dir = Path.home() / ".claude" / "output-styles"
         self.settings_file = Path.home() / ".claude" / "settings.json"
+
+        # Project-scoped, git-ignored file for the user's personal outputStyle
+        # preference. Activation writes here -- never to the tracked,
+        # team-shared .claude/settings.json -- so the choice stays scoped to
+        # this project (issue #924) without producing permanent uncommitted
+        # drift in a file every contributor has checked out (issue #943).
+        self.project_settings_file = Path.cwd() / ".claude" / "settings.local.json"
 
         # Style definitions
         self.styles: dict[str, StyleConfig] = {
@@ -413,7 +432,7 @@ class OutputStyleManager:
             if isinstance(value, str) and value.startswith("claude_mpm"):
                 del settings["outputStyle"]
                 self.settings_file.write_text(
-                    json.dumps(settings, indent=2), encoding="utf-8"
+                    json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                 )
                 self.logger.info(
                     "Removed MPM-owned outputStyle '%s' from global %s (issue #924)",
@@ -422,6 +441,87 @@ class OutputStyleManager:
                 )
         except Exception as e:  # pragma: no cover - defensive
             self.logger.debug("Global outputStyle cleanup skipped: %s", e)
+
+    def _migrate_tracked_project_output_style(self) -> None:
+        """Self-heal any MPM-owned ``outputStyle`` written to the tracked,
+        git-shared ``.claude/settings.json`` by the issue #943 regression.
+
+        Between PR #934 (2026-07-17) and this fix, activation wrote
+        ``outputStyle`` into the project's tracked ``.claude/settings.json``
+        instead of a git-ignored file, producing permanent uncommitted drift
+        for every contributor. This helper strips any ``claude_mpm*`` value
+        left behind by that bug and, if the user hadn't already set a
+        preference in the new location, carries it forward into
+        :pyattr:`project_settings_file` so their choice isn't lost.
+
+        WHAT: Reads the tracked ``.claude/settings.json``; if it contains an
+        ``outputStyle`` value starting with ``claude_mpm``, removes it from
+        that tracked file and, unless the project-scoped git-ignored file
+        already has its own ``outputStyle``, writes the value there instead.
+        No-ops entirely when the tracked file is absent, unparsable, or has
+        no MPM-owned value.
+
+        WHY: This is the one-time remediation half of the issue #943 fix --
+        without it, contributors who already hit the bug would keep a
+        stray ``outputStyle`` permanently drifted into the tracked,
+        team-shared settings file even after upgrading past the regression.
+        """
+        tracked_path = Path.cwd() / ".claude" / "settings.json"
+        try:
+            if not tracked_path.exists():
+                return
+
+            try:
+                tracked_settings = json.loads(tracked_path.read_text())
+            except (json.JSONDecodeError, OSError):
+                # Don't touch a file we can't parse.
+                return
+
+            if not isinstance(tracked_settings, dict):
+                return
+
+            value = tracked_settings.get("outputStyle")
+            if not (isinstance(value, str) and value.startswith("claude_mpm")):
+                return
+
+            # Never leave a personal preference in the tracked, team-shared
+            # file (issue #943).
+            del tracked_settings["outputStyle"]
+            tracked_path.write_text(
+                json.dumps(tracked_settings, indent=2), encoding="utf-8"
+            )
+            self.logger.info(
+                "Removed MPM-owned outputStyle '%s' from tracked %s (issue #943)",
+                value,
+                tracked_path,
+            )
+
+            # Carry the value forward to the git-ignored, project-scoped
+            # file -- unless the user already has a preference recorded
+            # there, in which case we must not clobber it.
+            local_settings: dict[str, Any] = {}
+            if self.project_settings_file.exists():
+                try:
+                    local_settings = json.loads(self.project_settings_file.read_text())
+                except (json.JSONDecodeError, OSError):
+                    local_settings = {}
+
+            if not isinstance(local_settings, dict):
+                local_settings = {}
+
+            if "outputStyle" not in local_settings:
+                local_settings["outputStyle"] = value
+                self.project_settings_file.parent.mkdir(parents=True, exist_ok=True)
+                self.project_settings_file.write_text(
+                    json.dumps(local_settings, indent=2), encoding="utf-8"
+                )
+                self.logger.info(
+                    "Migrated outputStyle '%s' to %s (issue #943)",
+                    value,
+                    self.project_settings_file,
+                )
+        except Exception as e:  # pragma: no cover - defensive
+            self.logger.debug("Tracked project outputStyle migration skipped: %s", e)
 
     def _activate_output_style(
         self, style_name: str = "Claude MPM", is_fresh_install: bool = False
@@ -458,9 +558,16 @@ class OutputStyleManager:
             # Claude Code session on the machine (issue #924).
             self._cleanup_global_output_style()
 
-            # Write the activation to the PROJECT-LOCAL .claude/settings.json so
-            # the outputStyle only applies to this project, not globally.
-            settings_path = Path.cwd() / ".claude" / "settings.json"
+            # Self-heal: strip any MPM-owned outputStyle previously written to
+            # the tracked, git-shared project settings.json by the issue #943
+            # regression, carrying the value forward if not already migrated.
+            self._migrate_tracked_project_output_style()
+
+            # Write the activation to the project-scoped, git-ignored
+            # .claude/settings.local.json so the outputStyle only applies to
+            # this project (not globally, issue #924) and never pollutes the
+            # tracked, team-shared .claude/settings.json (issue #943).
+            settings_path = self.project_settings_file
 
             # Load existing settings or create new
             settings = {}
@@ -518,7 +625,7 @@ class OutputStyleManager:
 
                 # Write updated settings
                 settings_path.write_text(
-                    json.dumps(settings, indent=2), encoding="utf-8"
+                    json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                 )
 
                 self.logger.info(
@@ -540,7 +647,7 @@ class OutputStyleManager:
 
                 # Write updated settings
                 settings_path.write_text(
-                    json.dumps(settings, indent=2), encoding="utf-8"
+                    json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                 )
 
                 self.logger.info(
@@ -552,7 +659,7 @@ class OutputStyleManager:
                     del settings["activeOutputStyle"]
                     settings_path.parent.mkdir(parents=True, exist_ok=True)
                     settings_path.write_text(
-                        json.dumps(settings, indent=2), encoding="utf-8"
+                        json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                     )
                     self.logger.debug("Cleaned up legacy activeOutputStyle key")
 
@@ -591,10 +698,17 @@ class OutputStyleManager:
             else:
                 status["file_status"] = "Pending deployment"
 
-            # Check active style
-            if self.settings_file.exists():
+            # Check active style. Prefer the project-scoped file activation
+            # actually writes to; fall back to the global file only if the
+            # project-scoped one hasn't been created yet (issue #943).
+            status_settings_file = (
+                self.project_settings_file
+                if self.project_settings_file.exists()
+                else self.settings_file
+            )
+            if status_settings_file.exists():
                 try:
-                    settings = json.loads(self.settings_file.read_text())
+                    settings = json.loads(status_settings_file.read_text())
                     status["active_style"] = settings.get("outputStyle", "none")
                 except Exception:
                     status["active_style"] = "Error reading settings"
@@ -668,13 +782,16 @@ class OutputStyleManager:
         if activate_default and results.get("professional", False):
             file_fresh_install = not professional_style_existed
 
-            # Check for existing preferences (both native and legacy)
+            # Check for existing preferences (both native and legacy). Read
+            # the same project-scoped file _activate_output_style() writes
+            # to -- reading manager.settings_file (global) here would check
+            # a different file than the one being updated (issue #943).
             existing_preference = None
             has_settings_file = False
-            if self.settings_file.exists():
+            if self.project_settings_file.exists():
                 has_settings_file = True
                 try:
-                    settings = json.loads(self.settings_file.read_text())
+                    settings = json.loads(self.project_settings_file.read_text())
                     existing_preference = settings.get("outputStyle") or settings.get(
                         "activeOutputStyle"
                     )

@@ -833,3 +833,199 @@ class TestMcpSecurityReviewRename:
             f"Bundled skill(s) with 'mcp' prefix found — these shadow the native "
             f"/mcp command: {mcp_prefixed}. Rename them (see issue #736)."
         )
+
+
+def _assert_single_trailing_newline(path: Path) -> None:
+    """Shared assertion for issue #944: files must end with exactly one ``\\n``."""
+    raw = path.read_text()
+    assert raw.endswith("\n"), f"{path} must end with a trailing newline (issue #944)"
+    assert not raw.endswith("\n\n"), (
+        f"{path} must not end with a blank line (issue #944)"
+    )
+
+
+class TestTrailingNewlineIssue944:
+    """Regression tests for issue #944.
+
+    ``claude-mpm`` writes several tracked settings files (``settings.json``,
+    ``settings.local.json``, plugin registries) via ``json.dump``/``json.dumps``.
+    Without a trailing newline these writes deterministically differ from the
+    POSIX-text-file convention used elsewhere in the repo, which made ``cz
+    bump`` see a spurious diff on every release. Each of these tests exercises
+    a distinct ``json.dump`` call site and asserts the written file ends with
+    exactly one trailing newline.
+    """
+
+    @pytest.fixture
+    def home_dir(self, tmp_path):
+        """Temp $HOME with a ``.claude`` directory already created."""
+        home = tmp_path / "home"
+        (home / ".claude").mkdir(parents=True)
+        return home
+
+    def test_clean_user_level_hooks_writes_trailing_newline(self, home_dir):
+        """``_clean_user_level_hooks`` (settings.local.json dedup) call site."""
+        from claude_mpm.cli.startup_migrations import _clean_user_level_hooks
+
+        settings_file = home_dir / ".claude" / "settings.local.json"
+        settings_file.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {"hooks": [{"command": "claude-hook"}]},
+                            {"hooks": [{"command": "claude-hook"}]},  # duplicate
+                        ]
+                    }
+                },
+                indent=2,
+            )
+        )
+
+        with patch.object(Path, "home", return_value=home_dir):
+            result = _clean_user_level_hooks()
+
+        assert result is True
+        _assert_single_trailing_newline(settings_file)
+
+    def test_remove_hook_handler_sh_writes_trailing_newline(self, home_dir):
+        """``_remove_hook_handler_sh`` call site."""
+        from claude_mpm.cli.startup_migrations import _remove_hook_handler_sh
+
+        settings_file = home_dir / ".claude" / "settings.json"
+        settings_file.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {"hooks": [{"command": "claude-hook-handler.sh"}]},
+                        ]
+                    }
+                },
+                indent=2,
+            )
+        )
+
+        with (
+            patch.object(Path, "home", return_value=home_dir),
+            patch.object(Path, "cwd", return_value=home_dir),
+        ):
+            result = _remove_hook_handler_sh()
+
+        assert result is True
+        _assert_single_trailing_newline(settings_file)
+
+    def test_upgrade_to_fast_hook_writes_trailing_newline(self, home_dir):
+        """``_upgrade_to_fast_hook`` call site."""
+        from claude_mpm.cli.startup_migrations import _upgrade_to_fast_hook
+
+        settings_file = home_dir / ".claude" / "settings.local.json"
+        settings_file.write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {"hooks": [{"command": "claude-hook-fast.sh"}]},
+                        ]
+                    }
+                },
+                indent=2,
+            )
+        )
+
+        with (
+            patch.object(Path, "home", return_value=home_dir),
+            patch.object(Path, "cwd", return_value=home_dir),
+        ):
+            result = _upgrade_to_fast_hook()
+
+        assert result is True
+        _assert_single_trailing_newline(settings_file)
+
+    def test_clean_stale_hook_paths_writes_trailing_newline(self, home_dir):
+        """``_clean_stale_hook_paths`` call site."""
+        from claude_mpm.cli.startup_migrations import _clean_stale_hook_paths
+
+        settings_file = home_dir / ".claude" / "settings.local.json"
+        settings_file.write_text(
+            json.dumps(
+                {"hooks": {"SubagentStart": [{"hooks": [{"command": "claude-hook"}]}]}},
+                indent=2,
+            )
+        )
+
+        with (
+            patch.object(Path, "home", return_value=home_dir),
+            patch.object(Path, "cwd", return_value=home_dir),
+        ):
+            result = _clean_stale_hook_paths()
+
+        assert result is True
+        _assert_single_trailing_newline(settings_file)
+
+    def test_remove_unsupported_hook_events_writes_trailing_newline(self, home_dir):
+        """``_remove_unsupported_hook_events`` call site."""
+        from claude_mpm.cli.startup_migrations import _remove_unsupported_hook_events
+
+        settings_file = home_dir / ".claude" / "settings.local.json"
+        settings_file.write_text(
+            json.dumps({"hooks": {"WorktreeCreate": []}}, indent=2)
+        )
+
+        with patch.object(Path, "home", return_value=home_dir):
+            result = _remove_unsupported_hook_events()
+
+        assert result is True
+        _assert_single_trailing_newline(settings_file)
+
+    def test_migrate_plugin_scope_v1_writes_trailing_newline(
+        self, home_dir, monkeypatch
+    ):
+        """``migrate_plugin_scope_v1`` writes both the global and project
+        plugin registries — both call sites must end with a single newline."""
+        from claude_mpm.cli import startup_migrations
+        from claude_mpm.cli.startup_migrations import (
+            check_plugin_scope_v1,
+            migrate_plugin_scope_v1,
+        )
+
+        project = home_dir.parent / "project"
+        project.mkdir()
+
+        global_plugins_file = (
+            home_dir / ".claude" / "plugins" / "installed_plugins.json"
+        )
+        global_plugins_file.parent.mkdir(parents=True)
+        global_plugins_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "plugins": {
+                        "some-plugin@1.0.0": [
+                            {"scope": "user", "installPath": "/tmp/some-plugin"}
+                        ]
+                    },
+                },
+                indent=2,
+            )
+        )
+
+        monkeypatch.setattr("builtins.input", lambda _prompt: "y")
+
+        with (
+            patch.object(Path, "home", return_value=home_dir),
+            patch.object(Path, "cwd", return_value=project),
+        ):
+            assert check_plugin_scope_v1() is True
+            result = migrate_plugin_scope_v1()
+
+        assert result is True
+        _assert_single_trailing_newline(global_plugins_file)
+        project_plugins_file = (
+            project / ".claude" / "plugins" / "installed_plugins.json"
+        )
+        _assert_single_trailing_newline(project_plugins_file)
+
+        # Reset module-level cache populated by check_plugin_scope_v1 so this
+        # test doesn't leak state into other tests running in the same worker.
+        startup_migrations._plugin_scope_check_result = {}

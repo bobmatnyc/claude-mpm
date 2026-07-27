@@ -755,8 +755,7 @@ pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publ
 	@echo "$(GREEN)✓ Common issues check complete$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Step 5/6: Validating version consistency...$(NC)"
-	@python scripts/check_version_consistency.py || \
-		echo "$(YELLOW)⚠ Version consistency check failed (non-blocking)$(NC)"
+	@python tools/dev/checks/check_version_consistency.py
 	@echo ""
 	@echo "$(YELLOW)Step 6/6: Checking PM behavioral compliance...$(NC)"
 	@$(MAKE) check-pm-behavioral-compliance
@@ -1058,15 +1057,24 @@ publish-pypi: ## Publish package to PyPI using credentials from .env.local
 update-homebrew-tap: ## Update Homebrew tap formula after PyPI publish (non-blocking)
 	@echo "$(YELLOW)🍺 Updating Homebrew tap...$(NC)"
 	@echo "$(YELLOW)⏳ Waiting for release-wheels.yml CI to finish before polling PyPI...$(NC)"
-	@RUN_ID=$$(gh run list --workflow=release-wheels.yml --repo bobmatnyc/claude-mpm --limit=1 --json databaseId --jq '.[0].databaseId' 2>/dev/null); \
-	if [ -n "$$RUN_ID" ]; then \
-		echo "$(BLUE)ℹ  Watching CI run $$RUN_ID (release-wheels.yml)...$(NC)"; \
-		gh run watch "$$RUN_ID" --repo bobmatnyc/claude-mpm --exit-status 2>/dev/null && \
-			echo "$(GREEN)✓ CI wheels build completed$(NC)" || \
-			echo "$(YELLOW)⚠️  CI run did not finish cleanly — attempting Homebrew update anyway$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠️  Could not find release-wheels.yml run ID — attempting Homebrew update anyway$(NC)"; \
-	fi
+	@VERSION=$$(cat VERSION); \
+	TAG="v$$VERSION"; \
+	SHA=$$(git rev-parse --verify "$$TAG^{}" 2>/dev/null || git rev-parse --verify "$$TAG" 2>/dev/null); \
+	if [ -z "$$SHA" ]; then \
+		echo "$(RED)✗ Could not resolve tag $$TAG to a commit SHA — aborting Homebrew update$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(BLUE)ℹ  Locating release-wheels.yml run for $$TAG (commit $$SHA)...$(NC)"; \
+	RUN_ID=$$(./scripts/lib/find_release_ci_run.sh --repo bobmatnyc/claude-mpm --workflow release-wheels.yml --sha "$$SHA" --timeout 180 --interval 5) || { \
+		echo "$(RED)✗ Could not find a release-wheels.yml run for $$TAG (commit $$SHA) — aborting Homebrew update$(NC)"; \
+		exit 1; \
+	}; \
+	echo "$(BLUE)ℹ  Watching CI run $$RUN_ID (release-wheels.yml, commit $$SHA)...$(NC)"; \
+	gh run watch "$$RUN_ID" --repo bobmatnyc/claude-mpm --exit-status && \
+		echo "$(GREEN)✓ CI wheels build completed$(NC)" || { \
+			echo "$(RED)✗ CI run $$RUN_ID (release-wheels.yml) did not finish successfully — aborting Homebrew update$(NC)"; \
+			exit 1; \
+		}
 	@export GH_REQUIRED_ACCOUNT="$$(cat .gh-account 2>/dev/null | tr -d '[:space:]')"; \
 	VERSION=$$(cat VERSION); \
 	if [ -f "scripts/update_homebrew_tap.sh" ]; then \
