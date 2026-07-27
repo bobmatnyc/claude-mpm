@@ -203,5 +203,47 @@ def test_deploy_output_style_with_activate_true_preserves_user_choice(temp_home)
     )
 
 
+def test_settings_file_ends_with_single_trailing_newline(temp_home):
+    """Test 8: Regression test for issue #944.
+
+    Every write to ``.claude/settings.json`` via ``_activate_output_style``
+    must end with exactly one trailing newline. Writing JSON without a
+    trailing newline deterministically diverges from the POSIX-text-file
+    convention used elsewhere in the repo, which caused ``cz bump`` to see a
+    spurious diff on every release.
+    """
+    manager = OutputStyleManager()
+    manager.claude_version = "1.0.83"
+    manager.deploy_all_styles(activate_default=True)
+
+    settings_path = temp_home / ".claude" / "settings.json"
+    raw = settings_path.read_text()
+    assert raw.endswith("\n"), "settings.json must end with a trailing newline"
+    assert not raw.endswith("\n\n"), "settings.json must not end with a blank line"
+
+
+def test_cleanup_global_output_style_writes_trailing_newline(temp_home):
+    """Test 9: Regression test for issue #944.
+
+    ``_cleanup_global_output_style`` (issue #924 self-heal path) writes the
+    shared global settings file directly and must also end with exactly one
+    trailing newline.
+    """
+    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text(json.dumps({"outputStyle": "claude_mpm"}, indent=2))
+
+    manager = OutputStyleManager()
+    manager._cleanup_global_output_style()
+
+    raw = settings_path.read_text()
+    assert raw.endswith("\n"), "settings.json must end with a trailing newline"
+    assert not raw.endswith("\n\n"), "settings.json must not end with a blank line"
+    settings = json.loads(raw)
+    assert "outputStyle" not in settings, (
+        "MPM-owned outputStyle should be stripped from the global settings file"
+    )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-xvs"])
