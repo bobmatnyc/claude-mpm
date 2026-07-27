@@ -413,7 +413,7 @@ class OutputStyleManager:
             if isinstance(value, str) and value.startswith("claude_mpm"):
                 del settings["outputStyle"]
                 self.settings_file.write_text(
-                    json.dumps(settings, indent=2), encoding="utf-8"
+                    json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                 )
                 self.logger.info(
                     "Removed MPM-owned outputStyle '%s' from global %s (issue #924)",
@@ -518,7 +518,7 @@ class OutputStyleManager:
 
                 # Write updated settings
                 settings_path.write_text(
-                    json.dumps(settings, indent=2), encoding="utf-8"
+                    json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                 )
 
                 self.logger.info(
@@ -540,7 +540,7 @@ class OutputStyleManager:
 
                 # Write updated settings
                 settings_path.write_text(
-                    json.dumps(settings, indent=2), encoding="utf-8"
+                    json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                 )
 
                 self.logger.info(
@@ -552,7 +552,7 @@ class OutputStyleManager:
                     del settings["activeOutputStyle"]
                     settings_path.parent.mkdir(parents=True, exist_ok=True)
                     settings_path.write_text(
-                        json.dumps(settings, indent=2), encoding="utf-8"
+                        json.dumps(settings, indent=2) + "\n", encoding="utf-8"
                     )
                     self.logger.debug("Cleaned up legacy activeOutputStyle key")
 
