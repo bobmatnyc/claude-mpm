@@ -212,7 +212,7 @@ def test_deploy_output_style_with_activate_true_preserves_user_choice(temp_home)
 def test_settings_file_ends_with_single_trailing_newline(temp_home):
     """Test 8: Regression test for issue #944.
 
-    Every write to ``.claude/settings.json`` via ``_activate_output_style``
+    Every write to ``.claude/settings.local.json`` via ``_activate_output_style``
     must end with exactly one trailing newline. Writing JSON without a
     trailing newline deterministically diverges from the POSIX-text-file
     convention used elsewhere in the repo, which caused ``cz bump`` to see a
@@ -222,10 +222,12 @@ def test_settings_file_ends_with_single_trailing_newline(temp_home):
     manager.claude_version = "1.0.83"
     manager.deploy_all_styles(activate_default=True)
 
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     raw = settings_path.read_text()
-    assert raw.endswith("\n"), "settings.json must end with a trailing newline"
-    assert not raw.endswith("\n\n"), "settings.json must not end with a blank line"
+    assert raw.endswith("\n"), "settings.local.json must end with a trailing newline"
+    assert not raw.endswith("\n\n"), (
+        "settings.local.json must not end with a blank line"
+    )
 
 
 def test_cleanup_global_output_style_writes_trailing_newline(temp_home):
