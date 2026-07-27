@@ -17,9 +17,9 @@ from claude_mpm.core.output_style_manager import OutputStyleManager
 def temp_home(monkeypatch):
     """Create temporary home directory for testing.
 
-    Also chdir into it so the project-local ``.claude/settings.json`` that the
-    output-style activation now writes (issue #924) resolves under the same
-    temp tree as the HOME-based output-styles directory.
+    Also chdir into it so the project-local ``.claude/settings.local.json``
+    that the output-style activation writes (issues #924, #943) resolves
+    under the same temp tree as the HOME-based output-styles directory.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_path = Path(tmpdir)
@@ -30,7 +30,7 @@ def temp_home(monkeypatch):
 
 def test_migration_from_legacy_key(temp_home):
     """Test migration from legacy activeOutputStyle to native outputStyle."""
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create settings with only legacy key
@@ -65,7 +65,7 @@ def test_migration_preserves_user_custom_style(temp_home):
     Note: When users have custom styles, the system will reset to default
     on fresh installs for safety, but preserve known MPM styles.
     """
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create settings with legacy key containing user's custom choice
@@ -90,7 +90,7 @@ def test_migration_preserves_user_custom_style(temp_home):
 
 def test_no_migration_when_native_key_exists(temp_home):
     """Test that existing native keys are preserved and legacy keys are cleaned up."""
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Pre-create style file to simulate normal operation (not fresh install)
@@ -131,7 +131,7 @@ def test_style_name_to_id_conversion(temp_home):
         ("Some Custom Style", "some_custom_style"),
     ]
 
-    settings_path = temp_home / ".claude" / "settings.json"
+    settings_path = temp_home / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
     for display_name, expected_id in test_cases:
