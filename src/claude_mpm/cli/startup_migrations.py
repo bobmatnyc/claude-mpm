@@ -324,6 +324,7 @@ def _clean_user_level_hooks() -> bool:
         if removed_count > 0:
             with open(settings_file, "w") as f:
                 json.dump(data, f, indent=4)
+                f.write("\n")
             print(f"   Cleaning user-level hooks... ({removed_count} removed)")
             logger.info(f"Cleaned {removed_count} duplicate hook entries")
         else:
@@ -432,6 +433,7 @@ def _remove_hook_handler_sh() -> bool:
             if file_removed > 0:
                 with open(settings_file, "w") as f:
                     json.dump(data, f, indent=2)
+                    f.write("\n")
                 total_removed += file_removed
                 logger.info(
                     f"Removed {file_removed} hook-handler.sh entries from {settings_file}"
@@ -597,6 +599,7 @@ def _upgrade_to_fast_hook() -> bool:
             if file_upgraded > 0:
                 with open(settings_file, "w") as f:
                     json.dump(data, f, indent=2)
+                    f.write("\n")
                 total_upgraded += file_upgraded
                 logger.info(
                     f"Upgraded {file_upgraded} hooks to PATH-based claude-hook "
@@ -889,6 +892,7 @@ def _clean_stale_hook_paths() -> bool:
             if file_changed:
                 with open(settings_file, "w") as f:
                     json.dump(data, f, indent=2)
+                    f.write("\n")
                 total_removed_paths += removed_paths
                 total_removed_events += removed_events
                 total_upgraded_commands += upgraded_commands
@@ -1009,6 +1013,7 @@ def _remove_unsupported_hook_events() -> bool:
             if removed:
                 with open(settings_file, "w") as f:
                     json.dump(data, f, indent=2)
+                    f.write("\n")
                 total_removed += len(removed)
                 logger.info(
                     f"Removed unsupported hook events {removed} from {settings_file}"
@@ -1754,6 +1759,7 @@ def migrate_plugin_scope_v1() -> bool:
         try:
             with open(global_plugins_file, "w") as f:
                 json.dump(global_data, f, indent=2)
+                f.write("\n")
             logger.debug(f"Updated global plugins registry: {global_plugins_file}")
         except Exception as e:
             logger.warning(f"Failed to write global plugins registry: {e}")
@@ -1764,6 +1770,7 @@ def migrate_plugin_scope_v1() -> bool:
             project_plugins_file.parent.mkdir(parents=True, exist_ok=True)
             with open(project_plugins_file, "w") as f:
                 json.dump(project_data, f, indent=2)
+                f.write("\n")
             logger.debug(f"Updated project plugins registry: {project_plugins_file}")
         except Exception as e:
             logger.warning(f"Failed to write project plugins registry: {e}")
