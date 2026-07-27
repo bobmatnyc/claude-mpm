@@ -19,6 +19,23 @@
 - **model-defaults**: `model_tier_hook.py` now defaults all non-haiku agents to `claude-sonnet-4-6` instead of opus; engineering agents no longer auto-route to opus — pass `model: "opus"` explicitly when opus is required
 - **memory-hooks**: `claude_mpm.hooks.memory_capture` hook entries are removed from settings files; a startup migration (`remove_memory_capture_hook`, v6.4.9) cleans stale entries automatically; memory hooks are now owned by trusty-memory
 
+## v6.5.83 (2026-07-27)
+
+### Fix
+
+- stop test suite from corrupting real .claude-mpm/configuration.yaml (#945) (#952)
+- isolate ServiceContainer in test_framework_functionality.py to stop xdist cache race (#957)
+- correct stale settings path in output-style trailing-newline test (#956)
+- always terminate written JSON settings with a trailing newline (#944) (#953)
+- correlate release CI watch to the pushed commit SHA (#946) (#951)
+- correlate release CI watch to the pushed commit SHA
+- make outputStyle guard read/write settings from the same scope (#943) (#954)
+- make outputStyle guard read/write settings from the same scope
+- restore pre-publish version-consistency enforcement (#947) (#950)
+- restore pre-publish version-consistency enforcement
+- skip pre-commit hook install inside linked worktrees (#948) (#949)
+- skip pre-commit hook install inside linked worktrees
+
 ## v6.5.82 (2026-07-26)
 
 ### Feat
