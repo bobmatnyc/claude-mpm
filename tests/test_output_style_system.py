@@ -169,9 +169,9 @@ class TestOutputStyleManager:
     def test_deploy_output_style_success(self, tmp_path):
         """Test successful deployment to Claude Code."""
         tmpdir = tmp_path
-        # outputStyle activation now writes to the PROJECT-LOCAL
-        # .claude/settings.json (cwd) rather than manager.settings_file
-        # (issue #924), so redirect cwd to the temp dir.
+        # outputStyle activation writes to the project-scoped, git-ignored
+        # .claude/settings.local.json (cwd) rather than manager.settings_file
+        # (issues #924, #943), so redirect cwd to the temp dir.
         with (
             patch("subprocess.run") as mock_run,
             patch("pathlib.Path.cwd", return_value=tmp_path),
@@ -200,12 +200,19 @@ class TestOutputStyleManager:
             assert target_path.exists()
             assert target_path.read_text() == content
 
-            # Check settings were updated in the project-local .claude/settings.json
-            project_settings = tmp_path / ".claude" / "settings.json"
+            # Check settings were updated in the project-local, git-ignored
+            # .claude/settings.local.json -- never the tracked settings.json
+            # (issue #943).
+            project_settings = tmp_path / ".claude" / "settings.local.json"
             assert project_settings.exists()
             settings = json.loads(project_settings.read_text())
             # _activate_output_style now uses the style ID "claude_mpm" (native outputStyle key)
             assert settings["outputStyle"] == "claude_mpm"
+
+            tracked_settings = tmp_path / ".claude" / "settings.json"
+            assert not tracked_settings.exists(), (
+                "the tracked .claude/settings.json should never be written (issue #943)"
+            )
 
     def test_deploy_output_style_unsupported_version(self):
         """Test deployment fails for older Claude versions."""
