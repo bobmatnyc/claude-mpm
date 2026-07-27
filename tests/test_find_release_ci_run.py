@@ -49,6 +49,12 @@ if [ -f "$FAKE_GH_CALL_COUNTER" ]; then
 fi
 echo $((COUNT + 1)) > "$FAKE_GH_CALL_COUNTER"
 
+FAIL_UNTIL="${FAKE_GH_FAIL_UNTIL:-0}"
+if [ "$COUNT" -lt "$FAIL_UNTIL" ]; then
+    echo "fake gh: simulated auth failure (HTTP 401)" >&2
+    exit 1
+fi
+
 READY_AFTER="${FAKE_GH_READY_AFTER:-0}"
 if [ "$COUNT" -lt "$READY_AFTER" ]; then
     echo '{"workflow_runs": []}'
