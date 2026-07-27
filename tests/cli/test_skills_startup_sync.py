@@ -18,10 +18,19 @@ class TestSyncRemoteSkillsOnStartup:
         with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
             yield
 
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.save_agent_skills_to_config"
+    )
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
     @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
-    def test_successful_skills_sync(self, mock_config_class, mock_manager_class):
-        """Test successful synchronization of skills."""
+    def test_successful_skills_sync(
+        self, mock_config_class, mock_manager_class, mock_save_config
+    ):
+        """Test successful synchronization of skills.
+
+        ``save_agent_skills_to_config`` is mocked so this test never writes to
+        the real ``.claude-mpm/configuration.yaml`` (see #945).
+        """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
         # Mock configuration
@@ -174,13 +183,24 @@ class TestTwoPhaseProgressBars:
         with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
             yield
 
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.save_agent_skills_to_config"
+    )
     @patch("claude_mpm.utils.progress.ProgressBar")
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
     @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
     def test_two_progress_bars_created(
-        self, mock_config_class, mock_manager_class, mock_progress_class
+        self,
+        mock_config_class,
+        mock_manager_class,
+        mock_progress_class,
+        mock_save_config,
     ):
-        """Test that two separate progress bars are created for sync and deploy."""
+        """Test that two separate progress bars are created for sync and deploy.
+
+        ``save_agent_skills_to_config`` is mocked so this test never writes to
+        the real ``.claude-mpm/configuration.yaml`` (see #945).
+        """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
         # Mock configuration
@@ -242,13 +262,24 @@ class TestTwoPhaseProgressBars:
         sync_progress.finish.assert_called_once()
         deploy_progress.finish.assert_called_once()
 
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.save_agent_skills_to_config"
+    )
     @patch("claude_mpm.utils.progress.ProgressBar")
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
     @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
     def test_progress_callback_invoked_during_sync(
-        self, mock_config_class, mock_manager_class, mock_progress_class
+        self,
+        mock_config_class,
+        mock_manager_class,
+        mock_progress_class,
+        mock_save_config,
     ):
-        """Test that progress callback is passed to sync_all_sources."""
+        """Test that progress callback is passed to sync_all_sources.
+
+        ``save_agent_skills_to_config`` is mocked so this test never writes to
+        the real ``.claude-mpm/configuration.yaml`` (see #945).
+        """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
         # Mock configuration
@@ -284,16 +315,26 @@ class TestTwoPhaseProgressBars:
         assert "progress_callback" in call_args[1]
         assert callable(call_args[1]["progress_callback"])
 
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.save_agent_skills_to_config"
+    )
     @patch("claude_mpm.utils.progress.ProgressBar")
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
     @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
     def test_progress_callback_invoked_during_deploy(
-        self, mock_config_class, mock_manager_class, mock_progress_class
+        self,
+        mock_config_class,
+        mock_manager_class,
+        mock_progress_class,
+        mock_save_config,
     ):
         """Test that deploy_skills is called with target_dir and skill_filter args.
 
         NOTE: The implementation no longer passes progress_callback to deploy_skills.
         deploy_skills is called with target_dir, force, and skill_filter parameters.
+
+        ``save_agent_skills_to_config`` is mocked so this test never writes to
+        the real ``.claude-mpm/configuration.yaml`` (see #945).
         """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
@@ -342,6 +383,9 @@ class TestTwoPhaseProgressBars:
         # skill_filter is passed (may be a set or None)
         assert "skill_filter" in call_args[1]
 
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.save_agent_skills_to_config"
+    )
     @patch("claude_mpm.services.skills.selective_skill_deployer.get_skills_to_deploy")
     @patch(
         "claude_mpm.services.skills.selective_skill_deployer.get_required_skills_from_agents"
@@ -356,6 +400,7 @@ class TestTwoPhaseProgressBars:
         mock_progress_class,
         mock_required_skills,
         mock_skills_to_deploy,
+        mock_save_config,
     ):
         """Test that deploy_skills is skipped when there are no skills to deploy.
 
@@ -367,10 +412,11 @@ class TestTwoPhaseProgressBars:
         is NOT called.
 
         This test fully mocks the skill-resolution inputs
-        (``get_required_skills_from_agents``, ``get_skills_to_deploy``, and
-        ``manager.get_all_skills``) so the no-skills scenario is deterministic and
-        does not depend on the real filesystem ``.claude/agents/`` directory or a
-        project ``configuration.yaml``.
+        (``get_required_skills_from_agents``, ``get_skills_to_deploy``,
+        ``save_agent_skills_to_config``, and ``manager.get_all_skills``) so the
+        no-skills scenario is deterministic and does not depend on the real
+        filesystem ``.claude/agents/`` directory or write to the real project
+        ``configuration.yaml`` (see #945).
         """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
@@ -416,6 +462,9 @@ class TestTwoPhaseProgressBars:
         # Verify sync was performed
         mock_manager.sync_all_sources.assert_called_once()
 
+    @patch(
+        "claude_mpm.services.skills.selective_skill_deployer.save_agent_skills_to_config"
+    )
     @patch("claude_mpm.services.skills.selective_skill_deployer.get_skills_to_deploy")
     @patch(
         "claude_mpm.services.skills.selective_skill_deployer.get_required_skills_from_agents"
@@ -430,6 +479,7 @@ class TestTwoPhaseProgressBars:
         mock_progress_class,
         mock_required_skills,
         mock_skills_to_deploy,
+        mock_save_config,
     ):
         """Test that deploy_skills IS called when there are skills to deploy.
 
@@ -437,6 +487,9 @@ class TestTwoPhaseProgressBars:
         skill resolution yields a non-empty list, ``skill_count > 0`` and the
         gate opens, so ``deploy_skills`` is invoked exactly once. Skill resolution
         is fully mocked to keep the test independent of real filesystem state.
+
+        ``save_agent_skills_to_config`` is also mocked so this test never writes
+        to the real ``.claude-mpm/configuration.yaml`` (see #945).
         """
         from claude_mpm.cli.startup import sync_remote_skills_on_startup
 
