@@ -14,6 +14,29 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
+from claude_mpm.services.core.service_container import ServiceContainer
+
+
+def _make_loader() -> FrameworkLoader:
+    """Build a FrameworkLoader with its own isolated ServiceContainer.
+
+    WHAT: Constructs FrameworkLoader(service_container=ServiceContainer())
+    instead of the bare FrameworkLoader() default (get_global_container()).
+
+    WHY: FrameworkLoader._register_services only binds ICacheManager the
+    FIRST time it's requested from a given container, and the default
+    container is a process-wide singleton that outlives any single test
+    file under ``pytest -n auto``. If another test file in the same xdist
+    worker builds a FrameworkLoader() against an isolated/empty project
+    directory before this module's tests run, that empty deployed-agents
+    result gets cached in the shared CacheManager (30s TTL) and is
+    silently inherited here, producing "Found 0 deployed agents instead
+    of >0" even though this repo's real .claude/agents directory is
+    non-empty. A fresh ServiceContainer() per loader sidesteps the shared
+    cache entirely. Same pattern as
+    tests/test_agent_manifest_filtering.py::_make_loader().
+    """
+    return FrameworkLoader(service_container=ServiceContainer())
 
 
 def setup_logging():
@@ -31,7 +54,7 @@ def test_agent_capabilities_loading():
     print("Testing Agent Capabilities Loading")
     print("=" * 60)
 
-    loader = FrameworkLoader()
+    loader = _make_loader()
 
     # Test deployed agents discovery
     deployed_agents = loader._get_deployed_agents()
@@ -79,7 +102,7 @@ def test_memory_loading():
     print("Testing Memory Loading")
     print("=" * 60)
 
-    loader = FrameworkLoader()
+    loader = _make_loader()
     content = {}
 
     # Test memory loading
@@ -113,7 +136,7 @@ def test_framework_content_loading():
     print("Testing Framework Content Loading")
     print("=" * 60)
 
-    loader = FrameworkLoader()
+    loader = _make_loader()
     content = loader.framework_content
 
     # Check essential content is loaded
@@ -144,7 +167,7 @@ def test_full_instruction_generation():
     print("Testing Full Framework Instructions")
     print("=" * 60)
 
-    loader = FrameworkLoader()
+    loader = _make_loader()
 
     # Generate full instructions
     instructions = loader.get_framework_instructions()
@@ -182,7 +205,7 @@ def test_yaml_metadata_parsing():
     print("Testing YAML Metadata Parsing")
     print("=" * 60)
 
-    loader = FrameworkLoader()
+    loader = _make_loader()
 
     # Find an agent file with YAML frontmatter
     agent_dirs = [Path.cwd() / ".claude" / "agents", Path.home() / ".claude" / "agents"]
