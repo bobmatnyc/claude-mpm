@@ -392,6 +392,61 @@ class ProjectInitializer:
                 if not dst_file.exists():
                     shutil.copy2(template_file, dst_file)
 
+    def _is_git_worktree(self, project_root: Path) -> bool:
+        """Detect whether ``project_root`` is a linked git worktree.
+
+        WHAT: Compares ``git rev-parse --git-dir`` against
+        ``--git-common-dir``. In the primary checkout (or any non-worktree
+        repo) they resolve to the same path; in a linked worktree
+        (e.g. ``.claude/worktrees/agent-XXXX``) ``--git-dir`` points at the
+        worktree-private ``.git/worktrees/<name>`` directory while
+        ``--git-common-dir`` still points at the shared ``.git`` of the
+        primary checkout.
+
+        WHY: Tools like ``pre-commit install`` write hooks to
+        ``$(git rev-parse --git-common-dir)/hooks``, which is shared across
+        all worktrees. Running hook installation from inside a subagent's
+        worktree would overwrite the primary checkout's hooks — see #948.
+        Callers use this to skip hook installation when not in the primary
+        checkout.
+
+        Args:
+            project_root: Directory to check.
+
+        Returns:
+            True if project_root is inside a linked git worktree, False if
+            it is the primary checkout or worktree status can't be
+            determined (fail open so normal repos are unaffected).
+        """
+        try:
+            import subprocess  # nosec B404 - required for git operations
+
+            git_dir = subprocess.run(  # nosec B603 B607 - trusted git command
+                ["git", "-C", str(project_root), "rev-parse", "--git-dir"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=True,
+            ).stdout.strip()
+            git_common_dir = subprocess.run(  # nosec B603 B607 - trusted git command
+                ["git", "-C", str(project_root), "rev-parse", "--git-common-dir"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=True,
+            ).stdout.strip()
+        except Exception as e:
+            self.logger.debug(f"Could not determine git worktree status: {e}")
+            return False
+
+        def _resolve(path_str: str) -> Path:
+            path = Path(path_str)
+            if not path.is_absolute():
+                path = project_root / path
+            return path.resolve()
+
+        return _resolve(git_dir) != _resolve(git_common_dir)
+
     def _setup_security_hooks(
         self, project_root: Path, is_mcp_mode: bool = False
     ) -> None:
@@ -413,6 +468,23 @@ class ProjectInitializer:
             # Only set up hooks if this is a git repository
             if not (project_root / ".git").exists():
                 self.logger.debug("Not a git repository, skipping security hooks setup")
+                return
+
+            # Skip entirely inside a linked git worktree (e.g. a subagent's
+            # isolated .claude/worktrees/agent-XXXX checkout). `pre-commit
+            # install` writes to the *shared* hooks directory
+            # ($(git rev-parse --git-common-dir)/hooks), which for a linked
+            # worktree resolves back to the primary checkout's .git/hooks.
+            # Running this from inside a worktree would silently overwrite
+            # the primary checkout's hooks with a shim pointing at the
+            # worktree's (often ephemeral/pruned) venv interpreter. See #948.
+            if self._is_git_worktree(project_root):
+                self.logger.debug(
+                    "%s is a linked git worktree; skipping pre-commit/security "
+                    "hook installation to avoid clobbering the primary "
+                    "checkout's shared .git/hooks",
+                    project_root,
+                )
                 return
 
             # Check/install pre-commit
