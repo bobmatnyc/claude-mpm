@@ -1060,10 +1060,11 @@ update-homebrew-tap: ## Update Homebrew tap formula after PyPI publish (non-bloc
 	@echo "$(YELLOW)⏳ Waiting for release-wheels.yml CI to finish before polling PyPI...$(NC)"
 	@VERSION=$$(cat VERSION); \
 	TAG="v$$VERSION"; \
-	SHA=$$(git rev-parse "$$TAG^{}" 2>/dev/null || git rev-parse "$$TAG" 2>/dev/null) || { \
+	SHA=$$(git rev-parse --verify "$$TAG^{}" 2>/dev/null || git rev-parse --verify "$$TAG" 2>/dev/null); \
+	if [ -z "$$SHA" ]; then \
 		echo "$(RED)✗ Could not resolve tag $$TAG to a commit SHA — aborting Homebrew update$(NC)"; \
 		exit 1; \
-	}; \
+	fi; \
 	echo "$(BLUE)ℹ  Locating release-wheels.yml run for $$TAG (commit $$SHA)...$(NC)"; \
 	RUN_ID=$$(./scripts/lib/find_release_ci_run.sh --repo bobmatnyc/claude-mpm --workflow release-wheels.yml --sha "$$SHA" --timeout 180 --interval 5) || { \
 		echo "$(RED)✗ Could not find a release-wheels.yml run for $$TAG (commit $$SHA) — aborting Homebrew update$(NC)"; \
