@@ -21,8 +21,13 @@ from pathlib import Path
 
 
 def get_project_root() -> Path:
-    """Get the project root directory."""
-    return Path(__file__).parent.parent
+    """Get the project root directory.
+
+    This script lives at ``tools/dev/checks/check_version_consistency.py``,
+    so the repo root is four levels up from ``__file__``:
+    checks/ -> dev/ -> tools/ -> <repo root>.
+    """
+    return Path(__file__).resolve().parent.parent.parent.parent
 
 
 def read_version_file(path: Path) -> str | None:
