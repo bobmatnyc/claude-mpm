@@ -71,11 +71,12 @@ def test_deployment_function():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_home = Path(temp_dir)
         output_styles_dir = temp_home / ".claude" / "output-styles"
-        settings_file = temp_home / ".claude" / "settings.json"
+        settings_file = temp_home / ".claude" / "settings.local.json"
+        tracked_settings_file = temp_home / ".claude" / "settings.json"
 
         # Mock Path.home() and Path.cwd() to the temp directory so both the
-        # HOME-based output-styles dir and the project-local (cwd) settings.json
-        # (issue #924) resolve under the temp tree.
+        # HOME-based output-styles dir and the project-local (cwd)
+        # settings.local.json (issues #924, #943) resolve under the temp tree.
         with (
             patch("pathlib.Path.home", return_value=temp_home),
             patch("pathlib.Path.cwd", return_value=temp_home),
@@ -100,16 +101,20 @@ def test_deployment_function():
                 deployed_content = output_style_file.read_text()
                 assert deployed_content == source_content, "Content mismatch"
 
-                # Check settings.json was created
-                assert settings_file.exists(), "settings.json not created"
+                # Check settings.local.json was created (git-ignored, project-
+                # scoped file -- never the tracked settings.json, issue #943)
+                assert settings_file.exists(), "settings.local.json not created"
                 settings = json.loads(settings_file.read_text())
                 assert settings.get("outputStyle") == "claude_mpm", (
                     "outputStyle not set"
                 )
+                assert not tracked_settings_file.exists(), (
+                    "tracked .claude/settings.json should never be written (issue #943)"
+                )
 
                 print(f"✓ Output style file created at: {output_style_file}")
                 print(f"✓ Content matches source ({len(deployed_content)} characters)")
-                print("✓ settings.json created with outputStyle: claude_mpm")
+                print("✓ settings.local.json created with outputStyle: claude_mpm")
                 print()
 
 
