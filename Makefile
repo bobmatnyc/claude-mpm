@@ -755,8 +755,7 @@ pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publ
 	@echo "$(GREEN)✓ Common issues check complete$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Step 5/6: Validating version consistency...$(NC)"
-	@python scripts/check_version_consistency.py || \
-		echo "$(YELLOW)⚠ Version consistency check failed (non-blocking)$(NC)"
+	@python tools/dev/checks/check_version_consistency.py
 	@echo ""
 	@echo "$(YELLOW)Step 6/6: Checking PM behavioral compliance...$(NC)"
 	@$(MAKE) check-pm-behavioral-compliance
