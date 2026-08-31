@@ -10,11 +10,64 @@ import logging
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.core.service_container import ServiceContainer
+
+# Agent definitions written into the isolated project by
+# ``isolated_agents_project``. Names are prefixed so they can never collide
+# with a real deployed agent if the isolation ever leaks, and are already
+# lowercase kebab-case so the file stem and the normalized agent id
+# (``get_deployed_agent_ids``) are the same string.
+FIXTURE_AGENTS = {
+    "fixture-engineer": "Implements features and fixes bugs.",
+    "fixture-qa": "Validates behavior and writes tests.",
+}
+
+
+@pytest.fixture()
+def isolated_agents_project(tmp_path, monkeypatch):
+    """Point deployed-agent discovery at a tmp project with known agent files.
+
+    Why: #958 -- ``AgentLoader.get_deployed_agents`` globs
+    ``Path.cwd()/.claude/agents`` and ``Path.home()/.claude/agents``, so
+    ``test_agent_capabilities_loading`` asserted against whatever those
+    directories happened to hold. Under ``pytest -n auto`` the repo's
+    ``.claude/agents`` is not deterministically populated before the test
+    runs, so the assertion passed only when some other test's write landed
+    first.
+
+    What: Builds ``{tmp}/isolated_project`` with a ``.claude-mpm`` marker (so
+    ``PathResolver.find_project_root`` stops there), writes one ``.md`` file
+    per entry in ``FIXTURE_AGENTS`` into its ``.claude/agents``, then chdirs
+    into it, sets ``CLAUDE_MPM_USER_PWD``, and redirects ``Path.home()`` to an
+    empty fake home. Both discovery roots are then fully owned by the test.
+
+    Test: ``test_agent_capabilities_loading``.
+    """
+    project = tmp_path / "isolated_project"
+    agents_dir = project / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    (project / ".claude-mpm").mkdir()
+
+    for name, description in FIXTURE_AGENTS.items():
+        (agents_dir / f"{name}.md").write_text(
+            f"---\nname: {name}\ndescription: {description}\nmodel: sonnet\n---\n\n"
+            f"# {name}\n\n{description}\n"
+        )
+
+    fake_home = tmp_path / "home"
+    (fake_home / ".claude" / "agents").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", classmethod(lambda _cls: fake_home))
+
+    monkeypatch.chdir(project)
+    monkeypatch.setenv("CLAUDE_MPM_USER_PWD", str(project))
+
+    return project
 
 
 def _make_loader() -> FrameworkLoader:
@@ -48,8 +101,14 @@ def setup_logging():
     )
 
 
-def test_agent_capabilities_loading():
-    """Test that agent capabilities are loaded correctly."""
+def test_agent_capabilities_loading(isolated_agents_project):
+    """Test that agent capabilities are loaded correctly.
+
+    Runs against ``isolated_agents_project`` rather than the repo's real
+    ``.claude/agents``, so the deployed-agent set is exactly ``FIXTURE_AGENTS``
+    no matter which xdist worker picks the test up or what ran before it
+    (#958).
+    """
     print("\n" + "=" * 60)
     print("Testing Agent Capabilities Loading")
     print("=" * 60)
@@ -61,13 +120,18 @@ def test_agent_capabilities_loading():
     print(f"✓ Found {len(deployed_agents)} deployed agents")
     print(f"  Deployed agents: {', '.join(sorted(deployed_agents))}")
 
+    assert deployed_agents == set(FIXTURE_AGENTS), (
+        f"Expected exactly the fixture agents, got {sorted(deployed_agents)}"
+    )
+
     # Test agent capabilities generation
     capabilities = loader._generate_agent_capabilities_section()
     print(f"✓ Generated agent capabilities section ({len(capabilities)} chars)")
 
     # Verify capabilities contain expected elements
     assert "Available Agent Capabilities" in capabilities
-    assert len(deployed_agents) > 0, "Should find deployed agents"
+    for name in FIXTURE_AGENTS:
+        assert name in capabilities, f"Capabilities section missing agent: {name}"
 
     # Test specific agent parsing
     agent_dirs = [Path.cwd() / ".claude" / "agents", Path.home() / ".claude" / "agents"]
@@ -83,15 +147,16 @@ def test_agent_capabilities_loading():
 
     print(f"✓ Successfully parsed {len(parsed_agents)} agent metadata files")
 
+    assert len(parsed_agents) == len(FIXTURE_AGENTS)
+
     # Verify metadata structure
-    if parsed_agents:
-        sample_agent = parsed_agents[0]
-        required_fields = ["id", "display_name", "description"]
+    required_fields = ["id", "display_name", "description"]
+    for sample_agent in parsed_agents:
         for field in required_fields:
             assert field in sample_agent, (
                 f"Agent metadata missing required field: {field}"
             )
-        print(f"✓ Agent metadata contains required fields: {required_fields}")
+    print(f"✓ Agent metadata contains required fields: {required_fields}")
 
     return True
 
@@ -243,50 +308,15 @@ def test_yaml_metadata_parsing():
 
 
 def main():
-    """Run all functionality tests."""
+    """Run this module's tests through pytest.
+
+    Delegates to pytest instead of calling the test functions in a hand-rolled
+    loop: ``test_agent_capabilities_loading`` now takes the
+    ``isolated_agents_project`` fixture, which only pytest can supply (#958).
+    """
     setup_logging()
-
-    print("Framework Loader Functionality Test")
-    print("=" * 80)
-    print("Testing that caching optimizations don't break functionality...")
-
-    tests = [
-        test_framework_content_loading,
-        test_agent_capabilities_loading,
-        test_memory_loading,
-        test_yaml_metadata_parsing,
-        test_full_instruction_generation,
-    ]
-
-    passed = 0
-    total = len(tests)
-
-    for test_func in tests:
-        try:
-            test_func()
-            passed += 1
-            print("✓ PASSED")
-        except Exception as e:
-            print(f"✗ FAILED: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-    print("\n" + "=" * 80)
-    print("FUNCTIONALITY TEST SUMMARY")
-    print("=" * 80)
-    print(f"Tests passed: {passed}/{total}")
-
-    if passed == total:
-        print("✅ ALL FUNCTIONALITY TESTS PASSED!")
-        print("Caching optimizations are working correctly.")
-    else:
-        print("⚠️ SOME TESTS FAILED!")
-        print("Caching optimizations may have broken functionality.")
-
-    return passed == total
+    return pytest.main([__file__, "-v"])
 
 
 if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    sys.exit(main())
