@@ -8,6 +8,14 @@ on:
     branches:
       - main
 
+# Restrict GITHUB_TOKEN to read-only for all jobs in this workflow.
+# fork PRs run under pull_request (not pull_request_target) so they receive
+# a read-only token automatically; this block makes the same restriction apply
+# to push-to-main runs too, and makes the policy explicit rather than relying
+# on the repo-level default.
+permissions:
+  contents: read
+
 jobs:
   deepeval-base-agent:
     name: BASE_AGENT DeepEval Tests
