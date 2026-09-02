@@ -197,11 +197,16 @@ claude-mpm auto-configure
 
 **Recommended Partners**: Install these companion tools for enhanced capabilities:
 ```bash
-uv tool install trusty-memory --python 3.13
-uv tool install trusty-search --python 3.13
+# Rust binaries (crates.io) - requires cargo
+cargo install trusty-memory
+cargo install trusty-search
+
+# Python tools (PyPI)
 uv tool install mcp-ticketer --python 3.13
 uv tool install mcp-browser --python 3.13
 ```
+`claude-mpm setup trusty-memory` / `claude-mpm setup trusty-search` install the same
+binaries and wire up MCP in one step.
 
 **Tool Version Management**: Use [ASDF version manager](docs/guides/asdf-tool-versions.md) to avoid Python/uv version conflicts across projects.
 

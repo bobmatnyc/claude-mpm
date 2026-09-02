@@ -1,7 +1,7 @@
 # MCP Vector Search Integration
 
 > **⚠️ DEPRECATED**: mcp-vector-search has been superseded by [trusty-search](./trusty-search.md).
-> New installations should use `uv tool install trusty-search` instead.
+> New installations should use `cargo install trusty-search` instead.
 > This document is retained for reference for existing mcp-vector-search installations.
 
 ## Overview

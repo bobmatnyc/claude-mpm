@@ -82,7 +82,7 @@ When using [trusty-memory](../integrations/trusty-memory.md) (recommended partne
 
 Install with:
 ```bash
-uv tool install trusty-memory
+cargo install trusty-memory
 claude-mpm setup trusty-memory
 ```
 
@@ -359,8 +359,8 @@ Graduated warning system:
 **Advanced memory management** with a hierarchical knowledge palace and temporal graph:
 
 ```bash
-# Install
-uv tool install trusty-memory
+# Install (Rust crate, not a PyPI package)
+cargo install trusty-memory
 
 # Configure for current project
 claude-mpm setup trusty-memory
@@ -380,8 +380,8 @@ See [trusty-memory integration guide](../integrations/trusty-memory.md) for deta
 **Semantic code search** with hybrid retrieval (BM25 + vector + KG):
 
 ```bash
-# Install
-uv tool install trusty-search
+# Install (Rust crate, not a PyPI package)
+cargo install trusty-search
 
 # Configure for current project
 claude-mpm setup trusty-search
