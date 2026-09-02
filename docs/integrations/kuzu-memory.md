@@ -1,7 +1,7 @@
 # Kuzu Memory Integration
 
 > **⚠️ DEPRECATED**: kuzu-memory has been superseded by [trusty-memory](./trusty-memory.md).
-> New installations should use `uv tool install trusty-memory` instead.
+> New installations should use `cargo install trusty-memory` instead.
 > This document is retained for reference for existing kuzu-memory installations.
 
 ## Overview

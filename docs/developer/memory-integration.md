@@ -37,8 +37,8 @@ Trusty-memory plugs into claude-mpm at two points:
 ## Installation
 
 ```bash
-# Install the binary
-uv tool install trusty-memory
+# Install the binary (Rust crate, not a PyPI package)
+cargo install trusty-memory
 
 # Configure the current project (creates palace, MCP entry, optional hook)
 claude-mpm setup trusty-memory
@@ -149,7 +149,7 @@ The two backends can coexist temporarily: PM_INSTRUCTIONS.md treats `trusty-memo
 
 | Symptom | Check |
 |---------|-------|
-| `trusty-memory: command not found` | `uv tool install trusty-memory`, then reload shell |
+| `trusty-memory: command not found` | `cargo install trusty-memory`, then reload shell |
 | MCP server not connecting | `cat ~/.claude/settings.json` — confirm the `trusty-memory` entry |
 | `UserPromptSubmit` hook hangs | Hook command must exit quickly; verify the binary is on `PATH` and that `prompt-context` returns within ~1s |
 | Empty recall results | Confirm the palace contains data: `trusty-memory list` or call `memory_recall_deep` |
